@@ -11,6 +11,10 @@ export const AeSkillNameSchema = z
     'ae:work',
     'ae:review',
     'ae:lfg',
+    'ae:save-rules',
+    'ae:frontend-design',
+    'ae:setup',
+    'ae:test-browser',
   ])
   .describe('AE 技能名')
 
@@ -23,6 +27,10 @@ export const AeCommandNameSchema = z
     'ae-work',
     'ae-review-code',
     'ae-lfg',
+    'ae-rules',
+    'ae-frontend-design',
+    'ae-setup',
+    'ae-test-browser',
   ])
   .describe('AE 命令名')
 
@@ -34,7 +42,7 @@ export const AeAssetEntrySchema = z.object({
   argumentHint: z.string().optional().describe('参数提示'),
   defaultEntry: z.boolean().default(false).describe('是否默认入口'),
   commandFile: z.string().min(1).describe('命令文件路径'),
-  skillFile: z.string().min(1).describe('技能文件路径'),
+  skillFile: z.string().describe('技能文件路径，无关联技能时为空字符串'),
 })
 
 export const AgentStageSchema = z

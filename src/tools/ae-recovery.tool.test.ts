@@ -22,11 +22,12 @@ function createToolContext(root: string) {
 
 describe('ae-recovery.tool', () => {
   it('应该返回带 nextSkill 的 lfg 恢复结果', async () => {
+    const root = mkdtempSync(join(tmpdir(), 'ae-recovery-tool-lfg-'))
     const output = await aeRecoveryTool.execute(
       {
         phase: 'lfg',
       },
-      createToolContext(process.cwd()),
+      createToolContext(root),
     )
 
     const parsed = JSON.parse(output as string) as { phase: string; nextSkill?: string }

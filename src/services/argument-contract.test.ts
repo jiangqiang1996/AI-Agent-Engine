@@ -4,7 +4,7 @@ import { getArgumentContracts } from './argument-contract.js'
 
 describe('argument-contract', () => {
   it('应该为每个公开入口生成参数契约', () => {
-    expect(getArgumentContracts()).toHaveLength(7)
+    expect(getArgumentContracts()).toHaveLength(11)
   })
 
   it('应该保留带 mode:* 的审查参数约定', () => {

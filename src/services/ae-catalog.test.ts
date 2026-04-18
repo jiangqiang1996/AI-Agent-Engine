@@ -4,7 +4,7 @@ import { getAllAgentDefinitions, getDefaultEntry, getPhaseOneEntries, getRequire
 
 describe('ae-catalog', () => {
   it('应该返回全部一期公开入口', () => {
-    expect(getPhaseOneEntries()).toHaveLength(7)
+    expect(getPhaseOneEntries()).toHaveLength(11)
   })
 
   it('应该把 ae:lfg 标记为默认入口', () => {
