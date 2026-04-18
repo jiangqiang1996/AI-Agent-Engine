@@ -1,7 +1,7 @@
 import { tool, type ToolDefinition } from '@opencode-ai/plugin/tool'
 import { Effect } from 'effect'
 
-import { createRuntimeAssetManifest } from '../services/runtime-asset-manifest.js'
+import { createRuntimeAssetManifestFromRoot } from '../services/runtime-asset-manifest.js'
 import { resolveRecovery } from '../services/recovery-service.js'
 
 export const aeRecoveryTool: ToolDefinition = tool({
@@ -26,10 +26,10 @@ export const aeRecoveryTool: ToolDefinition = tool({
       .describe('需要恢复的阶段'),
     expected_origin_fingerprint: tool.schema.string().optional().describe('期望的上游指纹'),
   },
-  async execute(args) {
+  async execute(args, context) {
     return Effect.runPromise(
       Effect.sync(() => {
-        const manifest = createRuntimeAssetManifest(import.meta.url)
+        const manifest = createRuntimeAssetManifestFromRoot(context.worktree)
         return JSON.stringify(
           resolveRecovery(manifest, args.phase, {
             expectedOriginFingerprint: args.expected_origin_fingerprint,

@@ -17,10 +17,10 @@ const SEVERITY_RANK: Record<ReviewFinding['severity'], number> = {
 }
 
 const AUTOFIX_PRIORITY: Record<ReviewFinding['autofixClass'], number> = {
+  advisory: 0,
   safe_auto: 1,
   gated_auto: 2,
   manual: 3,
-  advisory: 4,
 }
 
 export function mergeReviewFindings(findings: ReviewFinding[]): ReviewFinding[] {

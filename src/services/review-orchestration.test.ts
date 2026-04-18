@@ -47,4 +47,29 @@ describe('review-orchestration', () => {
 
     expect(result.blocked).toBe(true)
   })
+
+  it('应该在 manual 与 advisory 冲突时保留更严格的 manual 路由', () => {
+    const merged = mergeReviewFindings([
+      {
+        reviewer: 'correctness-reviewer',
+        title: '需要人工处理',
+        severity: 'P2',
+        autofixClass: 'manual',
+        message: '需要人工处理',
+        evidence: ['A'],
+        requiresVerification: true,
+      },
+      {
+        reviewer: 'testing-reviewer',
+        title: '需要人工处理',
+        severity: 'P2',
+        autofixClass: 'advisory',
+        message: '需要人工处理',
+        evidence: ['B'],
+        requiresVerification: false,
+      },
+    ])
+
+    expect(merged[0]?.autofixClass).toBe('manual')
+  })
 })

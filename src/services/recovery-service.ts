@@ -158,17 +158,11 @@ export function resolveRecovery(
       continue
     }
 
-    const invalid = artifacts.find((artifact) => artifact.body.trim().length === 0)
-    if (invalid) {
-      return invalidResult(phase, `产物为空: ${invalid.path}`)
-    }
-
-    const invalidMetadata = artifacts.find((artifact) => !hasValidMetadata(artifact))
-    if (invalidMetadata) {
-      return invalidResult(phase, `frontmatter 无效: ${invalidMetadata.path}`)
-    }
-
     const activeArtifacts = artifacts.filter((artifact) => !artifact.frontmatter.supersededBy)
+    if (activeArtifacts.length === 0) {
+      continue
+    }
+
     const filteredArtifacts = options.expectedOriginFingerprint
       ? activeArtifacts.filter((artifact) => {
           const fingerprint = artifact.frontmatter.originFingerprint
@@ -176,9 +170,23 @@ export function resolveRecovery(
         })
       : activeArtifacts
 
-    if (options.expectedOriginFingerprint && activeArtifacts.length > 0 && filteredArtifacts.length === 0) {
+    if (options.expectedOriginFingerprint && filteredArtifacts.length === 0) {
       sawFingerprintMismatch = true
       continue
+    }
+
+    if (filteredArtifacts.length === 0) {
+      continue
+    }
+
+    const invalid = filteredArtifacts.find((artifact) => artifact.body.trim().length === 0)
+    if (invalid) {
+      return invalidResult(phase, `产物为空: ${invalid.path}`)
+    }
+
+    const invalidMetadata = filteredArtifacts.find((artifact) => !hasValidMetadata(artifact))
+    if (invalidMetadata) {
+      return invalidResult(phase, `frontmatter 无效: ${invalidMetadata.path}`)
     }
 
     if (filteredArtifacts.length > 1) {

@@ -64,6 +64,43 @@ describe('recovery-service', () => {
     expect(result.artifactType).toBe('plan')
   })
 
+  it('应该忽略已被 supersede 的损坏 work 产物并回退到有效计划', () => {
+    const root = mkdtempSync(join(tmpdir(), 'ae-recovery-superseded-invalid-'))
+    mkdirSync(join(root, '.context', 'ae', 'work'), { recursive: true })
+    mkdirSync(join(root, 'docs', 'plans'), { recursive: true })
+    writeFileSync(
+      join(root, '.context', 'ae', 'work', 'run.md'),
+      '---\ntype: work\nstatus: completed\nsupersededBy: newer.md\n---\n',
+    )
+    writeFileSync(join(root, 'docs', 'plans', 'plan.md'), '---\ntitle: Plan\ntype: feat\nstatus: active\ndate: 2026-04-18\n---\nplan')
+
+    const result = resolveRecovery(createRuntimeAssetManifestFromRoot(root), 'work')
+
+    expect(result.resolution).toBe('resolved')
+    expect(result.artifactType).toBe('plan')
+  })
+
+  it('应该忽略上游指纹不匹配的损坏 work 产物并回退到匹配计划', () => {
+    const root = mkdtempSync(join(tmpdir(), 'ae-recovery-mismatch-invalid-work-'))
+    mkdirSync(join(root, '.context', 'ae', 'work'), { recursive: true })
+    mkdirSync(join(root, 'docs', 'plans'), { recursive: true })
+    writeFileSync(
+      join(root, '.context', 'ae', 'work', 'run.md'),
+      '---\ntype: work\nstatus: completed\noriginFingerprint: old\n---\n',
+    )
+    writeFileSync(
+      join(root, 'docs', 'plans', 'plan.md'),
+      '---\ntitle: Plan\ntype: feat\nstatus: active\ndate: 2026-04-18\noriginFingerprint: new\n---\nplan',
+    )
+
+    const result = resolveRecovery(createRuntimeAssetManifestFromRoot(root), 'work', {
+      expectedOriginFingerprint: 'new',
+    })
+
+    expect(result.resolution).toBe('resolved')
+    expect(result.artifactType).toBe('plan')
+  })
+
   it('应该把缺失关键 frontmatter 的计划视为无效产物', () => {
     const root = mkdtempSync(join(tmpdir(), 'ae-recovery-invalid-frontmatter-'))
     mkdirSync(join(root, 'docs', 'plans'), { recursive: true })
