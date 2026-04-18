@@ -80,11 +80,12 @@ Fetch and follow the uninstall instructions from https://gitee.com/jiangqiang199
 | `ae:work` | `/ae-work` | 按 living plan 执行工作，默认 subagent-first | plan 路径、工作描述 | 代码改动、`.context/ae/work/*` | 是 |
 | `ae:review` | `/ae-review-code` | 对代码改动做 CE 风格多 reviewer 审查 | `mode:*`、`plan:<path>`、`base:<ref>` | findings / gate 结论、`.context/ae/review/*` | 是 |
 | `ae:lfg` | `/ae-lfg` | 默认总入口，驱动从需求到执行的 AE 主链路 | 需求描述、已有产物路径 | 按阶段推进或恢复 | 是 |
-| `ae:rules` | `/ae-rules` | 总结当前会话中有价值的通用项目规范，询问后保存到 `.opencode/rules/` | 规范类型 | `.opencode/rules/**/*.md` | 否 |
+| `ae:save-rules` | `/ae-rules` | 总结当前会话中有价值的通用项目规范，询问后保存到 `.opencode/rules/` | 规范类型 | `.opencode/rules/**/*.md` | 否 |
 | `ae:frontend-design` | `/ae-frontend-design` | 构建具有设计品质的前端界面 | 描述、路径 | 前端代码 | 否 |
 | `ae:setup` | `/ae-setup` | 诊断并安装 AE 前端设计所需的外部依赖 | 无 | 无 | 否 |
 | `ae:test-browser` | `/ae-test-browser` | 使用 agent-browser 执行端到端浏览器测试 | URL、路由 | 测试结果 | 否 |
 | `ae:sql` | `/ae-sql` | 通过 JDBC 连接任意数据库并执行 SQL | SQL 语句 | 查询结果 / 影响行数 | 否 |
+| `ae:task-loop` | `/ae-task-loop` | 循环执行任务并自动验证，直到达成目标后退出 | 一句话目标描述 | 代码改动、完成报告 | 否 |
 
 ## 可直接调用的代理矩阵
 
@@ -160,11 +161,12 @@ Fetch and follow the uninstall instructions from https://gitee.com/jiangqiang199
 | `ae:review` / `/ae-review-code` | `plan:<path>` | 否 | 用于 requirements completeness 校验 | 省略时只审代码上下文 | 与无效路径组合时报错 |
 | `ae:review` / `/ae-review-code` | `base:<ref>` | 否 | 明确 diff 基线 | 省略时由当前上下文推断 | 与非法 ref 组合时报错 |
 | `ae:lfg` / `/ae-lfg` | 自由文本 | 否 | 需求描述或已有产物路径 | 无输入时优先恢复，恢复失败则回到 brainstorm | 多候选产物不自动猜测 |
-| `ae:rules` / `/ae-rules` | 规范类型 | 否 | 指定保存的规范分类 | 自动从会话内容推断类型 | 无 |
+| `ae:save-rules` / `/ae-rules` | 规范类型 | 否 | 指定保存的规范分类 | 自动从会话内容推断类型 | 无 |
 | `ae:frontend-design` / `/ae-frontend-design` | 描述或路径 | 否 | 前端设计描述或已有文件路径 | 无输入时根据上下文推断 | 无 |
 | `ae:setup` | 无 | 否 | 检查并安装前端设计外部依赖 | 无参数 | 无 |
 | `ae:test-browser` / `/ae-test-browser` | URL 或路由 | 否 | 指定要测试的页面地址 | 默认 `http://localhost:3000` | 无 |
 | `ae:sql` / `/ae-sql` | SQL 语句 | 否 | 要执行的 SQL 语句 | 自动检测 Spring Boot 配置或询问用户 | 无 |
+| `ae:task-loop` / `/ae-task-loop` | 一句话目标描述 | 否 | 循环执行直到达成 | 无输入时要求补充目标 | 无 |
 | 所有 `@<代理名>` | 自由文本 | 是 | 要代理处理的任务描述 | 直接返回代理处理结果 | 无 |
 
 ## 审查模式
@@ -224,6 +226,7 @@ Fetch and follow the uninstall instructions from https://gitee.com/jiangqiang199
 | 安装前端依赖 | `/ae-setup` | `/ae-setup` |
 | 浏览器测试 | `/ae-test-browser` | `/ae-test-browser http://localhost:3000` |
 | 数据库查询 | `/ae-sql` | `/ae-sql SELECT * FROM users LIMIT 10` |
+| 循环执行直到目标达成 | `/ae-task-loop` | `/ae-task-loop 修复所有 TypeScript 编译错误` |
 | 代码正确性审查 | `@correctness-reviewer` | `@correctness-reviewer 帮我审查这段登录逻辑的正确性` |
 | 架构方案评估 | `@architecture-strategist` | `@architecture-strategist 评估这个微服务拆分方案的合理性` |
 | 安全漏洞扫描 | `@security-sentinel` | `@security-sentinel 扫描这个用户认证模块的安全风险` |

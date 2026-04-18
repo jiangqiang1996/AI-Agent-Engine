@@ -121,6 +121,16 @@ const PHASE_ONE_ENTRIES = [
     commandFile: 'commands/ae-sql.md',
     skillFile: 'skills/ae-sql/SKILL.md',
   },
+  {
+    skillName: 'ae:task-loop',
+    skillSlug: 'ae-task-loop',
+    commandName: 'ae-task-loop',
+    description: '循环执行任务并自动验证，直到达成目标后退出',
+    argumentHint: '[一句话目标描述]',
+    defaultEntry: false,
+    commandFile: 'commands/ae-task-loop.md',
+    skillFile: 'skills/ae-task-loop/SKILL.md',
+  },
 ] satisfies AeAssetEntry[]
 
 const PHASE_ONE_REQUIRED_AGENTS = [

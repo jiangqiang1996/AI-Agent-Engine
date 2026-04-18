@@ -16,6 +16,7 @@ export const AeSkillNameSchema = z
     'ae:setup',
     'ae:test-browser',
     'ae:sql',
+    'ae:task-loop',
   ])
   .describe('AE 技能名')
 
@@ -33,6 +34,7 @@ export const AeCommandNameSchema = z
     'ae-setup',
     'ae-test-browser',
     'ae-sql',
+    'ae-task-loop',
   ])
   .describe('AE 命令名')
 
