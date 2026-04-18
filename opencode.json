@@ -1,0 +1,28 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "AGENTS.md",
+    ".opencode/rules/**/*.md"
+  ],
+  "plugin": [
+    "./.opencode/plugins/ae-server.js",
+    "./.opencode/plugins/ae-tui.js"
+  ],
+  "permission": {
+    "bash": {
+      "*": "allow",
+      "git *": "allow",
+      "git commit *": "ask",
+      "git push *": "ask",
+      "mvn *": "allow",
+      "rm -rf *": "deny",
+      "del *": "deny"
+    },
+    "skill": {
+      "*": "allow"
+    }
+  },
+  "agent": {
+
+  }
+}

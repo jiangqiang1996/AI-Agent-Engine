@@ -1,0 +1,10 @@
+**/node_modules
+**/bun.lock
+.idea
+dist
+.opencode/package-lock.json
+.opencode/commands/
+.opencode/agents/ae/
+.opencode/plugins/*.js
+**/tmp
+**/temp

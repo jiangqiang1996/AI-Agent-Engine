@@ -1,0 +1,23 @@
+{
+  "name": "ai-agent-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": ".opencode/plugins/ae-server.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/postbuild.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@opencode-ai/plugin": "1.4.10",
+    "@opencode-ai/sdk": "1.4.10",
+    "effect": "4.0.0-beta.48",
+    "zod": "4.1.8"
+  },
+  "devDependencies": {
+    "@types/node": "22.13.9",
+    "typescript": "5.8.2",
+    "vitest": "3.2.4"
+  }
+}
