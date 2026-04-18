@@ -8,3 +8,7 @@ dist
 .opencode/plugins/*.js
 **/tmp
 **/temp
+
+# ae-sql 运行时产物
+skills/ae-sql/script/jre/
+skills/ae-sql/script/drivers/*.jar

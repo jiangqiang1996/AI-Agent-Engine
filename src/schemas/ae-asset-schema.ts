@@ -15,6 +15,7 @@ export const AeSkillNameSchema = z
     'ae:frontend-design',
     'ae:setup',
     'ae:test-browser',
+    'ae:sql',
   ])
   .describe('AE 技能名')
 
@@ -31,6 +32,7 @@ export const AeCommandNameSchema = z
     'ae-frontend-design',
     'ae-setup',
     'ae-test-browser',
+    'ae-sql',
   ])
   .describe('AE 命令名')
 

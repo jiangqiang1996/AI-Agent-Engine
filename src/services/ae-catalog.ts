@@ -111,6 +111,16 @@ const PHASE_ONE_ENTRIES = [
     commandFile: 'commands/ae-test-browser.md',
     skillFile: 'skills/ae-test-browser/SKILL.md',
   },
+  {
+    skillName: 'ae:sql',
+    skillSlug: 'ae-sql',
+    commandName: 'ae-sql',
+    description: '通过 JDBC 连接任意数据库并执行 SQL',
+    argumentHint: '[SQL 语句]',
+    defaultEntry: false,
+    commandFile: 'commands/ae-sql.md',
+    skillFile: 'skills/ae-sql/SKILL.md',
+  },
 ] satisfies AeAssetEntry[]
 
 const PHASE_ONE_REQUIRED_AGENTS = [

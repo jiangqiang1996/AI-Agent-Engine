@@ -84,6 +84,7 @@ Fetch and follow the uninstall instructions from https://gitee.com/jiangqiang199
 | `ae:frontend-design` | `/ae-frontend-design` | 构建具有设计品质的前端界面 | 描述、路径 | 前端代码 | 否 |
 | `ae:setup` | `/ae-setup` | 诊断并安装 AE 前端设计所需的外部依赖 | 无 | 无 | 否 |
 | `ae:test-browser` | `/ae-test-browser` | 使用 agent-browser 执行端到端浏览器测试 | URL、路由 | 测试结果 | 否 |
+| `ae:sql` | `/ae-sql` | 通过 JDBC 连接任意数据库并执行 SQL | SQL 语句 | 查询结果 / 影响行数 | 否 |
 
 ## 可直接调用的代理矩阵
 
@@ -163,6 +164,7 @@ Fetch and follow the uninstall instructions from https://gitee.com/jiangqiang199
 | `ae:frontend-design` / `/ae-frontend-design` | 描述或路径 | 否 | 前端设计描述或已有文件路径 | 无输入时根据上下文推断 | 无 |
 | `ae:setup` | 无 | 否 | 检查并安装前端设计外部依赖 | 无参数 | 无 |
 | `ae:test-browser` / `/ae-test-browser` | URL 或路由 | 否 | 指定要测试的页面地址 | 默认 `http://localhost:3000` | 无 |
+| `ae:sql` / `/ae-sql` | SQL 语句 | 否 | 要执行的 SQL 语句 | 自动检测 Spring Boot 配置或询问用户 | 无 |
 | 所有 `@<代理名>` | 自由文本 | 是 | 要代理处理的任务描述 | 直接返回代理处理结果 | 无 |
 
 ## 审查模式
@@ -221,6 +223,7 @@ Fetch and follow the uninstall instructions from https://gitee.com/jiangqiang199
 | 前端设计 | `/ae-frontend-design` | `/ae-frontend-design 着陆页` |
 | 安装前端依赖 | `/ae-setup` | `/ae-setup` |
 | 浏览器测试 | `/ae-test-browser` | `/ae-test-browser http://localhost:3000` |
+| 数据库查询 | `/ae-sql` | `/ae-sql SELECT * FROM users LIMIT 10` |
 | 代码正确性审查 | `@correctness-reviewer` | `@correctness-reviewer 帮我审查这段登录逻辑的正确性` |
 | 架构方案评估 | `@architecture-strategist` | `@architecture-strategist 评估这个微服务拆分方案的合理性` |
 | 安全漏洞扫描 | `@security-sentinel` | `@security-sentinel 扫描这个用户认证模块的安全风险` |
