@@ -19,7 +19,7 @@ describe('core-agent-inventory', () => {
     for (const path of coreAgents) {
       const fullPath = resolve(repoRoot, path)
       expect(existsSync(fullPath)).toBe(true)
-      expect(readFileSync(fullPath, 'utf8')).toContain('重点')
+      expect(readFileSync(fullPath, 'utf8')).toContain('置信度校准')
     }
   })
 })
