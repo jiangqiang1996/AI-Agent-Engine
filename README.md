@@ -80,7 +80,7 @@ Fetch and follow the uninstall instructions from https://gitee.com/jiangqiang199
 | `ae:work` | `/ae-work` | 按 living plan 执行工作，默认 subagent-first | plan 路径、工作描述 | 代码改动、`.context/ae/work/*` | 是 |
 | `ae:review` | `/ae-review-code` | 对代码改动做 CE 风格多 reviewer 审查 | `mode:*`、`plan:<path>`、`base:<ref>` | findings / gate 结论、`.context/ae/review/*` | 是 |
 | `ae:lfg` | `/ae-lfg` | 默认总入口，驱动从需求到执行的 AE 主链路 | 需求描述、已有产物路径 | 按阶段推进或恢复 | 是 |
-| `ae:save-rules` | `/ae-rules` | 总结当前会话中有价值的通用项目规范，询问后保存到 `.opencode/rules/` | 规范类型 | `.opencode/rules/**/*.md` | 否 |
+| `ae:rules` | `/ae-rules` | 总结当前会话中有价值的通用项目规范，询问后保存到 `.opencode/rules/` | 规范类型 | `.opencode/rules/**/*.md` | 否 |
 | `ae:frontend-design` | `/ae-frontend-design` | 构建具有设计品质的前端界面 | 描述、路径 | 前端代码 | 否 |
 | `ae:setup` | `/ae-setup` | 诊断并安装 AE 前端设计所需的外部依赖 | 无 | 无 | 否 |
 | `ae:test-browser` | `/ae-test-browser` | 使用 agent-browser 执行端到端浏览器测试 | URL、路由 | 测试结果 | 否 |
@@ -92,7 +92,7 @@ Fetch and follow the uninstall instructions from https://gitee.com/jiangqiang199
 
 | 分类 | 代理名称 | 功能 | 典型使用场景 |
 | --- | --- | --- | --- |
-| **文档审查代理** | `@adversarial-document-reviewer` | 从对抗视角压力测试文档边界与方案稳健性 | 需求文档定稿前的安全审查 |
+| **文档审查代理** | `@adversarial-document-reviewer` | 以对抗视角审查文档，检验边界条件与方案稳健性 | 需求文档定稿前的安全审查 |
 | | `@coherence-reviewer` | 审查文档内部一致性，识别术语漂移、前后矛盾和结构冲突 | 需求/计划文档质量校验 |
 | | `@design-lens-reviewer` | 审查文档中涉及的 UI、交互和体验约束 | 产品需求文档的交互合理性审查 |
 | | `@feasibility-reviewer` | 审查文档或计划在当前仓库中是否可落地 | 技术方案可行性评估 |
@@ -111,32 +111,32 @@ Fetch and follow the uninstall instructions from https://gitee.com/jiangqiang199
 | | `@data-migration-expert` | 审查数据迁移方案安全性与兼容性 | 数据迁移方案评估 |
 | | `@data-migrations-reviewer` | 审查数据库迁移脚本正确性 | 数据库迁移代码审查 |
 | | `@design-implementation-reviewer` | 审查设计稿与实现的一致性 | 前端开发还原度校验 |
-| | `@dhh-rails-reviewer` | 按 DHH 风格审查 Rails 代码最佳实践 | Rails 项目代码审查 |
+| | `@dhh-rails-reviewer` | 以 DHH 的 Rails 哲学审查代码 | Rails 项目代码审查 |
 | | `@julik-frontend-races-reviewer` | 审查前端竞态条件与并发问题 | 前端交互逻辑审查 |
 | | `@kieran-python-reviewer` | 按严格 Python 质量标准审查代码 | Python 项目代码审查 |
 | | `@kieran-rails-reviewer` | 按 Kieran 风格审查 Rails 代码质量 | Rails 项目代码审查 |
-| | `@kieran-typescript-reviewer` | 按严格 TypeScript 质量标准审查类型、接口与实现清晰度 | TypeScript 项目代码审查 |
+| | `@kieran-typescript-reviewer` | 以严格 TypeScript 标准审查类型、接口与实现的清晰度 | TypeScript 项目代码审查 |
 | | `@maintainability-reviewer` | 审查可维护性、命名和抽象边界 | 代码可维护性评估 |
 | | `@pattern-recognition-specialist` | 识别代码中的重复模式与可优化点 | 代码重构建议 |
 | | `@performance-oracle` | 深度分析性能瓶颈与优化方案 | 性能问题排查 |
 | | `@performance-reviewer` | 审查性能热点、重复 I/O 和不必要的开销 | 性能代码审查 |
-| | `@previous-comments-reviewer` | 在有历史评论时检查反馈是否已经被回应或修复 | PR 历史反馈处理情况检查 |
+| | `@previous-comments-reviewer` | 检查历史审查反馈是否已被回应或修复 | PR 历史反馈处理情况检查 |
 | | `@project-standards-reviewer` | 审查改动是否符合仓库既有规范与约定 | 代码规范一致性校验 |
 | | `@reliability-reviewer` | 审查恢复路径、失败处理和重复执行安全性 | 可靠性与容错能力审查 |
 | | `@schema-drift-detector` | 检测数据库 schema 漂移与兼容性问题 | 数据库变更审查 |
 | | `@security-reviewer` | 审查权限、输入处理和信任边界问题 | 安全代码审查 |
 | | `@security-sentinel` | 深度扫描代码中的安全漏洞与风险点 | 安全渗透测试 |
 | | `@testing-reviewer` | 审查测试覆盖、断言质量和缺失场景 | 测试质量评估 |
-| **研究分析代理** | `@ankane-readme-writer` | 专业撰写高质量 README 文档 | 项目文档编写 |
+| **研究分析代理** | `@ankane-readme-writer` | 按 Ankane 风格撰写 Ruby gem 的 README 文档 | 项目文档编写 |
 | | `@best-practices-researcher` | 收集社区最佳实践与实现约定 | 技术方案选型参考 |
 | | `@framework-docs-researcher` | 收集框架和官方文档约束 | 技术实现依据查询 |
 | | `@git-history-analyzer` | 分析 Git 历史提交记录与变更模式 | 代码演化分析 |
 | | `@issue-intelligence-analyst` | 分析 issue 中的问题模式与解决方案 | 历史问题排查 |
-| | `@learnings-researcher` | 提炼仓库内已有文档、规范和方案沉淀 | 项目经验总结 |
+| | `@learnings-researcher` | 提炼仓库内已有文档、规范与经验 | 项目经验总结 |
 | | `@repo-research-analyst` | 研究仓库结构、已有模式和技术约束 | 项目上下文理解 |
 | | `@session-historian` | 分析会话历史与上下文关联 | 跨会话上下文恢复 |
-| | `@web-researcher` | 互联网信息检索与技术调研 | 技术问题解决方案查找 |
-| **工作流代理** | `@deployment-verification-agent` | 验证部署成功性与功能可用性 | 部署后检查 |
+| | `@web-researcher` | 执行互联网检索与技术调研，返回结构化的外部参考信息 | 技术问题解决方案查找 |
+| **工作流代理** | `@deployment-verification-agent` | 验证部署结果与功能可用性 | 部署后检查 |
 | | `@design-iterator` | 迭代优化设计方案与实现 | 前端设计迭代 |
 | | `@figma-design-sync` | 同步 Figma 设计稿到代码实现 | 设计稿转代码 |
 | | `@pr-comment-resolver` | 自动处理 PR 评论中的反馈与建议 | PR 反馈处理 |
@@ -160,7 +160,7 @@ Fetch and follow the uninstall instructions from https://gitee.com/jiangqiang199
 | `ae:review` / `/ae-review-code` | `plan:<path>` | 否 | 用于 requirements completeness 校验 | 省略时只审代码上下文 | 与无效路径组合时报错 |
 | `ae:review` / `/ae-review-code` | `base:<ref>` | 否 | 明确 diff 基线 | 省略时由当前上下文推断 | 与非法 ref 组合时报错 |
 | `ae:lfg` / `/ae-lfg` | 自由文本 | 否 | 需求描述或已有产物路径 | 无输入时优先恢复，恢复失败则回到 brainstorm | 多候选产物不自动猜测 |
-| `ae:save-rules` / `/ae-rules` | 规范类型 | 否 | 指定保存的规范分类 | 自动从会话内容推断类型 | 无 |
+| `ae:rules` / `/ae-rules` | 规范类型 | 否 | 指定保存的规范分类 | 自动从会话内容推断类型 | 无 |
 | `ae:frontend-design` / `/ae-frontend-design` | 描述或路径 | 否 | 前端设计描述或已有文件路径 | 无输入时根据上下文推断 | 无 |
 | `ae:setup` | 无 | 否 | 检查并安装前端设计外部依赖 | 无参数 | 无 |
 | `ae:test-browser` / `/ae-test-browser` | URL 或路由 | 否 | 指定要测试的页面地址 | 默认 `http://localhost:3000` | 无 |
