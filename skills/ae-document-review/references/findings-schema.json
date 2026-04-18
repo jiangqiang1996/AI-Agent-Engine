@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Document Review Findings",
+  "description": "文档审查角色代理的结构化输出 schema",
+  "type": "object",
+  "required": ["reviewer", "findings", "residual_risks", "deferred_questions"],
+  "properties": {
+    "reviewer": {
+      "type": "string",
+      "description": "产出此结果的角色名称（例如 'coherence'、'feasibility'、'product-lens'）"
+    },
+    "findings": {
+      "type": "array",
+      "description": "文档审查发现列表。如未发现问题则为空数组。",
+      "items": {
+        "type": "object",
+        "required": [
+          "title",
+          "severity",
+          "section",
+          "why_it_matters",
+          "finding_type",
+          "autofix_class",
+          "confidence",
+          "evidence"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "简短、具体的问题标题。10 个词以内。",
+            "maxLength": 100
+          },
+          "severity": {
+            "type": "string",
+            "enum": ["P0", "P1", "P2", "P3"],
+            "description": "问题严重级别"
+          },
+          "section": {
+            "type": "string",
+            "description": "问题出现的文档章节（例如 '需求追踪表'、'实现单元 3'、'概述'）"
+          },
+          "why_it_matters": {
+            "type": "string",
+            "description": "影响说明——不是'哪里有问题'，而是'不解决会出什么问题'"
+          },
+          "autofix_class": {
+            "type": "string",
+            "enum": ["auto", "present"],
+            "description": "此问题应如何处理。auto = 有一个明确正确的修复方案，可以静默应用（术语、格式、交叉引用、完整性修正、由其他内容机械推导出的补充）。present = 需要用户个人判断。"
+          },
+          "finding_type": {
+            "type": "string",
+            "enum": ["error", "omission"],
+            "description": "发现是文档中所说的错误（error）还是文档遗漏的内容（omission）。error 是设计张力、矛盾或不正确的陈述。omission 是缺失的机械步骤、遗漏的列表条目或缺省的细节。"
+          },
+          "suggested_fix": {
+            "type": ["string", "null"],
+            "description": "具体的修复文本。如果没有明显的好的修复方案，则省略或设为 null——糟糕的建议比没有建议更糟。"
+          },
+          "confidence": {
+            "type": "number",
+            "description": "审查者对此发现的信心，按角色校准",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "evidence": {
+            "type": "array",
+            "description": "文档中支持此发现的引用文本。至少 1 条。",
+            "items": { "type": "string" },
+            "minItems": 1
+          }
+        }
+      }
+    },
+    "residual_risks": {
+      "type": "array",
+      "description": "审查者注意到但无法确认为发现的风险（低于信心阈值）",
+      "items": { "type": "string" }
+    },
+    "deferred_questions": {
+      "type": "array",
+      "description": "应在后续工作流阶段（计划、实现）中解决的问题",
+      "items": { "type": "string" }
+    }
+  }
+}

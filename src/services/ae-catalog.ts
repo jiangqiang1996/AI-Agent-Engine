@@ -152,7 +152,6 @@ const GILDED_AGENTS = [
   ['git-history-analyzer', 'research', '分析 git 历史背景'],
   ['issue-intelligence-analyst', 'research', '分析 issue 模式与痛点'],
   ['web-researcher', 'research', '补充通用 Web 研究'],
-  ['slack-researcher', 'research', '补充组织上下文'],
   ['design-implementation-reviewer', 'review', '比对设计稿与实现'],
   ['design-iterator', 'workflow', '推动多轮设计迭代'],
   ['figma-design-sync', 'workflow', '同步 Figma 与实现'],
