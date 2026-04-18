@@ -85,6 +85,62 @@ Fetch and follow the uninstall instructions from https://gitee.com/jiangqiang199
 | `ae:setup` | `/ae-setup` | 诊断并安装 AE 前端设计所需的外部依赖 | 无 | 无 | 否 |
 | `ae:test-browser` | `/ae-test-browser` | 使用 agent-browser 执行端到端浏览器测试 | URL、路由 | 测试结果 | 否 |
 
+## 可直接调用的代理矩阵
+
+所有代理均可通过 `@<代理名>` 的方式在会话中主动调用：
+
+| 分类 | 代理名称 | 功能 | 典型使用场景 |
+| --- | --- | --- | --- |
+| **文档审查代理** | `@adversarial-document-reviewer` | 从对抗视角压力测试文档边界与方案稳健性 | 需求文档定稿前的安全审查 |
+| | `@coherence-reviewer` | 审查文档内部一致性，识别术语漂移、前后矛盾和结构冲突 | 需求/计划文档质量校验 |
+| | `@design-lens-reviewer` | 审查文档中涉及的 UI、交互和体验约束 | 产品需求文档的交互合理性审查 |
+| | `@feasibility-reviewer` | 审查文档或计划在当前仓库中是否可落地 | 技术方案可行性评估 |
+| | `@product-lens-reviewer` | 从用户价值与产品取舍角度审查文档 | 产品需求优先级评估 |
+| | `@scope-guardian-reviewer` | 审查范围是否失控，以及是否存在隐性二期内容 | 需求范围边界校验 |
+| | `@security-lens-reviewer` | 审查文档中的权限、安全和信任边界 | 安全需求审查 |
+| **代码审查代理** | `@adversarial-reviewer` | 对高风险或大改动执行对抗式代码审查 | 核心功能代码安全审查 |
+| | `@agent-native-reviewer` | 审查能力是否对 agent 友好，是否保留自动化入口 | 工具/API 设计合理性审查 |
+| | `@api-contract-reviewer` | 审查命令、工具和配置接口的契约稳定性 | API 接口兼容性审查 |
+| | `@architecture-strategist` | 审查架构设计合理性与技术债务 | 架构方案评估 |
+| | `@cli-readiness-reviewer` | 审查命令提示、参数、帮助与 agent 调用体验 | CLI 工具用户体验审查 |
+| | `@cli-agent-readiness-reviewer` | 审查 CLI 工具的 agent 调用友好性 | 自动化接口设计审查 |
+| | `@code-simplicity-reviewer` | 审查代码简洁性与可维护性 | 代码质量优化 |
+| | `@correctness-reviewer` | 审查代码逻辑正确性、边界条件和状态处理 | 功能正确性校验 |
+| | `@data-integrity-guardian` | 审查数据完整性保护机制 | 数据操作逻辑审查 |
+| | `@data-migration-expert` | 审查数据迁移方案安全性与兼容性 | 数据迁移方案评估 |
+| | `@data-migrations-reviewer` | 审查数据库迁移脚本正确性 | 数据库迁移代码审查 |
+| | `@design-implementation-reviewer` | 审查设计稿与实现的一致性 | 前端开发还原度校验 |
+| | `@dhh-rails-reviewer` | 按 DHH 风格审查 Rails 代码最佳实践 | Rails 项目代码审查 |
+| | `@julik-frontend-races-reviewer` | 审查前端竞态条件与并发问题 | 前端交互逻辑审查 |
+| | `@kieran-python-reviewer` | 按严格 Python 质量标准审查代码 | Python 项目代码审查 |
+| | `@kieran-rails-reviewer` | 按 Kieran 风格审查 Rails 代码质量 | Rails 项目代码审查 |
+| | `@kieran-typescript-reviewer` | 按严格 TypeScript 质量标准审查类型、接口与实现清晰度 | TypeScript 项目代码审查 |
+| | `@maintainability-reviewer` | 审查可维护性、命名和抽象边界 | 代码可维护性评估 |
+| | `@pattern-recognition-specialist` | 识别代码中的重复模式与可优化点 | 代码重构建议 |
+| | `@performance-oracle` | 深度分析性能瓶颈与优化方案 | 性能问题排查 |
+| | `@performance-reviewer` | 审查性能热点、重复 I/O 和不必要的开销 | 性能代码审查 |
+| | `@previous-comments-reviewer` | 在有历史评论时检查反馈是否已经被回应或修复 | PR 历史反馈处理情况检查 |
+| | `@project-standards-reviewer` | 审查改动是否符合仓库既有规范与约定 | 代码规范一致性校验 |
+| | `@reliability-reviewer` | 审查恢复路径、失败处理和重复执行安全性 | 可靠性与容错能力审查 |
+| | `@schema-drift-detector` | 检测数据库 schema 漂移与兼容性问题 | 数据库变更审查 |
+| | `@security-reviewer` | 审查权限、输入处理和信任边界问题 | 安全代码审查 |
+| | `@security-sentinel` | 深度扫描代码中的安全漏洞与风险点 | 安全渗透测试 |
+| | `@testing-reviewer` | 审查测试覆盖、断言质量和缺失场景 | 测试质量评估 |
+| **研究分析代理** | `@ankane-readme-writer` | 专业撰写高质量 README 文档 | 项目文档编写 |
+| | `@best-practices-researcher` | 收集社区最佳实践与实现约定 | 技术方案选型参考 |
+| | `@framework-docs-researcher` | 收集框架和官方文档约束 | 技术实现依据查询 |
+| | `@git-history-analyzer` | 分析 Git 历史提交记录与变更模式 | 代码演化分析 |
+| | `@issue-intelligence-analyst` | 分析 issue 中的问题模式与解决方案 | 历史问题排查 |
+| | `@learnings-researcher` | 提炼仓库内已有文档、规范和方案沉淀 | 项目经验总结 |
+| | `@repo-research-analyst` | 研究仓库结构、已有模式和技术约束 | 项目上下文理解 |
+| | `@session-historian` | 分析会话历史与上下文关联 | 跨会话上下文恢复 |
+| | `@web-researcher` | 互联网信息检索与技术调研 | 技术问题解决方案查找 |
+| **工作流代理** | `@deployment-verification-agent` | 验证部署成功性与功能可用性 | 部署后检查 |
+| | `@design-iterator` | 迭代优化设计方案与实现 | 前端设计迭代 |
+| | `@figma-design-sync` | 同步 Figma 设计稿到代码实现 | 设计稿转代码 |
+| | `@pr-comment-resolver` | 自动处理 PR 评论中的反馈与建议 | PR 反馈处理 |
+| | `@spec-flow-analyzer` | 分析阶段流转、恢复分支和遗漏状态 | 工作流完整性检查 |
+
 ## 参数总表
 
 | 入口 | 参数 / token | 必填 | 说明 | 默认行为 | 冲突规则 |
@@ -107,6 +163,7 @@ Fetch and follow the uninstall instructions from https://gitee.com/jiangqiang199
 | `ae:frontend-design` / `/ae-frontend-design` | 描述或路径 | 否 | 前端设计描述或已有文件路径 | 无输入时根据上下文推断 | 无 |
 | `ae:setup` | 无 | 否 | 检查并安装前端设计外部依赖 | 无参数 | 无 |
 | `ae:test-browser` / `/ae-test-browser` | URL 或路由 | 否 | 指定要测试的页面地址 | 默认 `http://localhost:3000` | 无 |
+| 所有 `@<代理名>` | 自由文本 | 是 | 要代理处理的任务描述 | 直接返回代理处理结果 | 无 |
 
 ## 审查模式
 
@@ -164,6 +221,10 @@ Fetch and follow the uninstall instructions from https://gitee.com/jiangqiang199
 | 前端设计 | `/ae-frontend-design` | `/ae-frontend-design 着陆页` |
 | 安装前端依赖 | `/ae-setup` | `/ae-setup` |
 | 浏览器测试 | `/ae-test-browser` | `/ae-test-browser http://localhost:3000` |
+| 代码正确性审查 | `@correctness-reviewer` | `@correctness-reviewer 帮我审查这段登录逻辑的正确性` |
+| 架构方案评估 | `@architecture-strategist` | `@architecture-strategist 评估这个微服务拆分方案的合理性` |
+| 安全漏洞扫描 | `@security-sentinel` | `@security-sentinel 扫描这个用户认证模块的安全风险` |
+| 最佳实践调研 | `@best-practices-researcher` | `@best-practices-researcher 调研 React 表单处理的最佳实践` |
 
 ## 工作方式摘要
 
