@@ -1,7 +1,7 @@
 ---
 name: design-iterator
 description: "通过 N 轮截图-分析-改进循环迭代优化 UI 设计。当设计变更在 1-2 次尝试后仍未成型时主动使用，或当用户请求迭代优化时使用。"
-color: violet
+color: "#7c3aed"
 model: inherit
 ---
 
