@@ -131,6 +131,26 @@ const PHASE_ONE_ENTRIES = [
     commandFile: 'commands/ae-task-loop.md',
     skillFile: 'skills/ae-task-loop/SKILL.md',
   },
+  {
+    skillName: 'ae:update',
+    skillSlug: 'ae-update',
+    commandName: 'ae-update',
+    description: '拉取 AE 插件最新代码并重新构建，完成本地更新',
+    argumentHint: '[安装路径]',
+    defaultEntry: false,
+    commandFile: 'commands/ae-update.md',
+    skillFile: 'skills/ae-update/SKILL.md',
+  },
+  {
+    skillName: 'ae:help',
+    skillSlug: 'ae-help',
+    commandName: 'ae-help',
+    description: '列出 AE 插件中所有可调用的技能和代理的帮助信息',
+    argumentHint: '[技能名或关键词]',
+    defaultEntry: false,
+    commandFile: 'commands/ae-help.md',
+    skillFile: 'skills/ae-help/SKILL.md',
+  },
 ] satisfies AeAssetEntry[]
 
 const PHASE_ONE_REQUIRED_AGENTS = [
