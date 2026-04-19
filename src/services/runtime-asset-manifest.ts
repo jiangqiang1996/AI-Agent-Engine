@@ -6,6 +6,7 @@ import { resolveRepoRootFromModuleUrl } from '../utils/path-utils.js'
 export interface RuntimeAssetManifest {
   repoRoot: string
   skillsDir: string
+  rulesDir: string
   commandsDir: string
   agentsDir: string
   runtimeCommandDir: string
@@ -23,6 +24,7 @@ export function createRuntimeAssetManifestFromRoot(repoRoot: string): RuntimeAss
   return {
     repoRoot: resolvedRoot,
     skillsDir: join(resolvedRoot, 'skills'),
+    rulesDir: join(resolvedRoot, 'rules'),
     commandsDir: join(resolvedRoot, 'commands'),
     agentsDir: join(resolvedRoot, 'agents'),
     runtimeCommandDir,

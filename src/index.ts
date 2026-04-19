@@ -1,6 +1,7 @@
 import type { PluginModule } from '@opencode-ai/plugin'
 
 import { buildCommandConfig } from './services/command-registration.js'
+import { registerRulesInstructions } from './services/rules-instructions-service.js'
 import { createRuntimeAssetManifest } from './services/runtime-asset-manifest.js'
 import { registerSkillsPath } from './services/skills-path-service.js'
 import { createToolRegistry } from './tools/index.js'
@@ -13,6 +14,7 @@ interface RuntimeConfigShape {
   skills?: {
     paths?: string[]
   }
+  instructions?: string[]
 }
 
 function mergeCommandConfig(config: RuntimeConfigShape, manifest = createRuntimeAssetManifest(import.meta.url)): void {
@@ -31,6 +33,7 @@ const plugin: PluginModule = {
       config: async (config) => {
         registerSkillsPath(config as RuntimeConfigShape, manifest)
         mergeCommandConfig(config as RuntimeConfigShape, manifest)
+        registerRulesInstructions(config as RuntimeConfigShape, manifest)
       },
       tool: createToolRegistry(),
     }
