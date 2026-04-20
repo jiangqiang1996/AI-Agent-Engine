@@ -55,7 +55,7 @@ const PHASE_ONE_ENTRIES = [
     skillName: 'ae:review',
     skillSlug: 'ae-review',
     commandName: 'ae-review-code',
-    description: '对代码改动做 CE 风格多 reviewer 审查',
+    description: '使用分层角色代理和置信度门控对代码改动进行结构化审查',
     argumentHint: '[mode:*] [plan:<path>] [base:<ref>]',
     defaultEntry: false,
     commandFile: 'commands/ae-review-code.md',

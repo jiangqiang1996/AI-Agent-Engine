@@ -67,38 +67,108 @@ if ($ARCH -eq "arm64" -or $ARCH -eq "aarch64") {
 
 ### 1.3 JRE 下载
 
-从 Adoptium（Eclipse Temurin）下载 JRE 17：
+从国内镜像下载 Eclipse Temurin JRE 17。按以下优先级依次尝试镜像源，首个成功即可：
+
+#### 镜像源列表
+
+| 优先级 | 镜像源 | 基础 URL |
+|--------|--------|----------|
+| 1（首选） | 清华大学 TUNA | `https://mirrors.tuna.tsinghua.edu.cn/Adoptium/17/jre/{arch}/{platform}/` |
+| 2（备选） | 阿里云 | `https://mirrors.aliyun.com/eclipse/temurin-compliance/temurin/17/` |
+
+> `{arch}` = x64 / aarch64，`{platform}` = windows / linux / mac
+
+#### 获取下载文件名
+
+清华和阿里云镜像的文件名包含具体版本号，需先解析目录页面获取最新文件名。
+
+> **重要**：必须使用 `webfetch` 工具访问目录页，禁止使用任何带缓存的网页读取工具（如 web-reader），否则可能返回过时文件名导致下载 404。
+
+**清华 TUNA 目录 URL**（按 `{arch}/{platform}` 组合）：
 
 ```
-下载 URL：
-https://api.adoptium.net/v3/binary/latest/17/ga/jre/{platform}/{arch}/jdk/hotspot/normal/eclipse
-
-将 {platform} 替换为 windows / linux / mac
-将 {arch} 替换为 x64 / aarch64
+https://mirrors.tuna.tsinghua.edu.cn/Adoptium/17/jre/{arch}/{platform}/
 ```
 
-**Windows 下载命令**（workdir 为 `script/`）：
+目录页为 Apache 风格索引，用 `webfetch` 工具（format=text）访问目录 URL，从页面中提取 `.zip`（Windows）或 `.tar.gz`（Linux/macOS）文件名。
+文件名格式为 `OpenJDK17U-jre_{arch}_{platform}_hotspot_{version}.{ext}`，取最新日期对应的文件。
+
+**阿里云目录 URL**：
+
+```
+https://mirrors.aliyun.com/eclipse/temurin-compliance/temurin/17/
+```
+
+阿里云所有平台文件在同一目录，文件名包含平台和架构。从页面中找到匹配 `OpenJDK17U-jre_{arch}_{platform}_hotspot_*.{ext}` 的最新文件。
+阿里云版本目录名为 `jdk-17.0.XX+X` 格式（注意：虽然目录名含 jdk，但内部同时包含 jre 文件）。
+若顶层目录页未直接列出 JRE 文件，需进入最新版本目录查找。
+
+> **解压注意事项**：压缩包解压后的目录名格式为 `jdk-{版本}-jre`（如 `jdk-17.0.18+6-jre`），必须使用从目录页解析到的实际版本号拼接目录名，禁止使用 `jdk-*` 通配符。通配符在 `script/` 下存在多个 `jdk-*` 目录时会匹配错误。
+
+#### Windows 下载命令（workdir 为 `script/`）
 
 ```powershell
-Invoke-WebRequest -Uri "https://api.adoptium.net/v3/binary/latest/17/ga/jre/windows/x64/jdk/hotspot/normal/eclipse" -OutFile "jre.zip"
+# 镜像 1：清华 TUNA
+$TUNA_DIR_URL = "https://mirrors.tuna.tsinghua.edu.cn/Adoptium/17/jre/x64/windows/"
+# 用 webfetch 工具访问 $TUNA_DIR_URL，提取 .zip 文件名赋值给 $JRE_FILENAME
+# 从 $JRE_FILENAME 中提取版本号（如 17.0.18_6），拼接解压目录名 $EXTRACTED_DIR（如 jdk-17.0.18+6-jre）
+# 然后执行下载：
+Invoke-WebRequest -Uri "${TUNA_DIR_URL}${JRE_FILENAME}" -OutFile "jre.zip"
+# 下载后校验文件大小，若小于 1MB 说明下载了 404 页面，文件名已过期，需重新获取
+if ((Get-Item "jre.zip").Length -lt 1MB) { Remove-Item "jre.zip"; Write-Error "下载失败：文件名可能已过期，请重新用 webfetch 获取目录页" }
 Expand-Archive -Path "jre.zip" -DestinationPath "."
-# Adoptium 解压后目录名格式为 jdk-17.0.X+X-jre，用通配符重命名
-Move-Item -Path ".\jdk-*" -Destination "jre" -Force
+Move-Item -Path ".\$EXTRACTED_DIR" -Destination "jre" -Force
 Remove-Item -Path "jre.zip"
 ```
 
-**Linux / macOS 下载命令**（workdir 为 `script/`）：
+若清华镜像下载失败，使用阿里云备选：
+
+```powershell
+# 镜像 2：阿里云
+$ALI_DIR_URL = "https://mirrors.aliyun.com/eclipse/temurin-compliance/temurin/17/"
+# 用 webfetch 工具访问 $ALI_DIR_URL，找到最新版本目录（如 jdk-17.0.18+8/），
+# 进入该目录找到 OpenJDK17U-jre_x64_windows_hotspot_*.zip 文件名赋值给 $JRE_FILENAME
+# 从 $JRE_FILENAME 中提取版本号，拼接解压目录名 $EXTRACTED_DIR
+# 然后执行下载：
+Invoke-WebRequest -Uri "${ALI_DIR_URL}${VERSION_DIR}${JRE_FILENAME}" -OutFile "jre.zip"
+if ((Get-Item "jre.zip").Length -lt 1MB) { Remove-Item "jre.zip"; Write-Error "下载失败：文件名可能已过期，请重新用 webfetch 获取目录页" }
+Expand-Archive -Path "jre.zip" -DestinationPath "."
+Move-Item -Path ".\$EXTRACTED_DIR" -Destination "jre" -Force
+Remove-Item -Path "jre.zip"
+```
+
+#### Linux / macOS 下载命令（workdir 为 `script/`）
 
 ```bash
-curl -L -o jre.tar.gz "https://api.adoptium.net/v3/binary/latest/17/ga/jre/linux/x64/jdk/hotspot/normal/eclipse"
+# 镜像 1：清华 TUNA
+TUNA_DIR_URL="https://mirrors.tuna.tsinghua.edu.cn/Adoptium/17/jre/x64/linux/"
+# 用 webfetch 工具访问 $TUNA_DIR_URL，提取 .tar.gz 文件名赋值给 JRE_FILENAME
+# 从 JRE_FILENAME 中提取版本号，拼接解压目录名 EXTRACTED_DIR（如 jdk-17.0.18+6-jre）
+# 然后执行下载：
+curl -L -o jre.tar.gz "${TUNA_DIR_URL}${JRE_FILENAME}"
 tar -xzf jre.tar.gz
-mv jdk-*/ jre/
+mv "${EXTRACTED_DIR}/" jre/
 rm jre.tar.gz
 ```
 
-若 Adoptium 下载失败（网络不可达），提示用户：
+若清华镜像下载失败，使用阿里云备选：
 
-"JRE 17 自动下载失败。请手动安装 JRE 17 并将运行时目录放置或链接到 `script/jre/`（确保 `script/jre/bin/java` 或 `script/jre/bin/java.exe` 存在）。"
+```bash
+# 镜像 2：阿里云
+ALI_DIR_URL="https://mirrors.aliyun.com/eclipse/temurin-compliance/temurin/17/"
+# 用 webfetch 工具访问 $ALI_DIR_URL，找到最新版本目录（如 jdk-17.0.18+8/），
+# 进入该目录找到 OpenJDK17U-jre_x64_linux_hotspot_*.tar.gz 文件名赋值给 JRE_FILENAME
+# 从 JRE_FILENAME 中提取版本号，拼接解压目录名 EXTRACTED_DIR
+# 然后执行下载：
+curl -L -o jre.tar.gz "${ALI_DIR_URL}${VERSION_DIR}${JRE_FILENAME}"
+tar -xzf jre.tar.gz
+mv "${EXTRACTED_DIR}/" jre/
+rm jre.tar.gz
+```
+
+若所有镜像均下载失败（网络不可达），提示用户：
+
+"JRE 17 自动下载失败（已尝试清华 TUNA 和阿里云镜像）。请手动安装 JRE 17 并将运行时目录放置或链接到 `script/jre/`（确保 `script/jre/bin/java` 或 `script/jre/bin/java.exe` 存在）。也可手动访问以下地址下载：\n- 清华镜像：https://mirrors.tuna.tsinghua.edu.cn/Adoptium/17/jre/\n- 阿里云镜像：https://mirrors.aliyun.com/eclipse/temurin-compliance/temurin/17/"
 
 ### 1.4 JRE 验证
 

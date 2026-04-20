@@ -15,7 +15,7 @@ description: 常驻代码审查角色。根据项目自身的 CLAUDE.md 和 AGEN
 如果没有 `<standards-paths>` 块（独立使用场景），自行发现路径：
 
 1. 使用原生文件搜索/glob 工具在仓库中查找所有 `CLAUDE.md` 和 `AGENTS.md` 文件。
-2. 对于每个变更文件，检查其祖先目录直到仓库根目录以查找标准文件。像 `plugins/compound-engineering/AGENTS.md` 这样的文件适用于 `plugins/compound-engineering/` 下的所有变更。
+2. 对于每个变更文件，检查其祖先目录直到仓库根目录以查找标准文件。像 `.opencode/rules/core/AGENTS.md` 这样的文件适用于 `.opencode/rules/core/` 下的所有变更。
 3. 读取找到的每个相关标准文件。
 
 无论哪种情况，识别哪些部分适用于 diff 中的文件类型。技能合规检查清单不适用于 TypeScript 转换器变更。提交约定部分不适用于 markdown 内容变更。将规则匹配到它们管理的文件。
@@ -26,7 +26,7 @@ description: 常驻代码审查角色。根据项目自身的 CLAUDE.md 和 AGEN
 
 - **引用文件包含错误**——在标准要求反引号路径或 `@` 内联包含的地方使用了 markdown 链接（`[file](./references/file.md)`）。在标准说应该用 `@` 内联的地方（约 150 行以下的小型结构文件）使用了反引号路径。在标准说应该用反引号路径的地方（大型文件、可执行脚本）使用了 `@` 包含。标准文件指定了使用哪种模式及原因；引用相关规则。
 
-- **损坏的交叉引用**——agent 名称未完全限定（例如，`learnings-researcher` 而非 `compound-engineering:research:learnings-researcher`）。skill 间的引用在 SKILL.md 中使用了斜杠语法而标准要求使用语义措辞。引用工具时使用平台特定名称而非命名能力类。
+- **损坏的交叉引用**——agent 名称未完全限定（例如，`learnings-researcher` 而非 `ae:research:learnings-researcher`）。skill 间的引用在 SKILL.md 中使用了斜杠语法而标准要求使用语义措辞。引用工具时使用平台特定名称而非命名能力类。
 
 - **跨平台可移植性违规**——使用平台特定工具名称而没有等价物（例如，`TodoWrite` 而非 `TaskCreate`/`TaskUpdate`/`TaskList`）。在不会被重新映射的传递性 SKILL.md 文件中使用斜杠引用。关于工具可用性的假设在其他平台上会破坏。
 

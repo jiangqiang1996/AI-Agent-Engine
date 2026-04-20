@@ -196,7 +196,7 @@ gh pr checkout <number-or-url>
 gh pr view <number-or-url> --json title,body,baseRefName,headRefName,url
 ```
 
-使用返回的PR URL中的仓库部分作为`<base-repo>`（例如，从`https://github.com/EveryInc/compound-engineering-plugin/pull/348`获取`EveryInc/compound-engineering-plugin`）。
+使用返回的PR URL中的仓库部分作为`<base-repo>`（例如，从`https://github.com/your-org/your-repo/pull/123`获取`your-org/your-repo`）。
 
 然后计算与PR基准分支的本地差异，以便重新审查也包含本地修复提交和未编辑的变更。替换元数据中的PR基准分支（此处显示为`<base>`）和从PR URL派生的PR基准仓库标识（此处显示为`<base-repo>`）。从PR的实际基准仓库解析基准引用，而不是假设`origin`指向该仓库：
 
@@ -356,7 +356,7 @@ echo "BRANCH:" && git rev-parse --abbrev-ref HEAD && echo "COMMITS:" && git log 
 在生成子代理之前，为`project-standards`角色查找所有相关标准文件的文件路径（不是内容）。使用原生文件搜索/glob工具定位：
 
 1. 使用原生文件搜索工具（例如opencode中的Glob）查找仓库中的所有`**/AGENTS.md`。
-2. 过滤出目录是至少一个变更文件的祖先路径的文件。标准文件管理其下的所有文件（例如，`plugins/compound-engineering/AGENTS.md`适用于`plugins/compound-engineering/`下的所有内容）。
+2. 过滤出目录是至少一个变更文件的祖先路径的文件。标准文件管理其下的所有文件（例如，`.opencode/rules/core/AGENTS.md`适用于`.opencode/rules/core/`下的所有内容）。
 
 将生成的路径列表在审查上下文中的`<standards-paths>`块内传递给`project-standards`角色（见第4阶段）。角色自行读取文件，仅定位与变更文件类型相关的部分。这使编排器的工作成本很低（仅路径发现），并避免用审查者可能不完全需要的内容膨胀子代理提示。
 

@@ -131,8 +131,7 @@ Read: [file_path] with limit:30
 
 ## Frontmatter Schema 参考
 
-需要完整约束时按需查阅此 schema 参考：
-`../../skills/ce-compound/references/yaml-schema.md`
+需要完整约束时按需查阅项目中的 YAML frontmatter schema 定义（如 `docs/solutions/` 目录下的参考文档）。
 
 关键枚举值：
 
@@ -238,7 +237,7 @@ Read: [file_path] with limit:30
 ## 集成点
 
 此代理设计为被以下方式调用：
-- `/ce:plan` - 在规划阶段提供组织知识支持，并在置信度检查期间增加深度
+- `ae:plan` - 在规划阶段提供组织知识支持，并在置信度检查期间增加深度
 - 在开始功能开发前手动调用
 
 目标是在典型的 solutions 目录中 30 秒内呈现相关经验，实现规划阶段的快速知识检索。

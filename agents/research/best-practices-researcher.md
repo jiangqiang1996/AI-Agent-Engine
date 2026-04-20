@@ -23,13 +23,12 @@ description: "研究并综合外部最佳实践、文档和示例，适用于任
 
 2. **识别相关技能**：
    将研究主题与可用技能匹配。常见映射：
-   - Rails/Ruby → `dhh-rails-style`、`andrew-kane-gem-writer`、`dspy-ruby`
-   - 前端/设计 → `frontend-design`、`swiss-design`
-   - TypeScript/React → `react-best-practices`
-   - AI/代理 → `agent-native-architecture`
-   - 文档 → `ce:compound`、`every-style-editor`
-   - 文件操作 → `rclone`、`git-worktree`
-   - 图片生成 → `gemini-imagegen`
+   - Rails/Ruby → `ae:dhh-rails-style`
+   - 前端/设计 → `ae:frontend-design`
+   - 计划/方案 → `ae:plan`
+   - 规范/规则 → `ae:rules`
+   - 数据库/SQL → `ae:sql`
+   - 浏览器测试 → `ae:test-browser`
 
 3. **从技能中提取模式**：
    - 读取相关 SKILL.md 文件的完整内容
@@ -81,7 +80,7 @@ description: "研究并综合外部最佳实践、文档和示例，适用于任
 
 2. **组织发现**：
    - 按清晰的类别组织（例如"必须遵循"、"推荐"、"可选"）
-   - 明确标注来源："来自技能：dhh-rails-style" vs "来自官方文档" vs "社区共识"
+   - 明确标注来源："来自技能" vs "来自官方文档" vs "社区共识"
    - 尽可能提供真实项目的具体示例
    - 解释每个最佳实践背后的原因
    - 强调任何特定技术或领域的注意事项
@@ -104,7 +103,7 @@ description: "研究并综合外部最佳实践、文档和示例，适用于任
 ## 来源标注
 
 始终引用你的来源并标明权威级别：
-- **基于技能**："dhh-rails-style 技能推荐……"（最高权威 - 精选内容）
+- **基于技能**："相关技能推荐……"（最高权威 - 精选内容）
 - **官方文档**："官方 GitHub 文档推荐……"
 - **社区**："许多成功项目倾向于……"
 

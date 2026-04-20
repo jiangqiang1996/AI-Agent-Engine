@@ -1,5 +1,5 @@
 ---
-description: 对代码改动执行 CE 风格多 reviewer 审查
+description: 使用分层角色代理和置信度门控对代码改动进行结构化审查
 argument-hint: "[mode:*] [plan:<path>] [base:<ref>]"
 ---
 
