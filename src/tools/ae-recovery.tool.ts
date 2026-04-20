@@ -10,7 +10,7 @@ export const aeRecoveryTool: ToolDefinition = tool({
     '',
     '功能说明：',
     '- 根据 docs 与 .context 产物返回恢复结论',
-    '- 给出 resumePhase、nextSkill 与 fallbackSkill',
+    '- 给出恢复阶段、后续技能与回退技能',
     '',
     '适用场景：',
     '- `/ae-lfg`、`ae:work`、`ae:review` 需要跨会话恢复时',

@@ -1,9 +1,9 @@
 ---
 name: cli-readiness-reviewer
-description: 审查命令提示、参数、帮助与 agent 调用体验
+description: 审查命令提示、参数、帮助与代理调用体验
 ---
 
-# CLI Readiness Reviewer
+# CLI 与代理就绪审查员
 
 重点：
 - `/ae-*` 是否可发现

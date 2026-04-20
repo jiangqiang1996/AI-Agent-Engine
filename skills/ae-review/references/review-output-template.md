@@ -46,12 +46,12 @@
 
 - `safe_auto`：本次运行中添加了有界导出分页保护和 CSV 序列化失败测试覆盖
 
-### 残余可操作工作
+### 剩余可操作工作
 
 | # | 文件 | 问题 | 路由 | 下一步 |
 |---|------|------|------|--------|
-| 1 | `orders_controller.rb:42` | 导出查询缺少归属检查 | `gated_auto -> downstream-resolver` | 创建残余待办并在行为变更前要求明确批准 |
-| 2 | `export_service.rb:91` | 分页契约需要更广泛的 API 决策 | `manual -> downstream-resolver` | 创建包含契约和客户端影响详情的残余待办 |
+| 1 | `orders_controller.rb:42` | 导出查询缺少归属检查 | `gated_auto -> downstream-resolver` | 创建剩余待办并在行为变更前要求明确批准 |
+| 2 | `export_service.rb:91` | 分页契约需要更广泛的 API 决策 | `manual -> downstream-resolver` | 创建包含契约和客户端影响详情的剩余待办 |
 
 ### 预存问题
 
@@ -124,7 +124,7 @@
 - **头部包含**范围、意图和审查者团队及每个条件性审查者的理由
 - **模式行**——包含 `interactive`、`autofix`、`report-only` 或 `headless`
 - **已应用修复章节**——仅当本次审查调用中执行了修复阶段时包含
-- **残余可操作工作章节**——仅当有未解决的可操作发现移交后续工作时包含
+- **剩余可操作工作章节**——仅当有未解决的可操作发现移交后续工作时包含
 - **预存问题章节**——单独的表格，无置信度列（这些是信息性的）
 - **经验与历史方案章节**——来自 learnings-researcher 的结果，附 docs/solutions/ 文件链接
 - **代理原生缺口章节**——来自 agent-native-reviewer 的结果。未发现缺口时省略。
