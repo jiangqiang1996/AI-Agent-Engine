@@ -5,6 +5,7 @@ import { registerRulesInstructions } from './services/rules-instructions-service
 import { createRuntimeAssetManifest } from './services/runtime-asset-manifest.js'
 import { registerSkillsPath } from './services/skills-path-service.js'
 import { createToolRegistry } from './tools/index.js'
+import { setGlobalClient } from './services/client-holder.js'
 
 interface RuntimeConfigShape {
   command?: Record<string, {
@@ -26,8 +27,9 @@ function mergeCommandConfig(config: RuntimeConfigShape, manifest = createRuntime
 
 const plugin: PluginModule = {
   id: 'ae-server',
-  server: async () => {
+  server: async (input) => {
     const manifest = createRuntimeAssetManifest(import.meta.url)
+    setGlobalClient(input.client)
 
     return {
       config: async (config) => {

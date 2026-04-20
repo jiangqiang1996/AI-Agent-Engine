@@ -93,6 +93,13 @@ rm -rf ~/.config/opencode/ai-agent-engine
 
 ---
 
+## 四、安装到当前项目（仅用于测试刚开发的指令是否生效）
+```bash
+npm install
+npm run build
+```
+重启opencode即可生效
+
 ## 注意事项
 
 - 不要为非 opencode 运行时写安装配置
