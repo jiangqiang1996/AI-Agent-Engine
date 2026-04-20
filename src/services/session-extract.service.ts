@@ -2,21 +2,19 @@ import { z } from "zod";
 import { Effect } from "effect";
 
 /**
- * 会话提取结果Schema
+ * 会话提取结果Schema（完全对齐oh-my-openagent handoff结构）
  */
 export const SessionExtractResultSchema = z.object({
-  coreConclusions: z.string().default("无").describe("核心结论列表，每条用换行分隔"),
-  decisionsMade: z.string().default("无").describe("已做决策列表，每条用换行分隔"),
-  todoItems: z.string().default("无").describe("待办事项列表，每条用换行分隔"),
-  projectContext: z.string().default("无").describe("项目上下文信息，用换行分隔"),
-  techStack: z.string().default("无").describe("技术栈信息，使用的框架、库、工具版本等，每条用换行分隔"),
-  riskNotes: z.string().default("无").describe("风险提示，已知的问题、注意事项、坑点等，每条用换行分隔"),
-  dependencies: z.string().default("无").describe("依赖关系，依赖的外部服务、API、其他模块等，每条用换行分隔"),
-  references: z.string().default("无").describe("参考资料，相关的文档链接、Issue、PR地址等，每条用换行分隔"),
-  assignees: z.string().default("无").describe("人员分工，任务分配给哪些人、负责人信息等，每条用换行分隔"),
-  deadlines: z.string().default("无").describe("截止日期，各项任务的交付时间、里程碑时间等，每条用换行分隔"),
-  debugInfo: z.string().default("无").describe("调试信息，已知的报错信息、日志、复现步骤等，每条用换行分隔"),
-  truncatedWarning: z.string().optional().describe("超长会话截断提示，如存在则返回"),
+  userRequests: z.string().default('None').describe('用户原始请求，完整保留原文，不做任何改写'),
+  goal: z.string().default('None').describe('一句话描述当前任务的最终目标和下一步方向'),
+  workCompleted: z.string().default('None').describe('已完成的任务列表，包含相关文件路径和关键实现决策，每条用换行分隔'),
+  currentState: z.string().default('None').describe('代码库当前状态、构建/测试状态、环境配置状态，每条用换行分隔'),
+  pendingTasks: z.string().default('None').describe('未完成的任务清单、下一步计划、阻塞问题（合并todoread的结果），每条用换行分隔'),
+  keyFiles: z.string().default('None').describe('最多10个关键文件路径及简要说明，优先包含Git变更和会话中提到的文件，每条用换行分隔'),
+  importantDecisions: z.string().default('None').describe('已确定的技术选型、方案选择、优先级决策、权衡考量，每条用换行分隔'),
+  explicitConstraints: z.string().default('None').describe('用户明确要求的限制、项目规范约定，完整保留原文，无则返回None'),
+  contextForContinuation: z.string().default('None').describe('需要留意的坑点、警告、相关文档引用，每条用换行分隔'),
+  truncatedWarning: z.string().optional().describe('超长会话裁剪提示，如存在则返回'),
 });
 
 export type SessionExtractResult = z.infer<typeof SessionExtractResultSchema>;
@@ -27,7 +25,7 @@ export type SessionExtractResult = z.infer<typeof SessionExtractResultSchema>;
 const SENSITIVE_PATTERNS: RegExp[] = [
   // AWS 密钥
   /AKIA[0-9A-Z]{16}/gi,
-  // 通用密钥/Token
+  // 通用密钥/令牌
   /(sk|pk|api[_-]key|token|secret|password)[:=]\s*[A-Za-z0-9+/_-]+/gi,
   // 密码字段匹配
   /password\s*=\s*["']?[^"']+["']?/gi,
@@ -42,7 +40,7 @@ const SENSITIVE_PATTERNS: RegExp[] = [
 ];
 
 /**
- * 文本脱敏函数：替换所有敏感信息为***
+ * 文本脱敏函数：将所有敏感信息替换为***
  */
 function desensitizeText(text: string): string {
   let result = text;
@@ -63,7 +61,7 @@ function desensitizeText(text: string): string {
 }
 
 /**
- * 超长会话截断函数：优先保留最新消息，避免超过LLM上下文限制
+ * 超长会话裁剪函数：优先保留最新消息，避免超过大模型上下文限制
  * 压缩等级对应maxTokens：1=32000, 2=16000, 3=8000, 4=4000, 5=2000
  */
 function truncateSessionContent(
@@ -79,7 +77,7 @@ function truncateSessionContent(
     5: 2000,
   }
   const maxTokens = maxTokensMap[compressionLevel as keyof typeof maxTokensMap] || 16000
-  // 简单估算：1 token ≈ 4 个字符，预留20%空间给系统prompt
+  // 简单估算：1 token ≈ 4 个字符，预留20%空间给系统提示词
   const maxLength = Math.floor(maxTokens * 4 * 0.8);
   // 复制数组再反转，避免污染原数组
   const reversed = [...messages].reverse();
@@ -89,62 +87,58 @@ function truncateSessionContent(
     return { content: fullContent };
   }
   
-  // 截断超长内容
+  // 裁剪超长内容
   const truncatedContent = fullContent.slice(0, maxLength);
   return {
     content: truncatedContent,
-    truncatedWarning: "⚠️ 会话内容过长，已优先保留最近的核心信息，截断了部分历史聊天内容。若需要完整上下文，建议手动复制原会话内容。",
+    truncatedWarning: "⚠️ 会话内容过长，已优先保留最近的核心信息，裁剪了部分历史聊天内容。若需要完整上下文，建议手动复制原会话内容。",
   };
 }
 
 /**
- * 信息提取系统prompt，优化用于提取会话四类核心信息
+ * 信息提取系统提示词（完全对齐oh-my-openagent handoff结构）
  */
 const EXTRACT_PROMPT = `
-你是专业的会话信息提取助手，请从以下会话内容中提取以下核心信息：
-1. 核心结论：会话中达成的最终结论、问题解决方案、关键结果
-2. 已做决策：会话中确定的技术选型、方案选择、优先级决策
-3. 待办事项：未完成的任务清单、下一步计划、需要跟进的事项
-4. 项目上下文：项目基本信息、环境配置、参数约定、已完成的工作内容
-5. 技术栈信息：使用的框架、库、工具版本、运行环境等
-6. 风险提示：已知的问题、注意事项、坑点、不推荐的做法等
-7. 依赖关系：依赖的外部服务、API、其他模块、第三方组件等
-8. 参考资料：相关的文档链接、Issue、PR地址、设计稿链接等
-9. 人员分工：任务分配给哪些人、负责人、对接人信息等
-10. 截止日期：各项任务的交付时间、里程碑时间、上线时间等
-11. 调试信息：已知的报错信息、日志片段、复现步骤、排查过程等
+你是专业的会话上下文提取助手，请从以下会话内容、Git变更记录、待办任务列表中按要求提取核心信息：
+1. USER REQUESTS (AS-IS)：用户的原始需求，完整保留原文，不做任何改写，无则返回"None"
+2. GOAL：一句话描述当前任务的最终目标和下一步方向，无则返回"None"
+3. WORK COMPLETED：已经完成的任务列表，包含相关文件路径和关键实现决策，每条用换行分隔，无则返回"None"
+4. CURRENT STATE：代码库当前状态、构建/测试状态、环境配置状态，每条用换行分隔，无则返回"None"
+5. PENDING TASKS：未完成的任务清单、下一步计划、阻塞问题（合并todoread的结果），每条用换行分隔，无则返回"None"
+6. KEY FILES：最多10个关键文件路径及简要说明，优先包含Git变更和会话中提到的文件，每条用换行分隔，无则返回"None"
+7. IMPORTANT DECISIONS：已确定的技术选型、方案选择、优先级决策、权衡考量，每条用换行分隔，无则返回"None"
+8. EXPLICIT CONSTRAINTS：用户明确要求的限制、项目规范约定，完整保留原文，无则返回"None"
+9. CONTEXT FOR CONTINUATION：需要留意的坑点、警告、相关文档引用，每条用换行分隔，无则返回"None"
 
 要求：
-- 准确提取所有关键信息，不要遗漏
-- 每类信息的每条内容单独占一行，简洁明了，去掉冗余的聊天过程
-- 敏感信息已经被自动脱敏，你不需要额外处理
-- 如果该类没有信息，返回"无"即可
-- 不要返回任何解释性内容，只返回符合要求的JSON格式结果
+- 准确提取所有关键信息，不得遗漏
+- 每类信息的每条内容单独占一行，简洁清晰，删除冗余的聊天过程
+- 敏感信息已自动完成脱敏，无需额外处理
+- 若该类无对应信息，返回"None"即可
+- 无需返回任何解释性内容，仅返回符合要求的JSON格式结果
 
-会话内容：
+待处理内容：
 {{session_content}}
 
-返回的JSON必须严格遵循以下Schema：
+返回的JSON必须严格遵循以下结构：
 {
-  "coreConclusions": "字符串，每条结论用换行分隔，无则返回\"无\"",
-  "decisionsMade": "字符串，每条决策用换行分隔，无则返回\"无\"",
-  "todoItems": "字符串，每条待办用换行分隔，无则返回\"无\"",
-  "projectContext": "字符串，上下文信息，无则返回\"无\"",
-  "techStack": "字符串，技术栈信息，每条用换行分隔，无则返回\"无\"",
-  "riskNotes": "字符串，风险提示信息，每条用换行分隔，无则返回\"无\"",
-  "dependencies": "字符串，依赖关系信息，每条用换行分隔，无则返回\"无\"",
-  "references": "字符串，参考资料信息，每条用换行分隔，无则返回\"无\"",
-  "assignees": "字符串，人员分工信息，每条用换行分隔，无则返回\"无\"",
-  "deadlines": "字符串，截止日期信息，每条用换行分隔，无则返回\"无\"",
-  "debugInfo": "字符串，调试信息，每条用换行分隔，无则返回\"无\""
+  "userRequests": "字符串，用户原始请求，原样保留，无则返回\"None\"",
+  "goal": "字符串，一句话描述任务目标，无则返回\"None\"",
+  "workCompleted": "字符串，已完成的工作，每条用换行分隔，无则返回\"None\"",
+  "currentState": "字符串，当前状态信息，每条用换行分隔，无则返回\"None\"",
+  "pendingTasks": "字符串，待完成的任务，每条用换行分隔，无则返回\"None\"",
+  "keyFiles": "字符串，关键文件路径和说明，每条用换行分隔，最多10个，无则返回\"None\"",
+  "importantDecisions": "字符串，重要决策，每条用换行分隔，无则返回\"None\"",
+  "explicitConstraints": "字符串，明确约束，原样保留，无则返回\"None\"",
+  "contextForContinuation": "字符串，续会注意事项，每条用换行分隔，无则返回\"None\""
 }
 `;
 
 /**
  * 会话内容提取主函数
  * @param messages 会话消息列表
- * @param llmCall LLM调用函数，接收prompt返回JSON结果
- * @returns 结构化的提取结果，已脱敏
+ * @param llmCall 大模型调用函数，接收提示词返回JSON结果
+ * @returns 结构化提取结果，已完成脱敏
  */
 export function extractSessionContent(
   messages: Array<{ content: string }>,
@@ -152,16 +146,16 @@ export function extractSessionContent(
   compressionLevel: number = 1
 ): Effect.Effect<SessionExtractResult, Error> {
   return Effect.gen(function* () {
-    // 1. 处理超长会话截断
+    // 1. 处理超长会话裁剪
     const { content: rawContent, truncatedWarning } = truncateSessionContent(messages, compressionLevel);
     
-    // 2. 先脱敏，再传给 LLM（避免敏感信息泄露给 LLM）
+    // 2. 先脱敏，再传给大模型（避免敏感信息泄露）
     const content = desensitizeText(rawContent);
     
-    // 3. 构建提取请求prompt
+    // 3. 构建提取请求提示词
     const prompt = EXTRACT_PROMPT.replace("{{session_content}}", content);
     
-    // 4. 调用LLM提取信息
+    // 4. 调用大模型提取信息
     const llmRawResult = yield* llmCall(prompt);
     
     // 5. 校验返回结果格式
@@ -170,19 +164,17 @@ export function extractSessionContent(
       return yield* Effect.fail(new Error("会话信息提取失败，返回格式不符合要求，请重试"));
     }
     
-    // 6. 返回结果（已在步骤2脱敏，无需再次脱敏）
+    // 6. 返回结果（已在步骤2脱敏，无需再次处理）
     const result: SessionExtractResult = {
-      coreConclusions: parseResult.data.coreConclusions,
-      decisionsMade: parseResult.data.decisionsMade,
-      todoItems: parseResult.data.todoItems,
-      projectContext: parseResult.data.projectContext,
-      techStack: parseResult.data.techStack,
-      riskNotes: parseResult.data.riskNotes,
-      dependencies: parseResult.data.dependencies,
-      references: parseResult.data.references,
-      assignees: parseResult.data.assignees,
-      deadlines: parseResult.data.deadlines,
-      debugInfo: parseResult.data.debugInfo,
+      userRequests: parseResult.data.userRequests,
+      goal: parseResult.data.goal,
+      workCompleted: parseResult.data.workCompleted,
+      currentState: parseResult.data.currentState,
+      pendingTasks: parseResult.data.pendingTasks,
+      keyFiles: parseResult.data.keyFiles,
+      importantDecisions: parseResult.data.importantDecisions,
+      explicitConstraints: parseResult.data.explicitConstraints,
+      contextForContinuation: parseResult.data.contextForContinuation,
       truncatedWarning,
     };
     

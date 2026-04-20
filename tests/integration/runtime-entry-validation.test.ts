@@ -41,7 +41,7 @@ describe('runtime-entry-validation', () => {
 
     await tuiPlugin.tui(mockApi as never, undefined, {} as never)
 
-    expect(registered.length).toBe(13)
+    expect(registered.length).toBe(16)
     const first = registered[0] as { onSelect?: () => void; slash?: { name: string } }
     first.onSelect?.()
     expect(triggered.some((value) => value.startsWith('/ae-'))).toBe(true)

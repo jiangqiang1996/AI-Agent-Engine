@@ -14,72 +14,70 @@ export interface CreatedSession {
 
 export function formatSystemPrompt(extractResult: SessionExtractResult): string {
   const sections = []
-  sections.push('你是一个AI助手，以下是之前会话交接的核心信息，你需要完全知晓这些内容作为上下文基础，不需要向用户重复确认：')
+  sections.push('HANDOFF CONTEXT')
+  sections.push('===============')
   sections.push('')
 
-  if (extractResult.coreConclusions !== '无') {
-    sections.push('## 🎯 核心结论')
-    sections.push(extractResult.coreConclusions)
+  if (extractResult.userRequests !== 'None') {
+    sections.push('USER REQUESTS (AS-IS)')
+    sections.push('---------------------')
+    sections.push(extractResult.userRequests)
     sections.push('')
   }
 
-  if (extractResult.decisionsMade !== '无') {
-    sections.push('## ✅ 已做决策')
-    sections.push(extractResult.decisionsMade)
+  if (extractResult.goal !== 'None') {
+    sections.push('GOAL')
+    sections.push('----')
+    sections.push(extractResult.goal)
     sections.push('')
   }
 
-  if (extractResult.todoItems !== '无') {
-    sections.push('## 📝 待办事项')
-    sections.push(extractResult.todoItems)
+  if (extractResult.workCompleted !== 'None') {
+    sections.push('WORK COMPLETED')
+    sections.push('--------------')
+    sections.push(extractResult.workCompleted)
     sections.push('')
   }
 
-  if (extractResult.projectContext !== '无') {
-    sections.push('## 📌 项目上下文')
-    sections.push(extractResult.projectContext)
+  if (extractResult.currentState !== 'None') {
+    sections.push('CURRENT STATE')
+    sections.push('-------------')
+    sections.push(extractResult.currentState)
     sections.push('')
   }
 
-  if (extractResult.techStack !== '无') {
-    sections.push('## 🛠️ 技术栈')
-    sections.push(extractResult.techStack)
+  if (extractResult.pendingTasks !== 'None') {
+    sections.push('PENDING TASKS')
+    sections.push('-------------')
+    sections.push(extractResult.pendingTasks)
     sections.push('')
   }
 
-  if (extractResult.riskNotes !== '无') {
-    sections.push('## ⚠️ 风险提示')
-    sections.push(extractResult.riskNotes)
+  if (extractResult.keyFiles !== 'None') {
+    sections.push('KEY FILES')
+    sections.push('---------')
+    sections.push(extractResult.keyFiles)
     sections.push('')
   }
 
-  if (extractResult.dependencies !== '无') {
-    sections.push('## 🔗 依赖关系')
-    sections.push(extractResult.dependencies)
+  if (extractResult.importantDecisions !== 'None') {
+    sections.push('IMPORTANT DECISIONS')
+    sections.push('-------------------')
+    sections.push(extractResult.importantDecisions)
     sections.push('')
   }
 
-  if (extractResult.references !== '无') {
-    sections.push('## 📚 参考资料')
-    sections.push(extractResult.references)
+  if (extractResult.explicitConstraints !== 'None') {
+    sections.push('EXPLICIT CONSTRAINTS')
+    sections.push('--------------------')
+    sections.push(extractResult.explicitConstraints)
     sections.push('')
   }
 
-  if (extractResult.assignees !== '无') {
-    sections.push('## 👥 人员分工')
-    sections.push(extractResult.assignees)
-    sections.push('')
-  }
-
-  if (extractResult.deadlines !== '无') {
-    sections.push('## ⏰ 截止日期')
-    sections.push(extractResult.deadlines)
-    sections.push('')
-  }
-
-  if (extractResult.debugInfo !== '无') {
-    sections.push('## 🔍 调试信息')
-    sections.push(extractResult.debugInfo)
+  if (extractResult.contextForContinuation !== 'None') {
+    sections.push('CONTEXT FOR CONTINUATION')
+    sections.push('------------------------')
+    sections.push(extractResult.contextForContinuation)
     sections.push('')
   }
 
@@ -88,7 +86,7 @@ export function formatSystemPrompt(extractResult: SessionExtractResult): string 
     sections.push('')
   }
 
-  sections.push('以上信息是之前会话的结论，直接作为已知上下文使用即可，不需要与用户核对。')
+  sections.push('以上是之前会话的完整交接上下文，直接作为已知信息使用，不需要向用户核对。')
 
   return sections.join('\n').trim()
 }
@@ -98,70 +96,70 @@ export function formatContextMessage(extractResult: SessionExtractResult): strin
   sections.push('## 🔍 会话交接上下文（系统消息，请勿删除）')
   sections.push('本会话由原会话交接生成，以下是原会话的核心信息：')
   sections.push('')
+  sections.push('HANDOFF CONTEXT')
+  sections.push('===============')
+  sections.push('')
 
-  if (extractResult.coreConclusions !== '无') {
-    sections.push('### 🎯 核心结论')
-    sections.push(extractResult.coreConclusions)
+  if (extractResult.userRequests !== 'None') {
+    sections.push('USER REQUESTS (AS-IS)')
+    sections.push('---------------------')
+    sections.push(extractResult.userRequests)
     sections.push('')
   }
 
-  if (extractResult.decisionsMade !== '无') {
-    sections.push('### ✅ 已做决策')
-    sections.push(extractResult.decisionsMade)
+  if (extractResult.goal !== 'None') {
+    sections.push('GOAL')
+    sections.push('----')
+    sections.push(extractResult.goal)
     sections.push('')
   }
 
-  if (extractResult.todoItems !== '无') {
-    sections.push('### 📝 待办事项')
-    sections.push(extractResult.todoItems)
+  if (extractResult.workCompleted !== 'None') {
+    sections.push('WORK COMPLETED')
+    sections.push('--------------')
+    sections.push(extractResult.workCompleted)
     sections.push('')
   }
 
-  if (extractResult.projectContext !== '无') {
-    sections.push('### 📌 项目上下文')
-    sections.push(extractResult.projectContext)
+  if (extractResult.currentState !== 'None') {
+    sections.push('CURRENT STATE')
+    sections.push('-------------')
+    sections.push(extractResult.currentState)
     sections.push('')
   }
 
-  if (extractResult.techStack !== '无') {
-    sections.push('### 🛠️ 技术栈')
-    sections.push(extractResult.techStack)
+  if (extractResult.pendingTasks !== 'None') {
+    sections.push('PENDING TASKS')
+    sections.push('-------------')
+    sections.push(extractResult.pendingTasks)
     sections.push('')
   }
 
-  if (extractResult.riskNotes !== '无') {
-    sections.push('### ⚠️ 风险提示')
-    sections.push(extractResult.riskNotes)
+  if (extractResult.keyFiles !== 'None') {
+    sections.push('KEY FILES')
+    sections.push('---------')
+    sections.push(extractResult.keyFiles)
     sections.push('')
   }
 
-  if (extractResult.dependencies !== '无') {
-    sections.push('### 🔗 依赖关系')
-    sections.push(extractResult.dependencies)
+  if (extractResult.importantDecisions !== 'None') {
+    sections.push('IMPORTANT DECISIONS')
+    sections.push('-------------------')
+    sections.push(extractResult.importantDecisions)
     sections.push('')
   }
 
-  if (extractResult.references !== '无') {
-    sections.push('### 📚 参考资料')
-    sections.push(extractResult.references)
+  if (extractResult.explicitConstraints !== 'None') {
+    sections.push('EXPLICIT CONSTRAINTS')
+    sections.push('--------------------')
+    sections.push(extractResult.explicitConstraints)
     sections.push('')
   }
 
-  if (extractResult.assignees !== '无') {
-    sections.push('### 👥 人员分工')
-    sections.push(extractResult.assignees)
-    sections.push('')
-  }
-
-  if (extractResult.deadlines !== '无') {
-    sections.push('### ⏰ 截止日期')
-    sections.push(extractResult.deadlines)
-    sections.push('')
-  }
-
-  if (extractResult.debugInfo !== '无') {
-    sections.push('### 🔍 调试信息')
-    sections.push(extractResult.debugInfo)
+  if (extractResult.contextForContinuation !== 'None') {
+    sections.push('CONTEXT FOR CONTINUATION')
+    sections.push('------------------------')
+    sections.push(extractResult.contextForContinuation)
     sections.push('')
   }
 

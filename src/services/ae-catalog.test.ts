@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest'
 import { getAllAgentDefinitions, getDefaultEntry, getPhaseOneEntries, getRequiredAgents } from './ae-catalog.js'
 
 describe('ae-catalog', () => {
-  it('应该返回全部一期公开入口', () => {
-    expect(getPhaseOneEntries()).toHaveLength(13)
+  it('应该返回全部公开入口', () => {
+    expect(getPhaseOneEntries()).toHaveLength(16)
   })
 
   it('应该把 ae:lfg 标记为默认入口', () => {

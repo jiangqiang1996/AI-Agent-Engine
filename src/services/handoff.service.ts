@@ -24,11 +24,11 @@ class ContextInjectError extends HandoffError {
 }
 
 function generateHandoffTitle(extractResult: SessionExtractResult): string {
-    // 优先级：核心结论 > 待办事项 > 已做决策 > 项目上下文
-    let content = extractResult.coreConclusions.trim()
-        || extractResult.todoItems.trim()
-        || extractResult.decisionsMade.trim()
-        || extractResult.projectContext.trim()
+    // 优先级：目标 > 已完成工作 > 待办任务 > 重要决策
+    let content = extractResult.goal.trim()
+        || extractResult.workCompleted.trim()
+        || extractResult.pendingTasks.trim()
+        || extractResult.importantDecisions.trim()
 
     // 压缩内容，去掉换行和多余空格，取前15字
     const compressed = content.replace(/\s+/g, ' ').slice(0, 15).trim()
@@ -36,7 +36,7 @@ function generateHandoffTitle(extractResult: SessionExtractResult): string {
         return `交接：${compressed}${compressed.length >= 15 ? '...' : ''}`
     }
     // 兜底使用日期
-    return `交接会话: ${new Date().toLocaleString('zh-CN')}`
+    return `交接会话：${new Date().toLocaleString('zh-CN')}`
 }
 
 function createSessionWithFallback(
@@ -83,17 +83,15 @@ export interface HandoffResult {
     fallbackMode?: boolean
     navigated?: boolean
     extractedSummary: {
-        coreConclusions: string
-        decisionsMade: string
-        todoItems: string
-        projectContext: string
-        techStack: string
-        riskNotes: string
-        dependencies: string
-        references: string
-        assignees: string
-        deadlines: string
-        debugInfo: string
+        userRequests: string
+        goal: string
+        workCompleted: string
+        currentState: string
+        pendingTasks: string
+        keyFiles: string
+        importantDecisions: string
+        explicitConstraints: string
+        contextForContinuation: string
         truncated?: boolean
     }
     error?: string
@@ -120,17 +118,15 @@ export function executeHandoff(
                 fallbackMode: sessionResult.fallback,
                 navigated: true,
                 extractedSummary: {
-                    coreConclusions: extractResult.coreConclusions,
-                    decisionsMade: extractResult.decisionsMade,
-                    todoItems: extractResult.todoItems,
-                    projectContext: extractResult.projectContext,
-                    techStack: extractResult.techStack,
-                    riskNotes: extractResult.riskNotes,
-                    dependencies: extractResult.dependencies,
-                    references: extractResult.references,
-                    assignees: extractResult.assignees,
-                    deadlines: extractResult.deadlines,
-                    debugInfo: extractResult.debugInfo,
+                    userRequests: extractResult.userRequests,
+                    goal: extractResult.goal,
+                    workCompleted: extractResult.workCompleted,
+                    currentState: extractResult.currentState,
+                    pendingTasks: extractResult.pendingTasks,
+                    keyFiles: extractResult.keyFiles,
+                    importantDecisions: extractResult.importantDecisions,
+                    explicitConstraints: extractResult.explicitConstraints,
+                    contextForContinuation: extractResult.contextForContinuation,
                     truncated: !!extractResult.truncatedWarning
                 }
             }
@@ -139,17 +135,15 @@ export function executeHandoff(
                 success: false,
                 error: e.message,
                 extractedSummary: {
-                    coreConclusions: '',
-                    decisionsMade: '',
-                    todoItems: '',
-                    projectContext: '',
-                    techStack: '',
-                    riskNotes: '',
-                    dependencies: '',
-                    references: '',
-                    assignees: '',
-                    deadlines: '',
-                    debugInfo: ''
+                    userRequests: "None",
+                    goal: "None",
+                    workCompleted: "None",
+                    currentState: "None",
+                    pendingTasks: "None",
+                    keyFiles: "None",
+                    importantDecisions: "None",
+                    explicitConstraints: "None",
+                    contextForContinuation: "None"
                 }
             }
         }
