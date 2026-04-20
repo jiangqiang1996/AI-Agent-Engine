@@ -103,3 +103,24 @@ export function injectContextAsMessage(
     });
   });
 }
+
+/**
+ * 导航 TUI 到指定会话
+ * 使用 tui.publish 发送 EventTuiSessionSelect 事件，
+ * 使终端界面切换到目标会话窗口（类似 /new 的效果）
+ */
+export function navigateToSession(
+  client: any,
+  sessionId: string
+): Effect.Effect<void, Error> {
+  return Effect.tryPromise(async () => {
+    await client.tui.publish({
+      body: {
+        type: "tui.session.select",
+        properties: {
+          sessionID: sessionId,
+        },
+      },
+    });
+  });
+}

@@ -2,7 +2,7 @@ import { Effect } from 'effect'
 import type { ToolContext } from '@opencode-ai/plugin/tool'
 
 import { extractSessionContent, type SessionExtractResult } from './session-extract.service.js'
-import { formatSystemPrompt, formatContextMessage, createNewSession, injectContextAsMessage } from './session.service.js'
+import { formatSystemPrompt, formatContextMessage, createNewSession, injectContextAsMessage, navigateToSession } from './session.service.js'
 
 class HandoffError extends Error {
   constructor(message: string) {
@@ -49,11 +49,9 @@ function createSessionWithFallback(
   const systemPrompt = formatSystemPrompt(extractResult)
   
   return Effect.tryPromise(async () => {
-    // 先创建会话，再尝试注入系统提示词
     const session = await Effect.runPromise(createNewSession(client, { title: sessionTitle }))
     
     try {
-      // 尝试注入系统提示词（system 字段为 string 类型）
       await client.session.prompt({
         path: { id: session.id },
         body: {
@@ -62,12 +60,18 @@ function createSessionWithFallback(
           parts: [{ type: 'text', text: systemPrompt }],
         },
       })
-      return { id: session.id, url: session.url, fallback: false }
     } catch (_e: any) {
-      // 降级为普通消息注入
       await Effect.runPromise(injectContextAsMessage(client, session.id, extractResult))
-      return { id: session.id, url: session.url, fallback: true }
     }
+
+    // 导航 TUI 到新会话窗口
+    try {
+      await Effect.runPromise(navigateToSession(client, session.id))
+    } catch (_e: any) {
+      // TUI 导航失败不影响交接结果，用户可手动切换
+    }
+
+    return { id: session.id, url: session.url, fallback: false }
   }).pipe(Effect.mapError(e => {
     if (e.message.includes('创建新会话')) return new SessionCreateError(e.message)
     return new ContextInjectError(e.message)
@@ -79,6 +83,7 @@ export interface HandoffResult {
   sessionId?: string
   sessionUrl?: string
   fallbackMode?: boolean
+  navigated?: boolean
   extractedSummary: {
     coreConclusions: string
     decisionsMade: string
@@ -152,6 +157,7 @@ export function executeHandoff(
         sessionId: sessionResult.id,
         sessionUrl: sessionResult.url,
         fallbackMode: sessionResult.fallback,
+        navigated: true,
         extractedSummary: {
           coreConclusions: extractResult.coreConclusions,
           decisionsMade: extractResult.decisionsMade,
