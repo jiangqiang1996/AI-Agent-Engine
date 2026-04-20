@@ -119,6 +119,11 @@ ai-agent-engine/
 | [testing.md](testing.md) | 测试策略与覆盖率要求 |
 | [agent-design.md](agent-design.md) | AI Agent、工具、Hook、Skill 设计规范 |
 
+## 目录约定
+
+- `.opencode/` 目录用于存放开发当前项目所需的规范和规则，并非项目的所有配置都必须存在于 `.opencode/` 目录中
+- `docs/` 目录（包括 `docs/brainstorms/`、`docs/plans/`、`docs/solutions/`）为运行时产物，由技能在执行过程中按需创建，允许不存在于版本控制中
+
 ## 核心原则
 
 1. **严格遵循 opencode 官方规范** - 使用官方 API 和推荐模式

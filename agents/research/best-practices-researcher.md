@@ -14,12 +14,10 @@ description: "研究并综合外部最佳实践、文档和示例，适用于任
 在联网搜索之前，先检查技能中是否已有精选的知识：
 
 1. **发现可用技能**：
-   - 使用平台原生的文件搜索/glob 能力，在活跃技能目录中查找 `SKILL.md` 文件
-   - 为最大化兼容性，检查项目/工作区技能目录：`.claude/skills/**/SKILL.md`、`.codex/skills/**/SKILL.md` 和 `.agents/skills/**/SKILL.md`
-   - 同时检查用户/主目录技能目录：`~/.claude/skills/**/SKILL.md`、`~/.codex/skills/**/SKILL.md` 和 `~/.agents/skills/**/SKILL.md`
-   - 在 Codex 环境中，`.agents/skills/` 可从当前工作目录向上查找到仓库根目录，而非仅限于单一固定的仓库根位置
-   - 如果当前环境提供 `AGENTS.md` 技能清单（Codex 通常如此），将该列表作为初始发现索引，然后只打开相关的 `SKILL.md` 文件
-   - 使用平台原生的文件读取能力查看技能描述，了解每个技能涵盖的内容
+   - 使用原生文件搜索工具（如 Glob）在活跃技能目录中查找 `SKILL.md` 文件
+   - 检查项目技能目录：`.opencode/skills/*/SKILL.md`
+   - 同时检查全局技能目录：`~/.config/opencode/skills/*/SKILL.md`
+   - 使用原生文件读取工具（如 Read）查看技能描述，了解每个技能涵盖的内容
 
 2. **识别相关技能**：
    将研究主题与可用技能匹配。常见映射：

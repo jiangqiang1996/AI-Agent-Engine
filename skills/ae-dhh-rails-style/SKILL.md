@@ -1,6 +1,6 @@
 ---
 name: ae:dhh-rails-style
-description: "编写 Ruby/Rails 代码时应用 DHH 与 37signals 的编码风格。适用于模型、控制器、路由等 Ruby 文件的编写、重构和审查，也适用于用户提及 DHH、37signals、Basecamp、HEY、Campfire 等关键词的场景。核心理念：纯 REST、胖模型瘦控制器、Current 属性、Hotwire 模式，以及"清晰胜过取巧"。通过 skill 工具按需加载。"
+description: 编写 Ruby/Rails 代码时应用 DHH 与 37signals 的编码风格。适用于模型、控制器、路由等 Ruby 文件的编写、重构和审查，也适用于用户提及 DHH、37signals、Basecamp、HEY、Campfire 等关键词的场景。核心理念：纯 REST、胖模型瘦控制器、Current 属性、Hotwire 模式，以及「清晰胜过取巧」。通过 skill 工具按需加载。
 ---
 
 <objective>
