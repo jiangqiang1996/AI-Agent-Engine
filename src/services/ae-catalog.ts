@@ -151,6 +151,16 @@ const PHASE_ONE_ENTRIES = [
     commandFile: 'commands/ae-help.md',
     skillFile: 'skills/ae-help/SKILL.md',
   },
+  {
+    skillName: 'ae:handoff',
+    skillSlug: 'ae-handoff',
+    commandName: 'ae-handoff',
+    description: '会话交接：提取当前会话核心结论，创建独立新会话并注入上下文',
+    argumentHint: '',
+    defaultEntry: false,
+    commandFile: 'commands/ae-handoff.md',
+    skillFile: 'skills/ae-handoff/SKILL.md',
+  },
 ] satisfies AeAssetEntry[]
 
 const PHASE_ONE_REQUIRED_AGENTS = [

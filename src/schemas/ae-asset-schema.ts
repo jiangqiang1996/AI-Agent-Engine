@@ -19,6 +19,7 @@ export const AeSkillNameSchema = z
     'ae:task-loop',
     'ae:update',
     'ae:help',
+    'ae:handoff',
   ])
   .describe('AE 技能名')
 
@@ -39,6 +40,7 @@ export const AeCommandNameSchema = z
     'ae-task-loop',
     'ae-update',
     'ae-help',
+    'ae-handoff',
   ])
   .describe('AE 命令名')
 
