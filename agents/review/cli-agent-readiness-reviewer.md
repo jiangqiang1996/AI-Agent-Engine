@@ -1,6 +1,6 @@
 ---
 name: cli-agent-readiness-reviewer
-description: "审查 CLI 源代码、计划或规格说明的 AI 代理就绪度，使用基于严重性的评分标准，关注 CLI 是否仅可供代理使用，还是真正为代理优化。"
+description: "审查 CLI 源代码、计划或规格说明的 AI 代理就绪度，使用基于严重性的评分标准，关注 CLI 是仅能被代理使用，还是真正为代理的使用场景做了优化。"
 ---
 
 # CLI 代理就绪度审查员

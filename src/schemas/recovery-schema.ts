@@ -11,7 +11,7 @@ export const RecoveryResolutionSchema = z
 export const RecoveryResultSchema = z.object({
   resolution: RecoveryResolutionSchema.describe('恢复结果'),
   phase: RecoveryPhaseSchema.describe('恢复阶段'),
-  resumePhase: RecoveryPhaseSchema.optional().describe('实际应恢复到的阶段'),
+  resumePhase: RecoveryPhaseSchema.optional().describe('实际恢复到的阶段'),
   nextSkill: z.string().optional().describe('建议继续使用的技能'),
   artifactType: z.enum(['brainstorm', 'plan', 'work', 'review']).optional().describe('命中的产物类型'),
   path: z.string().optional().describe('命中的产物路径'),

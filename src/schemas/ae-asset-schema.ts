@@ -57,12 +57,12 @@ export const AgentStageSchema = z
   .enum(['document-review', 'review', 'research', 'workflow'])
   .describe('Agent 所属目录')
 
-export const AgentTierSchema = z.enum(['required', 'gilded', 'deferred']).describe('Agent 迁移优先级')
+export const AgentTierSchema = z.enum(['required', 'gilded', 'deferred']).describe('Agent 层级')
 
 export const AgentDefinitionSchema = z.object({
   name: z.string().min(1).describe('Agent 名称'),
   stage: AgentStageSchema.describe('Agent 所属目录'),
-  tier: AgentTierSchema.describe('Agent 所属迁移层级'),
+  tier: AgentTierSchema.describe('Agent 层级'),
   description: z.string().min(1).describe('Agent 中文描述'),
   path: z.string().min(1).describe('Agent 文件路径'),
 })

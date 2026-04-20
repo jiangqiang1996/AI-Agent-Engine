@@ -151,7 +151,7 @@ export function resolveRecovery(
       artifacts = listArtifacts(manifest, artifactType)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
-      return invalidResult(phase, `读取恢复产物失败: ${message}`)
+      return invalidResult(phase, `读取恢复产物失败：${message}`)
     }
 
     if (artifacts.length === 0) {
@@ -181,12 +181,12 @@ export function resolveRecovery(
 
     const invalid = filteredArtifacts.find((artifact) => artifact.body.trim().length === 0)
     if (invalid) {
-      return invalidResult(phase, `产物为空: ${invalid.path}`)
+      return invalidResult(phase, `产物为空：${invalid.path}`)
     }
 
     const invalidMetadata = filteredArtifacts.find((artifact) => !hasValidMetadata(artifact))
     if (invalidMetadata) {
-      return invalidResult(phase, `frontmatter 无效: ${invalidMetadata.path}`)
+      return invalidResult(phase, `frontmatter 无效：${invalidMetadata.path}`)
     }
 
     if (filteredArtifacts.length > 1) {

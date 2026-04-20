@@ -140,7 +140,7 @@
 在 `mode:headless` 中，用结构化文本信封替代交互式管道符分隔表格报告。无头格式在 SKILL.md 的 `### 无头输出格式` 章节中定义。与交互式格式的主要区别：
 
 - **不使用管道符分隔表格。** 发现使用 `[severity][autofix_class -> owner] File: <file:line> -- <title>` 行格式，带缩进的 Why/Evidence/Suggested fix 行。
-- **发现按 autofix_class 分组**（gated-auto, manual, advisory）而非严重度。每组内按严重度排序。
+- **发现按 autofix_class 分组**（gated-auto、manual、advisory）而非按严重度。每组内按严重度排序。
 - **结论在头部**（输出顶部）而非底部，便于程序化调用者优先获取。
 - **`Artifact:` 行**在元数据头部中给出调用者完整运行产物的路径。
 - **`[needs-verification]` 标记**出现在 `requires_verification: true` 的发现上。

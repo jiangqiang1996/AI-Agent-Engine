@@ -18,7 +18,7 @@ export const aeRecoveryTool: ToolDefinition = tool({
     '',
     '不适用场景：',
     '- 不直接修改任何产物',
-    '- 不决定业务内容，只返回恢复 contract',
+    '- 不决定业务内容，只返回恢复契约',
   ].join('\n'),
   args: {
     phase: tool.schema

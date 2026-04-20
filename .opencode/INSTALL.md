@@ -51,25 +51,18 @@ echo "export { default } from '../ai-agent-engine/dist/src/tui.js'" > ~/.config/
 5. 重启 opencode。
 
 6. 验证方式：
-- 在会话中尝试 `/ae-lfg`
+- 在会话中尝试 `/ae-help`
 - 或尝试让代理列出 `ae:*` 技能
 
 ---
 
 ## 二、更新
 
-拉取最新代码后重新构建即可，桥接文件无需变动：
+桥接文件无需变动。直接使用 `ae:update` 技能（或 `/ae-update` 命令），它会自动完成：拉取代码 → 清理旧构建产物和缓存 → 按需重装依赖 → 重新构建。
 
-```bash
-cd ~/.config/opencode/ai-agent-engine
-git pull
-npm install
-npm run build
-```
+如果用户未提供安装路径，默认使用安装时相同的目录（见第一章）。
 
 构建完成后重启 opencode 即生效。
-
-> 如果 `package.json` 中的依赖版本未变更，`npm install` 可以省略。但依赖有变更时**必须**执行，否则运行时可能报模块找不到的错误。
 
 ---
 
@@ -94,7 +87,7 @@ rm -rf ~/.config/opencode/ai-agent-engine
 
 4. 确认卸载完成：
 - 代理不再列出 `ae:*` 技能
-- `/ae-lfg` 等命令不再可用
+- `/ae-help` 等命令不再可用
 
 > 卸载过程不会影响用户的 `opencode.json` 配置（安装时未修改该文件的 `plugin` 字段）。
 

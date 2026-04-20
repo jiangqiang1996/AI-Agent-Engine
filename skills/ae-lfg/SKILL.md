@@ -1,6 +1,6 @@
 ---
 name: ae:lfg
-description: 默认入口：驱动从需求到执行的 AE 主链路；若已有产物则优先恢复，否则从 brainstorm 开始
+description: 默认入口：驱动从需求到执行的 AE 主流程；若已有产物则优先恢复，否则从 brainstorm 开始
 argument-hint: "[需求描述|已有产物路径]"
 disable-model-invocation: true
 ---
