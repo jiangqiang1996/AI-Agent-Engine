@@ -9,6 +9,13 @@ export const SessionExtractResultSchema = z.object({
   decisionsMade: z.string().default("无").describe("已做决策列表，每条用换行分隔"),
   todoItems: z.string().default("无").describe("待办事项列表，每条用换行分隔"),
   projectContext: z.string().default("无").describe("项目上下文信息，用换行分隔"),
+  techStack: z.string().default("无").describe("技术栈信息，使用的框架、库、工具版本等，每条用换行分隔"),
+  riskNotes: z.string().default("无").describe("风险提示，已知的问题、注意事项、坑点等，每条用换行分隔"),
+  dependencies: z.string().default("无").describe("依赖关系，依赖的外部服务、API、其他模块等，每条用换行分隔"),
+  references: z.string().default("无").describe("参考资料，相关的文档链接、Issue、PR地址等，每条用换行分隔"),
+  assignees: z.string().default("无").describe("人员分工，任务分配给哪些人、负责人信息等，每条用换行分隔"),
+  deadlines: z.string().default("无").describe("截止日期，各项任务的交付时间、里程碑时间等，每条用换行分隔"),
+  debugInfo: z.string().default("无").describe("调试信息，已知的报错信息、日志、复现步骤等，每条用换行分隔"),
   truncatedWarning: z.string().optional().describe("超长会话截断提示，如存在则返回"),
 });
 
@@ -94,11 +101,18 @@ function truncateSessionContent(
  * 信息提取系统prompt，优化用于提取会话四类核心信息
  */
 const EXTRACT_PROMPT = `
-你是专业的会话信息提取助手，请从以下会话内容中提取四类核心信息：
+你是专业的会话信息提取助手，请从以下会话内容中提取以下核心信息：
 1. 核心结论：会话中达成的最终结论、问题解决方案、关键结果
 2. 已做决策：会话中确定的技术选型、方案选择、优先级决策
 3. 待办事项：未完成的任务清单、下一步计划、需要跟进的事项
 4. 项目上下文：项目基本信息、环境配置、参数约定、已完成的工作内容
+5. 技术栈信息：使用的框架、库、工具版本、运行环境等
+6. 风险提示：已知的问题、注意事项、坑点、不推荐的做法等
+7. 依赖关系：依赖的外部服务、API、其他模块、第三方组件等
+8. 参考资料：相关的文档链接、Issue、PR地址、设计稿链接等
+9. 人员分工：任务分配给哪些人、负责人、对接人信息等
+10. 截止日期：各项任务的交付时间、里程碑时间、上线时间等
+11. 调试信息：已知的报错信息、日志片段、复现步骤、排查过程等
 
 要求：
 - 准确提取所有关键信息，不要遗漏
@@ -115,7 +129,14 @@ const EXTRACT_PROMPT = `
   "coreConclusions": "字符串，每条结论用换行分隔，无则返回\"无\"",
   "decisionsMade": "字符串，每条决策用换行分隔，无则返回\"无\"",
   "todoItems": "字符串，每条待办用换行分隔，无则返回\"无\"",
-  "projectContext": "字符串，上下文信息，无则返回\"无\""
+  "projectContext": "字符串，上下文信息，无则返回\"无\"",
+  "techStack": "字符串，技术栈信息，每条用换行分隔，无则返回\"无\"",
+  "riskNotes": "字符串，风险提示信息，每条用换行分隔，无则返回\"无\"",
+  "dependencies": "字符串，依赖关系信息，每条用换行分隔，无则返回\"无\"",
+  "references": "字符串，参考资料信息，每条用换行分隔，无则返回\"无\"",
+  "assignees": "字符串，人员分工信息，每条用换行分隔，无则返回\"无\"",
+  "deadlines": "字符串，截止日期信息，每条用换行分隔，无则返回\"无\"",
+  "debugInfo": "字符串，调试信息，每条用换行分隔，无则返回\"无\""
 }
 `;
 
@@ -155,6 +176,13 @@ export function extractSessionContent(
       decisionsMade: parseResult.data.decisionsMade,
       todoItems: parseResult.data.todoItems,
       projectContext: parseResult.data.projectContext,
+      techStack: parseResult.data.techStack,
+      riskNotes: parseResult.data.riskNotes,
+      dependencies: parseResult.data.dependencies,
+      references: parseResult.data.references,
+      assignees: parseResult.data.assignees,
+      deadlines: parseResult.data.deadlines,
+      debugInfo: parseResult.data.debugInfo,
       truncatedWarning,
     };
     
