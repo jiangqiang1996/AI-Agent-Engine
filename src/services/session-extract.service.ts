@@ -57,11 +57,21 @@ function desensitizeText(text: string): string {
 
 /**
  * 超长会话截断函数：优先保留最新消息，避免超过LLM上下文限制
+ * 压缩等级对应maxTokens：1=32000, 2=16000, 3=8000, 4=4000, 5=2000
  */
 function truncateSessionContent(
   messages: Array<{ content: string }>,
-  maxTokens: number = 16000
+  compressionLevel: number = 2
 ): { content: string; truncatedWarning?: string } {
+  // 根据压缩等级设置maxTokens
+  const maxTokensMap = {
+    1: 32000,
+    2: 16000,
+    3: 8000,
+    4: 4000,
+    5: 2000,
+  }
+  const maxTokens = maxTokensMap[compressionLevel as keyof typeof maxTokensMap] || 16000
   // 简单估算：1 token ≈ 4 个字符，预留20%空间给系统prompt
   const maxLength = Math.floor(maxTokens * 4 * 0.8);
   // 复制数组再反转，避免污染原数组
@@ -117,11 +127,12 @@ const EXTRACT_PROMPT = `
  */
 export function extractSessionContent(
   messages: Array<{ content: string }>,
-  llmCall: (prompt: string) => Effect.Effect<unknown, Error>
+  llmCall: (prompt: string) => Effect.Effect<unknown, Error>,
+  compressionLevel: number = 1
 ): Effect.Effect<SessionExtractResult, Error> {
   return Effect.gen(function* () {
     // 1. 处理超长会话截断
-    const { content: rawContent, truncatedWarning } = truncateSessionContent(messages);
+    const { content: rawContent, truncatedWarning } = truncateSessionContent(messages, compressionLevel);
     
     // 2. 先脱敏，再传给 LLM（避免敏感信息泄露给 LLM）
     const content = desensitizeText(rawContent);
