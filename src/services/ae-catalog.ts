@@ -198,7 +198,7 @@ const GILDED_AGENTS = [
 ] as const satisfies ReadonlyArray<readonly [string, 'review' | 'research' | 'workflow', string]>
 
 const DEFERRED_AGENTS = [
-  ['pr-comment-resolver', 'workflow', '处理 PR 评论串'],
+  ['pr-comment-resolver', 'workflow', '处理拉取请求评论串'],
   ['schema-drift-detector', 'review', '检查 schema 漂移'],
   ['data-migrations-reviewer', 'review', '审查数据迁移'],
   ['deployment-verification-agent', 'workflow', '输出部署验证清单'],

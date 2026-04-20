@@ -1,5 +1,5 @@
 ---
-description: 对计划文档执行多位审查员的审查
+description: 对计划文档执行多角色审查
 argument-hint: "[mode:*] [计划路径]"
 ---
 

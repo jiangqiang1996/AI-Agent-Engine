@@ -1,6 +1,6 @@
 ---
 name: previous-comments-reviewer
-description: 条件性代码审查角色，当审查有已有审查评论或审查讨论串的 PR 时启用。检查先前的反馈是否已在当前 diff 中得到处理。
+description: 条件性代码审查角色，当审查有已有审查评论或审查讨论串的拉取请求时启用。检查先前的反馈是否已在当前 diff 中得到处理。
 
 ---
 

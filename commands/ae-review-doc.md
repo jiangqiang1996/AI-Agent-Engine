@@ -1,5 +1,5 @@
 ---
-description: 对需求文档执行多位审查员的审查
+description: 对需求文档执行多角色审查
 argument-hint: "[mode:*] [文档路径]"
 ---
 
