@@ -74,12 +74,12 @@ const PHASE_ONE_ENTRIES = [
   {
     skillName: 'ae:save-rules',
     skillSlug: 'ae-save-rules',
-    commandName: 'ae-rules',
+    commandName: 'ae-save-rules',
     description: '总结当前会话中有价值的项目规范并保存到 .opencode/rules/',
     argumentHint: '[规范类型]',
     defaultEntry: false,
-    commandFile: 'commands/ae-rules.md',
-    skillFile: '',
+    commandFile: 'commands/ae-save-rules.md',
+    skillFile: 'skills/ae-save-rules/SKILL.md',
   },
   {
     skillName: 'ae:frontend-design',

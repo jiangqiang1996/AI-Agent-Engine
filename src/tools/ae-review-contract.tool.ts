@@ -26,6 +26,9 @@ export const aeReviewContractTool: ToolDefinition = tool({
     has_security: tool.schema.boolean().optional().describe('是否涉及安全边界'),
     has_cli: tool.schema.boolean().optional().describe('是否涉及 CLI'),
     has_typescript: tool.schema.boolean().optional().describe('是否涉及 TypeScript 代码'),
+    has_performance: tool.schema.boolean().optional().describe('是否涉及性能敏感逻辑'),
+    has_api: tool.schema.boolean().optional().describe('是否涉及 API 契约变更'),
+    has_reliability: tool.schema.boolean().optional().describe('是否涉及可靠性/容错机制'),
     changed_lines: tool.schema.number().optional().describe('改动行数'),
     has_pr_metadata: tool.schema.boolean().optional().describe('是否存在 PR 元数据'),
     requirement_count: tool.schema.number().optional().describe('需求数量'),
@@ -40,6 +43,9 @@ export const aeReviewContractTool: ToolDefinition = tool({
                 hasPrMetadata: args.has_pr_metadata,
                 hasSecurity: args.has_security,
                 hasTypescript: args.has_typescript,
+                hasPerformance: args.has_performance,
+                hasApi: args.has_api,
+                hasReliability: args.has_reliability,
                 changedLineCount: args.changed_lines,
               })
             : selectDocumentReviewers({

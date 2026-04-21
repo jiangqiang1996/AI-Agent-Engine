@@ -32,7 +32,7 @@ export const AeCommandNameSchema = z
     'ae-work',
     'ae-review-code',
     'ae-lfg',
-    'ae-rules',
+    'ae-save-rules',
     'ae-frontend-design',
     'ae-setup',
     'ae-test-browser',

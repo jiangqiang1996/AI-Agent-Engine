@@ -73,7 +73,7 @@ Fetch and follow the uninstall instructions from https://gitee.com/jiangqiang199
 | `ae:work` | `/ae-work` | 按 living plan 执行工作，默认 subagent-first | plan 路径、工作描述 | 代码改动、`.context/ae/work/*` | 是 |
 | `ae:review` | `/ae-review-code` | 使用分层角色代理和置信度门控对代码改动进行结构化审查 | `mode:*`、`plan:<path>`、`base:<ref>` | findings / gate 结论、`.context/ae/review/*` | 是 |
 | `ae:lfg` | `/ae-lfg` | 默认总入口，驱动从需求到执行的 AE 主链路 | 需求描述、已有产物路径 | 按阶段推进或恢复 | 是 |
-| `ae:save-rules` | `/ae-rules` | 总结当前会话中有价值的通用项目规范，询问后保存到 `.opencode/rules/` | 规范类型 | `.opencode/rules/**/*.md` | 否 |
+| `ae:save-rules` | `/ae-save-rules` | 总结当前会话中有价值的通用项目规范，询问后保存到 `.opencode/rules/` | 规范类型 | `.opencode/rules/**/*.md` | 否 |
 | `ae:frontend-design` | `/ae-frontend-design` | 构建具有设计品质的前端界面 | 描述、路径 | 前端代码 | 否 |
 | `ae:setup` | `/ae-setup` | 诊断并安装 AE 前端设计所需的外部依赖 | 无 | 无 | 否 |
 | `ae:test-browser` | `/ae-test-browser` | 使用 agent-browser 执行端到端浏览器测试 | URL、路由 | 测试结果 | 否 |
@@ -157,7 +157,7 @@ Fetch and follow the uninstall instructions from https://gitee.com/jiangqiang199
 | `ae:review` / `/ae-review-code` | `plan:<path>` | 否 | 用于 requirements completeness 校验 | 省略时只审代码上下文 | 与无效路径组合时报错 |
 | `ae:review` / `/ae-review-code` | `base:<ref>` | 否 | 明确 diff 基线 | 省略时由当前上下文推断 | 与非法 ref 组合时报错 |
 | `ae:lfg` / `/ae-lfg` | 自由文本 | 否 | 需求描述或已有产物路径 | 无输入时优先恢复，恢复失败则回到 brainstorm | 多候选产物不自动猜测 |
-| `ae:save-rules` / `/ae-rules` | 规范类型 | 否 | 指定保存的规范分类 | 自动从会话内容推断类型 | 无 |
+| `ae:save-rules` / `/ae-save-rules` | 规范类型 | 否 | 指定保存的规范分类 | 自动从会话内容推断类型 | 无 |
 | `ae:frontend-design` / `/ae-frontend-design` | 描述或路径 | 否 | 前端设计描述或已有文件路径 | 无输入时根据上下文推断 | 无 |
 | `ae:setup` | 无 | 否 | 检查并安装前端设计外部依赖 | 无参数 | 无 |
 | `ae:test-browser` / `/ae-test-browser` | URL 或路由 | 否 | 指定要测试的页面地址 | 默认 `http://localhost:3000` | 无 |
@@ -215,7 +215,7 @@ Fetch and follow the uninstall instructions from https://gitee.com/jiangqiang199
 | 会话交接 | `/ae-handoff` | `/ae-handoff` |
 | 查看帮助 | `/ae-help` | `/ae-help` |
 | 更新插件 | `/ae-update` | `/ae-update` |
-| 保存会话规范 | `/ae-rules` | `/ae-rules` |
+| 保存会话规范 | `/ae-save-rules` | `/ae-save-rules` |
 | 前端设计 | `/ae-frontend-design` | `/ae-frontend-design 着陆页` |
 | 安装前端依赖 | `/ae-setup` | `/ae-setup` |
 | 浏览器测试 | `/ae-test-browser` | `/ae-test-browser http://localhost:3000` |
