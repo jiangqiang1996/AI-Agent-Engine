@@ -24,7 +24,7 @@ description: "研究并综合外部最佳实践、文档和示例，适用于任
    - Rails/Ruby → `ae:dhh-rails-style`
    - 前端/设计 → `ae:frontend-design`
    - 计划/方案 → `ae:plan`
-   - 规范/规则 → `ae:rules`
+   - 规范/规则 → `ae:save-rules`
    - 数据库/SQL → `ae:sql`
    - 浏览器测试 → `ae:test-browser`
 

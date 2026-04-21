@@ -1,5 +1,5 @@
 ---
-name: ae:rules
+name: ae:save-rules
 description: 总结当前会话中值得长期保存的通用项目规范，询问后保存到 .opencode/rules/ 目录
 argument-hint: "[规范类型]"
 ---
