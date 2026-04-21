@@ -58,7 +58,7 @@ echo "export { default } from '../ai-agent-engine/dist/src/tui.js'" > ~/.config/
 
 ## 二、更新
 
-桥接文件无需变动。直接使用 `ae:update` 技能（或 `/ae-update` 命令），它会自动完成：拉取代码 → 清理旧构建产物和缓存 → 按需重装依赖 → 重新构建。
+直接使用 `ae:update` 技能（或 `/ae-update` 命令），它会自动完成：拉取代码 → 清理旧构建产物和缓存 → 按需重装依赖 → 重新构建。
 
 如果用户未提供安装路径，默认使用安装时相同的目录（见第一章）。
 
