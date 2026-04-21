@@ -202,20 +202,12 @@ Fetch and follow the uninstall instructions from https://gitee.com/jiangqiang199
 | 审查失败 | 停留在当前阶段 | 先修复再继续 |
 | 用户中止 | 保留当前产物 | 下次会话可继续 |
 
-## Agent 分桶
-
-| 桶 | 说明 | 代表项 |
-| --- | --- | --- |
-| Required | 一期必需迁入 | `coherence-reviewer`、`correctness-reviewer`、`repo-research-analyst` |
-| Gilded | 可适当镀金提前迁入 | `architecture-strategist`、`performance-oracle`、`session-historian` |
-| Deferred | 暂不首发但保留清单 | `data-migrations-reviewer`、`kieran-python-reviewer`、`ankane-readme-writer` |
-
 ## 典型用法
 
 | 场景 | 推荐入口 | 示例 |
 | --- | --- | --- |
 | 新需求从零开始 | `/ae-lfg` | `/ae-lfg 实现一套 AE 工作流插件` |
-| 只做需求文档 | `/ae-brainstorm` | `/ae-brainstorm 为 AE 一期定义需求边界` |
+| 只做需求文档 | `/ae-brainstorm` | `/ae-brainstorm 为 AE 定义需求边界` |
 | 基于 requirements 写计划 | `/ae-plan` | `/ae-plan docs/brainstorms/2026-04-18-ae-plugin-phase-one-requirements.md` |
 | 直接执行已有 plan | `/ae-work` | `/ae-work docs/plans/2026-04-18-001-feat-ae-phase-one-workflow-plugin-plan.md` |
 | 只做代码审查 | `/ae-review-code` | `/ae-review-code mode:report-only plan:docs/plans/2026-04-18-001-feat-ae-phase-one-workflow-plugin-plan.md` |
