@@ -68,7 +68,7 @@ export function selectCodeReviewers(input: CodeReviewSelectionInput): string[] {
   }
 
   if (input.hasTypescript) {
-    selected.push('kieran-typescript-reviewer', 'agent-native-reviewer')
+    selected.push('kieran-typescript-reviewer')
   }
 
   if ((input.changedLineCount ?? 0) >= 50 || input.hasSecurity || input.hasApi) {

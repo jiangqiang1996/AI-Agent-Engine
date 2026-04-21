@@ -1,5 +1,6 @@
 import {Effect} from 'effect'
 import type {ToolContext} from '@opencode-ai/plugin/tool'
+import type {OpencodeClient} from '@opencode-ai/sdk'
 
 import type {SessionExtractResult} from './session-extract.service.js'
 import {createNewSession, formatSystemPrompt, injectContextAsMessage, navigateToSession} from './session.service.js'
@@ -42,7 +43,7 @@ function generateHandoffTitle(extractResult: SessionExtractResult): string {
 function createSessionWithFallback(
     sessionTitle: string,
     extractResult: SessionExtractResult,
-    client: any
+    client: OpencodeClient
 ): Effect.Effect<{ id: string; url: string; fallback: boolean }, SessionCreateError | ContextInjectError> {
     const systemPrompt = formatSystemPrompt(extractResult)
 
@@ -100,7 +101,7 @@ export interface HandoffResult {
 
 export function executeHandoff(
     context: ToolContext,
-    client: any,
+    client: OpencodeClient,
     extractResult: SessionExtractResult
 ): Effect.Effect<HandoffResult, Error> {
     return Effect.tryPromise(async () => {

@@ -1,9 +1,11 @@
-let _client: any = null
+import type { OpencodeClient } from '@opencode-ai/sdk'
 
-export function setGlobalClient(client: any): void {
+let _client: OpencodeClient | null = null
+
+export function setGlobalClient(client: OpencodeClient): void {
   _client = client
 }
 
-export function getGlobalClient(): any {
+export function getGlobalClient(): OpencodeClient | null {
   return _client
 }

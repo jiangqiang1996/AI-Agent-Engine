@@ -19,7 +19,7 @@ export const CODE_REVIEWERS: ReviewDefinition[] = [
   { name: 'testing-reviewer', description: '审查测试覆盖与断言质量', alwaysOn: true },
   { name: 'maintainability-reviewer', description: '审查可维护性与抽象合理性', alwaysOn: true },
   { name: 'project-standards-reviewer', description: '审查是否遵守项目规范', alwaysOn: true },
-  { name: 'agent-native-reviewer', description: '审查代理操作友好性', alwaysOn: false },
+  { name: 'agent-native-reviewer', description: '审查代理操作友好性', alwaysOn: true },
   { name: 'security-reviewer', description: '审查安全漏洞', alwaysOn: false },
   { name: 'performance-reviewer', description: '审查性能瓶颈', alwaysOn: false },
   { name: 'api-contract-reviewer', description: '审查接口契约破坏性变更', alwaysOn: false },

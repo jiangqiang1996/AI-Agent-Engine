@@ -66,7 +66,7 @@ function desensitizeText(text: string): string {
  */
 function truncateSessionContent(
   messages: Array<{ content: string }>,
-  compressionLevel: number = 2
+  compressionLevel: number = 1
 ): { content: string; truncatedWarning?: string } {
   // 根据压缩等级设置maxTokens
   const maxTokensMap = {
