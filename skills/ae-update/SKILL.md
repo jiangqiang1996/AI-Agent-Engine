@@ -1,67 +1,61 @@
 ---
 name: ae:update
-description: "拉取 AE 插件最新代码并重新构建，完成本地更新。"
+description: "将 AE 插件仓库还原为干净状态并拉取最新代码，重新安装依赖和构建，避免缓存残留。"
 ---
 
 # AE Update
 
-拉取最新代码，清理未纳入版本管理的文件，检查依赖更新并重新构建。桥接文件（ae-server.js、ae-tui.js）无需变动。
+将已有的本地仓库还原到未更改状态，拉取最新代码，清理未纳入版本管理的文件（保留 node_modules），然后重新安装依赖和构建。跳过安装阶段的兼容性检查。
 
-## 第一步：定位安装目录
+## 第一步：还原仓库并拉取最新代码
 
-确定 AE 插件的本地安装路径。默认安装目录为：
+在已有的克隆仓库目录中依次执行：
 
-- Linux / macOS: `~/.config/opencode/ai-agent-engine`
-- Windows: `%USERPROFILE%\.config\opencode\ai-agent-engine`
-
-如果用户提供了自定义安装路径，使用用户提供的路径。
-
-使用 Bash 工具检查目录是否存在以及是否为 git 仓库：
+1. 将工作区和暂存区强制重置到上次提交的干净状态：
 
 ```bash
-git -C <安装目录> rev-parse --is-inside-work-tree
+cd ~/.config/opencode/ai-agent-engine
+git reset --hard HEAD
 ```
 
-- 目录存在且为 git 仓库：继续下一步
-- 目录不存在或不是 git 仓库：提示用户先安装 AE 插件，终止更新流程
-
-## 第二步：拉取最新代码并清理未追踪文件
-
-依次执行以下命令：
+2. 删除未被版本管理的文件和目录，但保留 node_modules 以节省后续安装时间：
 
 ```bash
-git -C <安装目录> pull
-git -C <安装目录> clean -fdx
+git clean -fd --exclude=node_modules
 ```
 
-- `git pull` 拉取最新代码
-- `git clean -fdx` 删除所有未被 git 管理的文件和目录（包括 `node_modules/`、`dist/`、`tsconfig.tsbuildinfo` 等）
-- 如果 `git pull` 失败（网络问题、本地冲突等）：向用户报告错误信息并建议手动处理
-- 如果拉取成功且无新提交：仍然执行清理，继续后续步骤
-
-## 第三步：安装依赖
-
-使用 Bash 工具执行：
+3. 拉取远程最新代码：
 
 ```bash
-npm install --prefix <安装目录>
+git pull
 ```
 
-- 安装成功：继续下一步
-- 安装失败：向用户报告错误信息，建议检查 Node.js 版本或网络连接
+> 先清理再拉取，避免未追踪文件与远程新文件产生冲突。
 
-## 第四步：构建
+## 第二步：重新安装依赖和构建
 
-使用 Bash 工具执行构建：
+在仓库目录中执行：
 
 ```bash
-npm run build --prefix <安装目录>
+npm install
+npm run build
 ```
 
-- 构建成功：继续下一步
-- 构建失败：向用户报告错误信息，建议检查 Node.js 版本或提交 issue
+## 第三步：确认桥接文件
 
-## 第五步：完成
+在全局插件目录 `~/.config/opencode/plugins/` 下重新写入桥接文件（内容幂等，可安全覆写）：
+
+```bash
+# ae-server.js
+echo "export { default } from '../ai-agent-engine/dist/src/index.js'" > ~/.config/opencode/plugins/ae-server.js
+
+# ae-tui.js
+echo "export { default } from '../ai-agent-engine/dist/src/tui.js'" > ~/.config/opencode/plugins/ae-tui.js
+```
+
+> 桥接文件内容仅依赖安装路径，只要路径不变则不会变化。跳过安装阶段的兼容性检查（oh-my-openagent / oh-my-opencode / superpowers 检测），因为用户首次安装时已确认兼容性。
+
+## 第四步：完成
 
 展示更新结果：
 
@@ -71,9 +65,23 @@ npm run build --prefix <安装目录>
 
 如需验证，重启后尝试 `/ae-help` 或让代理列出 `ae:*` 技能。
 
+## 异常处理
+
+如果上述流程因本地仓库损坏或其他原因失败，回退为完全卸载+全新安装：
+
+1. 删除桥接文件和仓库目录：
+
+```bash
+rm ~/.config/opencode/plugins/ae-server.js
+rm ~/.config/opencode/plugins/ae-tui.js
+rm -rf ~/.config/opencode/ai-agent-engine
+```
+
+2. 按照 INSTALL.md 的安装章节重新安装。
+
 ## 注意事项
 
 - 更新过程不会影响用户的 `opencode.json` 配置
-- 桥接文件（`ae-server.js`、`ae-tui.js`）无需重新创建
+- 保留 node_modules 可避免每次全量下载依赖，显著加快更新速度
 - 如果 `npm install` 因网络问题失败，可尝试配置 npm 镜像源后重试
 - Windows 环境下 `~` 对应 `%USERPROFILE%`，`~/.config/opencode/` 实际路径为 `%USERPROFILE%\.config\opencode\`
