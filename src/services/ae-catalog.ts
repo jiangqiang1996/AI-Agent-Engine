@@ -8,7 +8,6 @@ const PHASE_ONE_ENTRIES = [
     description: '围绕需求进行头脑风暴并产出需求文档',
     argumentHint: '[需求描述|需求文档路径]',
     defaultEntry: false,
-    commandFile: 'commands/ae-brainstorm.md',
     skillFile: 'skills/ae-brainstorm/SKILL.md',
   },
   {
@@ -18,7 +17,6 @@ const PHASE_ONE_ENTRIES = [
     description: '对需求文档进行多角色审查',
     argumentHint: '[mode:*] [文档路径]',
     defaultEntry: false,
-    commandFile: 'commands/ae-review-doc.md',
     skillFile: 'skills/ae-document-review/SKILL.md',
   },
   {
@@ -28,7 +26,6 @@ const PHASE_ONE_ENTRIES = [
     description: '基于需求或输入生成 AE 技术计划',
     argumentHint: '[计划路径|需求文档路径|需求描述]',
     defaultEntry: false,
-    commandFile: 'commands/ae-plan.md',
     skillFile: 'skills/ae-plan/SKILL.md',
   },
   {
@@ -38,7 +35,6 @@ const PHASE_ONE_ENTRIES = [
     description: '对计划文档进行多角色审查',
     argumentHint: '[mode:*] [计划路径]',
     defaultEntry: false,
-    commandFile: 'commands/ae-review-plan.md',
     skillFile: 'skills/ae-plan-review/SKILL.md',
   },
   {
@@ -48,7 +44,6 @@ const PHASE_ONE_ENTRIES = [
     description: '按演进式计划执行工作并尽量委派给子代理',
     argumentHint: '[计划路径|工作描述]',
     defaultEntry: false,
-    commandFile: 'commands/ae-work.md',
     skillFile: 'skills/ae-work/SKILL.md',
   },
   {
@@ -58,7 +53,6 @@ const PHASE_ONE_ENTRIES = [
     description: '使用分层角色代理和置信度门控对代码改动进行结构化审查',
     argumentHint: '[mode:*] [plan:<path>] [base:<ref>]',
     defaultEntry: false,
-    commandFile: 'commands/ae-review-code.md',
     skillFile: 'skills/ae-review/SKILL.md',
   },
   {
@@ -68,7 +62,6 @@ const PHASE_ONE_ENTRIES = [
     description: '默认入口：从需求到执行驱动 AE 主流程',
     argumentHint: '[需求描述|已有产物路径]',
     defaultEntry: true,
-    commandFile: 'commands/ae-lfg.md',
     skillFile: 'skills/ae-lfg/SKILL.md',
   },
   {
@@ -78,7 +71,6 @@ const PHASE_ONE_ENTRIES = [
     description: '总结当前会话中有价值的项目规范并保存到 .opencode/rules/',
     argumentHint: '[规范类型]',
     defaultEntry: false,
-    commandFile: 'commands/ae-save-rules.md',
     skillFile: 'skills/ae-save-rules/SKILL.md',
   },
   {
@@ -88,7 +80,6 @@ const PHASE_ONE_ENTRIES = [
     description: '构建具有设计品质的前端界面',
     argumentHint: '[描述|路径]',
     defaultEntry: false,
-    commandFile: 'commands/ae-frontend-design.md',
     skillFile: 'skills/ae-frontend-design/SKILL.md',
   },
   {
@@ -98,7 +89,6 @@ const PHASE_ONE_ENTRIES = [
     description: '诊断并安装 AE 前端设计所需的外部依赖',
     argumentHint: '',
     defaultEntry: false,
-    commandFile: 'commands/ae-setup.md',
     skillFile: 'skills/ae-setup/SKILL.md',
   },
   {
@@ -108,7 +98,6 @@ const PHASE_ONE_ENTRIES = [
     description: '使用 agent-browser 执行端到端浏览器测试',
     argumentHint: '[URL|路由]',
     defaultEntry: false,
-    commandFile: 'commands/ae-test-browser.md',
     skillFile: 'skills/ae-test-browser/SKILL.md',
   },
   {
@@ -118,7 +107,6 @@ const PHASE_ONE_ENTRIES = [
     description: '通过 JDBC 连接任意数据库并执行 SQL',
     argumentHint: '[SQL 语句]',
     defaultEntry: false,
-    commandFile: 'commands/ae-sql.md',
     skillFile: 'skills/ae-sql/SKILL.md',
   },
   {
@@ -128,7 +116,6 @@ const PHASE_ONE_ENTRIES = [
     description: '循环执行任务并自动验证，直到达成目标后退出',
     argumentHint: '[一句话目标描述]',
     defaultEntry: false,
-    commandFile: 'commands/ae-task-loop.md',
     skillFile: 'skills/ae-task-loop/SKILL.md',
   },
   {
@@ -138,7 +125,6 @@ const PHASE_ONE_ENTRIES = [
     description: '拉取 AE 插件最新代码并重新构建，完成本地更新',
     argumentHint: '[安装路径]',
     defaultEntry: false,
-    commandFile: 'commands/ae-update.md',
     skillFile: 'skills/ae-update/SKILL.md',
   },
   {
@@ -148,7 +134,6 @@ const PHASE_ONE_ENTRIES = [
     description: '列出 AE 插件中所有可调用的技能和代理的帮助信息',
     argumentHint: '[技能名或关键词]',
     defaultEntry: false,
-    commandFile: 'commands/ae-help.md',
     skillFile: 'skills/ae-help/SKILL.md',
   },
   {
@@ -158,7 +143,6 @@ const PHASE_ONE_ENTRIES = [
     description: '会话交接：提取当前会话核心结论，创建独立新会话并注入上下文',
     argumentHint: '',
     defaultEntry: false,
-    commandFile: 'commands/ae-handoff.md',
     skillFile: 'skills/ae-handoff/SKILL.md',
   },
 ] satisfies AeAssetEntry[]

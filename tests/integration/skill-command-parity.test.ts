@@ -7,9 +7,8 @@ import { getPhaseOneEntries } from '../../src/services/ae-catalog.js'
 import { parseFrontmatter } from '../../src/utils/frontmatter.js'
 
 describe('skill-command-parity', () => {
-  it('应该保证每个 skill 与 command 真源都存在', () => {
+  it('应该保证每个 skill 真源都存在', () => {
     for (const entry of getPhaseOneEntries()) {
-      expect(existsSync(resolve(process.cwd(), entry.commandFile))).toBe(true)
       if (entry.skillFile) {
         expect(existsSync(resolve(process.cwd(), entry.skillFile))).toBe(true)
       }

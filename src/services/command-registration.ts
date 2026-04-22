@@ -1,51 +1,74 @@
-import { readFileSync } from 'node:fs'
-import { Effect } from 'effect'
+import { readdirSync, readFileSync } from 'node:fs'
+import { basename, join } from 'node:path'
 
 import type { Config } from '@opencode-ai/plugin'
 import type { TuiCommand } from '@opencode-ai/plugin/tui'
 
 import { parseFrontmatter } from '../utils/frontmatter.js'
-import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
 import { getArgumentContracts } from './argument-contract.js'
 import { getPhaseOneEntries } from './ae-catalog.js'
 
-export function buildCommandConfig(manifest: RuntimeAssetManifest): NonNullable<Config['command']> {
-  const result: NonNullable<Config['command']> = {}
+interface LoadedCommand {
+  template: string
+  description: string
+}
 
-  for (const entry of getPhaseOneEntries()) {
-    const source = manifest.runtimeCommandFiles.find((file) => file.source.replaceAll('\\', '/').endsWith(entry.commandFile))
-    let template = `使用 \`${entry.skillName}\` 继续处理这次请求，并沿用参数：\`$ARGUMENTS\`。`
-    let description = entry.description
+function loadCommandFiles(commandsDir: string): Map<string, LoadedCommand> {
+  const result = new Map<string, LoadedCommand>()
+  let files: string[]
 
-    try {
-      const content = Effect.runSync(
-        Effect.try({
-          try: () => readFileSync(source?.source ?? `${manifest.repoRoot}/${entry.commandFile}`, 'utf8'),
-          catch: (error) => (error instanceof Error ? error : new Error(String(error))),
-        }),
-      )
-      const parsed = parseFrontmatter(content)
-      template = parsed.body.trim() || template
-      description = parsed.data.description || description
-    } catch {
-      // 命令文件缺失时保留最小可用模板，不让单文件故障阻断整个插件启动。
-    }
+  try {
+    files = readdirSync(commandsDir).filter((f) => f.endsWith('.md'))
+  } catch {
+    return result
+  }
 
-    result[entry.commandName] = {
-      template,
-      description,
-    }
+  for (const file of files) {
+    const name = basename(file, '.md')
+    const content = readFileSync(join(commandsDir, file), 'utf8')
+    const parsed = parseFrontmatter(content)
+
+    result.set(name, {
+      template: parsed.body.trim() || `$ARGUMENTS`,
+      description: parsed.data.description || '',
+    })
   }
 
   return result
 }
 
-export function createTuiCommands(trigger?: (value: string) => void): TuiCommand[] {
-  const contracts = getArgumentContracts()
+export function buildCommandConfig(commandsDir: string): NonNullable<Config['command']> {
+  const result: NonNullable<Config['command']> = {}
 
-  return getPhaseOneEntries().map((entry) => {
+  for (const entry of getPhaseOneEntries()) {
+    result[entry.commandName] = {
+      template: `使用 \`${entry.skillName}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`,
+      description: entry.description,
+    }
+  }
+
+  const fileCommands = loadCommandFiles(commandsDir)
+  for (const [name, cmd] of fileCommands) {
+    result[name] = cmd
+  }
+
+  return result
+}
+
+export function createTuiCommands(
+  trigger?: (value: string) => void,
+  commandsDir?: string,
+): TuiCommand[] {
+  const contracts = getArgumentContracts()
+  const catalogNames: ReadonlySet<string> = new Set(getPhaseOneEntries().map((e) => e.commandName))
+  const fileCommands = commandsDir ? loadCommandFiles(commandsDir) : new Map<string, LoadedCommand>()
+
+  const tuiCommands: TuiCommand[] = getPhaseOneEntries().map((entry) => {
     const contract = contracts.find((item) => item.commandName === entry.commandName)
-    const description = [entry.description, contract?.argumentHint].filter(Boolean).join(' | ')
+    const fileOverride = fileCommands.get(entry.commandName)
+    const description = fileOverride
+      ? fileOverride.description
+      : [entry.description, contract?.argumentHint].filter(Boolean).join(' | ')
 
     return {
       title: entry.commandName,
@@ -59,4 +82,18 @@ export function createTuiCommands(trigger?: (value: string) => void): TuiCommand
       onSelect: trigger ? () => trigger(`/${entry.commandName}`) : undefined,
     } satisfies TuiCommand
   })
+
+  for (const [name, cmd] of fileCommands) {
+    if (catalogNames.has(name)) continue
+    tuiCommands.push({
+      title: name,
+      value: `/${name}`,
+      description: cmd.description,
+      category: 'AE 自定义命令',
+      slash: { name },
+      onSelect: trigger ? () => trigger(`/${name}`) : undefined,
+    } satisfies TuiCommand)
+  }
+
+  return tuiCommands
 }

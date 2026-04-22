@@ -21,7 +21,7 @@ interface RuntimeConfigShape {
 function mergeCommandConfig(config: RuntimeConfigShape, manifest = createRuntimeAssetManifest(import.meta.url)): void {
   config.command = {
     ...(config.command ?? {}),
-    ...buildCommandConfig(manifest),
+    ...buildCommandConfig(manifest.commandsDir),
   }
 }
 

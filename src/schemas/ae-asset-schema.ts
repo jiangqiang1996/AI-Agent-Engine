@@ -51,7 +51,6 @@ export const AeAssetEntrySchema = z.object({
   description: z.string().min(1).describe('功能描述'),
   argumentHint: z.string().optional().describe('参数提示'),
   defaultEntry: z.boolean().default(false).describe('是否默认入口'),
-  commandFile: z.string().min(1).describe('命令文件路径'),
   skillFile: z.string().describe('技能文件路径，无关联技能时为空字符串'),
 })
 
