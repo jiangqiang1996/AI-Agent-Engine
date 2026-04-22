@@ -1,6 +1,7 @@
 ---
 name: ae:update
 description: "将 AE 插件仓库还原为干净状态并拉取最新代码，重新安装依赖和构建，避免缓存残留。"
+argument-hint: "[安装路径]"
 ---
 
 # AE Update

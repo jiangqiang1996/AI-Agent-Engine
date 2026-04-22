@@ -68,7 +68,7 @@ function nextSkillForArtifact(phase: RecoveryResult['phase'], artifactType: Arti
         case 'work':
           return 'ae:work'
         case 'plan':
-          return 'ae:work'
+          return 'ae:plan-review'
         case 'brainstorm':
           return 'ae:document-review'
       }
@@ -86,7 +86,7 @@ function resumePhaseForArtifact(phase: RecoveryResult['phase'], artifactType: Ar
     case 'work':
       return 'work'
     case 'plan':
-      return 'work'
+      return 'plan-review'
     case 'brainstorm':
       return 'document-review'
   }

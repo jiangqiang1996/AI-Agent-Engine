@@ -19,6 +19,5 @@
 5. `ae:plan-review` — 计划审查
 6. `ae:work` — 执行实现
 7. `ae:review mode:autofix plan:<path>` — 代码审查（含需求验证）
-8. 待办清理 — 处理 `ae:review` 遗留的 `ready` 待办
-9. `ae:test-browser` — 浏览器测试（仅当项目有 UI 且 agent-browser 可用时）
-10. 输出 `<promise>DONE</promise>`
+8. `ae:test-browser` — 浏览器测试（仅当项目有 UI 且 agent-browser 可用时）
+9. 输出 `<promise>DONE</promise>`

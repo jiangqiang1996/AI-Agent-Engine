@@ -14,13 +14,15 @@ class HandoffError extends Error {
 
 class SessionCreateError extends HandoffError {
     constructor(message: string) {
-        super(`创建新会话失败: ${message}`)
+        super(message)
+        this.name = 'SessionCreateError'
     }
 }
 
 class ContextInjectError extends HandoffError {
     constructor(message: string) {
-        super(`注入上下文失败: ${message}`)
+        super(message)
+        this.name = 'ContextInjectError'
     }
 }
 
@@ -47,38 +49,41 @@ function createSessionWithFallback(
 ): Effect.Effect<{ id: string; url: string; fallback: boolean; navigated: boolean }, SessionCreateError | ContextInjectError> {
     const systemPrompt = formatSystemPrompt(extractResult)
 
-    return Effect.tryPromise(async () => {
-        const session = await Effect.runPromise(createNewSession(client, {title: sessionTitle}))
+    return Effect.gen(function* () {
+        const session = yield* createNewSession(client, {title: sessionTitle}).pipe(
+            Effect.mapError(e => new SessionCreateError(e.message))
+        )
 
-        let fallback = false
-        try {
-            await client.session.prompt({
+        const fallback = yield* Effect.tryPromise({
+            try: () => client.session.prompt({
                 path: {id: session.id},
                 body: {
                     noReply: true,
                     system: systemPrompt,
                     parts: [{type: 'text', text: systemPrompt}],
                 },
+            }).then(() => false),
+            catch: (e) => e instanceof Error ? e : new Error(String(e))
+        }).pipe(
+            Effect.matchEffect({
+                onSuccess: () => Effect.succeed(false),
+                onFailure: () => injectContextAsMessage(client, session.id, extractResult).pipe(
+                    Effect.map(() => true),
+                    Effect.mapError(e => new ContextInjectError(e.message))
+                )
             })
-        } catch (_e: any) {
-            await Effect.runPromise(injectContextAsMessage(client, session.id, extractResult))
-            fallback = true
-        }
+        )
 
         // 导航 TUI 到新会话窗口
-        let navigated = true
-        try {
-            await Effect.runPromise(navigateToSession(client, session.id))
-        } catch (_e: any) {
-            navigated = false
-            // TUI 导航失败不影响交接结果，用户可手动切换
-        }
+        const navigated = yield* navigateToSession(client, session.id).pipe(
+            Effect.match({
+                onSuccess: () => true,
+                onFailure: () => false
+            })
+        )
 
         return {id: session.id, url: session.url, fallback, navigated}
-    }).pipe(Effect.mapError(e => {
-        if (e.message.includes('创建新会话')) return new SessionCreateError(e.message)
-        return new ContextInjectError(e.message)
-    }))
+    })
 }
 
 export interface HandoffResult {
@@ -98,58 +103,42 @@ export interface HandoffResult {
         explicitConstraints: string
         contextForContinuation: string
         truncated?: boolean
+        compressionLevel?: number
     }
     error?: string
 }
 
 
 export function executeHandoff(
-    context: ToolContext,
+    _context: ToolContext,
     client: OpencodeClient,
     extractResult: SessionExtractResult
-): Effect.Effect<HandoffResult, Error> {
-    return Effect.tryPromise(async () => {
-        try {
-            const sessionResult = await Effect.runPromise(createSessionWithFallback(
-                generateHandoffTitle(extractResult),
-                extractResult,
-                client
-            ))
+): Effect.Effect<HandoffResult, SessionCreateError | ContextInjectError> {
+    return Effect.gen(function* () {
+        const sessionResult = yield* createSessionWithFallback(
+            generateHandoffTitle(extractResult),
+            extractResult,
+            client
+        )
 
-            return {
-                success: true,
-                sessionId: sessionResult.id,
-                sessionUrl: sessionResult.url,
-                fallbackMode: sessionResult.fallback,
-                navigated: sessionResult.navigated,
-                extractedSummary: {
-                    userRequests: extractResult.userRequests,
-                    goal: extractResult.goal,
-                    workCompleted: extractResult.workCompleted,
-                    currentState: extractResult.currentState,
-                    pendingTasks: extractResult.pendingTasks,
-                    keyFiles: extractResult.keyFiles,
-                    importantDecisions: extractResult.importantDecisions,
-                    explicitConstraints: extractResult.explicitConstraints,
-                    contextForContinuation: extractResult.contextForContinuation,
-                    truncated: !!extractResult.truncatedWarning
-                }
-            }
-        } catch (e: any) {
-            return {
-                success: false,
-                error: e.message,
-                extractedSummary: {
-                    userRequests: "None",
-                    goal: "None",
-                    workCompleted: "None",
-                    currentState: "None",
-                    pendingTasks: "None",
-                    keyFiles: "None",
-                    importantDecisions: "None",
-                    explicitConstraints: "None",
-                    contextForContinuation: "None"
-                }
+        return {
+            success: true,
+            sessionId: sessionResult.id,
+            sessionUrl: sessionResult.url,
+            fallbackMode: sessionResult.fallback,
+            navigated: sessionResult.navigated,
+            extractedSummary: {
+                userRequests: extractResult.userRequests,
+                goal: extractResult.goal,
+                workCompleted: extractResult.workCompleted,
+                currentState: extractResult.currentState,
+                pendingTasks: extractResult.pendingTasks,
+                keyFiles: extractResult.keyFiles,
+                importantDecisions: extractResult.importantDecisions,
+                explicitConstraints: extractResult.explicitConstraints,
+                contextForContinuation: extractResult.contextForContinuation,
+                truncated: !!extractResult.truncatedWarning,
+                compressionLevel: extractResult.compressionLevel
             }
         }
     })

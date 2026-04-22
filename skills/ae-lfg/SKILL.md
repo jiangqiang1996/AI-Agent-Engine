@@ -77,16 +77,7 @@ disable-model-invocation: true
 
 门控：停止。如果审查结论为"不可合并"，根据发现修正后重新审查。
 
-### 步骤 8：待办清理
-
-检查 `docs/ae/todos/` 目录是否存在 `ready` 状态的待办文件：
-
-- 如果存在，逐一处理：阅读待办内容、实施修复、运行相关测试、标记为已完成
-- 如果不存在待办文件，跳过此步骤
-
-门控：停止。验证所有 `ready` 待办已处理或显式推迟。
-
-### 步骤 9：浏览器测试
+### 步骤 8：浏览器测试
 
 检查项目中是否有 UI 相关文件（`src/app/*`、`src/components/*`、`src/views/*`、`*.html` 等）：
 
@@ -96,13 +87,13 @@ disable-model-invocation: true
 
 门控：停止。如果浏览器测试全部失败，输出警告但允许继续。
 
-### 步骤 10：完成
+### 步骤 9：完成
 
 输出 `<promise>DONE</promise>`
 
 ---
 
-标准主链路：`ae:brainstorm` → `ae:document-review` → `ae:plan` → `ae:plan-review` → `ae:work` → `ae:review` → 待办清理 → 浏览器测试
+标准主链路：`ae:brainstorm` → `ae:document-review` → `ae:plan` → `ae:plan-review` → `ae:work` → `ae:review` → 浏览器测试
 
 从步骤 2 现在开始。记住：先计划，再工作。永远不要跳过计划。
 

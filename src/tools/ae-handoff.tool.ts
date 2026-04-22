@@ -51,6 +51,7 @@ export const aeHandoffTool: ToolDefinition = tool({
       importantDecisions: args.important_decisions,
       explicitConstraints: args.explicit_constraints,
       contextForContinuation: args.context_for_continuation,
+      compressionLevel: args.compression_level,
     }
 
     return Effect.runPromise(
@@ -68,7 +69,7 @@ export const aeHandoffTool: ToolDefinition = tool({
               '',
               '已提取核心信息：',
             ]
-            
+
             if (result.extractedSummary.userRequests && result.extractedSummary.userRequests !== 'None') lines.push(`用户请求：${result.extractedSummary.userRequests}`)
             if (result.extractedSummary.goal && result.extractedSummary.goal !== 'None') lines.push(`任务目标：${result.extractedSummary.goal}`)
             if (result.extractedSummary.workCompleted && result.extractedSummary.workCompleted !== 'None') lines.push(`已完成工作：${result.extractedSummary.workCompleted}`)
@@ -78,11 +79,13 @@ export const aeHandoffTool: ToolDefinition = tool({
             if (result.extractedSummary.importantDecisions && result.extractedSummary.importantDecisions !== 'None') lines.push(`重要决策：${result.extractedSummary.importantDecisions}`)
             if (result.extractedSummary.explicitConstraints && result.extractedSummary.explicitConstraints !== 'None') lines.push(`明确约束：${result.extractedSummary.explicitConstraints}`)
             if (result.extractedSummary.contextForContinuation && result.extractedSummary.contextForContinuation !== 'None') lines.push(`续会注意事项：${result.extractedSummary.contextForContinuation}`)
-            
+            if (result.extractedSummary.compressionLevel) lines.push(`压缩等级：${result.extractedSummary.compressionLevel}`)
+
             if (result.extractedSummary.truncated) lines.push('⚠️ 会话内容过长，已自动裁剪非核心历史记录')
 
            return lines.filter(Boolean).join('\n')
-        })
+        }),
+        Effect.catch((error) => Effect.succeed(`❌ 会话交接失败：${error instanceof Error ? error.message : String(error)}`))
       )
     )
   },

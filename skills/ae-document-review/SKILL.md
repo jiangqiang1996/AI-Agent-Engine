@@ -1,7 +1,7 @@
 ---
 name: ae:document-review
 description: 通过并行角色代理审查需求或计划文档，发现角色特定的问题。当需求文档或计划文档已存在且用户希望改进时使用。
-argument-hint: "[mode:headless] [path/to/document.md]"
+argument-hint: "[mode:*] [文档路径]"
 ---
 
 # 文档审查

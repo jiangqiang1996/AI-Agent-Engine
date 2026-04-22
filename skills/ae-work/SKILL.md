@@ -1,7 +1,7 @@
 ---
 name: ae:work
 description: 按计划高效执行工作，保持质量并完成功能交付
-argument-hint: "[计划文档路径或工作描述，留空则自动使用最新计划文档]"
+argument-hint: "[计划路径|工作描述]"
 ---
 
 # 工作执行技能

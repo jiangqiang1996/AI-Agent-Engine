@@ -14,6 +14,7 @@ export const SessionExtractResultSchema = z.object({
   explicitConstraints: z.string().default('None').describe('用户明确要求的限制、项目规范约定，完整保留原文，无则返回None'),
   contextForContinuation: z.string().default('None').describe('需要留意的坑点、警告、相关文档引用，每条用换行分隔'),
   truncatedWarning: z.string().optional().describe('超长会话裁剪提示，如存在则返回'),
+  compressionLevel: z.number().min(1).max(5).optional().describe('交接压缩等级'),
 });
 
 export type SessionExtractResult = z.infer<typeof SessionExtractResultSchema>;

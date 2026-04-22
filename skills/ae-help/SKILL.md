@@ -1,6 +1,7 @@
 ---
 name: ae:help
 description: "列出 AE 插件中所有可主动调用的技能和代理，以及其帮助描述。"
+argument-hint: "[技能名或关键词]"
 ---
 
 # AE Help

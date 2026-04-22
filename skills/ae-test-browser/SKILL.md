@@ -1,6 +1,7 @@
 ---
 name: ae:test-browser
 description: "使用 agent-browser 执行端到端浏览器测试。启动页面、截图、交互、验证结果。"
+argument-hint: "[URL|路由]"
 ---
 
 # 浏览器测试技能

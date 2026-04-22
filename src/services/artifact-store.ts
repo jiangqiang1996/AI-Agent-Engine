@@ -61,11 +61,12 @@ export function listArtifacts(
   type: 'brainstorm' | 'plan' | 'work' | 'review',
 ): ArtifactRecord[] {
   const dir = getArtifactDirectory(manifest, type)
+  const files = readMarkdownFiles(dir)
 
   return Effect.runSync(
     Effect.try({
       try: () =>
-        readMarkdownFiles(dir).map((path) => {
+        files.map((path) => {
           const content = readFileSync(path, 'utf8')
           const parsed = parseFrontmatter(content)
 
