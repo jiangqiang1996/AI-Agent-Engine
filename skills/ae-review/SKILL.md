@@ -132,6 +132,12 @@ argument-hint: "[留空则审查当前分支，或提供拉取请求链接]"
 | `kieran-python-reviewer` | Python模块、端点、脚本或服务 |
 | `kieran-typescript-reviewer` | TypeScript组件、服务、钩子、工具函数或共享类型 |
 
+**深度审计代理（条件性人设发现问题后按需选择）：**
+
+| 代理 | 当以下条件满足时选择 |
+|-------|---------------------------|
+| `cli-agent-readiness-reviewer` | `cli-readiness-reviewer` 已发现系统性 CLI agent 就绪问题，需基于 7 项原则进行完整深度审计 |
+
 ## 审查范围
 
 每次审查会生成所有5个固定角色，然后添加适合差异的跨领域和栈特定条件角色。模型会自动调整规模：小的配置变更不触发条件角色，共 5 个审查角色。

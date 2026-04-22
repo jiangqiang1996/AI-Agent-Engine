@@ -246,6 +246,8 @@ argument-hint: "[描述|路径]"
 
 如需多轮截图-评估-修复的迭代细化，使用 @ae/design-iterator 代理。
 
+当有 Figma 设计稿需要校验实现还原度时，使用 @ae/design-implementation-reviewer 代理进行截图对比与视觉差异检测。
+
 完整的浏览器端到端测试请使用 /ae-test-browser。
 
 ---

@@ -177,7 +177,6 @@ const PHASE_ONE_REQUIRED_AGENTS = [
 
 const GILDED_AGENTS = [
   ['architecture-strategist', 'review', '从架构一致性角度审视设计'],
-  ['code-simplicity-reviewer', 'review', '识别冗余与简化机会'],
   ['pattern-recognition-specialist', 'review', '识别设计模式与重复代码'],
   ['performance-oracle', 'review', '深入分析性能瓶颈'],
   ['security-sentinel', 'review', '深入执行安全审计'],

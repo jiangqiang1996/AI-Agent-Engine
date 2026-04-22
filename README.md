@@ -102,7 +102,6 @@ Fetch and follow the uninstall instructions from https://gitee.com/jiangqiang199
 | | `@architecture-strategist` | 审查架构设计合理性与技术债务 | 架构方案评估 |
 | | `@cli-readiness-reviewer` | 审查命令提示、参数、帮助与 agent 调用体验 | CLI 工具用户体验审查 |
 | | `@cli-agent-readiness-reviewer` | 审查 CLI 工具的 agent 调用友好性 | 自动化接口设计审查 |
-| | `@code-simplicity-reviewer` | 审查代码简洁性与可维护性 | 代码质量优化 |
 | | `@correctness-reviewer` | 审查代码逻辑正确性、边界条件和状态处理 | 功能正确性校验 |
 | | `@data-integrity-guardian` | 审查数据完整性保护机制 | 数据操作逻辑审查 |
 | | `@data-migration-expert` | 审查数据迁移方案安全性与兼容性 | 数据迁移方案评估 |
