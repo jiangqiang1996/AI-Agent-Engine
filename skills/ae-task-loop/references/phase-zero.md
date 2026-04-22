@@ -12,7 +12,7 @@
 
 ### 技能名识别
 
-检查输入的第一个 token 是否完整匹配已知技能名列表（ae:work, ae:review, ae:brainstorm, ae:plan, ae:plan-review, ae:document-review, ae:task-loop, ae:sql, ae:test-browser, ae:setup, ae:frontend-design, ae:save-rules, ae:handoff, ae:help, ae:update, ae:lfg）。
+检查输入的第一个 token 是否完整匹配已知技能名列表（ae:work, ae:review, ae:brainstorm, ae:plan, ae:plan-review, ae:document-review, ae:ideate, ae:task-loop, ae:sql, ae:test-browser, ae:setup, ae:frontend-design, ae:save-rules, ae:handoff, ae:help, ae:update, ae:lfg）。
 
 - 匹配时：识别为执行技能，剩余部分作为目标描述
 - 不匹配时：整个输入作为目标描述，不指定执行技能

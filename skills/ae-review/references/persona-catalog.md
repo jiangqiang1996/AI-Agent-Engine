@@ -10,17 +10,17 @@
 
 | 人设 | 代理 | 关注点 |
 |------|------|--------|
-| `correctness` | `ae:review:correctness-reviewer` | 逻辑错误、边界情况、状态 bug、错误传播、意图符合度 |
-| `testing` | `ae:review:testing-reviewer` | 覆盖缺口、弱断言、脆弱测试、缺失边界测试 |
-| `maintainability` | `ae:review:maintainability-reviewer` | 耦合、复杂度、命名、死代码、过早抽象 |
-| `project-standards` | `ae:review:project-standards-reviewer` | AGENTS.md 合规性——frontmatter、引用、命名、跨平台可移植性、工具选择 |
+| `correctness` | `correctness-reviewer` | 逻辑错误、边界情况、状态 bug、错误传播、意图符合度 |
+| `testing` | `testing-reviewer` | 覆盖缺口、弱断言、脆弱测试、缺失边界测试 |
+| `maintainability` | `maintainability-reviewer` | 耦合、复杂度、命名、死代码、过早抽象 |
+| `project-standards` | `project-standards-reviewer` | AGENTS.md 合规性——frontmatter、引用、命名、跨平台可移植性、工具选择 |
 
 **AE 代理（非结构化输出，单独综合）：**
 
 | 代理 | 关注点 |
 |------|--------|
-| `ae:review:agent-native-reviewer` | 验证新功能是否可被代理访问 |
-| `ae:research:learnings-researcher` | 搜索 docs/solutions/ 查找与此 PR 模块和模式相关的历史问题 |
+| `agent-native-reviewer` | 验证新功能是否可被代理访问 |
+| `learnings-researcher` | 搜索 docs/solutions/ 查找与此 PR 模块和模式相关的历史问题 |
 
 ## 条件性（8 个人设）
 
@@ -28,14 +28,14 @@
 
 | 人设 | 代理 | 选择条件：diff 涉及... |
 |------|------|----------------------|
-| `security` | `ae:review:security-reviewer` | 认证中间件、公共端点、用户输入处理、权限检查、密钥管理 |
-| `performance` | `ae:review:performance-reviewer` | 数据库查询、ORM 调用、循环密集型数据转换、缓存层、异步/并发代码 |
-| `api-contract` | `ae:review:api-contract-reviewer` | 路由定义、序列化器/接口变更、事件 schema、导出类型签名、API 版本管理 |
-| `data-migrations` | `ae:review:data-migrations-reviewer` | 迁移文件、schema 变更、回填脚本、数据转换 |
-| `reliability` | `ae:review:reliability-reviewer` | 错误处理、重试逻辑、熔断器、超时、后台任务、异步处理器、健康检查 |
-| `adversarial` | `ae:review:adversarial-reviewer` | diff 包含 >=50 行可执行代码变更（不包括散文/说明性 Markdown、JSON schema 或配置），或涉及认证、支付、数据变更、外部 API 集成或其他高风险领域（无论文件类型） |
-| `cli-readiness` | `ae:review:cli-readiness-reviewer` | CLI 命令定义、参数解析、CLI 框架使用、命令处理器实现 |
-| `previous-comments` | `ae:review:previous-comments-reviewer` | **仅限 PR。** 审查具有先前审查轮次评论或评论线程的 PR。当阶段 1 中未收集到 PR 元数据时完全跳过。 |
+| `security` | `security-reviewer` | 认证中间件、公共端点、用户输入处理、权限检查、密钥管理 |
+| `performance` | `performance-reviewer` | 数据库查询、ORM 调用、循环密集型数据转换、缓存层、异步/并发代码 |
+| `api-contract` | `api-contract-reviewer` | 路由定义、序列化器/接口变更、事件 schema、导出类型签名、API 版本管理 |
+| `data-migrations` | `data-migrations-reviewer` | 迁移文件、schema 变更、回填脚本、数据转换 |
+| `reliability` | `reliability-reviewer` | 错误处理、重试逻辑、熔断器、超时、后台任务、异步处理器、健康检查 |
+| `adversarial` | `adversarial-reviewer` | diff 包含 >=50 行可执行代码变更（不包括散文/说明性 Markdown、JSON schema 或配置），或涉及认证、支付、数据变更、外部 API 集成或其他高风险领域（无论文件类型） |
+| `cli-readiness` | `cli-readiness-reviewer` | CLI 命令定义、参数解析、CLI 框架使用、命令处理器实现 |
+| `previous-comments` | `previous-comments-reviewer` | **仅限 PR。** 审查具有先前审查轮次评论或评论线程的 PR。当阶段 1 中未收集到 PR 元数据时完全跳过。 |
 
 ## 技术栈条件性（5 个人设）
 
@@ -43,8 +43,8 @@
 
 | 人设 | 代理 | 选择条件：diff 涉及... |
 |------|------|----------------------|
-| `kieran-python` | `ae:review:kieran-python-reviewer` | Python 模块、端点、服务、脚本或带类型的领域代码 |
-| `kieran-typescript` | `ae:review:kieran-typescript-reviewer` | TypeScript 组件、服务、hooks、工具函数或共享类型 |
+| `kieran-python` | `kieran-python-reviewer` | Python 模块、端点、服务、脚本或带类型的领域代码 |
+| `kieran-typescript` | `kieran-typescript-reviewer` | TypeScript 组件、服务、hooks、工具函数或共享类型 |
 
 ## 深度审计代理
 
@@ -52,7 +52,7 @@
 
 | 代理 | 关注点 | 选择条件 |
 |------|--------|----------|
-| `ae:review:cli-agent-readiness-reviewer` | 基于 7 项核心原则对 CLI 代码进行深度 agent 就绪审计：结构化输出、JSON 默认值、交互绕过、有界输出等 | diff 重度涉及 CLI 框架、命令定义或参数解析，且 `cli-readiness` 人设已发现值得深入分析的问题 |
+| `cli-agent-readiness-reviewer` | 基于 7 项核心原则对 CLI 代码进行深度 agent 就绪审计：结构化输出、JSON 默认值、交互绕过、有界输出等 | diff 重度涉及 CLI 框架、命令定义或参数解析，且 `cli-readiness` 人设已发现值得深入分析的问题 |
 
 `cli-readiness` 人设是 diff 级别的快速检查；`cli-agent-readiness-reviewer` 是完整深度审计。大多数 CLI 变更只需前者。仅在 CLI 变更复杂或 `cli-readiness` 已标记系统性问题时派生深度审计。
 
@@ -62,8 +62,8 @@
 
 | 代理 | 关注点 |
 |------|--------|
-| `ae:review:schema-drift-detector` | 交叉对比 schema.rb 变更与包含的迁移，捕获无关漂移 |
-| `ae:review:deployment-verification-agent` | 生成 Go/No-Go 部署检查清单，包含 SQL 验证查询和回滚步骤 |
+| `schema-drift-detector` | 交叉对比 schema.rb 变更与包含的迁移，捕获无关漂移 |
+| `deployment-verification-agent` | 生成 Go/No-Go 部署检查清单，包含 SQL 验证查询和回滚步骤 |
 
 ## 选择规则
 

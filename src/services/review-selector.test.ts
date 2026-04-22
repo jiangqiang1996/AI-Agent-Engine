@@ -26,4 +26,12 @@ describe('review-selector', () => {
     expect(reviewers).toContain('cli-readiness-reviewer')
     expect(reviewers).toContain('adversarial-reviewer')
   })
+
+  it('应该在 hasMigrations 时选择 data-migrations-reviewer', () => {
+    const reviewers = selectCodeReviewers({
+      hasMigrations: true,
+    })
+
+    expect(reviewers).toContain('data-migrations-reviewer')
+  })
 })

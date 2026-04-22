@@ -16,6 +16,7 @@ export interface CodeReviewSelectionInput {
   hasCli?: boolean
   hasPrMetadata?: boolean
   hasTypescript?: boolean
+  hasMigrations?: boolean
 }
 
 export function selectDocumentReviewers(input: DocumentReviewSelectionInput): string[] {
@@ -73,6 +74,10 @@ export function selectCodeReviewers(input: CodeReviewSelectionInput): string[] {
 
   if ((input.changedLineCount ?? 0) >= 50 || input.hasSecurity || input.hasApi) {
     selected.push('adversarial-reviewer')
+  }
+
+  if (input.hasMigrations) {
+    selected.push('data-migrations-reviewer')
   }
 
   return [...new Set(selected)]

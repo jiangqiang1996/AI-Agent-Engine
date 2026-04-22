@@ -77,7 +77,7 @@ rm ~/.config/opencode/plugins/ae-tui.js
 rm -rf ~/.config/opencode/ai-agent-engine
 ```
 
-2. 按照 INSTALL.md 的安装章节重新安装。
+2. 按照 `.opencode/INSTALL.md` 的安装章节重新安装。
 
 ## 注意事项
 

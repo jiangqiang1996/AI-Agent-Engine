@@ -145,6 +145,15 @@ const PHASE_ONE_ENTRIES = [
     defaultEntry: false,
     skillFile: 'skills/ae-handoff/SKILL.md',
   },
+  {
+    skillName: 'ae:ideate',
+    skillSlug: 'ae-ideate',
+    commandName: 'ae-ideate',
+    description: '生成并批判性评估关于某个主题的落地想法',
+    argumentHint: '[功能、关注领域或约束]',
+    defaultEntry: false,
+    skillFile: 'skills/ae-ideate/SKILL.md',
+  },
 ] satisfies AeAssetEntry[]
 
 const PHASE_ONE_REQUIRED_AGENTS = [

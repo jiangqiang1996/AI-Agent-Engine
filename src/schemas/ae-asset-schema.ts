@@ -18,6 +18,7 @@ export const AeSkillNameSchema = z
     'ae:sql',
     'ae:task-loop',
     'ae:update',
+    'ae:ideate',
     'ae:help',
     'ae:handoff',
   ])
@@ -39,6 +40,7 @@ export const AeCommandNameSchema = z
     'ae-sql',
     'ae-task-loop',
     'ae-update',
+    'ae-ideate',
     'ae-help',
     'ae-handoff',
   ])

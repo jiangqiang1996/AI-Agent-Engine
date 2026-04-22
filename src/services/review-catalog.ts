@@ -28,4 +28,5 @@ export const CODE_REVIEWERS: ReviewDefinition[] = [
   { name: 'previous-comments-reviewer', description: '复查历史审查评论处理情况', alwaysOn: false },
   { name: 'kieran-typescript-reviewer', description: '按严格 TS 标准审查实现', alwaysOn: false },
   { name: 'adversarial-reviewer', description: '对抗式构造故障场景', alwaysOn: false },
+  { name: 'data-migrations-reviewer', description: '审查数据迁移', alwaysOn: false },
 ]

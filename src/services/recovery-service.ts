@@ -48,35 +48,30 @@ function preferredArtifactTypes(phase: RecoveryResult['phase']): ArtifactKind[] 
 }
 
 function nextSkillForArtifact(phase: RecoveryResult['phase'], artifactType: ArtifactKind): string {
-  if (phase === 'document-review') {
-    return 'ae:document-review'
-  }
-
-  if (phase === 'plan') {
-    return 'ae:plan'
-  }
-
-  if (phase === 'plan-review') {
-    return 'ae:plan-review'
-  }
-
-  if (phase === 'work') {
-    return 'ae:work'
-  }
-
-  if (phase === 'review') {
-    return 'ae:review'
-  }
-
-  switch (artifactType) {
-    case 'review':
-      return 'ae:review'
+  switch (phase) {
+    case 'document-review':
+      return 'ae:document-review'
+    case 'plan':
+      return 'ae:plan'
+    case 'plan-review':
+      return 'ae:plan-review'
     case 'work':
       return 'ae:work'
-    case 'plan':
-      return 'ae:work'
+    case 'review':
+      return 'ae:review'
     case 'brainstorm':
-      return 'ae:document-review'
+      return 'ae:brainstorm'
+    case 'lfg':
+      switch (artifactType) {
+        case 'review':
+          return 'ae:review'
+        case 'work':
+          return 'ae:work'
+        case 'plan':
+          return 'ae:work'
+        case 'brainstorm':
+          return 'ae:document-review'
+      }
   }
 }
 

@@ -4,7 +4,7 @@ import { createTuiCommands } from './command-registration.js'
 
 describe('command-registration', () => {
   it('应该为全部公开入口生成 TUI 命令', () => {
-    expect(createTuiCommands()).toHaveLength(16)
+    expect(createTuiCommands()).toHaveLength(17)
   })
 
   it('应该把 ae-lfg 标记为建议入口', () => {

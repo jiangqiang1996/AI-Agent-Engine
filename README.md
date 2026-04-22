@@ -67,13 +67,13 @@ Fetch and follow the uninstall instructions from https://gitee.com/jiangqiang199
 | 技能 | 命令 | 功能 | 典型输入 | 输出产物 | 支持跨会话继续 |
 | --- | --- | --- | --- | --- | --- |
 | `ae:lfg` | `/ae-lfg` | 默认总入口，驱动从需求到执行的 AE 主链路 | 需求描述、已有产物路径 | 按阶段推进或恢复 | 是 |
+| `ae:ideate` | `/ae-ideate` | 生成并批判性评估创意方案 | 主题描述 | 创意方案列表 | 否 |
 | `ae:brainstorm` | `/ae-brainstorm` | 围绕需求做头脑风暴并生成 requirements 文档 | 需求描述、已有 requirements 路径 | `docs/brainstorms/*-requirements.md` | 是 |
 | `ae:document-review` | `/ae-review-doc` | 对需求文档做多 reviewer 审查 | `mode:*`、文档路径 | findings / gate 结论 | 是 |
 | `ae:plan` | `/ae-plan` | 创建或更新结构化实现计划 | plan 路径、requirements 路径、需求描述 | `docs/plans/*-plan.md` | 是 |
 | `ae:plan-review` | `/ae-review-plan` | 对计划文档做多 reviewer 审查 | `mode:*`、计划路径 | findings / gate 结论 | 是 |
 | `ae:work` | `/ae-work` | 按 living plan 执行工作，默认 subagent-first | plan 路径、工作描述 | 代码改动、`.context/ae/work/*` | 是 |
 | `ae:review` | `/ae-review-code` | 使用分层角色代理和置信度门控对代码改动进行结构化审查 | `mode:*`、`plan:<path>`、`base:<ref>` | findings / gate 结论、`.context/ae/review/*` | 是 |
-| `ae:ideate` | `/ae-ideate` | 生成并批判性评估创意方案 | 主题描述 | 创意方案列表 | 否 |
 | `ae:task-loop` | `/ae-task-loop` | 循环执行任务并自动验证，直到达成目标后退出 | 一句话目标描述 | 代码改动、完成报告 | 否 |
 | `ae:frontend-design` | `/ae-frontend-design` | 构建具有设计品质的前端界面 | 描述、路径 | 前端代码 | 否 |
 | `ae:setup` | `/ae-setup` | 诊断并安装 AE 前端设计所需的外部依赖 | 无 | 无 | 否 |

@@ -36,4 +36,18 @@ describe('ae-review-contract.tool', () => {
     expect(parsed.mode).toBe('headless')
     expect(parsed.reviewers).toContain('coherence-reviewer')
   })
+
+  it('应该在 has_migrations 时返回 data-migrations-reviewer', async () => {
+    const output = await aeReviewContractTool.execute(
+      {
+        kind: 'code',
+        mode: 'interactive',
+        has_migrations: true,
+      },
+      {} as never,
+    )
+
+    const parsed = JSON.parse(output as string) as { reviewers: string[] }
+    expect(parsed.reviewers).toContain('data-migrations-reviewer')
+  })
 })

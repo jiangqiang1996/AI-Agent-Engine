@@ -35,7 +35,7 @@ argument-hint: "[技能名] <目标描述>"
 
 > 以下为可识别的技能名前缀。更新时同步 `ae-catalog.ts`。
 
-ae:work, ae:review, ae:brainstorm, ae:plan, ae:plan-review, ae:document-review, ae:sql, ae:test-browser, ae:setup, ae:frontend-design, ae:save-rules, ae:handoff, ae:help, ae:update, ae:lfg
+ae:work, ae:review, ae:brainstorm, ae:plan, ae:plan-review, ae:document-review, ae:ideate, ae:sql, ae:test-browser, ae:setup, ae:frontend-design, ae:save-rules, ae:handoff, ae:help, ae:update, ae:lfg
 
 ## 流程
 
