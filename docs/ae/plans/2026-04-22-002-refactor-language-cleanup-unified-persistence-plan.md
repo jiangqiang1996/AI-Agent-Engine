@@ -1,7 +1,7 @@
 ---
 title: "refactor: 精简非 JVM/前端语言内容 + 统一持久化到 docs/ae/ + 清理死代码"
 type: refactor
-status: active
+status: completed
 date: 2026-04-22
 origin: docs/ae/brainstorms/2026-04-22-non-jvm-frontend-language-cleanup-requirements.md
 ---
@@ -50,7 +50,7 @@ origin: docs/ae/brainstorms/2026-04-22-non-jvm-frontend-language-cleanup-require
 
 ## 实现单元
 
-- [ ] **单元 1：移除语言专属 agent 和 skill + 清理死代码（R1-R3, R16, R21-R24）**
+- [x] **单元 1：移除语言专属 agent 和 skill + 清理死代码（R1-R3, R16, R21-R24）**
 
 **目标：** 删除非保留语言专属项、死代码和预留基础设施，清理所有硬引用
 
@@ -93,7 +93,7 @@ origin: docs/ae/brainstorms/2026-04-22-non-jvm-frontend-language-cleanup-require
 
 ---
 
-- [ ] **单元 2：裁剪 12 个 agent 中的非保留语言段落（R4-R15）**
+- [x] **单元 2：裁剪 12 个 agent 中的非保留语言段落（R4-R15）**
 
 **目标：** 从 12 个 agent 中移除或泛化 Ruby/Rails/Python/Go/Rust/PHP 等非保留语言的内容，保持通用方法论不变
 
@@ -143,7 +143,7 @@ origin: docs/ae/brainstorms/2026-04-22-non-jvm-frontend-language-cleanup-require
 
 ---
 
-- [ ] **单元 3：迁移 TypeScript 源码中的持久化路径（R17-R18）**
+- [x] **单元 3：迁移 TypeScript 源码中的持久化路径（R17-R18）**
 
 **目标：** 将 artifact-store.ts 和 todoread.tool.ts 中的硬编码路径指向 `docs/ae/` 统一目录
 
@@ -181,7 +181,7 @@ review:     docs/ae/review/ → docs/ae/review/
 
 ---
 
-- [ ] **单元 4：迁移所有 markdown 文件中的路径引用（R19）**
+- [x] **单元 4：迁移所有 markdown 文件中的路径引用（R19）**
 
 **目标：** 将所有 SKILL.md、references、agent markdown、AGENTS.md 和规则文件中的持久化路径引用从旧目录迁移到 `docs/ae/`
 
@@ -240,7 +240,7 @@ review:     docs/ae/review/ → docs/ae/review/
 
 ---
 
-- [ ] **单元 5：更新测试文件（R17, R18, R21-R24）**
+- [x] **单元 5：更新测试文件（R17, R18, R21-R24）**
 
 **目标：** 更新路径迁移相关的测试文件，删除已移除代码的测试文件
 
@@ -263,7 +263,7 @@ review:     docs/ae/review/ → docs/ae/review/
 
 ---
 
-- [ ] **单元 6：构建验证与最终检查**
+- [x] **单元 6：构建验证与最终检查**
 
 **目标：** 确保整体重构后的项目完整性和一致性
 
