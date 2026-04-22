@@ -75,7 +75,8 @@ export const todoreadTool: ToolDefinition = tool({
           for (let i = ctx.history.length - 1; i >= 0; i--) {
             const msg = ctx.history[i]
             if (typeof msg.content === 'string') {
-              const matches = msg.content.match(/(docs\/plans\/[a-zA-Z0-9\-_.]+\-plan\.md)/g)
+              const normalizedContent = msg.content.replace(/\\/g, '/')
+              const matches = normalizedContent.match(/(?:\.\/)?docs\/plans\/[a-zA-Z0-9\-_.]+\-plan\.md/g)
               if (matches?.length) {
                 matches.forEach((relativePath: string) => {
                   if (mentionedPlans.has(relativePath)) return

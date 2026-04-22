@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import type { OpencodeClient } from "@opencode-ai/sdk";
 import type { SessionExtractResult } from "./session-extract.service.js";
 
 export interface CreateSessionOptions {
@@ -179,15 +180,17 @@ export function formatContextMessage(extractResult: SessionExtractResult): strin
  *   { data: Session, error, request, response }
  */
 export function createNewSession(
-  client: any,
+  client: OpencodeClient,
   options: CreateSessionOptions
 ): Effect.Effect<CreatedSession, Error> {
   return Effect.tryPromise(async () => {
     const res = await client.session.create({
       body: { title: options.title },
     });
-    // SDK 默认返回 { data, error, request, response }，data 为 Session 对象
-    const session = res.data ?? res;
+    // SDK 可能直接返回 Session，或返回 { data, error, request, response }
+    // 先转为 unknown 再做类型守卫，避免使用 any
+    const payload = res as unknown as Record<string, unknown>;
+    const session = (payload.data ?? payload) as { id: string; title?: string } | undefined;
     if (!session || !session.id) {
       throw new Error(`创建新会话失败: 返回数据为空或缺少 id 字段`);
     }
@@ -199,18 +202,36 @@ export function createNewSession(
   });
 }
 
+interface SessionPromptClient {
+  session: {
+    prompt: (args: {
+      path: { id: string }
+      body: { noReply: boolean; parts: Array<{ type: 'text'; text: string }> }
+    }) => Promise<unknown>
+  }
+}
+
+interface TuiPublishClient {
+  tui: {
+    publish: (args: {
+      body: { type: 'tui.session.select'; properties: { sessionID: string } }
+    }) => Promise<unknown>
+  }
+}
+
 /**
  * 降级方案：将上下文作为新会话第一条消息注入
  */
 export function injectContextAsMessage(
-  client: any,
+  client: unknown,
   sessionId: string,
   extractResult: SessionExtractResult
 ): Effect.Effect<void, Error> {
+  const promptClient = client as SessionPromptClient;
   const contextContent = formatContextMessage(extractResult);
   
   return Effect.tryPromise(async () => {
-    await client.session.prompt({
+    await promptClient.session.prompt({
       path: { id: sessionId },
       body: {
         noReply: true,
@@ -226,11 +247,12 @@ export function injectContextAsMessage(
  * 使终端界面切换到目标会话窗口（类似 /new 的效果）
  */
 export function navigateToSession(
-  client: any,
+  client: unknown,
   sessionId: string
 ): Effect.Effect<void, Error> {
+  const tuiClient = client as TuiPublishClient;
   return Effect.tryPromise(async () => {
-    await client.tui.publish({
+    await tuiClient.tui.publish({
       body: {
         type: "tui.session.select",
         properties: {

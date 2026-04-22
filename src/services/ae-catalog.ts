@@ -159,6 +159,7 @@ const PHASE_ONE_REQUIRED_AGENTS = [
   ['learnings-researcher', 'research', '提炼已有经验与文档知识'],
   ['framework-docs-researcher', 'research', '收集框架和官方文档'],
   ['best-practices-researcher', 'research', '收集社区最佳实践'],
+  ['web-researcher', 'research', '搜索并总结网络信息'],
   ['spec-flow-analyzer', 'workflow', '分析阶段流转和边界情况'],
   ['correctness-reviewer', 'review', '审查逻辑正确性与边界条件'],
   ['testing-reviewer', 'review', '审查测试覆盖与断言质量'],

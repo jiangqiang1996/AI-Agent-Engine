@@ -44,12 +44,13 @@ function createSessionWithFallback(
     sessionTitle: string,
     extractResult: SessionExtractResult,
     client: OpencodeClient
-): Effect.Effect<{ id: string; url: string; fallback: boolean }, SessionCreateError | ContextInjectError> {
+): Effect.Effect<{ id: string; url: string; fallback: boolean; navigated: boolean }, SessionCreateError | ContextInjectError> {
     const systemPrompt = formatSystemPrompt(extractResult)
 
     return Effect.tryPromise(async () => {
         const session = await Effect.runPromise(createNewSession(client, {title: sessionTitle}))
 
+        let fallback = false
         try {
             await client.session.prompt({
                 path: {id: session.id},
@@ -61,16 +62,19 @@ function createSessionWithFallback(
             })
         } catch (_e: any) {
             await Effect.runPromise(injectContextAsMessage(client, session.id, extractResult))
+            fallback = true
         }
 
         // 导航 TUI 到新会话窗口
+        let navigated = true
         try {
             await Effect.runPromise(navigateToSession(client, session.id))
         } catch (_e: any) {
+            navigated = false
             // TUI 导航失败不影响交接结果，用户可手动切换
         }
 
-        return {id: session.id, url: session.url, fallback: false}
+        return {id: session.id, url: session.url, fallback, navigated}
     }).pipe(Effect.mapError(e => {
         if (e.message.includes('创建新会话')) return new SessionCreateError(e.message)
         return new ContextInjectError(e.message)
@@ -117,7 +121,7 @@ export function executeHandoff(
                 sessionId: sessionResult.id,
                 sessionUrl: sessionResult.url,
                 fallbackMode: sessionResult.fallback,
-                navigated: true,
+                navigated: sessionResult.navigated,
                 extractedSummary: {
                     userRequests: extractResult.userRequests,
                     goal: extractResult.goal,
