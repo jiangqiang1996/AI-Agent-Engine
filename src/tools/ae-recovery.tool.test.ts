@@ -49,8 +49,8 @@ describe('ae-recovery.tool', () => {
 
   it('应该基于当前 worktree 恢复产物，而不是插件源码目录', async () => {
     const root = mkdtempSync(join(tmpdir(), 'ae-recovery-tool-worktree-'))
-    mkdirSync(join(root, 'docs', 'plans'), { recursive: true })
-    const planPath = join(root, 'docs', 'plans', 'plan.md')
+    mkdirSync(join(root, 'docs', 'ae', 'plans'), { recursive: true })
+    const planPath = join(root, 'docs', 'ae', 'plans', 'plan.md')
     writeFileSync(planPath, '---\ntitle: Plan\ntype: feat\nstatus: active\ndate: 2026-04-18\n---\nplan')
 
     const output = await aeRecoveryTool.execute(

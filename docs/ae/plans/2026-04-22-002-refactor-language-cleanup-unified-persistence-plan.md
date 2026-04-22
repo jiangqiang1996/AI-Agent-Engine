@@ -3,7 +3,7 @@ title: "refactor: 精简非 JVM/前端语言内容 + 统一持久化到 docs/ae/
 type: refactor
 status: active
 date: 2026-04-22
-origin: docs/brainstorms/2026-04-22-non-jvm-frontend-language-cleanup-requirements.md
+origin: docs/ae/brainstorms/2026-04-22-non-jvm-frontend-language-cleanup-requirements.md
 ---
 
 # refactor: 精简非 JVM/前端语言内容 + 统一持久化 + 清理死代码
@@ -17,7 +17,7 @@ origin: docs/brainstorms/2026-04-22-non-jvm-frontend-language-cleanup-requiremen
 
 ## 问题框架
 
-项目存在三类问题：(1) Ruby/Rails、Python、Go、Rust 等非目标语言的专属内容；(2) 运行时产物散落在多个根目录；(3) 死代码和预留基础设施累积。详见源文档。(见源文档: docs/brainstorms/2026-04-22-non-jvm-frontend-language-cleanup-requirements.md)
+项目存在三类问题：(1) Ruby/Rails、Python、Go、Rust 等非目标语言的专属内容；(2) 运行时产物散落在多个根目录；(3) 死代码和预留基础设施累积。详见源文档。(见源文档: docs/ae/brainstorms/2026-04-22-non-jvm-frontend-language-cleanup-requirements.md)
 
 ## 需求追溯
 
@@ -41,10 +41,10 @@ origin: docs/brainstorms/2026-04-22-non-jvm-frontend-language-cleanup-requiremen
 ## 关键技术决策
 
 - 统一持久化根目录：`docs/ae/`（用户已确认）
-- `docs/solutions/` 纳入统一目录：`docs/solutions/` → `docs/ae/solutions/`（审查 P0-1 修复：44 处引用）
+- `docs/ae/solutions/` 纳入统一目录：`docs/ae/solutions/` → `docs/ae/solutions/`（审查 P0-1 修复：44 处引用）
 - ae:dhh-rails-style 不在 `skills/` 源码目录中（仅存在于运行时注入），无需删除源文件
 - agent 文件中也有路径引用需迁移（审查 P0-2 修复：3 个 agent 文件）
-- 本计划文件自身在执行完成后应迁移到 `docs/ae/plans/`，但执行期间保持在 `docs/plans/` 不动
+- 本计划文件自身在执行完成后应迁移到 `docs/ae/plans/`，但执行期间保持在 `docs/ae/plans/` 不动
 - `.opencode/rules/core/base.md` 中引用的旧路径需同步更新（审查 P0-4 修复）
 - `AGENTS.md` 中的旧路径引用需同步更新（审查 P1-1 修复）
 
@@ -159,15 +159,15 @@ origin: docs/brainstorms/2026-04-22-non-jvm-frontend-language-cleanup-requiremen
 
 `artifact-store.ts` 路径映射变更：
 ```
-brainstorm: docs/brainstorms/  → docs/ae/brainstorms/
-plan:       docs/plans/        → docs/ae/plans/
-work:       .context/ae/work/  → docs/ae/work/
-review:     .context/ae/ae-review/ → docs/ae/review/
+brainstorm: docs/ae/brainstorms/  → docs/ae/brainstorms/
+plan:       docs/ae/plans/        → docs/ae/plans/
+work:       docs/ae/work/  → docs/ae/work/
+review:     docs/ae/review/ → docs/ae/review/
 ```
 
 `todoread.tool.ts` 路径变更：
 - `join(workDir, 'docs', 'plans')` → `join(workDir, 'docs', 'ae', 'plans')`
-- 所有字符串中的 `docs/plans/` → `docs/ae/plans/`
+- 所有字符串中的 `docs/ae/plans/` → `docs/ae/plans/`
 - 正则 `docs\/plans\/` → `docs\/ae\/plans\/`
 
 **测试场景：**
@@ -213,21 +213,21 @@ review:     .context/ae/ae-review/ → docs/ae/review/
 
 | 旧路径 | 新路径 |
 |--------|--------|
-| `docs/brainstorms/` | `docs/ae/brainstorms/` |
-| `docs/plans/` | `docs/ae/plans/` |
+| `docs/ae/brainstorms/` | `docs/ae/brainstorms/` |
+| `docs/ae/plans/` | `docs/ae/plans/` |
 | `docs/ideation/` | `docs/ae/ideation/` |
-| `docs/solutions/` | `docs/ae/solutions/` |
-| `.context/ae/ae-review/` | `docs/ae/review/` |
-| `.context/ae/work/` | `docs/ae/work/` |
-| `.context/ae/todos/` | `docs/ae/todos/` |
+| `docs/ae/solutions/` | `docs/ae/solutions/` |
+| `docs/ae/review/` | `docs/ae/review/` |
+| `docs/ae/work/` | `docs/ae/work/` |
+| `docs/ae/todos/` | `docs/ae/todos/` |
 | `<OS-temp>` / `<scratch-dir>` 模式 | `docs/ae/scratch/` |
 
 **注意：**
 - 仅替换路径字符串，不改任何指令逻辑
-- `.context/ae/ae-review/` 简化为 `docs/ae/review/`
+- `docs/ae/review/` 简化为 `docs/ae/review/`
 - `AGENTS.md` 中引用旧路径的示例文件名同步更新
-- `.opencode/rules/core/base.md` 中 `docs/brainstorms/`、`docs/plans/`、`docs/solutions/` 的目录描述同步更新为 `docs/ae/` 下
-- **例外：本计划文件自身（`docs/plans/2026-04-22-002-...`）在执行期间不迁移，路径替换应跳过本文件。仅在单元 6 的最后一步单独迁移。**
+- `.opencode/rules/core/base.md` 中 `docs/ae/brainstorms/`、`docs/ae/plans/`、`docs/ae/solutions/` 的目录描述同步更新为 `docs/ae/` 下
+- **例外：本计划文件自身（`docs/ae/plans/2026-04-22-002-...`）在执行期间不迁移，路径替换应跳过本文件。仅在单元 6 的最后一步单独迁移。**
 
 **测试场景：**
 - 正常路径：ae:brainstorm 执行后产出文档到 `docs/ae/brainstorms/`
@@ -275,8 +275,8 @@ review:     .context/ae/ae-review/ → docs/ae/review/
 1. `npm run build` 零错误
 2. `npm run test` 全部通过
 3. grep 验证（排除 node_modules/、dist/、.git/、需求文档）：
-   - `docs/brainstorms/` 不出现在 .ts、skills/、agents/、AGENTS.md、.opencode/rules/ 中
-   - `docs/plans/` 不出现在 .ts、skills/、agents/、AGENTS.md、.opencode/rules/ 中（排除本计划文件自身）
+   - `docs/ae/brainstorms/` 不出现在 .ts、skills/、agents/、AGENTS.md、.opencode/rules/ 中
+   - `docs/ae/plans/` 不出现在 .ts、skills/、agents/、AGENTS.md、.opencode/rules/ 中（排除本计划文件自身）
    - `.context/ae/` 不出现在上述范围
    - `docs/ideation/` 不出现在上述范围
    - `schema-drift-detector`、`kieran-python-reviewer` 不出现在上述范围
@@ -311,10 +311,10 @@ review:     .context/ae/ae-review/ → docs/ae/review/
 | 路径替换遗漏导致运行时找不到文件 | 单元 6 grep 全量扫描 |
 | agent 裁剪破坏 markdown 结构 | 逐个验证 frontmatter |
 | 删除预留基础设施后未来需重新实现 | git 历史可恢复，且当前确实无运行时调用者 |
-| `docs/solutions/` 迁移遗漏 | 已纳入单元 4 替换规则 |
+| `docs/ae/solutions/` 迁移遗漏 | 已纳入单元 4 替换规则 |
 | 单元 3/4 执行到一半失败导致新旧路径混合 | 原子 commit + git revert 回滚策略 |
 
 ## 来源与参考
 
-- **源文档：** [docs/brainstorms/2026-04-22-non-jvm-frontend-language-cleanup-requirements.md](docs/brainstorms/2026-04-22-non-jvm-frontend-language-cleanup-requirements.md)
+- **源文档：** [docs/ae/brainstorms/2026-04-22-non-jvm-frontend-language-cleanup-requirements.md](docs/ae/brainstorms/2026-04-22-non-jvm-frontend-language-cleanup-requirements.md)
 - 相关代码：`src/services/ae-catalog.ts`、`src/services/artifact-store.ts`、`src/tools/todoread.tool.ts`

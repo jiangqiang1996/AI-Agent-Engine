@@ -21,12 +21,12 @@ topic: non-jvm-frontend-language-cleanup-and-unified-persistence
 | 技能 | 用途 | 持久化文件 | 依赖技能 | 依赖代理 | 依赖工具 |
 |------|------|-----------|---------|---------|---------|
 | ae:lfg | 主流程管道，驱动需求→执行 | 无 | ae:setup, ae:brainstorm, ae:document-review, ae:plan, ae:plan-review, ae:work, ae:review, ae:test-browser | 无 | ae-recovery |
-| ae:brainstorm | 协作对话探索需求，产出需求文档 | `docs/brainstorms/*-requirements.md` | ae:document-review | 无 | 无 |
+| ae:brainstorm | 协作对话探索需求，产出需求文档 | `docs/ae/brainstorms/*-requirements.md` | ae:document-review | 无 | 无 |
 | ae:document-review | 并行角色代理审查文档 | 无 | 无 | coherence-reviewer, feasibility-reviewer, product-lens-reviewer, design-lens-reviewer, security-lens-reviewer, scope-guardian-reviewer, adversarial-document-reviewer | 无 |
-| ae:plan | 创建结构化实现计划 | `docs/plans/YYYY-MM-DD-NNN-*-plan.md` | ae:document-review | repo-research-analyst, learnings-researcher, framework-docs-researcher, best-practices-researcher, spec-flow-analyzer | 无 |
+| ae:plan | 创建结构化实现计划 | `docs/ae/plans/YYYY-MM-DD-NNN-*-plan.md` | ae:document-review | repo-research-analyst, learnings-researcher, framework-docs-researcher, best-practices-researcher, spec-flow-analyzer | 无 |
 | ae:plan-review | 多角色审查计划文档 | 无 | ae:document-review, ae:plan | 复用 document-review 角色族 | ae-review-contract |
 | ae:work | 按计划执行工作并交付 | git commits | ae:review | figma-design-sync, design-implementation-reviewer（UI 工作时） | 无 |
-| ae:review | 结构化代码审查 | `.context/ae/ae-review/<run-id>/*.json`, `.context/ae/todos/*` | 无 | correctness-reviewer, testing-reviewer, maintainability-reviewer, project-standards-reviewer, agent-native-reviewer; 条件: security-reviewer, performance-reviewer, api-contract-reviewer, data-migrations-reviewer, reliability-reviewer, adversarial-reviewer, cli-readiness-reviewer, previous-comments-reviewer, kieran-python-reviewer, kieran-typescript-reviewer, cli-agent-readiness-reviewer | 无 |
+| ae:review | 结构化代码审查 | `docs/ae/review/<run-id>/*.json`, `docs/ae/todos/*` | 无 | correctness-reviewer, testing-reviewer, maintainability-reviewer, project-standards-reviewer, agent-native-reviewer; 条件: security-reviewer, performance-reviewer, api-contract-reviewer, data-migrations-reviewer, reliability-reviewer, adversarial-reviewer, cli-readiness-reviewer, previous-comments-reviewer, kieran-python-reviewer, kieran-typescript-reviewer, cli-agent-readiness-reviewer | 无 |
 | ae:ideate | 生成并评估落地想法 | `docs/ideation/*`, `<scratch-dir>/raw-candidates.md` | ae:brainstorm | learnings-researcher, web-researcher, 6 个创意子代理 | 无 |
 | ae:frontend-design | 构建设计品质的 Web 界面 | 无 | ae:setup, ae:test-browser | design-iterator, design-implementation-reviewer | 无 |
 | ae:save-rules | 保存项目规范到 rules 目录 | `.opencode/rules/{category}/*.md` | 无 | session-historian | 无 |
@@ -281,7 +281,7 @@ ae:review, ae:document-review, ae:sql, ae:setup, ae:update, ae:help, ae:handoff 
 
 - 假设 ae:dhh-rails-style skill 可能同时存在于 `skills/` 和运行时注入目录中
 - 假设 agent 文件变更后需要重新构建才能生效
-- 统一持久化目录后，旧目录（`docs/brainstorms/`、`docs/plans/`、`.context/ae/`、`docs/ideation/`）中的已有产物迁移策略在规划阶段确定
+- 统一持久化目录后，旧目录（`docs/ae/brainstorms/`、`docs/ae/plans/`、`.context/ae/`、`docs/ideation/`）中的已有产物迁移策略在规划阶段确定
 
 ## 待定问题
 
