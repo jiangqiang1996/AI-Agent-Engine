@@ -128,7 +128,6 @@
 - **预存问题章节**——单独的表格，无置信度列（这些是信息性的）
 - **经验与历史方案章节**——来自 learnings-researcher 的结果，附 docs/solutions/ 文件链接
 - **代理原生缺口章节**——来自 agent-native-reviewer 的结果。未发现缺口时省略。
-- **Schema 漂移检查章节**——来自 schema-drift-detector 的结果。代理未运行时省略。
 - **部署备注章节**——来自 deployment-verification-agent 的关键检查清单项。代理未运行时省略。
 - **覆盖情况章节**——抑制计数、残余风险、测试缺口、失败的审查者
 - **摘要使用引用块**用于结论、理由和修复顺序

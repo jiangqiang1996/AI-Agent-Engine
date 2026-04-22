@@ -199,12 +199,10 @@ const GILDED_AGENTS = [
 ] as const satisfies ReadonlyArray<readonly [string, 'review' | 'research' | 'workflow', string]>
 
 const DEFERRED_AGENTS = [
-  ['schema-drift-detector', 'review', '检查 schema 漂移'],
   ['data-migrations-reviewer', 'review', '审查数据迁移'],
   ['deployment-verification-agent', 'workflow', '输出部署验证清单'],
   ['data-integrity-guardian', 'review', '审查数据完整性'],
   ['data-migration-expert', 'review', '审查迁移细节'],
-  ['kieran-python-reviewer', 'review', 'Python 严格审查'],
 ] as const satisfies ReadonlyArray<readonly [string, 'review' | 'research' | 'workflow', string]>
 
 function toAgentDefinitions(

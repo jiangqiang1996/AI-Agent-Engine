@@ -43,7 +43,6 @@
 
 | 人设 | 代理 | 选择条件：diff 涉及... |
 |------|------|----------------------|
-| `kieran-python` | `kieran-python-reviewer` | Python 模块、端点、服务、脚本或带类型的领域代码 |
 | `kieran-typescript` | `kieran-typescript-reviewer` | TypeScript 组件、服务、hooks、工具函数或共享类型 |
 
 ## 深度审计代理
@@ -55,15 +54,6 @@
 | `cli-agent-readiness-reviewer` | 基于 7 项核心原则对 CLI 代码进行深度 agent 就绪审计：结构化输出、JSON 默认值、交互绕过、有界输出等 | diff 重度涉及 CLI 框架、命令定义或参数解析，且 `cli-readiness` 人设已发现值得深入分析的问题 |
 
 `cli-readiness` 人设是 diff 级别的快速检查；`cli-agent-readiness-reviewer` 是完整深度审计。大多数 CLI 变更只需前者。仅在 CLI 变更复杂或 `cli-readiness` 已标记系统性问题时派生深度审计。
-
-## AE 条件性代理（迁移专用）
-
-这些 AE 原生代理提供超出人设代理覆盖范围的专业分析。当 diff 包含数据库迁移、schema.rb 或数据回填时派生它们。
-
-| 代理 | 关注点 |
-|------|--------|
-| `schema-drift-detector` | 交叉对比 schema.rb 变更与包含的迁移，捕获无关漂移 |
-| `deployment-verification-agent` | 生成 Go/No-Go 部署检查清单，包含 SQL 验证查询和回滚步骤 |
 
 ## 选择规则
 

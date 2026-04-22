@@ -39,6 +39,11 @@ function readMarkdownFiles(dir: string): string[] {
   }
 }
 
+const CONTEXT_DIR_TYPE_MAP: Record<'work' | 'review', string> = {
+  work: 'work',
+  review: 'ae-review',
+}
+
 function getArtifactDirectory(manifest: RuntimeAssetManifest, type: 'brainstorm' | 'plan' | 'work' | 'review'): string {
   if (type === 'brainstorm') {
     return join(manifest.repoRoot, 'docs', 'brainstorms')
@@ -48,7 +53,7 @@ function getArtifactDirectory(manifest: RuntimeAssetManifest, type: 'brainstorm'
     return join(manifest.repoRoot, 'docs', 'plans')
   }
 
-  return join(manifest.repoRoot, '.context', 'ae', type)
+  return join(manifest.repoRoot, '.context', 'ae', CONTEXT_DIR_TYPE_MAP[type])
 }
 
 export function listArtifacts(
