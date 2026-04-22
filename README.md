@@ -108,10 +108,7 @@ Fetch and follow the uninstall instructions from https://gitee.com/jiangqiang199
 | | `@data-migration-expert` | 审查数据迁移方案安全性与兼容性 | 数据迁移方案评估 |
 | | `@data-migrations-reviewer` | 审查数据库迁移脚本正确性 | 数据库迁移代码审查 |
 | | `@design-implementation-reviewer` | 审查设计稿与实现的一致性 | 前端开发还原度校验 |
-| | `@dhh-rails-reviewer` | 以 DHH 的 Rails 哲学审查代码 | Rails 项目代码审查 |
-| | `@julik-frontend-races-reviewer` | 审查前端竞态条件与并发问题 | 前端交互逻辑审查 |
 | | `@kieran-python-reviewer` | 按严格 Python 质量标准审查代码 | Python 项目代码审查 |
-| | `@kieran-rails-reviewer` | 按 Kieran 风格审查 Rails 代码质量 | Rails 项目代码审查 |
 | | `@kieran-typescript-reviewer` | 以严格 TypeScript 标准审查类型、接口与实现的清晰度 | TypeScript 项目代码审查 |
 | | `@maintainability-reviewer` | 审查可维护性、命名和抽象边界 | 代码可维护性评估 |
 | | `@pattern-recognition-specialist` | 识别代码中的重复模式与可优化点 | 代码重构建议 |
@@ -124,11 +121,9 @@ Fetch and follow the uninstall instructions from https://gitee.com/jiangqiang199
 | | `@security-reviewer` | 审查权限、输入处理和信任边界问题 | 安全代码审查 |
 | | `@security-sentinel` | 深度扫描代码中的安全漏洞与风险点 | 安全渗透测试 |
 | | `@testing-reviewer` | 审查测试覆盖、断言质量和缺失场景 | 测试质量评估 |
-| **研究分析代理** | `@ankane-readme-writer` | 按 Ankane 风格撰写 Ruby gem 的 README 文档 | 项目文档编写 |
-| | `@best-practices-researcher` | 收集社区最佳实践与实现约定 | 技术方案选型参考 |
+| **研究分析代理** | `@best-practices-researcher` | 收集社区最佳实践与实现约定 | 技术方案选型参考 |
 | | `@framework-docs-researcher` | 收集框架和官方文档约束 | 技术实现依据查询 |
 | | `@git-history-analyzer` | 分析 Git 历史提交记录与变更模式 | 代码演化分析 |
-| | `@issue-intelligence-analyst` | 分析 issue 中的问题模式与解决方案 | 历史问题排查 |
 | | `@learnings-researcher` | 提炼仓库内已有文档、规范与经验 | 项目经验总结 |
 | | `@repo-research-analyst` | 研究仓库结构、已有模式和技术约束 | 项目上下文理解 |
 | | `@session-historian` | 分析会话历史与上下文关联 | 跨会话上下文恢复 |
@@ -136,7 +131,6 @@ Fetch and follow the uninstall instructions from https://gitee.com/jiangqiang199
 | **工作流代理** | `@deployment-verification-agent` | 验证部署结果与功能可用性 | 部署后检查 |
 | | `@design-iterator` | 迭代优化设计方案与实现 | 前端设计迭代 |
 | | `@figma-design-sync` | 同步 Figma 设计稿到代码实现 | 设计稿转代码 |
-| | `@pr-comment-resolver` | 自动处理 PR 评论中的反馈与建议 | PR 反馈处理 |
 | | `@spec-flow-analyzer` | 分析阶段流转、恢复分支和遗漏状态 | 工作流完整性检查 |
 
 ## 参数总表

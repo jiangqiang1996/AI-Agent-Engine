@@ -1,6 +1,6 @@
 # 人设目录
 
-17 个审查者人设，按常驻、跨领域条件性和技术栈条件性层级组织，外加 AE 专用代理。编排器使用此目录为每次审查选择要派生的审查者。
+14 个审查者人设，按常驻、跨领域条件性和技术栈条件性层级组织，外加 AE 专用代理。编排器使用此目录为每次审查选择要派生的审查者。
 
 ## 常驻（4 个人设 + 2 个 AE 代理）
 
@@ -43,11 +43,8 @@
 
 | 人设 | 代理 | 选择条件：diff 涉及... |
 |------|------|----------------------|
-| `dhh-rails` | `ae:review:dhh-rails-reviewer` | Rails 架构、服务对象、认证/会话选择、Hotwire vs SPA 边界，或可能违背 Rails 惯例的抽象 |
-| `kieran-rails` | `ae:review:kieran-rails-reviewer` | Rails 控制器、模型、视图、任务、组件、路由或其他注重清晰度和惯例的应用层 Ruby 代码 |
 | `kieran-python` | `ae:review:kieran-python-reviewer` | Python 模块、端点、服务、脚本或带类型的领域代码 |
 | `kieran-typescript` | `ae:review:kieran-typescript-reviewer` | TypeScript 组件、服务、hooks、工具函数或共享类型 |
-| `julik-frontend-races` | `ae:review:julik-frontend-races-reviewer` | Stimulus/Turbo 控制器、DOM 事件绑定、定时器、异步 UI 流程、动画或有竞态风险的前端状态转换 |
 
 ## AE 条件性代理（迁移专用）
 

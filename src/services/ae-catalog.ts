@@ -184,25 +184,18 @@ const GILDED_AGENTS = [
   ['cli-agent-readiness-reviewer', 'review', '评估 CLI 对代理的友好程度'],
   ['session-historian', 'research', '回溯历史会话经验'],
   ['git-history-analyzer', 'research', '分析 git 历史背景'],
-  ['issue-intelligence-analyst', 'research', '分析 issue 模式与痛点'],
-  ['web-researcher', 'research', '执行外部网络研究'],
   ['design-implementation-reviewer', 'review', '比对设计稿与实现'],
   ['design-iterator', 'workflow', '推动多轮设计迭代'],
   ['figma-design-sync', 'workflow', '同步 Figma 与实现'],
 ] as const satisfies ReadonlyArray<readonly [string, 'review' | 'research' | 'workflow', string]>
 
 const DEFERRED_AGENTS = [
-  ['pr-comment-resolver', 'workflow', '处理拉取请求评论串'],
   ['schema-drift-detector', 'review', '检查 schema 漂移'],
   ['data-migrations-reviewer', 'review', '审查数据迁移'],
   ['deployment-verification-agent', 'workflow', '输出部署验证清单'],
   ['data-integrity-guardian', 'review', '审查数据完整性'],
   ['data-migration-expert', 'review', '审查迁移细节'],
-  ['dhh-rails-reviewer', 'review', 'Rails 风格审查'],
-  ['kieran-rails-reviewer', 'review', 'Rails 严格审查'],
   ['kieran-python-reviewer', 'review', 'Python 严格审查'],
-  ['julik-frontend-races-reviewer', 'review', '前端竞态问题审查'],
-  ['ankane-readme-writer', 'research', 'README 专项生成支持'],
 ] as const satisfies ReadonlyArray<readonly [string, 'review' | 'research' | 'workflow', string]>
 
 function toAgentDefinitions(

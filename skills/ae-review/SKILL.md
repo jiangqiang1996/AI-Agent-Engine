@@ -129,15 +129,12 @@ argument-hint: "[留空则审查当前分支，或提供拉取请求链接]"
 
 | 代理 | 当差异涉及以下内容时选择 |
 |-------|---------------------------|
-| `dhh-rails-reviewer` | Rails架构、服务对象、会话/认证选择，或Hotwire与SPA边界 |
-| `kieran-rails-reviewer` | 涉及约定、命名和可维护性的Rails应用代码 |
 | `kieran-python-reviewer` | Python模块、端点、脚本或服务 |
 | `kieran-typescript-reviewer` | TypeScript组件、服务、钩子、工具函数或共享类型 |
-| `julik-frontend-races-reviewer` | Stimulus/Turbo控制器、DOM事件、定时器、动画或异步UI流程 |
 
 ## 审查范围
 
-每次审查会生成所有5个固定角色，然后添加适合差异的跨领域和栈特定条件角色。模型会自动调整规模：小的配置变更不触发条件角色，共 5 个审查角色。Rails 认证功能可能触发安全 + 可靠性 + kieran-rails + dhh-rails = 9 个审查角色。
+每次审查会生成所有5个固定角色，然后添加适合差异的跨领域和栈特定条件角色。模型会自动调整规模：小的配置变更不触发条件角色，共 5 个审查角色。
 
 ## 受保护产物
 
@@ -332,7 +329,7 @@ echo "BRANCH:" && git rev-parse --abbrev-ref HEAD && echo "COMMITS:" && git log 
 
 **`previous-comments`仅适用于拉取请求。** 仅当第1阶段收集了拉取请求元数据（参数中提供了拉取请求编号或URL，或`gh pr view`为当前分支返回了元数据）时才选择此角色。对于没有关联拉取请求的独立分支审查，请完全跳过它 —— 没有先前的评论需要检查。
 
-栈特定角色是累加的。Rails UI变更可能需要`kieran-rails`加上`julik-frontend-races`；TypeScript API差异可能需要`kieran-typescript`加上`api-contract`和`reliability`。
+栈特定角色是累加的。TypeScript API差异可能需要`kieran-typescript`加上`api-contract`和`reliability`。
 
 在生成之前公布团队：
 
@@ -344,8 +341,6 @@ echo "BRANCH:" && git rev-parse --abbrev-ref HEAD && echo "COMMITS:" && git log 
 - project-standards（固定）
 - agent-native-reviewer（固定）
 - security -- routes.rb中的新端点接受用户提供的重定向URL
-- kieran-rails -- app/controllers和app/views中的控制器和Turbo流程变更
-- dhh-rails -- 差异在普通Rails CRUD周围添加了服务对象
 - data-migrations -- 添加了迁移2026-03-03_add_index_to_orders
 ```
 

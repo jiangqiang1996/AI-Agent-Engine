@@ -21,8 +21,7 @@ description: "研究并综合外部最佳实践、文档和示例，适用于任
 
 2. **识别相关技能**：
    将研究主题与可用技能匹配。常见映射：
-   - Rails/Ruby → `ae:dhh-rails-style`
-   - 前端/设计 → `ae:frontend-design`
+    - 前端/设计 → `ae:frontend-design`
    - 计划/方案 → `ae:plan`
    - 规范/规则 → `ae:save-rules`
    - 数据库/SQL → `ae:sql`
