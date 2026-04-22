@@ -52,19 +52,8 @@ description: "对仓库结构、文档、约定和实现模式进行全面研究
 |------|---------|
 | `package.json` | Node.js / JavaScript / TypeScript |
 | `tsconfig.json` | TypeScript（确认 TS 使用，捕获编译器配置） |
-| `go.mod` | Go |
-| `Cargo.toml` | Rust |
-| `Gemfile` | Ruby |
-| `requirements.txt`、`pyproject.toml`、`Pipfile` | Python |
-| `Podfile` | iOS / CocoaPods |
 | `build.gradle`、`build.gradle.kts` | JVM / Android |
 | `pom.xml` | Java / Maven |
-| `mix.exs` | Elixir |
-| `composer.json` | PHP |
-| `pubspec.yaml` | Dart / Flutter |
-| `CMakeLists.txt`、`Makefile` | C / C++ |
-| `Package.swift` | Swift |
-| `*.csproj`、`*.sln` | C# / .NET |
 | `deno.json`、`deno.jsonc` | Deno |
 
 **0.1b Monorepo 检测**
@@ -77,8 +66,6 @@ description: "对仓库结构、文档、约定和实现模式进行全面研究
 | `pnpm-workspace.yaml` | pnpm 工作区 |
 | `nx.json` | Nx monorepo |
 | `lerna.json` | Lerna monorepo |
-| 根 `Cargo.toml` 中的 `[workspace.members]` | Cargo 工作区 |
-| 深一层的 `go.mod` 文件（`*/go.mod`）- 仅当 Go 目录在根列表中可见但未找到根 `go.mod` 时运行此 glob | Go 多模块 |
 | 包含各自清单的 `apps/`、`packages/`、`services/` 目录 | 基于约定的 monorepo |
 
 如果检测到 monorepo 信号：
@@ -94,7 +81,7 @@ description: "对仓库结构、文档、约定和实现模式进行全面研究
 
 **跳过规则（在 glob 之前应用）：**
 - **API 表面：** 如果 0.1 未发现 Web 框架或服务器依赖，**且**根列表未显示 API 相关目录或文件（`routes/`、`api/`、`proto/`、`*.proto`、`openapi.yaml`、`swagger.json`）：跳过 API 表面类别。报告"未检测到"。注意：某些语言（Go、Node）使用标准库服务器而无可见的框架依赖 -- 在跳过之前检查根列表中的结构性信号。
-- **数据层：** 独立于 API 表面评估 -- CLI 或 worker 可以在没有 HTTP 层的情况下拥有数据库。仅在 0.1 未发现数据库相关依赖（如 prisma、sequelize、typeorm、activerecord、sqlalchemy、knex、diesel、ecto）**且**根列表未显示数据相关目录（`db/`、`prisma/`、`migrations/`、`models/`）时跳过。否则，检查下方数据层表。
+- **数据层：** 独立于 API 表面评估 -- CLI 或 worker 可以在没有 HTTP 层的情况下拥有数据库。仅在 0.1 未发现数据库相关依赖（如 prisma、typeorm、knex）**且**根列表未显示数据相关目录（`db/`、`prisma/`、`migrations/`、`models/`）时跳过。否则，检查下方数据层表。
 - 如果 0.1 在根列表中未发现 Dockerfile、docker-compose 或基础设施目录（且未范围化 monorepo 服务）：跳过编排和 IaC 检查。仅在根列表中出现平台部署文件时才检查。范围化 monorepo 服务时，还检查该服务子树中的基础设施文件（如 `apps/api/Dockerfile`、`services/foo/k8s/`）。
 - 如果根列表已显示部署文件（如 `fly.toml`、`vercel.json`）：直接读取而非 glob。
 
@@ -123,9 +110,9 @@ API 表面（如果 0.1 中没有 Web 框架或服务器依赖则跳过）：
 
 | 文件/模式 | 揭示的内容 |
 |----------|-----------|
-| 迁移目录（`db/migrate/`、`migrations/`、`alembic/`、`prisma/`） | 数据库结构 |
-| ORM 模型目录（`app/models/`、`src/models/`、`models/`） | 数据模型模式 |
-| Schema 文件（`prisma/schema.prisma`、`db/schema.rb`、`schema.sql`） | 数据模型定义 |
+| 迁移目录（`migrations/`、`prisma/`） | 数据库结构 |
+| ORM 模型目录（`src/models/`、`models/`） | 数据模型模式 |
+| Schema 文件（`prisma/schema.prisma`、`schema.sql`） | 数据模型定义 |
 | 队列/事件配置（Redis、Kafka、SQS 引用） | 异步模式 |
 
 **0.3 模块结构 - 内部边界**

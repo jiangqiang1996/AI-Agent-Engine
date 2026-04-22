@@ -54,8 +54,8 @@ SELECT id, name, type FROM lookup_table ORDER BY id;
 
 | 步骤 | 命令 | 预计耗时 | 批处理 | 回滚方式 |
 |------|------|----------|--------|----------|
-| 1. 添加列 | `rails db:migrate` | < 1 分钟 | 不适用 | 删除列 |
-| 2. 回填数据 | `rake data:backfill` | ~10 分钟 | 1000 行 | 从备份恢复 |
+| 1. 添加列 | 运行数据库迁移 | < 1 分钟 | 不适用 | 删除列 |
+| 2. 回填数据 | 运行数据回填脚本 | ~10 分钟 | 1000 行 | 从备份恢复 |
 | 3. 启用功能 | 设置标志 | 即时 | 不适用 | 禁用标志 |
 
 ### 4. 部署后验证（5 分钟内）
@@ -99,15 +99,15 @@ SELECT status, COUNT(*) FROM records GROUP BY status;
 | 缺失数据计数 | > 0 持续 5 分钟 | /dashboard/data |
 | 用户报告 | 任何报告 | 支持队列 |
 
-**部署 1 小时后在控制台运行验证：**
-```ruby
-# 快速健全性检查
-Record.where(new_column: nil, old_column: [present values]).count
-# 预期：0
+**部署 1 小时后运行验证：**
+```sql
+-- 快速健全性检查
+SELECT COUNT(*) FROM records WHERE new_column IS NULL AND old_column IS NOT NULL;
+-- 预期：0
 
-# 抽查随机记录
-Record.order("RANDOM()").limit(10).pluck(:old_column, :new_column)
-# 验证映射正确
+-- 抽查随机记录验证映射
+SELECT old_column, new_column FROM records ORDER BY RANDOM() LIMIT 10;
+-- 验证映射正确
 ```
 
 ## 输出格式

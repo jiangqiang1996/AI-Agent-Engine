@@ -42,7 +42,7 @@ description: "检测并修复 Web 实现与 Figma 设计之间的视觉差异。
    - 按照上述响应式设计模式修改 CSS/Tailwind 类
    - 当接近 Figma 规范（差距在 2-4px 内）时优先使用 Tailwind 默认值
    - 确保组件全宽（`w-full`）无最大宽度约束
-   - 将宽度约束和水平内边距移至父级 HTML/ERB 中的包装 div
+    - 将宽度约束和水平内边距移至父级 HTML/JSX 中的包装 div
    - 更新组件 props 或配置
    - 根据需要调整布局结构
    - 确保变更遵循 AGENTS.md 中的项目编码标准
@@ -59,10 +59,11 @@ description: "检测并修复 Web 实现与 Figma 设计之间的视觉差异。
 - **所有宽度约束和水平内边距**应由父级 HTML/ERB 文件中的包装 div 处理
 
 ### 响应式包装模式
-在父级 HTML/ERB 文件中包装组件时，使用：
-```erb
-<div class="w-full max-w-screen-xl mx-auto px-5 md:px-8 lg:px-[30px]">
-  <%= render SomeComponent.new(...) %>
+
+在父级 HTML/JSX 文件中包装组件时，使用：
+```jsx
+<div className="w-full max-w-screen-xl mx-auto px-5 md:px-8 lg:px-[30px]">
+  <SomeComponent ... />
 </div>
 ```
 
@@ -96,47 +97,47 @@ description: "检测并修复 Web 实现与 Figma 设计之间的视觉差异。
 - 从组件中移除 `overflow-hidden` - 如需要在包装层面处理溢出
 
 ### 良好的组件结构示例
-```erb
-<!-- 在父级 HTML/ERB 文件中 -->
-<div class="w-full max-w-screen-xl mx-auto px-5 md:px-8 lg:px-[30px]">
-  <%= render SomeComponent.new(...) %>
+```jsx
+<!-- 在父级 HTML/JSX 文件中 -->
+<div className="w-full max-w-screen-xl mx-auto px-5 md:px-8 lg:px-[30px]">
+  <SomeComponent ... />
 </div>
 
 <!-- 在组件模板中 -->
-<section class="w-full py-5">
-  <div class="flex flex-col lg:flex-row gap-10 lg:gap-[100px] items-start lg:items-center w-full">
-    <!-- 组件内容 -->
+<section className="w-full py-5">
+  <div className="flex flex-col lg:flex-row gap-10 lg:gap-[100px] items-start lg:items-center w-full">
+    {/* 组件内容 */}
   </div>
 </section>
 ```
 
 ### 常见反模式及避免方法
 **❌ 不要在组件中这样做：**
-```erb
-<!-- 错误：组件有自己的 max-width 和内边距 -->
-<section class="max-w-screen-xl mx-auto px-5 md:px-8">
-  <!-- 组件内容 -->
+```jsx
+{/* 错误：组件有自己的 max-width 和内边距 */}
+<section className="max-w-screen-xl mx-auto px-5 md:px-8">
+  {/* 组件内容 */}
 </section>
 ```
 
 **✅ 应这样做：**
-```erb
-<!-- 正确：组件全宽，包装器处理约束 -->
-<section class="w-full">
-  <!-- 组件内容 -->
+```jsx
+{/* 正确：组件全宽，包装器处理约束 */}
+<section className="w-full">
+  {/* 组件内容 */}
 </section>
 ```
 
 **❌ 当 Tailwind 默认值接近时不要使用任意值：**
-```erb
-<!-- 错误：不必要地使用任意值 -->
-<div class="gap-[40px] text-[20px] w-[56px] h-[56px]">
+```jsx
+{/* 错误：不必要地使用任意值 */}
+<div className="gap-[40px] text-[20px] w-[56px] h-[56px]">
 ```
 
 **✅ 优先使用 Tailwind 默认值：**
-```erb
-<!-- 正确：使用 Tailwind 默认值 -->
-<div class="gap-10 text-lg md:text-[20px] w-14 h-14">
+```jsx
+{/* 正确：使用 Tailwind 默认值 */}
+<div className="gap-10 text-lg md:text-[20px] w-14 h-14">
 ```
 
 ## 质量标准

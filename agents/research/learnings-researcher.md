@@ -142,8 +142,8 @@ Read: [file_path] with limit:30
 - best_practice、documentation_gap
 
 **component 值：**
-- rails_model、rails_controller、rails_view、service_object
-- background_job、database、frontend_stimulus、hotwire_turbo
+- spring_model、spring_controller、service_object
+- background_job、database、frontend_component、state_management
 - email_processing、brief_system、assistant、authentication
 - payments、development_workflow、testing_framework、documentation、tooling
 

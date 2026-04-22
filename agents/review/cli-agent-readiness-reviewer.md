@@ -36,9 +36,9 @@ description: "审查 CLI 源代码、计划或规格说明的 AI 代理就绪度
 - **计划或规格说明** — 评估设计；将文档未涉及的原则标记为**缺口**（在实现前加强的机会）
 
 如果用户没有指向特定文件，搜索代码库：
-- 参数解析库：Click、argparse、Commander、clap、Cobra、yargs、oclif、Thor
-- 入口点：`cli.py`、`cli.ts`、`main.rs`、`bin/`、`cmd/`、`src/cli/`
-- Package.json 的 `bin` 字段、setup.py 的 `console_scripts`、Cargo.toml 的 `[[bin]]`
+- 参数解析库：Commander、yargs、oclif
+- 入口点：`cli.ts`、`bin/`、`src/cli/`
+- Package.json 的 `bin` 字段
 
 **尽早识别框架。** 你的建议、你认定为"已处理"的内容以及你标记为缺失的内容，都取决于了解框架免费提供了什么以及开发者必须自己实现什么。参见本文档末尾的框架惯用法参考。
 
@@ -67,11 +67,11 @@ description: "审查 CLI 源代码、计划或规格说明的 AI 代理就绪度
 代理可能合理自动化的任何命令都应该可以在没有提示的情况下调用。交互模式可以存在，但它应该是一个便利层，而不是唯一的路径。
 
 **在代码中，查找：**
-- 交互式提示库导入（inquirer、prompt_toolkit、dialoguer、readline）
-- 没有 TTY 守卫的 `input()` / `readline()` 调用
+- 交互式提示库导入（inquirer、prompts、readline）
+- 没有 TTY 守卫的 `readline()` 调用
 - 没有 `--yes`/`--force` 绕过的确认提示
 - 没有基于标志的替代方案的向导或多步骤流程
-- TTY 检测控制交互性（`process.stdout.isTTY`、`sys.stdin.isatty()`、`atty::is()`）
+- TTY 检测控制交互性（`process.stdout.isTTY`）
 - `--no-input` 或 `--non-interactive` 标志定义
 
 **在计划中，查找：** 没有标志绕过的交互式流程、没有 `--no-input` 的设置向导、未提及 CI/自动化使用。
@@ -91,7 +91,7 @@ description: "审查 CLI 源代码、计划或规格说明的 AI 代理就绪度
 
 **在代码中，查找：**
 - 数据返回命令上的 `--json`、`--format` 或 `--output` 标志定义
-- 序列化调用（JSON.stringify、json.dumps、serde_json、to_json）
+- 序列化调用（JSON.stringify）
 - 使用不同退出码表示不同失败类型的显式退出码设置
 - stdout 与 stderr 分离——数据到 stdout，消息/日志到 stderr
 - 成功输出包含什么——带有 ID 和 URL 的结构化数据，还是仅"完成！"
@@ -141,7 +141,7 @@ description: "审查 CLI 源代码、计划或规格说明的 AI 代理就绪度
 当输入缺失或无效时，立即报错并提供有助于下次尝试成功的消息。
 
 **在代码中，查找：**
-- 缺少必需参数时会发生什么——使用提示、还是直接提示、还是挂起？
+- 缺少必需参数时会发生什么——直接报错、还是挂起？
 - 包含正确语法或有效值的自定义错误消息
 - 在副作用之前进行输入验证（而非部分执行后）
 - 包含示例调用的错误输出
@@ -302,79 +302,6 @@ CLI 输出的每个 token 都消耗有限的代理上下文。大量输出有时
 
 一旦识别了 CLI 框架，使用这些知识来校准你的审查。归功于框架自动处理的功能。标记它未提供的。使用该框架的惯用模式编写建议。
 
-### Python — Click
-
-**免费提供：**
-- 每个命令/组上的 `--help` 分层帮助
-- 缺少必需选项时的错误 + 使用提示
-- 参数上的类型验证
-
-**不提供——必须自行实现：**
-- `--json` 输出 — 添加 `@click.option('--json', 'output_json', is_flag=True)` 并在处理器中分支处理
-- TTY 检测 — 使用 `sys.stdout.isatty()` 或 `click.get_text_stream('stdout').isatty()`；也可驱动智能输出默认值（非 TTY 时 JSON，交互式时表格）
-- `--no-input` — 当选项设置了 `prompt=True` 时，Click 会为缺失值提示；确保必需输入使用 `required=True`（缺失时报错）而非 `prompt=True`（阻塞代理）
-- Stdin 读取 — 使用 `click.get_text_stream('stdin')` 或 `type=click.File('-')`
-- 退出码 — Click 默认在错误时使用 `sys.exit(1)` 但不区分错误类型；使用 `ctx.exit(code)` 设置不同的退出码
-
-**应标记的反模式：**
-- 选项上 `prompt=True` 没有 `--no-input` 守卫
-- `click.confirm()` 未先检查 `--yes`/`--force`
-- 使用 `click.echo()` 同时输出数据和消息（无 stdout/stderr 分离）——消息使用 `click.echo(..., err=True)`
-
-### Python — argparse
-
-**免费提供：**
-- 缺少必需参数时的使用/错误消息
-- 通过 subparsers 的分层帮助
-
-**不提供——必须自行实现：**
-- 帮助文本中的示例 — 使用 `epilog` 配合 `RawDescriptionHelpFormatter`
-- `--json` 输出 — 完全手动
-- Stdin 支持 — 使用 `type=argparse.FileType('r')` 配合 `default='-'` 或 `nargs='?'`
-- TTY 检测、退出码、输出分离 — 全部手动
-
-**应标记的反模式：**
-- 使用 `input()` 处理缺失值而非将参数设为必需
-- 默认 `HelpFormatter` 截断 epilog 示例——需要 `RawDescriptionHelpFormatter`
-
-### Go — Cobra
-
-**免费提供：**
-- 带有 usage 和 examples 字段的分层帮助——但前提是 `Example:` 字段已填写
-- 未知标志时报错
-- 通过 `AddCommand` 的一致子命令结构
-- 每个命令上的 `--help`
-
-**不提供——必须自行实现：**
-- `--json`/`--output` — 常见模式是在根命令上使用持久化 `--output` 标志，值为 `json`/`table`/`yaml`；可支持 `--output=auto` 基于 TTY 检测选择
-- `--dry-run` — 完全手动
-- Stdin — 使用 `os.Stdin` 或 `cobra.ExactArgs` 验证，`cmd.InOrStdin()` 读取
-- TTY 检测 — 使用 `golang.org/x/term` 或 `mattn/go-isatty`；可驱动输出格式默认值
-
-**应标记的反模式：**
-- 命令上 `Example:` 字段为空
-- 使用 `fmt.Println` 同时输出数据和错误——使用 `cmd.OutOrStdout()` 和 `cmd.ErrOrStderr()`
-- `RunE` 函数在失败时返回 `nil` 而非 error
-
-### Rust — clap
-
-**免费提供：**
-- 从 derive 宏生成的分层帮助
-- 必需参数的编译时验证
-- 带有强错误消息的类型化解析
-- 通过枚举的一致子命令结构
-
-**不提供——必须自行实现：**
-- `--json` 输出 — 使用 `serde_json::to_string_pretty` 配合 `--format` 标志
-- `--dry-run` — 手动标志和逻辑
-- Stdin — 使用 `std::io::stdin()` 配合 `is_terminal::IsTerminal` 检测管道输入
-- TTY 检测 — `is-terminal` crate（`is_terminal::IsTerminal` trait）；可驱动输出格式默认值
-- 退出码 — 使用 `std::process::exit()` 设置不同退出码或 `ExitCode`
-
-**应标记的反模式：**
-- 使用 `println!` 同时输出数据和诊断信息——消息使用 `eprintln!`
-- 帮助文本中没有示例 — 通过 `#[command(after_help = "Examples:\n  mycli deploy --env staging")]` 添加
-
 ### Node.js — Commander / yargs / oclif
 
 **免费提供：**
@@ -391,23 +318,6 @@ CLI 输出的每个 token 都消耗有限的代理上下文。大量输出有时
 - 使用 `inquirer` 或 `prompts` 未先检查 `process.stdin.isTTY`
 - `console.log` 同时输出数据和消息——使用 `process.stdout.write` 和 `process.stderr.write`
 - Commander `.action()` 在错误时调用 `process.exit(0)`
-
-### Ruby — Thor
-
-**免费提供：**
-- 分层帮助、子命令结构
-- `method_option` 用于命名标志
-- 未知标志时报错
-
-**不提供——必须自行实现：**
-- `--json` 输出 — 手动
-- Stdin — 使用 `$stdin.read` 或 `ARGF`
-- TTY 检测 — `$stdout.tty?`；可驱动输出格式默认值
-- 退出码 — `exit 1` 或 `abort`
-
-**应标记的反模式：**
-- 使用 `ask()` 或 `yes?()` 没有 `--yes` 标志绕过
-- `say` 同时输出数据和消息——消息使用 `$stderr.puts`
 
 ### 未列出的框架
 
