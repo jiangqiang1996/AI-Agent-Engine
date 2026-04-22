@@ -7,14 +7,14 @@ import { join, extname, resolve, normalize, relative } from 'path'
 /**
  * todoread工具：【handoff技能专用工具】读取当前会话相关/ae-plan生成的计划文件中的待办任务列表
  * 优先选择当前会话中使用过的计划文件，多个则提示用户选择，默认推荐最后使用的计划
- * 无会话相关计划时读取docs/plans/下最新的计划文件，解析实现单元中的复选框任务
+ * 无会话相关计划时读取docs/ae/plans/下最新的计划文件，解析实现单元中的复选框任务
  * 支持指定file_path参数读取特定计划文件
  */
 export const todoreadTool: ToolDefinition = tool({
   description: [
     '【handoff技能专用工具】读取当前会话相关/ae-plan生成的计划文件中的待办任务列表。',
     '优先选择当前会话中使用过的计划文件，多个则提示用户选择，默认推荐最后使用的计划。',
-    '无会话相关计划时读取docs/plans/下最新的计划文件，解析实现单元中的复选框任务。',
+    '无会话相关计划时读取docs/ae/plans/下最新的计划文件，解析实现单元中的复选框任务。',
     '支持指定file_path参数读取特定计划文件。',
   ].join('\n'),
   args: {
@@ -23,10 +23,10 @@ export const todoreadTool: ToolDefinition = tool({
   async execute(args, context) {
     const todoItems: string[] = []
     const workDir = context.directory
-    const plansDir = join(workDir, 'docs', 'plans')
+    const plansDir = join(workDir, 'docs', 'ae', 'plans')
     const absolutePlansDir = resolve(plansDir)
 
-    // 安全校验：确保目标路径在docs/plans/目录下，防止路径遍历
+    // 安全校验：确保目标路径在docs/ae/plans/目录下，防止路径遍历
     const validatePathInPlansDir = (inputPath: string): string | null => {
       const absolutePath = resolve(workDir, normalize(inputPath))
       if (!absolutePath.startsWith(absolutePlansDir)) {
@@ -45,12 +45,12 @@ export const todoreadTool: ToolDefinition = tool({
     let targetFile: string | null = args.file_path ? validatePathInPlansDir(args.file_path) : null
 
     if (args.file_path && !targetFile) {
-      return '无效的文件路径：仅支持读取docs/plans/目录下的*-plan.md格式计划文件。'
+      return '无效的文件路径：仅支持读取docs/ae/plans/目录下的*-plan.md格式计划文件。'
     }
 
     if (!targetFile) {
       if (!existsSync(plansDir)) {
-        return '当前无待办任务：未找到docs/plans/计划目录。'
+        return '当前无待办任务：未找到docs/ae/plans/计划目录。'
       }
 
       try {
@@ -65,7 +65,7 @@ export const todoreadTool: ToolDefinition = tool({
           .sort((a, b) => b.mtime - a.mtime)
 
         if (allPlanFiles.length === 0) {
-          return '当前无待办任务：docs/plans/目录下无计划文件。'
+          return '当前无待办任务：docs/ae/plans/目录下无计划文件。'
         }
 
         // 优先级1：从当前会话历史中提取所有提到过的计划文件
@@ -76,7 +76,7 @@ export const todoreadTool: ToolDefinition = tool({
             const msg = ctx.history[i]
             if (typeof msg.content === 'string') {
               const normalizedContent = msg.content.replace(/\\/g, '/')
-              const matches = normalizedContent.match(/(?:\.\/)?docs\/plans\/[a-zA-Z0-9\-_.]+\-plan\.md/g)
+              const matches = normalizedContent.match(/(?:\.\/)?docs\/ae\/plans\/[a-zA-Z0-9\-_.]+\-plan\.md/g)
               if (matches?.length) {
                 matches.forEach((relativePath: string) => {
                   if (mentionedPlans.has(relativePath)) return
@@ -84,7 +84,7 @@ export const todoreadTool: ToolDefinition = tool({
                   if (validatedPath) {
                     mentionedPlans.set(relativePath, {
                       path: validatedPath,
-                      name: relativePath.replace('docs/plans/', '')
+                      name: relativePath.replace('docs/ae/plans/', '')
                     })
                   }
                 })
