@@ -131,9 +131,9 @@
 ### 受保护的产物
 
 在综合过程中，丢弃任何建议删除或移除以下目录中文件的发现：
-- `docs/brainstorms/`
-- `docs/plans/`
-- `docs/solutions/`
+- `docs/ae/brainstorms/`
+- `docs/ae/plans/`
+- `docs/ae/solutions/`
 
 这些是流水线产物，不应被标记为待删除。
 

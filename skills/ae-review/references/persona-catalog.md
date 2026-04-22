@@ -20,7 +20,7 @@
 | 代理 | 关注点 |
 |------|--------|
 | `agent-native-reviewer` | 验证新功能是否可被代理访问 |
-| `learnings-researcher` | 搜索 docs/solutions/ 查找与此 PR 模块和模式相关的历史问题 |
+| `learnings-researcher` | 搜索 docs/ae/solutions/ 查找与此 PR 模块和模式相关的历史问题 |
 
 ## 条件性（8 个人设）
 

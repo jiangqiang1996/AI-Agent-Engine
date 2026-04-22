@@ -41,7 +41,7 @@ disable-model-invocation: true
 
 运行 `ae:brainstorm $ARGUMENTS`
 
-门控：停止。验证 `ae:brainstorm` 产出了需求文档（`docs/brainstorms/*-requirements.md`）。如果未产出且需求已经足够清晰，继续。如果需求模糊且未产出文档，重新运行 `ae:brainstorm $ARGUMENTS`。在继续步骤 3 之前，**必须**有足够的产物流入计划阶段。
+门控：停止。验证 `ae:brainstorm` 产出了需求文档（`docs/ae/brainstorms/*-requirements.md`）。如果未产出且需求已经足够清晰，继续。如果需求模糊且未产出文档，重新运行 `ae:brainstorm $ARGUMENTS`。在继续步骤 3 之前，**必须**有足够的产物流入计划阶段。
 
 ### 步骤 3：需求审查
 
@@ -55,7 +55,7 @@ disable-model-invocation: true
 
 运行 `ae:plan`
 
-门控：停止。验证 `ae:plan` 在 `docs/plans/` 中产出了计划文件。如果未产出计划文件，重新运行 `ae:plan`。**在计划文件存在之前不得继续步骤 5。** 记录计划文件路径 —— 它将传递给步骤 7 的 `ae:review`。
+门控：停止。验证 `ae:plan` 在 `docs/ae/plans/` 中产出了计划文件。如果未产出计划文件，重新运行 `ae:plan`。**在计划文件存在之前不得继续步骤 5。** 记录计划文件路径 —— 它将传递给步骤 7 的 `ae:review`。
 
 ### 步骤 5：计划审查
 
@@ -79,7 +79,7 @@ disable-model-invocation: true
 
 ### 步骤 8：待办清理
 
-检查 `.context/ae/todos/` 目录是否存在 `ready` 状态的待办文件：
+检查 `docs/ae/todos/` 目录是否存在 `ready` 状态的待办文件：
 
 - 如果存在，逐一处理：阅读待办内容、实施修复、运行相关测试、标记为已完成
 - 如果不存在待办文件，跳过此步骤

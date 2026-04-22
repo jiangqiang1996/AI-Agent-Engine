@@ -25,7 +25,7 @@ description: "为 ae:save-rules 提供规范历史研究支持。搜索项目产
 
 ### 2. 项目产物
 
-搜索 `docs/brainstorms/`、`docs/plans/`、`docs/solutions/` 下的历史文档。这些记录了需求讨论、实现方案和决策依据。
+搜索 `docs/ae/brainstorms/`、`docs/ae/plans/`、`docs/ae/solutions/` 下的历史文档。这些记录了需求讨论、实现方案和决策依据。
 
 ### 3. Git 历史
 

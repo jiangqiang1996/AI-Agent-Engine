@@ -26,7 +26,7 @@ argument-hint: "[留空则审查当前分支，或提供拉取请求链接]"
 | `mode:report-only` | `mode:report-only` | 选择只读模式 |
 | `mode:headless` | `mode:headless` | 选择程序调用的无头模式（见下方模式检测） |
 | `base:<sha-or-ref>` | `base:abc1234` 或 `base:origin/main` | 跳过范围检测 —— 直接使用提供的值作为差异基准 |
-| `plan:<path>` | `plan:docs/plans/2026-03-25-001-feat-foo-plan.md` | 加载此计划用于需求验证 |
+| `plan:<path>` | `plan:docs/ae/plans/2026-03-25-001-feat-foo-plan.md` | 加载此计划用于需求验证 |
 
 所有标记都是可选的。每个存在的标记意味着需要推断的内容更少。如果不存在，则回退到该阶段的现有行为。
 
@@ -45,14 +45,14 @@ argument-hint: "[留空则审查当前分支，或提供拉取请求链接]"
 
 - **跳过所有用户询问。** 一旦确定范围，永远不要暂停请求批准或澄清。
 - **仅应用`safe_auto -> review-fixer`发现结果。** 保留`gated_auto`、`manual`、`human`和`release`工作未解决。
-- **在`.context/ae/ae-review/<run-id>/`下写入运行产物**，总结发现结果、已应用修复、剩余可操作工作和建议输出。
+- **在`docs/ae/review/<run-id>/`下写入运行产物**，总结发现结果、已应用修复、剩余可操作工作和建议输出。
 - **仅为所有者为 `downstream-resolver` 的未解决可操作发现结果创建持久待办文件。** 使用创建待办文件功能获取规范目录路径、命名约定、YAML前置元数据结构和模板。每个待办应将发现结果的严重级别映射到待办优先级（`P0`/`P1` → `p1`、`P2` → `p2`、`P3` → `p3`），并设置`status: ready`，因为这些发现结果已经过合成阶段的分类。
 - **永远不要从自动修复模式提交、推送或创建拉取请求。** 父工作流负责这些决策。
 
 ### 只读模式规则
 
 - **跳过所有用户询问。** 如果差异元数据很少，请保守推断意图。
-- **永远不要编辑文件或外化工作。** 不要写入`.context/ae/ae-review/<run-id>/`，不要创建待办文件，不要提交、推送或创建拉取请求。
+- **永远不要编辑文件或外化工作。** 不要写入`docs/ae/review/<run-id>/`，不要创建待办文件，不要提交、推送或创建拉取请求。
 - **适合并行只读验证。** `mode:report-only`是唯一可以在同一工作副本上与浏览器测试并行运行的模式。
 - **不要切换共享工作副本。** 如果调用方传递了显式拉取请求或分支目标，`mode:report-only`必须在隔离的工作副本/工作树中运行，或者停止，而不是运行`gh pr checkout` / `git checkout`。
 - **不要在同一工作副本上同时运行可变审查和浏览器测试。** 如果未来的编排器需要修复，请在浏览器测试之后运行可变审查阶段，或者在隔离的工作副本/工作树中运行。
@@ -63,7 +63,7 @@ argument-hint: "[留空则审查当前分支，或提供拉取请求链接]"
 - **需要可确定的差异范围。** 如果无头模式无法确定差异范围（无需用户交互即可确定的分支、拉取请求或`base:`引用），则输出`审查失败（无头模式）。原因：未检测到差异范围。使用分支名称、拉取请求编号或 base:<ref> 重新调用。`并且不派单代理直接停止。
 - **仅在单轮中应用`safe_auto -> review-fixer`发现结果。** 无限制的重新审查轮次。保留`gated_auto`、`manual`、`human`和`release`工作未解决，并在结构化输出中返回它们。
 - **将所有非自动发现结果作为结构化文本输出。** 使用无头输出包格式（见下方第6阶段），保留每个发现结果的严重级别、autofix_class、所有者、requires_verification、置信度、pre_existing和suggested_fix。从磁盘上的每个代理产物文件中补充详细级别的字段（why_it_matters、evidence[]）（见第6阶段的详细信息丰富）。
-- **在`.context/ae/ae-review/<run-id>/`下写入运行产物**，总结发现结果、已应用修复和建议输出。在结构化输出中包含产物路径。
+- **在`docs/ae/review/<run-id>/`下写入运行产物**，总结发现结果、已应用修复和建议输出。在结构化输出中包含产物路径。
 - **不要创建待办文件。** 调用方接收结构化发现结果并自行路由下游工作。
 - **不要切换共享工作副本。** 如果调用方传递了显式拉取请求或分支目标，`mode:headless`必须在隔离的工作副本/工作树中运行，或者停止，而不是运行`gh pr checkout` / `git checkout`。停止时输出`审查失败（无头模式）。原因：无法切换共享工作副本。使用 base:<ref> 重新调用以审查当前工作副本，或从隔离工作树运行。`
 - **在共享工作副本上不适合并发使用。** 与`mode:report-only`不同，无头模式会修改文件（应用`safe_auto`修复）。调用方不得在同一工作副本上与其他可变操作同时运行无头模式。
@@ -145,9 +145,9 @@ argument-hint: "[留空则审查当前分支，或提供拉取请求链接]"
 
 以下路径是AE流水线产物，任何审查者都不得标记为删除、移除或加入gitignore：
 
-- `docs/brainstorms/*` -- 由ae:brainstorm创建的需求文档
-- `docs/plans/*.md` -- 由ae:plan创建的计划文件（带有进度复选框的活文档）
-- `docs/solutions/*.md` -- 在流水线过程中创建的解决方案文档
+- `docs/ae/brainstorms/*` -- 由ae:brainstorm创建的需求文档
+- `docs/ae/plans/*.md` -- 由ae:plan创建的计划文件（带有进度复选框的活文档）
+- `docs/ae/solutions/*.md` -- 在流水线过程中创建的解决方案文档
 
 如果审查者标记这些目录中的任何文件进行清理或移除，请在合成阶段丢弃该发现结果。
 
@@ -315,8 +315,8 @@ echo "BRANCH:" && git rev-parse --abbrev-ref HEAD && echo "COMMITS:" && git log 
 定位计划文档，以便第6阶段可以验证需求完整性。按优先级检查以下来源 —— 找到第一个匹配项即停止：
 
 1. **`plan:`参数。** 如果调用方传递了计划路径，请直接使用。读取文件确认其存在。
-2. **PR正文。** 如果在第1阶段获取了PR元数据，请扫描正文以查找匹配`docs/plans/*.md`的路径。如果恰好找到一个匹配项且文件存在，则将其用作`plan_source: explicit`。如果出现多个计划路径，则视为不明确 —— 降级为`plan_source: inferred`，用于磁盘上存在的最新匹配项，如果不存在或没有与PR标题/意图明确相关的匹配项则跳过。在使用之前始终验证所选文件存在 —— PR描述中过时或复制的计划链接很常见。
-3. **自动发现。** 从分支名称中提取2-3个关键词（例如，`feat/onboarding-skill` → `onboarding`、`skill`）。使用glob匹配`docs/plans/*`并过滤包含这些关键词的文件名。如果恰好找到一个匹配项，则使用它。如果有多个匹配项或匹配看起来不明确（例如，可能匹配许多计划的通用关键词如`review`、`fix`、`update`），**跳过自动发现** —— 错误的计划比没有计划更糟糕。如果没有匹配项，则跳过。
+2. **PR正文。** 如果在第1阶段获取了PR元数据，请扫描正文以查找匹配`docs/ae/plans/*.md`的路径。如果恰好找到一个匹配项且文件存在，则将其用作`plan_source: explicit`。如果出现多个计划路径，则视为不明确 —— 降级为`plan_source: inferred`，用于磁盘上存在的最新匹配项，如果不存在或没有与PR标题/意图明确相关的匹配项则跳过。在使用之前始终验证所选文件存在 —— PR描述中过时或复制的计划链接很常见。
+3. **自动发现。** 从分支名称中提取2-3个关键词（例如，`feat/onboarding-skill` → `onboarding`、`skill`）。使用glob匹配`docs/ae/plans/*`并过滤包含这些关键词的文件名。如果恰好找到一个匹配项，则使用它。如果有多个匹配项或匹配看起来不明确（例如，可能匹配许多计划的通用关键词如`review`、`fix`、`update`），**跳过自动发现** —— 错误的计划比没有计划更糟糕。如果没有匹配项，则跳过。
 
 **置信度标记：** 记录计划的发现方式：
 - `plan:`参数 → `plan_source: explicit`（高置信度）
@@ -374,10 +374,10 @@ echo "BRANCH:" && git rev-parse --abbrev-ref HEAD && echo "COMMITS:" && git log 
 
 ```bash
 RUN_ID=$(date +%Y%m%d-%H%M%S)-$(head -c4 /dev/urandom | od -An -tx1 | tr -d ' ')
-mkdir -p ".context/ae/ae-review/$RUN_ID"
+mkdir -p "docs/ae/review/$RUN_ID"
 ```
 
-将`{run_id}`传递给每个角色子代理，以便它们可以将完整分析写入`.context/ae/ae-review/{run_id}/{reviewer_name}.json`。
+将`{run_id}`传递给每个角色子代理，以便它们可以将完整分析写入`docs/ae/review/{run_id}/{reviewer_name}.json`。
 
 **只读模式：** 跳过运行ID生成和目录创建。不要向代理传递`{run_id}`。代理仅返回紧凑JSON，不写入文件，符合只读模式的无写入约定。
 
@@ -399,7 +399,7 @@ mkdir -p ".context/ae/ae-review/$RUN_ID"
 
 这里的只读意味着**不可变**，而不是"没有shell访问权限"。审查子代理在需要收集证据或验证范围时可以使用非可变检查命令，包括面向读取的`git` / `gh`使用，例如`git diff`、`git show`、`git blame`、`git log`和`gh pr view`。它们不得编辑项目文件、更改分支、提交、推送、创建PR或以其他方式修改工作副本或仓库状态。
 
-每个角色子代理将完整JSON（所有模式字段）写入`.context/ae/ae-review/{run_id}/{reviewer_name}.json`，并仅返回包含合并层级字段的紧凑JSON：
+每个角色子代理将完整JSON（所有模式字段）写入`docs/ae/review/{run_id}/{reviewer_name}.json`，并仅返回包含合并层级字段的紧凑JSON：
 
 ```json
 {
@@ -467,7 +467,7 @@ mkdir -p ".context/ae/ae-review/$RUN_ID"
 4. **已应用修复。** 仅当此调用中运行了修复阶段时包含。
 5. **剩余可操作工作。** 当未解决的可操作发现结果已移交或应移交时包含。
 6. **预先存在的问题。** 单独部分，不计入结论。
-7. **经验教训和过去解决方案。** 展示learnings-researcher结果：如果过去的解决方案相关，将其标记为"已知模式"并链接到docs/solutions/文件。
+7. **经验教训和过去解决方案。** 展示learnings-researcher结果：如果过去的解决方案相关，将其标记为"已知模式"并链接到docs/ae/solutions/文件。
 8. **代理原生缺口。** 展示agent-native-reviewer结果。如果没有发现缺口则省略此部分。
 9. **部署说明。** 如果deployment-verification-agent运行了，展示关键的通过/不通过项：阻塞的预部署检查、最重要的验证查询、回退注意事项和监控重点区域。保持检查清单可操作，而不是将其放入覆盖范围。
 11. **覆盖范围。** 抑制计数、剩余风险、测试缺口、失败/超时的审查者，以及非交互模式携带的任何意图不确定性。
@@ -488,7 +488,7 @@ Scope: <scope-line>
 Intent: <intent-summary>
 Reviewers: <reviewer-list with conditional justifications>
 Verdict: <Ready to merge | Ready with fixes | Not ready>
-Artifact: .context/ae/ae-review/<run-id>/
+Artifact: docs/ae/review/<run-id>/
 
 Applied N safe_auto fixes.
 
@@ -541,7 +541,7 @@ Coverage:
 Review complete
 ```
 
-**详细信息丰富（仅无头模式）：** 无头包包含`Why:`、`Evidence:`和`Suggested fix:`行。合并后（第5阶段），仅为经过去重和置信度门控的发现结果从`.context/ae/ae-review/{run_id}/`读取每个代理产物文件。
+**详细信息丰富（仅无头模式）：** 无头包包含`Why:`、`Evidence:`和`Suggested fix:`行。合并后（第5阶段），仅为经过去重和置信度门控的发现结果从`docs/ae/review/{run_id}/`读取每个代理产物文件。
    - **字段层级：** `Why:`和`Evidence:`是详细层级 —— 从每个代理产物文件加载。`Suggested fix:`是合并层级 —— 直接从紧凑返回使用，无需查找产物。
    - **产物匹配：** 对于每个存活的发现结果，在贡献审查者的产物文件中查找其详细层级字段。在每个贡献审查者的产物中匹配`file + line_bucket(line, +/-3)`（与第5阶段去重中使用的容差相同）。当多个产物条目落在行桶中时，对合并发现结果的标题和每个候选条目的标题应用`normalize(title)`作为决胜条件。
    - **审查者顺序：** 按照合并发现结果的审查者列表中出现的顺序尝试贡献审查者；使用第一个匹配项。
@@ -565,7 +565,7 @@ Review complete
 2. **没有因未仔细阅读代码而导致的误报。** 对于每个发现结果，验证实际读取了周围的代码。检查"错误"是否在同一函数的其他地方处理，"未使用的导入"是否在类型注解中使用，"缺少的空检查"是否由调用方保护。
 3. **严重级别校准正确。** 样式挑剔永远不是P0。SQL注入永远不是P3。重新检查每个严重级别分配。
 4. **行号准确。** 对照文件内容验证每个引用的行号。指向错误行的发现结果比没有发现结果更糟糕。
-5. **受保护产物得到尊重。** 丢弃任何建议删除或gitignore`docs/brainstorms/`、`docs/plans/`或`docs/solutions/`中文件的发现结果。
+5. **受保护产物得到尊重。** 丢弃任何建议删除或gitignore`docs/ae/brainstorms/`、`docs/ae/plans/`或`docs/ae/solutions/`中文件的发现结果。
 6. **发现结果不重复linter输出。** 不要标记项目linter/格式化程序会捕获的内容（缺少分号、错误缩进）。专注于语义问题。
 
 ## 语言感知条件
@@ -648,7 +648,7 @@ Review complete
 
 #### 步骤4：输出产物和下游移交
 
-- 在交互、自动修复和无头模式下，在`.context/ae/ae-review/<run-id>/`下写入每次运行的产物，包含：
+- 在交互、自动修复和无头模式下，在`docs/ae/review/<run-id>/`下写入每次运行的产物，包含：
   - 合成的发现结果（第5阶段的合并输出）
   - 已应用的修复
   - 剩余可操作工作

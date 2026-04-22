@@ -54,7 +54,7 @@
 ```text
 头脑风暴完成！
 
-需求文档：docs/brainstorms/YYYY-MM-DD-<topic>-requirements.md  # 如果已创建
+需求文档：docs/ae/brainstorms/YYYY-MM-DD-<topic>-requirements.md  # 如果已创建
 
 关键决策：
 - [决策 1]
@@ -68,7 +68,7 @@
 ```text
 头脑风暴已暂停。
 
-需求文档：docs/brainstorms/YYYY-MM-DD-<topic>-requirements.md  # 如果已创建
+需求文档：docs/ae/brainstorms/YYYY-MM-DD-<topic>-requirements.md  # 如果已创建
 
 规划被以下问题阻塞：
 - [阻塞问题 1]

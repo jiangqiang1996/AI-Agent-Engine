@@ -23,7 +23,7 @@ argument-hint: "[mode:headless] [path/to/document.md]"
 
 调用方通过在技能参数中包含 `mode:headless` 来启用无头模式，例如：
 ```
-Skill("ae:document-review", "mode:headless docs/plans/my-plan.md")
+Skill("ae:document-review", "mode:headless docs/ae/plans/my-plan.md")
 ```
 
 如果不存在 `mode:headless`，技能以默认的交互模式运行，行为不变。
@@ -32,15 +32,15 @@ Skill("ae:document-review", "mode:headless docs/plans/my-plan.md")
 
 **如果提供了文档路径：** 读取文档，然后继续。
 
-**如果未指定文档（交互模式）：** 询问要审查哪个文档，或使用文件搜索/Glob 工具在 `docs/brainstorms/` 或 `docs/plans/` 中查找最近的文档。
+**如果未指定文档（交互模式）：** 询问要审查哪个文档，或使用文件搜索/Glob 工具在 `docs/ae/brainstorms/` 或 `docs/ae/plans/` 中查找最近的文档。
 
 **如果未指定文档（无头模式）：** 输出"审查失败：无头模式需要文档路径。请使用以下方式重新调用：Skill(\"ae:document-review\", \"mode:headless <path>\")"，不调度代理。
 
 ### 分类文档类型
 
 读取后，对文档进行分类：
-- **requirements**——来自 `docs/brainstorms/`，关注构建什么和为什么构建
-- **plan**——来自 `docs/plans/`，关注如何构建以及实现细节
+- **requirements**——来自 `docs/ae/brainstorms/`，关注构建什么和为什么构建
+- **plan**——来自 `docs/ae/plans/`，关注如何构建以及实现细节
 
 ### 选择条件角色
 

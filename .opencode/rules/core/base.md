@@ -122,7 +122,7 @@ ai-agent-engine/
 ## 目录约定
 
 - `.opencode/` 目录用于存放开发当前项目所需的规范和规则，并非项目的所有配置都必须存在于 `.opencode/` 目录中
-- `docs/` 目录（包括 `docs/brainstorms/`、`docs/plans/`、`docs/solutions/`）为运行时产物，由技能在执行过程中按需创建，允许不存在于版本控制中
+- `docs/` 目录（包括 `docs/ae/brainstorms/`、`docs/ae/plans/`、`docs/ae/solutions/`）为运行时产物，由技能在执行过程中按需创建，允许不存在于版本控制中
 
 ## 核心原则
 

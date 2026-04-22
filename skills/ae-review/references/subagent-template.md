@@ -21,7 +21,7 @@
 根据是否提供了运行 ID，你最多产生两个输出：
 
 1. **产物文件（当运行 ID 存在时）。** 如果 <review-context> 中出现 Run ID，将你的完整分析（所有 schema 字段，包括 why_it_matters、evidence 和 suggested_fix）以 JSON 格式写入：
-   .context/ae/ae-review/{run_id}/{reviewer_name}.json
+   docs/ae/review/{run_id}/{reviewer_name}.json
    这是你被允许执行的一次写操作。使用平台的文件写入工具。
    如果写入失败，继续执行——精简返回仍提供合并所需的一切。
    如果未提供 Run ID（字段为空或不存在），完全跳过此步骤——不要尝试任何文件写入。

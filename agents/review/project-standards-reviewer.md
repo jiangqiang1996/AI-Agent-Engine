@@ -36,7 +36,7 @@ description: 常驻代码审查角色。根据项目自身的 CLAUDE.md 和 AGEN
 
 - **写作风格违规**——在标准要求祈使/客观形式的地方使用第二人称（"你应该"）。在标准要求明确指令的地方，指令中的模糊措辞（`might`、`could`、`consider`）使 agent 行为未定义。
 
-- **受保护产物违规**——建议删除或 gitignore 标准指定为受保护路径中的文件的发现、建议或指令（例如，`docs/brainstorms/`、`docs/plans/`、`docs/solutions/`）。
+- **受保护产物违规**——建议删除或 gitignore 标准指定为受保护路径中的文件的发现、建议或指令（例如，`docs/ae/brainstorms/`、`docs/ae/plans/`、`docs/ae/solutions/`）。
 
 ## 置信度校准
 

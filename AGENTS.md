@@ -25,5 +25,5 @@
 
 ## 文档
 
-- requirements：`docs/brainstorms/2026-04-18-ae-plugin-phase-one-requirements.md`
-- 当前计划：`docs/plans/2026-04-18-001-feat-ae-phase-one-workflow-plugin-plan.md`
+- requirements：`docs/ae/brainstorms/2026-04-18-ae-plugin-phase-one-requirements.md`
+- 当前计划：`docs/ae/plans/2026-04-18-001-feat-ae-phase-one-workflow-plugin-plan.md`
