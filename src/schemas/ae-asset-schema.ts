@@ -54,6 +54,7 @@ export const AGENT = {
   LEARNINGS_RESEARCHER: 'learnings-researcher',
   BEST_PRACTICES_RESEARCHER: 'best-practices-researcher',
   WEB_RESEARCHER: 'web-researcher',
+  FRAMEWORK_DOCS_RESEARCHER: 'framework-docs-researcher',
   SPEC_FLOW_ANALYZER: 'spec-flow-analyzer',
   DESIGN_ITERATOR: 'design-iterator',
   FIGMA_DESIGN_SYNC: 'figma-design-sync',
@@ -67,11 +68,17 @@ export const AGENT = {
   MAINTAINABILITY_REVIEWER: 'maintainability-reviewer',
   SECURITY_REVIEWER: 'security-reviewer',
   PERFORMANCE_REVIEWER: 'performance-reviewer',
+  ARCHITECTURE_STRATEGIST: 'architecture-strategist',
+  PATTERN_RECOGNITION_SPECIALIST: 'pattern-recognition-specialist',
   DATA_MIGRATIONS_REVIEWER: 'data-migrations-reviewer',
   KIERAN_TYPESCRIPT_REVIEWER: 'kieran-typescript-reviewer',
   PREVIOUS_COMMENTS_REVIEWER: 'previous-comments-reviewer',
   CLI_AGENT_READINESS_REVIEWER: 'cli-agent-readiness-reviewer',
 } as const
+
+export function skillDir(skillName: string): string {
+  return skillName.replace(/^ae:/, 'ae-')
+}
 
 export const TOOL = {
   AE_RECOVERY: 'ae-recovery',

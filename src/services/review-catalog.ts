@@ -24,6 +24,7 @@ export const CODE_REVIEWERS: ReviewDefinition[] = [
   { name: AGENT.MAINTAINABILITY_REVIEWER, description: '审查可维护性与抽象合理性', alwaysOn: true },
   { name: AGENT.PROJECT_STANDARDS_REVIEWER, description: '审查是否遵守项目规范', alwaysOn: true },
   { name: AGENT.AGENT_NATIVE_REVIEWER, description: '审查代理操作友好性', alwaysOn: true },
+  { name: AGENT.LEARNINGS_RESEARCHER, description: '搜索 docs/ae/solutions/ 查找历史问题', alwaysOn: true },
   { name: AGENT.SECURITY_REVIEWER, description: '审查安全漏洞', alwaysOn: false },
   { name: AGENT.PERFORMANCE_REVIEWER, description: '审查性能瓶颈', alwaysOn: false },
   { name: AGENT.API_CONTRACT_REVIEWER, description: '审查接口契约破坏性变更', alwaysOn: false },

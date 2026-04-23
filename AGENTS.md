@@ -23,7 +23,7 @@ AE opencode 插件，提供从需求到交付的完整 AI 辅助工作流。
 - `src/assets/agents/` 在构建时同步到 `.opencode/agents/ae/`
 - `src/assets/rules/` 通过 `config.instructions` 注入
 - 自定义工具：`ae-recovery`、`ae-review-contract`、`ae-handoff`
-- 代理分层：27 required + 3 gilded = 30 个代理
+- 代理分层：30 required + 3 gilded = 33 个代理
 
 ## 文档
 

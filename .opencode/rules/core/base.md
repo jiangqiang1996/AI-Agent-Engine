@@ -18,7 +18,7 @@
 - **核心依赖**: `@opencode-ai/plugin@1.4.10`、`@opencode-ai/sdk@1.4.10`、`effect@4.x`、`zod@4.x`
 - **包管理器**: npm
 - **构建工具**: tsc
-- **插件规模**: 28 个 Agent、3 个工具、17 个技能
+- **插件规模**: 33 个 Agent、3 个工具、17 个技能
 
 ## opencode 核心概念
 
@@ -88,25 +88,20 @@ ai-agent-engine/
 ├── src/                         # 插件源代码
 │   ├── assets/                  # 资产定义
 │   │   ├── rules/               # 规则文件
-│   │   │   ├── core/
-│   │   │   │   ├── base.md              # 本文件 - 项目总规范
-│   │   │   │   ├── architecture.md      # 架构设计规范
-│   │   │   │   ├── code-style.md        # 代码风格规范
-│   │   │   │   ├── git-workflow.md      # Git 工作流规范
-│   │   │   │   ├── testing.md           # 测试规范
-│   │   │   │   ├── agent-design.md      # Agent 与工具设计规范
-│   │   │   │   └── runtime-injected-props.md  # 运行时注入属性规范
-│   │   │   └── architecture/
-│   │   │       ├── phase-fallback-strategy.md  # 阶段回退策略
-│   │   │       └── dual-decision-mechanism.md  # 双重决策机制
+│   │   │   ├── global-dev.md            # 通用开发规范
+│   │   │   └── ai-coding-guidelines.md  # AI 编码指南
 │   │   ├── skills/              # 技能定义（17 个）
 │   │   │   └── <name>/
 │   │   │       └── SKILL.md
-│   │   ├── agents/              # Agent 定义（28 个 .md 文件）
+│   │   ├── agents/              # Agent 定义（33 个 .md 文件）
+│   │   │   ├── document-review/
+│   │   │   ├── research/
+│   │   │   ├── review/
+│   │   │   └── workflow/
 │   │   └── commands/            # 命令定义
 │   ├── index.ts                 # 插件入口
+│   ├── tui.ts                   # TUI 入口
 │   ├── tools/                   # 工具定义（3 个工具）
-│   ├── hooks/                   # Hook 处理器
 │   ├── services/                # 业务服务层
 │   ├── schemas/                 # Zod Schema 定义
 │   └── utils/                   # 工具函数
@@ -114,6 +109,9 @@ ai-agent-engine/
     ├── plugins/                 # 构建产物 - 插件输出
     ├── agents/ae/               # 构建产物 - Agent 同步
     ├── commands/                # 构建产物 - 命令同步
+    ├── rules/                   # 规则文件
+    │   ├── core/
+    │   └── architecture/
     └── skills/                  # 运行时技能加载
 ```
 

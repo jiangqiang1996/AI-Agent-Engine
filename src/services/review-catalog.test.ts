@@ -36,7 +36,13 @@ describe('review-catalog', () => {
     expect(batchIdx).toBe(securityIdx + 2)
   })
 
-  it('CODE_REVIEWERS 不受影响', () => {
-    expect(CODE_REVIEWERS).toHaveLength(14)
+  it('CODE_REVIEWERS 包含 learnings-researcher 为常驻代理', () => {
+    const reviewer = CODE_REVIEWERS.find((r) => r.name === AGENT.LEARNINGS_RESEARCHER)
+    expect(reviewer).toBeDefined()
+    expect(reviewer!.alwaysOn).toBe(true)
+  })
+
+  it('CODE_REVIEWERS 应包含 15 个条目', () => {
+    expect(CODE_REVIEWERS).toHaveLength(15)
   })
 })
