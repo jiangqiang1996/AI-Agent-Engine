@@ -5,7 +5,7 @@
 ```
 src/
 ├── index.ts              # 插件入口，导出 PluginModule
-├── tools/                # 工具定义
+├── tools/                # 工具定义（3 个工具）
 │   ├── index.ts          # 工具注册汇总
 │   └── *.tool.ts         # 单个工具定义
 ├── hooks/                # Hook 处理器
@@ -84,8 +84,8 @@ export const myTool = tool({
 
 ```
 index.ts → tools/ → services/ → schemas/
-                  → hooks/   → services/
-                              → utils/
+                   → hooks/   → services/
+                               → utils/
 ```
 
 - 上层可以依赖下层，下层禁止依赖上层
@@ -111,3 +111,11 @@ class FileNotFoundError extends Schema.TaggedError<FileNotFoundError>(
 - 通过 `PluginOptions` 接收配置
 - 在 `PluginInput` 中获取运行时上下文
 - 敏感配置通过环境变量传入，禁止硬编码
+
+## 资产同步
+
+构建过程负责将源资产同步到运行时目录：
+- `skills/` 通过 plugin `config.skills.paths` 注入到 `.opencode/skills/`
+- `commands/` 构建时同步到 `.opencode/commands/`
+- `agents/` 构建时同步到 `.opencode/agents/ae/`
+- 插件产物输出到 `.opencode/plugins/`

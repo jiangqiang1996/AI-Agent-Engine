@@ -1,5 +1,4 @@
 import type { AeAssetEntry } from '../schemas/ae-asset-schema.js'
-
 import { getPhaseOneEntries } from './ae-catalog.js'
 
 export interface ArgumentContract {

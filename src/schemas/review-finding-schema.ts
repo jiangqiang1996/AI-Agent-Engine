@@ -1,6 +1,9 @@
 import { z } from 'zod'
 
-export const ReviewSeveritySchema = z.enum(['P0', 'P1', 'P2', 'P3']).describe('问题严重程度')
+export const ReviewSeveritySchema = z
+  .enum(['P0', 'P1', 'P2', 'P3'])
+  .describe('问题严重程度')
+
 export const ReviewAutofixClassSchema = z
   .enum(['safe_auto', 'gated_auto', 'manual', 'advisory'])
   .describe('修复策略分类')
@@ -12,6 +15,7 @@ export const ReviewFindingSchema = z.object({
   autofixClass: ReviewAutofixClassSchema.describe('修复策略分类'),
   message: z.string().min(1).describe('问题说明'),
   evidence: z.array(z.string()).default([]).describe('支撑证据'),
+  confidence: z.number().min(0).max(1).default(1).describe('置信度'),
   requiresVerification: z.boolean().default(false).describe('是否需要额外验证'),
 })
 

@@ -9,7 +9,7 @@ export const aeRecoveryTool: ToolDefinition = tool({
     '返回 AE 恢复建议。',
     '',
     '功能说明：',
-    '- 根据 docs 产物返回恢复结论',
+    '- 根据 docs 与 .context 产物返回恢复结论',
     '- 给出恢复阶段、后续技能与回退技能',
     '',
     '适用场景：',

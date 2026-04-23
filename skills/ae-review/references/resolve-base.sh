@@ -4,12 +4,6 @@
 #
 # 用法: bash references/resolve-base.sh
 # 输出: 成功时输出 BASE:<sha>，失败时输出 ERROR:<message>。
-#
-# 按以下优先级检测基准分支：
-# 1. PR 元数据（base ref + fork 安全的 base repo）
-# 2. origin/HEAD 符号引用
-# 3. gh repo view defaultBranchRef
-# 4. 常见分支名：main, master, develop, trunk
 
 set -euo pipefail
 
@@ -18,7 +12,7 @@ PR_BASE_REPO=""
 PR_BASE_REMOTE=""
 BASE_REF=""
 
-# 步骤 1：尝试 PR 元数据（处理 fork 工作流）
+# 步骤 1：尝试 PR 元数据
 if command -v gh >/dev/null 2>&1; then
   PR_META=$(gh pr view --json baseRefName,url 2>/dev/null || true)
   if [ -n "$PR_META" ]; then
@@ -52,21 +46,15 @@ if [ -n "$REVIEW_BASE_BRANCH" ]; then
   if [ -n "$PR_BASE_REPO" ]; then
     PR_BASE_REMOTE=$(git remote -v | awk "index(\$2, \"github.com:$PR_BASE_REPO\") || index(\$2, \"github.com/$PR_BASE_REPO\") {print \$1; exit}")
     if [ -n "$PR_BASE_REMOTE" ]; then
-      # 始终 fetch —— 本地缓存的引用可能过期，
-      # 导致 merge-base 早于 squash-merge 的工作，使 diff 膨胀。
       git fetch --no-tags "$PR_BASE_REMOTE" "$REVIEW_BASE_BRANCH:refs/remotes/$PR_BASE_REMOTE/$REVIEW_BASE_BRANCH" 2>/dev/null || git fetch --no-tags "$PR_BASE_REMOTE" "$REVIEW_BASE_BRANCH" 2>/dev/null || true
       BASE_REF=$(git rev-parse --verify "$PR_BASE_REMOTE/$REVIEW_BASE_BRANCH" 2>/dev/null || true)
     fi
   fi
   if [ -z "$BASE_REF" ]; then
-    # 仅当 origin 作为远程存在时才尝试；否则跳过，
-    # 避免在 origin 指向用户 fork 的设置中产生混淆错误。
     if git remote get-url origin >/dev/null 2>&1; then
-      # 始终 fetch —— 同上述 fork 安全路径的理由。
       git fetch --no-tags origin "$REVIEW_BASE_BRANCH:refs/remotes/origin/$REVIEW_BASE_BRANCH" 2>/dev/null || git fetch --no-tags origin "$REVIEW_BASE_BRANCH" 2>/dev/null || true
       BASE_REF=$(git rev-parse --verify "origin/$REVIEW_BASE_BRANCH" 2>/dev/null || true)
     fi
-    # 仅当远程解析失败时才回退到裸本地引用
     if [ -z "$BASE_REF" ]; then
       BASE_REF=$(git rev-parse --verify "$REVIEW_BASE_BRANCH" 2>/dev/null || true)
     fi
@@ -81,10 +69,6 @@ if [ -n "$BASE_REF" ]; then
       git fetch --no-tags --unshallow origin 2>/dev/null || true
       BASE=$(git merge-base HEAD "$BASE_REF" 2>/dev/null) || BASE=""
     fi
-    if [ -z "$BASE" ] && [ -n "$PR_BASE_REMOTE" ] && [ "$PR_BASE_REMOTE" != "origin" ]; then
-      git fetch --no-tags --unshallow "$PR_BASE_REMOTE" 2>/dev/null || true
-      BASE=$(git merge-base HEAD "$BASE_REF" 2>/dev/null) || BASE=""
-    fi
   fi
 else
   BASE=""
@@ -93,5 +77,5 @@ fi
 if [ -n "$BASE" ]; then
   echo "BASE:$BASE"
 else
-  echo "ERROR:无法在本地解析审查基准分支。请 fetch 基准分支后重试，或提供 PR 编号以便从 PR 元数据确定审查范围。"
+  echo "ERROR:无法在本地解析审查基准分支。请 fetch 基准分支后重试，或提供 PR 编号。"
 fi

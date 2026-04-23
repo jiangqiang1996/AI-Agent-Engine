@@ -29,7 +29,6 @@ export const aeReviewContractTool: ToolDefinition = tool({
     has_performance: tool.schema.boolean().optional().describe('是否涉及性能敏感逻辑'),
     has_api: tool.schema.boolean().optional().describe('是否涉及 API 契约变更'),
     has_reliability: tool.schema.boolean().optional().describe('是否涉及可靠性/容错机制'),
-    has_migrations: tool.schema.boolean().optional().describe('是否涉及数据迁移'),
     changed_lines: tool.schema.number().optional().describe('改动行数'),
     has_pr_metadata: tool.schema.boolean().optional().describe('是否存在 PR 元数据'),
     requirement_count: tool.schema.number().optional().describe('需求数量'),
@@ -47,7 +46,6 @@ export const aeReviewContractTool: ToolDefinition = tool({
                 hasPerformance: args.has_performance,
                 hasApi: args.has_api,
                 hasReliability: args.has_reliability,
-                hasMigrations: args.has_migrations,
                 changedLineCount: args.changed_lines,
               })
             : selectDocumentReviewers({

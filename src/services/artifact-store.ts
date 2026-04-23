@@ -25,7 +25,6 @@ function readMarkdownFiles(dir: string): string[] {
           if (typeof error === 'object' && error && 'code' in error && error.code === 'ENOENT') {
             return new Error('ENOENT')
           }
-
           return error instanceof Error ? error : new Error(String(error))
         },
       }),
@@ -34,7 +33,6 @@ function readMarkdownFiles(dir: string): string[] {
     if (error instanceof Error && error.message === 'ENOENT') {
       return []
     }
-
     throw error
   }
 }
@@ -44,15 +42,16 @@ const CONTEXT_DIR_TYPE_MAP: Record<'work' | 'review', string> = {
   review: 'review',
 }
 
-function getArtifactDirectory(manifest: RuntimeAssetManifest, type: 'brainstorm' | 'plan' | 'work' | 'review'): string {
+function getArtifactDirectory(
+  manifest: RuntimeAssetManifest,
+  type: 'brainstorm' | 'plan' | 'work' | 'review',
+): string {
   if (type === 'brainstorm') {
     return join(manifest.repoRoot, 'docs', 'ae', 'brainstorms')
   }
-
   if (type === 'plan') {
     return join(manifest.repoRoot, 'docs', 'ae', 'plans')
   }
-
   return join(manifest.repoRoot, 'docs', 'ae', CONTEXT_DIR_TYPE_MAP[type])
 }
 
@@ -69,7 +68,6 @@ export function listArtifacts(
         files.map((path) => {
           const content = readFileSync(path, 'utf8')
           const parsed = parseFrontmatter(content)
-
           return {
             path,
             body: parsed.body,

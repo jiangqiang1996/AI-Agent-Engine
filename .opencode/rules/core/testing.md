@@ -9,11 +9,11 @@
 ```
 src/
 ├── tools/
-│   ├── read-file.tool.ts
-│   └── read-file.tool.test.ts
+│   ├── ae-review-contract.tool.ts
+│   └── ae-review-contract.tool.test.ts
 ├── services/
-│   ├── agent-service.ts
-│   └── agent-service.test.ts
+│   ├── recovery-service.ts
+│   └── recovery-service.test.ts
 ```
 
 ## 测试分类
@@ -56,15 +56,15 @@ src/
 ```typescript
 import { describe, it, expect } from "vitest"
 
-describe("readFile 工具", () => {
-  it("应该正确读取存在的文件", async () => {
-    const result = await execute({ path: "/exists.txt" }, mockContext)
-    expect(result).toContain("文件内容")
+describe("ae-review-contract 工具", () => {
+  it("应该根据审查类型生成审查团队", async () => {
+    const result = await execute({ kind: "code", mode: "interactive" }, mockContext)
+    expect(result).toContain("审查团队")
   })
 
-  it("应该在文件不存在时返回友好提示", async () => {
-    const result = await execute({ path: "/missing.txt" }, mockContext)
-    expect(result).toContain("文件未找到")
+  it("应该在参数缺失时返回友好提示", async () => {
+    const result = await execute({ kind: "invalid", mode: "report-only" }, mockContext)
+    expect(result).toContain("不支持的审查类型")
   })
 })
 ```
@@ -78,8 +78,8 @@ describe("readFile 工具", () => {
 ```typescript
 import { Layer } from "effect"
 
-const MockFileService = Layer.succeed(FileService, {
-  read: () => Effect.succeed("模拟文件内容"),
+const MockRecoveryService = Layer.succeed(RecoveryServiceTag, {
+  recover: () => Effect.succeed({ phase: "plan", skill: "ae:plan" }),
 })
 ```
 

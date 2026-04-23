@@ -37,7 +37,7 @@
           },
           "section": {
             "type": "string",
-            "description": "问题出现的文档章节（例如 '需求追踪表'、'实现单元 3'、'概述'）"
+            "description": "问题出现的文档章节"
           },
           "why_it_matters": {
             "type": "string",
@@ -46,20 +46,20 @@
           "autofix_class": {
             "type": "string",
             "enum": ["auto", "present"],
-            "description": "此问题应如何处理。auto = 有一个明确正确的修复方案，可以静默应用（术语、格式、交叉引用、完整性修正、由其他内容机械推导出的补充）。present = 需要用户个人判断。"
+            "description": "此问题应如何处理。auto = 有一个明确正确的修复方案。present = 需要用户判断。"
           },
           "finding_type": {
             "type": "string",
             "enum": ["error", "omission"],
-            "description": "发现是文档中所说的错误（error）还是文档遗漏的内容（omission）。error 是设计张力、矛盾或不正确的陈述。omission 是缺失的机械步骤、遗漏的列表条目或缺省的细节。"
+            "description": "发现是文档中所说的错误（error）还是文档遗漏的内容（omission）。"
           },
           "suggested_fix": {
             "type": ["string", "null"],
-            "description": "具体的修复文本。如果没有明显的好的修复方案，则省略或设为 null——糟糕的建议比没有建议更糟。"
+            "description": "具体的修复文本。如果没有明显好的修复方案则省略或设为 null。"
           },
           "confidence": {
             "type": "number",
-            "description": "审查者对此发现的信心，按角色校准",
+            "description": "审查者对此发现的信心",
             "minimum": 0.0,
             "maximum": 1.0
           },
@@ -79,7 +79,7 @@
     },
     "deferred_questions": {
       "type": "array",
-      "description": "应在后续工作流阶段（计划、实现）中解决的问题",
+      "description": "应在后续工作流阶段解决的问题",
       "items": { "type": "string" }
     }
   }

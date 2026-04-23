@@ -16,20 +16,20 @@ export interface RuntimeAssetManifest {
 }
 
 export function createRuntimeAssetManifestFromRoot(repoRoot: string): RuntimeAssetManifest {
-  const resolvedRoot = resolve(repoRoot)
-  const runtimeAgentDir = join(resolvedRoot, '.opencode', 'agents', 'ae')
+  const root = resolve(repoRoot)
+  const runtimeAgentDir = join(root, '.opencode', 'agents', 'ae')
 
   return {
-    repoRoot: resolvedRoot,
-    skillsDir: join(resolvedRoot, 'skills'),
-    rulesDir: join(resolvedRoot, 'rules'),
-    commandsDir: join(resolvedRoot, 'commands'),
-    toolsDir: join(resolvedRoot, 'tools'),
-    agentsDir: join(resolvedRoot, 'agents'),
+    repoRoot: root,
+    skillsDir: join(root, 'skills'),
+    rulesDir: join(root, 'rules'),
+    commandsDir: join(root, 'commands'),
+    toolsDir: join(root, 'tools'),
+    agentsDir: join(root, 'agents'),
     runtimeAgentDir,
-    runtimePluginDir: join(resolvedRoot, '.opencode', 'plugins'),
+    runtimePluginDir: join(root, '.opencode', 'plugins'),
     runtimeAgentFiles: getAllAgentDefinitions().map((agent) => ({
-      source: join(resolvedRoot, agent.path),
+      source: join(root, agent.path),
       target: join(runtimeAgentDir, agent.stage, `${agent.name}.md`),
     })),
   }

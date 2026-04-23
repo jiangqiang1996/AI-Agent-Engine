@@ -1,48 +1,127 @@
 import { z } from 'zod'
 
-export const AeModeSchema = z.enum(['interactive', 'headless', 'report-only', 'autofix']).describe('AE 审查模式')
+export const SKILL = {
+  IDEATE: 'ae:ideate',
+  BRAINSTORM: 'ae:brainstorm',
+  DOCUMENT_REVIEW: 'ae:document-review',
+  PLAN: 'ae:plan',
+  PLAN_REVIEW: 'ae:plan-review',
+  WORK: 'ae:work',
+  REVIEW: 'ae:review',
+  LFG: 'ae:lfg',
+  SETUP: 'ae:setup',
+  TEST_BROWSER: 'ae:test-browser',
+  FRONTEND_DESIGN: 'ae:frontend-design',
+  HANDOFF: 'ae:handoff',
+  TASK_LOOP: 'ae:task-loop',
+  SQL: 'ae:sql',
+  SAVE_RULES: 'ae:save-rules',
+  HELP: 'ae:help',
+  UPDATE: 'ae:update',
+} as const
+
+export const COMMAND = {
+  IDEATE: 'ae-ideate',
+  BRAINSTORM: 'ae-brainstorm',
+  DOCUMENT_REVIEW: 'ae-review-doc',
+  PLAN: 'ae-plan',
+  PLAN_REVIEW: 'ae-review-plan',
+  WORK: 'ae-work',
+  REVIEW: 'ae-review-code',
+  LFG: 'ae-lfg',
+  SETUP: 'ae-setup',
+  TEST_BROWSER: 'ae-test-browser',
+  FRONTEND_DESIGN: 'ae-frontend-design',
+  HANDOFF: 'ae-handoff',
+  TASK_LOOP: 'ae-task-loop',
+  SQL: 'ae-sql',
+  SAVE_RULES: 'ae-save-rules',
+  HELP: 'ae-help',
+  UPDATE: 'ae-update',
+} as const
+
+export const AGENT = {
+  COHERENCE_REVIEWER: 'coherence-reviewer',
+  FEASIBILITY_REVIEWER: 'feasibility-reviewer',
+  PRODUCT_LENS_REVIEWER: 'product-lens-reviewer',
+  SCOPE_GUARDIAN_REVIEWER: 'scope-guardian-reviewer',
+  ADVERSARIAL_DOCUMENT_REVIEWER: 'adversarial-document-reviewer',
+  DESIGN_LENS_REVIEWER: 'design-lens-reviewer',
+  SECURITY_LENS_REVIEWER: 'security-lens-reviewer',
+  REPO_RESEARCH_ANALYST: 'repo-research-analyst',
+  LEARNINGS_RESEARCHER: 'learnings-researcher',
+  BEST_PRACTICES_RESEARCHER: 'best-practices-researcher',
+  WEB_RESEARCHER: 'web-researcher',
+  SPEC_FLOW_ANALYZER: 'spec-flow-analyzer',
+  DESIGN_ITERATOR: 'design-iterator',
+  FIGMA_DESIGN_SYNC: 'figma-design-sync',
+  CORRECTNESS_REVIEWER: 'correctness-reviewer',
+  TESTING_REVIEWER: 'testing-reviewer',
+  PROJECT_STANDARDS_REVIEWER: 'project-standards-reviewer',
+  AGENT_NATIVE_REVIEWER: 'agent-native-reviewer',
+  API_CONTRACT_REVIEWER: 'api-contract-reviewer',
+  RELIABILITY_REVIEWER: 'reliability-reviewer',
+  ADVERSARIAL_REVIEWER: 'adversarial-reviewer',
+  MAINTAINABILITY_REVIEWER: 'maintainability-reviewer',
+  SECURITY_REVIEWER: 'security-reviewer',
+  PERFORMANCE_REVIEWER: 'performance-reviewer',
+  DATA_MIGRATIONS_REVIEWER: 'data-migrations-reviewer',
+  KIERAN_TYPESCRIPT_REVIEWER: 'kieran-typescript-reviewer',
+  PREVIOUS_COMMENTS_REVIEWER: 'previous-comments-reviewer',
+  CLI_AGENT_READINESS_REVIEWER: 'cli-agent-readiness-reviewer',
+} as const
+
+export const TOOL = {
+  AE_RECOVERY: 'ae-recovery',
+  AE_REVIEW_CONTRACT: 'ae-review-contract',
+  AE_HANDOFF: 'ae-handoff',
+} as const
+
+export const AeModeSchema = z
+  .enum(['interactive', 'headless', 'report-only', 'autofix'])
+  .describe('AE 审查模式')
 
 export const AeSkillNameSchema = z
   .enum([
-    'ae:brainstorm',
-    'ae:document-review',
-    'ae:plan',
-    'ae:plan-review',
-    'ae:work',
-    'ae:review',
-    'ae:lfg',
-    'ae:save-rules',
-    'ae:frontend-design',
-    'ae:setup',
-    'ae:test-browser',
-    'ae:sql',
-    'ae:task-loop',
-    'ae:update',
-    'ae:ideate',
-    'ae:help',
-    'ae:handoff',
+    SKILL.IDEATE,
+    SKILL.BRAINSTORM,
+    SKILL.DOCUMENT_REVIEW,
+    SKILL.PLAN,
+    SKILL.PLAN_REVIEW,
+    SKILL.WORK,
+    SKILL.REVIEW,
+    SKILL.LFG,
+    SKILL.SETUP,
+    SKILL.TEST_BROWSER,
+    SKILL.FRONTEND_DESIGN,
+    SKILL.HANDOFF,
+    SKILL.TASK_LOOP,
+    SKILL.SQL,
+    SKILL.SAVE_RULES,
+    SKILL.HELP,
+    SKILL.UPDATE,
   ])
   .describe('AE 技能名')
 
 export const AeCommandNameSchema = z
   .enum([
-    'ae-brainstorm',
-    'ae-review-doc',
-    'ae-plan',
-    'ae-review-plan',
-    'ae-work',
-    'ae-review-code',
-    'ae-lfg',
-    'ae-save-rules',
-    'ae-frontend-design',
-    'ae-setup',
-    'ae-test-browser',
-    'ae-sql',
-    'ae-task-loop',
-    'ae-update',
-    'ae-ideate',
-    'ae-help',
-    'ae-handoff',
+    COMMAND.IDEATE,
+    COMMAND.BRAINSTORM,
+    COMMAND.DOCUMENT_REVIEW,
+    COMMAND.PLAN,
+    COMMAND.PLAN_REVIEW,
+    COMMAND.WORK,
+    COMMAND.REVIEW,
+    COMMAND.LFG,
+    COMMAND.SETUP,
+    COMMAND.TEST_BROWSER,
+    COMMAND.FRONTEND_DESIGN,
+    COMMAND.HANDOFF,
+    COMMAND.TASK_LOOP,
+    COMMAND.SQL,
+    COMMAND.SAVE_RULES,
+    COMMAND.HELP,
+    COMMAND.UPDATE,
   ])
   .describe('AE 命令名')
 
@@ -60,7 +139,9 @@ export const AgentStageSchema = z
   .enum(['document-review', 'review', 'research', 'workflow'])
   .describe('Agent 所属目录')
 
-export const AgentTierSchema = z.enum(['required', 'gilded', 'deferred']).describe('Agent 层级')
+export const AgentTierSchema = z
+  .enum(['required', 'gilded'])
+  .describe('Agent 层级')
 
 export const AgentDefinitionSchema = z.object({
   name: z.string().min(1).describe('Agent 名称'),

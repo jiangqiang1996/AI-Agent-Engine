@@ -11,6 +11,10 @@
 3. **默认值友好** - 合理设置默认值，让 LLM 在简单场景下只需最少参数
 4. **错误可恢复** - 返回结构化错误信息，便于 LLM 理解原因并重试
 
+### 当前工具清单
+
+- 本项目自定义工具，代码文件存放在 `src/tools/` 目录
+
 ### 工具定义模板
 
 ```typescript
@@ -51,6 +55,11 @@ export const myTool = tool({
 
 ## Agent 设计模式
 
+### Agent 组织
+
+- 本项目自定义Agent，以 `.md` 文件存放在 `agents/` 目录
+- Agent 按职责分为：流程驱动、审查、计划、前端设计、测试等类别
+
 ### 工具组合
 
 - 将复杂任务拆分为多个独立工具
@@ -65,16 +74,12 @@ export const myTool = tool({
 
 ```typescript
 execute: async (args, ctx) => {
-  ctx.metadata({ title: "搜索中...", metadata: { pattern: args.pattern } })
+  ctx.metadata({ title: "生成审查团队...", metadata: { kind: args.kind } })
 
-  const results = await searchFiles(args.pattern)
-  const summary = results.length > 10
-    ? `找到 ${results.length} 个结果，显示前 10 个:\n${formatResults(results.slice(0, 10))}`
-    : formatResults(results)
-
+  const team = await buildReviewTeam(args.kind, args.mode)
   return {
-    output: summary,
-    metadata: { total: results.length, truncated: results.length > 10 },
+    output: formatTeam(team),
+    metadata: { reviewerCount: team.length, mode: args.mode },
   }
 }
 ```

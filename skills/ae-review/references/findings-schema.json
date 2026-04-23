@@ -63,21 +63,21 @@
           },
           "requires_verification": {
             "type": "boolean",
-            "description": "此发现的修复是否需要通过针对性测试或后续审查轮次重新验证"
+            "description": "此发现的修复是否需要通过针对性测试或后续审查重新验证"
           },
           "suggested_fix": {
             "type": ["string", "null"],
-            "description": "具体的最小修复方案。如果没有明显的好方案则省略或设为 null——糟糕的建议比没有建议更糟。"
+            "description": "具体的最小修复方案。如果没有明显的好方案则省略。"
           },
           "confidence": {
             "type": "number",
-            "description": "审查者对此发现的置信度，按人设校准",
+            "description": "审查者对此发现的置信度",
             "minimum": 0.0,
             "maximum": 1.0
           },
           "evidence": {
             "type": "array",
-            "description": "基于代码的证据：代码片段、行引用或模式描述。至少1项。",
+            "description": "基于代码的证据。至少1项。",
             "items": { "type": "string" },
             "minItems": 1
           },
@@ -98,37 +98,23 @@
       "description": "审查者识别到的缺失测试覆盖",
       "items": { "type": "string" }
     }
-    },
-
+  },
   "_meta": {
     "confidence_thresholds": {
-      "suppress": "低于 0.60——不报告。发现属于推测性噪音。例外：0.50+ 的 P0 发现可以报告。",
-      "flag": "0.60-0.69——仅在问题具有明确可操作性且有具体证据时包含。",
-      "confident": "0.70-0.84——真实且重要。附完整证据报告。",
-      "certain": "0.85-1.00——仅从代码即可验证。报告。"
-    },
-    "severity_definitions": {
-      "P0": "关键性故障、可利用漏洞、数据丢失/损坏。合并前必须修复。",
-      "P1": "高影响缺陷，正常使用中可能触发，违反契约。应该修复。",
-      "P2": "中等问题，有明显负面影响（边界情况、性能退化、可维护性陷阱）。如果修复简单则修复。",
-      "P3": "低影响、范围窄、小幅改进。由用户自行决定。"
+      "suppress": "低于 0.60——不报告。例外：0.50+ 的 P0。",
+      "flag": "0.60-0.69——仅在明确可操作时包含。",
+      "confident": "0.70-0.84——附完整证据报告。",
+      "certain": "0.85-1.00——仅从代码验证。"
     },
     "autofix_classes": {
-      "safe_auto": "局部的、确定性的代码或测试修复，适合技能内修复器执行。示例：提取重复辅助函数、添加缺失的空值检查、修复差一错误、添加缺失测试、移除死代码。存在具体安全修复时不要默认使用 advisory。",
-      "gated_auto": "存在具体修复，但会更改行为、权限、契约或其他敏感区域，需要明确批准。示例：为未保护端点添加认证、更改 API 响应结构。",
-      "manual": "需要设计决策或跨模块变更的可操作问题。示例：重新设计数据模型、添加分页策略、在架构方案间选择。",
-      "advisory": "信息性或运维性事项，仅在报告中展示。示例：PR 改善但未完全解决的设计不对称、残余风险说明、部署注意事项。"
-    },
-    "owners": {
-      "review-fixer": "策略允许时，技能内修复器可以负责处理。",
-      "downstream-resolver": "转为后续解决的残余工作。",
-      "human": "需要人工判断后才能继续代码变更。",
-      "release": "运维或发布后续跟进；不要自动转为代码修复工作。"
+      "safe_auto": "局部的、确定性的修复。示例：提取辅助函数、添加空值检查、修复差一错误。",
+      "gated_auto": "存在修复但会更改契约或权限。示例：添加认证、更改 API 响应结构。",
+      "manual": "需要设计决策或跨模块变更。示例：重新设计数据模型。",
+      "advisory": "信息性事项。示例：残余风险说明、部署注意事项。"
     },
     "return_tiers": {
-      "description": "发现字段分为两个层级。完整 schema（含所有必填字段）适用于磁盘上的产物文件。返回给编排器的精简版本省略详情层级字段。两者在不同上下文中都是此 schema 的有效使用方式。",
-      "merge_tier": "返回给编排器：title、severity、file、line、confidence、autofix_class、owner、requires_verification、pre_existing、suggested_fix（可选）。加上顶层的 reviewer、residual_risks、testing_gaps。",
-      "detail_tier": "产物文件中必填，精简返回中省略：why_it_matters、evidence。产物文件必须通过包含所有必填字段的完整 schema 验证。无头输出依赖产物中的 why_it_matters 和 evidence。"
+      "merge_tier": "返回给编排器：title、severity、file、line、confidence、autofix_class、owner、requires_verification、pre_existing、suggested_fix。",
+      "detail_tier": "产物文件中必填：why_it_matters、evidence。"
     }
   }
 }

@@ -45,7 +45,7 @@ content-search: pattern="component:.*background_job" path=docs/ae/solutions/ fil
 
 **模式构建技巧：**
 - 使用 `|` 表示同义词：`tags:.*(payment|billing|stripe|subscription)`
-- 包含 `title:` - 通常是最具描述性的字段
+- 包含 `title:`——通常是最具描述性的字段
 - 不区分大小写搜索
 - 包含用户可能未提及的相关术语
 
@@ -64,24 +64,24 @@ content-search: pattern="email" path=docs/ae/solutions/ files_only=true case_ins
 
 **无论 Grep 结果如何**，始终阅读关键模式文件：
 
-```bash
+```
 Read: docs/ae/solutions/patterns/critical-patterns.md
 ```
 
-此文件包含适用于所有工作的必知模式 - 被提升为必读内容的高严重性问题。扫描与当前功能/任务相关的模式。
+此文件包含适用于所有工作的必知模式——被提升为必读内容的高严重性问题。扫描与当前功能/任务相关的模式。
 
 ### 步骤 4：仅读取候选文件的 Frontmatter
 
 对于步骤 3 中的每个候选文件，读取 frontmatter：
 
-```bash
+```
 # 仅读取 frontmatter（限制前 30 行）
 Read: [file_path] with limit:30
 ```
 
 从 YAML frontmatter 中提取以下字段：
 - **module**：解决方案适用的模块/系统
-- **problem_type**：问题类别（参见下方 schema）
+- **problem_type**：问题类别
 - **component**：受影响的技术组件
 - **symptoms**：可观察的症状数组
 - **root_cause**：导致问题的原因
@@ -210,7 +210,7 @@ Read: [file_path] with limit:30
 **应该做的：**
 - 使用原生内容搜索工具在读取任何内容之前预过滤文件（对 100+ 个文件至关重要）
 - 并行运行多个内容搜索以覆盖不同关键词
-- 在搜索模式中包含 `title:` - 通常是最具描述性的字段
+- 在搜索模式中包含 `title:`——通常是最具描述性的字段
 - 使用 OR 模式表示同义词：`tags:.*(payment|billing|stripe)`
 - 使用 `-i=true` 进行不区分大小写的匹配
 - 当功能类型明确时使用类别目录缩小范围
@@ -218,7 +218,7 @@ Read: [file_path] with limit:30
 - 如果找到超过 25 个候选，使用更具体的模式重新缩小范围
 - 始终阅读关键模式文件（步骤 3b）
 - 仅读取搜索匹配候选的 frontmatter（而非所有文件）
-- 积极过滤 - 只完整阅读真正相关的文件
+- 积极过滤——只完整阅读真正相关的文件
 - 优先处理高严重性和关键模式
 - 提取可操作的见解，而非仅仅总结
 - 注意标注不存在相关经验的情况（这也是有价值的信息）
@@ -237,7 +237,7 @@ Read: [file_path] with limit:30
 ## 集成点
 
 此代理设计为被以下方式调用：
-- `ae:plan` - 在规划阶段提供组织知识支持，并在置信度检查期间增加深度
+- `ae:plan`——在规划阶段提供组织知识支持，并在置信度检查期间增加深度
 - 在开始功能开发前手动调用
 
 目标是在典型的 solutions 目录中 30 秒内呈现相关经验，实现规划阶段的快速知识检索。

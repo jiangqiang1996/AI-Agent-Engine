@@ -2,6 +2,7 @@ import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
 import { listArtifacts } from './artifact-store.js'
 import type { RecoveryResult } from '../schemas/recovery-schema.js'
 import { ArtifactFrontmatterSchema } from '../schemas/artifact-schema.js'
+import { SKILL } from '../schemas/ae-asset-schema.js'
 
 type ArtifactKind = 'brainstorm' | 'plan' | 'work' | 'review'
 
@@ -19,13 +20,13 @@ function fallbackSkillForPhase(phase: RecoveryResult['phase']): string {
     case 'brainstorm':
     case 'document-review':
     case 'lfg':
-      return 'ae:brainstorm'
+      return SKILL.BRAINSTORM
     case 'plan':
-      return 'ae:brainstorm'
+      return SKILL.BRAINSTORM
     case 'plan-review':
     case 'work':
     case 'review':
-      return 'ae:plan'
+      return SKILL.PLAN
   }
 }
 
@@ -50,36 +51,38 @@ function preferredArtifactTypes(phase: RecoveryResult['phase']): ArtifactKind[] 
 function nextSkillForArtifact(phase: RecoveryResult['phase'], artifactType: ArtifactKind): string {
   switch (phase) {
     case 'document-review':
-      return 'ae:document-review'
+      return SKILL.DOCUMENT_REVIEW
     case 'plan':
-      return 'ae:plan'
+      return SKILL.PLAN
     case 'plan-review':
-      return 'ae:plan-review'
+      return SKILL.PLAN_REVIEW
     case 'work':
-      return 'ae:work'
+      return SKILL.WORK
     case 'review':
-      return 'ae:review'
+      return SKILL.REVIEW
     case 'brainstorm':
-      return 'ae:brainstorm'
+      return SKILL.BRAINSTORM
     case 'lfg':
       switch (artifactType) {
         case 'review':
-          return 'ae:review'
+          return SKILL.REVIEW
         case 'work':
-          return 'ae:work'
+          return SKILL.WORK
         case 'plan':
-          return 'ae:plan-review'
+          return SKILL.PLAN_REVIEW
         case 'brainstorm':
-          return 'ae:document-review'
+          return SKILL.DOCUMENT_REVIEW
       }
   }
 }
 
-function resumePhaseForArtifact(phase: RecoveryResult['phase'], artifactType: ArtifactKind): RecoveryResult['phase'] {
+function resumePhaseForArtifact(
+  phase: RecoveryResult['phase'],
+  artifactType: ArtifactKind,
+): RecoveryResult['phase'] {
   if (phase !== 'lfg') {
     return phase
   }
-
   switch (artifactType) {
     case 'review':
       return 'review'
@@ -99,7 +102,6 @@ function hasValidMetadata(artifact: {
   if (artifact.type === 'brainstorm') {
     return Boolean(artifact.frontmatter.date && artifact.frontmatter.topic)
   }
-
   if (artifact.type === 'plan') {
     return Boolean(
       artifact.frontmatter.title &&
@@ -108,7 +110,6 @@ function hasValidMetadata(artifact: {
         artifact.frontmatter.date,
     )
   }
-
   return ArtifactFrontmatterSchema.safeParse({
     type: artifact.type,
     status: artifact.frontmatter.status,
@@ -132,8 +133,8 @@ export function resolveRecovery(
       resolution: 'needs-upstream',
       phase,
       resumePhase: 'brainstorm',
-      nextSkill: 'ae:brainstorm',
-      fallbackSkill: 'ae:brainstorm',
+      nextSkill: SKILL.BRAINSTORM,
+      fallbackSkill: SKILL.BRAINSTORM,
       reason: '头脑风暴阶段应从新需求开始或显式指定已有文档。',
       candidates: [],
     }
@@ -159,10 +160,9 @@ export function resolveRecovery(
     }
 
     const filteredArtifacts = options.expectedOriginFingerprint
-      ? activeArtifacts.filter((artifact) => {
-          const fingerprint = artifact.frontmatter.originFingerprint
-          return fingerprint === options.expectedOriginFingerprint
-        })
+      ? activeArtifacts.filter(
+          (artifact) => artifact.frontmatter.originFingerprint === options.expectedOriginFingerprint,
+        )
       : activeArtifacts
 
     if (options.expectedOriginFingerprint && filteredArtifacts.length === 0) {

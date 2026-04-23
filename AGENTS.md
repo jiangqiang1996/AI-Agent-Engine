@@ -1,29 +1,31 @@
 # AI Agent Engine
 
-本仓库实现一套以 AE 为前缀的 opencode 插件能力。
+AE opencode 插件，提供从需求到交付的完整 AI 辅助工作流。
 
-## 当前约定
+## 约定
 
 - 公开技能以 `ae:*` 命名
 - 公开命令以 `/ae-*` 命名
-- 根目录 `skills/`、`commands/`、`agents/` 是受版本控制的真源
-- 运行时产物写入 `.opencode/plugins/`、`.opencode/commands/`、`.opencode/agents/ae/`
+- 根目录 `skills/`、`agents/`、`rules/` 是受版本控制的真源
+- 运行时产物写入 `.opencode/plugins/`
 - 默认用户入口为 `/ae-lfg`
 
 ## 开发方式
 
 - 构建：`npm run build`
 - 测试：`npm run test`
+- 类型检查：`npm run typecheck`
 - TypeScript 源码位于 `src/`
-- 集成测试位于 `tests/integration/`
 
-## 资产同步
+## 架构
 
 - `skills/` 通过 plugin `config.skills.paths` 注入
-- `commands/` 在构建时同步到 `.opencode/commands/`
 - `agents/` 在构建时同步到 `.opencode/agents/ae/`
+- `rules/` 通过 `config.instructions` 注入
+- 自定义工具：`ae-recovery`、`ae-review-contract`、`ae-handoff`
+- 代理分层：25 required + 3 gilded = 28 个代理
 
 ## 文档
 
-- requirements：`docs/ae/brainstorms/2026-04-18-ae-plugin-phase-one-requirements.md`
-- 当前计划：`docs/ae/plans/2026-04-18-001-feat-ae-phase-one-workflow-plugin-plan.md`
+- 需求文档：`docs/ae/brainstorms/`
+- 计划文档：`docs/ae/plans/`

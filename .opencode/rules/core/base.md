@@ -18,6 +18,7 @@
 - **核心依赖**: `@opencode-ai/plugin@1.4.10`、`@opencode-ai/sdk@1.4.10`、`effect@4.x`、`zod@4.x`
 - **包管理器**: npm
 - **构建工具**: tsc
+- **插件规模**: 28 个 Agent、3 个工具、17 个技能
 
 ## opencode 核心概念
 
@@ -84,29 +85,35 @@
 ai-agent-engine/
 ├── opencode.json                # opencode 项目配置
 ├── AGENTS.md                    # 项目规则入口
-├── .opencode/
-│   ├── rules/                   # 规则文件
-│   │   └── core/
-│   │       ├── base.md          # 本文件 - 项目总规范
-│   │       ├── architecture.md  # 架构设计规范
-│   │       ├── code-style.md    # 代码风格规范
-│   │       ├── git-workflow.md  # Git 工作流规范
-│   │       ├── testing.md       # 测试规范
-│   │       └── agent-design.md  # Agent 与工具设计规范
-│   ├── plugins/                 # 插件目录
-│   ├── tools/                   # 自定义工具
-│   ├── agents/                  # 自定义代理
-│   ├── commands/                # 自定义命令
-│   └── skills/                  # 技能定义
-│       └── <name>/
-│           └── SKILL.md
-└── src/                         # 插件源代码
-    ├── index.ts                 # 插件入口
-    ├── tools/                   # 工具定义
-    ├── hooks/                   # Hook 处理器
-    ├── services/                # 业务服务层
-    ├── schemas/                 # Zod Schema 定义
-    └── utils/                   # 工具函数
+├── rules/                       # 规则文件
+│   ├── core/
+│   │   ├── base.md              # 本文件 - 项目总规范
+│   │   ├── architecture.md      # 架构设计规范
+│   │   ├── code-style.md        # 代码风格规范
+│   │   ├── git-workflow.md      # Git 工作流规范
+│   │   ├── testing.md           # 测试规范
+│   │   ├── agent-design.md      # Agent 与工具设计规范
+│   │   └── runtime-injected-props.md  # 运行时注入属性规范
+│   └── architecture/
+│       ├── phase-fallback-strategy.md  # 阶段回退策略
+│       └── dual-decision-mechanism.md  # 双重决策机制
+├── skills/                      # 技能定义（17 个）
+│   └── <name>/
+│       └── SKILL.md
+├── agents/                      # Agent 定义（28 个 .md 文件）
+├── commands/                    # 命令定义
+├── src/                         # 插件源代码
+│   ├── index.ts                 # 插件入口
+│   ├── tools/                   # 工具定义（3 个工具）
+│   ├── hooks/                   # Hook 处理器
+│   ├── services/                # 业务服务层
+│   ├── schemas/                 # Zod Schema 定义
+│   └── utils/                   # 工具函数
+└── .opencode/
+    ├── plugins/                 # 构建产物 - 插件输出
+    ├── agents/ae/               # 构建产物 - Agent 同步
+    ├── commands/                # 构建产物 - 命令同步
+    └── skills/                  # 运行时技能加载
 ```
 
 ## 规范文件索引
@@ -118,10 +125,12 @@ ai-agent-engine/
 | [git-workflow.md](git-workflow.md) | Git 分支策略与提交规范 |
 | [testing.md](testing.md) | 测试策略与覆盖率要求 |
 | [agent-design.md](agent-design.md) | AI Agent、工具、Hook、Skill 设计规范 |
+| [runtime-injected-props.md](runtime-injected-props.md) | 运行时动态注入属性规范 |
 
 ## 目录约定
 
-- `.opencode/` 目录用于存放开发当前项目所需的规范和规则，并非项目的所有配置都必须存在于 `.opencode/` 目录中
+- `rules/` 目录存放项目开发规范，是版本控制的真源
+- `.opencode/` 目录为运行时产物，由构建和技能执行过程中按需生成
 - `docs/` 目录（包括 `docs/ae/brainstorms/`、`docs/ae/plans/`、`docs/ae/solutions/`）为运行时产物，由技能在执行过程中按需创建，允许不存在于版本控制中
 
 ## 核心原则

@@ -14,15 +14,11 @@
       "git *": "allow",
       "git commit *": "ask",
       "git push *": "ask",
-      "mvn *": "allow",
       "rm -rf *": "deny",
       "del *": "deny"
     },
     "skill": {
       "*": "allow"
     }
-  },
-  "agent": {
-
   }
 }
