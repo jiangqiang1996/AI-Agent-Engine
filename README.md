@@ -45,46 +45,368 @@ Fetch and follow the update instructions from https://gitee.com/jiangqiang1996/a
 Fetch and follow the uninstall instructions from https://gitee.com/jiangqiang1996/ai-agent-engine/raw/master/.opencode/INSTALL.md
 ```
 
-## 构建与开发
+---
 
-| 项目 | 说明 |
-| --- | --- |
-| 开发真源 | 根目录 `package.json`、`src/`、`src/assets/skills/`、`src/assets/commands/`、`src/assets/agents/` |
-| 运行时入口 | `.opencode/plugins/ae-server.js`、`.opencode/plugins/ae-tui.js` |
-| 构建命令 | `npm run build` |
-| 测试命令 | `npm run test` |
-| 全局插件目录 | `~/.config/opencode/plugins/`，opencode 自动加载该目录下的 `.js` / `.ts` 文件 |
-
-## 默认入口
+## 快速开始
 
 | 推荐入口 | 用途 | 无产物时行为 | 有产物时行为 |
 | --- | --- | --- | --- |
-| `/ae-lfg` | 默认用户入口，驱动主链路 | 回到 `ae:brainstorm` / `/ae-brainstorm` | 先尝试恢复到对应阶段 |
-| `ae:lfg` | 同 `/ae-lfg`，适合技能直调 | 同上 | 同上 |
+| `/ae-lfg` | 默认总入口，驱动从需求到执行的完整主链路 | 从 `ae:brainstorm` 开始 | 优先恢复到对应阶段 |
 
-## 技能与命令矩阵
+直接输入 `/ae-lfg 你想构建的功能描述` 即可启动完整工程管道。
 
-| 技能 | 命令 | 功能 | 典型输入 | 输出产物 | 支持跨会话继续 |
-| --- | --- | --- | --- | --- | --- |
-| `ae:lfg` | `/ae-lfg` | 默认总入口，驱动从需求到执行的 AE 主链路 | 需求描述、已有产物路径 | 按阶段推进或恢复 | 是 |
-| `ae:ideate` | `/ae-ideate` | 生成并批判性评估创意方案 | 主题描述 | 创意方案列表 | 否 |
-| `ae:brainstorm` | `/ae-brainstorm` | 围绕需求做头脑风暴并生成 requirements 文档 | 需求描述、已有 requirements 路径 | `docs/ae/brainstorms/*-requirements.md` | 是 |
-| `ae:document-review` | `/ae-review-doc` | 对需求文档做多 reviewer 审查 | `mode:*`、文档路径 | findings / gate 结论 | 是 |
-| `ae:plan` | `/ae-plan` | 创建或更新结构化实现计划 | plan 路径、requirements 路径、需求描述 | `docs/ae/plans/*-plan.md` | 是 |
-| `ae:plan-review` | `/ae-review-plan` | 对计划文档做多 reviewer 审查 | `mode:*`、计划路径 | findings / gate 结论 | 是 |
-| `ae:work` | `/ae-work` | 按 living plan 执行工作，默认 subagent-first | plan 路径、工作描述 | 代码改动、`docs/ae/work/*` | 是 |
-| `ae:review` | `/ae-review-code` | 使用分层角色代理和置信度门控对代码改动进行结构化审查 | `mode:*`、`plan:<path>`、`base:<ref>` | findings / gate 结论、`docs/ae/review/*` | 是 |
-| `ae:task-loop` | `/ae-task-loop` | 循环执行任务并自动验证，直到达成目标后退出 | 一句话目标描述 | 代码改动、完成报告 | 否 |
-| `ae:frontend-design` | `/ae-frontend-design` | 构建具有设计品质的前端界面 | 描述、路径 | 前端代码 | 否 |
-| `ae:setup` | `/ae-setup` | 诊断并安装 AE 前端设计所需的外部依赖 | 无 | 无 | 否 |
-| `ae:test-browser` | `/ae-test-browser` | 使用 agent-browser 执行端到端浏览器测试 | URL、路由 | 测试结果 | 否 |
-| `ae:sql` | `/ae-sql` | 通过 JDBC 连接任意数据库并执行 SQL | SQL 语句 | 查询结果 / 影响行数 | 否 |
-| `ae:handoff` | `/ae-handoff` | 会话交接：提取当前会话核心结论，创建独立新会话并注入上下文 | 无 | 新会话 | 否 |
-| `ae:save-rules` | `/ae-save-rules` | 总结当前会话中有价值的通用项目规范，询问后保存到 `.opencode/rules/` | 规范类型 | `.opencode/rules/**/*.md` | 否 |
-| `ae:help` | `/ae-help` | 列出 AE 插件中所有可调用的技能和代理的帮助信息 | 技能名或关键词 | 帮助信息 | 否 |
-| `ae:update` | `/ae-update` | 还原仓库到干净状态并拉取最新代码，重新安装构建，避免缓存残留 | 安装路径 | 无 | 否 |
+---
 
-### 技能依赖关系
+## 开发场景与使用方式
+
+### 一、从需求到交付的完整链路
+
+适用于：新功能开发、较大重构、需要经过完整工程流程的任务。
+
+#### 主链路流程
+
+```
+需求构思 → 头脑风暴 → 需求审查 → 计划 → 计划审查 → 实现 → 代码审查 → 浏览器测试
+```
+
+| 步骤 | 入口 | 示例 | 产出 |
+| --- | --- | --- | --- |
+| 一键全链路 | `/ae-lfg 实现用户权限管理模块` | 输入需求描述，自动按步骤推进 | 代码 + 完整文档链 |
+| 创意构思 | `/ae-ideate 如何提升开发者体验` | 在头脑风暴前先探索方向 | `docs/ae/ideation/*` |
+| 需求探索 | `/ae-brainstorm 为管理后台添加审计日志` | 通过对话澄清需求并生成文档 | `docs/ae/brainstorms/*-requirements.md` |
+| 需求审查 | `/ae-review-doc` | 多角色审查需求文档质量 | findings / gate 结论 |
+| 制定计划 | `/ae-plan` | 基于需求文档生成实现计划 | `docs/ae/plans/*-plan.md` |
+| 计划审查 | `/ae-review-plan` | 多角色审查计划可行性 | findings / gate 结论 |
+| 执行实现 | `/ae-work docs/ae/plans/xxx-plan.md` | 按计划逐步实现代码 | 代码改动 |
+| 代码审查 | `/ae-review-code mode:report-only` | 分层角色代理审查代码变更 | findings / gate 结论 |
+
+**典型用法：**
+
+```text
+# 方式一：一键全链路（推荐新手使用）
+/ae-lfg 实现一套文件上传与预览功能
+
+# 方式二：逐步推进（适合需要精细控制的场景）
+/ae-brainstorm 设计一个多租户数据隔离方案
+/ae-review-doc
+/ae-plan
+/ae-review-plan
+/ae-work
+/ae-review-code
+```
+
+#### 跨会话恢复
+
+所有主链路阶段支持跨会话恢复。关闭会话后重新打开，输入 `/ae-lfg` 即可从上次中断的阶段继续。
+
+```text
+# 昨天做到一半的计划，今天继续
+/ae-lfg
+```
+
+---
+
+### 二、前端开发场景
+
+#### 2.1 环境准备
+
+首次使用前端相关功能前，安装 `agent-browser`：
+
+```text
+/ae-setup
+```
+
+此命令会检测并安装前端设计所需的核心依赖（agent-browser CLI + Chromium）。
+
+#### 2.2 从零构建 UI
+
+适用于：着陆页、仪表盘、管理面板、Web 应用等前端界面构建。
+
+```text
+/ae-frontend-design 为我们的 SaaS 产品构建一个着陆页
+```
+
+**工作流程：**
+
+1. **上下文检测** — 自动扫描项目中的设计令牌、组件库、CSS 框架、字体、配色等信号
+2. **构建前规划** — 确定视觉主题、内容规划和交互规划
+3. **构建实现** — 按设计指导原则生成代码（排版、色彩、构图、动效、可访问性）
+4. **视觉验证** — 截图对比，一轮迭代修复明显问题
+
+**设计原则：**
+- 构图优先于组件，首屏当海报设计
+- 避免千篇一律的 AI 美学（无紫色+白色偏好、无深色模式偏好、无通用卡片网格）
+- 自动遵循已有项目的设计体系
+
+#### 2.3 UI 迭代打磨
+
+适用于：已有一版 UI，需要多轮视觉优化。
+
+```text
+@design-iterator 对着陆页的英雄区进行 10 轮迭代优化
+```
+
+**工作流程：** 截图 → 分析改进方向 → 代码修改 → 再截图 → 重复，每轮仅做 1-2 个针对性修改。
+
+**参考风格：** 支持指定设计风格参考（如"类 Stripe"、"类 Linear"、"类 Vercel"）。
+
+#### 2.4 Figma 设计稿还原
+
+适用于：有 Figma 设计稿，需要确保代码实现与设计稿一致。
+
+```text
+@figma-design-sync 对比 Figma 设计稿与 http://localhost:3000 的实现差异
+```
+
+**工作流程：**
+1. 通过 Figma MCP 采集设计规格
+2. 通过 agent-browser 截取实现截图
+3. 系统化对比（布局、排版、颜色、间距、阴影、圆角等）
+4. 按严重度分级输出差异报告
+5. 自动修复所有差异
+
+#### 2.5 浏览器端到端测试
+
+适用于：验证页面功能是否正常，包括渲染、交互和路由。
+
+```text
+# 测试指定页面
+/ae-test-browser http://localhost:3000
+
+# 自动检测变更范围并测试
+/ae-test-browser
+```
+
+**工作流程：**
+1. 分析 Git 变更，识别受影响的路由和页面
+2. 逐一打开页面，验证关键元素和交互
+3. 截图记录
+4. 输出测试报告
+
+#### 前端场景协作关系
+
+```
+/ae-setup           安装依赖（首次必须）
+     ↓
+/ae-frontend-design 构建界面（含一轮截图验证）
+     ↓  效果不满意
+@design-iterator    多轮迭代打磨
+     ↓  有 Figma 设计稿
+@figma-design-sync  设计稿还原度校验
+     ↓  功能完成后
+/ae-test-browser    端到端浏览器测试
+```
+
+---
+
+### 三、后端开发场景
+
+#### 3.1 数据库操作
+
+适用于：查询数据、检查表结构、执行管理操作。
+
+```text
+# 查询数据
+/ae-sql SELECT * FROM users WHERE status = 'active' LIMIT 10
+
+# 查看表结构
+/ae-sql DESCRIBE orders
+
+# 执行 DDL（需用户确认）
+/ae-sql ALTER TABLE users ADD COLUMN last_login_at TIMESTAMP
+```
+
+**支持的数据库：** MySQL、PostgreSQL、Oracle、SQL Server、SQLite、MariaDB、达梦、人大金仓、openGauss 等所有提供 JDBC 驱动的数据库。
+
+**智能特性：**
+- 自动检测 Spring Boot 项目中的数据库配置（`application.yml` / `application.properties`）
+- 自动下载和匹配 JDBC 驱动
+- 自动管理 JRE 运行时
+- 写操作前强制确认（DROP、TRUNCATE、无 WHERE 的 DELETE/UPDATE）
+- 大结果集自动建议添加 LIMIT
+
+#### 3.2 探索性调试与修复
+
+适用于：修复编译错误、环境搭建、遗留代码修复等目标明确但路径不确定的任务。
+
+```text
+/ae-task-loop 修复所有 TypeScript 编译错误
+/ae-task-loop 让测试套件全部通过
+/ae-task-loop 将项目从 Webpack 迁移到 Vite
+```
+
+**工作流程：** 每轮"执行 → 验证 → 判定"，直到目标达成或策略穷尽。支持无人值守运行（循环体禁言令）。
+
+**与 `ae:work` 的区别：**
+- `ae:work` — 有明确计划，按计划执行
+- `ae:task-loop` — 目标明确但无计划，循环探索直到达成
+
+---
+
+### 四、质量保障场景
+
+#### 4.1 文档审查
+
+适用于：需求文档、计划文档的质量校验。
+
+```text
+/ae-review-doc
+```
+
+**审查角色：** 一致性审查、可行性审查、产品视角审查、范围守卫、对抗性审查、设计视角审查、安全视角审查。
+
+#### 4.2 代码审查
+
+适用于：提交 PR 前、迭代完成后的代码质量检查。
+
+```text
+# 交互式审查（默认）
+/ae-review-code
+
+# 只输出报告，不修改文件
+/ae-review-code mode:report-only
+
+# 自动修复安全类问题
+/ae-review-code mode:autofix
+
+# 指定 diff 基线
+/ae-review-code base:main
+
+# 结合计划做需求完整性校验
+/ae-review-code plan:docs/ae/plans/xxx-plan.md
+```
+
+**审查模式：**
+
+| 模式 | 行为 |
+| --- | --- |
+| `interactive` | 标准 interactive 审查，可交互决策 |
+| `autofix` | 仅自动修复 `safe_auto` 类问题 |
+| `report-only` | 只读，只输出报告 |
+| `headless` | 程序模式，静默应用修复 |
+
+**可单独调用的代码审查代理：**
+
+| 代理 | 场景 |
+| --- | --- |
+| `@correctness-reviewer` | 审查逻辑正确性、边界条件 |
+| `@security-reviewer` | 审查安全漏洞和信任边界 |
+| `@performance-reviewer` | 审查性能热点和不必要开销 |
+| `@architecture-strategist` | 评估架构方案合理性 |
+| `@testing-reviewer` | 评估测试覆盖和断言质量 |
+| `@maintainability-reviewer` | 评估代码可维护性 |
+| `@kieran-typescript-reviewer` | 以严格标准审查 TypeScript 类型 |
+
+---
+
+### 五、研究与调研场景
+
+| 代理 | 场景 | 示例 |
+| --- | --- | --- |
+| `@repo-research-analyst` | 理解项目结构和技术约束 | `@repo-research-analyst 分析这个项目的模块划分` |
+| `@framework-docs-researcher` | 查询框架官方文档 | `@framework-docs-researcher Effect 框架的 Layer 用法` |
+| `@best-practices-researcher` | 收集社区最佳实践 | `@best-practices-researcher React Server Components 最佳实践` |
+| `@web-researcher` | 网络搜索技术方案 | `@web-researcher 对比 Zod 和 Valibot 的性能` |
+| `@learnings-researcher` | 提炼项目内经验和规范 | `@learnings-researcher 总结项目中的错误处理模式` |
+
+---
+
+### 六、项目管理与协作场景
+
+#### 6.1 会话交接
+
+适用于：需要将当前工作上下文交给其他会话或团队成员继续。
+
+```text
+/ae-handoff
+```
+
+自动提取当前会话的核心结论、决策、待办任务，创建独立新会话并注入上下文。
+
+#### 6.2 保存项目规范
+
+适用于：会话中产生了值得长期保存的项目规范（编码约定、架构决策等）。
+
+```text
+/ae-save-rules
+```
+
+将规范保存到 `.opencode/rules/` 目录，后续所有会话自动加载。
+
+#### 6.3 创意构思
+
+适用于：在深入头脑风暴之前，先探索各种可能方向。
+
+```text
+/ae-ideate 如何提升插件的性能
+/ae-ideate 给我一些改进开发者体验的想法
+/ae-ideate src/assets/skills/ 有什么可以优化的
+```
+
+**与头脑风暴的关系：**
+- `ae:ideate` — 回答"哪些方向最值得探索？"
+- `ae:brainstorm` — 回答"选定的方向具体意味着什么？"
+
+---
+
+## 技能与命令速查表
+
+| 技能 | 命令 | 功能 | 支持恢复 |
+| --- | --- | --- | --- |
+| `ae:lfg` | `/ae-lfg` | 一键全链路 | 是 |
+| `ae:ideate` | `/ae-ideate` | 创意构思 | 否 |
+| `ae:brainstorm` | `/ae-brainstorm` | 需求探索 | 是 |
+| `ae:document-review` | `/ae-review-doc` | 需求文档审查 | 是 |
+| `ae:plan` | `/ae-plan` | 制定实现计划 | 是 |
+| `ae:plan-review` | `/ae-review-plan` | 计划审查 | 是 |
+| `ae:work` | `/ae-work` | 按计划执行实现 | 是 |
+| `ae:review` | `/ae-review-code` | 代码审查 | 是 |
+| `ae:task-loop` | `/ae-task-loop` | 目标驱动循环执行 | 否 |
+| `ae:frontend-design` | `/ae-frontend-design` | 前端界面构建 | 否 |
+| `ae:setup` | `/ae-setup` | 前端依赖安装 | 否 |
+| `ae:test-browser` | `/ae-test-browser` | 浏览器测试 | 否 |
+| `ae:sql` | `/ae-sql` | 数据库操作 | 否 |
+| `ae:handoff` | `/ae-handoff` | 会话交接 | 否 |
+| `ae:save-rules` | `/ae-save-rules` | 保存项目规范 | 否 |
+| `ae:help` | `/ae-help` | 查看帮助 | 否 |
+| `ae:update` | `/ae-update` | 更新插件 | 否 |
+
+## 可调用的代理速查表
+
+所有代理通过 `@<代理名>` 调用，输入自由文本描述任务。
+
+| 分类 | 代理 | 功能 |
+| --- | --- | --- |
+| **文档审查** | `@coherence-reviewer` | 文档一致性审查 |
+| | `@feasibility-reviewer` | 可行性审查 |
+| | `@product-lens-reviewer` | 产品视角审查 |
+| | `@scope-guardian-reviewer` | 范围守卫 |
+| | `@adversarial-document-reviewer` | 对抗性文档审查 |
+| | `@design-lens-reviewer` | 设计视角审查 |
+| | `@security-lens-reviewer` | 安全视角审查 |
+| **代码审查** | `@correctness-reviewer` | 逻辑正确性 |
+| | `@testing-reviewer` | 测试质量 |
+| | `@maintainability-reviewer` | 可维护性 |
+| | `@project-standards-reviewer` | 项目规范一致性 |
+| | `@agent-native-reviewer` | Agent 友好性 |
+| | `@security-reviewer` | 安全审查 |
+| | `@performance-reviewer` | 性能审查 |
+| | `@api-contract-reviewer` | API 契约稳定性 |
+| | `@reliability-reviewer` | 可靠性与容错 |
+| | `@adversarial-reviewer` | 对抗式代码审查 |
+| | `@architecture-strategist` | 架构评估 |
+| | `@pattern-recognition-specialist` | 重复模式识别 |
+| | `@kieran-typescript-reviewer` | TypeScript 严格审查 |
+| **研究分析** | `@repo-research-analyst` | 项目结构分析 |
+| | `@learnings-researcher` | 项目经验提炼 |
+| | `@framework-docs-researcher` | 框架文档查询 |
+| | `@best-practices-researcher` | 最佳实践调研 |
+| | `@web-researcher` | 网络搜索 |
+| **工作流** | `@design-iterator` | UI 迭代打磨 |
+| | `@figma-design-sync` | Figma 设计稿还原 |
+| | `@spec-flow-analyzer` | 工作流完整性检查 |
+
+## 技能依赖关系
 
 ```
 ae:lfg ───┬─→ ae:setup
@@ -95,144 +417,72 @@ ae:lfg ───┬─→ ae:setup
 
 ae:task-loop ──→ ae:work / ae:brainstorm / ae:review（按目标路由）
 ae:ideate ─────→ ae:brainstorm（构思后引导进入头脑风暴）
+ae:frontend-design ──→ @design-iterator（多轮迭代时）
+                    ──→ /ae-test-browser（功能验证时）
 ```
-
-## 可直接调用的代理矩阵
-
-所有代理均可通过 `@<代理名>` 的方式在会话中主动调用：
-
-| 分类 | 代理名称 | 功能 | 典型使用场景 |
-| --- | --- | --- | --- |
-| **文档审查代理** | `@coherence-reviewer` | 审查文档内部一致性，识别术语漂移、前后矛盾和结构冲突 | 需求/计划文档质量校验 |
-| | `@feasibility-reviewer` | 审查文档或计划在当前仓库中是否可落地 | 技术方案可行性评估 |
-| | `@product-lens-reviewer` | 从用户价值与产品取舍角度审查文档 | 产品需求优先级评估 |
-| | `@scope-guardian-reviewer` | 审查范围是否失控，以及是否存在隐性二期内容 | 需求范围边界校验 |
-| | `@adversarial-document-reviewer` | 以对抗视角审查文档，检验边界条件与方案稳健性 | 需求文档定稿前的安全审查 |
-| | `@design-lens-reviewer` | 审查文档中涉及的 UI、交互和体验约束 | 产品需求文档的交互合理性审查 |
-| | `@security-lens-reviewer` | 审查文档中的权限、安全和信任边界 | 安全需求审查 |
-| **代码审查代理** | `@correctness-reviewer` | 审查代码逻辑正确性、边界条件和状态处理 | 功能正确性校验 |
-| | `@testing-reviewer` | 审查测试覆盖、断言质量和缺失场景 | 测试质量评估 |
-| | `@maintainability-reviewer` | 审查可维护性、命名和抽象边界 | 代码可维护性评估 |
-| | `@project-standards-reviewer` | 审查改动是否符合仓库既有规范与约定 | 代码规范一致性校验 |
-| | `@agent-native-reviewer` | 审查能力是否对 agent 友好，是否保留自动化入口 | 工具/API 设计合理性审查 |
-| | `@security-reviewer` | 审查权限、输入处理和信任边界问题 | 安全代码审查 |
-| | `@performance-reviewer` | 审查性能热点、重复 I/O 和不必要的开销 | 性能代码审查 |
-| | `@api-contract-reviewer` | 审查命令、工具和配置接口的契约稳定性 | API 接口兼容性审查 |
-| | `@reliability-reviewer` | 审查恢复路径、失败处理和重复执行安全性 | 可靠性与容错能力审查 |
-| | `@adversarial-reviewer` | 对高风险或大改动执行对抗式代码审查 | 核心功能代码安全审查 |
-| | `@cli-readiness-reviewer` | 审查命令提示、参数、帮助与 agent 调用体验 | CLI 工具用户体验审查 |
-| | `@previous-comments-reviewer` | 检查历史审查反馈是否已被回应或修复 | PR 历史反馈处理情况检查 |
-| | `@kieran-typescript-reviewer` | 以严格 TypeScript 标准审查类型、接口与实现的清晰度 | TypeScript 项目代码审查 |
-| | `@architecture-strategist` | 审查架构设计合理性与技术债务 | 架构方案评估 |
-| | `@pattern-recognition-specialist` | 识别代码中的重复模式与可优化点 | 代码重构建议 |
-| | `@performance-oracle` | 深度分析性能瓶颈与优化方案 | 性能问题排查 |
-| | `@security-sentinel` | 深度扫描代码中的安全漏洞与风险点 | 安全渗透测试 |
-| | `@cli-agent-readiness-reviewer` | 审查 CLI 工具的 agent 调用友好性 | 自动化接口设计审查 |
-| | `@design-implementation-reviewer` | 审查设计稿与实现的一致性 | 前端开发还原度校验 |
-| **研究分析代理** | `@repo-research-analyst` | 研究仓库结构、已有模式和技术约束 | 项目上下文理解 |
-| | `@learnings-researcher` | 提炼仓库内已有文档、规范与经验 | 项目经验总结 |
-| | `@framework-docs-researcher` | 收集框架和官方文档约束 | 技术实现依据查询 |
-| | `@best-practices-researcher` | 收集社区最佳实践与实现约定 | 技术方案选型参考 |
-| | `@web-researcher` | 执行迭代式网络研究，返回结构化的外部参考信息 | 技术问题解决方案查找 |
-| | `@session-historian` | 分析会话历史与上下文关联 | 跨会话上下文恢复 |
-| | `@git-history-analyzer` | 分析 Git 历史提交记录与变更模式 | 代码演化分析 |
-| **工作流代理** | `@spec-flow-analyzer` | 分析阶段流转、恢复分支和遗漏状态 | 工作流完整性检查 |
-| | `@design-iterator` | 迭代优化设计方案与实现 | 前端设计迭代 |
-| | `@figma-design-sync` | 同步 Figma 设计稿到代码实现 | 设计稿转代码 |
 
 ## 参数总表
 
-| 入口 | 参数 / token | 必填 | 说明 | 默认行为 | 冲突规则 |
-| --- | --- | --- | --- | --- | --- |
-| `ae:brainstorm` / `/ae-brainstorm` | 自由文本 | 否 | 需求描述或已有 requirements 路径 | 无输入时要求补充需求 | 无 |
-| `ae:document-review` / `/ae-review-doc` | `mode:*` | 否 | 审查模式，如 `interactive`、`headless` | 默认 `interactive` | 多个 `mode:*` 同时出现视为冲突 |
-| `ae:document-review` / `/ae-review-doc` | 文档路径 | 否 | 指定要审查的 requirements 文档 | 省略时由恢复/最近产物规则决定 | 与不存在路径组合时返回错误 |
-| `ae:plan` / `/ae-plan` | plan 路径 | 否 | 续写已有计划 | 若路径存在则优先更新 | 与 requirements 路径同时传入时，以显式目标为准 |
-| `ae:plan` / `/ae-plan` | requirements 路径 | 否 | 以已有 requirements 生成计划 | 若存在单一 requirements 候选可自动选中 | 多候选时必须显式选择 |
-| `ae:plan` / `/ae-plan` | 自由文本 | 否 | 直接从用户描述规划 | 无上游文档时走规划 bootstrap | 无 |
-| `ae:plan-review` / `/ae-review-plan` | `mode:*` | 否 | 计划审查模式 | 默认 `interactive` | 多个 `mode:*` 冲突 |
-| `ae:plan-review` / `/ae-review-plan` | 计划路径 | 否 | 指定 plan 文档 | 若省略则按恢复规则查找 | 无效路径返回错误 |
-| `ae:work` / `/ae-work` | plan 路径 | 否 | 指定要执行的 living plan | 存在单一候选 plan 时自动恢复 | 多候选强制选择 |
-| `ae:work` / `/ae-work` | 自由文本 | 否 | 直接描述工作 | 优先建议先有 plan，再决定是否继续 | 与 plan 路径同时给出时，以 plan 为准 |
-| `ae:review` / `/ae-review-code` | `mode:*` | 否 | `interactive` / `headless` / `report-only` / `autofix` | 默认 `interactive` | 多个 `mode:*` 冲突 |
-| `ae:review` / `/ae-review-code` | `plan:<path>` | 否 | 用于 requirements completeness 校验 | 省略时只审代码上下文 | 与无效路径组合时报错 |
-| `ae:review` / `/ae-review-code` | `base:<ref>` | 否 | 明确 diff 基线 | 省略时由当前上下文推断 | 与非法 ref 组合时报错 |
-| `ae:lfg` / `/ae-lfg` | 自由文本 | 否 | 需求描述或已有产物路径 | 无输入时优先恢复，恢复失败则回到 brainstorm | 多候选产物不自动猜测 |
-| `ae:save-rules` / `/ae-save-rules` | 规范类型 | 否 | 指定保存的规范分类 | 自动从会话内容推断类型 | 无 |
-| `ae:ideate` / `/ae-ideate` | 主题描述 | 否 | 要构思创意方案的主题 | 无输入时要求补充主题 | 无 |
-| `ae:frontend-design` / `/ae-frontend-design` | 描述或路径 | 否 | 前端设计描述或已有文件路径 | 无输入时根据上下文推断 | 无 |
-| `ae:setup` | 无 | 否 | 检查并安装前端设计外部依赖 | 无参数 | 无 |
-| `ae:test-browser` / `/ae-test-browser` | URL 或路由 | 否 | 指定要测试的页面地址 | 默认 `http://localhost:3000` | 无 |
-| `ae:sql` / `/ae-sql` | SQL 语句 | 否 | 要执行的 SQL 语句 | 自动检测 Spring Boot 配置或询问用户 | 无 |
-| `ae:task-loop` / `/ae-task-loop` | 一句话目标描述 | 否 | 循环执行直到达成 | 无输入时要求补充目标 | 无 |
-| `ae:handoff` / `/ae-handoff` | 无 | 否 | 会话交接，提取上下文并创建新会话 | 无参数 | 无 |
-| `ae:help` / `/ae-help` | 技能名或关键词 | 否 | 列出所有可调用的技能和代理的帮助信息 | 无输入时列出全部 | 无 |
-| `ae:update` / `/ae-update` | 安装路径 | 否 | 还原仓库并拉取最新代码，重新安装构建 | 默认当前安装路径 | 无 |
-| 所有 `@<代理名>` | 自由文本 | 是 | 要代理处理的任务描述 | 直接返回代理处理结果 | 无 |
+| 入口 | 参数 | 说明 | 默认行为 |
+| --- | --- | --- | --- |
+| `ae:brainstorm` | 自由文本 | 需求描述或文档路径 | 无输入时要求补充 |
+| `ae:document-review` | `mode:*` | 审查模式 | `interactive` |
+| `ae:document-review` | 文档路径 | 要审查的文档 | 自动查找 |
+| `ae:plan` | plan 路径 | 续写已有计划 | 自动查找 |
+| `ae:plan` | requirements 路径 | 以需求生成计划 | 自动查找 |
+| `ae:plan` | 自由文本 | 直接从描述规划 | bootstrap 模式 |
+| `ae:plan-review` | `mode:*` | 计划审查模式 | `interactive` |
+| `ae:plan-review` | 计划路径 | 要审查的计划 | 自动查找 |
+| `ae:work` | plan 路径 | 要执行的计划 | 自动查找 |
+| `ae:work` | 自由文本 | 直接描述工作 | 建议先有计划 |
+| `ae:review` | `mode:*` | `interactive` / `headless` / `report-only` / `autofix` | `interactive` |
+| `ae:review` | `plan:<path>` | 用于需求完整性校验 | 仅审代码上下文 |
+| `ae:review` | `base:<ref>` | diff 基线 | 自动推断 |
+| `ae:lfg` | 自由文本 | 需求描述或产物路径 | 优先恢复 |
+| `ae:task-loop` | 目标描述 | 一句话目标 | 要求补充 |
+| `ae:frontend-design` | 描述或路径 | 前端设计描述 | 上下文推断 |
+| `ae:test-browser` | URL 或路由 | 测试页面 | `http://localhost:3000` |
+| `ae:sql` | SQL 语句 | 要执行的 SQL | 自动检测配置 |
+| `ae:ideate` | 主题描述 | 构思方向 | 要求补充 |
+| `ae:save-rules` | 规范类型 | 规范分类 | 自动推断 |
+| `ae:update` | 安装路径 | 插件安装路径 | 当前路径 |
 
 ## 审查模式
 
-| 模式 | 适用入口 | 行为 | 是否 gate |
+| 模式 | 适用入口 | 行为 | Gate |
 | --- | --- | --- | --- |
-| `interactive` | 文档/计划/代码审查 | 标准交互式审查 | 是 |
-| `headless` | 文档/计划/代码审查 | 供 skill-to-skill 或 pipeline 使用 | 由调用方决定 |
-| `report-only` | 代码审查 | 只输出 findings，不改文件 | 否 |
-| `autofix` | 代码审查 | 仅允许处理 `safe_auto` 类问题 | 是 |
+| `interactive` | 文档/计划/代码审查 | 标准 interactive 审查 | 是 |
+| `headless` | 文档/计划/代码审查 | 供 pipeline 使用 | 由调用方决定 |
+| `report-only` | 代码审查 | 只输出报告，不改文件 | 否 |
+| `autofix` | 代码审查 | 仅修复 `safe_auto` 类问题 | 是 |
 
 ## 产物路径
 
-| 路径 | 作用 | 事实来源 | 说明 |
-| --- | --- | --- | --- |
-| `docs/ae/brainstorms/` | requirements 文档 | 是 | `ae:brainstorm` 的主要输出 |
-| `docs/ae/plans/` | living plan 文档 | 是 | `ae:plan` 的主要输出 |
-| `docs/ae/review/` | 审查运行产物 | 是 | 供 `ae:review` 与恢复逻辑使用 |
-| `docs/ae/work/` | 执行运行产物 | 是 | 供 `ae:work` 与恢复逻辑使用 |
-| `.opencode/plugins/` | plugin 运行时入口 | 否 | 构建产物，不是长期维护真源 |
-| `.opencode/commands/` | 原生命令执行镜像 | 否 | 由 `src/assets/commands/` 同步生成 |
-| `.opencode/agents/ae/` | agent 运行时镜像 | 否 | 由 `src/assets/agents/` 同步生成 |
+| 路径 | 作用 |
+| --- | --- |
+| `docs/ae/brainstorms/` | 需求文档 |
+| `docs/ae/plans/` | 计划文档 |
+| `docs/ae/review/` | 审查运行产物 |
+| `docs/ae/work/` | 执行运行产物 |
+| `docs/ae/ideation/` | 创意构思产物 |
 
 ## 恢复规则
 
-| 场景 | 默认行为 | 下一步 |
-| --- | --- | --- |
-| 无产物 | 不自动猜测 | 回到 `ae:brainstorm` / `/ae-brainstorm` |
-| 单一候选产物 | 自动恢复 | 继续对应阶段 |
-| 多个候选产物 | 停止自动推进 | 要求显式选择 |
-| 空产物 | 视为异常 | 修复或重跑上游阶段 |
-| 损坏产物 | 视为异常 | 修复 frontmatter 或重建产物 |
-| requirements 与 plan 不一致 | 阻止继续执行旧 plan | 回到 `ae:plan` / `ae:plan-review` |
-| 审查失败 | 停留在当前阶段 | 先修复再继续 |
-| 用户中止 | 保留当前产物 | 下次会话可继续 |
+| 场景 | 行为 |
+| --- | --- |
+| 无产物 | 回到 `ae:brainstorm` |
+| 单一候选 | 自动恢复 |
+| 多个候选 | 要求显式选择 |
+| 审查失败 | 停留在当前阶段，先修复再继续 |
+| 用户中止 | 保留产物，下次可继续 |
 
-## 典型用法
+## 构建与开发
 
-| 场景 | 推荐入口 | 示例 |
-| --- | --- | --- |
-| 新需求从零开始 | `/ae-lfg` | `/ae-lfg 实现一套 AE 工作流插件` |
-| 只做需求文档 | `/ae-brainstorm` | `/ae-brainstorm 为 AE 定义需求边界` |
-| 基于 requirements 写计划 | `/ae-plan` | `/ae-plan docs/ae/brainstorms/2026-04-18-ae-plugin-phase-one-requirements.md` |
-| 直接执行已有 plan | `/ae-work` | `/ae-work docs/ae/plans/2026-04-18-001-feat-ae-phase-one-workflow-plugin-plan.md` |
-| 只做代码审查 | `/ae-review-code` | `/ae-review-code mode:report-only plan:docs/ae/plans/2026-04-18-001-feat-ae-phase-one-workflow-plugin-plan.md` |
-| 跨会话恢复 | `/ae-lfg` | `/ae-lfg` |
-| 会话交接 | `/ae-handoff` | `/ae-handoff` |
-| 查看帮助 | `/ae-help` | `/ae-help` |
-| 更新插件 | `/ae-update` | `/ae-update` |
-| 保存会话规范 | `/ae-save-rules` | `/ae-save-rules` |
-| 前端设计 | `/ae-frontend-design` | `/ae-frontend-design 着陆页` |
-| 安装前端依赖 | `/ae-setup` | `/ae-setup` |
-| 浏览器测试 | `/ae-test-browser` | `/ae-test-browser http://localhost:3000` |
-| 数据库查询 | `/ae-sql` | `/ae-sql SELECT * FROM users LIMIT 10` |
-| 循环执行直到目标达成 | `/ae-task-loop` | `/ae-task-loop 修复所有 TypeScript 编译错误` |
-| 创意构思 | `/ae-ideate` | `/ae-ideate 如何优化我们的 CI/CD 流程` |
-| 代码正确性审查 | `@correctness-reviewer` | `@correctness-reviewer 帮我审查这段登录逻辑的正确性` |
-| 架构方案评估 | `@architecture-strategist` | `@architecture-strategist 评估这个微服务拆分方案的合理性` |
-| 安全漏洞扫描 | `@security-sentinel` | `@security-sentinel 扫描这个用户认证模块的安全风险` |
-| 最佳实践调研 | `@best-practices-researcher` | `@best-practices-researcher 调研 React 表单处理的最佳实践` |
-
-## 工作方式摘要
-
-1. 默认从 `/ae-lfg` 进入。
-2. 若已有产物，优先恢复而不是重复创建文档。
-3. `ae:plan` 输出 living plan，`ae:work` 默认 subagent-first。
-4. 文档、计划、代码三类审查都使用多 reviewer。
-5. 技能与命令共享同一套参数 contract、帮助语义和恢复语义。
+| 项目 | 说明 |
+| --- | --- |
+| 开发真源 | 根目录 `package.json`、`src/`、`src/assets/skills/`、`src/assets/commands/`、`src/assets/agents/` |
+| 运行时入口 | `.opencode/plugins/ae-server.js`、`.opencode/plugins/ae-tui.js` |
+| 构建命令 | `npm run build` |
+| 测试命令 | `npm run test` |
+| 类型检查 | `npm run typecheck` |
+| 全局插件目录 | `~/.config/opencode/plugins/`，opencode 自动加载该目录下的 `.js` / `.ts` 文件 |
