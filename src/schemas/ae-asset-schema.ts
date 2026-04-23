@@ -48,6 +48,8 @@ export const AGENT = {
   ADVERSARIAL_DOCUMENT_REVIEWER: 'adversarial-document-reviewer',
   DESIGN_LENS_REVIEWER: 'design-lens-reviewer',
   SECURITY_LENS_REVIEWER: 'security-lens-reviewer',
+  STEP_GRANULARITY_REVIEWER: 'step-granularity-reviewer',
+  BATCH_OPERATION_REVIEWER: 'batch-operation-reviewer',
   REPO_RESEARCH_ANALYST: 'repo-research-analyst',
   LEARNINGS_RESEARCHER: 'learnings-researcher',
   BEST_PRACTICES_RESEARCHER: 'best-practices-researcher',

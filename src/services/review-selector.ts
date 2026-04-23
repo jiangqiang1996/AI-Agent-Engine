@@ -31,6 +31,10 @@ export function selectDocumentReviewers(input: DocumentReviewSelectionInput): st
     selected.push(AGENT.PRODUCT_LENS_REVIEWER)
   }
 
+  if (input.documentType === 'plan') {
+    selected.push(AGENT.STEP_GRANULARITY_REVIEWER, AGENT.BATCH_OPERATION_REVIEWER)
+  }
+
   if (input.hasUi) {
     selected.push(AGENT.DESIGN_LENS_REVIEWER)
   }

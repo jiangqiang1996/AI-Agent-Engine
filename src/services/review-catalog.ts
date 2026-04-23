@@ -14,6 +14,8 @@ export const DOCUMENT_REVIEWERS: ReviewDefinition[] = [
   { name: AGENT.ADVERSARIAL_DOCUMENT_REVIEWER, description: '对文档做对抗式压力测试', alwaysOn: false },
   { name: AGENT.DESIGN_LENS_REVIEWER, description: '审查界面与交互设计约束', alwaysOn: false },
   { name: AGENT.SECURITY_LENS_REVIEWER, description: '审查文档中的安全边界', alwaysOn: false },
+  { name: AGENT.STEP_GRANULARITY_REVIEWER, description: '审查计划步骤是否拆解至最小不可再分单元', alwaysOn: false },
+  { name: AGENT.BATCH_OPERATION_REVIEWER, description: '审查多文件操作是否可脚本化批量执行', alwaysOn: false },
 ]
 
 export const CODE_REVIEWERS: ReviewDefinition[] = [

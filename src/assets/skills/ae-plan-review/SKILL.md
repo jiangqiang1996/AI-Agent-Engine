@@ -11,5 +11,6 @@ argument-hint: "[mode:*] [计划路径]"
 - 复用 `ae:document-review` 的审查角色族，对计划文档使用计划专属分类
 - 使用 `ae-review-contract` 计算审查团队
 - 确认实现顺序、范围、测试场景和恢复路径是否足够清晰
+- 计划审查专属代理：`step-granularity-reviewer`（步骤粒度拆解）和 `batch-operation-reviewer`（多文件脚本化建议）
 
 参考：@./references/plan-review.md
