@@ -21,11 +21,11 @@ export function createRuntimeAssetManifestFromRoot(repoRoot: string): RuntimeAss
 
   return {
     repoRoot: root,
-    skillsDir: join(root, 'skills'),
-    rulesDir: join(root, 'rules'),
-    commandsDir: join(root, 'commands'),
+    skillsDir: join(root, 'src', 'assets', 'skills'),
+    rulesDir: join(root, 'src', 'assets', 'rules'),
+    commandsDir: join(root, 'src', 'assets', 'commands'),
     toolsDir: join(root, 'tools'),
-    agentsDir: join(root, 'agents'),
+    agentsDir: join(root, 'src', 'assets', 'agents'),
     runtimeAgentDir,
     runtimePluginDir: join(root, '.opencode', 'plugins'),
     runtimeAgentFiles: getAllAgentDefinitions().map((agent) => ({

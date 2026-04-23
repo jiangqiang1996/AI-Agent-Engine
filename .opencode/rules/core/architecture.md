@@ -115,7 +115,7 @@ class FileNotFoundError extends Schema.TaggedError<FileNotFoundError>(
 ## 资产同步
 
 构建过程负责将源资产同步到运行时目录：
-- `skills/` 通过 plugin `config.skills.paths` 注入到 `.opencode/skills/`
-- `commands/` 构建时同步到 `.opencode/commands/`
-- `agents/` 构建时同步到 `.opencode/agents/ae/`
+- `src/assets/skills/` 通过 plugin `config.skills.paths` 注入到 `.opencode/skills/`
+- `src/assets/commands/` 构建时同步到 `.opencode/commands/`
+- `src/assets/agents/` 构建时同步到 `.opencode/agents/ae/`
 - 插件产物输出到 `.opencode/plugins/`

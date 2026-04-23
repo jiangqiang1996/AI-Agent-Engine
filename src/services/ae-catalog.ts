@@ -8,7 +8,7 @@ const PHASE_ONE_ENTRIES = [
     description: '生成并批判性评估关于某个主题的落地想法',
     argumentHint: '[功能、关注领域或约束]',
     defaultEntry: false,
-    skillFile: `skills/${COMMAND.IDEATE}/SKILL.md`,
+    skillFile: `src/assets/skills/${COMMAND.IDEATE}/SKILL.md`,
   },
   {
     skillName: SKILL.BRAINSTORM,
@@ -17,7 +17,7 @@ const PHASE_ONE_ENTRIES = [
     description: '围绕需求进行头脑风暴并产出需求文档',
     argumentHint: '[需求描述|需求文档路径]',
     defaultEntry: false,
-    skillFile: `skills/${COMMAND.BRAINSTORM}/SKILL.md`,
+    skillFile: `src/assets/skills/${COMMAND.BRAINSTORM}/SKILL.md`,
   },
   {
     skillName: SKILL.DOCUMENT_REVIEW,
@@ -26,7 +26,7 @@ const PHASE_ONE_ENTRIES = [
     description: '对需求文档进行多角色审查',
     argumentHint: '[mode:*] [文档路径]',
     defaultEntry: false,
-    skillFile: `skills/${COMMAND.DOCUMENT_REVIEW}/SKILL.md`,
+    skillFile: `src/assets/skills/${COMMAND.DOCUMENT_REVIEW}/SKILL.md`,
   },
   {
     skillName: SKILL.PLAN,
@@ -35,7 +35,7 @@ const PHASE_ONE_ENTRIES = [
     description: '基于需求或输入生成 AE 技术计划',
     argumentHint: '[计划路径|需求文档路径|需求描述]',
     defaultEntry: false,
-    skillFile: `skills/${COMMAND.PLAN}/SKILL.md`,
+    skillFile: `src/assets/skills/${COMMAND.PLAN}/SKILL.md`,
   },
   {
     skillName: SKILL.PLAN_REVIEW,
@@ -44,7 +44,7 @@ const PHASE_ONE_ENTRIES = [
     description: '对计划文档进行多角色审查',
     argumentHint: '[mode:*] [计划路径]',
     defaultEntry: false,
-    skillFile: `skills/${COMMAND.PLAN_REVIEW}/SKILL.md`,
+    skillFile: `src/assets/skills/${COMMAND.PLAN_REVIEW}/SKILL.md`,
   },
   {
     skillName: SKILL.WORK,
@@ -53,7 +53,7 @@ const PHASE_ONE_ENTRIES = [
     description: '按演进式计划执行工作并尽量委派给子代理',
     argumentHint: '[计划路径|工作描述]',
     defaultEntry: false,
-    skillFile: `skills/${COMMAND.WORK}/SKILL.md`,
+    skillFile: `src/assets/skills/${COMMAND.WORK}/SKILL.md`,
   },
   {
     skillName: SKILL.REVIEW,
@@ -62,7 +62,7 @@ const PHASE_ONE_ENTRIES = [
     description: '使用分层角色代理和置信度门控对代码改动进行结构化审查',
     argumentHint: '[mode:*] [plan:<path>] [base:<ref>]',
     defaultEntry: false,
-    skillFile: `skills/${COMMAND.REVIEW}/SKILL.md`,
+    skillFile: `src/assets/skills/${COMMAND.REVIEW}/SKILL.md`,
   },
   {
     skillName: SKILL.LFG,
@@ -71,7 +71,7 @@ const PHASE_ONE_ENTRIES = [
     description: '默认入口：从需求到执行驱动 AE 主流程',
     argumentHint: '[需求描述|已有产物路径]',
     defaultEntry: true,
-    skillFile: `skills/${COMMAND.LFG}/SKILL.md`,
+    skillFile: `src/assets/skills/${COMMAND.LFG}/SKILL.md`,
   },
   {
     skillName: SKILL.SETUP,
@@ -80,7 +80,7 @@ const PHASE_ONE_ENTRIES = [
     description: '诊断并安装 AE 前端设计所需的外部依赖',
     argumentHint: '',
     defaultEntry: false,
-    skillFile: `skills/${COMMAND.SETUP}/SKILL.md`,
+    skillFile: `src/assets/skills/${COMMAND.SETUP}/SKILL.md`,
   },
   {
     skillName: SKILL.TEST_BROWSER,
@@ -89,7 +89,7 @@ const PHASE_ONE_ENTRIES = [
     description: '使用 agent-browser 执行端到端浏览器测试',
     argumentHint: '[URL|路由]',
     defaultEntry: false,
-    skillFile: `skills/${COMMAND.TEST_BROWSER}/SKILL.md`,
+    skillFile: `src/assets/skills/${COMMAND.TEST_BROWSER}/SKILL.md`,
   },
   {
     skillName: SKILL.FRONTEND_DESIGN,
@@ -98,7 +98,7 @@ const PHASE_ONE_ENTRIES = [
     description: '构建具有设计品质的前端界面',
     argumentHint: '[描述|路径]',
     defaultEntry: false,
-    skillFile: `skills/${COMMAND.FRONTEND_DESIGN}/SKILL.md`,
+    skillFile: `src/assets/skills/${COMMAND.FRONTEND_DESIGN}/SKILL.md`,
   },
   {
     skillName: SKILL.HANDOFF,
@@ -107,7 +107,7 @@ const PHASE_ONE_ENTRIES = [
     description: '会话交接：提取当前会话核心结论，创建独立新会话并注入上下文',
     argumentHint: '',
     defaultEntry: false,
-    skillFile: `skills/${COMMAND.HANDOFF}/SKILL.md`,
+    skillFile: `src/assets/skills/${COMMAND.HANDOFF}/SKILL.md`,
   },
   {
     skillName: SKILL.TASK_LOOP,
@@ -116,7 +116,7 @@ const PHASE_ONE_ENTRIES = [
     description: '循环执行任务并自动验证，直到达成目标后退出',
     argumentHint: '[一句话目标描述]',
     defaultEntry: false,
-    skillFile: `skills/${COMMAND.TASK_LOOP}/SKILL.md`,
+    skillFile: `src/assets/skills/${COMMAND.TASK_LOOP}/SKILL.md`,
   },
   {
     skillName: SKILL.SQL,
@@ -125,7 +125,7 @@ const PHASE_ONE_ENTRIES = [
     description: '通过 JDBC 连接任意数据库并执行 SQL',
     argumentHint: '[SQL 语句]',
     defaultEntry: false,
-    skillFile: `skills/${COMMAND.SQL}/SKILL.md`,
+    skillFile: `src/assets/skills/${COMMAND.SQL}/SKILL.md`,
   },
   {
     skillName: SKILL.SAVE_RULES,
@@ -134,7 +134,7 @@ const PHASE_ONE_ENTRIES = [
     description: '总结当前会话中有价值的项目规范并保存到 .opencode/rules/',
     argumentHint: '[规范类型]',
     defaultEntry: false,
-    skillFile: `skills/${COMMAND.SAVE_RULES}/SKILL.md`,
+    skillFile: `src/assets/skills/${COMMAND.SAVE_RULES}/SKILL.md`,
   },
   {
     skillName: SKILL.HELP,
@@ -143,7 +143,7 @@ const PHASE_ONE_ENTRIES = [
     description: '列出 AE 插件中所有可调用的技能和代理的帮助信息',
     argumentHint: '[技能名或关键词]',
     defaultEntry: false,
-    skillFile: `skills/${COMMAND.HELP}/SKILL.md`,
+    skillFile: `src/assets/skills/${COMMAND.HELP}/SKILL.md`,
   },
   {
     skillName: SKILL.UPDATE,
@@ -152,7 +152,7 @@ const PHASE_ONE_ENTRIES = [
     description: '拉取 AE 插件最新代码并重新构建，完成本地更新',
     argumentHint: '[安装路径]',
     defaultEntry: false,
-    skillFile: `skills/${COMMAND.UPDATE}/SKILL.md`,
+    skillFile: `src/assets/skills/${COMMAND.UPDATE}/SKILL.md`,
   },
 ] satisfies AeAssetEntry[]
 
@@ -197,7 +197,7 @@ function buildAgentList(
   tier: 'required' | 'gilded',
 ): AgentDefinition[] {
   return tuples.map(([name, stage, desc]) =>
-    AgentDefinitionSchema.parse({ name, stage, tier, description: desc, path: `agents/${stage}/${name}.md` }),
+    AgentDefinitionSchema.parse({ name, stage, tier, description: desc, path: `src/assets/agents/${stage}/${name}.md` }),
   )
 }
 

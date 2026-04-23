@@ -57,7 +57,7 @@ export const myTool = tool({
 
 ### Agent 组织
 
-- 本项目自定义Agent，以 `.md` 文件存放在 `agents/` 目录
+- 本项目自定义Agent，以 `.md` 文件存放在 `src/assets/agents/` 目录
 - Agent 按职责分为：流程驱动、审查、计划、前端设计、测试等类别
 
 ### 工具组合

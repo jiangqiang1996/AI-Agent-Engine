@@ -10,30 +10,30 @@ argument-hint: "[技能名或关键词]"
 
 ## 第一步：扫描技能
 
-扫描 `skills/` 目录下所有 `SKILL.md` 文件的 frontmatter，提取 `name` 和 `description`：
+扫描 `src/assets/skills/` 目录下所有 `SKILL.md` 文件的 frontmatter，提取 `name` 和 `description`：
 
 ```bash
-ls skills/*/SKILL.md
+ls src/assets/skills/*/SKILL.md
 ```
 
 如果用户传入了参数（如技能名或关键词），只展示匹配的结果；否则展示全部。
 
 ## 第二步：扫描代理
 
-扫描 `agents/` 目录下所有 `.md` 文件的 frontmatter，提取 `name` 和 `description`：
+扫描 `src/assets/agents/` 目录下所有 `.md` 文件的 frontmatter，提取 `name` 和 `description`：
 
 ```bash
-ls agents/*/*.md
+ls src/assets/agents/*/*.md
 ```
 
 如果用户传入了参数，只展示匹配的结果；否则展示全部。
 
 ## 第三步：扫描命令
 
-扫描 `commands/` 目录下所有 `.md` 文件，提取命令名、`description` 和 `argument-hint`：
+扫描 `src/assets/commands/` 目录下所有 `.md` 文件，提取命令名、`description` 和 `argument-hint`：
 
 ```bash
-ls commands/*.md
+ls src/assets/commands/*.md
 ```
 
 ## 第四步：输出结果

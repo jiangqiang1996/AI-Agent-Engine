@@ -13,7 +13,7 @@ AE 技能体系中，`SKILL.md` 和 TypeScript 服务代码可能对同一逻辑
 应先确认哪一方的行为是预期的（优先参考上游参考项目的实现），再修正另一方。
 
 涉及的文件：
-- `skills/ae-review/SKILL.md` - 定义审查流程的 LLM 指令
+- `src/assets/skills/ae-review/SKILL.md` - 定义审查流程的 LLM 指令
 - `src/services/review-catalog.ts` - 定义审查者目录
 - `src/services/review-selector.ts` - 定义审查者选择逻辑
 - `src/tools/ae-review-contract.tool.ts` - 调用选择逻辑的工具

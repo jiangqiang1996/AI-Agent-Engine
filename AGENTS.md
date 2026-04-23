@@ -6,7 +6,7 @@ AE opencode 插件，提供从需求到交付的完整 AI 辅助工作流。
 
 - 公开技能以 `ae:*` 命名
 - 公开命令以 `/ae-*` 命名
-- 根目录 `skills/`、`agents/`、`rules/` 是受版本控制的真源
+- `src/assets/` 下的 `skills/`、`agents/`、`rules/` 是受版本控制的真源
 - 运行时产物写入 `.opencode/plugins/`
 - 默认用户入口为 `/ae-lfg`
 
@@ -19,9 +19,9 @@ AE opencode 插件，提供从需求到交付的完整 AI 辅助工作流。
 
 ## 架构
 
-- `skills/` 通过 plugin `config.skills.paths` 注入
-- `agents/` 在构建时同步到 `.opencode/agents/ae/`
-- `rules/` 通过 `config.instructions` 注入
+- `src/assets/skills/` 通过 plugin `config.skills.paths` 注入
+- `src/assets/agents/` 在构建时同步到 `.opencode/agents/ae/`
+- `src/assets/rules/` 通过 `config.instructions` 注入
 - 自定义工具：`ae-recovery`、`ae-review-contract`、`ae-handoff`
 - 代理分层：25 required + 3 gilded = 28 个代理
 
