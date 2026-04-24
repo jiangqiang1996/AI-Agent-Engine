@@ -133,6 +133,7 @@ export interface DelegateNode<I, S> {
   readonly message: (ctx: Ctx<I, S>) => string
   readonly output?: z.ZodType
   readonly model?: string
+  readonly retries?: number
 }
 
 // ─── 节点联合类型 ───

@@ -11,6 +11,7 @@ import type { Node, PromptNode } from '../services/orchestrator/types.js'
 import { getGlobalClient, getGlobalManifest } from '../services/client-holder.js'
 import { loadSkillContent, loadAgentContent } from '../services/orchestrator/loader.js'
 import type { AssetResolverConfig } from '../services/orchestrator/loader.js'
+import { getBuiltInWorkflow } from '../workflows/index.js'
 
 function buildAssetConfig(worktree: string): AssetResolverConfig {
   const manifest = getGlobalManifest()
@@ -234,7 +235,7 @@ export const aeOrchestratorTool: ToolDefinition = tool({
   ].join('\n'),
   args: {
     workflow_name: z.string().min(1).describe('工作流名称'),
-    steps: z.array(z.unknown()).min(1).describe('工作流步骤列表，每个步骤包含 type、name、config、children'),
+    steps: z.array(z.unknown()).optional().describe('工作流步骤列表（内置工作流可省略）'),
     input: z.record(z.string(), z.unknown()).default({}).describe('工作流输入参数，各步骤可通过 config 中路径引用'),
     resume_from_checkpoint: z.string().optional().describe('检查点文件路径，用于从上次中断处恢复执行'),
   },
@@ -275,17 +276,9 @@ export const aeOrchestratorTool: ToolDefinition = tool({
     }
 
     const inputState = args.input
-    const steps = args.steps as Array<Record<string, unknown>>
+    const steps = args.steps as Array<Record<string, unknown>> | undefined
 
     try {
-      const flow = buildNodesFromJson(steps)
-      const workflow = defineWorkflow({
-        name: args.workflow_name,
-        input: z.record(z.string(), z.unknown()),
-        init: () => inputState,
-        flow,
-      })
-
       const client = getGlobalClient()
       if (!client) throw new Error('编排引擎: SDK client 不可用')
       const assetConfig = buildAssetConfig(worktree)
@@ -302,6 +295,46 @@ export const aeOrchestratorTool: ToolDefinition = tool({
         ask: askFn,
         checkpointPath,
       }
+
+      const builtIn = getBuiltInWorkflow(args.workflow_name)
+      if (builtIn) {
+        const result = await execute(builtIn, options)
+        const lines = [
+          `✅ 工作流 "${args.workflow_name}" 执行完成`,
+          '',
+          '执行日志：',
+          ...result.log.map((l) => `  ${l}`),
+        ]
+
+        if (result.checkpointPath) {
+          lines.push('')
+          lines.push(`⚠️ 工作流被用户中断，检查点已保存: ${result.checkpointPath}`)
+          lines.push('可通过 resume_from_checkpoint 参数恢复执行。')
+        }
+
+        if (result.results.size > 0) {
+          lines.push('')
+          lines.push('步骤产出：')
+          for (const [key, value] of result.results) {
+            const summary = typeof value === 'string' ? value.slice(0, 200) : JSON.stringify(value).slice(0, 200)
+            lines.push(`  ${key}: ${summary}`)
+          }
+        }
+
+        return lines.join('\n')
+      }
+
+      if (!steps?.length) {
+        return `未知的工作流 "${args.workflow_name}"，且未提供 steps。`
+      }
+
+      const flow = buildNodesFromJson(steps)
+      const workflow = defineWorkflow({
+        name: args.workflow_name,
+        input: z.record(z.string(), z.unknown()),
+        init: () => inputState,
+        flow,
+      })
 
       const result = await execute(workflow, options)
       const lines = [

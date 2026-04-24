@@ -125,6 +125,7 @@ export function delegate<I, S>(config: {
   systemPrompt?: (ctx: Ctx<I, S>) => string | Promise<string>
   output?: z.ZodType
   model?: string
+  retries?: number
 }): DelegateNode<I, S> {
   return { type: 'delegate', ...config }
 }

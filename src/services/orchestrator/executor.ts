@@ -489,14 +489,23 @@ async function execDelegate<I, S>(
 
   const systemPrompt = await node.systemPrompt?.(ctx)
   const message = node.message(ctx)
-  const result = await ctx.delegate(title, systemPrompt, message, node.output, node.model)
+  const maxAttempts = (node.retries ?? 0) + 1
 
-  if (result !== undefined && result !== null) {
-    ctx.results.set(node.name, result)
-    log.push(`${ts()} [delegate] ${title} 完成`)
-  } else {
-    log.push(`${ts()} [delegate] ${title} 无返回内容`)
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const result = await ctx.delegate(title, systemPrompt, message, node.output, node.model)
+
+    if (result !== undefined && result !== null) {
+      ctx.results.set(node.name, result)
+      log.push(`${ts()} [delegate] ${title} 完成`)
+      return
+    }
+
+    if (attempt < maxAttempts) {
+      log.push(`${ts()} [delegate] ${title} 第 ${attempt} 次无返回内容，重试中`)
+    }
   }
+
+  log.push(`${ts()} [delegate] ${title} 无返回内容`)
 }
 
 // ─── 系统提示词解析 ───
