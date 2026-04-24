@@ -4,11 +4,20 @@
 
 如果你已经把这份文档交给 AI 代理，请根据用户意图执行对应章节的步骤。
 
+AE 支持两种安装模式：
+
+| 模式 | 安装位置 | 生效范围 | 适用场景 |
+| --- | --- | --- | --- |
+| **全局安装** | `~/.config/opencode/ai-agent-engine` | 所有项目 | 日常开发，所有项目共享 AE |
+| **项目级安装** | `<项目根目录>/.opencode/ai-agent-engine` | 仅当前项目 | 特定项目需要独立版本或定制 |
+
 ---
 
 ## 一、安装
 
-1. 先检查本地是否已安装以下 opencode 插件：
+### 前置检查（全局和项目级均需执行）
+
+先检查本地是否已安装以下 opencode 插件：
 - `oh-my-openagent`
 - `oh-my-opencode`
 - `superpowers`
@@ -20,13 +29,15 @@
 
 如果发现任意一个已安装插件，**必须先在对话中明确警告用户**：这些插件可能与 AI Agent Engine 不兼容；告警发出后，才允许继续执行后续安装步骤。
 
-2. 将仓库克隆到固定安装目录：
+### 1.1 全局安装
+
+1. 将仓库克隆到固定安装目录：
 
 ```bash
 git clone https://gitee.com/jiangqiang1996/ai-agent-engine.git ~/.config/opencode/ai-agent-engine
 ```
 
-3. 进入仓库根目录并安装依赖、构建产物：
+2. 进入仓库根目录并安装依赖、构建产物：
 
 ```bash
 cd ~/.config/opencode/ai-agent-engine
@@ -34,7 +45,7 @@ npm install
 npm run build
 ```
 
-4. 在全局插件目录 `~/.config/opencode/plugins/` 下创建两个桥接文件，指向克隆仓库的构建产物：
+3. 在全局插件目录 `~/.config/opencode/plugins/` 下创建两个桥接文件，指向克隆仓库的构建产物：
 
 ```bash
 # ae-server.js
@@ -48,27 +59,95 @@ echo "export { default } from '../ai-agent-engine/dist/src/tui.js'" > ~/.config/
 
 如果用户选择了不同安装目录，请同步调整桥接文件中的相对路径。
 
-5. 重启 opencode。
+4. 重启 opencode。
 
-6. 验证方式：
+5. 验证方式：
 - 在会话中尝试 `/ae-help`
 - 或尝试让代理列出 `ae:*` 技能
+
+### 1.2 项目级安装
+
+1. 在项目根目录下克隆仓库到 `.opencode/` 目录：
+
+```bash
+git clone https://gitee.com/jiangqiang1996/ai-agent-engine.git .opencode/ai-agent-engine
+```
+
+2. 进入目录并安装依赖、构建：
+
+```bash
+cd .opencode/ai-agent-engine
+npm install
+npm run build
+```
+
+3. 在项目的 `.opencode/plugins/` 目录下创建两个桥接文件，指向克隆仓库的构建产物：
+
+```bash
+# ae-server.js
+echo "export { default } from '../ai-agent-engine/dist/src/index.js'" > .opencode/plugins/ae-server.js
+
+# ae-tui.js
+echo "export { default } from '../ai-agent-engine/dist/src/tui.js'" > .opencode/plugins/ae-tui.js
+```
+
+4. 重启 opencode。
+
+5. 验证方式：
+- 在当前项目会话中尝试 `/ae-help`
+- 或尝试让代理列出 `ae:*` 技能
+
+> **注意：** 项目级安装仅对当前项目生效。如需全局生效，请使用全局安装。项目级安装和全局安装可以共存，项目级优先。
 
 ---
 
 ## 二、更新
 
-直接使用 `ae:update` 技能（或 `/ae-update` 命令），它会自动完成：还原本地仓库到干净状态 → 拉取最新代码 → 清理未追踪文件（保留 node_modules）→ 重新安装依赖 → 构建。保留 node_modules 可加速更新，避免每次全量下载依赖。
+使用 `ae:update` 技能（或 `/ae-update` 命令）：
 
-如果用户未提供安装路径，默认使用安装时相同的目录（见第一章）。
+```text
+# 全局更新（默认）
+/ae-update
+
+# 项目级更新
+/ae-update project
+```
+
+它会自动完成：还原本地仓库到干净状态 → 拉取最新代码 → 清理未追踪文件（保留 node_modules）→ 重新安装依赖 → 构建。
+
+不传参数时默认执行全局更新。传入 `project` 时执行项目级更新。
 
 构建完成后重启 opencode 即生效。
+
+### 手动更新
+
+#### 全局更新
+
+```bash
+cd ~/.config/opencode/ai-agent-engine
+git reset --hard HEAD
+git clean -fd --exclude=node_modules
+git pull
+npm install
+npm run build
+```
+
+#### 项目级更新
+
+```bash
+cd .opencode/ai-agent-engine
+git reset --hard HEAD
+git clean -fd --exclude=node_modules
+git pull
+npm install
+npm run build
+```
 
 ---
 
 ## 三、卸载
 
-卸载分为两步：移除桥接文件、删除克隆仓库。
+### 3.1 卸载全局安装
 
 1. 删除全局插件目录中的桥接文件：
 
@@ -89,20 +168,31 @@ rm -rf ~/.config/opencode/ai-agent-engine
 - 代理不再列出 `ae:*` 技能
 - `/ae-help` 等命令不再可用
 
+### 3.2 卸载项目级安装
+
+1. 删除项目插件目录中的桥接文件：
+
+```bash
+rm .opencode/plugins/ae-server.js
+rm .opencode/plugins/ae-tui.js
+```
+
+2. 删除克隆的仓库目录：
+
+```bash
+rm -rf .opencode/ai-agent-engine
+```
+
+3. 重启 opencode。
+
 > 卸载过程不会影响用户的 `opencode.json` 配置（安装时未修改该文件的 `plugin` 字段）。
 
 ---
-
-## 四、安装到当前项目（仅用于测试刚开发的指令是否生效）
-```bash
-npm install
-npm run build
-```
-重启opencode即可生效
 
 ## 注意事项
 
 - 不要为非 opencode 运行时写安装配置
 - **不要**在 `opencode.json` 的 `plugin` 字段中填写本地文件路径，该字段仅接受 npm 包名
 - 兼容性警告不能省略；只要检测到 `oh-my-openagent`、`oh-my-opencode` 或 `superpowers`，就要先在对话里提醒用户
+- 项目级安装和全局安装可以共存，项目级优先加载
 - Windows 环境下 `~` 对应 `%USERPROFILE%`，`~/.config/opencode/` 实际路径为 `%USERPROFILE%\.config\opencode\`
