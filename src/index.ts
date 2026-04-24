@@ -6,7 +6,7 @@ import { registerRulesInstructions } from './services/rules-instructions-service
 import { createRuntimeAssetManifest } from './services/runtime-asset-manifest.js'
 import { registerSkillsPath } from './services/skills-path-service.js'
 import { createToolRegistry } from './tools/index.js'
-import { setGlobalClient } from './services/client-holder.js'
+import { setGlobalClient, setGlobalManifest } from './services/client-holder.js'
 
 interface RuntimeConfigShape {
   command?: Record<string, {
@@ -37,6 +37,7 @@ const plugin: PluginModule = {
   server: async (input) => {
     const manifest = createRuntimeAssetManifest(import.meta.url)
     setGlobalClient(input.client)
+    setGlobalManifest(manifest)
 
     return {
       config: async (config) => {
