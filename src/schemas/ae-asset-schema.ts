@@ -32,7 +32,7 @@ export const COMMAND = {
   PLAN: 'ae-plan',
   PLAN_REVIEW: 'ae-review-plan',
   WORK: 'ae-work',
-  REVIEW: 'ae-review-code',
+  REVIEW: 'ae-review',
   LFG: 'ae-lfg',
   SETUP: 'ae-setup',
   TEST_BROWSER: 'ae-test-browser',

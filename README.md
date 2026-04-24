@@ -121,7 +121,7 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 | 制定计划 | `/ae-plan` | 基于需求文档生成实现计划 | `docs/ae/plans/*-plan.md` |
 | 计划审查 | `/ae-review-plan` | 多角色审查计划可行性 | findings / gate 结论 |
 | 执行实现 | `/ae-work docs/ae/plans/xxx-plan.md` | 按计划逐步实现代码 | 代码改动 |
-| 代码审查 | `/ae-review-code mode:report-only` | 分层角色代理审查代码变更 | findings / gate 结论 |
+| 代码审查 | `/ae-review mode:report-only` | 分层角色代理审查代码变更 | findings / gate 结论 |
 
 **典型用法：**
 
@@ -135,7 +135,7 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 /ae-plan
 /ae-review-plan
 /ae-work
-/ae-review-code
+/ae-review
 ```
 
 #### 跨会话恢复
@@ -304,19 +304,19 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 
 ```text
 # 交互式审查（默认）
-/ae-review-code
+/ae-review
 
 # 只输出报告，不修改文件
-/ae-review-code mode:report-only
+/ae-review mode:report-only
 
 # 自动修复安全类问题
-/ae-review-code mode:autofix
+/ae-review mode:autofix
 
 # 指定 diff 基线
-/ae-review-code base:main
+/ae-review base:main
 
 # 结合计划做需求完整性校验
-/ae-review-code plan:docs/ae/plans/xxx-plan.md
+/ae-review plan:docs/ae/plans/xxx-plan.md
 ```
 
 **审查模式：**
@@ -403,7 +403,7 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 | `ae:plan` | `/ae-plan` | 制定实现计划 | 是 |
 | `ae:plan-review` | `/ae-review-plan` | 计划审查 | 是 |
 | `ae:work` | `/ae-work` | 按计划执行实现 | 是 |
-| `ae:review` | `/ae-review-code` | 代码审查 | 是 |
+| `ae:review` | `/ae-review` | 代码审查 | 是 |
 | `ae:task-loop` | `/ae-task-loop` | 目标驱动循环执行 | 否 |
 | `ae:frontend-design` | `/ae-frontend-design` | 前端界面构建 | 否 |
 | `ae:setup` | `/ae-setup` | 前端依赖安装 | 否 |
