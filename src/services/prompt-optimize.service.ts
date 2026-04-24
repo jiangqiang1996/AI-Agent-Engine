@@ -13,13 +13,6 @@ class PromptSessionCreateError extends Error {
   }
 }
 
-class PromptSubmitError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = 'PromptSubmitError'
-  }
-}
-
 export interface PromptOptimizeResult {
   success: boolean
   sessionId?: string
@@ -48,25 +41,12 @@ export function executePromptSubmit(
   client: OpencodeClient,
   optimizedPrompt: string,
   sessionTitle?: string,
-): Effect.Effect<PromptOptimizeResult, PromptSessionCreateError | PromptSubmitError> {
+): Effect.Effect<PromptOptimizeResult, PromptSessionCreateError> {
   const title = sessionTitle ?? generateSessionTitle(optimizedPrompt)
 
   return Effect.gen(function* () {
     const session = yield* createNewSession(client, { title }).pipe(
       Effect.mapError((e) => new PromptSessionCreateError(e.message)),
-    )
-
-    yield* Effect.tryPromise({
-      try: () =>
-        client.session.prompt({
-          path: { id: session.id },
-          body: {
-            parts: [{ type: 'text', text: optimizedPrompt }],
-          },
-        }),
-      catch: (e) => new PromptSubmitError(e instanceof Error ? e.message : String(e)),
-    }).pipe(
-      Effect.mapError((e) => e as PromptSubmitError),
     )
 
     const navigated = yield* navigateToSession(client, session.id).pipe(
@@ -75,6 +55,15 @@ export function executePromptSubmit(
         onFailure: () => false,
       }),
     )
+
+    client.session
+      .prompt({
+        path: { id: session.id },
+        body: {
+          parts: [{ type: 'text', text: optimizedPrompt }],
+        },
+      })
+      .catch(() => {})
 
     return {
       success: true,

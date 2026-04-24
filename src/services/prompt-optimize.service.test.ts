@@ -113,7 +113,7 @@ describe('prompt-optimize.service', () => {
       expect(result.name).toBe('PromptSessionCreateError')
     })
 
-    it('提示词提交失败时返回错误', async () => {
+    it('提示词提交为 fire-and-forget，即使失败也不影响返回', async () => {
       const client = {
         session: {
           prompt: vi.fn().mockRejectedValue(new Error('发送失败')),
@@ -130,10 +130,10 @@ describe('prompt-optimize.service', () => {
 
       const result = await Effect.runPromise(
         executePromptSubmit(client, '提示词'),
-      ).catch((e) => e)
+      )
 
-      expect(result).toBeInstanceOf(Error)
-      expect(result.name).toBe('PromptSubmitError')
+      expect(result.success).toBe(true)
+      expect(client.session.prompt).toHaveBeenCalled()
     })
 
     it('使用自定义会话标题', async () => {
