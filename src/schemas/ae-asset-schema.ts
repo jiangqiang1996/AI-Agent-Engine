@@ -75,7 +75,6 @@ export const TOOL = {
   AE_REVIEW_CONTRACT: 'ae-review-contract',
   AE_HANDOFF: 'ae-handoff',
   AE_PROMPT_OPTIMIZE: 'ae-prompt-optimize',
-  AE_ORCHESTRATOR: 'ae-orchestrator',
 } as const
 
 export const AeModeSchema = z
