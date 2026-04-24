@@ -110,6 +110,15 @@ const PHASE_ONE_ENTRIES = [
     skillFile: `src/assets/skills/${skillDir(SKILL.HANDOFF)}/SKILL.md`,
   },
   {
+    skillName: SKILL.PROMPT_OPTIMIZE,
+    skillSlug: skillDir(SKILL.PROMPT_OPTIMIZE),
+    commandName: COMMAND.PROMPT_OPTIMIZE,
+    description: '提示词优化：将用户随意输入优化为结构化 AI 对话提示词，确认后在新会话中自动执行',
+    argumentHint: '[auto] [提示词内容]',
+    defaultEntry: false,
+    skillFile: `src/assets/skills/${skillDir(SKILL.PROMPT_OPTIMIZE)}/SKILL.md`,
+  },
+  {
     skillName: SKILL.TASK_LOOP,
     skillSlug: skillDir(SKILL.TASK_LOOP),
     commandName: COMMAND.TASK_LOOP,
