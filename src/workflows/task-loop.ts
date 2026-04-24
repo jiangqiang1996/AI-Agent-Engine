@@ -153,6 +153,16 @@ export const taskLoopWorkflow = defineWorkflow<TaskLoopInput, TaskLoopState>({
         name: 'first-execution',
         title: () => '首次执行',
         message: (ctx) => P.firstExecutionMessage(ctx),
+        systemPrompt: async (ctx) => {
+          if (!ctx.state.executionSkill) return ''
+          const slug = ctx.state.executionSkill.replace(/^ae:/, 'ae-')
+          try {
+            const content = await ctx.resolveContent(`skill:${slug}`)
+            return `## 执行技能参考\n${content}`
+          } catch {
+            return ''
+          }
+        },
       })],
     ),
 
@@ -194,6 +204,8 @@ export const taskLoopWorkflow = defineWorkflow<TaskLoopInput, TaskLoopState>({
               ? ctx.state.consecutiveNoProgress + 1
               : 0
 
+          const currentRound = ctx.round
+
           const problems = failedResults.map((r) => `[${r.conditionId}] ${r.evidence}`)
 
           let executionMode: 'REBUILD' | 'FIX' | null = null
@@ -207,11 +219,12 @@ export const taskLoopWorkflow = defineWorkflow<TaskLoopInput, TaskLoopState>({
             exitReason = 'done'
           } else if (consecutiveNoProgress >= BOTTLENECK_THRESHOLD) {
             exitReason = 'bottleneck'
-          } else if (ctx.round >= ctx.state.maxRounds) {
+          } else if (currentRound >= ctx.state.maxRounds) {
             exitReason = 'limit'
           }
 
           return {
+            currentRound,
             lastVerificationResults: verifyResult.results,
             previousPassedCount: passedCount,
             consecutiveNoProgress,
@@ -227,6 +240,16 @@ export const taskLoopWorkflow = defineWorkflow<TaskLoopInput, TaskLoopState>({
             name: 'execute',
             title: (ctx) => `执行 (${ctx.state.executionMode})`,
             message: (ctx) => P.executeMessage(ctx),
+            systemPrompt: async (ctx) => {
+              if (!ctx.state.executionSkill) return ''
+              const slug = ctx.state.executionSkill.replace(/^ae:/, 'ae-')
+              try {
+                const content = await ctx.resolveContent(`skill:${slug}`)
+                return `## 执行技能参考\n${content}`
+              } catch {
+                return ''
+              }
+            },
           })],
         ),
       ],
@@ -236,7 +259,7 @@ export const taskLoopWorkflow = defineWorkflow<TaskLoopInput, TaskLoopState>({
       const reason = ctx.state.exitReason
       const summary = [
         `**退出原因**：${reason}`,
-        `**总轮次**：${ctx.round}`,
+        `**总轮次**：${ctx.state.currentRound}`,
         `**目标**：${ctx.state.goal}`,
       ]
 

@@ -37,7 +37,8 @@ export function analyzeQuestionsMessage(ctx: TL_Ctx): string {
 
 export function collectAnswersMessage(ctx: TL_Ctx): string {
   const questions = ctx.state.questionsAndAnswers
-    .map((q) => `- [${q.id}] ${q.question}${q.answer ? ` (已有回答: ${q.answer})` : ''}`)
+    .filter((q) => !q.answer)
+    .map((q) => `- [${q.id}] ${q.question}`)
     .join('\n')
   return [
     '## 任务：收集用户回答',
