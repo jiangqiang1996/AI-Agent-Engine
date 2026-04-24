@@ -1,4 +1,4 @@
-import { AeAssetEntrySchema, type AeAssetEntry, AgentDefinitionSchema, type AgentDefinition, SKILL, COMMAND, AGENT, skillDir } from '../schemas/ae-asset-schema.js'
+import { AeAssetEntrySchema, type AeAssetEntry, AgentDefinitionSchema, type AgentDefinition, SKILL, COMMAND, AGENT, skillDir, PO_SUFFIX, PA_SUFFIX, AUTO_SUFFIX } from '../schemas/ae-asset-schema.js'
 
 const PHASE_ONE_ENTRIES = [
   {
@@ -119,6 +119,15 @@ const PHASE_ONE_ENTRIES = [
     skillFile: `src/assets/skills/${skillDir(SKILL.PROMPT_OPTIMIZE)}/SKILL.md`,
   },
   {
+    skillName: SKILL.PROMPT_OPTIMIZE,
+    skillSlug: skillDir(SKILL.PROMPT_OPTIMIZE),
+    commandName: `${COMMAND.PROMPT_OPTIMIZE}${AUTO_SUFFIX}`,
+    description: '提示词优化（auto 模式）：优化后跳过确认直接在新会话中执行',
+    argumentHint: '[提示词内容]',
+    defaultEntry: false,
+    skillFile: `src/assets/skills/${skillDir(SKILL.PROMPT_OPTIMIZE)}/SKILL.md`,
+  },
+  {
     skillName: SKILL.TASK_LOOP,
     skillSlug: skillDir(SKILL.TASK_LOOP),
     commandName: COMMAND.TASK_LOOP,
@@ -164,6 +173,30 @@ const PHASE_ONE_ENTRIES = [
     skillFile: `src/assets/skills/${skillDir(SKILL.UPDATE)}/SKILL.md`,
   },
 ] satisfies AeAssetEntry[]
+
+const PHASE_ONE_PO_ENTRIES: AeAssetEntry[] = PHASE_ONE_ENTRIES
+  .filter((e) => e.skillName !== SKILL.PROMPT_OPTIMIZE)
+  .map((e) => ({
+    skillName: SKILL.PROMPT_OPTIMIZE,
+    skillSlug: skillDir(SKILL.PROMPT_OPTIMIZE),
+    commandName: `${e.commandName}${PO_SUFFIX}`,
+    description: `先优化提示词，再用 ${e.description}`,
+    argumentHint: e.argumentHint,
+    defaultEntry: false,
+    skillFile: `src/assets/skills/${skillDir(SKILL.PROMPT_OPTIMIZE)}/SKILL.md`,
+  } satisfies AeAssetEntry))
+
+const PHASE_ONE_PA_ENTRIES: AeAssetEntry[] = PHASE_ONE_ENTRIES
+  .filter((e) => e.skillName !== SKILL.PROMPT_OPTIMIZE)
+  .map((e) => ({
+    skillName: SKILL.PROMPT_OPTIMIZE,
+    skillSlug: skillDir(SKILL.PROMPT_OPTIMIZE),
+    commandName: `${e.commandName}${PA_SUFFIX}`,
+    description: `先优化提示词（auto 模式），再用 ${e.description}`,
+    argumentHint: e.argumentHint,
+    defaultEntry: false,
+    skillFile: `src/assets/skills/${skillDir(SKILL.PROMPT_OPTIMIZE)}/SKILL.md`,
+  } satisfies AeAssetEntry))
 
 type AgentStage = 'document-review' | 'review' | 'research' | 'workflow'
 
@@ -217,6 +250,14 @@ function buildAgentList(
 
 export function getPhaseOneEntries(): AeAssetEntry[] {
   return PHASE_ONE_ENTRIES.map((e) => AeAssetEntrySchema.parse(e))
+}
+
+export function getPhaseOnePoEntries(): AeAssetEntry[] {
+  return PHASE_ONE_PO_ENTRIES.map((e) => AeAssetEntrySchema.parse(e))
+}
+
+export function getPhaseOnePaEntries(): AeAssetEntry[] {
+  return PHASE_ONE_PA_ENTRIES.map((e) => AeAssetEntrySchema.parse(e))
 }
 
 export function getDefaultEntry(): AeAssetEntry {

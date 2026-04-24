@@ -21,6 +21,10 @@ export const SKILL = {
   UPDATE: 'ae:update',
 } as const
 
+export const PO_SUFFIX = '-po'
+export const PA_SUFFIX = '-pa'
+export const AUTO_SUFFIX = '-auto'
+
 export const COMMAND = {
   IDEATE: 'ae-ideate',
   BRAINSTORM: 'ae-brainstorm',
@@ -117,27 +121,23 @@ export const AeSkillNameSchema = z
   ])
   .describe('AE 技能名')
 
+const PO_COMMAND_NAMES = Object.values(COMMAND)
+  .filter((v) => v !== COMMAND.PROMPT_OPTIMIZE)
+  .map((v) => `${v}${PO_SUFFIX}`)
+
+const PA_COMMAND_NAMES = Object.values(COMMAND)
+  .filter((v) => v !== COMMAND.PROMPT_OPTIMIZE)
+  .map((v) => `${v}${PA_SUFFIX}`)
+
+const ALL_COMMAND_NAMES = [
+  ...Object.values(COMMAND),
+  `${COMMAND.PROMPT_OPTIMIZE}${AUTO_SUFFIX}`,
+  ...PO_COMMAND_NAMES,
+  ...PA_COMMAND_NAMES,
+] as [string, ...string[]]
+
 export const AeCommandNameSchema = z
-  .enum([
-    COMMAND.IDEATE,
-    COMMAND.BRAINSTORM,
-    COMMAND.DOCUMENT_REVIEW,
-    COMMAND.PLAN,
-    COMMAND.PLAN_REVIEW,
-    COMMAND.WORK,
-    COMMAND.REVIEW,
-    COMMAND.LFG,
-    COMMAND.SETUP,
-    COMMAND.TEST_BROWSER,
-    COMMAND.FRONTEND_DESIGN,
-    COMMAND.HANDOFF,
-    COMMAND.PROMPT_OPTIMIZE,
-    COMMAND.TASK_LOOP,
-    COMMAND.SQL,
-    COMMAND.SAVE_RULES,
-    COMMAND.HELP,
-    COMMAND.UPDATE,
-  ])
+  .enum(ALL_COMMAND_NAMES)
   .describe('AE 命令名')
 
 export const AeAssetEntrySchema = z.object({

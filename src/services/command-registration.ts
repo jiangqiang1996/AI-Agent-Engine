@@ -6,7 +6,8 @@ import type { TuiCommand } from '@opencode-ai/plugin/tui'
 
 import { parseFrontmatter } from '../utils/frontmatter.js'
 import { getArgumentContracts } from './argument-contract.js'
-import { getPhaseOneEntries } from './ae-catalog.js'
+import { getPhaseOneEntries, getPhaseOnePoEntries, getPhaseOnePaEntries } from './ae-catalog.js'
+import { COMMAND, AUTO_SUFFIX, PO_SUFFIX, PA_SUFFIX } from '../schemas/ae-asset-schema.js'
 
 interface LoadedCommand {
   template: string
@@ -39,10 +40,48 @@ function loadCommandFiles(commandsDir: string): Map<string, LoadedCommand> {
 
 export function buildCommandConfig(commandsDir: string): NonNullable<Config['command']> {
   const result: NonNullable<Config['command']> = {}
+  const phaseOne = getPhaseOneEntries()
+  const commandToSkill = new Map(phaseOne.map((e) => [e.commandName, e.skillName]))
 
-  for (const entry of getPhaseOneEntries()) {
+  const promptOptimizeAutoCommand = `${COMMAND.PROMPT_OPTIMIZE}${AUTO_SUFFIX}`
+
+  for (const entry of phaseOne) {
+    const isAutoPo = entry.commandName === promptOptimizeAutoCommand
+    const template = isAutoPo
+      ? `使用 \`${entry.skillName}\` 技能以 auto 模式处理这次请求（跳过确认直接提交），并沿用参数：\`auto $ARGUMENTS\`。`
+      : `使用 \`${entry.skillName}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`
     result[entry.commandName] = {
-      template: `使用 \`${entry.skillName}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`,
+      template,
+      description: entry.description,
+    }
+  }
+
+  for (const entry of getPhaseOnePoEntries()) {
+    const baseCommandName = entry.commandName.slice(0, -PO_SUFFIX.length)
+    const baseSkillName = commandToSkill.get(baseCommandName as typeof entry.commandName) ?? ''
+    result[entry.commandName] = {
+      template: [
+        `先使用 \`${entry.skillName}\` 技能优化以下用户输入，将优化结果作为最终提示词：`,
+        '',
+        '---',
+        `使用 \`${baseSkillName}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`,
+        '---',
+      ].join('\n'),
+      description: entry.description,
+    }
+  }
+
+  for (const entry of getPhaseOnePaEntries()) {
+    const baseCommandName = entry.commandName.slice(0, -PA_SUFFIX.length)
+    const baseSkillName = commandToSkill.get(baseCommandName as typeof entry.commandName) ?? ''
+    result[entry.commandName] = {
+      template: [
+        `先使用 \`${entry.skillName}\` 技能以 auto 模式优化以下用户输入（跳过确认直接提交），将优化结果作为最终提示词：`,
+        '',
+        '---',
+        `使用 \`${baseSkillName}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`,
+        '---',
+      ].join('\n'),
       description: entry.description,
     }
   }
@@ -60,10 +99,14 @@ export function createTuiCommands(
   commandsDir?: string,
 ): TuiCommand[] {
   const contracts = getArgumentContracts()
-  const catalogNames: ReadonlySet<string> = new Set(getPhaseOneEntries().map((e) => e.commandName))
+  const phaseOne = getPhaseOneEntries()
+  const poEntries = getPhaseOnePoEntries()
+  const paEntries = getPhaseOnePaEntries()
+  const allCatalogEntries = [...phaseOne, ...poEntries, ...paEntries]
+  const catalogNames: ReadonlySet<string> = new Set(allCatalogEntries.map((e) => e.commandName))
   const fileCommands = commandsDir ? loadCommandFiles(commandsDir) : new Map<string, LoadedCommand>()
 
-  const tuiCommands: TuiCommand[] = getPhaseOneEntries().map((entry) => {
+  const tuiCommands: TuiCommand[] = phaseOne.map((entry) => {
     const contract = contracts.find((item) => item.commandName === entry.commandName)
     const fileOverride = fileCommands.get(entry.commandName)
     const description = fileOverride
@@ -82,6 +125,30 @@ export function createTuiCommands(
       onSelect: trigger ? () => trigger(`/${entry.commandName}`) : undefined,
     } satisfies TuiCommand
   })
+
+  for (const entry of poEntries) {
+    const contract = contracts.find((item) => item.commandName === entry.commandName)
+    tuiCommands.push({
+      title: entry.commandName,
+      value: `/${entry.commandName}`,
+      description: [entry.description, contract?.argumentHint].filter(Boolean).join(' | '),
+      category: 'AE 提示词优化',
+      slash: { name: entry.commandName },
+      onSelect: trigger ? () => trigger(`/${entry.commandName}`) : undefined,
+    } satisfies TuiCommand)
+  }
+
+  for (const entry of paEntries) {
+    const contract = contracts.find((item) => item.commandName === entry.commandName)
+    tuiCommands.push({
+      title: entry.commandName,
+      value: `/${entry.commandName}`,
+      description: [entry.description, contract?.argumentHint].filter(Boolean).join(' | '),
+      category: 'AE 提示词优化（自动）',
+      slash: { name: entry.commandName },
+      onSelect: trigger ? () => trigger(`/${entry.commandName}`) : undefined,
+    } satisfies TuiCommand)
+  }
 
   for (const [name, cmd] of fileCommands) {
     if (catalogNames.has(name)) continue
