@@ -23,7 +23,6 @@ function fallbackSkillForPhase(phase: RecoveryResult['phase']): string {
       return SKILL.BRAINSTORM
     case 'plan':
       return SKILL.BRAINSTORM
-    case 'plan-review':
     case 'work':
     case 'review':
       return SKILL.PLAN
@@ -37,8 +36,6 @@ function preferredArtifactTypes(phase: RecoveryResult['phase']): ArtifactKind[] 
     case 'document-review':
     case 'plan':
       return ['brainstorm']
-    case 'plan-review':
-      return ['plan']
     case 'work':
       return ['work', 'plan']
     case 'review':
@@ -54,8 +51,6 @@ function nextSkillForArtifact(phase: RecoveryResult['phase'], artifactType: Arti
       return SKILL.DOCUMENT_REVIEW
     case 'plan':
       return SKILL.PLAN
-    case 'plan-review':
-      return SKILL.PLAN_REVIEW
     case 'work':
       return SKILL.WORK
     case 'review':
@@ -69,7 +64,7 @@ function nextSkillForArtifact(phase: RecoveryResult['phase'], artifactType: Arti
         case 'work':
           return SKILL.WORK
         case 'plan':
-          return SKILL.PLAN_REVIEW
+          return SKILL.DOCUMENT_REVIEW
         case 'brainstorm':
           return SKILL.DOCUMENT_REVIEW
       }
@@ -89,7 +84,7 @@ function resumePhaseForArtifact(
     case 'work':
       return 'work'
     case 'plan':
-      return 'plan-review'
+      return 'document-review'
     case 'brainstorm':
       return 'document-review'
   }

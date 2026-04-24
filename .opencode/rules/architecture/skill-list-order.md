@@ -8,7 +8,7 @@
 
 ### 排列原则
 
-1. **主流程优先** 主流程包括：ideate  brainstorm document-review plan plan-review work review
+1. **主流程优先** 主流程包括：ideate  brainstorm document-review plan work review
 2. **辅助工具随后** 除了主流程以外的其他技能
 3. **同一类工具之间的顺序参照功能执行顺序** 
 

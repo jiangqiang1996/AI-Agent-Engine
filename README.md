@@ -117,9 +117,8 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 | 一键全链路 | `/ae-lfg 实现用户权限管理模块` | 输入需求描述，自动按步骤推进 | 代码 + 完整文档链 |
 | 创意构思 | `/ae-ideate 如何提升开发者体验` | 在头脑风暴前先探索方向 | `docs/ae/ideation/*` |
 | 需求探索 | `/ae-brainstorm 为管理后台添加审计日志` | 通过对话澄清需求并生成文档 | `docs/ae/brainstorms/*-requirements.md` |
-| 需求审查 | `/ae-review-doc` | 多角色审查需求文档质量 | findings / gate 结论 |
+| 需求审查 | `/ae-document-review` | 多角色审查需求文档质量 | findings / gate 结论 |
 | 制定计划 | `/ae-plan` | 基于需求文档生成实现计划 | `docs/ae/plans/*-plan.md` |
-| 计划审查 | `/ae-review-plan` | 多角色审查计划可行性 | findings / gate 结论 |
 | 执行实现 | `/ae-work docs/ae/plans/xxx-plan.md` | 按计划逐步实现代码 | 代码改动 |
 | 代码审查 | `/ae-review mode:report-only` | 分层角色代理审查代码变更 | findings / gate 结论 |
 
@@ -131,9 +130,9 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 
 # 方式二：逐步推进（适合需要精细控制的场景）
 /ae-brainstorm 设计一个多租户数据隔离方案
-/ae-review-doc
+/ae-document-review
 /ae-plan
-/ae-review-plan
+/ae-document-review
 /ae-work
 /ae-review
 ```
@@ -293,7 +292,7 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 适用于：需求文档、计划文档的质量校验。
 
 ```text
-/ae-review-doc
+/ae-document-review
 ```
 
 **审查角色：** 一致性审查、可行性审查、产品视角审查、范围守卫、对抗性审查、设计视角审查、安全视角审查。
@@ -399,9 +398,8 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 | `ae:lfg` | `/ae-lfg` | 一键全链路 | 是 |
 | `ae:ideate` | `/ae-ideate` | 创意构思 | 否 |
 | `ae:brainstorm` | `/ae-brainstorm` | 需求探索 | 是 |
-| `ae:document-review` | `/ae-review-doc` | 需求文档审查 | 是 |
+| `ae:document-review` | `/ae-document-review` | 需求/计划文档审查 | 是 |
 | `ae:plan` | `/ae-plan` | 制定实现计划 | 是 |
-| `ae:plan-review` | `/ae-review-plan` | 计划审查 | 是 |
 | `ae:work` | `/ae-work` | 按计划执行实现 | 是 |
 | `ae:review` | `/ae-review` | 代码审查 | 是 |
 | `ae:task-loop` | `/ae-task-loop` | 目标驱动循环执行 | 否 |
@@ -454,14 +452,13 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 ```
 ae:lfg ───┬─→ ae:setup
            ├─→ ae:brainstorm ──→ ae:document-review
-           │                 └──→ ae:plan ──→ ae:work ──→ ae:review
-           ├─→ ae:plan-review ──→ ae:document-review
+           │                 └──→ ae:plan ──→ ae:document-review ──→ ae:work ──→ ae:review
            └─→ ae:test-browser
 
 ae:task-loop ──→ ae:work / ae:brainstorm / ae:review（按目标路由）
 ae:ideate ─────→ ae:brainstorm（构思后引导进入头脑风暴）
 ae:frontend-design ──→ @design-iterator（多轮迭代时）
-                    ──→ /ae-test-browser（功能验证时）
+                     ──→ /ae-test-browser（功能验证时）
 ```
 
 ## 提示词优化变体命令
@@ -473,9 +470,9 @@ ae:frontend-design ──→ @design-iterator（多轮迭代时）
 | `-po` | 先优化提示词，确认后再执行目标技能 | `/ae-plan-po 搞个权限系统` |
 | `-pa` | 先优化提示词，自动模式跳过确认直接执行 | `/ae-lfg-pa 加个文件上传功能` |
 
-共计 17 个 `-po` 命令 + 17 个 `-pa` 命令 = **34 个变体命令**。
+共计 16 个 `-po` 命令 + 16 个 `-pa` 命令 = **32 个变体命令**。
 
-加上 18 个基础命令，AE 共提供 **52 个命令**。
+加上 17 个基础命令，AE 共提供 **49 个命令**。
 
 ## 参数总表
 
@@ -487,8 +484,6 @@ ae:frontend-design ──→ @design-iterator（多轮迭代时）
 | `ae:plan` | plan 路径 | 续写已有计划 | 自动查找 |
 | `ae:plan` | requirements 路径 | 以需求生成计划 | 自动查找 |
 | `ae:plan` | 自由文本 | 直接从描述规划 | bootstrap 模式 |
-| `ae:plan-review` | `mode:*` | 计划审查模式 | `interactive` |
-| `ae:plan-review` | 计划路径 | 要审查的计划 | 自动查找 |
 | `ae:work` | plan 路径 | 要执行的计划 | 自动查找 |
 | `ae:work` | 自由文本 | 直接描述工作 | 建议先有计划 |
 | `ae:review` | `mode:*` | `interactive` / `headless` / `report-only` / `autofix` | `interactive` |

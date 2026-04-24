@@ -38,15 +38,6 @@ const PHASE_ONE_ENTRIES = [
     skillFile: `src/assets/skills/${skillDir(SKILL.PLAN)}/SKILL.md`,
   },
   {
-    skillName: SKILL.PLAN_REVIEW,
-    skillSlug: skillDir(SKILL.PLAN_REVIEW),
-    commandName: COMMAND.PLAN_REVIEW,
-    description: '对计划文档进行多角色审查',
-    argumentHint: '[mode:*] [计划路径]',
-    defaultEntry: false,
-    skillFile: `src/assets/skills/${skillDir(SKILL.PLAN_REVIEW)}/SKILL.md`,
-  },
-  {
     skillName: SKILL.WORK,
     skillSlug: skillDir(SKILL.WORK),
     commandName: COMMAND.WORK,

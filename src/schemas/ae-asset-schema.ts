@@ -5,7 +5,6 @@ export const SKILL = {
   BRAINSTORM: 'ae:brainstorm',
   DOCUMENT_REVIEW: 'ae:document-review',
   PLAN: 'ae:plan',
-  PLAN_REVIEW: 'ae:plan-review',
   WORK: 'ae:work',
   REVIEW: 'ae:review',
   LFG: 'ae:lfg',
@@ -25,26 +24,11 @@ export const PO_SUFFIX = '-po'
 export const PA_SUFFIX = '-pa'
 export const AUTO_SUFFIX = '-auto'
 
-export const COMMAND = {
-  IDEATE: 'ae-ideate',
-  BRAINSTORM: 'ae-brainstorm',
-  DOCUMENT_REVIEW: 'ae-review-doc',
-  PLAN: 'ae-plan',
-  PLAN_REVIEW: 'ae-review-plan',
-  WORK: 'ae-work',
-  REVIEW: 'ae-review',
-  LFG: 'ae-lfg',
-  SETUP: 'ae-setup',
-  TEST_BROWSER: 'ae-test-browser',
-  FRONTEND_DESIGN: 'ae-frontend-design',
-  HANDOFF: 'ae-handoff',
-  PROMPT_OPTIMIZE: 'ae-prompt-optimize',
-  TASK_LOOP: 'ae-task-loop',
-  SQL: 'ae-sql',
-  SAVE_RULES: 'ae-save-rules',
-  HELP: 'ae-help',
-  UPDATE: 'ae-update',
-} as const
+type SkillToCommand<S extends string> = S extends `ae:${infer R}` ? `ae-${R}` : S
+
+export const COMMAND = Object.fromEntries(
+  Object.entries(SKILL).map(([k, v]) => [k, v.replace(/^ae:/, 'ae-')]),
+) as { readonly [K in keyof typeof SKILL]: SkillToCommand<(typeof SKILL)[K]> }
 
 export const AGENT = {
   COHERENCE_REVIEWER: 'coherence-reviewer',
@@ -104,7 +88,6 @@ export const AeSkillNameSchema = z
     SKILL.BRAINSTORM,
     SKILL.DOCUMENT_REVIEW,
     SKILL.PLAN,
-    SKILL.PLAN_REVIEW,
     SKILL.WORK,
     SKILL.REVIEW,
     SKILL.LFG,

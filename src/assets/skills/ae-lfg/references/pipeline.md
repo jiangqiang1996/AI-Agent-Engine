@@ -16,7 +16,7 @@
 2. `ae:brainstorm` — 需求探索
 3. `ae:document-review` — 需求审查
 4. `ae:plan` — 创建计划
-5. `ae:plan-review` — 计划审查
+5. `ae:document-review` — 计划审查
 6. `ae:work` — 执行实现
 7. `ae:review mode:autofix plan:<path>` — 代码审查（含需求验证）
 8. `ae:test-browser` — 浏览器测试（仅当项目有 UI 且 agent-browser 可用时）

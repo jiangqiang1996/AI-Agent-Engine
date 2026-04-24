@@ -60,7 +60,7 @@ disable-model-invocation: true
 
 ### 步骤 5：计划审查
 
-运行 `ae:plan-review`
+运行 `ae:document-review`
 
 **门控：** 验证计划审查通过。如果审查未通过，根据发现修正计划后重新审查。
 
@@ -94,7 +94,7 @@ disable-model-invocation: true
 
 ---
 
-标准主链路：`ae:brainstorm` → `ae:document-review` → `ae:plan` → `ae:plan-review` → `ae:work` → `ae:review` → 浏览器测试
+标准主链路：`ae:brainstorm` → `ae:document-review` → `ae:plan` → `ae:document-review` → `ae:work` → `ae:review` → 浏览器测试
 
 从步骤 2 现在开始。记住：先计划，再工作。永远不要跳过计划。
 
