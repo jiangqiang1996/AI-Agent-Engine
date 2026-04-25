@@ -41,12 +41,3 @@ description: "审查测试用例文档的可测性、完备性、步骤可执行
 ## 输出格式
 
 以 findings schema 格式返回 JSON。JSON 之外不得包含任何文字说明。
-
-```json
-{
-  "reviewer": "test-case",
-  "findings": [],
-  "residual_risks": [],
-  "testing_gaps": []
-}
-```

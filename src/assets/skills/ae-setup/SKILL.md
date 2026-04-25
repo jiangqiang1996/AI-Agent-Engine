@@ -1,6 +1,7 @@
 ---
 name: ae:setup
 description: "诊断并安装 AE 前端设计所需的外部依赖（agent-browser）。检查安装状态、引导安装、验证结果。"
+argument-hint: ""
 ---
 
 # AE 环境安装

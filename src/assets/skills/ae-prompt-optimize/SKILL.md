@@ -1,6 +1,7 @@
 ---
 name: ae:prompt-optimize
-description: 提示词优化工具：将用户随意输入优化为结构化 AI 对话提示词，确认后在新会话中自动执行，支持 auto 模式跳过确认
+description: "提示词优化工具：将用户随意输入优化为结构化 AI 对话提示词，确认后在新会话中自动执行，支持 auto 模式跳过确认"
+argument-hint: "[auto] [提示词内容]"
 ---
 
 # 提示词优化

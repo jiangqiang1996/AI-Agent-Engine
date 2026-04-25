@@ -9,13 +9,13 @@ export interface ReviewDefinition {
 // ae:document-review 使用的文档审查代理
 // 面向文档的专项审查，与 Git 版本差异无强关联
 export const DOCUMENT_REVIEWERS: ReviewDefinition[] = [
-  { name: AGENT.COHERENCE_REVIEWER, description: '审查文档内部一致性', alwaysOn: true },
-  { name: AGENT.FEASIBILITY_REVIEWER, description: '评估方案落地可行性', alwaysOn: true },
-  { name: AGENT.PRODUCT_LENS_REVIEWER, description: '从产品价值与用户视角审查', alwaysOn: false },
-  { name: AGENT.SCOPE_GUARDIAN_REVIEWER, description: '审查范围是否蔓延', alwaysOn: false },
+  { name: AGENT.COHERENCE_REVIEWER, description: '审查文档的内部一致性', alwaysOn: true },
+  { name: AGENT.FEASIBILITY_REVIEWER, description: '评估文档中提出的技术方法能否经受现实考验', alwaysOn: true },
+  { name: AGENT.PRODUCT_LENS_REVIEWER, description: '以高级产品负责人的视角审查文档', alwaysOn: false },
+  { name: AGENT.SCOPE_GUARDIAN_REVIEWER, description: '审查文档的范围对齐和不合理的复杂度', alwaysOn: false },
   { name: AGENT.ADVERSARIAL_DOCUMENT_REVIEWER, description: '对文档做对抗式压力测试', alwaysOn: false },
-  { name: AGENT.DESIGN_LENS_REVIEWER, description: '审查界面与交互设计约束', alwaysOn: false },
-  { name: AGENT.SECURITY_LENS_REVIEWER, description: '审查文档中的安全边界', alwaysOn: false },
+  { name: AGENT.DESIGN_LENS_REVIEWER, description: '审查文档中缺失的设计决策', alwaysOn: false },
+  { name: AGENT.SECURITY_LENS_REVIEWER, description: '评估文档中的安全缺口', alwaysOn: false },
   { name: AGENT.STEP_GRANULARITY_REVIEWER, description: '审查计划步骤是否拆解至最小不可再分单元', alwaysOn: false },
   { name: AGENT.BATCH_OPERATION_REVIEWER, description: '审查多文件操作是否可脚本化批量执行', alwaysOn: false },
   { name: AGENT.TEST_CASE_REVIEWER, description: '审查测试用例文档的可测性、完备性、步骤可执行性和与需求对齐程度', alwaysOn: false },
@@ -29,7 +29,7 @@ export const CODE_REVIEWERS: ReviewDefinition[] = [
   { name: AGENT.MAINTAINABILITY_REVIEWER, description: '审查可维护性与抽象合理性', alwaysOn: true },
   { name: AGENT.PROJECT_STANDARDS_REVIEWER, description: '审查是否遵守项目规范', alwaysOn: true },
   { name: AGENT.AGENT_NATIVE_REVIEWER, description: '审查代理操作友好性', alwaysOn: true },
-  { name: AGENT.LEARNINGS_RESEARCHER, description: '搜索 docs/ae/solutions/ 查找历史问题', alwaysOn: true },
+  { name: AGENT.LEARNINGS_RESEARCHER, description: '提炼已有经验与文档知识', alwaysOn: true },
   { name: AGENT.SECURITY_REVIEWER, description: '审查安全漏洞', alwaysOn: false },
   { name: AGENT.PERFORMANCE_REVIEWER, description: '审查性能瓶颈', alwaysOn: false },
   { name: AGENT.API_CONTRACT_REVIEWER, description: '审查接口契约破坏性变更', alwaysOn: false },

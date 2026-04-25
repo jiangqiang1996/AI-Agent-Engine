@@ -72,9 +72,9 @@ argument-hint: "[mode:*] [文档路径]"
 
 **security-lens** — 当文档包含认证/授权、公共 API、数据处理或第三方集成时激活。
 
-**scope-guardian** — 当文档包含多个优先级层级、大量需求（>8 个）、弹性目标或与目标不一致的范围语言时激活。
+**scope-guardian** — 当文档包含多个优先级层级、大量需求（>=5 个）、弹性目标或与目标不一致的范围语言时激活。
 
-**adversarial** — 当文档超过 5 个独立需求、包含重要架构决策、高风险领域或新抽象提议时激活。
+**adversarial** — 当文档超过 5 个独立需求（requirement_count >= 5）、包含重要架构决策（has_architecture_decision）、高风险领域（is_high_risk_domain）或新抽象提议（has_new_abstraction）时激活。
 
 **test-case** — 当文档类型为 test 时激活。审查测试用例的可测性、完备性、步骤可执行性和与需求对齐程度。
 
