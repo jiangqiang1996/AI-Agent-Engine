@@ -6,6 +6,8 @@ export interface ReviewDefinition {
   alwaysOn: boolean
 }
 
+// ae:document-review 使用的文档审查代理
+// 面向文档的专项审查，与 Git 版本差异无强关联
 export const DOCUMENT_REVIEWERS: ReviewDefinition[] = [
   { name: AGENT.COHERENCE_REVIEWER, description: '审查文档内部一致性', alwaysOn: true },
   { name: AGENT.FEASIBILITY_REVIEWER, description: '评估方案落地可行性', alwaysOn: true },
@@ -18,6 +20,8 @@ export const DOCUMENT_REVIEWERS: ReviewDefinition[] = [
   { name: AGENT.BATCH_OPERATION_REVIEWER, description: '审查多文件操作是否可脚本化批量执行', alwaysOn: false },
 ]
 
+// ae:review 使用的代码审查代理
+// 全能审查：支持 Git 差异、全量扫描、会话变更等多种范围确定方式，排除需求文档和计划文档
 export const CODE_REVIEWERS: ReviewDefinition[] = [
   { name: AGENT.CORRECTNESS_REVIEWER, description: '审查逻辑正确性与边界条件', alwaysOn: true },
   { name: AGENT.TESTING_REVIEWER, description: '审查测试覆盖与断言质量', alwaysOn: true },

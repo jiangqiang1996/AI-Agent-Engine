@@ -3,6 +3,7 @@ import { z } from 'zod'
 
 import { TOOL } from '../schemas/ae-asset-schema.js'
 import { generateHelpText } from '../services/help-catalog-service.js'
+import { showToast } from '../services/toast-holder.js'
 
 export const aeHelpTool = tool({
   description: [
@@ -38,6 +39,7 @@ export const aeHelpTool = tool({
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
+      showToast(`生成帮助信息时出错: ${message}`)
       return `生成帮助信息时出错: ${message}`
     }
   },

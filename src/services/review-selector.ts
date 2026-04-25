@@ -1,6 +1,8 @@
 import { AGENT } from '../schemas/ae-asset-schema.js'
 import { CODE_REVIEWERS, DOCUMENT_REVIEWERS } from './review-catalog.js'
 
+// ae:document-review 的文档审查者选择
+// 审查需求文档、计划文档及其他任意文档
 export interface DocumentReviewSelectionInput {
   documentType: 'requirements' | 'plan'
   requirementCount?: number
@@ -8,6 +10,8 @@ export interface DocumentReviewSelectionInput {
   hasSecurity?: boolean
 }
 
+// ae:review 的代码审查者选择
+// 全能审查：支持多种范围确定方式，排除需求文档和计划文档
 export interface CodeReviewSelectionInput {
   changedLineCount?: number
   hasSecurity?: boolean

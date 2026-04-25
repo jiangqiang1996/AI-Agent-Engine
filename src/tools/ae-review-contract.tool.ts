@@ -2,6 +2,7 @@ import { tool, type ToolDefinition } from '@opencode-ai/plugin/tool'
 import { Effect } from 'effect'
 
 import { selectCodeReviewers, selectDocumentReviewers } from '../services/review-selector.js'
+import { showToast } from '../services/toast-holder.js'
 
 export const aeReviewContractTool: ToolDefinition = tool({
   description: [
@@ -9,6 +10,8 @@ export const aeReviewContractTool: ToolDefinition = tool({
     '',
     '功能说明：',
     '- 根据审查类型与模式生成审查团队',
+    '- 代码审查（kind=code）：支持 Git 差异、全量扫描、会话变更等多种范围确定方式',
+    '- 文档审查（kind=document/plan）：面向文档，与 Git 无强关联',
     '- 返回门控规则和模式边界',
     '',
     '适用场景：',
@@ -35,37 +38,46 @@ export const aeReviewContractTool: ToolDefinition = tool({
   },
   async execute(args) {
     return Effect.runPromise(
-      Effect.sync(() => {
-        const reviewers =
-          args.kind === 'code'
-            ? selectCodeReviewers({
-                hasCli: args.has_cli,
-                hasPrMetadata: args.has_pr_metadata,
-                hasSecurity: args.has_security,
-                hasTypescript: args.has_typescript,
-                hasPerformance: args.has_performance,
-                hasApi: args.has_api,
-                hasReliability: args.has_reliability,
-                changedLineCount: args.changed_lines,
-              })
-            : selectDocumentReviewers({
-                documentType: args.kind === 'plan' ? 'plan' : 'requirements',
-                hasSecurity: args.has_security,
-                hasUi: args.has_ui,
-                requirementCount: args.requirement_count,
-              })
+      Effect.try({
+        try: () => {
+          const reviewers =
+            args.kind === 'code'
+              ? selectCodeReviewers({
+                  hasCli: args.has_cli,
+                  hasPrMetadata: args.has_pr_metadata,
+                  hasSecurity: args.has_security,
+                  hasTypescript: args.has_typescript,
+                  hasPerformance: args.has_performance,
+                  hasApi: args.has_api,
+                  hasReliability: args.has_reliability,
+                  changedLineCount: args.changed_lines,
+                })
+              : selectDocumentReviewers({
+                  documentType: args.kind === 'plan' ? 'plan' : 'requirements',
+                  hasSecurity: args.has_security,
+                  hasUi: args.has_ui,
+                  requirementCount: args.requirement_count,
+                })
 
-        return JSON.stringify(
-          {
-            kind: args.kind,
-            mode: args.mode,
-            reviewers,
-            gate: args.kind === 'code' ? 'P0/P1 默认阻断；只读模式仅报告' : '文档与计划审查默认作为质量门控',
-          },
-          null,
-          2,
-        )
-      }),
+          return JSON.stringify(
+            {
+              kind: args.kind,
+              mode: args.mode,
+              reviewers,
+              gate: args.kind === 'code' ? 'P0/P1 默认阻断；只读模式仅报告' : '文档与计划审查默认作为质量门控',
+            },
+            null,
+            2,
+          )
+        },
+        catch: (error) => error instanceof Error ? error : new Error(String(error)),
+      }).pipe(
+        Effect.catch((error) => {
+          const message = error instanceof Error ? error.message : String(error)
+          showToast(`审查契约生成失败：${message}`)
+          return Effect.succeed(`❌ 审查契约生成失败：${message}`)
+        }),
+      ),
     )
   },
 })

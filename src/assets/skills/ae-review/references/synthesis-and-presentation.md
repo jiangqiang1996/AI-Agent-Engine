@@ -33,7 +33,7 @@
 
 ### 5.7 合并文档审查发现
 
-将阶段 4b 中 ae-document-review 返回的文档发现合并到统一报告中：
+将阶段 4b 中 ae-document-review 返回的文档发现合并到统一报告中。注意：需求文档和计划文档默认排除——除非用户明确指定纳入，此时它们会经由 ae-document-review 审查后在此合并。
 - 文档发现使用 ae-document-review 的 findings schema（section、finding_type、autofix_class: auto/present）
 - 代码发现使用代码审查的 findings schema（file、line、autofix_class: safe_auto/gated_auto/manual/advisory）
 - 两种发现的严重级别（P0-P3）和置信度可直接对比排序
@@ -74,6 +74,7 @@
 - `docs/ae/brainstorms/`
 - `docs/ae/plans/`
 - `docs/ae/solutions/`
+- `.opencode/`
 
 ## 阶段 7：审查后
 

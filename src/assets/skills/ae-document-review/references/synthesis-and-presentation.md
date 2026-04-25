@@ -85,6 +85,7 @@ P0 → P1 → P2 → P3，然后错误在前遗漏在后，然后信心降序，
 - `docs/ae/brainstorms/`
 - `docs/ae/plans/`
 - `docs/ae/solutions/`
+- `.opencode/`
 
 ## 阶段 5：下一步操作
 

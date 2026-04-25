@@ -1,6 +1,6 @@
 # 子代理提示模板
 
-编排器使用此模板派生每个审查者子代理。变量替换槽在派发时填充。支持两种输入模式：diff 模式（增量审查）和完整文件模式（全项目审查）。
+编排器使用此模板派生每个审查者子代理。变量替换槽在派发时填充。支持三种输入模式：diff 模式（增量审查）、完整文件模式（全量/全项目审查）、会话变更模式。
 
 ---
 
@@ -74,8 +74,8 @@ Changed files: {file_list}
 | `{schema}` | `references/findings-schema.json` 内容 |
 | `{intent_summary}` | 阶段 2 输出 |
 | `{file_list}` | 变更文件列表 |
-| `{content}` | diff 内容（增量审查）或完整文件内容（全项目审查） |
-| `{content_mode_label}` | 增量审查时为 `Diff:`，全项目审查时为 `Full content:` |
+| `{content}` | diff 内容（增量审查）或完整文件内容（全量审查）或会话变更内容（会话变更模式） |
+| `{content_mode_label}` | 增量审查时为 `Diff:`，全量审查时为 `Full content:`，会话变更模式时为 `Session changes:` |
 | `{run_id}` | 运行标识符 |
 | `{reviewer_name}` | 审查者名称 |
 
@@ -91,9 +91,18 @@ Changed files: {file_list}
 - **次要**：紧邻的未变更代码，如果变更引入的 bug 只有通过阅读上下文才能发现则报告
 - **预存**：与变更无关的代码，标记 `pre_existing: true`
 
-### 完整文件模式（全项目审查）
+### 完整文件模式（全量审查）
 
 `{content_mode_label}` = `Full content:`
 `{content}` = 文件完整内容
 
 审查整个文件，不区分主要/次要/预存。`pre_existing` 固定为 `false`。
+
+### 会话变更模式
+
+`{content_mode_label}` = `Session changes:`
+`{content}` = 本次会话中变更的文件内容（如有 diff 信息则包含 diff，否则为完整文件内容）
+
+此模式来自当前会话上下文而非 Git 历史。审查时：
+- 如有 diff 信息：参照 diff 模式的范围分类规则
+- 如无 diff 信息：参照完整文件模式的规则

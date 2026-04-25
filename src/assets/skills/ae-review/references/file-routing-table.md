@@ -19,7 +19,9 @@
 - 数据：.csv .xlsx .xls .pdf .doc .docx
 - 锁文件：package-lock.json yarn.lock pnpm-lock.yaml
 - 密钥：.env .env.*（保留 .env.example .env.template）——**在文件收集阶段即从变更文件列表中移除，后续任何阶段不可读取或引用这些文件的内容**
-- 受保护产物：docs/ae/review/* docs/ae/solutions/* docs/ae/brainstorms/* docs/ae/plans/*
+- 运行时目录：.opencode/ 下的所有文件——**始终排除，不可覆盖**
+- 受保护产物：docs/ae/review/* docs/ae/solutions/*
+- 需求文档和计划文档：docs/ae/brainstorms/ 和 docs/ae/plans/ 下的文件——**默认排除，用户明确指定时纳入**
 
 ## 全局审查者
 
@@ -117,7 +119,9 @@
 
 **匹配文件：** .md .rst .adoc .org .txt
 
-**处理方式：** 委派给 ae-document-review 技能。ae-review 不直接为文档文件选择审查者或派发子代理，而是通过 `Skill("ae:document-review", "mode:headless <文件路径>")` 调用，由 ae-document-review 负责文档审查的完整流程。
+**排除：** docs/ae/brainstorms/ 和 docs/ae/plans/ 下的需求文档和计划文档默认排除——除非用户明确指定纳入，此时由 ae:document-review 审查后结果合并到统一报告。
+
+**处理方式：** 需求/计划之外的文档文件委派给 ae-document-review 技能。ae-review 通过 `Skill("ae:document-review", "mode:headless <文件路径>")` 调用，由 ae-document-review 负责文档审查的完整流程。
 
 审查者选择、条件激活、发现综合全部由 ae-document-review 处理，ae-review 只负责合并返回结果。
 
