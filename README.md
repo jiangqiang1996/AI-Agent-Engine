@@ -295,7 +295,7 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 /ae-document-review
 ```
 
-**审查角色：** 一致性审查、可行性审查、产品视角审查、范围守卫、对抗性审查、设计视角审查、安全视角审查、步骤粒度审查、批量操作审查。
+**审查角色：** 一致性审查（章节矛盾、术语漂移）、可行性审查（架构冲突、依赖缺口）、产品视角审查（战略后果、机会成本）、范围守卫（不必要抽象、范围蔓延）、对抗性审查（质疑前提假设、条件性激活）、设计视角审查（交互状态缺口、条件性激活）、安全视角审查（认证假设、威胁模型、条件性激活）、步骤粒度审查（最小单元拆解）、批量操作审查（脚本化批量执行）。
 
 #### 4.2 代码审查
 
@@ -331,17 +331,22 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 
 | 代理 | 场景 |
 | --- | --- |
-| `@correctness-reviewer` | 审查逻辑正确性、边界条件 |
-| `@testing-reviewer` | 评估测试覆盖和断言质量 |
-| `@maintainability-reviewer` | 评估代码可维护性 |
-| `@security-reviewer` | 审查安全漏洞和信任边界 |
-| `@performance-reviewer` | 审查性能热点和不必要开销 |
+| `@correctness-reviewer` | 审查逻辑错误、边界情况、状态管理 bug |
+| `@testing-reviewer` | 审查测试覆盖缺口、弱断言、脆弱测试 |
+| `@project-standards-reviewer` | 审查项目规范一致性 |
+| `@agent-native-reviewer` | 审查代理操作能力对等性 |
 | `@api-contract-reviewer` | 审查 API 契约破坏性变更 |
 | `@reliability-reviewer` | 审查生产可靠性和故障模式 |
-| `@data-migrations-reviewer` | 审查数据迁移安全性与完整性 |
 | `@adversarial-reviewer` | 对抗式构造故障场景 |
-| `@architecture-strategist` | 评估架构方案合理性 |
-| `@kieran-typescript-reviewer` | 以严格标准审查 TypeScript 类型 |
+| `@maintainability-reviewer` | 审查过早抽象、耦合、命名模糊 |
+| `@security-reviewer` | 审查可利用漏洞 |
+| `@performance-reviewer` | 审查运行时性能和可扩展性 |
+| `@architecture-strategist` | 评估架构模式合规与设计完整性 |
+| `@pattern-recognition-specialist` | 分析设计模式、反模式、重复代码 |
+| `@data-migrations-reviewer` | 审查数据完整性、迁移安全性 |
+| `@kieran-typescript-reviewer` | 以严格标准审查 TypeScript 类型安全 |
+| `@previous-comments-reviewer` | 复查历史审查评论处理情况 |
+| `@cli-agent-readiness-reviewer` | 评估 CLI 代理友好度 |
 
 ---
 
@@ -349,11 +354,11 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 
 | 代理 | 场景 | 示例 |
 | --- | --- | --- |
-| `@repo-research-analyst` | 理解项目结构和技术约束 | `@repo-research-analyst 分析这个项目的模块划分` |
-| `@framework-docs-researcher` | 查询框架官方文档 | `@framework-docs-researcher Effect 框架的 Layer 用法` |
-| `@best-practices-researcher` | 收集社区最佳实践 | `@best-practices-researcher React Server Components 最佳实践` |
-| `@web-researcher` | 网络搜索技术方案 | `@web-researcher 对比 Zod 和 Valibot 的性能` |
-| `@learnings-researcher` | 提炼项目内经验和规范 | `@learnings-researcher 总结项目中的错误处理模式` |
+| `@repo-research-analyst` | 仓库结构、文档、约定研究 | `@repo-research-analyst 分析这个项目的模块划分` |
+| `@learnings-researcher` | 搜索过往解决方案 | `@learnings-researcher 总结项目中的错误处理模式` |
+| `@best-practices-researcher` | 外部最佳实践、官方文档 | `@best-practices-researcher React Server Components 最佳实践` |
+| `@framework-docs-researcher` | 框架完整文档与实现模式 | `@framework-docs-researcher Effect 框架的 Layer 用法` |
+| `@web-researcher` | 网络搜索、竞品模式、跨领域类比 | `@web-researcher 对比 Zod 和 Valibot 的性能` |
 
 ---
 
@@ -423,39 +428,39 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 
 | 分类 | 代理 | 功能 |
 | --- | --- | --- |
-| **文档审查** | `@coherence-reviewer` | 文档一致性审查 |
-| | `@feasibility-reviewer` | 可行性审查 |
-| | `@product-lens-reviewer` | 产品视角审查 |
-| | `@scope-guardian-reviewer` | 范围守卫 |
-| | `@adversarial-document-reviewer` | 对抗性文档审查 |
-| | `@design-lens-reviewer` | 设计视角审查 |
-| | `@security-lens-reviewer` | 安全视角审查 |
-| | `@step-granularity-reviewer` | 步骤粒度审查 |
-| | `@batch-operation-reviewer` | 批量操作审查 |
-| **代码审查** | `@correctness-reviewer` | 逻辑正确性 |
-| | `@testing-reviewer` | 测试质量 |
-| | `@maintainability-reviewer` | 可维护性 |
-| | `@project-standards-reviewer` | 项目规范一致性 |
-| | `@agent-native-reviewer` | Agent 友好性 |
-| | `@security-reviewer` | 安全审查 |
-| | `@performance-reviewer` | 性能审查 |
-| | `@api-contract-reviewer` | API 契约稳定性 |
-| | `@reliability-reviewer` | 可靠性与容错 |
-| | `@adversarial-reviewer` | 对抗式代码审查 |
-| | `@architecture-strategist` | 架构评估 |
-| | `@pattern-recognition-specialist` | 重复模式识别 |
-| | `@kieran-typescript-reviewer` | TypeScript 严格审查 |
-| | `@data-migrations-reviewer` | 数据迁移审查 |
-| | `@previous-comments-reviewer` | 历史评论复查 |
+| **文档审查** | `@coherence-reviewer` | 章节间矛盾、术语漂移、结构性问题 |
+| | `@feasibility-reviewer` | 架构冲突、依赖缺口、迁移风险 |
+| | `@product-lens-reviewer` | 战略后果、采用动态、机会成本 |
+| | `@scope-guardian-reviewer` | 不必要抽象、过早框架化、范围蔓延 |
+| | `@adversarial-document-reviewer` | 质疑前提假设、揭示未声明预设（条件性） |
+| | `@design-lens-reviewer` | 信息架构、交互状态、用户流程缺口 |
+| | `@security-lens-reviewer` | 认证/授权假设、数据暴露风险、威胁模型 |
+| | `@step-granularity-reviewer` | 步骤最小单元拆解、唯一产出物验证 |
+| | `@batch-operation-reviewer` | 多文件操作脚本化批量执行 |
+| **代码审查** | `@correctness-reviewer` | 逻辑错误、边界条件、状态管理 bug |
+| | `@testing-reviewer` | 测试覆盖缺口、弱断言、脆弱测试 |
+| | `@project-standards-reviewer` | 项目规范一致性审查 |
+| | `@agent-native-reviewer` | 代理操作能力对等审查 |
+| | `@api-contract-reviewer` | API 契约破坏性变更 |
+| | `@reliability-reviewer` | 生产可靠性与故障模式 |
+| | `@adversarial-reviewer` | 对抗式构造故障场景 |
+| | `@maintainability-reviewer` | 过早抽象、耦合、命名模糊 |
+| | `@security-reviewer` | 可利用漏洞审计 |
+| | `@performance-reviewer` | 运行时性能与可扩展性 |
+| | `@architecture-strategist` | 架构模式合规与设计完整性 |
+| | `@pattern-recognition-specialist` | 设计模式、反模式、重复代码 |
+| | `@data-migrations-reviewer` | 数据完整性、迁移安全性 |
+| | `@kieran-typescript-reviewer` | TypeScript 类型安全与代码清晰度 |
+| | `@previous-comments-reviewer` | 历史审查评论处理复查 |
 | | `@cli-agent-readiness-reviewer` | CLI 代理友好度评估 |
-| **研究分析** | `@repo-research-analyst` | 项目结构分析 |
-| | `@learnings-researcher` | 项目经验提炼 |
-| | `@framework-docs-researcher` | 框架文档查询 |
-| | `@best-practices-researcher` | 最佳实践调研 |
-| | `@web-researcher` | 网络搜索 |
-| **工作流** | `@design-iterator` | UI 迭代打磨 |
-| | `@figma-design-sync` | Figma 设计稿还原 |
-| | `@spec-flow-analyzer` | 工作流完整性检查 |
+| **研究分析** | `@repo-research-analyst` | 仓库结构、文档、约定和实现模式研究 |
+| | `@learnings-researcher` | 搜索过往解决方案、发掘组织知识 |
+| | `@best-practices-researcher` | 外部最佳实践、官方文档、框架指南 |
+| | `@framework-docs-researcher` | 框架、库或依赖的完整文档与实现模式 |
+| | `@web-researcher` | 迭代式网络研究、竞品模式、跨领域类比 |
+| **工作流** | `@spec-flow-analyzer` | 用户流程完整性、边界用例发现、需求验证 |
+| | `@design-iterator` | N 轮截图-分析-改进循环优化 UI 设计 |
+| | `@figma-design-sync` | Web 实现与 Figma 设计视觉差异检测与修复 |
 
 ## 技能依赖关系
 
@@ -482,7 +487,7 @@ ae:frontend-design ──→ @design-iterator（多轮迭代时）
 
 共计 16 个 `-po` 命令 + 16 个 `-pa` 命令 = **32 个变体命令**。
 
-加上 18 个基础命令，AE 共提供 **50 个命令**。
+加上 19 个基础命令，AE 共提供 **51 个命令**。
 
 ## 参数总表
 
@@ -509,6 +514,7 @@ ae:frontend-design ──→ @design-iterator（多轮迭代时）
 | `ae:prompt-optimize` | `[auto] [提示词内容]` | 提示词优化 | 优化后确认再执行 |
 | `ae:save-rules` | 规范类型 | 规范分类 | 自动推断 |
 | `ae:update` | `project` | 项目级更新 | 全局更新 |
+| `ae:commit` | _(无参数)_ | 智能提交变更 | 遵循项目 Git 提交规范 |
 
 ## 审查模式
 
