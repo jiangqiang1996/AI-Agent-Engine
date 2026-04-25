@@ -8,6 +8,7 @@ import { buildCommandConfig } from './command-registration.js'
 import { buildAgentConfig } from './agent-registration.js'
 import { createRuntimeAssetManifestFromRoot } from './runtime-asset-manifest.js'
 import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
+import { resolveRepoRootFromModuleUrl } from '../utils/path-utils.js'
 
 export interface SkillEntry {
   name: string
@@ -31,16 +32,7 @@ export interface AgentEntry {
 }
 
 function getRepoRoot(): string {
-  const currentFile = new URL(import.meta.url).pathname
-  const segments = currentFile.split(/[/\\]/)
-  const srcIdx = segments.lastIndexOf('src')
-  const distIdx = segments.lastIndexOf('dist')
-  const servicesIdx = segments.lastIndexOf('services')
-  const targetIdx = srcIdx !== -1 ? srcIdx : distIdx !== -1 ? distIdx : servicesIdx !== -1 ? servicesIdx - 1 : -1
-  if (targetIdx === -1) {
-    throw new Error('无法从 import.meta.url 解析项目根目录')
-  }
-  return segments.slice(0, targetIdx).join('/')
+  return resolveRepoRootFromModuleUrl(import.meta.url)
 }
 
 function buildSkillEntries(): SkillEntry[] {
