@@ -156,3 +156,18 @@ export function registerHooks(input: PluginInput): Partial<Hooks> {
 - 敏感操作（文件删除、网络请求等）必须明确提示用户
 - 禁止在工具返回中泄露系统路径、环境变量等敏感信息
 - 使用 `ctx.abort` 响应取消操作，及时释放资源
+
+## AE 技能列表编写顺序
+
+所有列举多个 AE 技能的地方（代码数组、Markdown 表格、Markdown 列表）必须按以下规则排序。
+
+### 排列原则
+
+1. **主流程优先** 主流程包括：ideate brainstorm document-review plan work review
+2. **辅助工具随后** 除了主流程以外的其他技能
+3. **同一类工具之间的顺序参照功能执行顺序**
+
+### 适用范围
+
+- ts代码中的数组
+- 提示词文件以及各种文档中的技能列举

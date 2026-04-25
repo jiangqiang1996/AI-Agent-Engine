@@ -119,12 +119,12 @@ ai-agent-engine/
 
 | 规范文件 | 说明 |
 |---------|------|
-| [architecture.md](architecture.md) | 架构设计与模块划分规范 |
+| [../architecture/architecture.md](../architecture/architecture.md) | 架构设计、AE 资产常量化、双重决策机制、阶段回退策略 |
+| [../architecture/frontend.md](../architecture/frontend.md) | 前端规范、TUI toast 分层原则 |
 | [code-style.md](code-style.md) | 代码风格与命名规范 |
 | [git-workflow.md](git-workflow.md) | Git 分支策略与提交规范 |
 | [testing.md](testing.md) | 测试策略与覆盖率要求 |
-| [agent-design.md](agent-design.md) | AI Agent、工具、Hook、Skill 设计规范 |
-| [runtime-injected-props.md](runtime-injected-props.md) | 运行时动态注入属性规范 |
+| [agent-design.md](agent-design.md) | AI Agent、工具、Hook、Skill 设计规范、技能列表编写顺序 |
 
 ## 目录约定
 
@@ -141,3 +141,19 @@ ai-agent-engine/
 5. **单一职责** - 每个模块、函数只做一件事
 6. **渐进增强** - 优先使用稳定 API，实验性功能做好降级处理
 7. **权限安全** - 敏感操作必须通过权限系统控制
+
+## 运行时动态注入属性
+
+opencode 的 `ToolContext` 在运行时可能包含类型声明中未列出的额外属性（如 `history`）。
+当代码使用 `as` 类型断言配合 `if` 守卫访问这些属性时，属于合法的防御性写法，不应视为死代码或类型错误。
+
+识别标准：
+- 使用 `as { prop?: Type }` 进行类型断言
+- 使用 `if (ctx.prop)` 进行存在性守卫后再访问
+- 提供了合理的降级路径（如回退到文件系统扫描）
+
+典型场景：
+- `recovery-service.ts` 中访问 `ctx` 的 `history` 属性以获取会话历史
+- 工具执行中访问未在 `ToolContext` 类型中声明的运行时属性
+
+此类代码不应被删除或报告为"属性不存在于类型"的问题。
