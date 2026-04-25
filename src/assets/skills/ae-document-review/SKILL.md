@@ -56,11 +56,12 @@ argument-hint: "[mode:*] [文档路径]"
 
 - **requirements** — 关注构建什么和为什么构建。特征：包含需求列表（R1、R2...编号）、问题框架、成功标准
 - **plan** — 关注如何构建。特征：包含实现步骤、架构决策、技术方案
-- **general** — 通用文档。不匹配以上两种时的默认分类
+- **test** — 关注如何验证。特征：包含测试用例、验收标准、测试步骤与预期结果、边界与异常场景描述
+- **general** — 通用文档。不匹配以上三种时的默认分类
 
 分类信号（按优先级）：
 1. **frontmatter**：`topic` 字段暗示内容主题
-2. **标题结构**：包含"需求"、"问题框架"→ requirements；包含"实现步骤"、"架构"→ plan
+2. **标题结构**：包含"需求"、"问题框架"→ requirements；包含"实现步骤"、"架构"→ plan；包含"测试用例"、"验收标准"、"预期结果"→ test
 3. **路径提示**（辅助）：`docs/ae/brainstorms/` → 倾向 requirements；`docs/ae/plans/` → 倾向 plan
 
 #### 选择条件角色
@@ -74,6 +75,8 @@ argument-hint: "[mode:*] [文档路径]"
 **scope-guardian** — 当文档包含多个优先级层级、大量需求（>8 个）、弹性目标或与目标不一致的范围语言时激活。
 
 **adversarial** — 当文档超过 5 个独立需求、包含重要架构决策、高风险领域或新抽象提议时激活。
+
+**test-case** — 当文档类型为 test 时激活。审查测试用例的可测性、完备性、步骤可执行性和与需求对齐程度。
 
 **退出条件：** 文档已读取，类型已分类，条件角色已激活。
 
@@ -99,7 +102,7 @@ argument-hint: "[mode:*] [文档路径]"
 |------|-----|
 | `{persona_file}` | 代理 markdown 文件的完整内容 |
 | `{schema}` | 发现 schema 内容 |
-| `{document_type}` | "requirements"、"plan" 或 "general" |
+| `{document_type}` | "requirements"、"plan"、"test" 或 "general" |
 | `{document_path}` | 文档路径 |
 | `{document_content}` | 文档完整文本 |
 

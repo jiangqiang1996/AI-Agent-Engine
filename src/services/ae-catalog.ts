@@ -201,6 +201,7 @@ const REQUIRED_AGENTS: ReadonlyArray<readonly [string, AgentStage, string]> = [
   [AGENT.SECURITY_LENS_REVIEWER, 'document-review', '审查文档中的安全边界'],
   [AGENT.STEP_GRANULARITY_REVIEWER, 'document-review', '审查计划步骤是否拆解至最小不可再分单元'],
   [AGENT.BATCH_OPERATION_REVIEWER, 'document-review', '审查多文件操作是否可脚本化批量执行'],
+  [AGENT.TEST_CASE_REVIEWER, 'document-review', '审查测试用例文档的可测性、完备性、步骤可执行性和与需求对齐程度'],
   [AGENT.REPO_RESEARCH_ANALYST, 'research', '研究仓库结构与已有模式'],
   [AGENT.LEARNINGS_RESEARCHER, 'research', '提炼已有经验与文档知识'],
   [AGENT.BEST_PRACTICES_RESEARCHER, 'research', '收集社区最佳实践与框架文档'],

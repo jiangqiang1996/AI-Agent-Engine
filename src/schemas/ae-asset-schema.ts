@@ -40,6 +40,7 @@ export const AGENT = {
   SECURITY_LENS_REVIEWER: 'security-lens-reviewer',
   STEP_GRANULARITY_REVIEWER: 'step-granularity-reviewer',
   BATCH_OPERATION_REVIEWER: 'batch-operation-reviewer',
+  TEST_CASE_REVIEWER: 'test-case-reviewer',
   REPO_RESEARCH_ANALYST: 'repo-research-analyst',
   LEARNINGS_RESEARCHER: 'learnings-researcher',
   BEST_PRACTICES_RESEARCHER: 'best-practices-researcher',

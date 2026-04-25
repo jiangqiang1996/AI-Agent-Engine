@@ -23,7 +23,7 @@ export const aeReviewContractTool: ToolDefinition = tool({
     '- 不负责写入审查发现或审查产物',
   ].join('\n'),
   args: {
-    kind: tool.schema.enum(['document', 'plan', 'code']).describe('审查类型'),
+    kind: tool.schema.enum(['document', 'plan', 'test', 'code']).describe('审查类型'),
     mode: tool.schema.enum(['interactive', 'headless', 'report-only', 'autofix']).describe('审查模式'),
     has_ui: tool.schema.boolean().optional().describe('是否涉及 UI'),
     has_security: tool.schema.boolean().optional().describe('是否涉及安全边界'),
