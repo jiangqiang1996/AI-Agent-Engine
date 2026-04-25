@@ -63,7 +63,6 @@ echo "export { default } from '../ai-agent-engine/dist/src/tui.js'" > ~/.config/
 
 5. 验证方式：
 - 在会话中尝试 `/ae-help`
-- 或尝试让代理列出 `ae:*` 技能
 
 ### 1.2 项目级安装
 
@@ -95,7 +94,6 @@ echo "export { default } from '../ai-agent-engine/dist/src/tui.js'" > .opencode/
 
 5. 验证方式：
 - 在当前项目会话中尝试 `/ae-help`
-- 或尝试让代理列出 `ae:*` 技能
 
 > **注意：** 项目级安装仅对当前项目生效。如需全局生效，请使用全局安装。项目级安装和全局安装可以共存，项目级优先。
 
@@ -165,7 +163,6 @@ rm -rf ~/.config/opencode/ai-agent-engine
 3. 重启 opencode。
 
 4. 确认卸载完成：
-- 代理不再列出 `ae:*` 技能
 - `/ae-help` 等命令不再可用
 
 ### 3.2 卸载项目级安装

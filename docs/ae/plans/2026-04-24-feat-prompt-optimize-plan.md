@@ -21,7 +21,7 @@ source: docs/ae/brainstorms/2026-04-24-prompt-optimize-requirements.md
 - **复用 session.service.ts 公共函数**：`createNewSession()`、`navigateToSession()` 已封装会话创建和 TUI 导航逻辑，直接复用，不重复实现
 - **不复用 handoff.service.ts**：handoff 的核心流程（系统上下文注入 + noReply）与本需求（用户消息发送 + 触发回复）路径不同，创建独立 service
 - **auto 模式由 SKILL.md 驱动**：LLM 在解读技能指令时识别 auto 标记（`auto`/`自动`/`mode=auto`/`无需确认`），决定是否跳过确认环节。工具层不感知 auto 逻辑，保持单一职责
-- **引用识别基于格式模式**：在 SKILL.md 中定义引用识别规则为格式模式匹配（`/xxx` 命令、`@xxx` 代理、包含 `:` 或 `-` 连接的多词标识符如 `ae:*` 技能/工具），匹配到的原样保留，不校验正确性，不当作英语单词对待
+- **引用识别基于格式模式**：在 SKILL.md 中定义引用识别规则为格式模式匹配（`/xxx` 命令、`@xxx` 代理、包含 `:` 或 `-` 连接的多词标识符如 `ae:brainstorm` 技能/工具），匹配到的原样保留，不校验正确性，不当作英语单词对待
 - **使用 SDK OpencodeClient 类型**：不复用 session.service.ts 的 SessionPromptClient 局部接口（其 noReply 为必填 boolean），直接使用 SDK 原始类型（与 ae-orchestrator.tool.ts 模式一致），设置 `noReply: false` 触发 AI 回复
 - **命令文件自动生成**：`command-registration.ts` 从 catalog 条目自动生成命令模板，无需手动创建命令 .md 文件
 
@@ -197,7 +197,7 @@ source: docs/ae/brainstorms/2026-04-24-prompt-optimize-requirements.md
      - 补充隐含上下文
      - 保持原始意图和逻辑不变
      - 保序规则：首个引用保持首位，中间引用保留但可调序
-     - 引用识别范围：`/xxx`（命令）、`ae:*`（技能）、`@xxx`（代理）、已知工具名，不限于 AE 自有资产
+      - 引用识别范围：`/xxx`（命令）、`ae:<name>`（技能）、`@xxx`（代理）、已知工具名，不限于 AE 自有资产
    - 阶段 3：用户确认（auto 模式跳过）
       - 展示优化后的完整提示词，**干净输出，不得包含任何元描述**（如"这是优化后的提示词"、"优化结果如下"等引导语或标记文本），直接输出提示词内容本身
       - 支持多轮修改，用户反复提出意见直到满意

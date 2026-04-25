@@ -14,7 +14,7 @@ interface LoadedCommand {
   description: string
 }
 
-function loadCommandFiles(commandsDir: string): Map<string, LoadedCommand> {
+export function loadCommandFiles(commandsDir: string): Map<string, LoadedCommand> {
   const result = new Map<string, LoadedCommand>()
   let files: string[]
 

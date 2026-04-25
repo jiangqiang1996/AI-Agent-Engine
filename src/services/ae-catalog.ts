@@ -149,7 +149,7 @@ const PHASE_ONE_ENTRIES = [
     skillName: SKILL.HELP,
     skillSlug: skillDir(SKILL.HELP),
     commandName: COMMAND.HELP,
-    description: '列出 AE 插件中所有可调用的技能和代理的帮助信息',
+    description: '列出 AE 插件中所有可调用的技能、命令和代理的帮助信息',
     argumentHint: '[技能名或关键词]',
     defaultEntry: false,
     skillFile: `src/assets/skills/${skillDir(SKILL.HELP)}/SKILL.md`,
