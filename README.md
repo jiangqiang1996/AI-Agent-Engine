@@ -295,7 +295,7 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 /ae-document-review
 ```
 
-**审查角色：** 一致性审查、可行性审查、产品视角审查、范围守卫、对抗性审查、设计视角审查、安全视角审查。
+**审查角色：** 一致性审查、可行性审查、产品视角审查、范围守卫、对抗性审查、设计视角审查、安全视角审查、步骤粒度审查、批量操作审查。
 
 #### 4.2 代码审查
 
@@ -332,11 +332,15 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 | 代理 | 场景 |
 | --- | --- |
 | `@correctness-reviewer` | 审查逻辑正确性、边界条件 |
-| `@security-reviewer` | 审查安全漏洞和信任边界 |
-| `@performance-reviewer` | 审查性能热点和不必要开销 |
-| `@architecture-strategist` | 评估架构方案合理性 |
 | `@testing-reviewer` | 评估测试覆盖和断言质量 |
 | `@maintainability-reviewer` | 评估代码可维护性 |
+| `@security-reviewer` | 审查安全漏洞和信任边界 |
+| `@performance-reviewer` | 审查性能热点和不必要开销 |
+| `@api-contract-reviewer` | 审查 API 契约破坏性变更 |
+| `@reliability-reviewer` | 审查生产可靠性和故障模式 |
+| `@data-migrations-reviewer` | 审查数据迁移安全性与完整性 |
+| `@adversarial-reviewer` | 对抗式构造故障场景 |
+| `@architecture-strategist` | 评估架构方案合理性 |
 | `@kieran-typescript-reviewer` | 以严格标准审查 TypeScript 类型 |
 
 ---
@@ -408,6 +412,7 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 | `ae:test-browser` | `/ae-test-browser` | 浏览器测试 | 否 |
 | `ae:sql` | `/ae-sql` | 数据库操作 | 否 |
 | `ae:handoff` | `/ae-handoff` | 会话交接 | 否 |
+| `ae:prompt-optimize` | `/ae-prompt-optimize` | 提示词优化 | 否 |
 | `ae:save-rules` | `/ae-save-rules` | 保存项目规范 | 否 |
 | `ae:help` | `/ae-help` | 查看帮助 | 否 |
 | `ae:update` | `/ae-update` | 更新插件 | 否 |
@@ -425,6 +430,8 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 | | `@adversarial-document-reviewer` | 对抗性文档审查 |
 | | `@design-lens-reviewer` | 设计视角审查 |
 | | `@security-lens-reviewer` | 安全视角审查 |
+| | `@step-granularity-reviewer` | 步骤粒度审查 |
+| | `@batch-operation-reviewer` | 批量操作审查 |
 | **代码审查** | `@correctness-reviewer` | 逻辑正确性 |
 | | `@testing-reviewer` | 测试质量 |
 | | `@maintainability-reviewer` | 可维护性 |
@@ -438,6 +445,9 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 | | `@architecture-strategist` | 架构评估 |
 | | `@pattern-recognition-specialist` | 重复模式识别 |
 | | `@kieran-typescript-reviewer` | TypeScript 严格审查 |
+| | `@data-migrations-reviewer` | 数据迁移审查 |
+| | `@previous-comments-reviewer` | 历史评论复查 |
+| | `@cli-agent-readiness-reviewer` | CLI 代理友好度评估 |
 | **研究分析** | `@repo-research-analyst` | 项目结构分析 |
 | | `@learnings-researcher` | 项目经验提炼 |
 | | `@framework-docs-researcher` | 框架文档查询 |
@@ -472,7 +482,7 @@ ae:frontend-design ──→ @design-iterator（多轮迭代时）
 
 共计 16 个 `-po` 命令 + 16 个 `-pa` 命令 = **32 个变体命令**。
 
-加上 17 个基础命令，AE 共提供 **49 个命令**。
+加上 18 个基础命令，AE 共提供 **50 个命令**。
 
 ## 参数总表
 
@@ -495,6 +505,8 @@ ae:frontend-design ──→ @design-iterator（多轮迭代时）
 | `ae:test-browser` | URL 或路由 | 测试页面 | `http://localhost:3000` |
 | `ae:sql` | SQL 语句 | 要执行的 SQL | 自动检测配置 |
 | `ae:ideate` | 主题描述 | 构思方向 | 要求补充 |
+| `ae:handoff` | _(无参数)_ | 会话交接 | 提取当前会话核心结论 |
+| `ae:prompt-optimize` | `[auto] [提示词内容]` | 提示词优化 | 优化后确认再执行 |
 | `ae:save-rules` | 规范类型 | 规范分类 | 自动推断 |
 | `ae:update` | `project` | 项目级更新 | 全局更新 |
 
