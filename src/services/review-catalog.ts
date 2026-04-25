@@ -34,4 +34,8 @@ export const CODE_REVIEWERS: ReviewDefinition[] = [
   { name: AGENT.KIERAN_TYPESCRIPT_REVIEWER, description: '按严格 TS 标准审查实现', alwaysOn: false },
   { name: AGENT.ADVERSARIAL_REVIEWER, description: '对抗式构造故障场景', alwaysOn: false },
   { name: AGENT.DATA_MIGRATIONS_REVIEWER, description: '审查数据迁移', alwaysOn: false },
+  { name: AGENT.CONFIG_REVIEWER, description: '审查配置文件语法正确性、schema 一致性和敏感值', alwaysOn: false },
+  { name: AGENT.INFRA_REVIEWER, description: '审查基础设施定义的最佳实践和安全性', alwaysOn: false },
+  { name: AGENT.DATABASE_REVIEWER, description: '审查数据库迁移可逆性、完整性约束和索引策略', alwaysOn: false },
+  { name: AGENT.SCRIPT_REVIEWER, description: '审查脚本可移植性、幂等性和平台兼容性', alwaysOn: false },
 ]

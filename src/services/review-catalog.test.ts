@@ -42,7 +42,31 @@ describe('review-catalog', () => {
     expect(reviewer!.alwaysOn).toBe(true)
   })
 
-  it('CODE_REVIEWERS 应包含 15 个条目', () => {
-    expect(CODE_REVIEWERS).toHaveLength(15)
+  it('CODE_REVIEWERS 应包含 19 个条目', () => {
+    expect(CODE_REVIEWERS).toHaveLength(19)
+  })
+
+  it('新增的 config-reviewer 应存在于 CODE_REVIEWERS', () => {
+    const reviewer = CODE_REVIEWERS.find((r) => r.name === AGENT.CONFIG_REVIEWER)
+    expect(reviewer).toBeDefined()
+    expect(reviewer!.alwaysOn).toBe(false)
+  })
+
+  it('新增的 infra-reviewer 应存在于 CODE_REVIEWERS', () => {
+    const reviewer = CODE_REVIEWERS.find((r) => r.name === AGENT.INFRA_REVIEWER)
+    expect(reviewer).toBeDefined()
+    expect(reviewer!.alwaysOn).toBe(false)
+  })
+
+  it('新增的 database-reviewer 应存在于 CODE_REVIEWERS', () => {
+    const reviewer = CODE_REVIEWERS.find((r) => r.name === AGENT.DATABASE_REVIEWER)
+    expect(reviewer).toBeDefined()
+    expect(reviewer!.alwaysOn).toBe(false)
+  })
+
+  it('新增的 script-reviewer 应存在于 CODE_REVIEWERS', () => {
+    const reviewer = CODE_REVIEWERS.find((r) => r.name === AGENT.SCRIPT_REVIEWER)
+    expect(reviewer).toBeDefined()
+    expect(reviewer!.alwaysOn).toBe(false)
   })
 })

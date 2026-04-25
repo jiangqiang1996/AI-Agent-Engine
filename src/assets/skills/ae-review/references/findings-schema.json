@@ -3,7 +3,7 @@
   "title": "Code Review Findings",
   "description": "代码审查子代理的结构化输出 schema",
   "type": "object",
-  "required": ["reviewer", "findings", "residual_risks", "testing_gaps"],
+  "required": ["reviewer", "findings", "residual_risks"],
   "properties": {
     "reviewer": {
       "type": "string",

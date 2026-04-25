@@ -1,12 +1,12 @@
 ---
 name: ae:document-review
-description: "通过并行角色代理审查需求或计划文档，发现角色特定的问题。当需求文档或计划文档已存在且用户希望改进时使用。"
+description: "通过并行角色代理审查文档，发现角色特定的问题。支持审查任意路径的文档——需求文档、计划文档、技术文档等。可独立调用或由其他技能委派调用。"
 argument-hint: "[mode:*] [文档路径]"
 ---
 
 # 文档审查
 
-通过多角色分析审查需求或计划文档。并行调度专业审查代理，自动修复质量问题，并向用户展示需要决策的战略性问题。
+通过多角色分析审查文档。并行调度专业审查代理，自动修复质量问题，并向用户展示需要决策的战略性问题。
 
 ## 阶段 0：检测模式
 
@@ -26,14 +26,22 @@ Skill("ae:document-review", "mode:headless docs/ae/plans/my-plan.md")
 
 **如果提供了文档路径：** 读取文档，继续。
 
-**如果未指定文档（交互模式）：** 询问要审查哪个文档，或搜索 `docs/ae/brainstorms/` 或 `docs/ae/plans/` 中的最近文档。
+**如果未指定文档（交互模式）：** 询问要审查哪个文档，优先搜索 `docs/ae/brainstorms/` 和 `docs/ae/plans/` 中的最近文档，但也支持用户指定任意路径。
 
 **如果未指定文档（无头模式）：** 输出错误信息，不调度代理。
 
 ### 分类文档类型
 
-- **requirements** — 来自 `docs/ae/brainstorms/`，关注构建什么和为什么构建
-- **plan** — 来自 `docs/ae/plans/`，关注如何构建
+通过分析文档内容（而非路径）判断类型：
+
+- **requirements** — 关注构建什么和为什么构建。特征：包含需求列表（R1、R2...编号）、问题框架、成功标准
+- **plan** — 关注如何构建。特征：包含实现步骤、架构决策、技术方案
+- **general** — 通用技术文档。不匹配以上两种时的默认分类
+
+分类信号：
+1. **frontmatter**：`topic` 字段暗示内容主题
+2. **标题结构**：包含"需求"、"问题框架"→ requirements；包含"实现步骤"、"架构"→ plan
+3. **路径提示**（辅助）：`docs/ae/brainstorms/` → 倾向 requirements；`docs/ae/plans/` → 倾向 plan
 
 ### 选择条件角色
 
@@ -67,7 +75,7 @@ Skill("ae:document-review", "mode:headless docs/ae/plans/my-plan.md")
 |------|-----|
 | `{persona_file}` | 代理 markdown 文件的完整内容 |
 | `{schema}` | 发现 schema 内容 |
-| `{document_type}` | "requirements" 或 "plan" |
+| `{document_type}` | "requirements"、"plan" 或 "general" |
 | `{document_path}` | 文档路径 |
 | `{document_content}` | 文档完整文本 |
 

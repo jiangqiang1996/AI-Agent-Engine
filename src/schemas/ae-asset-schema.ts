@@ -64,6 +64,10 @@ export const AGENT = {
   KIERAN_TYPESCRIPT_REVIEWER: 'kieran-typescript-reviewer',
   PREVIOUS_COMMENTS_REVIEWER: 'previous-comments-reviewer',
   CLI_AGENT_READINESS_REVIEWER: 'cli-agent-readiness-reviewer',
+  CONFIG_REVIEWER: 'config-reviewer',
+  INFRA_REVIEWER: 'infra-reviewer',
+  DATABASE_REVIEWER: 'database-reviewer',
+  SCRIPT_REVIEWER: 'script-reviewer',
 } as const
 
 export function skillDir(skillName: string): string {

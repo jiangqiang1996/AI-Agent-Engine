@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 解析审查基准分支并计算 ae:review 的 merge-base。
-# 处理 fork 安全的远程解析、PR 元数据和多级回退检测。
+# 平台无关：纯 Git 操作为基础，平台 CLI（gh/glab/bitbucket）作为可选增强。
 #
 # 用法: bash references/resolve-base.sh
 # 输出: 成功时输出 BASE:<sha>，失败时输出 ERROR:<message>。
@@ -8,27 +8,36 @@
 set -euo pipefail
 
 REVIEW_BASE_BRANCH=""
-PR_BASE_REPO=""
-PR_BASE_REMOTE=""
 BASE_REF=""
 
-# 步骤 1：尝试 PR 元数据
-if command -v gh >/dev/null 2>&1; then
-  PR_META=$(gh pr view --json baseRefName,url 2>/dev/null || true)
-  if [ -n "$PR_META" ]; then
-    REVIEW_BASE_BRANCH=$(echo "$PR_META" | jq -r '.baseRefName // empty' 2>/dev/null || true)
-    PR_BASE_REPO=$(echo "$PR_META" | jq -r '.url // empty' 2>/dev/null | sed -n 's#https://github.com/\([^/]*/[^/]*\)/pull/.*#\1#p' || true)
-  fi
+# 步骤 1：读取项目配置中的 review.defaultBase
+if [ -f "opencode.json" ]; then
+  REVIEW_BASE_BRANCH=$(grep -o '"review"[[:space:]]*:[[:space:]]*{[^}]*"defaultBase"[[:space:]]*:[[:space:]]*"[^"]*"' opencode.json 2>/dev/null | grep -o '"defaultBase"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -o '"[^"]*"$' | tr -d '"' || true)
 fi
 
-# 步骤 2：回退到 origin/HEAD
+# 步骤 2：尝试平台 CLI 增强检测（可选）
+if [ -z "$REVIEW_BASE_BRANCH" ]; then
+  for cli in gh glab bitbucket; do
+    if command -v "$cli" >/dev/null 2>&1; then
+      case "$cli" in
+        gh)
+          REVIEW_BASE_BRANCH=$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name' 2>/dev/null || true)
+          ;;
+        glab)
+          REVIEW_BASE_BRANCH=$(glab repo view --output json 2>/dev/null | grep -o '"default_branch":"[^"]*"' | grep -o '"[^"]*"$' | tr -d '"' || true)
+          ;;
+        bitbucket)
+          # bitbucket CLI 支持有限，跳过
+          ;;
+      esac
+      [ -n "$REVIEW_BASE_BRANCH" ] && break
+    fi
+  done
+fi
+
+# 步骤 3：回退到 origin/HEAD 符号引用
 if [ -z "$REVIEW_BASE_BRANCH" ]; then
   REVIEW_BASE_BRANCH=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's#^origin/##' || true)
-fi
-
-# 步骤 3：回退到 gh repo view
-if [ -z "$REVIEW_BASE_BRANCH" ] && command -v gh >/dev/null 2>&1; then
-  REVIEW_BASE_BRANCH=$(gh repo view --json defaultBranchRef --jq '.defaultBranchRef.name' 2>/dev/null || true)
 fi
 
 # 步骤 4：回退到常见分支名
@@ -41,23 +50,14 @@ if [ -z "$REVIEW_BASE_BRANCH" ]; then
   done
 fi
 
-# 从正确的远程解析基准引用（fork 安全）
+# 解析基准引用
 if [ -n "$REVIEW_BASE_BRANCH" ]; then
-  if [ -n "$PR_BASE_REPO" ]; then
-    PR_BASE_REMOTE=$(git remote -v | awk "index(\$2, \"github.com:$PR_BASE_REPO\") || index(\$2, \"github.com/$PR_BASE_REPO\") {print \$1; exit}")
-    if [ -n "$PR_BASE_REMOTE" ]; then
-      git fetch --no-tags "$PR_BASE_REMOTE" "$REVIEW_BASE_BRANCH:refs/remotes/$PR_BASE_REMOTE/$REVIEW_BASE_BRANCH" 2>/dev/null || git fetch --no-tags "$PR_BASE_REMOTE" "$REVIEW_BASE_BRANCH" 2>/dev/null || true
-      BASE_REF=$(git rev-parse --verify "$PR_BASE_REMOTE/$REVIEW_BASE_BRANCH" 2>/dev/null || true)
-    fi
+  if git remote get-url origin >/dev/null 2>&1; then
+    git fetch --no-tags origin "$REVIEW_BASE_BRANCH:refs/remotes/origin/$REVIEW_BASE_BRANCH" 2>/dev/null || git fetch --no-tags origin "$REVIEW_BASE_BRANCH" 2>/dev/null || true
+    BASE_REF=$(git rev-parse --verify "origin/$REVIEW_BASE_BRANCH" 2>/dev/null || true)
   fi
   if [ -z "$BASE_REF" ]; then
-    if git remote get-url origin >/dev/null 2>&1; then
-      git fetch --no-tags origin "$REVIEW_BASE_BRANCH:refs/remotes/origin/$REVIEW_BASE_BRANCH" 2>/dev/null || git fetch --no-tags origin "$REVIEW_BASE_BRANCH" 2>/dev/null || true
-      BASE_REF=$(git rev-parse --verify "origin/$REVIEW_BASE_BRANCH" 2>/dev/null || true)
-    fi
-    if [ -z "$BASE_REF" ]; then
-      BASE_REF=$(git rev-parse --verify "$REVIEW_BASE_BRANCH" 2>/dev/null || true)
-    fi
+    BASE_REF=$(git rev-parse --verify "$REVIEW_BASE_BRANCH" 2>/dev/null || true)
   fi
 fi
 
@@ -77,5 +77,5 @@ fi
 if [ -n "$BASE" ]; then
   echo "BASE:$BASE"
 else
-  echo "ERROR:无法在本地解析审查基准分支。请 fetch 基准分支后重试，或提供 PR 编号。"
+  echo "ERROR:无法解析审查基准分支。建议：1) 使用 from:<ref> 指定基准 2) 仅审查工作区变更 3) 查看提交历史手动选择。"
 fi

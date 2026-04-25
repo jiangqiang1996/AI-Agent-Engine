@@ -1,12 +1,12 @@
 ---
 name: ae:review
-description: "使用分层角色代理、置信度门控和合并去重流水线的结构化代码审查。在创建拉取请求前审查代码变更时使用。"
-argument-hint: "[mode:*] [plan:<path>] [base:<ref>]"
+description: "基于文件类型路由表驱动的结构化审查。非文档文件由代码审查者审查，文档文件委派给 ae-document-review。"
+argument-hint: "[mode:*] [from:<ref>] [plan:<path>]"
 ---
 
 # 代码审查
 
-使用动态选择的审查角色审查代码变更。并行派发子代理获取结构化 JSON，然后合并去重生成单一报告。
+基于文件类型路由表驱动的审查。非文档文件（源代码、配置、基础设施等）由代码审查者审查，文档文件（.md/.rst 等）委派给 ae-document-review 技能处理。
 
 ## 何时使用
 
@@ -14,21 +14,22 @@ argument-hint: "[mode:*] [plan:<path>] [base:<ref>]"
 - 迭代实现过程中完成任务后
 - 可独立调用或在更大工作流中运行
 
-## 参数解析
+## 阶段 0：参数解析与模式检测
 
-解析 `$ARGUMENTS` 中的可选标记：
+解析 `$ARGUMENTS` 中的可选标记。以 `mode:` 开头的标记是标志，不是 ref——从参数中移除它们。
 
 | 标记 | 效果 |
 |------|------|
 | `mode:autofix` | 自动修复模式 |
 | `mode:report-only` | 只读模式 |
 | `mode:headless` | 无头模式（程序调用） |
-| `base:<sha-or-ref>` | 跳过范围检测，直接使用作为差异基准 |
+| `from:<ref>` | 跳过范围检测，直接使用作为差异基准（`base:<ref>` 映射到 `from:<ref>` 保持兼容） |
+| `recent:<N>` | 审查最近 N 次提交，跳过范围检测 |
+| `full` | 审查所有 Git 跟踪文件 |
+| `full:<path>` | 审查指定路径下的所有 Git 跟踪文件 |
 | `plan:<path>` | 加载计划用于需求验证 |
 
 **冲突的模式标记：** 停止并报错。
-
-## 模式检测
 
 | 模式 | 行为 |
 |------|------|
@@ -37,132 +38,88 @@ argument-hint: "[mode:*] [plan:<path>] [base:<ref>]"
 | **只读** | 严格只读。仅审查和报告 |
 | **无头** | 程序模式。静默应用 `safe_auto`、结构化文本输出、写入运行产物、返回"审查完成" |
 
-## 严重级别
+## 阶段 1：确定范围
 
-| 级别 | 含义 | 动作 |
-|------|------|------|
-| **P0** | 严重故障、可利用漏洞 | 合并前必须修复 |
-| **P1** | 高影响缺陷 | 应该修复 |
-| **P2** | 中等问题 | 如果简单则修复 |
-| **P3** | 低影响 | 用户自行决定 |
+**如果提供了 `from:`、`recent:<N>`、`full` 或 `full:<path>` 参数：** 直接使用指定范围，跳过所有自动检测。
 
-## 动作路由
+**否则：** 阅读 `references/scope-detection.md`，按优先级执行范围检测流程（状态文件 → 项目配置 → resolve-base.sh → 友好降级）。
 
-| `autofix_class` | 默认所有者 | 含义 |
-|-----------------|-----------|------|
-| `safe_auto` | `review-fixer` | 本地确定性修复 |
-| `gated_auto` | `downstream-resolver` | 有修复但需批准 |
-| `manual` | `downstream-resolver` | 需设计决策 |
-| `advisory` | `human` | 只读输出 |
+检测完成后：
+- 展示基准 ref、变更文件数、变更量，让用户确认或修正
+- 未跟踪文件：始终检查。在无头/自动修复模式中仅继续跟踪变更并注明排除
+- 敏感文件排除：`.env`、`.env.*`（保留 `.env.example`、`.env.template`）等密钥文件在文件收集阶段即从变更列表中移除，后续任何阶段不可读取或引用
 
-路由规则：合成阶段拥有最终路由权。出现分歧时选择更保守的路由。
+## 阶段 2：意图发现与计划发现
 
-## 审查者
+**意图发现：** 结合对话上下文编写 2-3 行意图摘要，传递给每个审查者。
 
-**固定（每次包含）：** correctness、testing、maintainability、project-standards、agent-native-reviewer
+**计划发现（需求验证）：** 按优先级检查：`plan:` 参数 → 自动发现 `docs/ae/plans/` 中的最近计划。记录置信度标记（`explicit`/`inferred`）。
 
-**跨领域条件：** security、performance、api-contract、data-migrations、reliability、adversarial、cli-readiness、previous-comments
+## 阶段 3：文件路由与审查者选择
 
-**栈特定条件：** kieran-typescript
+阅读 `references/file-routing-table.md` 和 `references/persona-catalog.md`。
 
-**深度审计：** cli-agent-readiness-reviewer（按需）
-
-## 受保护产物
-
-以下路径的审查发现将被丢弃：
-- `docs/ae/brainstorms/*`
-- `docs/ae/plans/*.md`
-- `docs/ae/solutions/*.md`
-
-## 如何运行
-
-### 第 1 阶段：确定范围
-
-**如果提供了 `base:` 参数：** 直接使用，跳过检测。
-
-**如果参数中有 PR 编号或 URL：** 检出 PR 分支、获取元数据、从 PR 的实际基准仓库解析基准引用。
-
-**如果参数中有分支名称：** 检出分支，运行 `references/resolve-base.sh` 解析基准。
-
-**如果没有参数（当前分支）：** 运行 `references/resolve-base.sh` 解析基准。
-
-**未跟踪文件：** 始终检查。在无头/自动修复模式中仅继续跟踪变更并注明排除。
-
-### 第 2 阶段：意图发现
-
-结合对话上下文编写 2-3 行意图摘要，传递给每个审查者。
-
-### 第 2b 阶段：计划发现（需求验证）
-
-按优先级检查：`plan:` 参数 → PR 正文 → 自动发现。记录置信度标记（`explicit`/`inferred`）。
-
-### 第 3 阶段：选择审查者
-
-5 个固定角色自动包含。条件角色是代理判断，不是关键词匹配。在派发前公布团队。
-
-### 第 3b 阶段：发现项目标准路径
+1. 审查范围确定后，每个变更文件按扩展名/文件名匹配路由（支持无扩展名文件按文件名 glob 匹配）
+2. **文档文件**（.md .rst .adoc .org .txt）→ 收集到文档文件列表，不参与代码审查者选择
+3. **非文档文件** → 匹配路由组 → 确定基础审查者和条件审查者
+4. **领域代理激活：** 当文件匹配特定路由组时，自动激活对应领域代理：
+   - 配置文件路由（.json/.yaml/.yml/.toml/.xml）→ `config-reviewer`
+   - 基础设施路由（Dockerfile/CI/Terraform/Makefile）→ `infra-reviewer`
+   - 数据库路由（*.sql/.prisma/迁移文件）→ `database-reviewer`
+   - 脚本路由（.sh/.bash/.ps1/.bat/.cmd）→ `script-reviewer`
+5. 分析非文档文件内容特征（大小、主题、深度）→ 代理判断激活条件审查者
+6. 多个文件属于不同路由时，合并所有活跃审查者（含领域代理），去重后统一派发
+7. 在派发前公布团队并附理由
 
 为 `project-standards` 角色查找所有相关 AGENTS.md 文件路径。
 
-### 第 4 阶段：生成子代理
+## 阶段 4a：生成代码审查子代理
 
-使用中层模型。生成唯一运行 ID。每个角色子代理作为并行子代理生成，接收角色文件、差异范围规则、发现 schema、PR 元数据、审查上下文、运行 ID。
+使用中层模型。生成唯一运行 ID。
 
-角色子代理相对于项目是**只读**的。每个代理将完整 JSON 写入 `docs/ae/review/{run_id}/{reviewer_name}.json`，返回紧凑 JSON。
+使用 `references/subagent-template.md` 构建每个子代理的提示，填入变量：
 
-### 第 5 阶段：合并发现结果
+| 变量 | 值 |
+|------|-----|
+| `{persona_file}` | 代理 markdown 文件完整内容 |
+| `{scope_rules}` | 范围规则内容 |
+| `{schema}` | 发现 schema 内容 |
+| `{intent_summary}` | 阶段 2 输出 |
+| `{file_list}` | 变更文件列表 |
+| `{content}` | diff 内容或完整文件内容（全项目审查时） |
+| `{run_id}` | 运行标识符 |
+| `{reviewer_name}` | 审查者名称 |
 
-1. **验证** — 检查必需字段和值约束
-2. **置信度门控** — 抑制低于 0.60 的发现（P0 在 0.50+ 保留）
-3. **去重** — 指纹匹配时合并
-4. **跨审查者一致** — 2+ 审查者标记同一问题时提高置信度 0.10
-5. **分离预先存在问题**
-6. **解决分歧**
-7. **规范化路由** — 保留最保守的路由
-8. **划分工作** — 修复队列 / 剩余可操作队列 / 只读队列
-9. **排序** — 严重级别 → 置信度 → 文件路径 → 行号
+所有角色子代理作为并行子代理生成。角色子代理相对于项目是**只读**的。每个代理将完整 JSON 写入 `docs/ae/review/{run_id}/{reviewer_name}.json`，返回精简 JSON。
 
-### 第 6 阶段：合成并展示
+**错误处理：** 如果代理失败或超时，使用已完成代理的发现继续。在覆盖范围部分注明失败的代理。
 
-使用审查输出模板中管道分隔的 markdown 表格展示发现。包含：头部、发现表格、需求完整性、已应用修复、剩余工作、预存问题、经验教训、代理原生缺口、部署说明、覆盖范围、结论。
+## 阶段 4b：委派文档审查
 
-无头模式使用结构化文本包格式（见 `references/review-output-template.md`）。
+对阶段 3 收集的文档文件列表，逐个调用 `Skill("ae:document-review", "mode:headless <文件路径>")`。
 
-## 质量门
+ae-document-review 返回结构化发现，将其合并到统一报告中：
+- 将 ae-document-review 的发现转换为 ae-review 的 findings schema 格式
+- 文档类发现的 `file` 设为文档路径，`line` 设为 null，`section` 保留原始章节信息
+- 文档类发现的 `autofix_class` 和 `severity` 保留 ae-document-review 的原始判断
 
-1. 每个发现都是可操作的
-2. 没有因未仔细阅读代码导致的误报
-3. 严重级别校准正确
-4. 行号准确
-5. 受保护产物得到尊重
-6. 发现不重复 linter 输出
+如果文档文件数量较多（>5），提示用户确认是否全部审查或选择关键文档。
 
-## 审查后
+## 阶段 5-7：综合、展示和审查后
 
-### 模式驱动的审查后流程
-
-**步骤 1：** 构建动作集（修复队列 / 剩余可操作 / 只读）
-
-**步骤 2：按模式选择策略**
-
-- **交互模式** — 自动应用 `safe_auto`，策略问题询问用户
-- **自动修复模式** — 仅应用 `safe_auto`，保留其余
-- **只读模式** — 不构建修复队列，停止
-- **无头模式** — 单轮 `safe_auto`，结构化文本输出
-
-**步骤 3：** 使用一个修复器和 `max_rounds: 2` 应用修复
-
-**步骤 4：** 写入运行产物到 `docs/ae/review/<run-id>/`，包含 metadata.json
-
-**步骤 5：最终下一步（仅交互模式）**
-
-- PR 模式：推送修复 / 退出
-- 分支模式：创建 PR（推荐）/ 继续 / 退出
-- 默认分支：继续 / 退出
+所有代理返回后，阅读 `references/synthesis-and-presentation.md` 了解综合流水线（验证、置信度门控、去重、跨审查者一致、解决分歧、规范化路由、划分工作、排序）、展示和审查后流程。不要在代理调度完成之前加载此文件。
 
 ---
 
-## 包含的参考
+## 包含的参考文件
+
+### 范围检测
+
+@./references/scope-detection.md
+
+### 文件路由表
+
+@./references/file-routing-table.md
 
 ### 角色目录
 
@@ -172,14 +129,18 @@ argument-hint: "[mode:*] [plan:<path>] [base:<ref>]"
 
 @./references/subagent-template.md
 
-### 差异范围规则
-
-@./references/diff-scope.md
-
-### 发现结果模式
+### 发现 Schema
 
 @./references/findings-schema.json
+
+### 综合与展示
+
+@./references/synthesis-and-presentation.md
 
 ### 审查输出模板
 
 @./references/review-output-template.md
+
+### 基准解析脚本
+
+@./references/resolve-base.sh
