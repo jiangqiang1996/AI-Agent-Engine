@@ -2,12 +2,15 @@ import { AGENT } from '../schemas/ae-asset-schema.js'
 import { CODE_REVIEWERS, DOCUMENT_REVIEWERS } from './review-catalog.js'
 
 // ae:document-review 的文档审查者选择
-// 审查需求文档、计划文档及其他任意文档
+// 审查需求文档、计划文档、测试用例文档及其他任意文档
 export interface DocumentReviewSelectionInput {
-  documentType: 'requirements' | 'plan' | 'test'
+  documentType: 'requirements' | 'plan' | 'test' | 'general'
   requirementCount?: number
   hasUi?: boolean
   hasSecurity?: boolean
+  hasArchitectureDecision?: boolean
+  isHighRiskDomain?: boolean
+  hasNewAbstraction?: boolean
 }
 
 // ae:review 的代码审查者选择
@@ -25,36 +28,42 @@ export interface CodeReviewSelectionInput {
 }
 
 export function selectDocumentReviewers(input: DocumentReviewSelectionInput): string[] {
-  const conditionalReviewers: string[] = []
+  const base = DOCUMENT_REVIEWERS.filter((r) => r.alwaysOn).map((r) => r.name)
+  const conditional: string[] = []
 
-  if ((input.requirementCount ?? 0) >= 5) {
-    conditionalReviewers.push(AGENT.PRODUCT_LENS_REVIEWER, AGENT.SCOPE_GUARDIAN_REVIEWER, AGENT.ADVERSARIAL_DOCUMENT_REVIEWER)
-  }
-
-  if (input.documentType === 'plan' && !conditionalReviewers.includes(AGENT.PRODUCT_LENS_REVIEWER)) {
-    conditionalReviewers.push(AGENT.PRODUCT_LENS_REVIEWER)
+  if (input.documentType === 'test') {
+    conditional.push(AGENT.TEST_CASE_REVIEWER)
   }
 
   if (input.documentType === 'plan') {
-    conditionalReviewers.push(AGENT.STEP_GRANULARITY_REVIEWER, AGENT.BATCH_OPERATION_REVIEWER)
+    conditional.push(AGENT.PRODUCT_LENS_REVIEWER, AGENT.STEP_GRANULARITY_REVIEWER, AGENT.BATCH_OPERATION_REVIEWER)
+  }
+
+  if (
+    (input.requirementCount ?? 0) >= 5 ||
+    input.hasArchitectureDecision ||
+    input.isHighRiskDomain ||
+    input.hasNewAbstraction
+  ) {
+    conditional.push(AGENT.ADVERSARIAL_DOCUMENT_REVIEWER)
+  }
+
+  if (
+    (input.requirementCount ?? 0) >= 5 ||
+    input.documentType === 'plan'
+  ) {
+    conditional.push(AGENT.PRODUCT_LENS_REVIEWER, AGENT.SCOPE_GUARDIAN_REVIEWER)
   }
 
   if (input.hasUi) {
-    conditionalReviewers.push(AGENT.DESIGN_LENS_REVIEWER)
+    conditional.push(AGENT.DESIGN_LENS_REVIEWER)
   }
 
   if (input.hasSecurity) {
-    conditionalReviewers.push(AGENT.SECURITY_LENS_REVIEWER)
+    conditional.push(AGENT.SECURITY_LENS_REVIEWER)
   }
 
-  if (input.documentType === 'test') {
-    return [...new Set([AGENT.COHERENCE_REVIEWER, AGENT.FEASIBILITY_REVIEWER, AGENT.TEST_CASE_REVIEWER, ...conditionalReviewers])]
-  }
-
-  const selected = DOCUMENT_REVIEWERS.filter((reviewer) => reviewer.alwaysOn).map((reviewer) => reviewer.name)
-  selected.push(...conditionalReviewers)
-
-  return [...new Set(selected)]
+  return [...new Set([...base, ...conditional])]
 }
 
 export function selectCodeReviewers(input: CodeReviewSelectionInput): string[] {
