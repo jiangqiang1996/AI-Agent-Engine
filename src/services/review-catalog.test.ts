@@ -3,8 +3,8 @@ import { DOCUMENT_REVIEWERS, CODE_REVIEWERS } from './review-catalog.js'
 import { AGENT } from '../schemas/ae-asset-schema.js'
 
 describe('review-catalog', () => {
-  it('DOCUMENT_REVIEWERS 应包含 9 个条目', () => {
-    expect(DOCUMENT_REVIEWERS).toHaveLength(9)
+  it('DOCUMENT_REVIEWERS 应包含 10 个条目', () => {
+    expect(DOCUMENT_REVIEWERS).toHaveLength(10)
   })
 
   it('新增的 step-granularity-reviewer 应存在于 DOCUMENT_REVIEWERS', () => {
