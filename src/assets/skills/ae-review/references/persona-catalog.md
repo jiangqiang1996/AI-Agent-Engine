@@ -11,7 +11,7 @@
 | `correctness` | `correctness-reviewer` | 逻辑错误、边界情况、状态 bug、错误传播 |
 | `testing` | `testing-reviewer` | 覆盖缺口、弱断言、脆弱测试 |
 | `maintainability` | `maintainability-reviewer` | 耦合、复杂度、命名、死代码、脚本可移植性 |
-| `project-standards` | `standards-reviewer` | AGENTS.md 合规性、配置文件语法正确性、schema 一致性、敏感值检测 |
+| `standards` | `standards-reviewer` | AGENTS.md 合规性、配置文件语法正确性、schema 一致性、敏感值检测 |
 
 ## 条件性（跨领域）
 

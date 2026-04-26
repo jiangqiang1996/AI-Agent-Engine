@@ -485,7 +485,7 @@ ae:frontend-design ──→ @design-iterator（多轮迭代时）
 
 共计 16 个 `-po` 命令 + 16 个 `-pa` 命令 = **32 个变体命令**。
 
-加上 19 个基础命令，AE 共提供 **51 个命令**。
+加上 18 个基础命令，AE 共提供 **50 个命令**。
 
 ## 参数总表
 
@@ -513,7 +513,7 @@ ae:frontend-design ──→ @design-iterator（多轮迭代时）
 | `ae:prompt-optimize` | `[auto] [提示词内容]` | 提示词优化 | 优化后确认再执行 |
 | `ae:save-rules` | 规范类型 | 规范分类 | 自动推断 |
 | `ae:update` | `project` | 项目级更新 | 全局更新 |
-| `ae:commit` | _(无参数)_ | 智能提交变更 | 遵循项目 Git 提交规范 |
+
 
 ## 审查模式
 

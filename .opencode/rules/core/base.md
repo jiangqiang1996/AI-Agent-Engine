@@ -100,7 +100,7 @@ ai-agent-engine/
 │   │   └── commands/            # 命令定义
 │   ├── index.ts                 # 插件入口
 │   ├── tui.ts                   # TUI 入口
-│   ├── tools/                   # 工具定义（3 个工具）
+│   ├── tools/                   # 工具定义（5 个工具）
 │   ├── services/                # 业务服务层
 │   ├── schemas/                 # Zod Schema 定义
 │   └── utils/                   # 工具函数

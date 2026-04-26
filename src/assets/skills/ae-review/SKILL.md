@@ -175,7 +175,7 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 7. 多个文件属于不同路由时，合并所有活跃审查者（含领域代理），去重后统一派发
 8. 在派发前公布团队并附理由
 
-为 `project-standards` 角色查找所有相关 AGENTS.md 文件路径。
+为 `standards` 角色查找所有相关 AGENTS.md 文件路径。
 
 #### 文档域审查者选择
 
@@ -184,8 +184,8 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 条件角色激活：
 - **product-lens** — 文档对构建什么和为什么构建做出可质疑的主张，或具有战略影响力
 - **design-lens** — 文档包含 UI/UX 内容、用户流程或交互描述
-- **security-lens** — 文档包含认证/授权、公共 API、数据处理或第三方集成
-- **scope-guardian** — 文档包含多个优先级层级、大量需求（>=5 个）、弹性目标或与目标不一致的范围语言
+- **security** — 文档包含认证/授权、公共 API、数据处理或第三方集成
+- **product-lens** — 文档包含多个优先级层级、大量需求（>=5 个）、弹性目标或与目标不一致的范围语言
 - **adversarial** — 文档超过 5 个独立需求、包含重要架构决策、高风险领域或新抽象提议
 - **test-case** — 文档类型为 test
 

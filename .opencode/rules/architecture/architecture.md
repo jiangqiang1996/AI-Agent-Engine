@@ -5,7 +5,7 @@
 ```
 src/
 ├── index.ts              # 插件入口，导出 PluginModule
-├── tools/                # 工具定义（3 个工具）
+├── tools/                # 工具定义（5 个工具）
 │   ├── index.ts          # 工具注册汇总
 │   └── *.tool.ts         # 单个工具定义
 ├── hooks/                # Hook 处理器

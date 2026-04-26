@@ -82,9 +82,9 @@
 **域：** document
 **文档：** docs/ae/plans/2026-03-15-feat-user-auth-plan.md
 **类型：** plan
-**审查者：** coherence, feasibility, security-lens, scope-guardian
-- security-lens -- 计划新增带认证流程的公共 API 端点
-- scope-guardian -- 计划包含跨 3 个优先级层级的 15 个需求
+**审查者：** coherence, feasibility, security, product-lens
+- security -- 计划新增带认证流程的公共 API 端点
+- product-lens -- 计划包含跨 3 个优先级层级的 15 个需求
 
 已应用 5 个自动修复。4 个发现待处理（2 个错误，2 个遗漏）。
 

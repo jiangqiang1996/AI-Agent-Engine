@@ -38,7 +38,7 @@
 
 **匹配文件：** .ts .tsx .js .jsx .mjs .cjs .py .java .go .rs .c .cpp .h .rb .php .swift .kt .scala
 
-**基础审查者：** correctness, testing, maintainability, project-standards
+**基础审查者：** correctness, testing, maintainability, standards
 
 **条件审查者：**
 - security — 认证、权限、用户输入
@@ -46,15 +46,14 @@
 - api-contract — 路由、类型签名、版本
 - reliability — 错误处理、重试、超时
 - adversarial — >=50 行可执行代码或高风险
-- cli-readiness — CLI 命令定义
+- agent-native — CLI 命令定义
 - previous-comments — 仅 PR 模式
-- kieran-typescript — .ts/.tsx 文件
 
 ### 配置路由
 
 **匹配文件：** .json .yaml .yml .toml .xml
 
-**基础审查者：** correctness, maintainability, project-standards（standards-reviewer 含配置文件语法正确性、schema 一致性、敏感值检测）
+**基础审查者：** correctness, maintainability, standards（standards-reviewer 含配置文件语法正确性、schema 一致性、敏感值检测）
 
 **条件审查者：**
 - security — 密钥/权限配置
@@ -63,7 +62,7 @@
 
 **匹配文件：** Dockerfile docker-compose.* *.tf *.tfvars .github/workflows/* Makefile Jenkinsfile
 
-**基础审查者：** correctness, maintainability, project-standards
+**基础审查者：** correctness, maintainability, standards
 
 **条件审查者：**
 - security — 容器安全/CI 权限
@@ -73,7 +72,7 @@
 
 **匹配文件：** *.sql .prisma 迁移文件
 
-**基础审查者：** correctness, maintainability, project-standards
+**基础审查者：** correctness, maintainability, standards
 
 **条件审查者：**
 - data-migrations — schema 变更/迁移安全/数据库迁移可逆性/完整性约束/索引策略
@@ -83,7 +82,7 @@
 
 **匹配文件：** .graphql .proto .openapi.* swagger.*
 
-**基础审查者：** correctness, maintainability, project-standards
+**基础审查者：** correctness, maintainability, standards
 
 **条件审查者：**
 - api-contract — 类型签名/版本/破坏性变更
@@ -101,7 +100,7 @@
 
 **匹配文件：** .sh .bash .ps1 .bat .cmd
 
-**基础审查者：** correctness, maintainability（含脚本可移植性、幂等性、平台兼容性）, project-standards
+**基础审查者：** correctness, maintainability（含脚本可移植性、幂等性、平台兼容性）, standards
 
 **条件审查者：**
 - security — 注入/权限
@@ -119,6 +118,6 @@
 
 **匹配文件：** 不匹配任何路由的文件
 
-**基础审查者：** correctness, maintainability, project-standards
+**基础审查者：** correctness, maintainability, standards
 
 **条件审查者：** 无
