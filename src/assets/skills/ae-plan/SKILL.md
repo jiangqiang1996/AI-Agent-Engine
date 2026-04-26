@@ -84,7 +84,7 @@ argument-hint: "[计划路径|需求文档路径|需求描述]"
 
 并行运行：
 - Task research:repo-research-analyst(范围: 技术、架构、模式)
-- Task research:learnings-researcher(计划上下文摘要)
+- Task research:research-reviewer(计划上下文摘要)
 
 #### 1.1b 检测执行姿态信号
 
@@ -96,7 +96,7 @@ argument-hint: "[计划路径|需求文档路径|需求描述]"
 
 #### 1.3 外部研究（条件性）
 
-如果需要，并行运行 best-practices-researcher 和 framework-docs-researcher。
+如果需要，运行 research-reviewer 搜索外部最佳实践和框架文档。
 
 #### 1.4 整合研究
 

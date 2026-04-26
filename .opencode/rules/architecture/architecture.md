@@ -130,8 +130,8 @@ class FileNotFoundError extends Schema.TaggedError<FileNotFoundError>(
 |------|------|------|------|
 | `SKILL` | `ae:xxx` | 17 | `SKILL.BRAINSTORM` → `'ae:brainstorm'` |
 | `COMMAND` | `ae-xxx` | 17 | `COMMAND.BRAINSTORM` → `'ae-brainstorm'` |
-| `AGENT` | `xxx-reviewer` 等 | 28 | `AGENT.CORRECTNESS_REVIEWER` → `'correctness-reviewer'` |
-| `TOOL` | `ae-xxx` | 3 | `TOOL.AE_RECOVERY` → `'ae-recovery'` |
+| `AGENT` | `xxx-reviewer` 等 | 26 | `AGENT.CORRECTNESS_REVIEWER` → `'correctness-reviewer'` |
+| `TOOL` | `ae-xxx` | 5 | `TOOL.AE_RECOVERY` → `'ae-recovery'` |
 
 ### 引用规则
 

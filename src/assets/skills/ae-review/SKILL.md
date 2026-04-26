@@ -166,11 +166,11 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 2. **默认排除的文件**（需求文档和计划文档，且未满足"明确指定"条件）：从文件列表中移除，不参与任何审查
 3. **文档文件**（.md .rst .adoc .org .txt）：收集到文档文件列表，作为文档域发现单独调度
 4. **代码文件** → 匹配路由组 → 确定基础审查者和条件审查者
-5. **领域代理激活：** 当文件匹配特定路由组时，自动激活对应领域代理：
-   - 配置文件路由（.json/.yaml/.yml/.toml/.xml）→ `config-reviewer`
-   - 基础设施路由（Dockerfile/CI/Terraform/Makefile）→ `infra-reviewer`
-   - 数据库路由（*.sql/.prisma/迁移文件）→ `database-reviewer`
-   - 脚本路由（.sh/.bash/.ps1/.bat/.cmd）→ `script-reviewer`
+5. **合并领域关注点：** 领域代理已合并到常驻/条件审查者中：
+   - 配置文件路由（.json/.yaml/.yml/.toml/.xml）→ `standards-reviewer`（含配置文件审查）
+   - 基础设施路由（Dockerfile/CI/Terraform/Makefile）→ `reliability-reviewer`（含基础设施审查）
+   - 数据库路由（*.sql/.prisma/迁移文件）→ `data-migrations-reviewer`（含数据库审查）
+   - 脚本路由（.sh/.bash/.ps1/.bat/.cmd）→ `maintainability-reviewer`（含脚本审查）
 6. 分析代码文件内容特征（大小、主题、深度）→ 代理判断激活条件审查者
 7. 多个文件属于不同路由时，合并所有活跃审查者（含领域代理），去重后统一派发
 8. 在派发前公布团队并附理由

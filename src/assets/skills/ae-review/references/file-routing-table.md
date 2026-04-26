@@ -29,8 +29,8 @@
 
 | 审查者 | 关注点 |
 |--------|--------|
-| `learnings-researcher` | 搜索 docs/ae/solutions/ 查找历史问题 |
-| `agent-native-reviewer` | 验证新功能可被代理访问 |
+| `research-reviewer` | 搜索历史方案、最佳实践和框架文档 |
+| `agent-native-reviewer` | 验证新功能可被代理访问、CLI 就绪度 |
 
 ## 路由定义
 
@@ -54,12 +54,10 @@
 
 **匹配文件：** .json .yaml .yml .toml .xml
 
-**基础审查者：** correctness, maintainability, project-standards
+**基础审查者：** correctness, maintainability, project-standards（standards-reviewer 含配置文件语法正确性、schema 一致性、敏感值检测）
 
 **条件审查者：**
 - security — 密钥/权限配置
-
-**领域代理：** `config-reviewer`
 
 ### 基础设施路由
 
@@ -69,9 +67,7 @@
 
 **条件审查者：**
 - security — 容器安全/CI 权限
-- reliability — 错误处理/健康检查
-
-**领域代理：** `infra-reviewer`
+- reliability — 错误处理/健康检查/基础设施最佳实践
 
 ### 数据库路由
 
@@ -80,10 +76,8 @@
 **基础审查者：** correctness, maintainability, project-standards
 
 **条件审查者：**
-- data-migrations — schema 变更/迁移安全
+- data-migrations — schema 变更/迁移安全/数据库迁移可逆性/完整性约束/索引策略
 - security — SQL 注入
-
-**领域代理：** `database-reviewer`
 
 ### API 契约路由
 
@@ -107,13 +101,11 @@
 
 **匹配文件：** .sh .bash .ps1 .bat .cmd
 
-**基础审查者：** correctness, maintainability, project-standards
+**基础审查者：** correctness, maintainability（含脚本可移植性、幂等性、平台兼容性）, project-standards
 
 **条件审查者：**
 - security — 注入/权限
 - reliability — 错误处理/退出码
-
-**领域代理：** `script-reviewer`
 
 ### 文档路由
 
@@ -121,9 +113,7 @@
 
 **排除：** docs/ae/brainstorms/ 和 docs/ae/plans/ 下的需求文档和计划文档默认排除——除非用户明确指定纳入，此时由 ae:document-review 审查后结果合并到统一报告。
 
-**处理方式：** 需求/计划之外的文档文件委派给 ae-document-review 技能。ae-review 通过 `Skill("ae:document-review", "mode:headless <文件路径>")` 调用，由 ae-document-review 负责文档审查的完整流程。
-
-审查者选择、条件激活、发现综合全部由 ae-document-review 处理，ae-review 只负责合并返回结果。
+**处理方式：** 需求/计划之外的文档文件使用 domain:document 模式审查。ae-review 内部按文档域流程处理，选择文档域审查者并综合结果。
 
 ### 兜底路由
 

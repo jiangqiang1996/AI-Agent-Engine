@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { AGENT_ALIAS_MAP, resolveAgentName } from './agent-alias-map.js'
 
 describe('agent-alias-map', () => {
-  it('别名映射应包含 10 个条目', () => {
-    expect(AGENT_ALIAS_MAP.size).toBe(10)
+  it('别名映射应包含 18 个条目', () => {
+    expect(AGENT_ALIAS_MAP.size).toBe(18)
   })
 
   it('旧名 kieran-typescript-reviewer 应解析为 correctness-reviewer', () => {
@@ -22,28 +22,56 @@ describe('agent-alias-map', () => {
     expect(resolveAgentName('adversarial-document-reviewer')).toBe('adversarial-reviewer')
   })
 
-  it('旧名 product-lens-reviewer 应解析为 product-scope-reviewer', () => {
-    expect(resolveAgentName('product-lens-reviewer')).toBe('product-scope-reviewer')
+  it('旧名 product-scope-reviewer 应解析为 product-lens-reviewer', () => {
+    expect(resolveAgentName('product-scope-reviewer')).toBe('product-lens-reviewer')
   })
 
-  it('旧名 scope-guardian-reviewer 应解析为 product-scope-reviewer', () => {
-    expect(resolveAgentName('scope-guardian-reviewer')).toBe('product-scope-reviewer')
+  it('旧名 scope-guardian-reviewer 应解析为 product-lens-reviewer', () => {
+    expect(resolveAgentName('scope-guardian-reviewer')).toBe('product-lens-reviewer')
   })
 
-  it('旧名 step-granularity-reviewer 应解析为 plan-quality-reviewer', () => {
-    expect(resolveAgentName('step-granularity-reviewer')).toBe('plan-quality-reviewer')
+  it('旧名 plan-quality-reviewer 应解析为 step-granularity-reviewer', () => {
+    expect(resolveAgentName('plan-quality-reviewer')).toBe('step-granularity-reviewer')
   })
 
-  it('旧名 batch-operation-reviewer 应解析为 plan-quality-reviewer', () => {
-    expect(resolveAgentName('batch-operation-reviewer')).toBe('plan-quality-reviewer')
+  it('旧名 batch-operation-reviewer 应解析为 step-granularity-reviewer', () => {
+    expect(resolveAgentName('batch-operation-reviewer')).toBe('step-granularity-reviewer')
   })
 
   it('旧名 project-standards-reviewer 应解析为 standards-reviewer', () => {
     expect(resolveAgentName('project-standards-reviewer')).toBe('standards-reviewer')
   })
 
-  it('旧名 learnings-researcher 应解析为 learnings-reviewer', () => {
-    expect(resolveAgentName('learnings-researcher')).toBe('learnings-reviewer')
+  it('旧名 config-reviewer 应解析为 standards-reviewer', () => {
+    expect(resolveAgentName('config-reviewer')).toBe('standards-reviewer')
+  })
+
+  it('旧名 infra-reviewer 应解析为 reliability-reviewer', () => {
+    expect(resolveAgentName('infra-reviewer')).toBe('reliability-reviewer')
+  })
+
+  it('旧名 database-reviewer 应解析为 data-migrations-reviewer', () => {
+    expect(resolveAgentName('database-reviewer')).toBe('data-migrations-reviewer')
+  })
+
+  it('旧名 script-reviewer 应解析为 maintainability-reviewer', () => {
+    expect(resolveAgentName('script-reviewer')).toBe('maintainability-reviewer')
+  })
+
+  it('旧名 learnings-researcher 应解析为 research-reviewer', () => {
+    expect(resolveAgentName('learnings-researcher')).toBe('research-reviewer')
+  })
+
+  it('旧名 best-practices-researcher 应解析为 research-reviewer', () => {
+    expect(resolveAgentName('best-practices-researcher')).toBe('research-reviewer')
+  })
+
+  it('旧名 framework-docs-researcher 应解析为 research-reviewer', () => {
+    expect(resolveAgentName('framework-docs-researcher')).toBe('research-reviewer')
+  })
+
+  it('旧名 learnings-reviewer 应解析为 research-reviewer', () => {
+    expect(resolveAgentName('learnings-reviewer')).toBe('research-reviewer')
   })
 
   it('当前名 correctness-reviewer 应保持不变', () => {

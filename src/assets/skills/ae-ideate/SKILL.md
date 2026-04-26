@@ -133,13 +133,13 @@ $SCRATCH_DIR = Join-Path $env:TEMP "ae-ae-ideate-<run-id>"; New-Item -ItemType D
 **仓库模式分派：**
 
 1. **快速上下文扫描** — 使用最便宜的能力模型分派通用子代理，阅读项目的 AGENTS.md/README.md，发现顶层目录布局，返回简洁摘要（30 行以内）
-2. **经验搜索** — 分派 `research:learnings-researcher`，附带创意焦点摘要
+2. **经验搜索** — 分派 `research:research-reviewer`，附带创意焦点摘要
 3. **网络研究** — 始终开启（参见 `references/web-research-cache.md` 了解缓存处理）
 
 **外部模式分派：**
 
 1. **用户上下文综合** — 分派通用子代理阅读用户提供的上下文，返回结构化落地摘要
-2. **经验搜索** *（仅外部-软件）* — 分派 `research:learnings-researcher`
+2. **经验搜索** *（仅外部-软件）* — 分派 `research:research-reviewer`
 3. **网络研究** — 与仓库模式相同
 
 #### 网络研究

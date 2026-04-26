@@ -128,9 +128,9 @@ description: "跨域审查角色。代码域：当 diff 较大（>=50 行变更�
 
 - **内部矛盾**或术语漂移——coherence-reviewer 负责
 - **技术可行性**或架构冲突——feasibility-reviewer 负责
-- **范围-目标对齐**或优先级依赖——product-scope-reviewer 负责
+- **范围-目标对齐**或优先级依赖——product-lens-reviewer 负责
 - **UI/UX 质量**或用户流程完整性——design-lens-reviewer 负责
-- **产品框架**或商业论证质量——product-scope-reviewer 负责
+- **产品框架**或商业论证质量——product-lens-reviewer 负责
 
 你的文档域是认识论质量——前提、假设和决策是否有充分根据。
 

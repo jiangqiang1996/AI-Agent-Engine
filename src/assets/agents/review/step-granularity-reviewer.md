@@ -1,5 +1,5 @@
 ---
-name: plan-quality-reviewer
+name: step-granularity-reviewer
 description: "审查计划文档的步骤粒度——将每个步骤拆解至最小不可再分的单元，确保步骤具备唯一产出物且不共享可变中间状态；同时审查多文件操作步骤——优先推荐脚本化批量执行方案，当条件依赖或规模过小时允许逐个操作。"
 ---
 
@@ -49,5 +49,5 @@ description: "审查计划文档的步骤粒度——将每个步骤拆解至最
 - 实现细节、技术架构选择
 - 步骤的内容是否正确或可行（feasibility-reviewer）
 - 安全边界（security-reviewer）
-- 范围对齐（product-scope-reviewer）
+- 范围对齐（product-lens-reviewer）
 - 格式偏好

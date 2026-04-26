@@ -50,6 +50,9 @@ function nextSkillForArtifact(phase: RecoveryResult['phase'], artifactType: Arti
     case 'work':
       return SKILL.WORK
     case 'review':
+      if (artifactType === 'plan' || artifactType === 'brainstorm') {
+        return SKILL.DOCUMENT_REVIEW
+      }
       return SKILL.REVIEW
     case 'brainstorm':
       return SKILL.BRAINSTORM
@@ -60,9 +63,9 @@ function nextSkillForArtifact(phase: RecoveryResult['phase'], artifactType: Arti
         case 'work':
           return SKILL.WORK
         case 'plan':
-          return SKILL.REVIEW
+          return SKILL.DOCUMENT_REVIEW
         case 'brainstorm':
-          return SKILL.REVIEW
+          return SKILL.DOCUMENT_REVIEW
       }
   }
 }

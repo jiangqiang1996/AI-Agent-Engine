@@ -3,8 +3,8 @@ import { REVIEW_MATRIX } from './review-catalog.js'
 import { AGENT } from '../schemas/ae-asset-schema.js'
 
 describe('REVIEW_MATRIX', () => {
-  it('应包含 24 个条目', () => {
-    expect(REVIEW_MATRIX).toHaveLength(24)
+  it('应包含 20 个条目', () => {
+    expect(REVIEW_MATRIX).toHaveLength(20)
   })
 
   it('代码域 alwaysOn 应为 6 个', () => {
@@ -16,7 +16,7 @@ describe('REVIEW_MATRIX', () => {
       AGENT.MAINTAINABILITY_REVIEWER,
       AGENT.STANDARDS_REVIEWER,
       AGENT.AGENT_NATIVE_REVIEWER,
-      AGENT.LEARNINGS_REVIEWER,
+      AGENT.RESEARCH_REVIEWER,
     ])
   })
 
@@ -41,9 +41,9 @@ describe('REVIEW_MATRIX', () => {
     }
   })
 
-  it('代码域条件条目应包含 9 个', () => {
+  it('代码域条件条目应包含 5 个', () => {
     const codeConditional = REVIEW_MATRIX.filter((r) => r.domain === 'code' && !r.alwaysOn)
-    expect(codeConditional).toHaveLength(9)
+    expect(codeConditional).toHaveLength(5)
   })
 
   it('文档域条件条目应包含 5 个', () => {
@@ -51,15 +51,14 @@ describe('REVIEW_MATRIX', () => {
     expect(docConditional).toHaveLength(5)
   })
 
-  it('config-reviewer 应存在于代码域条件条目', () => {
-    const reviewer = REVIEW_MATRIX.find((r) => r.name === AGENT.CONFIG_REVIEWER)
+  it('standards-reviewer 应包含配置审查职责', () => {
+    const reviewer = REVIEW_MATRIX.find((r) => r.name === AGENT.STANDARDS_REVIEWER)
     expect(reviewer).toBeDefined()
-    expect(reviewer!.domain).toBe('code')
-    expect(reviewer!.alwaysOn).toBe(false)
+    expect(reviewer!.description).toContain('配置')
   })
 
-  it('product-scope-reviewer 应存在于文档域条件条目', () => {
-    const reviewer = REVIEW_MATRIX.find((r) => r.name === AGENT.PRODUCT_SCOPE_REVIEWER)
+  it('product-lens-reviewer 应存在于文档域条件条目', () => {
+    const reviewer = REVIEW_MATRIX.find((r) => r.name === AGENT.PRODUCT_LENS_REVIEWER)
     expect(reviewer).toBeDefined()
     expect(reviewer!.domain).toBe('document')
     expect(reviewer!.alwaysOn).toBe(false)

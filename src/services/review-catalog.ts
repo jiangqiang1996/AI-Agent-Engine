@@ -20,9 +20,9 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
   { name: AGENT.CORRECTNESS_REVIEWER, domain: 'code', alwaysOn: true, description: '审查逻辑正确性与边界条件' },
   { name: AGENT.TESTING_REVIEWER, domain: 'code', alwaysOn: true, description: '审查测试覆盖与断言质量' },
   { name: AGENT.MAINTAINABILITY_REVIEWER, domain: 'code', alwaysOn: true, description: '审查可维护性与抽象合理性' },
-  { name: AGENT.STANDARDS_REVIEWER, domain: 'code', alwaysOn: true, description: '审查是否遵守项目规范' },
+  { name: AGENT.STANDARDS_REVIEWER, domain: 'code', alwaysOn: true, description: '审查是否遵守项目规范（含配置文件语法正确性、schema 一致性和敏感值检测）' },
   { name: AGENT.AGENT_NATIVE_REVIEWER, domain: 'code', alwaysOn: true, description: '审查代理与 CLI 操作友好性' },
-  { name: AGENT.LEARNINGS_REVIEWER, domain: 'code', alwaysOn: true, description: '提炼已有经验与文档知识' },
+  { name: AGENT.RESEARCH_REVIEWER, domain: 'code', alwaysOn: true, description: '搜索历史方案、最佳实践和框架文档' },
 
   { name: AGENT.COHERENCE_REVIEWER, domain: 'document', alwaysOn: true, description: '审查文档的内部一致性' },
   { name: AGENT.FEASIBILITY_REVIEWER, domain: 'document', alwaysOn: true, description: '评估文档中提出的技术方法能否经受现实考验' },
@@ -67,43 +67,21 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
     name: AGENT.RELIABILITY_REVIEWER,
     domain: 'code',
     alwaysOn: false,
-    conditionGroups: [[{ field: 'hasReliability', operator: 'truthy' }]],
-    description: '审查故障恢复与可靠性',
+    conditionGroups: [
+      [{ field: 'hasReliability', operator: 'truthy' }],
+      [{ field: 'hasInfra', operator: 'truthy' }],
+    ],
+    description: '审查故障恢复与可靠性（含基础设施定义的最佳实践和安全性）',
   },
   {
     name: AGENT.DATA_MIGRATIONS_REVIEWER,
     domain: 'code',
     alwaysOn: false,
-    conditionGroups: [[{ field: 'hasMigrations', operator: 'truthy' }]],
-    description: '审查数据迁移',
-  },
-  {
-    name: AGENT.CONFIG_REVIEWER,
-    domain: 'code',
-    alwaysOn: false,
-    conditionGroups: [[{ field: 'hasConfig', operator: 'truthy' }]],
-    description: '审查配置文件语法正确性、schema 一致性和敏感值',
-  },
-  {
-    name: AGENT.INFRA_REVIEWER,
-    domain: 'code',
-    alwaysOn: false,
-    conditionGroups: [[{ field: 'hasInfra', operator: 'truthy' }]],
-    description: '审查基础设施定义的最佳实践和安全性',
-  },
-  {
-    name: AGENT.DATABASE_REVIEWER,
-    domain: 'code',
-    alwaysOn: false,
-    conditionGroups: [[{ field: 'hasDatabase', operator: 'truthy' }]],
-    description: '审查数据库迁移可逆性、完整性约束和索引策略',
-  },
-  {
-    name: AGENT.SCRIPT_REVIEWER,
-    domain: 'code',
-    alwaysOn: false,
-    conditionGroups: [[{ field: 'hasScript', operator: 'truthy' }]],
-    description: '审查脚本可移植性、幂等性和平台兼容性',
+    conditionGroups: [
+      [{ field: 'hasMigrations', operator: 'truthy' }],
+      [{ field: 'hasDatabase', operator: 'truthy' }],
+    ],
+    description: '审查数据迁移（含数据库迁移可逆性、完整性约束和索引策略）',
   },
   {
     name: AGENT.PREVIOUS_COMMENTS_REVIEWER,
@@ -113,7 +91,7 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
     description: '复查历史审查评论处理情况',
   },
   {
-    name: AGENT.PRODUCT_SCOPE_REVIEWER,
+    name: AGENT.PRODUCT_LENS_REVIEWER,
     domain: 'document',
     alwaysOn: false,
     conditionGroups: [
@@ -123,7 +101,7 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
     description: '以产品视角审查范围对齐和不合理的复杂度',
   },
   {
-    name: AGENT.PLAN_QUALITY_REVIEWER,
+    name: AGENT.STEP_GRANULARITY_REVIEWER,
     domain: 'document',
     alwaysOn: false,
     conditionGroups: [

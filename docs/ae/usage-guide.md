@@ -17,10 +17,10 @@ AE 的命令分为三类：**基础命令**（19 个）、**提示词优化命�
 | `/ae-lfg` | `[需求描述\|已有产物路径]` | 默认总入口，驱动从需求到执行的完整主链路 |
 | `/ae-ideate` | `[功能、关注领域或约束]` | 生成并批判性评估关于某个主题的落地想法 |
 | `/ae-brainstorm` | `[需求描述\|需求文档路径]` | 围绕需求进行头脑风暴并产出需求文档 |
-| `/ae-document-review` | `[mode:*] [文档路径]` | 对需求文档或计划文档进行多角色审查 |
+| `/ae-document-review` | `[mode:*] [文档路径]` | 文档审查（重定向到 `/ae-review domain:document`） |
 | `/ae-plan` | `[计划路径\|需求文档路径\|需求描述]` | 基于需求或输入生成技术计划 |
 | `/ae-work` | `[计划路径\|工作描述]` | 按演进式计划执行工作并尽量委派给子代理 |
-| `/ae-review` | `[mode:*] [plan:\<path\>] [base:\<ref\>]` | 使用分层角色代理和置信度门控对代码改动进行结构化审查 |
+| `/ae-review` | `[mode:*] [domain:code\|document] [plan:<path>] [base:<ref>]` | 统一审查：代码域和文档域的分层角色审查 |
 | `/ae-task-loop` | `[一句话目标描述]` | 循环执行任务并自动验证，直到达成目标后退出 |
 | `/ae-frontend-design` | `[描述\|路径]` | 构建具有设计品质的前端界面 |
 | `/ae-setup` | _(无参数)_ | 诊断并安装 AE 前端设计所需的外部依赖 |
@@ -150,7 +150,7 @@ AE 的命令分为三类：**基础命令**（19 个）、**提示词优化命�
 - 对范围/方向不确定
 
 **不适用场景：**
-- 已有明确需求文档（用 `ae:plan` 或 `ae:document-review`）
+- 已有明确需求文档（用 `ae:plan` 或 `ae:review domain:document`）
 - 需要创意探索（用 `ae:ideate`）
 - 需要直接写代码（用 `ae:work`）
 
@@ -158,23 +158,29 @@ AE 的命令分为三类：**基础命令**（19 个）、**提示词优化命�
 
 ---
 
-#### `ae:document-review` — 文档审查
+#### `ae:review` — 统一审查（代码 + 文档）
 
 | 属性 | 说明 |
 | --- | --- |
-| 命令 | `/ae-document-review [mode:*] [文档路径]` |
-| 参数 | `mode:interactive`（默认）、`mode:headless` |
+| 命令 | `/ae-review [mode:*] [domain:code\|domain:document] [from:<ref>] [full] [full:<path>] [session] [plan:<path>] [文档路径]` |
+| 参数 | `mode:interactive`（默认）、`mode:headless`、`mode:report-only`、`mode:autofix`；`domain:code`（默认）、`domain:document` |
 | 产物 | 审查发现（findings）/ gate 结论 |
 | 支持恢复 | 是 |
 
-**适用场景：**
+**代码域适用场景：**
+- 提交 PR 前的代码质量检查
+- 迭代完成后的分层角色审查
+- 自动修复安全类问题
+
+**文档域适用场景：**
 - 需求文档质量校验
 - 计划文档质量校验
 - 在进入下一阶段前确认文档质量
 
 **不适用场景：**
-- 代码审查（用 `ae:review`）
 - 文档尚不存在（先用 `ae:brainstorm` 或 `ae:plan` 生成）
+
+> **兼容说明：** `/ae-document-review` 命令仍可使用，会自动重定向到 `ae:review domain:document`。
 
 ---
 
@@ -235,7 +241,7 @@ AE 的命令分为三类：**基础命令**（19 个）、**提示词优化命�
 - 需求完整性校验（配合 `plan:` 参数）
 
 **不适用场景：**
-- 文档审查（用 `ae:document-review`）
+- 文档审查（用 `ae:review domain:document`）
 
 ---
 
@@ -434,18 +440,18 @@ AE 的命令分为三类：**基础命令**（19 个）、**提示词优化命�
 
 # 等效的逐步推进
 /ae-brainstorm 设计一个多租户数据隔离方案
-/ae-document-review
+/ae-review domain:document
 /ae-plan
-/ae-document-review
+/ae-review domain:document
 /ae-work
 /ae-review
 ```
 
 **流程说明：**
 1. `ae:brainstorm` 通过对话澄清需求，产出需求文档（`docs/ae/brainstorms/`）
-2. `ae:document-review` 多角色审查需求文档质量
+2. `ae:review domain:document` 多角色审查需求文档质量
 3. `ae:plan` 基于需求生成结构化实现计划（`docs/ae/plans/`）
-4. `ae:document-review` 审查计划可行性与步骤粒度
+4. `ae:review domain:document` 审查计划可行性与步骤粒度
 5. `ae:work` 按计划逐步实现代码
 6. `ae:review` 提交前代码审查
 
@@ -556,7 +562,7 @@ AE 的命令分为三类：**基础命令**（19 个）、**提示词优化命�
 /ae-plan docs/ae/brainstorms/xxx-requirements.md
 
 # 审查计划
-/ae-document-review
+/ae-review domain:document
 
 # 深化计划（通过交互式审查发现盲点）
 /ae-plan docs/ae/plans/xxx-plan.md
@@ -664,9 +670,9 @@ AE 的命令分为三类：**基础命令**（19 个）、**提示词优化命�
 
 ```text
 /ae-brainstorm 设计缓存策略
-/ae-document-review
+/ae-review domain:document
 /ae-plan
-/ae-document-review
+/ae-review domain:document
 ```
 
 ### 4.4 前端设计 + 迭代 + 测试
@@ -689,10 +695,10 @@ AE 的命令分为三类：**基础命令**（19 个）、**提示词优化命�
 @web-researcher 对比 Zod 和 Valibot 的性能
 
 # 在 plan 阶段查询框架文档
-@framework-docs-researcher Effect 框架的 Layer 用法
+@research-reviewer Effect 框架的 Layer 用法
 
 # 查看项目内已有经验
-@learnings-researcher 总结项目中的错误处理模式
+@research-reviewer 总结项目中的错误处理模式
 ```
 
 ---
@@ -701,49 +707,44 @@ AE 的命令分为三类：**基础命令**（19 个）、**提示词优化命�
 
 所有代理通过 `@<代理名>` 调用，输入自由文本描述任务。
 
-### 5.1 文档审查代理（9 个）
+### 5.1 文档审查代理
 
 | 代理 | 功能 |
 | --- | --- |
 | `@coherence-reviewer` | 审查章节间矛盾、术语漂移、结构性问题 |
 | `@feasibility-reviewer` | 评估架构冲突、依赖缺口、迁移风险和可实现性 |
-| `@product-lens-reviewer` | 质疑前提主张、评估战略后果、揭示目标与工作的不一致 |
-| `@scope-guardian-reviewer` | 审查不必要的抽象、过早的框架化以及超出声明目标的范围 |
-| `@adversarial-document-reviewer` | 质疑前提假设、揭示未声明的预设，并对决策进行压力测试（条件性激活） |
+| `@product-lens-reviewer` | 质疑前提主张、评估战略后果、范围对齐 |
+| `@adversarial-reviewer` | 对抗式压力测试：文档域质疑前提假设，代码域构造故障场景（条件性激活） |
 | `@design-lens-reviewer` | 审查信息架构、交互状态、用户流程和 AI 模板化风险（条件性激活） |
-| `@security-lens-reviewer` | 评估认证/授权假设、数据暴露风险、API 表面漏洞和缺失的威胁模型要素（条件性激活） |
-| `@step-granularity-reviewer` | 将每个步骤拆解至最小不可再分单元，确保步骤具备唯一产出物 |
-| `@batch-operation-reviewer` | 审查多文件操作步骤，优先推荐脚本化批量执行方案 |
+| `@security-reviewer` | 评估认证/授权假设、数据暴露风险、威胁模型（条件性激活） |
+| `@step-granularity-reviewer` | 将每个步骤拆解至最小不可再分单元，确保步骤具备唯一产出物，批量操作脚本化 |
+| `@test-case-reviewer` | 审查测试用例文档的可测性、完备性和与需求对齐程度 |
+| `@architecture-strategist` | 从架构视角分析代码变更，检查模式合规性和设计完整性 |
 
-### 5.2 代码审查代理（16 个）
+### 5.2 代码审查代理
 
 | 代理 | 激活方式 | 功能 |
 | --- | --- | --- |
 | `@correctness-reviewer` | 常驻 | 审查逻辑错误、边界情况、状态管理 bug、错误传播失败以及意图与实现的不匹配 |
 | `@testing-reviewer` | 常驻 | 审查测试覆盖缺口、弱断言、与实现耦合的脆弱测试，以及缺失的边界情况覆盖 |
-| `@project-standards-reviewer` | 常驻 | 根据项目自身的 CLAUDE.md 和 AGENTS.md 标准审计变更 |
-| `@agent-native-reviewer` | 常驻 | 审查代码以确保 opencode 代理具备与用户对等的操作能力 |
+| `@standards-reviewer` | 常驻 | 根据项目规范审计变更（含配置文件审查） |
+| `@agent-native-reviewer` | 常驻 | 审查代理操作能力对等性、CLI 就绪度 |
+| `@maintainability-reviewer` | 常驻 | 审查过早抽象、耦合、命名模糊（含脚本审查） |
 | `@api-contract-reviewer` | 条件性 | 审查代码中的破坏性契约变更（API 路由、类型签名等） |
-| `@reliability-reviewer` | 条件性 | 审查生产可靠性和故障模式（错误处理、重试、超时等） |
-| `@adversarial-reviewer` | 条件性 | 主动构造故障场景来破坏实现 |
-| `@maintainability-reviewer` | 常驻 | 审查过早抽象、不必要的间接层、死代码、耦合、命名模糊 |
+| `@reliability-reviewer` | 条件性 | 审查生产可靠性和故障模式，含基础设施审查 |
+| `@adversarial-reviewer` | 条件性 | 对抗式构造故障场景 |
 | `@security-reviewer` | 条件性 | 审查代码中的可利用漏洞 |
 | `@performance-reviewer` | 条件性 | 审查运行时性能和可扩展性问题 |
-| `@architecture-strategist` | 按需 | 从架构视角分析代码变更，检查模式合规性和设计完整性 |
 | `@pattern-recognition-specialist` | 按需 | 分析代码中的设计模式、反模式、命名规范和重复代码 |
-| `@data-migrations-reviewer` | 条件性 | 审查数据完整性、迁移安全性、生产验证与隐私合规 |
-| `@kieran-typescript-reviewer` | 条件性 | 以严格标准审查类型安全、代码清晰度和可维护性 |
+| `@data-migrations-reviewer` | 条件性 | 审查数据完整性、迁移安全性，含数据库审查 |
 | `@previous-comments-reviewer` | 条件性 | 检查先前的反馈是否已在当前 diff 中得到处理 |
-| `@cli-agent-readiness-reviewer` | 按需 | 审查 CLI 代理就绪度，评估 CLI 是否为代理的使用场景做了优化 |
 
-### 5.3 研究代理（5 个）
+### 5.3 研究代理（3 个）
 
 | 代理 | 功能 |
 | --- | --- |
 | `@repo-research-analyst` | 对仓库结构、文档、约定和实现模式进行全面研究 |
-| `@learnings-researcher` | 搜索 docs/ae/solutions/ 目录，根据 frontmatter 查找过往解决方案 |
-| `@best-practices-researcher` | 研究并综合外部最佳实践、官方文档和框架特定指南 |
-| `@framework-docs-researcher` | 收集框架、库或依赖的完整文档和最佳实践 |
+| `@research-reviewer` | 搜索历史方案、最佳实践、框架文档，综合组织知识和外部指导 |
 | `@web-researcher` | 执行迭代式网络研究，返回结构化的外部参考信息 |
 
 ### 5.4 工作流代理（3 个）
@@ -760,8 +761,8 @@ AE 的命令分为三类：**基础命令**（19 个）、**提示词优化命�
 
 ```
 ae:lfg ───┬─→ ae:setup（首次使用前端功能时）
-           ├─→ ae:brainstorm ──→ ae:document-review
-           │                 └──→ ae:plan ──→ ae:document-review ──→ ae:work ──→ ae:review
+           ├─→ ae:brainstorm ──→ ae:review domain:document
+           │                 └──→ ae:plan ──→ ae:review domain:document ──→ ae:work ──→ ae:review
            └─→ ae:test-browser（有 UI 文件变更时）
 
 ae:ideate ─────→ ae:brainstorm（构思后引导进入头脑风暴）
@@ -773,4 +774,4 @@ ae:frontend-design ──→ @design-iterator（多轮迭代时）
 **阶段依赖链：**
 - `work` → 依赖 `plan` → 依赖 `brainstorm`
 - `review` → 依赖代码变更，可直接执行
-- `document-review` → 可审查需求文档和计划文档
+- `review` → 依赖代码变更或文档，可直接执行

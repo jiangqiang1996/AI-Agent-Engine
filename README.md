@@ -117,7 +117,7 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 | 一键全链路 | `/ae-lfg 实现用户权限管理模块` | 输入需求描述，自动按步骤推进 | 代码 + 完整文档链 |
 | 创意构思 | `/ae-ideate 如何提升开发者体验` | 在头脑风暴前先探索方向 | `docs/ae/ideation/*` |
 | 需求探索 | `/ae-brainstorm 为管理后台添加审计日志` | 通过对话澄清需求并生成文档 | `docs/ae/brainstorms/*-requirements.md` |
-| 需求审查 | `/ae-document-review` | 多角色审查需求文档质量 | findings / gate 结论 |
+| 需求审查 | `/ae-review domain:document` 或 `/ae-document-review` | 多角色审查需求文档质量 | findings / gate 结论 |
 | 制定计划 | `/ae-plan` | 基于需求文档生成实现计划 | `docs/ae/plans/*-plan.md` |
 | 执行实现 | `/ae-work docs/ae/plans/xxx-plan.md` | 按计划逐步实现代码 | 代码改动 |
 | 代码审查 | `/ae-review mode:report-only` | 分层角色代理审查代码变更 | findings / gate 结论 |
@@ -130,9 +130,9 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 
 # 方式二：逐步推进（适合需要精细控制的场景）
 /ae-brainstorm 设计一个多租户数据隔离方案
-/ae-document-review
+/ae-review domain:document
 /ae-plan
-/ae-document-review
+/ae-review domain:document
 /ae-work
 /ae-review
 ```
@@ -287,15 +287,24 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 
 ### 四、质量保障场景
 
-#### 4.1 文档审查
+#### 4.1 统一审查（代码 + 文档）
 
-适用于：需求文档、计划文档的质量校验。
+`ae:review` 现已统一代码域和文档域审查。通过 `domain` 参数切换域：
 
 ```text
+# 代码审查（默认）
+/ae-review
+
+# 文档审查
+/ae-review domain:document
+
+# 兼容旧命令（自动重定向到 ae:review domain:document）
 /ae-document-review
 ```
 
-**审查角色：** 一致性审查（章节矛盾、术语漂移）、可行性审查（架构冲突、依赖缺口）、产品视角审查（战略后果、机会成本）、范围守卫（不必要抽象、范围蔓延）、对抗性审查（质疑前提假设、条件性激活）、设计视角审查（交互状态缺口、条件性激活）、安全视角审查（认证假设、威胁模型、条件性激活）、步骤粒度审查（最小单元拆解）、批量操作审查（脚本化批量执行）。
+**代码域审查角色：** 正确性、测试覆盖、可维护性（含脚本审查）、项目规范（含配置文件审查）、代理友好度、安全（条件性）、性能（条件性）、API 契约（条件性）、可靠性（含基础设施审查，条件性）、数据迁移（含数据库审查，条件性）、对抗式（条件性）、历史评论复查（条件性）。
+
+**文档域审查角色：** 一致性（章节矛盾、术语漂移）、可行性（架构冲突、依赖缺口）、产品视角（战略后果、机会成本）、步骤粒度（最小单元拆解）、对抗性（质疑前提假设，条件性）、设计视角（交互状态缺口，条件性）、安全视角（认证假设、威胁模型，条件性）。
 
 #### 4.2 代码审查
 
@@ -327,26 +336,24 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 | `report-only` | 只读，只输出报告 |
 | `headless` | 程序模式，静默应用修复 |
 
-**可单独调用的代码审查代理：**
+**可单独调用的审查代理：**
 
 | 代理 | 场景 |
 | --- | --- |
 | `@correctness-reviewer` | 审查逻辑错误、边界情况、状态管理 bug |
 | `@testing-reviewer` | 审查测试覆盖缺口、弱断言、脆弱测试 |
-| `@project-standards-reviewer` | 审查项目规范一致性 |
-| `@agent-native-reviewer` | 审查代理操作能力对等性 |
+| `@standards-reviewer` | 审查项目规范一致性（含配置文件审查） |
+| `@agent-native-reviewer` | 审查代理操作能力对等性、CLI 就绪度 |
 | `@api-contract-reviewer` | 审查 API 契约破坏性变更 |
-| `@reliability-reviewer` | 审查生产可靠性和故障模式 |
-| `@adversarial-reviewer` | 对抗式构造故障场景 |
-| `@maintainability-reviewer` | 审查过早抽象、耦合、命名模糊 |
-| `@security-reviewer` | 审查可利用漏洞 |
+| `@reliability-reviewer` | 审查生产可靠性和故障模式（含基础设施审查） |
+| `@adversarial-reviewer` | 对抗式构造故障场景 / 质疑前提假设 |
+| `@maintainability-reviewer` | 审查过早抽象、耦合、命名模糊（含脚本审查） |
+| `@security-reviewer` | 审查可利用漏洞 / 安全缺口 |
 | `@performance-reviewer` | 审查运行时性能和可扩展性 |
 | `@architecture-strategist` | 评估架构模式合规与设计完整性 |
 | `@pattern-recognition-specialist` | 分析设计模式、反模式、重复代码 |
-| `@data-migrations-reviewer` | 审查数据完整性、迁移安全性 |
-| `@kieran-typescript-reviewer` | 以严格标准审查 TypeScript 类型安全 |
+| `@data-migrations-reviewer` | 审查数据完整性、迁移安全性（含数据库审查） |
 | `@previous-comments-reviewer` | 复查历史审查评论处理情况 |
-| `@cli-agent-readiness-reviewer` | 评估 CLI 代理友好度 |
 
 ---
 
@@ -355,9 +362,7 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 | 代理 | 场景 | 示例 |
 | --- | --- | --- |
 | `@repo-research-analyst` | 仓库结构、文档、约定研究 | `@repo-research-analyst 分析这个项目的模块划分` |
-| `@learnings-researcher` | 搜索过往解决方案 | `@learnings-researcher 总结项目中的错误处理模式` |
-| `@best-practices-researcher` | 外部最佳实践、官方文档 | `@best-practices-researcher React Server Components 最佳实践` |
-| `@framework-docs-researcher` | 框架完整文档与实现模式 | `@framework-docs-researcher Effect 框架的 Layer 用法` |
+| `@research-reviewer` | 历史方案、最佳实践、框架文档 | `@research-reviewer 总结项目中的错误处理模式` |
 | `@web-researcher` | 网络搜索、竞品模式、跨领域类比 | `@web-researcher 对比 Zod 和 Valibot 的性能` |
 
 ---
@@ -430,33 +435,26 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 | --- | --- | --- |
 | **文档审查** | `@coherence-reviewer` | 章节间矛盾、术语漂移、结构性问题 |
 | | `@feasibility-reviewer` | 架构冲突、依赖缺口、迁移风险 |
-| | `@product-lens-reviewer` | 战略后果、采用动态、机会成本 |
-| | `@scope-guardian-reviewer` | 不必要抽象、过早框架化、范围蔓延 |
-| | `@adversarial-document-reviewer` | 质疑前提假设、揭示未声明预设（条件性） |
+| | `@product-lens-reviewer` | 战略后果、采用动态、机会成本、范围对齐 |
+| | `@adversarial-reviewer` | 对抗式压力测试（代码域构造故障场景，文档域质疑前提假设） |
 | | `@design-lens-reviewer` | 信息架构、交互状态、用户流程缺口 |
-| | `@security-lens-reviewer` | 认证/授权假设、数据暴露风险、威胁模型 |
-| | `@step-granularity-reviewer` | 步骤最小单元拆解、唯一产出物验证 |
-| | `@batch-operation-reviewer` | 多文件操作脚本化批量执行 |
+| | `@security-reviewer` | 安全漏洞审计（代码域）/ 安全缺口评估（文档域） |
+| | `@step-granularity-reviewer` | 步骤最小单元拆解、唯一产出物验证、批量操作脚本化 |
+| | `@test-case-reviewer` | 测试用例文档可测性、完备性审查 |
+| | `@architecture-strategist` | 架构模式合规与设计完整性 |
 | **代码审查** | `@correctness-reviewer` | 逻辑错误、边界条件、状态管理 bug |
 | | `@testing-reviewer` | 测试覆盖缺口、弱断言、脆弱测试 |
-| | `@project-standards-reviewer` | 项目规范一致性审查 |
-| | `@agent-native-reviewer` | 代理操作能力对等审查 |
+| | `@standards-reviewer` | 项目规范一致性审查（含配置文件审查） |
+| | `@agent-native-reviewer` | 代理操作能力对等审查、CLI 就绪度 |
 | | `@api-contract-reviewer` | API 契约破坏性变更 |
-| | `@reliability-reviewer` | 生产可靠性与故障模式 |
-| | `@adversarial-reviewer` | 对抗式构造故障场景 |
-| | `@maintainability-reviewer` | 过早抽象、耦合、命名模糊 |
-| | `@security-reviewer` | 可利用漏洞审计 |
+| | `@reliability-reviewer` | 生产可靠性与故障模式（含基础设施审查） |
+| | `@maintainability-reviewer` | 过早抽象、耦合、命名模糊（含脚本审查） |
 | | `@performance-reviewer` | 运行时性能与可扩展性 |
-| | `@architecture-strategist` | 架构模式合规与设计完整性 |
 | | `@pattern-recognition-specialist` | 设计模式、反模式、重复代码 |
-| | `@data-migrations-reviewer` | 数据完整性、迁移安全性 |
-| | `@kieran-typescript-reviewer` | TypeScript 类型安全与代码清晰度 |
+| | `@data-migrations-reviewer` | 数据完整性、迁移安全性（含数据库审查） |
 | | `@previous-comments-reviewer` | 历史审查评论处理复查 |
-| | `@cli-agent-readiness-reviewer` | CLI 代理友好度评估 |
 | **研究分析** | `@repo-research-analyst` | 仓库结构、文档、约定和实现模式研究 |
-| | `@learnings-researcher` | 搜索过往解决方案、发掘组织知识 |
-| | `@best-practices-researcher` | 外部最佳实践、官方文档、框架指南 |
-| | `@framework-docs-researcher` | 框架、库或依赖的完整文档与实现模式 |
+| | `@research-reviewer` | 搜索历史方案、最佳实践、框架文档 |
 | | `@web-researcher` | 迭代式网络研究、竞品模式、跨领域类比 |
 | **工作流** | `@spec-flow-analyzer` | 用户流程完整性、边界用例发现、需求验证 |
 | | `@design-iterator` | N 轮截图-分析-改进循环优化 UI 设计 |
@@ -501,6 +499,7 @@ ae:frontend-design ──→ @design-iterator（多轮迭代时）
 | `ae:plan` | 自由文本 | 直接从描述规划 | bootstrap 模式 |
 | `ae:work` | plan 路径 | 要执行的计划 | 自动查找 |
 | `ae:work` | 自由文本 | 直接描述工作 | 建议先有计划 |
+| `ae:review` | `domain:code\|domain:document` | 审查域 | `code`（代码域） |
 | `ae:review` | `mode:*` | `interactive` / `headless` / `report-only` / `autofix` | `interactive` |
 | `ae:review` | `plan:<path>` | 用于需求完整性校验 | 仅审代码上下文 |
 | `ae:review` | `base:<ref>` | diff 基线 | 自动推断 |
@@ -520,8 +519,8 @@ ae:frontend-design ──→ @design-iterator（多轮迭代时）
 
 | 模式 | 适用入口 | 行为 | Gate |
 | --- | --- | --- | --- |
-| `interactive` | 文档/计划/代码审查 | 标准 interactive 审查 | 是 |
-| `headless` | 文档/计划/代码审查 | 供 pipeline 使用 | 由调用方决定 |
+| `interactive` | 代码/文档审查 | 标准 interactive 审查 | 是 |
+| `headless` | 代码/文档审查 | 供 pipeline 使用 | 由调用方决定 |
 | `report-only` | 代码审查 | 只输出报告，不改文件 | 否 |
 | `autofix` | 代码审查 | 仅修复 `safe_auto` 类问题 | 是 |
 

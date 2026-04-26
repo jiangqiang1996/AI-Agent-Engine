@@ -18,7 +18,7 @@
 - **核心依赖**: `@opencode-ai/plugin@1.4.10`、`@opencode-ai/sdk@1.4.10`、`effect@4.x`、`zod@4.x`
 - **包管理器**: npm
 - **构建工具**: tsc
-- **插件规模**: 33 个 Agent、3 个工具、17 个技能
+- **插件规模**: 25 个 Agent、5 个工具、17 个技能
 
 ## opencode 核心概念
 
@@ -93,8 +93,7 @@ ai-agent-engine/
 │   │   ├── skills/              # 技能定义（17 个）
 │   │   │   └── <name>/
 │   │   │       └── SKILL.md
-│   │   ├── agents/              # Agent 定义（33 个 .md 文件）
-│   │   │   ├── document-review/
+│   │   ├── agents/              # Agent 定义
 │   │   │   ├── research/
 │   │   │   ├── review/
 │   │   │   └── workflow/

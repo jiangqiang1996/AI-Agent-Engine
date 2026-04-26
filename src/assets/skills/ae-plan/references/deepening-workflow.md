@@ -28,7 +28,7 @@
 **固定的部分到代理映射：**
 
 - 需求/未解决问题 → `spec-flow-analyzer`、`repo-research-analyst`
-- 上下文/研究空白 → `learnings-researcher`、`framework-docs-researcher`
+- 上下文/研究空白 → `research-reviewer`
 - 关键技术决策 → `architecture-strategist`
 - 实现单元 → `repo-research-analyst`、`pattern-recognition-specialist`
 - 系统范围影响 → `architecture-strategist` + 风险匹配的专家

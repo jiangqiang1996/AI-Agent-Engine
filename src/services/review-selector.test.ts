@@ -11,7 +11,7 @@ describe('selectReviewers — 代码域', () => {
     expect(selected).toContain(AGENT.MAINTAINABILITY_REVIEWER)
     expect(selected).toContain(AGENT.STANDARDS_REVIEWER)
     expect(selected).toContain(AGENT.AGENT_NATIVE_REVIEWER)
-    expect(selected).toContain(AGENT.LEARNINGS_REVIEWER)
+    expect(selected).toContain(AGENT.RESEARCH_REVIEWER)
   })
 
   it('代码域 hasSecurity 应激活 security-reviewer', () => {
@@ -19,24 +19,19 @@ describe('selectReviewers — 代码域', () => {
     expect(selected).toContain(AGENT.SECURITY_REVIEWER)
   })
 
-  it('代码域 hasConfig 应激活 config-reviewer', () => {
-    const selected = selectReviewers({ kind: 'code', hasConfig: true })
-    expect(selected).toContain(AGENT.CONFIG_REVIEWER)
-  })
-
-  it('代码域 hasInfra 应激活 infra-reviewer', () => {
+  it('代码域 hasInfra 应激活 reliability-reviewer（含基础设施审查）', () => {
     const selected = selectReviewers({ kind: 'code', hasInfra: true })
-    expect(selected).toContain(AGENT.INFRA_REVIEWER)
+    expect(selected).toContain(AGENT.RELIABILITY_REVIEWER)
   })
 
-  it('代码域 hasDatabase 应激活 database-reviewer', () => {
+  it('代码域 hasReliability 应激活 reliability-reviewer', () => {
+    const selected = selectReviewers({ kind: 'code', hasReliability: true })
+    expect(selected).toContain(AGENT.RELIABILITY_REVIEWER)
+  })
+
+  it('代码域 hasDatabase 应激活 data-migrations-reviewer（含数据库审查）', () => {
     const selected = selectReviewers({ kind: 'code', hasDatabase: true })
-    expect(selected).toContain(AGENT.DATABASE_REVIEWER)
-  })
-
-  it('代码域 hasScript 应激活 script-reviewer', () => {
-    const selected = selectReviewers({ kind: 'code', hasScript: true })
-    expect(selected).toContain(AGENT.SCRIPT_REVIEWER)
+    expect(selected).toContain(AGENT.DATA_MIGRATIONS_REVIEWER)
   })
 
   it('代码域 hasMigrations 应激活 data-migrations-reviewer', () => {
@@ -69,15 +64,15 @@ describe('selectReviewers — 文档域', () => {
     expect(selected).toContain(AGENT.FEASIBILITY_REVIEWER)
   })
 
-  it('文档域 plan 类型应激活 product-scope-reviewer 和 plan-quality-reviewer', () => {
+  it('文档域 plan 类型应激活 product-lens-reviewer 和 step-granularity-reviewer', () => {
     const selected = selectReviewers({ kind: 'document', documentType: 'plan' })
-    expect(selected).toContain(AGENT.PRODUCT_SCOPE_REVIEWER)
-    expect(selected).toContain(AGENT.PLAN_QUALITY_REVIEWER)
+    expect(selected).toContain(AGENT.PRODUCT_LENS_REVIEWER)
+    expect(selected).toContain(AGENT.STEP_GRANULARITY_REVIEWER)
   })
 
   it('文档域 requirements 类型不应激活 plan 专属代理', () => {
     const selected = selectReviewers({ kind: 'document', documentType: 'requirements' })
-    expect(selected).not.toContain(AGENT.PLAN_QUALITY_REVIEWER)
+    expect(selected).not.toContain(AGENT.STEP_GRANULARITY_REVIEWER)
   })
 
   it('文档域 test 类型应激活 test-case-reviewer', () => {
@@ -100,9 +95,9 @@ describe('selectReviewers — 文档域', () => {
     expect(selected).toContain(AGENT.SECURITY_REVIEWER)
   })
 
-  it('文档域 requirementCount >= 5 应激活 product-scope-reviewer 和 adversarial-reviewer', () => {
+  it('文档域 requirementCount >= 5 应激活 product-lens-reviewer 和 adversarial-reviewer', () => {
     const selected = selectReviewers({ kind: 'document', requirementCount: 5 })
-    expect(selected).toContain(AGENT.PRODUCT_SCOPE_REVIEWER)
+    expect(selected).toContain(AGENT.PRODUCT_LENS_REVIEWER)
     expect(selected).toContain(AGENT.ADVERSARIAL_REVIEWER)
   })
 
@@ -127,7 +122,7 @@ describe('selectReviewers — 文档域', () => {
 describe('selectReviewers — 派生字段', () => {
   it('requirementCount 4 不应满足 requirementCountGte5', () => {
     const selected = selectReviewers({ kind: 'document', requirementCount: 4 })
-    expect(selected).not.toContain(AGENT.PRODUCT_SCOPE_REVIEWER)
+    expect(selected).not.toContain(AGENT.PRODUCT_LENS_REVIEWER)
   })
 
   it('changedLineCount 49 不应激活 adversarial-reviewer', () => {

@@ -1,6 +1,6 @@
 ---
 name: ae:document-review
-description: "面向文档的专项审查。对指定范围的文档文件进行多角色审查，与 Git 版本差异无强关联。核心流程中审查需求文档和计划文档，也可手动调用审查任意文档。"
+description: "面向文档的专项审查（已合并到 ae:review，请使用 ae:review domain:document）"
 argument-hint: "[mode:*] [文档路径]"
 ---
 
