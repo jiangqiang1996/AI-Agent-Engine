@@ -31,44 +31,38 @@ export const COMMAND = Object.fromEntries(
 ) as { readonly [K in keyof typeof SKILL]: SkillToCommand<(typeof SKILL)[K]> }
 
 export const AGENT = {
+  CORRECTNESS_REVIEWER: 'correctness-reviewer',
+  TESTING_REVIEWER: 'testing-reviewer',
+  MAINTAINABILITY_REVIEWER: 'maintainability-reviewer',
+  STANDARDS_REVIEWER: 'standards-reviewer',
+  AGENT_NATIVE_REVIEWER: 'agent-native-reviewer',
+  LEARNINGS_REVIEWER: 'learnings-reviewer',
   COHERENCE_REVIEWER: 'coherence-reviewer',
   FEASIBILITY_REVIEWER: 'feasibility-reviewer',
-  PRODUCT_LENS_REVIEWER: 'product-lens-reviewer',
-  SCOPE_GUARDIAN_REVIEWER: 'scope-guardian-reviewer',
-  ADVERSARIAL_DOCUMENT_REVIEWER: 'adversarial-document-reviewer',
+  SECURITY_REVIEWER: 'security-reviewer',
+  ADVERSARIAL_REVIEWER: 'adversarial-reviewer',
+  PERFORMANCE_REVIEWER: 'performance-reviewer',
+  API_CONTRACT_REVIEWER: 'api-contract-reviewer',
+  RELIABILITY_REVIEWER: 'reliability-reviewer',
+  DATA_MIGRATIONS_REVIEWER: 'data-migrations-reviewer',
+  CONFIG_REVIEWER: 'config-reviewer',
+  INFRA_REVIEWER: 'infra-reviewer',
+  DATABASE_REVIEWER: 'database-reviewer',
+  SCRIPT_REVIEWER: 'script-reviewer',
+  PREVIOUS_COMMENTS_REVIEWER: 'previous-comments-reviewer',
+  PRODUCT_SCOPE_REVIEWER: 'product-scope-reviewer',
+  PLAN_QUALITY_REVIEWER: 'plan-quality-reviewer',
   DESIGN_LENS_REVIEWER: 'design-lens-reviewer',
-  SECURITY_LENS_REVIEWER: 'security-lens-reviewer',
-  STEP_GRANULARITY_REVIEWER: 'step-granularity-reviewer',
-  BATCH_OPERATION_REVIEWER: 'batch-operation-reviewer',
   TEST_CASE_REVIEWER: 'test-case-reviewer',
+  ARCHITECTURE_STRATEGIST: 'architecture-strategist',
+  PATTERN_RECOGNITION_SPECIALIST: 'pattern-recognition-specialist',
   REPO_RESEARCH_ANALYST: 'repo-research-analyst',
-  LEARNINGS_RESEARCHER: 'learnings-researcher',
   BEST_PRACTICES_RESEARCHER: 'best-practices-researcher',
   WEB_RESEARCHER: 'web-researcher',
   FRAMEWORK_DOCS_RESEARCHER: 'framework-docs-researcher',
   SPEC_FLOW_ANALYZER: 'spec-flow-analyzer',
   DESIGN_ITERATOR: 'design-iterator',
   FIGMA_DESIGN_SYNC: 'figma-design-sync',
-  CORRECTNESS_REVIEWER: 'correctness-reviewer',
-  TESTING_REVIEWER: 'testing-reviewer',
-  PROJECT_STANDARDS_REVIEWER: 'project-standards-reviewer',
-  AGENT_NATIVE_REVIEWER: 'agent-native-reviewer',
-  API_CONTRACT_REVIEWER: 'api-contract-reviewer',
-  RELIABILITY_REVIEWER: 'reliability-reviewer',
-  ADVERSARIAL_REVIEWER: 'adversarial-reviewer',
-  MAINTAINABILITY_REVIEWER: 'maintainability-reviewer',
-  SECURITY_REVIEWER: 'security-reviewer',
-  PERFORMANCE_REVIEWER: 'performance-reviewer',
-  ARCHITECTURE_STRATEGIST: 'architecture-strategist',
-  PATTERN_RECOGNITION_SPECIALIST: 'pattern-recognition-specialist',
-  DATA_MIGRATIONS_REVIEWER: 'data-migrations-reviewer',
-  KIERAN_TYPESCRIPT_REVIEWER: 'kieran-typescript-reviewer',
-  PREVIOUS_COMMENTS_REVIEWER: 'previous-comments-reviewer',
-  CLI_AGENT_READINESS_REVIEWER: 'cli-agent-readiness-reviewer',
-  CONFIG_REVIEWER: 'config-reviewer',
-  INFRA_REVIEWER: 'infra-reviewer',
-  DATABASE_REVIEWER: 'database-reviewer',
-  SCRIPT_REVIEWER: 'script-reviewer',
 } as const
 
 export function skillDir(skillName: string): string {
@@ -136,10 +130,11 @@ export const AeAssetEntrySchema = z.object({
   argumentHint: z.string().optional().describe('参数提示'),
   defaultEntry: z.boolean().default(false).describe('是否默认入口'),
   skillFile: z.string().describe('技能文件路径，无关联技能时为空字符串'),
+  customTemplate: z.string().optional().describe('自定义命令模板，command-registration.ts 优先于默认模板使用'),
 })
 
 export const AgentStageSchema = z
-  .enum(['document-review', 'review', 'research', 'workflow'])
+  .enum(['review', 'research', 'workflow'])
   .describe('Agent 所属目录')
 
 export const AgentTierSchema = z
