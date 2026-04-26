@@ -1,46 +1,156 @@
 import { AGENT } from '../schemas/ae-asset-schema.js'
 
-export interface ReviewDefinition {
-  name: string
-  description: string
-  alwaysOn: boolean
+export type PredicateOperator = 'truthy' | 'eq' | 'oneOf'
+
+export interface ActivationPredicate {
+  field: string
+  operator: PredicateOperator
+  value?: unknown
 }
 
-// ae:document-review 使用的文档审查代理
-// 面向文档的专项审查，与 Git 版本差异无强关联
-export const DOCUMENT_REVIEWERS: ReviewDefinition[] = [
-  { name: AGENT.COHERENCE_REVIEWER, description: '审查文档的内部一致性', alwaysOn: true },
-  { name: AGENT.FEASIBILITY_REVIEWER, description: '评估文档中提出的技术方法能否经受现实考验', alwaysOn: true },
-  { name: AGENT.PRODUCT_LENS_REVIEWER, description: '以高级产品负责人的视角审查文档', alwaysOn: false },
-  { name: AGENT.SCOPE_GUARDIAN_REVIEWER, description: '审查文档的范围对齐和不合理的复杂度', alwaysOn: false },
-  { name: AGENT.ADVERSARIAL_DOCUMENT_REVIEWER, description: '对文档做对抗式压力测试', alwaysOn: false },
-  { name: AGENT.DESIGN_LENS_REVIEWER, description: '审查文档中缺失的设计决策', alwaysOn: false },
-  { name: AGENT.SECURITY_LENS_REVIEWER, description: '评估文档中的安全缺口', alwaysOn: false },
-  { name: AGENT.STEP_GRANULARITY_REVIEWER, description: '审查计划步骤是否拆解至最小不可再分单元', alwaysOn: false },
-  { name: AGENT.BATCH_OPERATION_REVIEWER, description: '审查多文件操作是否可脚本化批量执行', alwaysOn: false },
-  { name: AGENT.TEST_CASE_REVIEWER, description: '审查测试用例文档的可测性、完备性、步骤可执行性和与需求对齐程度', alwaysOn: false },
-]
+export interface MatrixEntry {
+  name: string
+  domain: 'code' | 'document' | 'both'
+  alwaysOn: boolean
+  conditionGroups?: ActivationPredicate[][]
+  description: string
+}
 
-// ae:review 使用的代码审查代理
-// 全能审查：支持 Git 差异、全量扫描、会话变更等多种范围确定方式，排除需求文档和计划文档
-export const CODE_REVIEWERS: ReviewDefinition[] = [
-  { name: AGENT.CORRECTNESS_REVIEWER, description: '审查逻辑正确性与边界条件', alwaysOn: true },
-  { name: AGENT.TESTING_REVIEWER, description: '审查测试覆盖与断言质量', alwaysOn: true },
-  { name: AGENT.MAINTAINABILITY_REVIEWER, description: '审查可维护性与抽象合理性', alwaysOn: true },
-  { name: AGENT.PROJECT_STANDARDS_REVIEWER, description: '审查是否遵守项目规范', alwaysOn: true },
-  { name: AGENT.AGENT_NATIVE_REVIEWER, description: '审查代理操作友好性', alwaysOn: true },
-  { name: AGENT.LEARNINGS_RESEARCHER, description: '提炼已有经验与文档知识', alwaysOn: true },
-  { name: AGENT.SECURITY_REVIEWER, description: '审查安全漏洞', alwaysOn: false },
-  { name: AGENT.PERFORMANCE_REVIEWER, description: '审查性能瓶颈', alwaysOn: false },
-  { name: AGENT.API_CONTRACT_REVIEWER, description: '审查接口契约破坏性变更', alwaysOn: false },
-  { name: AGENT.RELIABILITY_REVIEWER, description: '审查故障恢复与可靠性', alwaysOn: false },
-  { name: AGENT.CLI_AGENT_READINESS_REVIEWER, description: '审查 CLI 与代理调用体验', alwaysOn: false },
-  { name: AGENT.PREVIOUS_COMMENTS_REVIEWER, description: '复查历史审查评论处理情况', alwaysOn: false },
-  { name: AGENT.KIERAN_TYPESCRIPT_REVIEWER, description: '按严格 TS 标准审查实现', alwaysOn: false },
-  { name: AGENT.ADVERSARIAL_REVIEWER, description: '对抗式构造故障场景', alwaysOn: false },
-  { name: AGENT.DATA_MIGRATIONS_REVIEWER, description: '审查数据迁移', alwaysOn: false },
-  { name: AGENT.CONFIG_REVIEWER, description: '审查配置文件语法正确性、schema 一致性和敏感值', alwaysOn: false },
-  { name: AGENT.INFRA_REVIEWER, description: '审查基础设施定义的最佳实践和安全性', alwaysOn: false },
-  { name: AGENT.DATABASE_REVIEWER, description: '审查数据库迁移可逆性、完整性约束和索引策略', alwaysOn: false },
-  { name: AGENT.SCRIPT_REVIEWER, description: '审查脚本可移植性、幂等性和平台兼容性', alwaysOn: false },
+export const REVIEW_MATRIX: MatrixEntry[] = [
+  { name: AGENT.CORRECTNESS_REVIEWER, domain: 'code', alwaysOn: true, description: '审查逻辑正确性与边界条件' },
+  { name: AGENT.TESTING_REVIEWER, domain: 'code', alwaysOn: true, description: '审查测试覆盖与断言质量' },
+  { name: AGENT.MAINTAINABILITY_REVIEWER, domain: 'code', alwaysOn: true, description: '审查可维护性与抽象合理性' },
+  { name: AGENT.STANDARDS_REVIEWER, domain: 'code', alwaysOn: true, description: '审查是否遵守项目规范' },
+  { name: AGENT.AGENT_NATIVE_REVIEWER, domain: 'code', alwaysOn: true, description: '审查代理与 CLI 操作友好性' },
+  { name: AGENT.LEARNINGS_REVIEWER, domain: 'code', alwaysOn: true, description: '提炼已有经验与文档知识' },
+
+  { name: AGENT.COHERENCE_REVIEWER, domain: 'document', alwaysOn: true, description: '审查文档的内部一致性' },
+  { name: AGENT.FEASIBILITY_REVIEWER, domain: 'document', alwaysOn: true, description: '评估文档中提出的技术方法能否经受现实考验' },
+
+  {
+    name: AGENT.SECURITY_REVIEWER,
+    domain: 'both',
+    alwaysOn: false,
+    conditionGroups: [[{ field: 'hasSecurity', operator: 'truthy' }]],
+    description: '审查安全漏洞（代码域）/ 评估文档中的安全缺口（文档域）',
+  },
+  {
+    name: AGENT.ADVERSARIAL_REVIEWER,
+    domain: 'both',
+    alwaysOn: false,
+    conditionGroups: [
+      [{ field: 'changedLineCountGte50', operator: 'truthy' }],
+      [{ field: 'hasSecurity', operator: 'truthy' }],
+      [{ field: 'hasApi', operator: 'truthy' }],
+      [{ field: 'requirementCountGte5', operator: 'truthy' }],
+      [{ field: 'hasArchitectureDecision', operator: 'truthy' }],
+      [{ field: 'isHighRiskDomain', operator: 'truthy' }],
+      [{ field: 'hasNewAbstraction', operator: 'truthy' }],
+    ],
+    description: '对抗式构造故障场景（代码域）/ 对文档做对抗式压力测试（文档域）',
+  },
+  {
+    name: AGENT.PERFORMANCE_REVIEWER,
+    domain: 'code',
+    alwaysOn: false,
+    conditionGroups: [[{ field: 'hasPerformance', operator: 'truthy' }]],
+    description: '审查性能瓶颈',
+  },
+  {
+    name: AGENT.API_CONTRACT_REVIEWER,
+    domain: 'code',
+    alwaysOn: false,
+    conditionGroups: [[{ field: 'hasApi', operator: 'truthy' }]],
+    description: '审查接口契约破坏性变更',
+  },
+  {
+    name: AGENT.RELIABILITY_REVIEWER,
+    domain: 'code',
+    alwaysOn: false,
+    conditionGroups: [[{ field: 'hasReliability', operator: 'truthy' }]],
+    description: '审查故障恢复与可靠性',
+  },
+  {
+    name: AGENT.DATA_MIGRATIONS_REVIEWER,
+    domain: 'code',
+    alwaysOn: false,
+    conditionGroups: [[{ field: 'hasMigrations', operator: 'truthy' }]],
+    description: '审查数据迁移',
+  },
+  {
+    name: AGENT.CONFIG_REVIEWER,
+    domain: 'code',
+    alwaysOn: false,
+    conditionGroups: [[{ field: 'hasConfig', operator: 'truthy' }]],
+    description: '审查配置文件语法正确性、schema 一致性和敏感值',
+  },
+  {
+    name: AGENT.INFRA_REVIEWER,
+    domain: 'code',
+    alwaysOn: false,
+    conditionGroups: [[{ field: 'hasInfra', operator: 'truthy' }]],
+    description: '审查基础设施定义的最佳实践和安全性',
+  },
+  {
+    name: AGENT.DATABASE_REVIEWER,
+    domain: 'code',
+    alwaysOn: false,
+    conditionGroups: [[{ field: 'hasDatabase', operator: 'truthy' }]],
+    description: '审查数据库迁移可逆性、完整性约束和索引策略',
+  },
+  {
+    name: AGENT.SCRIPT_REVIEWER,
+    domain: 'code',
+    alwaysOn: false,
+    conditionGroups: [[{ field: 'hasScript', operator: 'truthy' }]],
+    description: '审查脚本可移植性、幂等性和平台兼容性',
+  },
+  {
+    name: AGENT.PREVIOUS_COMMENTS_REVIEWER,
+    domain: 'code',
+    alwaysOn: false,
+    conditionGroups: [[{ field: 'hasPrMetadata', operator: 'truthy' }]],
+    description: '复查历史审查评论处理情况',
+  },
+  {
+    name: AGENT.PRODUCT_SCOPE_REVIEWER,
+    domain: 'document',
+    alwaysOn: false,
+    conditionGroups: [
+      [{ field: 'documentType', operator: 'eq', value: 'plan' }],
+      [{ field: 'requirementCountGte5', operator: 'truthy' }],
+    ],
+    description: '以产品视角审查范围对齐和不合理的复杂度',
+  },
+  {
+    name: AGENT.PLAN_QUALITY_REVIEWER,
+    domain: 'document',
+    alwaysOn: false,
+    conditionGroups: [
+      [{ field: 'documentType', operator: 'eq', value: 'plan' }],
+      [{ field: 'requirementCountGte5', operator: 'truthy' }],
+    ],
+    description: '审查计划步骤粒度与批量操作可脚本化',
+  },
+  {
+    name: AGENT.DESIGN_LENS_REVIEWER,
+    domain: 'document',
+    alwaysOn: false,
+    conditionGroups: [[{ field: 'hasUi', operator: 'truthy' }]],
+    description: '审查文档中缺失的设计决策',
+  },
+  {
+    name: AGENT.TEST_CASE_REVIEWER,
+    domain: 'document',
+    alwaysOn: false,
+    conditionGroups: [[{ field: 'documentType', operator: 'eq', value: 'test' }]],
+    description: '审查测试用例文档的可测性、完备性、步骤可执行性和与需求对齐程度',
+  },
+  {
+    name: AGENT.ARCHITECTURE_STRATEGIST,
+    domain: 'document',
+    alwaysOn: false,
+    conditionGroups: [[{ field: 'hasArchitectureDecision', operator: 'truthy' }]],
+    description: '从架构视角分析代码变更，检查模式合规性和设计完整性',
+  },
 ]
