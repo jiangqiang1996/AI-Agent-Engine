@@ -47,9 +47,10 @@ export function buildCommandConfig(commandsDir: string): NonNullable<Config['com
 
   for (const entry of phaseOne) {
     const isAutoPo = entry.commandName === promptOptimizeAutoCommand
-    const template = isAutoPo
-      ? `使用 \`${entry.skillName}\` 技能以 auto 模式处理这次请求（跳过确认直接提交），并沿用参数：\`auto $ARGUMENTS\`。`
-      : `使用 \`${entry.skillName}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`
+    const template = entry.customTemplate
+      ?? (isAutoPo
+        ? `使用 \`${entry.skillName}\` 技能以 auto 模式处理这次请求（跳过确认直接提交），并沿用参数：\`auto $ARGUMENTS\`。`
+        : `使用 \`${entry.skillName}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`)
     result[entry.commandName] = {
       template,
       description: entry.description,
@@ -59,12 +60,15 @@ export function buildCommandConfig(commandsDir: string): NonNullable<Config['com
   for (const entry of getPhaseOnePoEntries()) {
     const baseCommandName = entry.commandName.slice(0, -PO_SUFFIX.length)
     const baseSkillName = commandToSkill.get(baseCommandName as typeof entry.commandName) ?? ''
+    const baseEntry = phaseOne.find((e) => e.commandName === baseCommandName)
+    const baseTemplate = baseEntry?.customTemplate
+      ?? `使用 \`${baseSkillName}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`
     result[entry.commandName] = {
       template: [
         `先使用 \`${entry.skillName}\` 技能优化以下用户输入，将优化结果作为最终提示词：`,
         '',
         '---',
-        `使用 \`${baseSkillName}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`,
+        baseTemplate,
         '---',
       ].join('\n'),
       description: entry.description,
@@ -74,12 +78,15 @@ export function buildCommandConfig(commandsDir: string): NonNullable<Config['com
   for (const entry of getPhaseOnePaEntries()) {
     const baseCommandName = entry.commandName.slice(0, -PA_SUFFIX.length)
     const baseSkillName = commandToSkill.get(baseCommandName as typeof entry.commandName) ?? ''
+    const baseEntry = phaseOne.find((e) => e.commandName === baseCommandName)
+    const baseTemplate = baseEntry?.customTemplate
+      ?? `使用 \`${baseSkillName}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`
     result[entry.commandName] = {
       template: [
         `先使用 \`${entry.skillName}\` 技能以 auto 模式优化以下用户输入（跳过确认直接提交），将优化结果作为最终提示词：`,
         '',
         '---',
-        `使用 \`${baseSkillName}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`,
+        baseTemplate,
         '---',
       ].join('\n'),
       description: entry.description,

@@ -21,12 +21,13 @@ const PHASE_ONE_ENTRIES = [
   },
   {
     skillName: SKILL.DOCUMENT_REVIEW,
-    skillSlug: skillDir(SKILL.DOCUMENT_REVIEW),
+    skillSlug: 'ae-document-review',
     commandName: COMMAND.DOCUMENT_REVIEW,
     description: '面向文档的专项审查，核心流程审查需求和计划文档，也支持审查任意文档，与 Git 版本差异无强关联',
     argumentHint: '[mode:*] [文档路径]',
     defaultEntry: false,
-    skillFile: `src/assets/skills/${skillDir(SKILL.DOCUMENT_REVIEW)}/SKILL.md`,
+    skillFile: `src/assets/skills/ae-document-review/SKILL.md`,
+    customTemplate: `使用 \`ae:review\` 技能处理这次请求，指定 domain:document，并沿用参数：\`$ARGUMENTS\`。`,
   },
   {
     skillName: SKILL.PLAN,
@@ -189,50 +190,42 @@ const PHASE_ONE_PA_ENTRIES: AeAssetEntry[] = PHASE_ONE_ENTRIES
     skillFile: `src/assets/skills/${skillDir(SKILL.PROMPT_OPTIMIZE)}/SKILL.md`,
   } satisfies AeAssetEntry))
 
-type AgentStage = 'document-review' | 'review' | 'research' | 'workflow'
-
-const REQUIRED_AGENTS: ReadonlyArray<readonly [string, AgentStage, string]> = [
-  [AGENT.COHERENCE_REVIEWER, 'document-review', '审查文档的内部一致性'],
-  [AGENT.FEASIBILITY_REVIEWER, 'document-review', '评估文档中提出的技术方法能否经受现实考验'],
-  [AGENT.PRODUCT_LENS_REVIEWER, 'document-review', '以高级产品负责人的视角审查文档'],
-  [AGENT.SCOPE_GUARDIAN_REVIEWER, 'document-review', '审查文档的范围对齐和不合理的复杂度'],
-  [AGENT.ADVERSARIAL_DOCUMENT_REVIEWER, 'document-review', '对文档做对抗式压力测试'],
-  [AGENT.DESIGN_LENS_REVIEWER, 'document-review', '审查文档中缺失的设计决策'],
-  [AGENT.SECURITY_LENS_REVIEWER, 'document-review', '评估文档中的安全缺口'],
-  [AGENT.STEP_GRANULARITY_REVIEWER, 'document-review', '审查计划步骤是否拆解至最小不可再分单元'],
-  [AGENT.BATCH_OPERATION_REVIEWER, 'document-review', '审查多文件操作是否可脚本化批量执行'],
-  [AGENT.TEST_CASE_REVIEWER, 'document-review', '审查测试用例文档的可测性、完备性、步骤可执行性和与需求对齐程度'],
+const REQUIRED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'], string]> = [
+  [AGENT.COHERENCE_REVIEWER, 'review', '审查文档的内部一致性'],
+  [AGENT.FEASIBILITY_REVIEWER, 'review', '评估文档中提出的技术方法能否经受现实考验'],
+  [AGENT.PRODUCT_SCOPE_REVIEWER, 'review', '以高级产品负责人的视角审查文档，质疑前提和范围对齐'],
+  [AGENT.ADVERSARIAL_REVIEWER, 'review', '跨域对抗式审查：代码域构造故障场景，文档域质疑前提假设'],
+  [AGENT.DESIGN_LENS_REVIEWER, 'review', '审查文档中缺失的设计决策'],
+  [AGENT.SECURITY_REVIEWER, 'review', '跨域安全审查：代码域漏洞审计，文档域安全缺口评估'],
+  [AGENT.PLAN_QUALITY_REVIEWER, 'review', '审查计划步骤粒度与批量操作可脚本化'],
+  [AGENT.TEST_CASE_REVIEWER, 'review', '审查测试用例文档的可测性、完备性和与需求对齐程度'],
   [AGENT.REPO_RESEARCH_ANALYST, 'research', '研究仓库结构与已有模式'],
-  [AGENT.LEARNINGS_RESEARCHER, 'research', '提炼已有经验与文档知识'],
+  [AGENT.LEARNINGS_REVIEWER, 'research', '提炼已有经验与文档知识'],
   [AGENT.BEST_PRACTICES_RESEARCHER, 'research', '收集社区最佳实践与框架文档'],
   [AGENT.WEB_RESEARCHER, 'research', '搜索并总结网络信息'],
   [AGENT.FRAMEWORK_DOCS_RESEARCHER, 'research', '收集框架、库或依赖的完整文档和最佳实践'],
   [AGENT.SPEC_FLOW_ANALYZER, 'workflow', '分析阶段流转和边界情况'],
   [AGENT.CORRECTNESS_REVIEWER, 'review', '审查逻辑正确性与边界条件'],
   [AGENT.TESTING_REVIEWER, 'review', '审查测试覆盖与断言质量'],
-  [AGENT.PROJECT_STANDARDS_REVIEWER, 'review', '审查是否遵守项目规范'],
-  [AGENT.AGENT_NATIVE_REVIEWER, 'review', '审查代理操作友好性'],
+  [AGENT.STANDARDS_REVIEWER, 'review', '审查是否遵守项目规范'],
+  [AGENT.AGENT_NATIVE_REVIEWER, 'review', '审查代理操作友好性与 CLI 就绪度'],
   [AGENT.API_CONTRACT_REVIEWER, 'review', '审查接口契约破坏性变更'],
   [AGENT.RELIABILITY_REVIEWER, 'review', '审查故障恢复与可靠性'],
-  [AGENT.ADVERSARIAL_REVIEWER, 'review', '对抗式构造故障场景'],
   [AGENT.MAINTAINABILITY_REVIEWER, 'review', '审查可维护性与抽象合理性'],
-  [AGENT.SECURITY_REVIEWER, 'review', '基于 OWASP 标准执行安全漏洞审计'],
   [AGENT.PERFORMANCE_REVIEWER, 'review', '审查算法复杂度、缓存策略及前端渲染性能'],
   [AGENT.ARCHITECTURE_STRATEGIST, 'review', '从架构视角分析代码变更，检查模式合规性和设计完整性'],
   [AGENT.PATTERN_RECOGNITION_SPECIALIST, 'review', '分析代码中的设计模式、反模式、命名规范和重复代码'],
   [AGENT.DATA_MIGRATIONS_REVIEWER, 'review', '审查数据迁移方案与执行细节'],
-  [AGENT.KIERAN_TYPESCRIPT_REVIEWER, 'review', '按严格 TS 标准审查实现'],
   [AGENT.PREVIOUS_COMMENTS_REVIEWER, 'review', '复查历史审查评论处理情况'],
 ]
 
-const GILDED_AGENTS: ReadonlyArray<readonly [string, AgentStage, string]> = [
-  [AGENT.CLI_AGENT_READINESS_REVIEWER, 'review', '评估 CLI 对代理的友好程度'],
+const GILDED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'], string]> = [
   [AGENT.DESIGN_ITERATOR, 'workflow', '推动多轮设计迭代'],
   [AGENT.FIGMA_DESIGN_SYNC, 'workflow', '同步 Figma 设计稿与代码实现'],
 ]
 
 function buildAgentList(
-  tuples: ReadonlyArray<readonly [string, AgentStage, string]>,
+  tuples: ReadonlyArray<readonly [string, AgentDefinition['stage'], string]>,
   tier: 'required' | 'gilded',
 ): AgentDefinition[] {
   return tuples.map(([name, stage, desc]) =>
