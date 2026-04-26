@@ -1,106 +1,137 @@
 import { describe, it, expect } from 'vitest'
-import { selectDocumentReviewers } from './review-selector.js'
+import { selectReviewers } from './review-selector.js'
 import { AGENT } from '../schemas/ae-asset-schema.js'
 
-describe('selectDocumentReviewers', () => {
-  it('plan 类型应包含 step-granularity-reviewer 和 batch-operation-reviewer', () => {
-    const selected = selectDocumentReviewers({ documentType: 'plan' })
-    expect(selected).toContain(AGENT.STEP_GRANULARITY_REVIEWER)
-    expect(selected).toContain(AGENT.BATCH_OPERATION_REVIEWER)
+describe('selectReviewers — 代码域', () => {
+  it('代码域默认应返回 6 个 alwaysOn 代理', () => {
+    const selected = selectReviewers({ kind: 'code' })
+    expect(selected).toHaveLength(6)
+    expect(selected).toContain(AGENT.CORRECTNESS_REVIEWER)
+    expect(selected).toContain(AGENT.TESTING_REVIEWER)
+    expect(selected).toContain(AGENT.MAINTAINABILITY_REVIEWER)
+    expect(selected).toContain(AGENT.STANDARDS_REVIEWER)
+    expect(selected).toContain(AGENT.AGENT_NATIVE_REVIEWER)
+    expect(selected).toContain(AGENT.LEARNINGS_REVIEWER)
   })
 
-  it('requirements 类型不应包含 step-granularity-reviewer 和 batch-operation-reviewer', () => {
-    const selected = selectDocumentReviewers({ documentType: 'requirements' })
-    expect(selected).not.toContain(AGENT.STEP_GRANULARITY_REVIEWER)
-    expect(selected).not.toContain(AGENT.BATCH_OPERATION_REVIEWER)
+  it('代码域 hasSecurity 应激活 security-reviewer', () => {
+    const selected = selectReviewers({ kind: 'code', hasSecurity: true })
+    expect(selected).toContain(AGENT.SECURITY_REVIEWER)
   })
 
-  it('plan 类型应始终包含 alwaysOn 代理（coherence、feasibility）', () => {
-    const selected = selectDocumentReviewers({ documentType: 'plan' })
-    expect(selected).toContain(AGENT.COHERENCE_REVIEWER)
-    expect(selected).toContain(AGENT.FEASIBILITY_REVIEWER)
+  it('代码域 hasConfig 应激活 config-reviewer', () => {
+    const selected = selectReviewers({ kind: 'code', hasConfig: true })
+    expect(selected).toContain(AGENT.CONFIG_REVIEWER)
   })
 
-  it('plan 类型应始终包含 product-lens-reviewer', () => {
-    const selected = selectDocumentReviewers({ documentType: 'plan' })
-    expect(selected).toContain(AGENT.PRODUCT_LENS_REVIEWER)
+  it('代码域 hasInfra 应激活 infra-reviewer', () => {
+    const selected = selectReviewers({ kind: 'code', hasInfra: true })
+    expect(selected).toContain(AGENT.INFRA_REVIEWER)
   })
 
-  it('requirements 类型应包含 alwaysOn 代理但不包含 plan 专属代理', () => {
-    const selected = selectDocumentReviewers({ documentType: 'requirements' })
-    expect(selected).toContain(AGENT.COHERENCE_REVIEWER)
-    expect(selected).toContain(AGENT.FEASIBILITY_REVIEWER)
-    expect(selected).not.toContain(AGENT.STEP_GRANULARITY_REVIEWER)
-    expect(selected).not.toContain(AGENT.BATCH_OPERATION_REVIEWER)
-    expect(selected).not.toContain(AGENT.TEST_CASE_REVIEWER)
+  it('代码域 hasDatabase 应激活 database-reviewer', () => {
+    const selected = selectReviewers({ kind: 'code', hasDatabase: true })
+    expect(selected).toContain(AGENT.DATABASE_REVIEWER)
   })
 
-  it('requirements 且 requirementCount >= 5 应激活条件角色', () => {
-    const selected = selectDocumentReviewers({ documentType: 'requirements', requirementCount: 5 })
-    expect(selected).toContain(AGENT.PRODUCT_LENS_REVIEWER)
-    expect(selected).toContain(AGENT.SCOPE_GUARDIAN_REVIEWER)
-    expect(selected).toContain(AGENT.ADVERSARIAL_DOCUMENT_REVIEWER)
+  it('代码域 hasScript 应激活 script-reviewer', () => {
+    const selected = selectReviewers({ kind: 'code', hasScript: true })
+    expect(selected).toContain(AGENT.SCRIPT_REVIEWER)
   })
 
-  it('plan 类型结果不应有重复代理', () => {
-    const selected = selectDocumentReviewers({ documentType: 'plan' })
+  it('代码域 hasMigrations 应激活 data-migrations-reviewer', () => {
+    const selected = selectReviewers({ kind: 'code', hasMigrations: true })
+    expect(selected).toContain(AGENT.DATA_MIGRATIONS_REVIEWER)
+  })
+
+  it('代码域 changedLineCount >= 50 应激活 adversarial-reviewer', () => {
+    const selected = selectReviewers({ kind: 'code', changedLineCount: 50 })
+    expect(selected).toContain(AGENT.ADVERSARIAL_REVIEWER)
+  })
+
+  it('代码域结果不应有重复代理', () => {
+    const selected = selectReviewers({
+      kind: 'code',
+      hasSecurity: true,
+      hasApi: true,
+      hasPerformance: true,
+      changedLineCount: 100,
+    })
     expect(new Set(selected).size).toBe(selected.length)
   })
+})
 
-  it('test 类型应包含 coherence、feasibility 和 test-case-reviewer', () => {
-    const selected = selectDocumentReviewers({ documentType: 'test' })
+describe('selectReviewers — 文档域', () => {
+  it('文档域默认应返回 2 个 alwaysOn 代理', () => {
+    const selected = selectReviewers({ kind: 'document' })
+    expect(selected).toHaveLength(2)
     expect(selected).toContain(AGENT.COHERENCE_REVIEWER)
     expect(selected).toContain(AGENT.FEASIBILITY_REVIEWER)
+  })
+
+  it('文档域 plan 类型应激活 product-scope-reviewer 和 plan-quality-reviewer', () => {
+    const selected = selectReviewers({ kind: 'document', documentType: 'plan' })
+    expect(selected).toContain(AGENT.PRODUCT_SCOPE_REVIEWER)
+    expect(selected).toContain(AGENT.PLAN_QUALITY_REVIEWER)
+  })
+
+  it('文档域 requirements 类型不应激活 plan 专属代理', () => {
+    const selected = selectReviewers({ kind: 'document', documentType: 'requirements' })
+    expect(selected).not.toContain(AGENT.PLAN_QUALITY_REVIEWER)
+  })
+
+  it('文档域 test 类型应激活 test-case-reviewer', () => {
+    const selected = selectReviewers({ kind: 'document', documentType: 'test' })
     expect(selected).toContain(AGENT.TEST_CASE_REVIEWER)
   })
 
-  it('test 类型不应包含 plan 专属代理', () => {
-    const selected = selectDocumentReviewers({ documentType: 'test' })
-    expect(selected).not.toContain(AGENT.STEP_GRANULARITY_REVIEWER)
-    expect(selected).not.toContain(AGENT.BATCH_OPERATION_REVIEWER)
-  })
-
-  it('test 类型且 hasUi 应包含 design-lens-reviewer', () => {
-    const selected = selectDocumentReviewers({ documentType: 'test', hasUi: true })
-    expect(selected).toContain(AGENT.DESIGN_LENS_REVIEWER)
-  })
-
-  it('test 类型且 hasSecurity 应包含 security-lens-reviewer', () => {
-    const selected = selectDocumentReviewers({ documentType: 'test', hasSecurity: true })
-    expect(selected).toContain(AGENT.SECURITY_LENS_REVIEWER)
-  })
-
-  it('general 类型应仅包含 alwaysOn 代理', () => {
-    const selected = selectDocumentReviewers({ documentType: 'general' })
-    expect(selected).toContain(AGENT.COHERENCE_REVIEWER)
-    expect(selected).toContain(AGENT.FEASIBILITY_REVIEWER)
+  it('文档域 general 类型应仅包含 alwaysOn 代理', () => {
+    const selected = selectReviewers({ kind: 'document', documentType: 'general' })
     expect(selected).toHaveLength(2)
   })
 
-  it('general 类型不应包含任何 documentType 专属代理', () => {
-    const selected = selectDocumentReviewers({ documentType: 'general' })
-    expect(selected).not.toContain(AGENT.STEP_GRANULARITY_REVIEWER)
-    expect(selected).not.toContain(AGENT.BATCH_OPERATION_REVIEWER)
-    expect(selected).not.toContain(AGENT.TEST_CASE_REVIEWER)
-  })
-
-  it('general 类型且 hasUi 应包含 design-lens-reviewer', () => {
-    const selected = selectDocumentReviewers({ documentType: 'general', hasUi: true })
+  it('文档域 hasUi 应激活 design-lens-reviewer', () => {
+    const selected = selectReviewers({ kind: 'document', hasUi: true })
     expect(selected).toContain(AGENT.DESIGN_LENS_REVIEWER)
   })
 
-  it('hasArchitectureDecision 应激活 adversarial-document-reviewer', () => {
-    const selected = selectDocumentReviewers({ documentType: 'requirements', hasArchitectureDecision: true })
-    expect(selected).toContain(AGENT.ADVERSARIAL_DOCUMENT_REVIEWER)
+  it('文档域 hasSecurity 应激活 security-reviewer（跨域）', () => {
+    const selected = selectReviewers({ kind: 'document', hasSecurity: true })
+    expect(selected).toContain(AGENT.SECURITY_REVIEWER)
   })
 
-  it('isHighRiskDomain 应激活 adversarial-document-reviewer', () => {
-    const selected = selectDocumentReviewers({ documentType: 'requirements', isHighRiskDomain: true })
-    expect(selected).toContain(AGENT.ADVERSARIAL_DOCUMENT_REVIEWER)
+  it('文档域 requirementCount >= 5 应激活 product-scope-reviewer 和 adversarial-reviewer', () => {
+    const selected = selectReviewers({ kind: 'document', requirementCount: 5 })
+    expect(selected).toContain(AGENT.PRODUCT_SCOPE_REVIEWER)
+    expect(selected).toContain(AGENT.ADVERSARIAL_REVIEWER)
   })
 
-  it('hasNewAbstraction 应激活 adversarial-document-reviewer', () => {
-    const selected = selectDocumentReviewers({ documentType: 'requirements', hasNewAbstraction: true })
-    expect(selected).toContain(AGENT.ADVERSARIAL_DOCUMENT_REVIEWER)
+  it('文档域 hasArchitectureDecision 应激活 adversarial-reviewer 和 architecture-strategist', () => {
+    const selected = selectReviewers({ kind: 'document', hasArchitectureDecision: true })
+    expect(selected).toContain(AGENT.ADVERSARIAL_REVIEWER)
+    expect(selected).toContain(AGENT.ARCHITECTURE_STRATEGIST)
+  })
+
+  it('文档域结果不应有重复代理', () => {
+    const selected = selectReviewers({
+      kind: 'document',
+      documentType: 'plan',
+      hasSecurity: true,
+      hasUi: true,
+      requirementCount: 6,
+    })
+    expect(new Set(selected).size).toBe(selected.length)
+  })
+})
+
+describe('selectReviewers — 派生字段', () => {
+  it('requirementCount 4 不应满足 requirementCountGte5', () => {
+    const selected = selectReviewers({ kind: 'document', requirementCount: 4 })
+    expect(selected).not.toContain(AGENT.PRODUCT_SCOPE_REVIEWER)
+  })
+
+  it('changedLineCount 49 不应激活 adversarial-reviewer', () => {
+    const selected = selectReviewers({ kind: 'code', changedLineCount: 49 })
+    expect(selected).not.toContain(AGENT.ADVERSARIAL_REVIEWER)
   })
 })

@@ -1,72 +1,82 @@
 import { describe, it, expect } from 'vitest'
-import { DOCUMENT_REVIEWERS, CODE_REVIEWERS } from './review-catalog.js'
+import { REVIEW_MATRIX } from './review-catalog.js'
 import { AGENT } from '../schemas/ae-asset-schema.js'
 
-describe('review-catalog', () => {
-  it('DOCUMENT_REVIEWERS 应包含 10 个条目', () => {
-    expect(DOCUMENT_REVIEWERS).toHaveLength(10)
+describe('REVIEW_MATRIX', () => {
+  it('应包含 24 个条目', () => {
+    expect(REVIEW_MATRIX).toHaveLength(24)
   })
 
-  it('新增的 step-granularity-reviewer 应存在于 DOCUMENT_REVIEWERS', () => {
-    const reviewer = DOCUMENT_REVIEWERS.find((r) => r.name === AGENT.STEP_GRANULARITY_REVIEWER)
-    expect(reviewer).toBeDefined()
-    expect(reviewer!.alwaysOn).toBe(false)
+  it('代码域 alwaysOn 应为 6 个', () => {
+    const codeAlwaysOn = REVIEW_MATRIX.filter((r) => r.domain === 'code' && r.alwaysOn)
+    expect(codeAlwaysOn).toHaveLength(6)
+    expect(codeAlwaysOn.map((r) => r.name)).toEqual([
+      AGENT.CORRECTNESS_REVIEWER,
+      AGENT.TESTING_REVIEWER,
+      AGENT.MAINTAINABILITY_REVIEWER,
+      AGENT.STANDARDS_REVIEWER,
+      AGENT.AGENT_NATIVE_REVIEWER,
+      AGENT.LEARNINGS_REVIEWER,
+    ])
   })
 
-  it('新增的 batch-operation-reviewer 应存在于 DOCUMENT_REVIEWERS', () => {
-    const reviewer = DOCUMENT_REVIEWERS.find((r) => r.name === AGENT.BATCH_OPERATION_REVIEWER)
-    expect(reviewer).toBeDefined()
-    expect(reviewer!.alwaysOn).toBe(false)
-  })
-
-  it('alwaysOn 条目仅包含 coherence 和 feasibility', () => {
-    const alwaysOn = DOCUMENT_REVIEWERS.filter((r) => r.alwaysOn)
-    expect(alwaysOn).toHaveLength(2)
-    expect(alwaysOn.map((r) => r.name)).toEqual([
+  it('文档域 alwaysOn 应为 2 个', () => {
+    const docAlwaysOn = REVIEW_MATRIX.filter((r) => r.domain === 'document' && r.alwaysOn)
+    expect(docAlwaysOn).toHaveLength(2)
+    expect(docAlwaysOn.map((r) => r.name)).toEqual([
       AGENT.COHERENCE_REVIEWER,
       AGENT.FEASIBILITY_REVIEWER,
     ])
   })
 
-  it('新增条目应放在 security-lens-reviewer 之后', () => {
-    const securityIdx = DOCUMENT_REVIEWERS.findIndex((r) => r.name === AGENT.SECURITY_LENS_REVIEWER)
-    const stepIdx = DOCUMENT_REVIEWERS.findIndex((r) => r.name === AGENT.STEP_GRANULARITY_REVIEWER)
-    const batchIdx = DOCUMENT_REVIEWERS.findIndex((r) => r.name === AGENT.BATCH_OPERATION_REVIEWER)
-    expect(stepIdx).toBe(securityIdx + 1)
-    expect(batchIdx).toBe(securityIdx + 2)
+  it('跨域条目应为 security-reviewer 和 adversarial-reviewer', () => {
+    const both = REVIEW_MATRIX.filter((r) => r.domain === 'both')
+    expect(both).toHaveLength(2)
+    expect(both.map((r) => r.name)).toEqual([AGENT.SECURITY_REVIEWER, AGENT.ADVERSARIAL_REVIEWER])
   })
 
-  it('CODE_REVIEWERS 包含 learnings-researcher 为常驻代理', () => {
-    const reviewer = CODE_REVIEWERS.find((r) => r.name === AGENT.LEARNINGS_RESEARCHER)
+  it('每个条目应有非空 description', () => {
+    for (const entry of REVIEW_MATRIX) {
+      expect(entry.description.length).toBeGreaterThan(0)
+    }
+  })
+
+  it('代码域条件条目应包含 9 个', () => {
+    const codeConditional = REVIEW_MATRIX.filter((r) => r.domain === 'code' && !r.alwaysOn)
+    expect(codeConditional).toHaveLength(9)
+  })
+
+  it('文档域条件条目应包含 5 个', () => {
+    const docConditional = REVIEW_MATRIX.filter((r) => r.domain === 'document' && !r.alwaysOn)
+    expect(docConditional).toHaveLength(5)
+  })
+
+  it('config-reviewer 应存在于代码域条件条目', () => {
+    const reviewer = REVIEW_MATRIX.find((r) => r.name === AGENT.CONFIG_REVIEWER)
     expect(reviewer).toBeDefined()
-    expect(reviewer!.alwaysOn).toBe(true)
-  })
-
-  it('CODE_REVIEWERS 应包含 19 个条目', () => {
-    expect(CODE_REVIEWERS).toHaveLength(19)
-  })
-
-  it('新增的 config-reviewer 应存在于 CODE_REVIEWERS', () => {
-    const reviewer = CODE_REVIEWERS.find((r) => r.name === AGENT.CONFIG_REVIEWER)
-    expect(reviewer).toBeDefined()
+    expect(reviewer!.domain).toBe('code')
     expect(reviewer!.alwaysOn).toBe(false)
   })
 
-  it('新增的 infra-reviewer 应存在于 CODE_REVIEWERS', () => {
-    const reviewer = CODE_REVIEWERS.find((r) => r.name === AGENT.INFRA_REVIEWER)
+  it('product-scope-reviewer 应存在于文档域条件条目', () => {
+    const reviewer = REVIEW_MATRIX.find((r) => r.name === AGENT.PRODUCT_SCOPE_REVIEWER)
     expect(reviewer).toBeDefined()
+    expect(reviewer!.domain).toBe('document')
     expect(reviewer!.alwaysOn).toBe(false)
   })
 
-  it('新增的 database-reviewer 应存在于 CODE_REVIEWERS', () => {
-    const reviewer = CODE_REVIEWERS.find((r) => r.name === AGENT.DATABASE_REVIEWER)
-    expect(reviewer).toBeDefined()
-    expect(reviewer!.alwaysOn).toBe(false)
+  it('条件条目必须有 conditionGroups', () => {
+    const conditional = REVIEW_MATRIX.filter((r) => !r.alwaysOn)
+    for (const entry of conditional) {
+      expect(entry.conditionGroups).toBeDefined()
+      expect(entry.conditionGroups!.length).toBeGreaterThan(0)
+    }
   })
 
-  it('新增的 script-reviewer 应存在于 CODE_REVIEWERS', () => {
-    const reviewer = CODE_REVIEWERS.find((r) => r.name === AGENT.SCRIPT_REVIEWER)
-    expect(reviewer).toBeDefined()
-    expect(reviewer!.alwaysOn).toBe(false)
+  it('alwaysOn 条目不应有 conditionGroups', () => {
+    const alwaysOn = REVIEW_MATRIX.filter((r) => r.alwaysOn)
+    for (const entry of alwaysOn) {
+      expect(entry.conditionGroups).toBeUndefined()
+    }
   })
 })

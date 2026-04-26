@@ -227,15 +227,13 @@ export function formatHelpCatalog(catalog: HelpCatalog, query?: string): string 
 
     for (const [stage, agents] of agentsByStage) {
       const stageLabel =
-        stage === 'document-review'
-          ? '文档审查'
-          : stage === 'research'
-            ? '研究'
-            : stage === 'review'
-              ? '代码审查'
-              : stage === 'workflow'
-                ? '工作流'
-                : stage
+        stage === 'research'
+          ? '研究'
+          : stage === 'review'
+            ? '审查'
+            : stage === 'workflow'
+              ? '工作流'
+              : stage
       lines.push(`**${stageLabel}（${agents.length}）**`)
       lines.push('')
       lines.push('| 代理 | 说明 |')

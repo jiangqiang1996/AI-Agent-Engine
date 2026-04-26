@@ -1,6 +1,6 @@
 # 子代理提示模板
 
-编排器使用此模板派生每个审查者子代理。变量替换槽在派发时填充。支持三种输入模式：diff 模式（增量审查）、完整文件模式（全量/全项目审查）、会话变更模式。
+编排器使用此模板派生每个审查者子代理。变量替换槽在派发时填充。支持代码域（diff/完整文件/会话变更模式）和文档域两种输入模式。
 
 ---
 
@@ -21,7 +21,7 @@
    这是你被允许执行的一次写操作。如果写入失败，继续执行。
 
 2. **精简返回（始终执行）。** 向父级返回精简 JSON，每个发现仅包含合并层级字段：
-   title、severity、file、line、confidence、autofix_class、owner、requires_verification、pre_existing、suggested_fix。
+   title、severity、file、line、confidence、autofix_class、owner、requires_verification、pre_existing、suggested_fix、finding_type。
    不要在返回的 JSON 中包含 why_it_matters 或 evidence。
 
 {schema}
@@ -46,42 +46,71 @@
 - 你是 ae:review 工作流中的叶子审查者。不要调用 AE 技能或代理。
 - 完整产物中的每个发现必须包含至少一项基于实际代码/内容的证据。
 - 你在操作上是只读的。不要编辑项目文件或变更仓库状态。
-- 准确设置 autofix_class——不确定时不要默认 advisory。
+- 根据域设置特定字段：
+  - 代码域（domain: code）：设置 owner、requires_verification
+  - 文档域（domain: document）：可设置 deferred_questions（顶层）；为每个发现设置 finding_type：
+    - `error`：文档所说的有误之处——矛盾、不正确的陈述、设计张力
+    - `omission`：文档遗漏的内容——缺失的步骤、遗漏的条目
+- 准确设置 autofix_class——根据是否存在一个明确正确的修复方案来设置，而非基于严重性：
+  - `auto`：一个明确正确的修复方案。判断标准不是"这个修复重要吗？"而是"是否有不止一种合理的修复方式？"
+  - `gated`：修复方案明确但需要人类审批
+  - `manual`：需要人工判断——存在多种有效方案
+  - `advisory`：建议性改进，不构成阻断
+  - auto 发现需要 suggested_fix。将缺少 suggested_fix 的 auto 发现降级为 gated。
+  - 不确定时不要默认 advisory。
 - 将 owner 设置为此发现的默认下一步行动者。
-- suggested_fix 是可选的。仅在修复明显且正确时包含。
+- suggested_fix 是可选的（auto 除外）。仅在修复明显且正确时包含。
 - 如果未发现问题，返回空的 findings 数组。
 - **意图验证：** 如果代码做了意图未描述的事情，标记为发现。
+- 使用你的抑制条件。不要标记属于其他角色的问题。
 </output-contract>
 
 <review-context>
-Run ID: {run_id}
-Reviewer name: {reviewer_name}
+域：{domain}
+运行 ID：{run_id}
+审查者名称：{reviewer_name}
 
-Intent: {intent_summary}
-
-Changed files: {file_list}
-
-{content_mode_label}
-{content}
+{domain_specific_context}
 </review-context>
 ```
 
 ## 变量参考
 
+### 共享变量
+
 | 变量 | 来源 |
 |------|------|
 | `{persona_file}` | 代理 markdown 文件内容 |
 | `{schema}` | `references/findings-schema.json` 内容 |
-| `{intent_summary}` | 阶段 2 输出 |
-| `{file_list}` | 变更文件列表 |
-| `{content}` | diff 内容（增量审查）或完整文件内容（全量审查）或会话变更内容（会话变更模式） |
-| `{content_mode_label}` | 增量审查时为 `Diff:`，全量审查时为 `Full content:`，会话变更模式时为 `Session changes:` |
+| `{domain}` | `code` 或 `document` |
 | `{run_id}` | 运行标识符 |
 | `{reviewer_name}` | 审查者名称 |
 
+### 代码域独有变量
+
+| 变量 | 来源 |
+|------|------|
+| `{intent_summary}` | 阶段 2 输出 |
+| `{file_list}` | 变更文件列表 |
+| `{content}` | diff 内容（增量审查）或完整文件内容（全量审查）或会话变更内容 |
+| `{content_mode_label}` | 增量审查时为 `Diff:`，全量审查时为 `Full content:`，会话变更模式时为 `Session changes:` |
+
+### 文档域独有变量
+
+| 变量 | 来源 |
+|------|------|
+| `{document_type}` | 文档类型（requirements/plan/test/general） |
+| `{document_path}` | 文档路径 |
+| `{document_content}` | 文档内容 |
+
+### 域特定上下文变量 `{domain_specific_context}`
+
+- 代码域展开为：`意图：{intent_summary}\n\n变更文件：{file_list}\n\n{content_mode_label}\n{content}`
+- 文档域展开为：`文档类型：{document_type}\n文档路径：{document_path}\n\n文档内容：\n{document_content}`
+
 ## 输入模式
 
-### Diff 模式（增量审查）
+### Diff 模式（代码域增量审查）
 
 `{content_mode_label}` = `Diff:`
 `{content}` = `git diff` 输出
@@ -91,14 +120,14 @@ Changed files: {file_list}
 - **次要**：紧邻的未变更代码，如果变更引入的 bug 只有通过阅读上下文才能发现则报告
 - **预存**：与变更无关的代码，标记 `pre_existing: true`
 
-### 完整文件模式（全量审查）
+### 完整文件模式（代码域全量审查）
 
 `{content_mode_label}` = `Full content:`
 `{content}` = 文件完整内容
 
 审查整个文件，不区分主要/次要/预存。`pre_existing` 固定为 `false`。
 
-### 会话变更模式
+### 会话变更模式（代码域）
 
 `{content_mode_label}` = `Session changes:`
 `{content}` = 本次会话中变更的文件内容（如有 diff 信息则包含 diff，否则为完整文件内容）
@@ -106,3 +135,11 @@ Changed files: {file_list}
 此模式来自当前会话上下文而非 Git 历史。审查时：
 - 如有 diff 信息：参照 diff 模式的范围分类规则
 - 如无 diff 信息：参照完整文件模式的规则
+
+### 文档模式（文档域）
+
+`{document_type}` = 文档类型
+`{document_path}` = 文档路径
+`{document_content}` = 文档完整内容
+
+审查整个文档，不区分范围。每个发现必须包含文档中的直接引用作为证据。
