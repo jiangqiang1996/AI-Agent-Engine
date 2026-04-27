@@ -54,9 +54,11 @@ disable-model-invocation: true
 
 ### 步骤 4：创建计划
 
-运行 `ae:plan`
+如果需求是纯重构或行为保持型技术债治理，运行 `ae:refactor <requirements-doc-path-or-original-arguments>`。否则运行 `ae:plan <requirements-doc-path-or-original-arguments>`。
 
-**门控：** 验证 `ae:plan` 在 `docs/ae/plans/` 中产出了计划文件。如果未产出，重新运行。**在计划文件存在之前不得继续步骤 5。** 记录计划文件路径——它将传递给步骤 7 的 `ae:review`。
+当步骤 2 产出了需求文档时，必须把需求文档路径传递给计划技能；未产出需求文档但需求足够清晰时，传递原始用户需求。
+
+**门控：** 验证计划技能在 `docs/ae/plans/` 中产出了计划文件。如果未产出，重新运行对应计划技能。**在计划文件存在之前不得继续步骤 5。** 记录计划文件路径——它将传递给步骤 7 的 `ae:review`。
 
 ### 步骤 5：计划审查
 
@@ -94,7 +96,7 @@ disable-model-invocation: true
 
 ---
 
-标准主链路：`ae:brainstorm` → `ae:document-review` → `ae:plan` → `ae:document-review` → `ae:work` → `ae:review` → 浏览器测试
+标准主链路：`ae:brainstorm` → `ae:document-review` → `ae:plan` / `ae:refactor` → `ae:document-review` → `ae:work` → `ae:review` → 浏览器测试
 
 从步骤 2 现在开始。记住：先计划，再工作。永远不要跳过计划。
 

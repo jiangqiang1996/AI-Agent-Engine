@@ -80,6 +80,20 @@ describe('selectReviewers — 文档域', () => {
     expect(selected).toContain(AGENT.TEST_CASE_REVIEWER)
   })
 
+  it('文档域非 test 类型不应激活 test-case-reviewer', () => {
+    for (const documentType of ['requirements', 'plan', 'general'] as const) {
+      const selected = selectReviewers({ kind: 'document', documentType })
+      expect(selected).not.toContain(AGENT.TEST_CASE_REVIEWER)
+    }
+  })
+
+  it('文档域 test 类型与条件审查者同时激活时不应重复', () => {
+    const selected = selectReviewers({ kind: 'document', documentType: 'test', requirementCount: 5 })
+    expect(selected).toContain(AGENT.TEST_CASE_REVIEWER)
+    expect(selected).toContain(AGENT.ADVERSARIAL_REVIEWER)
+    expect(new Set(selected).size).toBe(selected.length)
+  })
+
   it('文档域 general 类型应仅包含 alwaysOn 代理', () => {
     const selected = selectReviewers({ kind: 'document', documentType: 'general' })
     expect(selected).toHaveLength(2)

@@ -153,10 +153,13 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 
 ### 阶段 3：审查者选择
 
-调用 `ae-review-contract` 工具，传入 `domain` 维度。
+调用 `ae-review-contract` 工具，传入阶段 2 确定的审查类型。
 
-- `domain:code` → 代码域审查者：阅读 `references/file-routing-table.md` 和 `references/persona-catalog.md`
-- `domain:document` → 文档域审查者
+- 代码域 → `kind: code`，代码域审查者阅读 `references/file-routing-table.md` 和 `references/persona-catalog.md`
+- 文档域 requirements → `kind: document`
+- 文档域 plan → `kind: plan`
+- 文档域 test → `kind: test`
+- 文档域 general → `kind: general`
 
 **不要在阶段 2 完成之前调用此工具。**
 

@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs'
 import { describe, it, expect } from 'vitest'
 import { REVIEW_MATRIX } from './review-catalog.js'
+import { getAllAgentDefinitions } from './ae-catalog.js'
 import { AGENT } from '../schemas/ae-asset-schema.js'
 
 describe('REVIEW_MATRIX', () => {
@@ -39,6 +41,30 @@ describe('REVIEW_MATRIX', () => {
     for (const entry of REVIEW_MATRIX) {
       expect(entry.description.length).toBeGreaterThan(0)
     }
+  })
+
+  it('test-case-reviewer 描述应覆盖测试用例文档审查核心能力', () => {
+    const reviewer = REVIEW_MATRIX.find((r) => r.name === AGENT.TEST_CASE_REVIEWER)
+    const agent = getAllAgentDefinitions().find((a) => a.name === AGENT.TEST_CASE_REVIEWER)
+
+    if (!reviewer || !agent) {
+      throw new Error('test-case-reviewer 应存在于审查矩阵和代理目录中')
+    }
+    expect(reviewer.description).toContain('结构完整性')
+    expect(reviewer.description).toContain('覆盖完备性')
+    expect(reviewer.description).toContain('步骤可执行性')
+    expect(reviewer.description).toContain('结果可验证性')
+    expect(agent.description).toBe(reviewer.description)
+  })
+
+  it('test-case-reviewer 提示词应包含误报抑制边界', () => {
+    const content = readFileSync(new URL('../assets/agents/review/test-case-reviewer.md', import.meta.url), 'utf-8')
+
+    expect(content).toContain('无外部需求来源')
+    expect(content).toContain('没有来源证据的字段约束')
+    expect(content).toContain('高风险延期项应放入 `residual_risks`')
+    expect(content).toContain('不要求穷举所有排列组合')
+    expect(content).toContain('JSON 之外不得包含任何文字说明')
   })
 
   it('代码域条件条目应包含 5 个', () => {

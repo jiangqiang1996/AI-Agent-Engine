@@ -177,12 +177,15 @@ export function formatHelpCatalog(catalog: HelpCatalog, query?: string): string 
   if (catalog.skills.length > 0) {
     lines.push('## 技能')
     lines.push('')
-    lines.push('| 技能 | 命令 | 说明 |')
-    lines.push('|------|------|------|')
+    lines.push('| 技能 | 命令 | 参数 | 说明 |')
+    lines.push('|------|------|------|------|')
 
     for (const skill of catalog.skills) {
       const command = `/${skill.commandName}`
-      lines.push(`| \`${skill.name}\` | \`${command}\` | ${skill.description} |`)
+      const argumentHint = skill.argumentHint || '—'
+      lines.push(
+        `| \`${escapeMarkdownTableCell(skill.name)}\` | \`${escapeMarkdownTableCell(command)}\` | \`${escapeMarkdownTableCell(argumentHint)}\` | ${escapeMarkdownTableCell(skill.description)} |`,
+      )
     }
     lines.push('')
   }
@@ -252,6 +255,10 @@ export function formatHelpCatalog(catalog: HelpCatalog, query?: string): string 
   }
 
   return lines.join('\n')
+}
+
+function escapeMarkdownTableCell(value: string): string {
+  return value.replace(/\|/g, '\\|')
 }
 
 export function generateHelpText(query?: string, repoRoot?: string): string {

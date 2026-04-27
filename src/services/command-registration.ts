@@ -138,7 +138,7 @@ export function createTuiCommands(
     tuiCommands.push({
       title: entry.commandName,
       value: `/${entry.commandName}`,
-      description: [entry.description, contract?.argumentHint].filter(Boolean).join(' | '),
+      description: [entry.description, contract?.argumentHint ?? entry.argumentHint].filter(Boolean).join(' | '),
       category: 'AE 提示词优化',
       slash: { name: entry.commandName },
       onSelect: trigger ? () => trigger(`/${entry.commandName}`) : undefined,
@@ -150,7 +150,7 @@ export function createTuiCommands(
     tuiCommands.push({
       title: entry.commandName,
       value: `/${entry.commandName}`,
-      description: [entry.description, contract?.argumentHint].filter(Boolean).join(' | '),
+      description: [entry.description, contract?.argumentHint ?? entry.argumentHint].filter(Boolean).join(' | '),
       category: 'AE 提示词优化（自动）',
       slash: { name: entry.commandName },
       onSelect: trigger ? () => trigger(`/${entry.commandName}`) : undefined,

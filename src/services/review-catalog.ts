@@ -122,7 +122,7 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
     domain: 'document',
     alwaysOn: false,
     conditionGroups: [[{ field: 'documentType', operator: 'eq', value: 'test' }]],
-    description: '审查测试用例文档的可测性、完备性、步骤可执行性和与需求对齐程度',
+    description: '审查测试用例文档的结构完整性、覆盖完备性、步骤可执行性、结果可验证性和需求对齐程度',
   },
   {
     name: AGENT.ARCHITECTURE_STRATEGIST,
