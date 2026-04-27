@@ -30,7 +30,8 @@
 | 审查者 | 关注点 |
 |--------|--------|
 | `research-reviewer` | 搜索历史方案、最佳实践和框架文档 |
-| `agent-native-reviewer` | 验证新功能可被代理访问、CLI 就绪度 |
+
+以下输入仅作为透明上下文，不单独激活条件审查者：`has_typescript`、`has_config`、`has_script`。工具定义、工具参数、工具注册、代理配置、代理注册和技能 frontmatter 变更应使用 `has_tooling` 或 `has_agent_config` 激活 `agent-native-reviewer`。
 
 ## 路由定义
 
@@ -45,8 +46,10 @@
 - performance — 数据库查询、数据转换、缓存
 - api-contract — 路由、类型签名、版本
 - reliability — 错误处理、重试、超时
-- adversarial — >=50 行可执行代码或高风险
-- agent-native — CLI 命令定义
+- architecture-strategist — 架构决策、新抽象或 >=50 行代码变更
+- pattern-recognition — 新抽象或 >=50 行代码变更
+- adversarial — >=50 行可执行代码、高风险或新抽象
+- agent-native — CLI 命令定义或 UI/工具能力影响代理可操作性
 - previous-comments — 仅 PR 模式
 
 ### 配置路由
@@ -110,7 +113,7 @@
 
 **匹配文件：** .md .rst .adoc .org .txt
 
-**排除：** docs/ae/brainstorms/ 和 docs/ae/plans/ 下的需求文档和计划文档默认排除——除非用户明确指定纳入，此时由 ae:document-review 审查后结果合并到统一报告。
+**排除：** docs/ae/brainstorms/ 和 docs/ae/plans/ 下的需求文档和计划文档默认排除——除非用户明确指定纳入，此时由 `ae:review domain:document` 审查后结果合并到统一报告。
 
 **处理方式：** 需求/计划之外的文档文件使用 domain:document 模式审查。ae-review 内部按文档域流程处理，选择文档域审查者并综合结果。
 

@@ -12,8 +12,16 @@ argument-hint: ""
 
 检查 agent-browser 是否已安装：
 
+Windows PowerShell:
+
+```powershell
+Get-Command agent-browser -ErrorAction SilentlyContinue
+```
+
+macOS/Linux:
+
 ```bash
-command -v agent-browser 2>/dev/null || where agent-browser 2>NUL
+command -v agent-browser 2>/dev/null
 ```
 
 - 输出包含 `agent-browser` 路径：已安装，进入第四步
@@ -27,6 +35,11 @@ command -v agent-browser 2>/dev/null || where agent-browser 2>NUL
 agent-browser 未安装。它是 AE 前端设计技能的核心依赖，用于浏览器截图、自动化测试和设计迭代。
 
 安装命令：
+Windows PowerShell:
+npm install -g agent-browser
+if ($?) { npx agent-browser install }
+
+macOS/Linux:
 npm install -g agent-browser && npx agent-browser install
 
 注意：
@@ -40,6 +53,15 @@ npm install -g agent-browser && npx agent-browser install
 ## 第三步：执行安装
 
 用户确认后，执行安装命令：
+
+Windows PowerShell:
+
+```powershell
+npm install -g agent-browser
+if ($?) { npx agent-browser install }
+```
+
+macOS/Linux:
 
 ```bash
 npm install -g agent-browser && npx agent-browser install

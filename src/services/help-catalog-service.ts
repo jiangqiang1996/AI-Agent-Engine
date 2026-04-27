@@ -97,8 +97,7 @@ function buildCommandEntries(manifest: RuntimeAssetManifest): CommandEntry[] {
   return entries
 }
 
-function buildAgentEntries(): AgentEntry[] {
-  const manifest = createRuntimeAssetManifestFromRoot(getRepoRoot())
+function buildAgentEntries(manifest: RuntimeAssetManifest): AgentEntry[] {
   const config = buildAgentConfig(manifest)
   const definitions = getAllAgentDefinitions()
 
@@ -132,7 +131,7 @@ export function buildHelpCatalog(repoRoot?: string): HelpCatalog {
   return {
     skills: buildSkillEntries(),
     commands: buildCommandEntries(manifest),
-    agents: buildAgentEntries(),
+    agents: buildAgentEntries(manifest),
   }
 }
 

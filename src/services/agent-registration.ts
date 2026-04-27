@@ -14,12 +14,6 @@ interface AgentConfigShape {
   } | undefined>
 }
 
-function loadAgentPrompt(agentsDir: string, relativePath: string): string {
-  const content = readFileSync(join(agentsDir, relativePath), 'utf8')
-  const parsed = parseFrontmatter(content)
-  return parsed.body.trim()
-}
-
 export function buildAgentConfig(manifest: RuntimeAssetManifest): NonNullable<AgentConfigShape['agent']> {
   const result: NonNullable<AgentConfigShape['agent']> = {}
   const repoRoot = manifest.repoRoot

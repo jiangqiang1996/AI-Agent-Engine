@@ -7,10 +7,22 @@ interface ReviewContractResult {
   documentType?: string
   mode: string
   reviewers: string[]
+  nonSelectionInputs: string[]
   gate: string
 }
 
-async function callTool(args: { kind: 'document' | 'plan' | 'test' | 'general' | 'code'; mode?: string }) {
+async function callTool(args: {
+  kind: 'document' | 'plan' | 'test' | 'general' | 'code'
+  mode?: string
+  has_architecture_decision?: boolean
+  has_new_abstraction?: boolean
+  has_product_claim?: boolean
+  has_cli?: boolean
+  has_ui?: boolean
+  has_tooling?: boolean
+  has_agent_config?: boolean
+  has_config?: boolean
+}) {
   const { aeReviewContractTool: tool } = await import('./ae-review-contract.tool.js')
   const definition = tool as unknown as {
     execute: (args: Record<string, unknown>, ctx: Record<string, unknown>) => Promise<string>
@@ -26,6 +38,14 @@ async function callTool(args: { kind: 'document' | 'plan' | 'test' | 'general' |
 
   const result = await definition.execute({ mode: 'report-only', ...args }, mockCtx)
   return JSON.parse(result) as ReviewContractResult
+}
+
+async function getToolDefinition() {
+  const { aeReviewContractTool: tool } = await import('./ae-review-contract.tool.js')
+  return tool as unknown as {
+    args: Record<string, unknown>
+    execute: (args: Record<string, unknown>, ctx: Record<string, unknown>) => Promise<string>
+  }
 }
 
 describe('ae-review-contract 工具', () => {
@@ -57,5 +77,43 @@ describe('ae-review-contract 工具', () => {
 
     expect(result.documentType).toBe('general')
     expect(result.reviewers).not.toContain(AGENT.TEST_CASE_REVIEWER)
+  })
+
+  it('code 类型 has_new_abstraction 应激活架构和模式审查者', async () => {
+    const result = await callTool({ kind: 'code', has_new_abstraction: true })
+
+    expect(result.reviewers).toContain(AGENT.ARCHITECTURE_STRATEGIST)
+    expect(result.reviewers).toContain(AGENT.PATTERN_RECOGNITION_SPECIALIST)
+  })
+
+  it('document 类型 has_product_claim 应激活 product-lens-reviewer', async () => {
+    const result = await callTool({ kind: 'document', has_product_claim: true })
+
+    expect(result.reviewers).toContain(AGENT.PRODUCT_LENS_REVIEWER)
+  })
+
+  it('has_config 应声明为非选择字段且不单独激活 agent-native-reviewer', async () => {
+    const result = await callTool({ kind: 'code', has_config: true })
+
+    expect(result.nonSelectionInputs).toEqual(['has_typescript', 'has_config', 'has_script'])
+    expect(result.reviewers).not.toContain(AGENT.AGENT_NATIVE_REVIEWER)
+  })
+
+  it('应暴露新增选择参数给真实工具调用方', async () => {
+    const definition = await getToolDefinition()
+
+    expect(definition.args).toHaveProperty('has_tooling')
+    expect(definition.args).toHaveProperty('has_agent_config')
+    expect(definition.args).toHaveProperty('has_product_claim')
+  })
+
+  it('has_ui、has_tooling 和 has_agent_config 应激活 agent-native-reviewer', async () => {
+    const uiResult = await callTool({ kind: 'code', has_ui: true })
+    const toolingResult = await callTool({ kind: 'code', has_tooling: true })
+    const agentConfigResult = await callTool({ kind: 'code', has_agent_config: true })
+
+    expect(uiResult.reviewers).toContain(AGENT.AGENT_NATIVE_REVIEWER)
+    expect(toolingResult.reviewers).toContain(AGENT.AGENT_NATIVE_REVIEWER)
+    expect(agentConfigResult.reviewers).toContain(AGENT.AGENT_NATIVE_REVIEWER)
   })
 })

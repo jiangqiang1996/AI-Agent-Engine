@@ -20,17 +20,18 @@ vi.mock('./agent-registration.js', () => ({
 
 // mock runtime-asset-manifest
 vi.mock('./runtime-asset-manifest.js', () => ({
-  createRuntimeAssetManifestFromRoot: () => ({
-    repoRoot: '/repo',
-    skillsDir: '/repo/src/assets/skills',
-    agentsDir: '/repo/src/assets/agents',
-    commandsDir: '/repo/src/assets/commands',
-  }),
+  createRuntimeAssetManifestFromRoot: vi.fn((repoRoot: string) => ({
+    repoRoot,
+    skillsDir: `${repoRoot}/src/assets/skills`,
+    agentsDir: `${repoRoot}/src/assets/agents`,
+    commandsDir: `${repoRoot}/src/assets/commands`,
+  })),
 }))
 
 import * as aeCatalog from './ae-catalog.js'
 import * as commandRegistration from './command-registration.js'
 import * as agentRegistration from './agent-registration.js'
+import * as runtimeAssetManifest from './runtime-asset-manifest.js'
 import { COMMAND, PA_SUFFIX, PO_SUFFIX, SKILL, skillDir } from '../schemas/ae-asset-schema.js'
 
 import {
@@ -199,6 +200,22 @@ describe('help-catalog-service', () => {
       const catalog = buildHelpCatalog('/repo')
       expect(catalog.skills).toHaveLength(1)
       expect(catalog.skills[0].name).toBe('ae:prompt-optimize')
+    })
+
+    it('应该将调用方 repoRoot 传递给 agent-registration', () => {
+      vi.mocked(aeCatalog.getPhaseOneEntries).mockReturnValue([])
+      vi.mocked(aeCatalog.getPhaseOnePoEntries).mockReturnValue([])
+      vi.mocked(aeCatalog.getPhaseOnePaEntries).mockReturnValue([])
+      vi.mocked(aeCatalog.getAllAgentDefinitions).mockReturnValue([])
+      vi.mocked(commandRegistration.buildCommandConfig).mockReturnValue({})
+      vi.mocked(agentRegistration.buildAgentConfig).mockReturnValue({})
+
+      buildHelpCatalog('/custom-repo')
+
+      expect(runtimeAssetManifest.createRuntimeAssetManifestFromRoot).toHaveBeenCalledWith('/custom-repo')
+      expect(agentRegistration.buildAgentConfig).toHaveBeenCalledWith(
+        expect.objectContaining({ repoRoot: '/custom-repo' }),
+      )
     })
   })
 

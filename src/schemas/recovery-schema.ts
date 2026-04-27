@@ -13,6 +13,8 @@ export const RecoveryResultSchema = z.object({
   phase: RecoveryPhaseSchema.describe('恢复阶段'),
   resumePhase: RecoveryPhaseSchema.optional().describe('实际恢复到的阶段'),
   nextSkill: z.string().optional().describe('建议继续使用的技能'),
+  nextArguments: z.string().optional().describe('建议传递给下一技能的结构化参数'),
+  nextCommand: z.string().optional().describe('建议执行的完整技能调用'),
   artifactType: z.enum(['brainstorm', 'plan', 'work', 'review']).optional().describe('命中的产物类型'),
   path: z.string().optional().describe('命中的产物路径'),
   fallbackSkill: z.string().optional().describe('建议回退技能'),

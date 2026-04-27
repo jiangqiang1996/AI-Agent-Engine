@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { resolveRecovery } from './recovery-service.js'
 import { createRuntimeAssetManifestFromRoot } from './runtime-asset-manifest.js'
+import { SKILL } from '../schemas/ae-asset-schema.js'
 
 const tempRoots: string[] = []
 
@@ -179,5 +180,82 @@ supersededBy: ../outside.md
 
     expect(result.resolution).toBe('invalid-artifact')
     expect(result.reason).toContain('frontmatter 无效')
+  })
+
+  it('review 阶段命中 plan 产物时应该恢复到 ae:review 文档域', () => {
+    const root = createRepoRoot()
+    writePlan(root, 'review-plan.md', `
+type: plan
+status: active
+date: 2026-04-27
+title: review-plan
+`)
+
+    const result = resolveRecovery(createRuntimeAssetManifestFromRoot(root), 'review')
+
+    expect(result.resolution).toBe('resolved')
+    expect(result.nextSkill).toBe(SKILL.REVIEW)
+    expect(result.nextArguments).toBe('domain:document docs/ae/plans/review-plan.md')
+    expect(result.nextCommand).toBe(`${SKILL.REVIEW} domain:document docs/ae/plans/review-plan.md`)
+  })
+
+  it('review 阶段命中多个 plan 产物时不应返回可直接执行的无路径命令', () => {
+    const root = createRepoRoot()
+    writePlan(root, 'first-plan.md', `
+type: plan
+status: active
+date: 2026-04-27
+title: first-plan
+`)
+    writePlan(root, 'second-plan.md', `
+type: plan
+status: active
+date: 2026-04-28
+title: second-plan
+`)
+
+    const result = resolveRecovery(createRuntimeAssetManifestFromRoot(root), 'review')
+
+    expect(result.resolution).toBe('needs-selection')
+    expect(result.nextSkill).toBe(SKILL.REVIEW)
+    expect(result.nextArguments).toBeUndefined()
+    expect(result.nextCommand).toBeUndefined()
+  })
+
+  it('lfg 阶段命中 plan 产物时应该恢复到 ae:review 无头文档域', () => {
+    const root = createRepoRoot()
+    writePlan(root, 'lfg-plan.md', `
+type: plan
+status: active
+date: 2026-04-27
+title: lfg-plan
+`)
+
+    const result = resolveRecovery(createRuntimeAssetManifestFromRoot(root), 'lfg')
+
+    expect(result.resolution).toBe('resolved')
+    expect(result.resumePhase).toBe('review')
+    expect(result.nextSkill).toBe(SKILL.REVIEW)
+    expect(result.nextArguments).toBe('mode:headless domain:document docs/ae/plans/lfg-plan.md')
+    expect(result.nextCommand).toBe(`${SKILL.REVIEW} mode:headless domain:document docs/ae/plans/lfg-plan.md`)
+  })
+
+  it('lfg 阶段命中 brainstorm 产物时应该恢复到 ae:review 无头文档域', () => {
+    const root = createRepoRoot()
+    writeBrainstorm(root, 'requirements.md', `
+type: brainstorm
+status: drafted
+date: 2026-04-27
+topic: requirements
+`)
+
+    const result = resolveRecovery(createRuntimeAssetManifestFromRoot(root), 'lfg')
+
+    expect(result.resolution).toBe('resolved')
+    expect(result.nextSkill).toBe(SKILL.REVIEW)
+    expect(result.nextArguments).toBe('mode:headless domain:document docs/ae/brainstorms/requirements.md')
+    expect(result.nextCommand).toBe(
+      `${SKILL.REVIEW} mode:headless domain:document docs/ae/brainstorms/requirements.md`,
+    )
   })
 })

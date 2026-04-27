@@ -5,19 +5,18 @@ import { getAllAgentDefinitions } from './ae-catalog.js'
 import { AGENT } from '../schemas/ae-asset-schema.js'
 
 describe('REVIEW_MATRIX', () => {
-  it('应包含 20 个条目', () => {
-    expect(REVIEW_MATRIX).toHaveLength(20)
+  it('应包含 21 个条目', () => {
+    expect(REVIEW_MATRIX).toHaveLength(21)
   })
 
-  it('代码域 alwaysOn 应为 6 个', () => {
+  it('代码域 alwaysOn 应为 5 个', () => {
     const codeAlwaysOn = REVIEW_MATRIX.filter((r) => r.domain === 'code' && r.alwaysOn)
-    expect(codeAlwaysOn).toHaveLength(6)
+    expect(codeAlwaysOn).toHaveLength(5)
     expect(codeAlwaysOn.map((r) => r.name)).toEqual([
       AGENT.CORRECTNESS_REVIEWER,
       AGENT.TESTING_REVIEWER,
       AGENT.MAINTAINABILITY_REVIEWER,
       AGENT.STANDARDS_REVIEWER,
-      AGENT.AGENT_NATIVE_REVIEWER,
       AGENT.RESEARCH_REVIEWER,
     ])
   })
@@ -31,10 +30,14 @@ describe('REVIEW_MATRIX', () => {
     ])
   })
 
-  it('跨域条目应为 security-reviewer 和 adversarial-reviewer', () => {
+  it('跨域条目应为 security-reviewer、adversarial-reviewer 和 architecture-strategist', () => {
     const both = REVIEW_MATRIX.filter((r) => r.domain === 'both')
-    expect(both).toHaveLength(2)
-    expect(both.map((r) => r.name)).toEqual([AGENT.SECURITY_REVIEWER, AGENT.ADVERSARIAL_REVIEWER])
+    expect(both).toHaveLength(3)
+    expect(both.map((r) => r.name)).toEqual([
+      AGENT.SECURITY_REVIEWER,
+      AGENT.ADVERSARIAL_REVIEWER,
+      AGENT.ARCHITECTURE_STRATEGIST,
+    ])
   })
 
   it('每个条目应有非空 description', () => {
@@ -67,14 +70,14 @@ describe('REVIEW_MATRIX', () => {
     expect(content).toContain('JSON 之外不得包含任何文字说明')
   })
 
-  it('代码域条件条目应包含 5 个', () => {
+  it('代码域条件条目应包含 7 个', () => {
     const codeConditional = REVIEW_MATRIX.filter((r) => r.domain === 'code' && !r.alwaysOn)
-    expect(codeConditional).toHaveLength(5)
+    expect(codeConditional).toHaveLength(7)
   })
 
-  it('文档域条件条目应包含 5 个', () => {
+  it('文档域条件条目应包含 4 个', () => {
     const docConditional = REVIEW_MATRIX.filter((r) => r.domain === 'document' && !r.alwaysOn)
-    expect(docConditional).toHaveLength(5)
+    expect(docConditional).toHaveLength(4)
   })
 
   it('standards-reviewer 应包含配置审查职责', () => {
@@ -87,6 +90,20 @@ describe('REVIEW_MATRIX', () => {
     const reviewer = REVIEW_MATRIX.find((r) => r.name === AGENT.PRODUCT_LENS_REVIEWER)
     expect(reviewer).toBeDefined()
     expect(reviewer!.domain).toBe('document')
+    expect(reviewer!.alwaysOn).toBe(false)
+  })
+
+  it('pattern-recognition-specialist 应存在于代码域条件条目', () => {
+    const reviewer = REVIEW_MATRIX.find((r) => r.name === AGENT.PATTERN_RECOGNITION_SPECIALIST)
+    expect(reviewer).toBeDefined()
+    expect(reviewer!.domain).toBe('code')
+    expect(reviewer!.alwaysOn).toBe(false)
+  })
+
+  it('agent-native-reviewer 应为代码域条件条目', () => {
+    const reviewer = REVIEW_MATRIX.find((r) => r.name === AGENT.AGENT_NATIVE_REVIEWER)
+    expect(reviewer).toBeDefined()
+    expect(reviewer!.domain).toBe('code')
     expect(reviewer!.alwaysOn).toBe(false)
   })
 

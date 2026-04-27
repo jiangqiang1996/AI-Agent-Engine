@@ -24,14 +24,16 @@
 | `api-contract` | 路由、序列化器、类型签名、版本控制 |
 | `data-migrations` | 迁移、schema 变更、回填、数据库变更 |
 | `reliability` | 错误处理、重试、超时、后台任务、基础设施定义 |
-| `adversarial` | >=50 行可执行代码变更，或高风险领域 |
+| `architecture-strategist` | 架构决策、新抽象或较大结构性变更 |
+| `pattern-recognition` | 新抽象、设计模式、反模式、命名规范和重复代码 |
+| `adversarial` | >=50 行可执行代码变更、高风险领域或新抽象 |
 | `previous-comments` | **仅限 PR** — 有先前审查评论的 PR |
 
 ## AE 代理
 
 | 代理 | 关注点 |
 |------|--------|
-| `agent-native-reviewer` | 验证新功能可被代理访问、CLI 就绪度 |
+| `agent-native-reviewer` | 在涉及 CLI、UI、工具或代理配置时验证新功能可被代理访问、CLI 就绪度 |
 | `research-reviewer` | 搜索历史方案、最佳实践和框架文档 |
 
 ## 选择规则

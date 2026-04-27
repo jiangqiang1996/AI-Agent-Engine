@@ -4,7 +4,7 @@
 
 ## 5.3.8 文档审查
 
-在计划文件上运行 `ae:document-review` 技能。强制性的——即使信心检查已运行。
+在计划文件上运行 `ae:review mode:headless domain:document <plan-path>`。强制性的——即使信心检查已运行。
 
 信心检查和文档审查捕获不同类别的问题：
 - 信心检查加强理由、排序、风险处理

@@ -56,7 +56,7 @@ function nextSkillForArtifact(phase: RecoveryResult['phase'], artifactType: Arti
       return SKILL.WORK
     case 'review':
       if (artifactType === 'plan' || artifactType === 'brainstorm') {
-        return SKILL.DOCUMENT_REVIEW
+        return SKILL.REVIEW
       }
       return SKILL.REVIEW
     case 'brainstorm':
@@ -68,11 +68,35 @@ function nextSkillForArtifact(phase: RecoveryResult['phase'], artifactType: Arti
         case 'work':
           return SKILL.WORK
         case 'plan':
-          return SKILL.DOCUMENT_REVIEW
+          return SKILL.REVIEW
         case 'brainstorm':
-          return SKILL.DOCUMENT_REVIEW
+          return SKILL.REVIEW
       }
   }
+}
+
+function nextArgumentsForArtifact(
+  phase: RecoveryResult['phase'],
+  artifactType: ArtifactKind,
+  path?: string,
+): string | undefined {
+  if ((phase === 'review' || phase === 'lfg') && (artifactType === 'plan' || artifactType === 'brainstorm')) {
+    if (!path) {
+      return undefined
+    }
+    return phase === 'lfg' ? `mode:headless domain:document ${path}` : `domain:document ${path}`
+  }
+  return undefined
+}
+
+function nextCommandForArtifact(
+  phase: RecoveryResult['phase'],
+  artifactType: ArtifactKind,
+  path?: string,
+): string | undefined {
+  const nextSkill = nextSkillForArtifact(phase, artifactType)
+  const nextArguments = nextArgumentsForArtifact(phase, artifactType, path)
+  return nextArguments ? `${nextSkill} ${nextArguments}` : nextSkill
 }
 
 function resumePhaseForArtifact(
@@ -260,13 +284,16 @@ export function resolveRecovery(
     }
 
     if (candidateArtifacts.length === 1) {
+      const path = candidateArtifacts[0] ? displayPath(manifest, candidateArtifacts[0].path) : undefined
       return {
         resolution: 'resolved',
         phase,
         resumePhase: resumePhaseForArtifact(phase, artifactType),
         nextSkill: nextSkillForArtifact(phase, artifactType),
+        nextArguments: nextArgumentsForArtifact(phase, artifactType, path),
+        nextCommand: nextCommandForArtifact(phase, artifactType, path),
         artifactType,
-        path: candidateArtifacts[0] ? displayPath(manifest, candidateArtifacts[0].path) : undefined,
+        path,
         reason: '已找到唯一候选产物。',
         candidates: [],
         warnings: warnings.length > 0 ? warnings : undefined,

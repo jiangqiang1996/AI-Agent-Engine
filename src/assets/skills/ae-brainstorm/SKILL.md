@@ -141,7 +141,7 @@ argument-hint: "[需求描述|需求文档路径]"
 
 ### 阶段 3.5：文档审查
 
-当创建或更新了需求数据文档时，在呈现交接选项之前对其运行 `ae:document-review` 技能。
+当创建或更新了需求数据文档时，在呈现交接选项之前对其运行 `ae:review mode:headless domain:document <requirements-doc-path>`。
 
 如果文档审查返回了自动应用的发现，在呈现交接选项时简要提及。如果暴露了剩余的 P0/P1 发现，提及它们以便用户决定是否在继续之前解决。
 

@@ -21,7 +21,6 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
   { name: AGENT.TESTING_REVIEWER, domain: 'code', alwaysOn: true, description: '审查测试覆盖与断言质量' },
   { name: AGENT.MAINTAINABILITY_REVIEWER, domain: 'code', alwaysOn: true, description: '审查可维护性与抽象合理性' },
   { name: AGENT.STANDARDS_REVIEWER, domain: 'code', alwaysOn: true, description: '审查是否遵守项目规范（含配置文件语法正确性、schema 一致性和敏感值检测）' },
-  { name: AGENT.AGENT_NATIVE_REVIEWER, domain: 'code', alwaysOn: true, description: '审查代理与 CLI 操作友好性' },
   { name: AGENT.RESEARCH_REVIEWER, domain: 'code', alwaysOn: true, description: '搜索历史方案、最佳实践和框架文档' },
 
   { name: AGENT.COHERENCE_REVIEWER, domain: 'document', alwaysOn: true, description: '审查文档的内部一致性' },
@@ -48,6 +47,53 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
       [{ field: 'hasNewAbstraction', operator: 'truthy' }],
     ],
     description: '对抗式构造故障场景（代码域）/ 对文档做对抗式压力测试（文档域）',
+  },
+  {
+    name: AGENT.AGENT_NATIVE_REVIEWER,
+    domain: 'code',
+    alwaysOn: false,
+    conditionGroups: [
+      [{ field: 'hasCli', operator: 'truthy' }],
+      [{ field: 'hasUi', operator: 'truthy' }],
+      [{ field: 'hasTooling', operator: 'truthy' }],
+      [{ field: 'hasAgentConfig', operator: 'truthy' }],
+    ],
+    description: '审查代理、CLI、工具配置或 UI 能力是否让代理具备与用户对等的操作能力',
+  },
+  {
+    name: AGENT.ARCHITECTURE_STRATEGIST,
+    domain: 'both',
+    alwaysOn: false,
+    conditionGroups: [
+      [
+        { field: 'kind', operator: 'eq', value: 'code' },
+        { field: 'hasArchitectureDecision', operator: 'truthy' },
+      ],
+      [
+        { field: 'kind', operator: 'eq', value: 'code' },
+        { field: 'hasNewAbstraction', operator: 'truthy' },
+      ],
+      [
+        { field: 'kind', operator: 'eq', value: 'code' },
+        { field: 'changedLineCountGte50', operator: 'truthy' },
+      ],
+      [
+        { field: 'kind', operator: 'eq', value: 'document' },
+        { field: 'documentType', operator: 'eq', value: 'plan' },
+        { field: 'hasArchitectureDecision', operator: 'truthy' },
+      ],
+    ],
+    description: '从架构视角分析代码变更和计划中的架构决策，检查模式合规性和设计完整性',
+  },
+  {
+    name: AGENT.PATTERN_RECOGNITION_SPECIALIST,
+    domain: 'code',
+    alwaysOn: false,
+    conditionGroups: [
+      [{ field: 'hasNewAbstraction', operator: 'truthy' }],
+      [{ field: 'changedLineCountGte50', operator: 'truthy' }],
+    ],
+    description: '分析代码中的设计模式、反模式、命名规范和重复代码',
   },
   {
     name: AGENT.PERFORMANCE_REVIEWER,
@@ -97,8 +143,9 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
     conditionGroups: [
       [{ field: 'documentType', operator: 'eq', value: 'plan' }],
       [{ field: 'requirementCountGte5', operator: 'truthy' }],
+      [{ field: 'hasProductClaim', operator: 'truthy' }],
     ],
-    description: '以产品视角审查范围对齐和不合理的复杂度',
+    description: '以产品视角审查战略主张、范围对齐和不合理的复杂度',
   },
   {
     name: AGENT.STEP_GRANULARITY_REVIEWER,
@@ -123,12 +170,5 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
     alwaysOn: false,
     conditionGroups: [[{ field: 'documentType', operator: 'eq', value: 'test' }]],
     description: '审查测试用例文档的结构完整性、覆盖完备性、步骤可执行性、结果可验证性和需求对齐程度',
-  },
-  {
-    name: AGENT.ARCHITECTURE_STRATEGIST,
-    domain: 'document',
-    alwaysOn: false,
-    conditionGroups: [[{ field: 'hasArchitectureDecision', operator: 'truthy' }]],
-    description: '从架构视角分析代码变更，检查模式合规性和设计完整性',
   },
 ]

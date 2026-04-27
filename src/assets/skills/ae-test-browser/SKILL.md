@@ -29,6 +29,14 @@ argument-hint: "[URL|路由]"
 
 ## 安装检查
 
+Windows PowerShell:
+
+```powershell
+if (Get-Command agent-browser -ErrorAction SilentlyContinue) { "已安装" } else { "未安装" }
+```
+
+macOS/Linux:
+
 ```bash
 command -v agent-browser >/dev/null 2>&1 && echo "已安装" || echo "未安装"
 ```
@@ -84,12 +92,30 @@ git diff --name-only main...HEAD
 2. **package.json** — 检查 `scripts.dev` 字段，推断端口号
 3. **默认值** — 回退到 `http://localhost:3000`
 
+Windows PowerShell:
+
+```powershell
+$PORT = node -e "const p=require('./package.json'); const s=p.scripts?.dev||''; const m=s.match(/--port[= ]+(\d{4,5})/); m?console.log(m[1]):console.log('')" 2>$null
+if (-not $PORT) { $PORT = "3000" }
+```
+
+macOS/Linux:
+
 ```bash
 PORT=$(node -e "const p=require('./package.json'); const s=p.scripts?.dev||''; const m=s.match(/--port[= ]+(\d{4,5})/); m?console.log(m[1]):console.log('')" 2>/dev/null)
 PORT="${PORT:-3000}"
 ```
 
 ### 6. 验证服务器运行状态
+
+Windows PowerShell:
+
+```powershell
+agent-browser open "http://localhost:$PORT"
+agent-browser snapshot -i
+```
+
+macOS/Linux:
 
 ```bash
 agent-browser open http://localhost:${PORT}
@@ -103,6 +129,15 @@ agent-browser snapshot -i
 对每个受影响路由执行：
 
 **导航并捕获快照：**
+
+Windows PowerShell:
+
+```powershell
+agent-browser open "http://localhost:$PORT/[路由]"
+agent-browser snapshot -i
+```
+
+macOS/Linux:
 
 ```bash
 agent-browser open "http://localhost:${PORT}/[路由]"

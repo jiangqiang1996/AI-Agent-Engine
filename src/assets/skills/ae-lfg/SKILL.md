@@ -46,9 +46,9 @@ disable-model-invocation: true
 
 ### 步骤 3：需求审查
 
-运行 `ae:document-review`
+仅当步骤 2 产出了需求文档时，运行 `ae:review mode:headless domain:document <requirements-doc-path>`。
 
-审查步骤 2 产出的需求文档。
+审查步骤 2 产出的需求文档。如果步骤 2 未产出需求文档且需求已经足够清晰，跳过本步骤并记录原因；不要无路径调用文档域审查。
 
 **门控：** 如果审查报告 P0/P1 发现，确认是否需要修正后再继续。
 
@@ -62,7 +62,7 @@ disable-model-invocation: true
 
 ### 步骤 5：计划审查
 
-运行 `ae:document-review`
+运行 `ae:review mode:headless domain:document <plan-path-from-step-4>`
 
 **门控：** 验证计划审查通过。如果审查未通过，根据发现修正计划后重新审查。
 
@@ -96,7 +96,7 @@ disable-model-invocation: true
 
 ---
 
-标准主链路：`ae:brainstorm` → `ae:document-review` → `ae:plan` / `ae:refactor` → `ae:document-review` → `ae:work` → `ae:review` → 浏览器测试
+标准主链路：`ae:brainstorm` → `ae:review mode:headless domain:document`（有需求文档时）→ `ae:plan` / `ae:refactor` → `ae:review mode:headless domain:document` → `ae:work` → `ae:review` → 浏览器测试
 
 从步骤 2 现在开始。记住：先计划，再工作。永远不要跳过计划。
 

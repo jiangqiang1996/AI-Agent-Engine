@@ -15,9 +15,9 @@
 
 1. （可选）`ae:setup` — 依赖安装
 2. `ae:brainstorm` — 需求探索
-3. `ae:document-review` — 需求审查
+3. `ae:review mode:headless domain:document <requirements-doc-path>` — 需求审查（仅当需求文档存在；无需求文档时跳过，不做无路径文档搜索）
 4. `ae:plan` / `ae:refactor` — 创建计划
-5. `ae:document-review` — 计划审查
+5. `ae:review mode:headless domain:document <plan-path>` — 计划审查
 6. `ae:work` — 执行实现
 7. `ae:review mode:autofix plan:<path>` — 代码审查（含需求验证）
 8. `ae:test-browser` — 浏览器测试（仅当项目有 UI 且 agent-browser 可用时）

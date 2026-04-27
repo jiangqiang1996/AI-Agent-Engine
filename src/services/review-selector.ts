@@ -9,6 +9,8 @@ export interface ReviewSelectionInput {
   hasApi?: boolean
   hasReliability?: boolean
   hasCli?: boolean
+  hasTooling?: boolean
+  hasAgentConfig?: boolean
   hasPrMetadata?: boolean
   hasTypescript?: boolean
   hasMigrations?: boolean
@@ -17,6 +19,7 @@ export interface ReviewSelectionInput {
   hasDatabase?: boolean
   hasScript?: boolean
   hasUi?: boolean
+  hasProductClaim?: boolean
   requirementCount?: number
   hasArchitectureDecision?: boolean
   isHighRiskDomain?: boolean
