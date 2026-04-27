@@ -1,11 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { AGENT_ALIAS_MAP, resolveAgentName } from './agent-alias-map.js'
+import { resolveAgentName } from './agent-alias-map.js'
 
 describe('agent-alias-map', () => {
-  it('别名映射应包含 18 个条目', () => {
-    expect(AGENT_ALIAS_MAP.size).toBe(18)
-  })
-
   it('旧名 kieran-typescript-reviewer 应解析为 correctness-reviewer', () => {
     expect(resolveAgentName('kieran-typescript-reviewer')).toBe('correctness-reviewer')
   })

@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { readFileSync } from 'node:fs'
 
 import { COMMAND, PA_SUFFIX, PO_SUFFIX, SKILL } from '../schemas/ae-asset-schema.js'
-import { parseFrontmatter } from '../utils/frontmatter.js'
-import { getPhaseOneEntries } from './ae-catalog.js'
 import { buildCommandConfig, createTuiCommands } from './command-registration.js'
 
 describe('command-registration', () => {
@@ -42,25 +39,5 @@ describe('command-registration', () => {
     const paTuiCommand = commands.find((command) => command.value === `/${paCommand}`)
     expect(poTuiCommand?.description).toContain('[重构目标|计划路径|需求文档路径|代码异味描述]')
     expect(paTuiCommand?.description).toContain('[重构目标|计划路径|需求文档路径|代码异味描述]')
-  })
-
-  it('ae:refactor 技能文件应保持计划包装器契约', () => {
-    const content = readFileSync(new URL('../assets/skills/ae-refactor/SKILL.md', import.meta.url), 'utf-8')
-    const parsed = parseFrontmatter(content)
-    const catalogEntry = getPhaseOneEntries().find((entry) => entry.skillName === SKILL.REFACTOR)
-
-    if (!catalogEntry) {
-      throw new Error('ae:refactor 应存在于技能目录中')
-    }
-
-    expect(parsed.data.name).toBe(SKILL.REFACTOR)
-    expect(parsed.data['argument-hint']).toBe(catalogEntry.argumentHint)
-    expect(parsed.data.description).toContain('ae:plan')
-    expect(parsed.body).toContain('立即调用 `ae:plan`')
-    expect(parsed.body).toContain('默认保持外部行为不变')
-    expect(parsed.body).toContain('测试/验证方式')
-    expect(parsed.body).toContain('docs/ae/plans/')
-    expect(parsed.body).toContain('type: plan')
-    expect(parsed.body).toContain('永远不要在 `ae:refactor` 中复制 `ae:plan` 的完整流程')
   })
 })

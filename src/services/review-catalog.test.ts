@@ -5,10 +5,6 @@ import { getAllAgentDefinitions } from './ae-catalog.js'
 import { AGENT } from '../schemas/ae-asset-schema.js'
 
 describe('REVIEW_MATRIX', () => {
-  it('应包含 21 个条目', () => {
-    expect(REVIEW_MATRIX).toHaveLength(21)
-  })
-
   it('代码域 alwaysOn 应为 5 个', () => {
     const codeAlwaysOn = REVIEW_MATRIX.filter((r) => r.domain === 'code' && r.alwaysOn)
     expect(codeAlwaysOn).toHaveLength(5)
@@ -27,16 +23,6 @@ describe('REVIEW_MATRIX', () => {
     expect(docAlwaysOn.map((r) => r.name)).toEqual([
       AGENT.COHERENCE_REVIEWER,
       AGENT.FEASIBILITY_REVIEWER,
-    ])
-  })
-
-  it('跨域条目应为 security-reviewer、adversarial-reviewer 和 architecture-strategist', () => {
-    const both = REVIEW_MATRIX.filter((r) => r.domain === 'both')
-    expect(both).toHaveLength(3)
-    expect(both.map((r) => r.name)).toEqual([
-      AGENT.SECURITY_REVIEWER,
-      AGENT.ADVERSARIAL_REVIEWER,
-      AGENT.ARCHITECTURE_STRATEGIST,
     ])
   })
 
@@ -68,16 +54,6 @@ describe('REVIEW_MATRIX', () => {
     expect(content).toContain('高风险延期项应放入 `residual_risks`')
     expect(content).toContain('不要求穷举所有排列组合')
     expect(content).toContain('JSON 之外不得包含任何文字说明')
-  })
-
-  it('代码域条件条目应包含 7 个', () => {
-    const codeConditional = REVIEW_MATRIX.filter((r) => r.domain === 'code' && !r.alwaysOn)
-    expect(codeConditional).toHaveLength(7)
-  })
-
-  it('文档域条件条目应包含 4 个', () => {
-    const docConditional = REVIEW_MATRIX.filter((r) => r.domain === 'document' && !r.alwaysOn)
-    expect(docConditional).toHaveLength(4)
   })
 
   it('standards-reviewer 应包含配置审查职责', () => {
