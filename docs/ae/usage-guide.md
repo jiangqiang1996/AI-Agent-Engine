@@ -1,6 +1,20 @@
 # AE 用户指导手册
 
-本手册根据 `/ae-help` 的权威输出整理，覆盖 AI Agent Engine 的技能、命令、代理和常见使用方式。
+本手册说明 AI Agent Engine（AE）安装后的使用方式，包括场景流程、命令变体、代理选择、参数和产物路径。安装、更新、卸载和开发信息只放在 [README.md](../../README.md) 中，本文不重复维护。
+
+命令、参数、技能和代理的最新权威清单始终以 `/ae-help` 输出为准。
+
+## 目录
+
+- [推荐入口](#推荐入口)
+- [主流程](#主流程)
+- [常见场景](#常见场景)
+- [前端设计与验证](#前端设计与验证)
+- [命令与变体](#命令与变体)
+- [代理使用](#代理使用)
+- [参数速查](#参数速查)
+- [产物路径](#产物路径)
+- [获取最新帮助](#获取最新帮助)
 
 ## 推荐入口
 
@@ -9,120 +23,17 @@
 | 查看全部能力 | `/ae-help` | 输出技能、命令和代理清单 |
 | 从需求到交付 | `/ae-lfg` | 默认入口，自动驱动主流程 |
 | 需求不清楚 | `/ae-brainstorm` | 通过对话澄清需求并生成文档 |
-| 已有需求需要计划 | `/ae-plan` | 生成结构化计划 |
-| 已有计划需要实现 | `/ae-work` | 按计划执行工作 |
+| 生成计划 | `/ae-plan` | 基于需求或输入生成结构化计划 |
+| 执行计划 | `/ae-work` | 按计划执行工作 |
 | 纯重构或技术债治理 | `/ae-refactor` | 补充行为保持和测试护栏约束后进入计划 |
 | 审查代码或文档 | `/ae-review` | 统一审查入口 |
 | 构建前端界面 | `/ae-frontend-design` | 构建设计质量更高的 Web 界面 |
-| 目标明确但路径不确定 | `/ae-task-loop` | 循环执行、验证并收敛 |
+| 浏览器测试 | `/ae-test-browser` | 使用 agent-browser 验证页面渲染和交互 |
+| 数据库操作 | `/ae-sql` | 通过 JDBC 连接数据库并执行 SQL |
 
-## 技能清单
+## 主流程
 
-AE 提供 18 个技能。技能以 `ae:<name>` 命名，通常对应一个 `/ae-<name>` 命令。
-
-| 技能 | 命令 | 参数 | 说明 |
-| --- | --- | --- | --- |
-| `ae:ideate` | `/ae-ideate` | `[功能、关注领域或约束]` | 生成并批判性评估关于某个主题的落地想法 |
-| `ae:brainstorm` | `/ae-brainstorm` | `[需求描述\|需求文档路径]` | 围绕需求进行头脑风暴并产出需求文档 |
-| `ae:document-review` | `/ae-document-review` | `[mode:*] [文档路径]` | 面向文档的专项审查，通过 `ae:review` 统一技能执行 |
-| `ae:plan` | `/ae-plan` | `[计划路径\|需求文档路径\|需求描述]` | 基于需求或输入生成 AE 技术计划 |
-| `ae:refactor` | `/ae-refactor` | `[重构目标\|计划路径\|需求文档路径\|代码异味描述]` | 重构专项计划入口 |
-| `ae:work` | `/ae-work` | `[计划路径\|工作描述]` | 按演进式计划执行工作并尽量委派给子代理 |
-| `ae:review` | `/ae-review` | `[mode:*] [domain:code\|domain:document] [from:<ref>] [full] [full:<path>] [session] [plan:<path>] [文档路径]` | 统一审查代码域和文档域 |
-| `ae:lfg` | `/ae-lfg` | `[需求描述\|已有产物路径]` | 默认入口，从需求到执行驱动 AE 主流程 |
-| `ae:setup` | `/ae-setup` | `—` | 诊断并安装 AE 前端设计所需的外部依赖 |
-| `ae:test-browser` | `/ae-test-browser` | `[URL\|路由]` | 使用 agent-browser 执行端到端浏览器测试 |
-| `ae:frontend-design` | `/ae-frontend-design` | `[描述\|路径]` | 构建具有设计品质的前端界面 |
-| `ae:handoff` | `/ae-handoff` | `—` | 提取当前会话核心结论，创建独立新会话并注入上下文 |
-| `ae:prompt-optimize` | `/ae-prompt-optimize` | `[auto] [提示词内容]` | 将随意输入优化为结构化 AI 对话提示词 |
-| `ae:task-loop` | `/ae-task-loop` | `[一句话目标描述]` | 循环执行任务并自动验证，直到达成目标后退出 |
-| `ae:sql` | `/ae-sql` | `[SQL 语句]` | 通过 JDBC 连接任意数据库并执行 SQL |
-| `ae:save-rules` | `/ae-save-rules` | `[规范类型]` | 总结当前会话中有价值的项目规范并保存 |
-| `ae:help` | `/ae-help` | `[技能名或关键词]` | 列出技能、命令和代理帮助信息 |
-| `ae:update` | `/ae-update` | `[project]` | 拉取 AE 插件最新代码并重新构建 |
-
-## 命令清单
-
-AE 当前提供 54 个命令：20 个基础命令、17 个 `-po` 提示词优化变体、17 个 `-pa` 自动提示词优化变体。
-
-### 基础命令
-
-| 命令 | 说明 |
-| --- | --- |
-| `/ae-ideate` | 生成并批判性评估关于某个主题的落地想法 |
-| `/ae-brainstorm` | 围绕需求进行头脑风暴并产出需求文档 |
-| `/ae-document-review` | 面向文档的专项审查，通过 `ae:review` 统一技能执行 |
-| `/ae-plan` | 基于需求或输入生成 AE 技术计划 |
-| `/ae-refactor` | 重构专项计划入口 |
-| `/ae-work` | 按演进式计划执行工作并尽量委派给子代理 |
-| `/ae-review` | 统一审查代码域和文档域 |
-| `/ae-lfg` | 默认入口，从需求到执行驱动 AE 主流程 |
-| `/ae-setup` | 诊断并安装 AE 前端设计所需的外部依赖 |
-| `/ae-test-browser` | 使用 agent-browser 执行端到端浏览器测试 |
-| `/ae-frontend-design` | 构建具有设计品质的前端界面 |
-| `/ae-handoff` | 会话交接，创建独立新会话并注入上下文 |
-| `/ae-prompt-optimize` | 提示词优化，确认后在新会话中执行 |
-| `/ae-prompt-optimize-auto` | 提示词优化 auto 模式，跳过确认直接执行 |
-| `/ae-task-loop` | 循环执行任务并自动验证，直到达成目标后退出 |
-| `/ae-sql` | 通过 JDBC 连接任意数据库并执行 SQL |
-| `/ae-save-rules` | 总结当前会话中有价值的项目规范并保存 |
-| `/ae-help` | 列出技能、命令和代理帮助信息 |
-| `/ae-update` | 拉取 AE 插件最新代码并重新构建 |
-| `/ae-commit` | 智能提交变更，遵循项目 Git 提交规范 |
-
-### 提示词优化命令
-
-`-po` 命令会先优化提示词，再调用目标技能。适合需求描述不够清晰但希望先确认优化结果的场景。
-
-| 命令 | 说明 |
-| --- | --- |
-| `/ae-ideate-po` | 先优化提示词，再用 `/ae-ideate` |
-| `/ae-brainstorm-po` | 先优化提示词，再用 `/ae-brainstorm` |
-| `/ae-document-review-po` | 先优化提示词，再用 `/ae-document-review` |
-| `/ae-plan-po` | 先优化提示词，再用 `/ae-plan` |
-| `/ae-refactor-po` | 先优化提示词，再用 `/ae-refactor` |
-| `/ae-work-po` | 先优化提示词，再用 `/ae-work` |
-| `/ae-review-po` | 先优化提示词，再用 `/ae-review` |
-| `/ae-lfg-po` | 先优化提示词，再用 `/ae-lfg` |
-| `/ae-setup-po` | 先优化提示词，再用 `/ae-setup` |
-| `/ae-test-browser-po` | 先优化提示词，再用 `/ae-test-browser` |
-| `/ae-frontend-design-po` | 先优化提示词，再用 `/ae-frontend-design` |
-| `/ae-handoff-po` | 先优化提示词，再用 `/ae-handoff` |
-| `/ae-task-loop-po` | 先优化提示词，再用 `/ae-task-loop` |
-| `/ae-sql-po` | 先优化提示词，再用 `/ae-sql` |
-| `/ae-save-rules-po` | 先优化提示词，再用 `/ae-save-rules` |
-| `/ae-help-po` | 先优化提示词，再用 `/ae-help` |
-| `/ae-update-po` | 先优化提示词，再用 `/ae-update` |
-
-### 自动提示词优化命令
-
-`-pa` 命令使用 auto 模式优化提示词，并跳过确认直接执行目标技能。
-
-| 命令 | 说明 |
-| --- | --- |
-| `/ae-ideate-pa` | 先优化提示词，再自动执行 `/ae-ideate` |
-| `/ae-brainstorm-pa` | 先优化提示词，再自动执行 `/ae-brainstorm` |
-| `/ae-document-review-pa` | 先优化提示词，再自动执行 `/ae-document-review` |
-| `/ae-plan-pa` | 先优化提示词，再自动执行 `/ae-plan` |
-| `/ae-refactor-pa` | 先优化提示词，再自动执行 `/ae-refactor` |
-| `/ae-work-pa` | 先优化提示词，再自动执行 `/ae-work` |
-| `/ae-review-pa` | 先优化提示词，再自动执行 `/ae-review` |
-| `/ae-lfg-pa` | 先优化提示词，再自动执行 `/ae-lfg` |
-| `/ae-setup-pa` | 先优化提示词，再自动执行 `/ae-setup` |
-| `/ae-test-browser-pa` | 先优化提示词，再自动执行 `/ae-test-browser` |
-| `/ae-frontend-design-pa` | 先优化提示词，再自动执行 `/ae-frontend-design` |
-| `/ae-handoff-pa` | 先优化提示词，再自动执行 `/ae-handoff` |
-| `/ae-task-loop-pa` | 先优化提示词，再自动执行 `/ae-task-loop` |
-| `/ae-sql-pa` | 先优化提示词，再自动执行 `/ae-sql` |
-| `/ae-save-rules-pa` | 先优化提示词，再自动执行 `/ae-save-rules` |
-| `/ae-help-pa` | 先优化提示词，再自动执行 `/ae-help` |
-| `/ae-update-pa` | 先优化提示词，再自动执行 `/ae-update` |
-
-`/ae-prompt-optimize` 本身没有 `-po` 或 `-pa` 变体，避免循环优化。
-
-## 常见场景
-
-### 从需求到交付
+推荐直接使用 `/ae-lfg` 启动完整流程：
 
 ```text
 /ae-lfg 实现用户权限管理模块，支持 RBAC 模型
@@ -139,6 +50,36 @@ AE 当前提供 54 个命令：20 个基础命令、17 个 `-po` 提示词优化
 /ae-review
 ```
 
+主流程关系：
+
+```text
+ae:lfg
+  → ae:brainstorm
+  → ae:review domain:document
+  → ae:plan 或 ae:refactor
+  → ae:review domain:document
+  → ae:work
+  → ae:review
+```
+
+## 常见场景
+
+### 需求探索
+
+```text
+/ae-brainstorm 为管理后台添加审计日志
+```
+
+适合需求还不够清楚、需要先讨论目标、范围、约束和成功标准的场景。
+
+### 计划制定
+
+```text
+/ae-plan docs/ae/brainstorms/xxx-requirements.md
+```
+
+适合已有需求文档或较明确的任务描述，需要拆解实现单元、风险和验证方式的场景。
+
 ### 重构与技术债治理
 
 ```text
@@ -147,6 +88,19 @@ AE 当前提供 54 个命令：20 个基础命令、17 个 `-po` 提示词优化
 /ae-work docs/ae/plans/xxx-plan.md
 /ae-review plan:docs/ae/plans/xxx-plan.md
 ```
+
+`/ae-refactor` 不直接改代码，它先把目标转换为“保持外部行为、分阶段迁移、带测试护栏”的计划约束。
+
+### 代码或文档审查
+
+```text
+/ae-review
+/ae-review mode:report-only
+/ae-review domain:document docs/ae/plans/xxx-plan.md
+/ae-review plan:docs/ae/plans/xxx-plan.md
+```
+
+`/ae-document-review` 是兼容入口，面向文档审查时优先理解为 `/ae-review domain:document`。
 
 ### 跨会话恢复
 
@@ -165,73 +119,23 @@ AE 当前提供 54 个命令：20 个基础命令、17 个 `-po` 提示词优化
 | 多个候选 | 要求显式选择 |
 | 审查失败 | 停留在当前阶段，先修复再继续 |
 
-### 前端设计与验证
-
-```text
-/ae-setup
-/ae-frontend-design 为 SaaS 产品构建着陆页
-@design-iterator 对英雄区进行 10 轮迭代优化，参考 Stripe 的设计风格
-@figma-design-sync 对比 Figma 设计稿与 http://localhost:3000 的差异
-/ae-test-browser http://localhost:3000
-```
-
-### 代码审查
-
-```text
-/ae-review
-/ae-review mode:report-only
-/ae-review mode:autofix
-/ae-review from:main
-/ae-review plan:docs/ae/plans/xxx-plan.md
-```
-
-审查模式：
-
-| 模式 | 行为 |
-| --- | --- |
-| `interactive` | 标准交互式审查，默认模式 |
-| `headless` | 程序化静默模式 |
-| `report-only` | 只输出报告，不修改文件 |
-| `autofix` | 自动修复安全可修复的问题 |
-
-### 文档审查
-
-```text
-/ae-review domain:document
-/ae-document-review
-/ae-review domain:document mode:report-only docs/ae/plans/xxx-plan.md
-```
-
-`/ae-document-review` 是兼容命令，面向文档审查时优先理解为 `/ae-review domain:document`。
-
 ### 探索性调试与修复
 
 ```text
 /ae-task-loop 修复所有 TypeScript 编译错误
 /ae-task-loop 让测试套件全部通过
-/ae-task-loop 将项目从 Webpack 迁移到 Vite
 ```
 
-`ae:work` 适合已有计划的执行，`ae:task-loop` 适合目标明确但路径不确定的任务。
+`ae:work` 适合已有计划的执行，`ae:task-loop` 适合目标明确但路径不确定、需要循环尝试和验证的任务。
 
 ### 数据库操作
 
 ```text
 /ae-sql SELECT * FROM users WHERE status = 'active' LIMIT 10
 /ae-sql DESCRIBE orders
-/ae-sql ALTER TABLE users ADD COLUMN last_login_at TIMESTAMP
 ```
 
 `ae:sql` 支持 MySQL、PostgreSQL、Oracle、SQL Server、SQLite、达梦、人大金仓、openGauss 等提供 JDBC 驱动的数据库，并可自动检测 Spring Boot 数据库配置。
-
-### 提示词优化
-
-```text
-/ae-prompt-optimize 帮我搞一下那个用户登录的东西
-/ae-prompt-optimize-auto 优化一下性能
-/ae-plan-po 搞个权限系统
-/ae-lfg-pa 加个文件上传功能
-```
 
 ### 会话交接与规范沉淀
 
@@ -242,52 +146,87 @@ AE 当前提供 54 个命令：20 个基础命令、17 个 `-po` 提示词优化
 
 `/ae-handoff` 用于创建独立新会话并注入当前上下文。`/ae-save-rules` 用于把会话中沉淀出的长期项目规范保存到 `.opencode/rules/`。
 
-## 代理清单
+## 前端设计与验证
 
-所有代理通过 `@<代理名>` 在会话中主动调用。
+前端相关能力按目标选择入口：
 
-### 审查代理
+| 场景 | 推荐入口 | 使用时机 | 不负责 |
+| --- | --- | --- | --- |
+| 从需求构建或改造 Web 界面 | `/ae-frontend-design` | 需要设计方向、前端实现和一轮视觉验证时 | 完整 E2E 测试、多轮视觉打磨、Figma 像素级还原 |
+| 验证页面渲染和交互是否正常 | `/ae-test-browser` | 页面已可访问，需要检查路由、关键元素、表单、点击、错误状态时 | 定义视觉风格、审美打磨、Figma 对齐 |
+| 对已有 UI 做多轮视觉打磨 | `@design-iterator` | 没有 Figma 约束，但希望基于截图逐轮优化视觉层级、间距、排版和质感时 | 从零设计完整页面、完整浏览器测试、业务逻辑修复 |
+| 对齐 Figma 设计稿 | `@figma-design-sync` | 已有 Figma URL 和 Web URL，需要对比设计稿与实现差异并修复时 | 自由发挥设计方向、无 Figma 依据的审美迭代、完整 E2E 测试 |
 
-| 代理 | 说明 |
+推荐组合顺序：
+
+1. 从需求做界面：先用 `/ae-frontend-design` 完成设计实现和一轮视觉验证。
+2. 从 Figma 落地界面：已有 Web 实现后，用 `@figma-design-sync` 对齐 Figma；如果还没有实现，先用 `/ae-frontend-design` 建立页面骨架。
+3. 验证功能可用性：界面实现或 Figma 对齐后，用 `/ae-test-browser` 验证页面渲染、路由和关键交互。
+4. 继续提升视觉质量：没有 Figma 约束、且用户希望继续打磨时，用 `@design-iterator` 做多轮小步视觉优化。
+5. 迭代后回归验证：`@design-iterator` 或 `@figma-design-sync` 修改了布局或交互后，再按需运行 `/ae-test-browser`。
+
+无 Figma，从需求设计并打磨界面：
+
+```text
+/ae-setup
+/ae-frontend-design 为 SaaS 产品构建着陆页
+@design-iterator 对英雄区进行 10 轮迭代优化，参考 Stripe 的设计风格
+/ae-test-browser http://localhost:3000
+```
+
+有 Figma，按设计稿还原并验证：
+
+```text
+/ae-setup
+/ae-frontend-design 根据 Figma 设计稿建立页面实现骨架
+@figma-design-sync 对比 Figma 设计稿与 http://localhost:3000 的差异
+/ae-test-browser http://localhost:3000
+```
+
+如果已有明确 Figma 设计稿，优先使用 `@figma-design-sync` 做约束式对齐；如果没有 Figma 约束但想继续提升视觉表现，使用 `@design-iterator` 做开放式优化。`/ae-test-browser` 的截图用于测试证据和失败定位，不替代视觉设计判断。
+
+## 命令与变体
+
+AE 的公开技能以 `ae:<name>` 命名，通常对应 `/ae-<name>` 命令。完整清单运行 `/ae-help` 获取。
+
+核心命令分组：
+
+| 分组 | 命令 |
 | --- | --- |
-| `@coherence-reviewer` | 审查文档内部一致性、术语漂移和结构性问题 |
-| `@feasibility-reviewer` | 评估技术方法的可实现性、架构冲突和迁移风险 |
-| `@product-lens-reviewer` | 从产品视角审查前提、战略后果、范围对齐和复杂度 |
-| `@adversarial-reviewer` | 跨域对抗式审查，构造故障场景或质疑前提假设 |
-| `@design-lens-reviewer` | 审查信息架构、交互状态、用户流程和 AI 模板化风险 |
-| `@security-reviewer` | 审查代码漏洞或文档安全缺口 |
-| `@step-granularity-reviewer` | 审查计划步骤粒度和多文件操作方式 |
-| `@test-case-reviewer` | 审查测试用例文档的结构、覆盖、执行和验证质量 |
-| `@research-reviewer` | 搜索历史方案、外部最佳实践和框架文档 |
-| `@correctness-reviewer` | 审查逻辑错误、边界情况、状态管理 bug 和实现意图偏差 |
-| `@testing-reviewer` | 审查测试覆盖缺口、弱断言、脆弱测试和边界覆盖 |
-| `@standards-reviewer` | 根据项目标准审计变更 |
-| `@agent-native-reviewer` | 审查 opencode 代理操作能力对等性和 CLI 代理就绪度 |
-| `@api-contract-reviewer` | 审查 API 路由、请求响应类型、序列化和导出类型签名的契约变更 |
-| `@reliability-reviewer` | 审查错误处理、重试、超时、后台任务和异步处理器可靠性 |
-| `@maintainability-reviewer` | 审查过早抽象、不必要间接层、死代码、耦合和重复 |
-| `@performance-reviewer` | 审查数据库查询、循环密集转换、缓存和 I/O 密集路径性能 |
-| `@architecture-strategist` | 从架构视角检查模式合规性和设计完整性 |
-| `@pattern-recognition-specialist` | 分析设计模式、反模式、命名规范和重复代码 |
-| `@data-migrations-reviewer` | 审查迁移文件、schema 变更、数据转换和回填脚本 |
-| `@previous-comments-reviewer` | 检查已有审查评论是否在当前 diff 中得到处理 |
+| 主流程 | `/ae-ideate`、`/ae-brainstorm`、`/ae-plan`、`/ae-refactor`、`/ae-work`、`/ae-review`、`/ae-lfg` |
+| 前端与浏览器 | `/ae-setup`、`/ae-frontend-design`、`/ae-test-browser` |
+| 辅助工具 | `/ae-task-loop`、`/ae-sql`、`/ae-handoff`、`/ae-save-rules`、`/ae-help`、`/ae-update` |
+| 提示词优化 | `/ae-prompt-optimize`、`/ae-prompt-optimize-auto` |
+| Git 辅助 | `/ae-commit` |
 
-### 研究代理
+多数技能命令支持提示词优化变体：
 
-| 代理 | 说明 |
-| --- | --- |
-| `@repo-research-analyst` | 对仓库结构、文档、约定和实现模式进行全面研究 |
-| `@web-researcher` | 执行迭代式网络研究，返回结构化外部参考信息 |
+| 变体 | 作用 | 示例 |
+| --- | --- | --- |
+| `-po` | 先优化提示词，再确认执行 | `/ae-plan-po 搞个权限系统` |
+| `-pa` | auto 模式优化提示词并直接执行 | `/ae-lfg-pa 加个文件上传功能` |
 
-### 工作流代理
+示例：`/ae-plan-po` 表示先优化提示词，再调用 `/ae-plan`；`/ae-work-pa` 表示优化后自动调用 `/ae-work`。`/ae-prompt-optimize` 本身没有 `-po` 或 `-pa` 变体，避免循环优化。
 
-| 代理 | 说明 |
-| --- | --- |
-| `@spec-flow-analyzer` | 分析规格说明和功能描述的用户流程完整性与缺口 |
-| `@design-iterator` | 通过多轮截图、分析、改进循环优化 UI 设计 |
-| `@figma-design-sync` | 检测并修复 Web 实现与 Figma 设计之间的视觉差异 |
+## 代理使用
 
-## 参数参考
+所有代理通过 `@<代理名>` 在会话中主动调用。完整清单运行 `/ae-help` 获取。
+
+常用代理：
+
+| 类别 | 代理 | 说明 |
+| --- | --- | --- |
+| 审查 | `@correctness-reviewer` | 审查逻辑错误、边界情况和实现意图偏差 |
+| 审查 | `@testing-reviewer` | 审查测试覆盖缺口和弱断言 |
+| 审查 | `@standards-reviewer` | 根据项目标准审计变更 |
+| 审查 | `@security-reviewer` | 审查安全漏洞或文档安全缺口 |
+| 研究 | `@repo-research-analyst` | 研究仓库结构、文档、约定和实现模式 |
+| 研究 | `@web-researcher` | 执行外部网络研究 |
+| 工作流 | `@spec-flow-analyzer` | 分析规格说明和功能描述的用户流程完整性 |
+| 工作流 | `@design-iterator` | 通过多轮截图、分析、改进循环优化 UI 设计 |
+| 工作流 | `@figma-design-sync` | 检测并修复 Web 实现与 Figma 设计之间的视觉差异 |
+
+## 参数速查
 
 | 入口 | 常用参数 | 说明 |
 | --- | --- | --- |
@@ -317,25 +256,7 @@ AE 当前提供 54 个命令：20 个基础命令、17 个 `-po` 提示词优化
 | `.opencode/agents/ae/` | Agent 同步产物 |
 | `.opencode/commands/` | Command 同步产物 |
 
-## 技能关系
-
-```text
-ae:lfg
-  → ae:brainstorm
-  → ae:review domain:document
-  → ae:plan 或 ae:refactor
-  → ae:review domain:document
-  → ae:work
-  → ae:review
-
-ae:ideate → ae:brainstorm
-ae:frontend-design → @design-iterator → /ae-test-browser
-ae:task-loop → 按目标在 work、brainstorm、review 等能力之间路由
-```
-
 ## 获取最新帮助
-
-本文档用于长期阅读和场景化指导。命令、参数和代理的最新权威清单始终以 `/ae-help` 输出为准。
 
 ```text
 /ae-help
