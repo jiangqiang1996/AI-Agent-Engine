@@ -18,6 +18,7 @@ export const RecoveryResultSchema = z.object({
   fallbackSkill: z.string().optional().describe('建议回退技能'),
   reason: z.string().describe('恢复说明'),
   candidates: z.array(z.string()).default([]).describe('候选产物列表'),
+  warnings: z.array(z.string()).optional().describe('恢复警告（不阻断）'),
 })
 
 export type RecoveryResult = z.infer<typeof RecoveryResultSchema>

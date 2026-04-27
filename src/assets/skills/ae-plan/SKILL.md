@@ -45,9 +45,7 @@ argument-hint: "[计划路径|需求文档路径|需求描述]"
 - 读取它
 - 确认是就地更新还是创建新计划
 
-**深化意图：** "深化"一词是深化的触发器。一旦计划被识别且看起来完整（所有主要章节存在、实现单元已定义、`status: active`）：
-- 如果计划缺少 YAML frontmatter，路由到 `references/universal-planning.md`
-- 否则短路到 Phase 5.3（信心检查）的交互模式
+**深化意图：** "深化"一词是深化的触发器。一旦计划被识别且看起来完整（所有主要章节存在、实现单元已定义、`status: active`），短路到 Phase 5.3（信心检查）的交互模式。
 
 #### 0.1b 分类任务领域
 
@@ -119,6 +117,21 @@ argument-hint: "[计划路径|需求文档路径|需求描述]"
 #### 3.1 标题和文件命名
 
 文件名：`docs/ae/plans/YYYY-MM-DD-NNN-<type>-<descriptive-name>-plan.md`
+
+**Frontmatter 字段填写规则：** 计划文档的 frontmatter 必须包含 `type: plan`、`status: drafted`、`date` 和 `title`。`origin` 和 `originFingerprint` 仅在有上游产物时成对填写。`origin` 必须使用仓库相对路径。`originFingerprint` 的值为上游产物 frontmatter 中 `date` + `-` + `topic` 的 kebab-case 拼接；若上游没有 `topic`，则使用 `date` + `-` + `title`（如 `2026-04-27-artifact-template-restructure`）。`supersededBy` 不由计划技能填写，由后续技能在替代旧文档时写入。`depth` 仅对标准和深度计划填写。
+
+Frontmatter 模板：
+```yaml
+---
+type: plan
+status: drafted
+date: YYYY-MM-DD
+title: <kebab-case-title>
+origin: <上游产物路径，若无则删除此行>
+originFingerprint: <上游指纹，若无则删除此行>
+depth: <standard|deep>  # 轻量计划删除此行
+---
+```
 
 #### 3.2 利益相关者和影响意识
 

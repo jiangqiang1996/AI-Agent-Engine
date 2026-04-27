@@ -135,6 +135,8 @@ argument-hint: "[需求描述|需求文档路径]"
 
 仅当对话产生了值得保留的持久决策时，才编写或更新需求数据文档。阅读 `references/requirements-capture.md` 获取文档模板、格式规则和完整性检查。
 
+**Frontmatter 字段填写规则：** 需求数据文档的 frontmatter 必须包含 `type: brainstorm`、`status: drafted`、`date` 和 `topic`。`origin` 和 `originFingerprint` 仅在有上游产物时成对填写。`origin` 必须使用仓库相对路径。`originFingerprint` 的值为上游产物 frontmatter 中 `date` + `-` + `topic` 的 kebab-case 拼接；若上游没有 `topic`，则使用 `date` + `-` + `title`（如 `2026-04-27-artifact-template-restructure`）。`supersededBy` 不由头脑风暴技能填写。
+
 对于**轻量**头脑风暴，保持文档紧凑。当用户只需要简短对齐且不需要保留持久决策时，跳过文档创建。
 
 ### 阶段 3.5：文档审查

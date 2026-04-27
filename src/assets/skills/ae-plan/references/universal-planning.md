@@ -43,7 +43,7 @@
 
 **问题：** "计划已就绪。你希望如何接收？"
 
-1. **保存到磁盘** — 写为 Markdown 文件（`docs/ae/plans/` 或自定义位置）。以 `# 标题` 开始，无 YAML frontmatter。
+1. **保存到磁盘** — 写为 Markdown 文件（`docs/ae/plans/` 或自定义位置）。以 YAML frontmatter 开始（`type: plan`、`status: drafted`、`date`、`title`），后跟 `# 标题`。
 2. **暂时完成** — 计划在聊天中呈现，不保存。
 
 不要提供 `/ae-work` 或 Issue 创建。
