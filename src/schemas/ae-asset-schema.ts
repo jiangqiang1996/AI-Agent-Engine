@@ -70,6 +70,7 @@ export const TOOL = {
   AE_HANDOFF: 'ae-handoff',
   AE_PROMPT_OPTIMIZE: 'ae-prompt-optimize',
   AE_HELP: 'ae-help',
+  AE_GATE: 'ae-gate',
 } as const
 
 export const AeModeSchema = z

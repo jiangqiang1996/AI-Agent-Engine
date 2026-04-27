@@ -32,6 +32,16 @@ disable-model-invocation: true
 - 若存在多个候选，要求显式选择
 - 若没有产物，从步骤 2 开始
 
+## 门禁证明
+
+在关键阶段调用 `ae-gate` 工具，不能只用文字承诺替代门禁结果：
+
+- 进入实现前：`ae-gate workflow:lfg checkpoint:before_work plan_path:<plan-path>` 必须通过
+- 进入代码审查前：`ae-gate workflow:lfg checkpoint:before_review plan_path:<plan-path> validation_commands:[...]` 必须通过
+- 最终交付前：`ae-gate workflow:lfg checkpoint:final plan_path:<plan-path> validation_commands:[...] review_status:passed git_operations:[...]` 必须通过并写入证明
+
+如果门禁返回 `status: block`，必须先补齐阻断项再继续，不得输出 `<promise>DONE</promise>`。
+
 ## 管道步骤
 
 ### 步骤 1（可选）：依赖安装
@@ -68,11 +78,15 @@ disable-model-invocation: true
 
 ### 步骤 6：执行实现
 
+先运行 `ae-gate workflow:lfg checkpoint:before_work plan_path:<plan-path-from-step-4>`。门禁通过后再继续。
+
 运行 `ae:work`
 
 **门控：** 验证实现工作已执行——超出计划范围的文件被创建或修改。**如果没有代码变更，不得继续步骤 7。**
 
 ### 步骤 7：代码审查
+
+先运行 `ae-gate workflow:lfg checkpoint:before_review plan_path:<plan-path-from-step-4>`，并传入已实际运行的 `validation_commands`。如果尚未运行验证，先运行验证再审查。
 
 运行 `ae:review mode:autofix plan:<plan-path-from-step-4>`
 
@@ -91,6 +105,8 @@ disable-model-invocation: true
 **门控：** 如果浏览器测试全部失败，输出警告但允许继续。
 
 ### 步骤 9：完成
+
+运行 `ae-gate workflow:lfg checkpoint:final plan_path:<plan-path-from-step-4> validation_commands:[...] review_status:passed git_operations:[...]`。如有浏览器测试，传入 `browser_test_status`。门禁通过后，在最终回复中引用 `proofPath`。
 
 输出 `<promise>DONE</promise>`
 

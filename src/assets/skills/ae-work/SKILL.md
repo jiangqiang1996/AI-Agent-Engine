@@ -104,6 +104,14 @@ argument-hint: "[计划路径|工作描述]"
 
 当所有阶段 2 任务完成时，阅读 `references/shipping-workflow.md` 获取完整交付工作流。
 
+在最终交付前必须调用 `ae-gate workflow:work checkpoint:final`，传入：
+- `plan_path`（如果本次从计划文档执行）
+- `validation_commands`（本次实际运行的测试、构建、类型检查、lint 等命令）
+- `review_status`（代码审查状态；未运行时说明原因）
+- `git_operations`（本次会话执行过的 Git 写操作；没有则传空数组）
+
+如果 `ae-gate` 返回 `status: block`，先补齐阻断项，不得宣称交付完成。
+
 ## 核心原则
 
 - **快速启动，快速执行** — 澄清一次，然后执行
@@ -111,3 +119,4 @@ argument-hint: "[计划路径|工作描述]"
 - **持续测试** — 每次变更后测试，非最后
 - **质量内建** — 遵循模式、编写测试、推送前 lint
 - **交付完整功能** — 标记所有任务完成，不留 80% 功能
+- **证据交付** — 最终回复必须引用 `ae-gate` 的门禁结果或证明路径
