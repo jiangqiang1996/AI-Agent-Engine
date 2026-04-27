@@ -47,6 +47,7 @@ export function buildCommandConfig(commandsDir: string): NonNullable<Config['com
 
   for (const entry of phaseOne) {
     const isAutoPo = entry.commandName === promptOptimizeAutoCommand
+    // catalog 是默认命令真源；仅当条目显式提供模板时才覆盖统一的技能调用包装。
     const template = entry.customTemplate
       ?? (isAutoPo
         ? `使用 \`${entry.skillName}\` 技能以 auto 模式处理这次请求（跳过确认直接提交），并沿用参数：\`auto $ARGUMENTS\`。`
@@ -61,6 +62,7 @@ export function buildCommandConfig(commandsDir: string): NonNullable<Config['com
     const baseCommandName = entry.commandName.slice(0, -PO_SUFFIX.length)
     const baseSkillName = commandToSkill.get(baseCommandName as typeof entry.commandName) ?? ''
     const baseEntry = phaseOne.find((e) => e.commandName === baseCommandName)
+    // -po 命令必须先优化用户输入，再把优化后的提示词交回原始命令模板执行。
     const baseTemplate = baseEntry?.customTemplate
       ?? `使用 \`${baseSkillName}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`
     result[entry.commandName] = {
@@ -79,6 +81,7 @@ export function buildCommandConfig(commandsDir: string): NonNullable<Config['com
     const baseCommandName = entry.commandName.slice(0, -PA_SUFFIX.length)
     const baseSkillName = commandToSkill.get(baseCommandName as typeof entry.commandName) ?? ''
     const baseEntry = phaseOne.find((e) => e.commandName === baseCommandName)
+    // -pa 与 -po 使用同一条基础命令链路，只是固定启用 prompt-optimize 的 auto 模式。
     const baseTemplate = baseEntry?.customTemplate
       ?? `使用 \`${baseSkillName}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`
     result[entry.commandName] = {
@@ -95,6 +98,7 @@ export function buildCommandConfig(commandsDir: string): NonNullable<Config['com
 
   const fileCommands = loadCommandFiles(commandsDir)
   for (const [name, cmd] of fileCommands) {
+    // 磁盘命令最后合并，允许运行时命令文件覆盖内置 catalog 以便本地调试和热修正。
     result[name] = cmd
   }
 
@@ -158,6 +162,7 @@ export function createTuiCommands(
   }
 
   for (const [name, cmd] of fileCommands) {
+    // catalog 已生成的命令不重复展示；自定义磁盘命令追加到独立分类。
     if (catalogNames.has(name)) continue
     tuiCommands.push({
       title: name,

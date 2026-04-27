@@ -21,6 +21,7 @@ export function parseFrontmatter<T extends FrontmatterData = FrontmatterData>(co
       .map((raw) => raw.trim())
       .filter(Boolean)
       .map((line) => {
+        // AE 产物只使用一层 key: value 元数据；这里故意不引入完整 YAML 解析，避免扩大运行时依赖和语义范围。
         const colonIdx = line.indexOf(':')
         if (colonIdx === -1) return [line, '']
 

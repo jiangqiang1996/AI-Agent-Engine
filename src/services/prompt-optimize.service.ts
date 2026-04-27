@@ -23,8 +23,7 @@ export interface PromptOptimizeResult {
 }
 
 export function generateSessionTitle(prompt: string): string {
-  const SEMANTIC_CONTENT_PATTERN = /^[\s/@]*(?:[\w:-]+[\s/@]*)+/
-  const match = prompt.match(SEMANTIC_CONTENT_PATTERN)
+  // 标题只剥离命令壳和 auto 触发词，保留用户真正想执行的语义片段。
   const cleaned = prompt
     .replace(/^[/@]\S+\s*/, '')
     .replace(/^(?:auto|自动|mode=auto|无需确认|跳过确认)\s*/i, '')
@@ -63,6 +62,7 @@ export function executePromptSubmit(
           parts: [{ type: 'text', text: optimizedPrompt }],
         },
       })
+      // 新会话已创建且已尝试导航，提交失败时由目标会话自身暴露错误，不阻断工具返回可复制的提示词。
       .catch(() => {})
 
     return {

@@ -31,6 +31,7 @@ function readMarkdownFiles(dir: string): string[] {
     )
   } catch (error) {
     if (error instanceof Error && error.message === 'ENOENT') {
+      // 上游阶段可能尚未产生目录；恢复流程应把它视为无候选，而不是读目录失败。
       return []
     }
     throw error
@@ -75,6 +76,7 @@ export function listArtifacts(
             frontmatter: parsed.data,
           }
         }),
+      // 文件已被枚举后仍可能被用户或其他代理修改/删除，此处保留为真实读取错误交给上层恢复逻辑处理。
       catch: (error) => (error instanceof Error ? error : new Error(String(error))),
     }),
   )

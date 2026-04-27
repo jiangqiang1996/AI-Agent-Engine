@@ -10,6 +10,7 @@ export function resolveRepoRootFromModuleUrl(moduleUrl: string): string {
   let dir = dirname(fileURLToPath(moduleUrl))
 
   while (dir !== dirname(dir)) {
+    // opencode.json 是插件项目的稳定锚点，比依赖当前工作目录更适合构建产物和测试环境。
     if (existsSync(join(dir, 'opencode.json'))) {
       return dir
     }
@@ -21,6 +22,7 @@ export function resolveRepoRootFromModuleUrl(moduleUrl: string): string {
 
 export function isInsideRoot(root: string, filePath: string): boolean {
   const rel = relative(resolve(root), resolve(filePath))
+  // Windows 盘符相对路径会包含冒号，必须和 .. 一起拦截，避免跨盘路径绕过仓库边界。
   return rel === '' || (!rel.startsWith('..') && !rel.includes(':'))
 }
 

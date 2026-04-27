@@ -55,6 +55,7 @@ export function formatSystemPrompt(extractResult: SessionExtractResult): string 
 
 export function formatContextMessage(extractResult: SessionExtractResult): string {
   const sections: string[] = []
+  // 降级注入会作为普通消息出现在会话中，因此需要显式标记来源和不可删除提示。
   sections.push('## 🔍 会话交接上下文（系统消息，请勿删除）')
   sections.push('本会话由原会话交接生成，以下是原会话的核心信息：')
   sections.push('')
@@ -91,6 +92,7 @@ export function createNewSession(
       body: { title: options.title },
     })
     const payload = res as unknown as Record<string, unknown>
+    // SDK 与服务端版本返回形状不完全一致，兼容 data 包裹和直接返回两种结构。
     const session = (payload.data ?? payload) as { id: string; title?: string } | undefined
     if (!session || !session.id) {
       throw new Error(`创建新会话失败: 返回数据为空或缺少 id 字段`)

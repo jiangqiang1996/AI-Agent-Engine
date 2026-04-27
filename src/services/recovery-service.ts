@@ -26,6 +26,7 @@ function fallbackSkillForPhase(phase: RecoveryResult['phase']): string {
     case 'lfg':
       return SKILL.BRAINSTORM
     case 'plan':
+      // plan 依赖需求产物；缺少可恢复计划时必须回到 brainstorm 补齐上游。
       return SKILL.BRAINSTORM
     case 'work':
     case 'review':
@@ -40,6 +41,7 @@ function preferredArtifactTypes(phase: RecoveryResult['phase']): ArtifactKind[] 
     case 'plan':
       return ['brainstorm']
     case 'work':
+      // work 优先恢复未完成的执行上下文，否则退回可执行的计划。
       return ['work', 'plan']
     case 'review':
       return ['review', 'work', 'plan']
@@ -68,8 +70,10 @@ function nextSkillForArtifact(phase: RecoveryResult['phase'], artifactType: Arti
         case 'work':
           return SKILL.WORK
         case 'plan':
+          // /ae-lfg 遇到既有计划时先进入审查，避免跳过交付前的质量门。
           return SKILL.REVIEW
         case 'brainstorm':
+          // 需求文档同样先交给审查入口，由审查流程决定是否需要继续计划或执行。
           return SKILL.REVIEW
       }
   }
@@ -84,6 +88,7 @@ function nextArgumentsForArtifact(
     if (!path) {
       return undefined
     }
+    // 计划/需求产物属于文档审查范围，不能按默认代码审查契约恢复。
     return phase === 'lfg' ? `mode:headless domain:document ${path}` : `domain:document ${path}`
   }
   return undefined
@@ -112,8 +117,10 @@ function resumePhaseForArtifact(
     case 'work':
       return 'work'
     case 'plan':
+      // lfg 是入口阶段而非真实工作阶段；计划恢复后从审查阶段继续。
       return 'review'
     case 'brainstorm':
+      // 需求恢复同样先进入审查阶段，保持与 lfg 的质量门语义一致。
       return 'review'
   }
 }
@@ -156,6 +163,7 @@ function validateOriginFingerprint(
   manifest: RuntimeAssetManifest,
   artifact: { path: string; frontmatter: Record<string, string> },
 ): string | undefined {
+  // originFingerprint 只有在成对出现时才有校验意义；缺任一字段都提示人工介入。
   if (!artifact.frontmatter.origin && !artifact.frontmatter.originFingerprint) {
     return undefined
   }
@@ -184,6 +192,7 @@ function validateOriginFingerprint(
   if (!expected) {
     return `originFingerprint 无法校验：上游产物缺少 date+topic/title ${artifact.frontmatter.origin}`
   }
+  // 指纹由上游产物的稳定元数据派生，用于识别同名或过期产物导致的误恢复。
   if (artifact.frontmatter.originFingerprint !== expected) {
     return `originFingerprint 不匹配：${displayPath(manifest, artifact.path)} 期望 '${expected}'，实际 '${artifact.frontmatter.originFingerprint}'`
   }
@@ -245,6 +254,7 @@ export function resolveRecovery(
 
     let candidateArtifacts = activeArtifacts
     if (options.expectedOriginFingerprint) {
+      // 调用方给出期望上游指纹时优先精确匹配；找不到匹配项仍保留候选并返回警告，避免误判为完全不可恢复。
       const matchingArtifacts = activeArtifacts.filter(
         (artifact) => artifact.frontmatter.originFingerprint === options.expectedOriginFingerprint,
       )

@@ -70,6 +70,7 @@ function createSessionWithFallback(
       Effect.matchEffect({
         onSuccess: () => Effect.succeed(false),
         onFailure: () =>
+          // 部分 opencode 版本不接受 system 字段；降级为 noReply 消息仍能把交接上下文带入新会话。
           injectContextAsMessage(client, session.id, extractResult).pipe(
             Effect.map(() => true),
             Effect.mapError((e) => new ContextInjectError(e.message)),
