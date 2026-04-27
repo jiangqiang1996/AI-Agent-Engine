@@ -27,8 +27,8 @@
 | 执行计划 | `/ae-work` | 按计划执行工作 |
 | 纯重构或技术债治理 | `/ae-refactor` | 补充行为保持和测试护栏约束后进入计划 |
 | 审查代码或文档 | `/ae-review` | 统一审查入口 |
-| 构建前端界面 | `/ae-frontend-design` | 构建设计质量更高的 Web 界面 |
-| 浏览器测试 | `/ae-test-browser` | 使用 agent-browser 验证页面渲染和交互 |
+| 构建前端界面 | `/ae-frontend-design` | 构建前端初版界面并做一轮视觉验证 |
+| 浏览器验收 | `/ae-test-browser` | 使用 agent-browser 验证页面渲染和交互，不负责审美或 Figma 对齐 |
 | 数据库操作 | `/ae-sql` | 通过 JDBC 连接数据库并执行 SQL |
 
 ## 主流程
@@ -157,12 +157,12 @@ ae:lfg
 | 对已有 UI 做多轮视觉打磨 | `@design-iterator` | 没有 Figma 约束，但希望基于截图逐轮优化视觉层级、间距、排版和质感时 | 从零设计完整页面、完整浏览器测试、业务逻辑修复 |
 | 对齐 Figma 设计稿 | `@figma-design-sync` | 已有 Figma URL 和 Web URL，需要对比设计稿与实现差异并修复时 | 自由发挥设计方向、无 Figma 依据的审美迭代、完整 E2E 测试 |
 
-推荐组合顺序：
+推荐组合顺序是条件性建议，不是固定流水线：简单任务完成且无后续风险时可以直接结束。
 
 1. 从需求做界面：先用 `/ae-frontend-design` 完成设计实现和一轮视觉验证。
-2. 从 Figma 落地界面：已有 Web 实现后，用 `@figma-design-sync` 对齐 Figma；如果还没有实现，先用 `/ae-frontend-design` 建立页面骨架。
-3. 验证功能可用性：界面实现或 Figma 对齐后，用 `/ae-test-browser` 验证页面渲染、路由和关键交互。
-4. 继续提升视觉质量：没有 Figma 约束、且用户希望继续打磨时，用 `@design-iterator` 做多轮小步视觉优化。
+2. 从 Figma 落地界面：已有 Figma 标准时，优先用 `@figma-design-sync` 对齐现有 Web 实现；如果还没有实现，先用 `/ae-frontend-design` 建立最小页面实现，再用 `@figma-design-sync` 对齐。
+3. 验证功能可用性：界面实现或 Figma 对齐后，如需要真实交互验收，用 `/ae-test-browser` 验证页面渲染、路由和关键交互。
+4. 继续提升视觉质量：没有 Figma 约束、且用户明确希望继续打磨时，用 `@design-iterator` 做多轮小步视觉优化。
 5. 迭代后回归验证：`@design-iterator` 或 `@figma-design-sync` 修改了布局或交互后，再按需运行 `/ae-test-browser`。
 
 无 Figma，从需求设计并打磨界面：
@@ -178,12 +178,12 @@ ae:lfg
 
 ```text
 /ae-setup
-/ae-frontend-design 根据 Figma 设计稿建立页面实现骨架
+/ae-frontend-design 根据 Figma 设计稿建立可运行的最小页面实现
 @figma-design-sync 对比 Figma 设计稿与 http://localhost:3000 的差异
 /ae-test-browser http://localhost:3000
 ```
 
-如果已有明确 Figma 设计稿，优先使用 `@figma-design-sync` 做约束式对齐；如果没有 Figma 约束但想继续提升视觉表现，使用 `@design-iterator` 做开放式优化。`/ae-test-browser` 的截图用于测试证据和失败定位，不替代视觉设计判断。
+如果已有明确 Figma 设计稿，优先使用 `@figma-design-sync` 做约束式对齐；如果没有可运行 Web 实现，先用 `/ae-frontend-design` 建立最小实现，再回到 `@figma-design-sync`。如果没有 Figma 约束但想继续提升视觉表现，使用 `@design-iterator` 做开放式优化。`/ae-test-browser` 的截图用于测试证据和失败定位，不替代视觉设计判断。
 
 ## 命令与变体
 

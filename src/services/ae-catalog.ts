@@ -87,7 +87,7 @@ const PHASE_ONE_ENTRIES = [
     skillName: SKILL.TEST_BROWSER,
     skillSlug: skillDir(SKILL.TEST_BROWSER),
     commandName: COMMAND.TEST_BROWSER,
-    description: '使用 agent-browser 执行端到端浏览器测试',
+    description: '使用 agent-browser 执行浏览器端到端验收，不负责审美设计或 Figma 对齐',
     argumentHint: '[URL|路由]',
     defaultEntry: false,
     skillFile: `src/assets/skills/${skillDir(SKILL.TEST_BROWSER)}/SKILL.md`,
@@ -96,7 +96,7 @@ const PHASE_ONE_ENTRIES = [
     skillName: SKILL.FRONTEND_DESIGN,
     skillSlug: skillDir(SKILL.FRONTEND_DESIGN),
     commandName: COMMAND.FRONTEND_DESIGN,
-    description: '构建具有设计品质的前端界面',
+    description: '构建设计质量更高的前端初版界面，并做一轮视觉验证',
     argumentHint: '[描述|路径]',
     defaultEntry: false,
     skillFile: `src/assets/skills/${skillDir(SKILL.FRONTEND_DESIGN)}/SKILL.md`,
@@ -227,8 +227,8 @@ const REQUIRED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'],
 ]
 
 const GILDED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'], string]> = [
-  [AGENT.DESIGN_ITERATOR, 'workflow', '推动多轮设计迭代'],
-  [AGENT.FIGMA_DESIGN_SYNC, 'workflow', '同步 Figma 设计稿与代码实现'],
+  [AGENT.DESIGN_ITERATOR, 'workflow', '对已实现 UI 做多轮小步审美打磨'],
+  [AGENT.FIGMA_DESIGN_SYNC, 'workflow', '以 Figma 为准同步设计稿与代码实现'],
 ]
 
 function buildAgentList(
