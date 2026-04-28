@@ -8,6 +8,7 @@ import { aePromptOptimizeTool } from './ae-prompt-optimize.tool.js'
 import { aeHelpTool } from './ae-help.tool.js'
 import { aeGateTool } from './ae-gate.tool.js'
 import { aeSwaggerParserTool } from './ae-swagger-parser.tool.js'
+import { aeFigmaAssetsTool } from './ae-figma-assets.tool.js'
 
 export function createToolRegistry(): Record<string, ToolDefinition> {
   return {
@@ -18,5 +19,6 @@ export function createToolRegistry(): Record<string, ToolDefinition> {
     [TOOL.AE_HELP]: aeHelpTool,
     [TOOL.AE_GATE]: aeGateTool,
     [TOOL.AE_SWAGGER_PARSER]: aeSwaggerParserTool,
+    [TOOL.AE_FIGMA_ASSETS]: aeFigmaAssetsTool,
   }
 }

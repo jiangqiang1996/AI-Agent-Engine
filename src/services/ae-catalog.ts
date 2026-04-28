@@ -93,6 +93,15 @@ const PHASE_ONE_ENTRIES = [
     skillFile: `src/assets/skills/${skillDir(SKILL.TEST_BROWSER)}/SKILL.md`,
   },
   {
+    skillName: SKILL.FIGMA_ASSETS,
+    skillSlug: skillDir(SKILL.FIGMA_ASSETS),
+    commandName: COMMAND.FIGMA_ASSETS,
+    description: '从用户已授权的 Figma 文件或节点导出素材到当前工作区',
+    argumentHint: '[Figma URL|fileKey:<KEY> nodeId:<ID>] [mode:api|collect|validate]',
+    defaultEntry: false,
+    skillFile: `src/assets/skills/${skillDir(SKILL.FIGMA_ASSETS)}/SKILL.md`,
+  },
+  {
     skillName: SKILL.FRONTEND_DESIGN,
     skillSlug: skillDir(SKILL.FRONTEND_DESIGN),
     commandName: COMMAND.FRONTEND_DESIGN,

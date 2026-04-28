@@ -11,6 +11,10 @@ function readText(path: string): string {
   return readFileSync(resolve(path), 'utf8').trim()
 }
 
+function normalizeLineEndings(text: string): string {
+  return text.replaceAll('\r\n', '\n')
+}
+
 function parseFixture(path: string) {
   return parseSwaggerDocument(JSON.parse(readText(path)) as unknown)
 }
@@ -20,14 +24,14 @@ describe('swagger-summary-service', () => {
     const parsed = parseFixture('tests/fixtures/swagger/openapi-3-basic.json')
     const output = formatSwaggerSummary(filterSwaggerOperations(parsed, {}))
 
-    expect(output).toBe(readText('tests/fixtures/swagger/golden/openapi-3-overview.md'))
+    expect(output).toBe(normalizeLineEndings(readText('tests/fixtures/swagger/golden/openapi-3-overview.md')))
   })
 
   it('应该生成 Swagger 2 单接口详情 golden output', () => {
     const parsed = parseFixture('tests/fixtures/swagger/swagger-2-basic.json')
     const output = formatSwaggerSummary(filterSwaggerOperations(parsed, { method: 'GET', path: '/orders/{id}' }))
 
-    expect(output).toBe(readText('tests/fixtures/swagger/golden/swagger-2-detail.md'))
+    expect(output).toBe(normalizeLineEndings(readText('tests/fixtures/swagger/golden/swagger-2-detail.md')))
   })
 
   it('应该在显式 detail 多命中时输出有限多接口请求摘要', () => {
