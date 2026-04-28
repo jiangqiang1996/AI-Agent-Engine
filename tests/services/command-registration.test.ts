@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { COMMAND, PA_SUFFIX, PO_SUFFIX, SKILL } from '../schemas/ae-asset-schema.js'
-import { buildCommandConfig, createTuiCommands } from './command-registration.js'
+import { COMMAND, PA_SUFFIX, PO_SUFFIX, SKILL } from '../../src/schemas/ae-asset-schema.js'
+import { buildCommandConfig, createTuiCommands } from '../../src/services/command-registration.js'
 
 describe('command-registration', () => {
   it('应该为 ae:refactor 生成基础命令和提示词优化命令', () => {

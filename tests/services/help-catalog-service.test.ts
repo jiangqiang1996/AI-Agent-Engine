@@ -1,25 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// mock ae-catalog —— 提供技能/代理/命令定义
-vi.mock('./ae-catalog.js', () => ({
+vi.mock('../../src/services/ae-catalog.js', () => ({
   getPhaseOneEntries: vi.fn(),
   getPhaseOnePoEntries: vi.fn(),
   getPhaseOnePaEntries: vi.fn(),
   getAllAgentDefinitions: vi.fn(),
 }))
 
-// mock command-registration
-vi.mock('./command-registration.js', () => ({
+vi.mock('../../src/services/command-registration.js', () => ({
   buildCommandConfig: vi.fn(),
 }))
 
-// mock agent-registration
-vi.mock('./agent-registration.js', () => ({
+vi.mock('../../src/services/agent-registration.js', () => ({
   buildAgentConfig: vi.fn(),
 }))
 
-// mock runtime-asset-manifest
-vi.mock('./runtime-asset-manifest.js', () => ({
+vi.mock('../../src/services/runtime-asset-manifest.js', () => ({
   createRuntimeAssetManifestFromRoot: vi.fn((repoRoot: string) => ({
     repoRoot,
     skillsDir: `${repoRoot}/src/assets/skills`,
@@ -28,11 +24,11 @@ vi.mock('./runtime-asset-manifest.js', () => ({
   })),
 }))
 
-import * as aeCatalog from './ae-catalog.js'
-import * as commandRegistration from './command-registration.js'
-import * as agentRegistration from './agent-registration.js'
-import * as runtimeAssetManifest from './runtime-asset-manifest.js'
-import { COMMAND, PA_SUFFIX, PO_SUFFIX, SKILL, skillDir } from '../schemas/ae-asset-schema.js'
+import * as aeCatalog from '../../src/services/ae-catalog.js'
+import * as commandRegistration from '../../src/services/command-registration.js'
+import * as agentRegistration from '../../src/services/agent-registration.js'
+import * as runtimeAssetManifest from '../../src/services/runtime-asset-manifest.js'
+import { COMMAND, PA_SUFFIX, PO_SUFFIX, SKILL, skillDir } from '../../src/schemas/ae-asset-schema.js'
 
 import {
   buildHelpCatalog,
@@ -41,7 +37,7 @@ import {
   generateHelpText,
   skillToCommand,
   matchesQuery,
-} from './help-catalog-service.js'
+} from '../../src/services/help-catalog-service.js'
 
 describe('help-catalog-service', () => {
   beforeEach(() => {
@@ -146,12 +142,10 @@ describe('help-catalog-service', () => {
 
       const catalog = buildHelpCatalog('/repo')
 
-      // 技能去重后应有 2 个
       expect(catalog.skills).toHaveLength(2)
       expect(catalog.skills[0].name).toBe('ae:ideate')
       expect(catalog.skills[1].name).toBe('ae:work')
 
-      // 命令应有 4 个（基础 + po + pa）
       expect(catalog.commands).toHaveLength(4)
       const poCmd = catalog.commands.find((c) => c.name === 'ae-ideate-po')
       expect(poCmd).toBeDefined()
@@ -160,7 +154,6 @@ describe('help-catalog-service', () => {
       expect(paCmd).toBeDefined()
       expect(paCmd!.category).toBe('提示词优化（自动）')
 
-      // 代理应有 1 个
       expect(catalog.agents).toHaveLength(1)
       expect(catalog.agents[0].name).toBe('correctness-reviewer')
       expect(catalog.agents[0].stage).toBe('review')

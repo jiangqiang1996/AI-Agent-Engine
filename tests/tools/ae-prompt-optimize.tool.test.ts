@@ -1,23 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-vi.mock('../services/client-holder.js', () => ({
+vi.mock('../../src/services/client-holder.js', () => ({
   getGlobalClient: vi.fn(),
 }))
 
-vi.mock('../services/prompt-optimize.service.js', () => ({
+vi.mock('../../src/services/prompt-optimize.service.js', () => ({
   executePromptSubmit: vi.fn(),
   generateSessionTitle: vi.fn(),
 }))
 
-import { getGlobalClient } from '../services/client-holder.js'
-import { executePromptSubmit } from '../services/prompt-optimize.service.js'
+import { getGlobalClient } from '../../src/services/client-holder.js'
+import { executePromptSubmit } from '../../src/services/prompt-optimize.service.js'
 import { Effect } from 'effect'
 
 const mockGetGlobalClient = vi.mocked(getGlobalClient)
 const mockExecutePromptSubmit = vi.mocked(executePromptSubmit)
 
 async function callTool(args: { optimized_prompt: string; session_title?: string }) {
-  const { aePromptOptimizeTool: tool } = await import('./ae-prompt-optimize.tool.js')
+  const { aePromptOptimizeTool: tool } = await import('../../src/tools/ae-prompt-optimize.tool.js')
   const definition = tool as unknown as {
     args: Record<string, { _def: unknown }>
     execute: (args: Record<string, unknown>, ctx: Record<string, unknown>) => Promise<string>

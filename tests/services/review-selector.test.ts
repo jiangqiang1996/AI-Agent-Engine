@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { selectReviewers } from './review-selector.js'
-import { AGENT } from '../schemas/ae-asset-schema.js'
+import { selectReviewers } from '../../src/services/review-selector.js'
+import { AGENT } from '../../src/schemas/ae-asset-schema.js'
 
 describe('selectReviewers — 代码域', () => {
   it('代码域默认应返回 5 个 alwaysOn 代理', () => {

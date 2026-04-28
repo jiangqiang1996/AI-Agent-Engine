@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Effect } from 'effect'
-import { generateSessionTitle, executePromptSubmit } from './prompt-optimize.service.js'
+import { generateSessionTitle, executePromptSubmit } from '../../src/services/prompt-optimize.service.js'
 
-vi.mock('./session.service.js', () => ({
+vi.mock('../../src/services/session.service.js', () => ({
   createNewSession: vi.fn(),
   navigateToSession: vi.fn(),
 }))
 
-import { createNewSession, navigateToSession } from './session.service.js'
+import { createNewSession, navigateToSession } from '../../src/services/session.service.js'
 
 const mockCreateNewSession = vi.mocked(createNewSession)
 const mockNavigateToSession = vi.mocked(navigateToSession)

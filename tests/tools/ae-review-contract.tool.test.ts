@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 
-import { AGENT } from '../schemas/ae-asset-schema.js'
+import { AGENT } from '../../src/schemas/ae-asset-schema.js'
 
 interface ReviewContractResult {
   kind: string
@@ -23,7 +23,7 @@ async function callTool(args: {
   has_agent_config?: boolean
   has_config?: boolean
 }) {
-  const { aeReviewContractTool: tool } = await import('./ae-review-contract.tool.js')
+  const { aeReviewContractTool: tool } = await import('../../src/tools/ae-review-contract.tool.js')
   const definition = tool as unknown as {
     execute: (args: Record<string, unknown>, ctx: Record<string, unknown>) => Promise<string>
   }
@@ -41,7 +41,7 @@ async function callTool(args: {
 }
 
 async function getToolDefinition() {
-  const { aeReviewContractTool: tool } = await import('./ae-review-contract.tool.js')
+  const { aeReviewContractTool: tool } = await import('../../src/tools/ae-review-contract.tool.js')
   return tool as unknown as {
     args: Record<string, unknown>
     execute: (args: Record<string, unknown>, ctx: Record<string, unknown>) => Promise<string>

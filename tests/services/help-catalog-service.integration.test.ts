@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { COMMAND, PA_SUFFIX, PO_SUFFIX, SKILL } from '../schemas/ae-asset-schema.js'
-import { generateHelpText } from './help-catalog-service.js'
+import { COMMAND, PA_SUFFIX, PO_SUFFIX, SKILL } from '../../src/schemas/ae-asset-schema.js'
+import { generateHelpText } from '../../src/services/help-catalog-service.js'
 
 describe('help-catalog-service 集成', () => {
   it('应该在真实帮助目录中暴露 ae:refactor 入口', () => {

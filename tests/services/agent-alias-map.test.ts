@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { resolveAgentName } from './agent-alias-map.js'
+import { resolveAgentName } from '../../src/services/agent-alias-map.js'
 
 describe('agent-alias-map', () => {
   it('旧名 kieran-typescript-reviewer 应解析为 correctness-reviewer', () => {

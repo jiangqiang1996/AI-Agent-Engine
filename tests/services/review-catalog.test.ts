@@ -1,8 +1,8 @@
 import { readFileSync } from 'node:fs'
 import { describe, it, expect } from 'vitest'
-import { REVIEW_MATRIX } from './review-catalog.js'
-import { getAllAgentDefinitions } from './ae-catalog.js'
-import { AGENT } from '../schemas/ae-asset-schema.js'
+import { REVIEW_MATRIX } from '../../src/services/review-catalog.js'
+import { getAllAgentDefinitions } from '../../src/services/ae-catalog.js'
+import { AGENT } from '../../src/schemas/ae-asset-schema.js'
 
 describe('REVIEW_MATRIX', () => {
   it('代码域 alwaysOn 应为 5 个', () => {
@@ -47,7 +47,7 @@ describe('REVIEW_MATRIX', () => {
   })
 
   it('test-case-reviewer 提示词应包含误报抑制边界', () => {
-    const content = readFileSync(new URL('../assets/agents/review/test-case-reviewer.md', import.meta.url), 'utf-8')
+    const content = readFileSync(new URL('../../src/assets/agents/review/test-case-reviewer.md', import.meta.url), 'utf-8')
 
     expect(content).toContain('无外部需求来源')
     expect(content).toContain('没有来源证据的字段约束')

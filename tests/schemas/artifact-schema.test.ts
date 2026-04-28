@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { ArtifactFrontmatterSchema, ArtifactStatusSchema } from './artifact-schema.js'
+import { ArtifactFrontmatterSchema, ArtifactStatusSchema } from '../../src/schemas/artifact-schema.js'
 
 describe('ArtifactStatusSchema', () => {
   it('应该包含 active 枚举值', () => {

@@ -3,9 +3,9 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { resolveRecovery } from './recovery-service.js'
-import { createRuntimeAssetManifestFromRoot } from './runtime-asset-manifest.js'
-import { SKILL } from '../schemas/ae-asset-schema.js'
+import { resolveRecovery } from '../../src/services/recovery-service.js'
+import { createRuntimeAssetManifestFromRoot } from '../../src/services/runtime-asset-manifest.js'
+import { SKILL } from '../../src/schemas/ae-asset-schema.js'
 
 const tempRoots: string[] = []
 

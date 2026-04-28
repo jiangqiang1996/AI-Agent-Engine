@@ -3,17 +3,20 @@
 ## 测试框架
 
 - 使用 Vitest 作为测试框架
-- 测试文件放在对应模块同级目录，命名 `*.test.ts`
+- 测试文件统一放在 `tests/` 目录下，按模块分类
 - 测试目录结构：
 
 ```
-src/
+tests/
 ├── tools/
-│   ├── ae-review-contract.tool.ts
-│   └── ae-review-contract.tool.test.ts
+│   ├── ae-review-contract.tool.test.ts
+│   └── ae-prompt-optimize.tool.test.ts
 ├── services/
-│   ├── recovery-service.ts
-│   └── recovery-service.test.ts
+│   ├── recovery-service.test.ts
+│   ├── gate-service.test.ts
+│   └── review-selector.test.ts
+└── schemas/
+    └── artifact-schema.test.ts
 ```
 
 ## 测试分类

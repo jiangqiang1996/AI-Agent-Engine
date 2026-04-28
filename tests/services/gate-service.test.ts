@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { Effect } from 'effect'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { runGate } from './gate-service.js'
+import { runGate } from '../../src/services/gate-service.js'
 
 const tempRoots: string[] = []
 
