@@ -41,6 +41,8 @@ description: "通过 N 轮截图-分析-改进循环打磨已实现 UI。当初�
 agent-browser --headed open [url]
 ```
 
+打开目标页面后、任何截图前，先执行登录状态检测；如果页面需要登录，等待登录成功后再继续截图。
+
 推荐的视口尺寸参考：
 - 小型组件（按钮、卡片）：800x600
 - 中型区块（英雄区、特性区）：1200x800
@@ -48,26 +50,34 @@ agent-browser --headed open [url]
 
 ### 元素截图
 
-1. 首先，使用 `agent-browser snapshot -i` 获取元素引用
-2. 找到目标元素的 ref（如 @e1、@e2）
-3. 使用 `agent-browser scrollintoview @e1` 聚焦到特定元素
-4. 截图：`agent-browser screenshot output.png`
+1. 首先，使用 `agent-browser snapshot -i --json` 检测是否进入登录页
+2. 如需要登录，执行登录等待流程
+3. 使用 `agent-browser snapshot -i` 获取元素引用
+4. 找到目标元素的 ref（如 @e1、@e2）
+5. 使用 `agent-browser scrollintoview @e1` 聚焦到特定元素
+6. 截图：`agent-browser screenshot output.png`
 
 ### 视口截图
 
 聚焦截图时：
-1. 使用 `agent-browser scrollintoview @e1` 将元素滚动到可视区域
-2. 截取视口截图：`agent-browser screenshot output.png`
+1. 使用 `agent-browser snapshot -i --json` 检测是否进入登录页
+2. 如需要登录，执行登录等待流程
+3. 使用 `agent-browser scrollintoview @e1` 将元素滚动到可视区域
+4. 截取视口截图：`agent-browser screenshot output.png`
 
 ### 示例工作流
 
 ```bash
 1. agent-browser open [url]
-2. agent-browser snapshot -i  # 获取引用
-3. agent-browser screenshot output.png
-4. [分析并实现变更]
-5. agent-browser screenshot output-v2.png
-6. [重复...]
+2. agent-browser snapshot -i --json  # 检测是否进入登录页
+3. [如需要登录，执行登录等待流程]
+4. agent-browser snapshot -i  # 获取引用
+5. agent-browser screenshot output.png
+6. [分析并实现变更]
+7. agent-browser snapshot -i --json  # 变更或刷新后重新检测登录状态
+8. [如需要登录，执行登录等待流程]
+9. agent-browser screenshot output-v2.png
+10. [重复...]
 ```
 
 **保持截图聚焦** - 仅捕获你正在处理的元素/区域以减少干扰。
@@ -188,6 +198,32 @@ command -v agent-browser 2>/dev/null || where agent-browser 2>NUL
 
 如果不可用，返回提示："agent-browser 未安装。请先运行 /ae-setup 安装。"
 
+**登录状态检测：**
+
+在首次打开目标页面后、截图前，检测是否需要登录：
+
+1. 打开目标页面后，使用 `agent-browser snapshot -i --json` 获取页面状态
+2. 检测 URL 是否包含登录路径，或页面是否包含密码输入框
+3. 如检测到登录页面：
+
+```
+🔐 检测到登录页面
+
+当前 URL: [URL]
+
+请在浏览器窗口中完成登录操作。
+系统将自动检测登录状态，检测到以下任一情况时将继续：
+  ✓ URL 发生变化（离开登录页）
+  ✓ 登录表单消失
+  ✓ 用户头像/登出按钮出现
+
+等待中...（最长等待 5 分钟，每 10 秒输出进度）
+```
+
+每 5 秒检测一次，最长等待 300 秒。检测到登录成功后继续执行截图和迭代。
+
+详细流程参考 `ae:test-browser` 的登录检测与等待机制。
+
 **设计技能（如 ae:frontend-design 等）在用户调用时会自动加载。** 检查你的上下文中是否有活跃的技能指令。
 
 如果用户提到了设计风格（极简、类 Stripe 等），查找：
@@ -206,7 +242,7 @@ command -v agent-browser 2>/dev/null || where agent-browser 2>NUL
 1. 确认目标组件/文件路径
 2. 确认请求的迭代次数（默认：10）
 3. 可选确认需要研究的竞品网站
-4. 使用 `agent-browser` 设置浏览器并调整到合适的视口
+4. 使用 `agent-browser` 设置浏览器并调整到合适的视口；打开目标页面后执行登录状态检测
 5. 以已加载的技能原则开始迭代循环
 
 先截取目标元素的初始截图建立基线，然后进行系统化改进。
