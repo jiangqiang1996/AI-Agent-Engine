@@ -1,0 +1,37 @@
+---
+name: ae:swagger-parser
+description: 解析 Swagger/OpenAPI JSON 并输出接口联调摘要
+argument-hint: "[source] [method:<HTTP_METHOD>] [path:<PATH>] [tag:<TAG>] [keyword:<TEXT>] [mode:overview|detail]"
+---
+
+# Skill: ae:swagger-parser
+
+解析工作区内或远程 HTTP(S) 的 Swagger/OpenAPI JSON，输出用于接口联调的概览或详情摘要。
+
+## 使用场景
+
+- 用户提供 Swagger 2.0 或 OpenAPI 3.x JSON 文件，需要快速了解接口列表。
+- 用户需要查看单个接口的路径参数、查询参数、请求头、请求体字段、认证方式和响应结构。
+- 用户使用 `method`、`path`、`tag` 或 `keyword` 缩小接口范围。
+
+## 参数
+
+- `source`：必填，本地 JSON 路径或 HTTP(S) URL。
+- `method`：可选，HTTP 方法，例如 `GET`、`POST`。
+- `path`：可选，OpenAPI path 模板，例如 `/pets/{id}`。
+- `tag`：可选，标签名。
+- `keyword`：可选，搜索 path、summary、description、operationId。
+- `mode`：可选，`overview` 或 `detail`。
+
+## 行为边界
+
+- 无筛选时输出概览。
+- `method + path` 唯一命中时输出接口详情。
+- 非 `method + path` 的唯一命中默认仍输出概览；显式 `mode:detail` 才输出详情。
+- 多命中默认输出候选概览；显式 `mode:detail` 且不超过 5 个接口时输出有限多接口请求摘要。
+- 首版只支持 JSON，不支持 YAML。
+- 首版不生成 SDK、类型定义、测试脚手架，也不自动请求业务接口。
+
+## 工具调用
+
+使用 `ae-swagger-parser` 工具，并传入结构化参数。不要把自然语言解析作为唯一入口。

@@ -1,0 +1,35 @@
+{
+  "swagger": "2.0",
+  "info": { "title": "Order API", "version": "1.0.0" },
+  "host": "api.example.com",
+  "basePath": "/v1",
+  "schemes": ["https"],
+  "security": [{ "BearerAuth": [] }],
+  "paths": {
+    "/orders/{id}": {
+      "get": {
+        "tags": ["orders"],
+        "operationId": "getOrder",
+        "summary": "查询订单详情",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "type": "string", "description": "订单 ID" },
+          { "name": "X-Trace-Id", "in": "header", "required": false, "type": "string", "description": "链路追踪 ID" }
+        ],
+        "responses": {
+          "200": {
+            "description": "成功返回订单",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "id": { "type": "string", "description": "订单 ID" },
+                "status": { "type": "string", "description": "订单状态" }
+              },
+              "required": ["id", "status"]
+            }
+          },
+          "404": { "description": "订单不存在" }
+        }
+      }
+    }
+  }
+}

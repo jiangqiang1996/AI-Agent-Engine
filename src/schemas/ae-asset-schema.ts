@@ -16,6 +16,7 @@ export const SKILL = {
   PROMPT_OPTIMIZE: 'ae:prompt-optimize',
   TASK_LOOP: 'ae:task-loop',
   SQL: 'ae:sql',
+  SWAGGER_PARSER: 'ae:swagger-parser',
   SAVE_RULES: 'ae:save-rules',
   HELP: 'ae:help',
   UPDATE: 'ae:update',
@@ -71,6 +72,7 @@ export const TOOL = {
   AE_PROMPT_OPTIMIZE: 'ae-prompt-optimize',
   AE_HELP: 'ae-help',
   AE_GATE: 'ae-gate',
+  AE_SWAGGER_PARSER: 'ae-swagger-parser',
 } as const
 
 export const AeModeSchema = z
@@ -94,6 +96,7 @@ export const AeSkillNameSchema = z
     SKILL.PROMPT_OPTIMIZE,
     SKILL.TASK_LOOP,
     SKILL.SQL,
+    SKILL.SWAGGER_PARSER,
     SKILL.SAVE_RULES,
     SKILL.HELP,
     SKILL.UPDATE,
