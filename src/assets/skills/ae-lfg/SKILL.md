@@ -18,11 +18,17 @@ disable-model-invocation: true
 
 ## 任务分类
 
-在进入管道之前，分类任务是否属于软件工程：
+在进入主管道之前，先读取 `@./references/task-routing.md`，按 S1-S7 分类任务，并遵循以下规则：
 
-- **软件任务**（继续管道）— 涉及代码、仓库、API、数据库，或要求构建/修改/调试/部署软件
-- **非软件任务**（停止管道）— 不涉及上述任何信号。告知用户：`"ae:lfg 专注于软件工程管道。此任务不属于软件范畴，请直接描述你的需求，我将尽力协助。"` 然后停止
-- **不明确**（询问用户）— 无法判断时，询问："这是否涉及构建或修改软件？"
+- **S1 简单问答**：直接回答；必要时只做只读搜索/读取。不进入 `ae:lfg` 管道。
+- **S2 模糊想法**：先澄清，或进入步骤 2 的 `ae:brainstorm`。需求仍模糊时不得直接编码。
+- **S3 小修复**：如果范围仍然轻量，可转 `ae:work` 轻路径；只有在正式代码交付时才要求最终 `ae-gate`。一旦命中升级停点，立即改走 S4。
+- **S4 多步骤实现**：这是 `ae:lfg` 的标准适用场景，必须走完整主管道。
+- **S5 只读审查**：改用 `ae:review mode:report-only`，默认保持只读，不进入 `ae:lfg` 管道。
+- **S6 提交请求**：改走 Git 安全流程或 `/ae-commit`，不自动开始实现。
+- **S7 混合意图**：先拆分阶段；实现与验证完成后，才允许进入提交流程。
+
+如果任务显然不属于软件任务，告知用户：`"ae:lfg 专注于软件工程管道。此任务不属于软件范畴，请直接描述你的需求，我将尽力协助。"` 然后停止。
 
 ## 恢复策略
 
@@ -53,6 +59,8 @@ disable-model-invocation: true
 运行 `ae:brainstorm $ARGUMENTS`
 
 **门控：** 验证 `ae:brainstorm` 产出了需求文档（`docs/ae/brainstorms/*-requirements.md`）。如果未产出且需求已经足够清晰，继续。如果需求模糊且未产出文档，重新运行 `ae:brainstorm $ARGUMENTS`。在继续步骤 3 之前，**必须**有足够的产物流入计划阶段。
+
+只有在 `ae:brainstorm` 已将任务重新归类为 S3 轻量修复时，才允许跳出本主管道转入 `ae:work`；否则必须继续计划阶段。
 
 ### 步骤 3：需求审查
 
@@ -108,6 +116,8 @@ disable-model-invocation: true
 
 运行 `ae-gate workflow:lfg checkpoint:final plan_path:<plan-path-from-step-4> validation_commands:[...] review_status:passed git_operations:[...]`。如有浏览器测试，传入 `browser_test_status`。门禁通过后，在最终回复中引用 `proofPath`。
 
+最终回复必须遵循 `ae:work` 交付参考中的最终模板分区：已完成、已验证、未验证/无法验证、Git 操作状态、门禁结果、剩余风险。
+
 输出 `<promise>DONE</promise>`
 
 ---
@@ -117,3 +127,4 @@ disable-model-invocation: true
 从步骤 2 现在开始。记住：先计划，再工作。永远不要跳过计划。
 
 参考：@./references/pipeline.md
+参考：@./references/task-routing.md

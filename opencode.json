@@ -12,7 +12,7 @@
     "bash": {
       "*": "allow",
       "git *": "allow",
-      "git commit *": "ask",
+      "git commit *": "allow",
       "git push *": "ask",
       "rm -rf *": "deny",
       "del *": "deny"

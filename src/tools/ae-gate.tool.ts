@@ -48,18 +48,18 @@ export const aeGateTool: ToolDefinition = tool({
 
     return Effect.runPromise(
       runGate(context.worktree, {
-            workflow: args.workflow,
-            checkpoint: args.checkpoint,
-            requirementsPath: args.requirements_path,
-            planPath: args.plan_path,
-            validationCommands: args.validation_commands,
-            reviewStatus: args.review_status,
-            browserTestStatus: args.browser_test_status,
-            gitOperations: args.git_operations,
-            userAuthorizedGitWrite: args.user_authorized_git_write,
-            noCodeChangeReason: args.no_code_change_reason,
-            notes: args.notes,
-            writeProof: args.write_proof,
+        workflow: args.workflow,
+        checkpoint: args.checkpoint,
+        requirementsPath: args.requirements_path,
+        planPath: args.plan_path,
+        validationCommands: args.validation_commands,
+        reviewStatus: args.review_status,
+        browserTestStatus: args.browser_test_status,
+        gitOperations: args.git_operations,
+        userAuthorizedGitWrite: args.user_authorized_git_write,
+        noCodeChangeReason: args.no_code_change_reason,
+        notes: args.notes,
+        writeProof: args.write_proof,
       }).pipe(
         Effect.map((result) => JSON.stringify(result, null, 2)),
         Effect.catch((error) => {
