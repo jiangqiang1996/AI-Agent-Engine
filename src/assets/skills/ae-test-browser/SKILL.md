@@ -145,6 +145,8 @@ agent-browser snapshot -i --json
 
 如检测到登录页面，执行以下流程：
 
+如果当前使用无头模式，先停止无头流程，改用有头模式重新打开目标页面后再等待用户登录。登录需要用户在可见浏览器窗口中操作，无头模式不能继续执行人工登录等待。
+
 ```
 🔐 检测到登录页面
 
@@ -154,8 +156,8 @@ agent-browser snapshot -i --json
 请在浏览器窗口中完成登录操作。
 系统将自动检测登录状态，检测到以下任一情况时将继续：
   ✓ URL 发生变化（离开登录页）
-  ✓ 登录表单消失
   ✓ 用户头像/登出按钮出现
+  ✓ 登录表单消失
 
 等待中...（最长等待 5 分钟，每 10 秒输出进度）
 ```
@@ -169,6 +171,7 @@ agent-browser snapshot -i --json
 | 1 | URL 变化且不再包含登录路径 | 传统登录跳转 |
 | 2 | 用户元素出现（`@user-avatar`、`@logout-button`） | 通用检测 |
 | 3 | 登录元素消失（密码输入框、登录按钮） | 表单提交场景 |
+| 4 | 截图人工确认 | 自动检测信号不确定时的兜底方案 |
 
 **步骤 7.4：进度提示**
 
@@ -186,7 +189,7 @@ agent-browser snapshot -i --json
 ```
 ✅ 登录检测成功
 
-检测方式: [URL 变化 / 元素出现 / 元素消失]
+检测方式: [URL 变化 / 元素出现 / 元素消失 / 人工确认]
 新 URL: [URL]
 已用时间: [N]s
 
@@ -224,17 +227,19 @@ Windows PowerShell:
 
 ```powershell
 agent-browser open "http://localhost:$PORT/[路由]"
-agent-browser snapshot -i
+agent-browser snapshot -i --json  # 执行步骤 7 登录检测
+agent-browser snapshot -i         # 登录检查通过后再捕获验证快照
 ```
 
 macOS/Linux:
 
 ```bash
 agent-browser open http://localhost:${PORT}/[路由]
-agent-browser snapshot -i
+agent-browser snapshot -i --json  # 执行步骤 7 登录检测
+agent-browser snapshot -i         # 登录检查通过后再捕获验证快照
 ```
 
-**登录检查：** 导航后立即执行步骤 7。若检测到登录页，等待用户登录并确认成功后，再重新获取快照并继续验证。
+**登录检查：** 导航后立即执行步骤 7。若检测到登录页，等待用户登录并确认成功后，再重新获取快照并继续验证。不得先获取普通快照或执行交互，再补做登录检查。
 
 **验证关键元素：** 页面标题已渲染、主要内容已展示、无可见错误信息、表单包含预期字段
 
