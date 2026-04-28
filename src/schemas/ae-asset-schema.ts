@@ -19,6 +19,7 @@ export const SKILL = {
   SQL: 'ae:sql',
   SWAGGER_PARSER: 'ae:swagger-parser',
   SAVE_RULES: 'ae:save-rules',
+  ASSET_DEBUG: 'ae:asset-debug',
   HELP: 'ae:help',
   UPDATE: 'ae:update',
 } as const
@@ -101,6 +102,7 @@ export const AeSkillNameSchema = z
     SKILL.SQL,
     SKILL.SWAGGER_PARSER,
     SKILL.SAVE_RULES,
+    SKILL.ASSET_DEBUG,
     SKILL.HELP,
     SKILL.UPDATE,
   ])

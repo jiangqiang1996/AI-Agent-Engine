@@ -3,9 +3,52 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 import { COMMAND, PA_SUFFIX, PO_SUFFIX, SKILL } from '../../src/schemas/ae-asset-schema.js'
+import { getPhaseOneEntries } from '../../src/services/ae-catalog.js'
 import { buildCommandConfig, createTuiCommands } from '../../src/services/command-registration.js'
+import { parseFrontmatter } from '../../src/utils/frontmatter.js'
 
 describe('command-registration', () => {
+  it('应该为 ae:asset-debug 生成基础命令和提示词优化命令', () => {
+    const config = buildCommandConfig('__missing_commands_dir__')
+    const poCommand = `${COMMAND.ASSET_DEBUG}${PO_SUFFIX}`
+    const paCommand = `${COMMAND.ASSET_DEBUG}${PA_SUFFIX}`
+
+    expect(config[COMMAND.ASSET_DEBUG]).toBeDefined()
+    expect(config[COMMAND.ASSET_DEBUG]?.template).toContain(`使用 \`${SKILL.ASSET_DEBUG}\` 技能处理这次请求`)
+    expect(config[poCommand]).toBeDefined()
+    expect(config[poCommand]?.template).toContain(`先使用 \`${SKILL.PROMPT_OPTIMIZE}\` 技能优化以下用户输入`)
+    expect(config[poCommand]?.template).toContain(`使用 \`${SKILL.ASSET_DEBUG}\` 技能处理这次请求`)
+    expect(config[paCommand]).toBeDefined()
+    expect(config[paCommand]?.template).toContain(`先使用 \`${SKILL.PROMPT_OPTIMIZE}\` 技能以 auto 模式优化以下用户输入`)
+    expect(config[paCommand]?.template).toContain('跳过确认直接提交')
+    expect(config[paCommand]?.template).toContain(`使用 \`${SKILL.ASSET_DEBUG}\` 技能处理这次请求`)
+  })
+
+  it('应该在 TUI 命令列表中暴露 ae:asset-debug 入口', () => {
+    const commands = createTuiCommands()
+    const values = commands.map((command) => command.value)
+    const poCommand = `${COMMAND.ASSET_DEBUG}${PO_SUFFIX}`
+    const paCommand = `${COMMAND.ASSET_DEBUG}${PA_SUFFIX}`
+
+    expect(values).toContain(`/${COMMAND.ASSET_DEBUG}`)
+    expect(values).toContain(`/${poCommand}`)
+    expect(values).toContain(`/${paCommand}`)
+
+    const assetDebugCommand = commands.find((command) => command.value === `/${COMMAND.ASSET_DEBUG}`)
+    expect(assetDebugCommand?.category).toBe('AE 工作流')
+    expect(assetDebugCommand?.slash?.name).toBe(COMMAND.ASSET_DEBUG)
+    expect(assetDebugCommand?.description).toContain('[资产名|纠偏摘要]')
+
+    const poTuiCommand = commands.find((command) => command.value === `/${poCommand}`)
+    const paTuiCommand = commands.find((command) => command.value === `/${paCommand}`)
+    expect(poTuiCommand?.category).toBe('AE 提示词优化')
+    expect(poTuiCommand?.slash?.name).toBe(poCommand)
+    expect(poTuiCommand?.description).toContain('[资产名|纠偏摘要]')
+    expect(paTuiCommand?.category).toBe('AE 提示词优化（自动）')
+    expect(paTuiCommand?.slash?.name).toBe(paCommand)
+    expect(paTuiCommand?.description).toContain('[资产名|纠偏摘要]')
+  })
+
   it('应该为 ae:refactor 生成基础命令和提示词优化命令', () => {
     const config = buildCommandConfig('__missing_commands_dir__')
     const poCommand = `${COMMAND.REFACTOR}${PO_SUFFIX}`
@@ -58,5 +101,16 @@ describe('command-registration', () => {
     const skillContent = readFileSync('src/assets/skills/ae-swagger-parser/SKILL.md', 'utf8')
 
     expect(skillContent).toContain(`name: ${SKILL.SWAGGER_PARSER}`)
+  })
+
+  it('应该保持 ae:asset-debug catalog 与 SKILL.md frontmatter 一致', () => {
+    const skillContent = readFileSync('src/assets/skills/ae-asset-debug/SKILL.md', 'utf8')
+    const frontmatter = parseFrontmatter(skillContent).data
+    const catalogEntry = getPhaseOneEntries().find((entry) => entry.skillName === SKILL.ASSET_DEBUG)
+
+    expect(catalogEntry).toBeDefined()
+    expect(frontmatter.name).toBe(catalogEntry?.skillName)
+    expect(frontmatter.description).toBe(catalogEntry?.description)
+    expect(frontmatter['argument-hint']).toBe(catalogEntry?.argumentHint)
   })
 })

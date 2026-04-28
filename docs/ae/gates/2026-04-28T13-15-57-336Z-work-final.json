@@ -1,0 +1,54 @@
+{
+  "status": "pass",
+  "workflow": "work",
+  "checkpoint": "final",
+  "blockers": [],
+  "warnings": [
+    "validation_commands 当前只记录代理声明的命令列表；除非附带可引用执行结果，否则不能单独证明验证已成功执行。"
+  ],
+  "missingEvidence": [],
+  "nextSteps": [],
+  "evidenceSources": {
+    "requirements": "observable_workspace",
+    "plan": "observable_workspace",
+    "workExecution": "observable_workspace",
+    "validation": "tool_input_declared",
+    "review": "tool_input_declared",
+    "browserTest": "tool_input_declared",
+    "gitOperations": "tool_input_declared",
+    "gitAuthorization": "tool_input_declared"
+  },
+  "evidence": {
+    "requirementsPath": "docs/ae/brainstorms/asset-debug-skill-requirements.md",
+    "requirementsExists": true,
+    "planPath": "docs/ae/plans/2026-04-28-002-feat-asset-debug-skill-plan.md",
+    "planExists": true,
+    "changedFiles": [
+      "rc/schemas/ae-asset-schema.ts",
+      "rc/services/ae-catalog.ts",
+      "ests/schemas/ae-asset-schema.test.ts",
+      "ests/services/command-registration.test.ts",
+      "ests/services/help-catalog-service.integration.test.ts",
+      "docs/ae/brainstorms/asset-debug-skill-requirements.md",
+      "docs/ae/plans/2026-04-28-002-feat-asset-debug-skill-plan.md",
+      "src/assets/skills/ae-asset-debug/"
+    ],
+    "validationCommands": [
+      "npm run test -- tests/schemas/ae-asset-schema.test.ts tests/services/command-registration.test.ts tests/services/help-catalog-service.test.ts tests/services/help-catalog-service.integration.test.ts",
+      "npm run typecheck",
+      "npm run test",
+      "npm run build"
+    ],
+    "reviewStatus": "passed",
+    "browserTestStatus": "not_applicable",
+    "gitOperations": [],
+    "userAuthorizedGitWrite": false,
+    "noCodeChangeReason": "",
+    "latestArtifacts": {
+      "requirements": "docs/ae/brainstorms/figma-asset-browser-skill-requirements.md",
+      "plan": "docs/ae/plans/2026-04-28-002-feat-asset-debug-skill-plan.md"
+    }
+  },
+  "summary": "门禁通过：work/final；阻断项 0 个；警告 1 个；工作区变更 8 个文件；缺失证据：无",
+  "notes": "按 ae:work 执行 asset-debug-skill 计划。新增 ae:asset-debug 技能文档，注册 SKILL/catalog，补充 schema、命令注册、TUI、help 输出和 frontmatter/catalog 一致性测试。已运行 correctness/testing/standards/maintainability 审查；testing/maintainability 提出的测试覆盖问题已修复。用户要求留在 master，未创建分支，未提交。"
+}

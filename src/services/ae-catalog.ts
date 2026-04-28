@@ -174,6 +174,15 @@ const PHASE_ONE_ENTRIES = [
     skillFile: `src/assets/skills/${skillDir(SKILL.SAVE_RULES)}/SKILL.md`,
   },
   {
+    skillName: SKILL.ASSET_DEBUG,
+    skillSlug: skillDir(SKILL.ASSET_DEBUG),
+    commandName: COMMAND.ASSET_DEBUG,
+    description: '修复 opencode 会话中生效资产的执行流程偏差',
+    argumentHint: '[资产名|纠偏摘要]',
+    defaultEntry: false,
+    skillFile: `src/assets/skills/${skillDir(SKILL.ASSET_DEBUG)}/SKILL.md`,
+  },
+  {
     skillName: SKILL.HELP,
     skillSlug: skillDir(SKILL.HELP),
     commandName: COMMAND.HELP,
