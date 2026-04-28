@@ -1,7 +1,8 @@
-import type { PluginModule } from '@opencode-ai/plugin'
+import type { Config, PluginModule } from '@opencode-ai/plugin'
 
 import { registerAgents } from './services/agent-registration.js'
 import { buildCommandConfig } from './services/command-registration.js'
+import { registerMcp } from './services/mcp-registration.js'
 import { registerRulesInstructions } from './services/rules-instructions-service.js'
 import { createRuntimeAssetManifest } from './services/runtime-asset-manifest.js'
 import { registerSkillsPath } from './services/skills-path-service.js'
@@ -22,6 +23,7 @@ interface RuntimeConfigShape {
   skills?: {
     paths?: string[]
   }
+  mcp?: Config['mcp']
   instructions?: string[]
 }
 
@@ -43,6 +45,7 @@ const plugin: PluginModule = {
         registerSkillsPath(config as RuntimeConfigShape, manifest)
         mergeCommandConfig(config as RuntimeConfigShape, manifest)
         registerAgents(config as RuntimeConfigShape, manifest)
+        registerMcp(config as RuntimeConfigShape, manifest)
         registerRulesInstructions(config as RuntimeConfigShape, manifest)
       },
       tool: createToolRegistry(),

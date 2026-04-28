@@ -8,6 +8,7 @@ export interface RuntimeAssetManifest {
   skillsDir: string
   rulesDir: string
   commandsDir: string
+  builtinConfigFile: string
   toolsDir: string
   agentsDir: string
   runtimeAgentDir: string
@@ -24,6 +25,7 @@ export function createRuntimeAssetManifestFromRoot(repoRoot: string): RuntimeAss
     skillsDir: join(root, 'src', 'assets', 'skills'),
     rulesDir: join(root, 'src', 'assets', 'rules'),
     commandsDir: join(root, 'src', 'assets', 'commands'),
+    builtinConfigFile: join(root, 'src', 'assets', 'config', 'builtin-opencode.jsonc'),
     toolsDir: join(root, 'tools'),
     agentsDir: join(root, 'src', 'assets', 'agents'),
     runtimeAgentDir,

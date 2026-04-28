@@ -8,6 +8,7 @@ AI Agent Engine（AE）是面向 opencode 的工程工作流插件，提供从�
 | --- | --- |
 | `README.md` | 项目入口、安装、更新、卸载和开发信息 |
 | [docs/ae/usage-guide.md](docs/ae/usage-guide.md) | 用户手册：使用场景、命令、代理、参数和前端流程 |
+| [docs/ae/builtin-mcp.md](docs/ae/builtin-mcp.md) | 内置 MCP：默认项、优先级、禁用与覆盖方式 |
 | `/ae-help` | 运行时权威帮助：输出当前可用技能、命令和代理 |
 
 ## 支持范围
@@ -104,6 +105,8 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 
 更多使用方式见 [用户手册](docs/ae/usage-guide.md)。
 
+内置 MCP 的默认值、覆盖和禁用方式见 [docs/ae/builtin-mcp.md](docs/ae/builtin-mcp.md)。
+
 ## 开发
 
 | 操作 | 命令 |
@@ -112,4 +115,4 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 | 测试 | `npm run test` |
 | 类型检查 | `npm run typecheck` |
 
-TypeScript 源码位于 `src/`。受版本控制的 AE 资产真源位于 `src/assets/skills/`、`src/assets/agents/`、`src/assets/rules/` 和 `src/assets/commands/`。
+TypeScript 源码位于 `src/`。受版本控制的 AE 资产真源位于 `src/assets/skills/`、`src/assets/agents/`、`src/assets/rules/`、`src/assets/commands/` 和 `src/assets/config/`。

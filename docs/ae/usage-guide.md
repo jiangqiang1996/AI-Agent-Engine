@@ -81,6 +81,14 @@
 | `docs/ae/solutions/` | 历史方案和研究沉淀 |
 | `.opencode/rules/` | 长期项目规范 |
 
+## 内置 MCP
+
+AE 默认附带一组最低优先级的内置 MCP，可直接用于文档检索和代码示例搜索。
+
+- 默认项、优先级和合并规则见 [builtin-mcp.md](builtin-mcp.md)
+- 想禁用某个默认 MCP：在 `opencode.json` 中对同名项设置 `enabled: false`
+- 想覆盖默认配置：在 `opencode.json` 中声明同名 `mcp` 条目即可
+
 ## 最新帮助
 
 ```text
