@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+
 import { describe, expect, it } from 'vitest'
 
 import { COMMAND, PA_SUFFIX, PO_SUFFIX, SKILL } from '../../src/schemas/ae-asset-schema.js'
@@ -39,5 +41,22 @@ describe('command-registration', () => {
     const paTuiCommand = commands.find((command) => command.value === `/${paCommand}`)
     expect(poTuiCommand?.description).toContain('[重构目标|计划路径|需求文档路径|代码异味描述]')
     expect(paTuiCommand?.description).toContain('[重构目标|计划路径|需求文档路径|代码异味描述]')
+  })
+
+  it('应该为 ae:swagger-parser 生成基础命令和提示词优化命令', () => {
+    const config = buildCommandConfig('__missing_commands_dir__')
+    const poCommand = `${COMMAND.SWAGGER_PARSER}${PO_SUFFIX}`
+    const paCommand = `${COMMAND.SWAGGER_PARSER}${PA_SUFFIX}`
+
+    expect(config[COMMAND.SWAGGER_PARSER]).toBeDefined()
+    expect(config[COMMAND.SWAGGER_PARSER]?.template).toContain(SKILL.SWAGGER_PARSER)
+    expect(config[poCommand]).toBeDefined()
+    expect(config[paCommand]).toBeDefined()
+  })
+
+  it('应该保持 ae:swagger-parser catalog 与 SKILL.md frontmatter 名称一致', () => {
+    const skillContent = readFileSync('src/assets/skills/ae-swagger-parser/SKILL.md', 'utf8')
+
+    expect(skillContent).toContain(`name: ${SKILL.SWAGGER_PARSER}`)
   })
 })

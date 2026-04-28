@@ -147,6 +147,15 @@ const PHASE_ONE_ENTRIES = [
     skillFile: `src/assets/skills/${skillDir(SKILL.SQL)}/SKILL.md`,
   },
   {
+    skillName: SKILL.SWAGGER_PARSER,
+    skillSlug: skillDir(SKILL.SWAGGER_PARSER),
+    commandName: COMMAND.SWAGGER_PARSER,
+    description: '解析 Swagger/OpenAPI JSON 并输出接口联调摘要',
+    argumentHint: '[source] [method:<HTTP_METHOD>] [path:<PATH>] [tag:<TAG>] [keyword:<TEXT>] [mode:overview|detail]',
+    defaultEntry: false,
+    skillFile: `src/assets/skills/${skillDir(SKILL.SWAGGER_PARSER)}/SKILL.md`,
+  },
+  {
     skillName: SKILL.SAVE_RULES,
     skillSlug: skillDir(SKILL.SAVE_RULES),
     commandName: COMMAND.SAVE_RULES,

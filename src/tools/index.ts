@@ -7,6 +7,7 @@ import { aeHandoffTool } from './ae-handoff.tool.js'
 import { aePromptOptimizeTool } from './ae-prompt-optimize.tool.js'
 import { aeHelpTool } from './ae-help.tool.js'
 import { aeGateTool } from './ae-gate.tool.js'
+import { aeSwaggerParserTool } from './ae-swagger-parser.tool.js'
 
 export function createToolRegistry(): Record<string, ToolDefinition> {
   return {
@@ -16,5 +17,6 @@ export function createToolRegistry(): Record<string, ToolDefinition> {
     [TOOL.AE_PROMPT_OPTIMIZE]: aePromptOptimizeTool,
     [TOOL.AE_HELP]: aeHelpTool,
     [TOOL.AE_GATE]: aeGateTool,
+    [TOOL.AE_SWAGGER_PARSER]: aeSwaggerParserTool,
   }
 }
