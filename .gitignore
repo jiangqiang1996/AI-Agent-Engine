@@ -12,7 +12,6 @@ dist
 # ae-sql 运行时产物
 skills/ae-sql/script/jre/
 skills/ae-sql/script/drivers/*.jar
-.graphify_*.json
-graphify-out/cache
+/graphify-out/cache
 /graphify-out/.graphify_python
 /graphify-out/GRAPH_REPORT.md
