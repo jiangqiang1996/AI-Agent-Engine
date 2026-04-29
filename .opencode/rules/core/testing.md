@@ -57,17 +57,17 @@ tests/
 - 测试描述使用中文
 
 ```typescript
-import { describe, it, expect } from "vitest"
+import { describe, it, expect } from 'vitest'
 
-describe("ae-review-contract 工具", () => {
-  it("应该根据审查类型生成审查团队", async () => {
-    const result = await execute({ kind: "code", mode: "interactive" }, mockContext)
-    expect(result).toContain("审查团队")
+describe('ae-review-contract 工具', () => {
+  it('应该根据审查类型生成审查团队', async () => {
+    const result = await execute({ kind: 'code', mode: 'interactive' }, mockContext)
+    expect(result).toContain('审查团队')
   })
 
-  it("应该在参数缺失时返回友好提示", async () => {
-    const result = await execute({ kind: "invalid", mode: "report-only" }, mockContext)
-    expect(result).toContain("不支持的审查类型")
+  it('应该在参数缺失时返回友好提示', async () => {
+    const result = await execute({ kind: 'invalid', mode: 'report-only' }, mockContext)
+    expect(result).toContain('不支持的审查类型')
   })
 })
 ```
@@ -79,10 +79,10 @@ describe("ae-review-contract 工具", () => {
 - Effect 服务使用 `Layer.succeed` 替换为 Mock 实现
 
 ```typescript
-import { Layer } from "effect"
+import { Layer } from 'effect'
 
 const MockRecoveryService = Layer.succeed(RecoveryServiceTag, {
-  recover: () => Effect.succeed({ phase: "plan", skill: "ae:plan" }),
+  recover: () => Effect.succeed({ phase: 'plan', skill: 'ae:plan' }),
 })
 ```
 

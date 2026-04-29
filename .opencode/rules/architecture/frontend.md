@@ -4,7 +4,7 @@
 
 ## TUI toast 分层原则
 
-工具层（`src/tools/*.ts`）是最接近用户的错误处理边界，`showToast` 调用仅在此层执行。service 层、utils 层、schemas 层等内层模块保持纯异常抛出机制，禁止调用 `showToast`。
+工具层（`src/tools/*.tool.ts`）是最接近用户的错误处理边界，`showToast` 调用仅在此层执行。service 层、utils 层、schemas 层等内层模块保持纯异常抛出机制，禁止调用 `showToast`。
 
 ### 理由
 

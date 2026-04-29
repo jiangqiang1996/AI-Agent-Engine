@@ -18,24 +18,24 @@
 ### 工具定义模板
 
 ```typescript
-import { tool } from "@opencode-ai/plugin/tool"
-import { z } from "zod"
+import { tool } from '@opencode-ai/plugin/tool'
+import { z } from 'zod'
 
 export const myTool = tool({
   description: [
-    "工具的简要描述（一句话）",
-    "",
-    "功能说明：",
-    "- 具体能力 1",
-    "- 具体能力 2",
-    "",
-    "注意事项：",
-    "- 限制条件 1",
-    "- 限制条件 2",
-  ].join("\n"),
+    '工具的简要描述（一句话）',
+    '',
+    '功能说明：',
+    '- 具体能力 1',
+    '- 具体能力 2',
+    '',
+    '注意事项：',
+    '- 限制条件 1',
+    '- 限制条件 2',
+  ].join('\n'),
   args: {
-    target: z.string().describe("目标路径，支持绝对路径和相对路径"),
-    pattern: z.string().optional().describe("匹配模式，默认匹配所有"),
+    target: z.string().describe('目标路径，支持绝对路径和相对路径'),
+    pattern: z.string().optional().describe('匹配模式，默认匹配所有'),
   },
   execute: async (args, ctx) => {
     ctx.metadata({ title: `正在处理: ${args.target}` })
@@ -74,7 +74,7 @@ export const myTool = tool({
 
 ```typescript
 execute: async (args, ctx) => {
-  ctx.metadata({ title: "生成审查团队...", metadata: { kind: args.kind } })
+  ctx.metadata({ title: '生成审查团队...', metadata: { kind: args.kind } })
 
   const team = await buildReviewTeam(args.kind, args.mode)
   return {
@@ -111,14 +111,14 @@ execute: async (args, ctx) => {
 ### Hook 注册
 
 ```typescript
-import type { Hooks } from "@opencode-ai/plugin"
+import type { Hooks } from '@opencode-ai/plugin'
 
 export function registerHooks(input: PluginInput): Partial<Hooks> {
   return {
-    "tool.execute.before": async (input, output) => {
+    'tool.execute.before': async (input, output) => {
       // 工具执行前处理
     },
-    "tool.execute.after": async (input, output) => {
+    'tool.execute.after': async (input, output) => {
       // 工具执行后处理
     },
     event: async ({ event }) => {

@@ -38,10 +38,10 @@
 
 ```typescript
 // 使用 type 导入纯类型
-import type { ToolContext } from "@opencode-ai/plugin"
+import type { ToolContext } from '@opencode-ai/plugin'
 
 // 运行时导入同时带类型
-import { tool, type ToolDefinition } from "@opencode-ai/plugin/tool"
+import { tool, type ToolDefinition } from '@opencode-ai/plugin/tool'
 ```
 
 ### 导出规范
@@ -59,15 +59,15 @@ import { tool, type ToolDefinition } from "@opencode-ai/plugin/tool"
 - 使用 `Effect.catchAll` / `Effect.catchTag` 精确处理错误
 
 ```typescript
-import { Effect } from "effect"
+import { Effect } from 'effect'
 
 const program = Effect.gen(function* (_) {
   const data = yield* _(readFile(path))
   const result = yield* _(processData(data))
   return result
 }).pipe(
-  Effect.catchTag("FileNotFoundError", () =>
-    Effect.succeed("文件未找到，使用默认配置")
+  Effect.catchTag('FileNotFoundError', () =>
+    Effect.succeed('文件未找到，使用默认配置')
   )
 )
 ```
@@ -75,15 +75,15 @@ const program = Effect.gen(function* (_) {
 ### Service 定义
 
 ```typescript
-import { Context, Effect, Layer } from "effect"
+import { Context, Effect, Layer } from 'effect'
 
-class FileService extends Context.Tag("FileService")<
+class FileService extends Context.Tag('FileService')<
   FileService,
   { read: (path: string) => Effect.Effect<string> }
 >() {}
 
 const FileServiceLive = Layer.succeed(FileService, {
-  read: (path) => Effect.tryPromise(() => fs.readFile(path, "utf-8")),
+  read: (path) => Effect.tryPromise(() => fs.readFile(path, 'utf-8')),
 })
 ```
 
@@ -94,12 +94,12 @@ const FileServiceLive = Layer.succeed(FileService, {
 - 使用 `z.infer<>` 推导类型，禁止手动定义重复类型
 
 ```typescript
-import { z } from "zod"
+import { z } from 'zod'
 
 const AgentConfigSchema = z.object({
-  name: z.string().min(1).describe("Agent 名称"),
-  model: z.string().default("gpt-4").describe("使用的模型"),
-  temperature: z.number().min(0).max(2).default(0.7).describe("生成温度"),
+  name: z.string().min(1).describe('Agent 名称'),
+  model: z.string().default('gpt-4').describe('使用的模型'),
+  temperature: z.number().min(0).max(2).default(0.7).describe('生成温度'),
 })
 
 type AgentConfig = z.infer<typeof AgentConfigSchema>
@@ -128,7 +128,7 @@ type AgentConfig = z.infer<typeof AgentConfigSchema>
  */
 export function parseConfig(content: string, ext: string): AgentConfig {
   // YAML 格式需要额外的预处理，将多文档合并为单文档
-  if (ext === ".yaml" || ext === ".yml") {
+  if (ext === '.yaml' || ext === '.yml') {
     return parseYamlConfig(content)
   }
   return parseJsonConfig(content)
