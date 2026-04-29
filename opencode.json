@@ -5,8 +5,6 @@
     ".opencode/rules/**/*.md"
   ],
   "plugin": [
-    "./.opencode/plugins/ae-server.js",
-    "./.opencode/plugins/ae-tui.js",
     ".opencode/plugins/graphify.js"
   ],
   "permission": {
