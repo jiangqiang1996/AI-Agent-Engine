@@ -160,7 +160,8 @@ argument-hint: "[描述|路径]"
 
 ### 检测登录需求
 
-打开目标页面后，使用 `agent-browser snapshot -i --json` 获取页面状态，检测以下信号：
+仅当视觉验证实际选择 `agent-browser` 时，必须先确认当前会话已实际完成 `ae:setup` / `/ae-setup` 并得到环境就绪结果；未完成 setup 前不得执行任何 `agent-browser` 命令。
+完成后再打开目标页面并使用 `agent-browser snapshot -i --json` 获取页面状态，检测以下信号：
 - URL 包含 `/login`、`/signin`、`/auth`、`/oauth`
 - 存在 `input[type="password"]` 密码输入框
 - 存在包含"登录"、"Login"、"Sign In"文本的按钮
@@ -193,10 +194,10 @@ argument-hint: "[描述|路径]"
 
 1. **项目已有的浏览器工具** — Playwright、Puppeteer 等
 2. **浏览器 MCP 工具**
-3. **agent-browser CLI** — 未安装则先使用 /ae-setup 安装
+3. **agent-browser CLI** — 当前会话未实际完成 `ae:setup` / `/ae-setup` 时，先执行 setup；完成后再使用 CLI
 4. **心理审查** — 无头 CI 等环境下降级
 
-无论使用哪种浏览器工具，打开目标页面后、截图前都必须执行等价的登录检测与等待流程。使用 Playwright、Puppeteer 或 MCP 时，按当前 URL、页面文本、登录表单和已登录态元素执行同等判断；使用 `agent-browser` 时按上文流程执行。
+无论使用哪种浏览器工具，打开目标页面后、截图前都必须执行等价的登录检测与等待流程。使用 Playwright、Puppeteer 或 MCP 时，按当前 URL、页面文本、登录表单和已登录态元素执行同等判断；使用 `agent-browser` 时，先完成 setup 前置门禁，再按上文流程执行。
 
 评估内容：是否匹配构建前规划的视觉主题？是否有明显视觉问题？是否符合目标上下文模块的感觉？
 

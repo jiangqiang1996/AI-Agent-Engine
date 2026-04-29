@@ -101,6 +101,43 @@ describe('command-registration', () => {
     expect(config[paCommand]).toBeDefined()
   })
 
+  it('应该为 ae:test-browser 命令及提示词优化变体保留 setup 前置顺序', () => {
+    const config = buildCommandConfig('__missing_commands_dir__')
+    const poCommand = `${COMMAND.TEST_BROWSER}${PO_SUFFIX}`
+    const paCommand = `${COMMAND.TEST_BROWSER}${PA_SUFFIX}`
+
+    const baseTemplate = config[COMMAND.TEST_BROWSER]?.template ?? ''
+    expect(baseTemplate).toContain(`先使用 \`${SKILL.SETUP}\` 技能完成 agent-browser 环境检查`)
+    expect(baseTemplate).toContain('未完成 setup 前不得执行任何 agent-browser 命令')
+    expect(baseTemplate.indexOf(SKILL.SETUP)).toBeLessThan(baseTemplate.indexOf(SKILL.TEST_BROWSER))
+
+    const poTemplate = config[poCommand]?.template ?? ''
+    expect(poTemplate).toContain(`先使用 \`${SKILL.PROMPT_OPTIMIZE}\` 技能优化以下用户输入`)
+    expect(poTemplate).toContain(`先使用 \`${SKILL.SETUP}\` 技能完成 agent-browser 环境检查`)
+    expect(poTemplate).toContain('未完成 setup 前不得执行任何 agent-browser 命令')
+    expect(poTemplate.indexOf(SKILL.SETUP)).toBeLessThan(poTemplate.indexOf(SKILL.TEST_BROWSER))
+
+    const paTemplate = config[paCommand]?.template ?? ''
+    expect(paTemplate).toContain(`先使用 \`${SKILL.PROMPT_OPTIMIZE}\` 技能以 auto 模式优化以下用户输入`)
+    expect(paTemplate).toContain(`先使用 \`${SKILL.SETUP}\` 技能完成 agent-browser 环境检查`)
+    expect(paTemplate).toContain('未完成 setup 前不得执行任何 agent-browser 命令')
+    expect(paTemplate.indexOf(SKILL.SETUP)).toBeLessThan(paTemplate.indexOf(SKILL.TEST_BROWSER))
+  })
+
+  it('应该在 TUI 命令描述中展示 ae:test-browser 的 setup 前置语义', () => {
+    const commands = createTuiCommands()
+    const command = commands.find((item) => item.value === `/${COMMAND.TEST_BROWSER}`)
+    const poCommand = commands.find((item) => item.value === `/${COMMAND.TEST_BROWSER}${PO_SUFFIX}`)
+    const paCommand = commands.find((item) => item.value === `/${COMMAND.TEST_BROWSER}${PA_SUFFIX}`)
+
+    expect(command?.description).toContain('先完成 ae:setup')
+    expect(command?.description).not.toContain('agent-browser 可用')
+    expect(poCommand?.description).toContain('先优化提示词')
+    expect(poCommand?.description).toContain('先完成 ae:setup')
+    expect(paCommand?.description).toContain('先优化提示词')
+    expect(paCommand?.description).toContain('先完成 ae:setup')
+  })
+
   it('应该为 ae:save-session-flow 生成基础命令和提示词优化命令', () => {
     const config = buildCommandConfig('__missing_commands_dir__')
     const poCommand = `${COMMAND.SAVE_SESSION_FLOW}${PO_SUFFIX}`
@@ -158,6 +195,20 @@ describe('command-registration', () => {
     expect(frontmatter.name).toBe(catalogEntry?.skillName)
     expect(frontmatter.description).toBe(catalogEntry?.description)
     expect(frontmatter['argument-hint']).toBe(catalogEntry?.argumentHint)
+  })
+
+  it('应该保持 ae:setup 和 ae:test-browser catalog 与 SKILL.md frontmatter 语义一致', () => {
+    const setupContent = readFileSync('src/assets/skills/ae-setup/SKILL.md', 'utf8')
+    const testBrowserContent = readFileSync('src/assets/skills/ae-test-browser/SKILL.md', 'utf8')
+    const setupFrontmatter = parseFrontmatter(setupContent).data
+    const testBrowserFrontmatter = parseFrontmatter(testBrowserContent).data
+    const setupEntry = getPhaseOneEntries().find((entry) => entry.skillName === SKILL.SETUP)
+    const testBrowserEntry = getPhaseOneEntries().find((entry) => entry.skillName === SKILL.TEST_BROWSER)
+
+    expect(setupFrontmatter.description).toContain('AE 浏览器能力')
+    expect(setupEntry?.description).toContain('AE 浏览器能力')
+    expect(testBrowserFrontmatter.description).toContain('agent-browser')
+    expect(testBrowserEntry?.description).toContain('先完成 ae:setup')
   })
 
   it('用户同名命令应覆盖插件内置命令', () => {

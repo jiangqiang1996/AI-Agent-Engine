@@ -19,6 +19,8 @@ description: "检测并修复 Web 实现与 Figma 设计之间的视觉差异。
 
 ### 步骤 1.5：登录状态检测
 
+在执行任何 `agent-browser` 命令前，当前会话必须已实际完成 `ae:setup` / `/ae-setup` 并得到环境就绪结果。CLI 已安装、用户声称已安装或本地可用性检查成功都不能替代 setup。
+
 在打开 Web 实现页面后、截图前，检测是否需要登录：
 
 **检测登录需求**
@@ -52,7 +54,7 @@ description: "检测并修复 Web 实现与 Figma 设计之间的视觉差异。
 
 ### 步骤 2：实现截图采集
 
-使用 agent-browser CLI 导航到指定的 Web 页面/组件 URL。导航后先执行步骤 1.5 的登录状态检测，确认页面可访问后再捕获当前实现的高质量屏幕截图。
+完成 setup 前置门禁后，使用 agent-browser CLI 导航到指定的 Web 页面/组件 URL。导航后先执行步骤 1.5 的登录状态检测，确认页面可访问后再捕获当前实现的高质量屏幕截图。
 
 ```bash
 agent-browser open [url]

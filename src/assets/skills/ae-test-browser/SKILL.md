@@ -11,7 +11,7 @@ argument-hint: "[URL|路由]"
 ## 前提条件
 
 - 本地开发服务器已启动（如 `npm run dev`）
-- `agent-browser` CLI 已安装
+- 当前会话已实际完成 `ae:setup` / `/ae-setup`，并得到环境就绪结果
 - 项目为 Git 仓库
 
 ## 边界
@@ -27,27 +27,17 @@ argument-hint: "[URL|路由]"
 - 与 Figma 设计稿不一致：建议使用 `@figma-design-sync`，不要在测试流程中自行做像素对齐。
 - 简单验收已通过且无后续风险时，直接输出测试总结。
 
-## 安装检查
+## setup 前置门禁
 
-Windows PowerShell:
+在执行任何 `agent-browser` 命令前，先确认当前会话已实际完成 `ae:setup` / `/ae-setup` 并得到环境就绪结果。若未完成，必须先执行 `ae:setup`；完成后再继续本技能流程。
 
-```powershell
-if (Get-Command agent-browser -ErrorAction SilentlyContinue) { "已安装" } else { "未安装" }
-```
-
-macOS/Linux:
-
-```bash
-command -v agent-browser >/dev/null 2>&1 && echo "已安装" || echo "未安装"
-```
-
-若未安装，提示用户运行 `/ae-setup` 安装依赖，然后停止。
+`agent-browser` 已安装、用户声称已安装、或本地 CLI 可用性检查成功，都不能替代本轮 setup。只有当 `ae:setup` 安装失败、用户拒绝安装或当前环境无法安装时，才记录“无法验证”并停止浏览器验收，不得继续执行 `agent-browser` 命令。
 
 ## 工作流程
 
-### 1. 验证安装
+### 1. 执行 setup 前置门禁
 
-确认 `agent-browser` 可用。若未安装，提示用户并停止。
+若当前会话尚未实际完成 `ae:setup` / `/ae-setup`，先执行 `ae:setup`。环境就绪后，才能进入后续步骤。
 
 ### 2. 选择浏览器模式
 
@@ -303,6 +293,8 @@ agent-browser screenshot --full 页面名称-完整.png
 ```
 
 ## agent-browser CLI 参考
+
+未在当前会话实际完成 `ae:setup` / `/ae-setup` 并得到环境就绪结果前，不得执行下列任何命令。
 
 ```bash
 # 导航

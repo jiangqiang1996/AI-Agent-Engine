@@ -37,7 +37,8 @@ argument-hint: "[Figma URL|fileKey:<KEY> nodeId:<ID>] [mode:api|collect|validate
 - 不读取、复制、打印或持久化浏览器 token、cookie、localStorage、sessionStorage 或账号标识。
 - 不调用 Trae、Trae CN、Trae WebView、Trae 内部命令或 Trae 安装目录中的私有代码。
 - 不自动遍历整个 Figma 文件；API 模式必须有明确节点 ID。
-- `agent-browser` 只能作为页面状态确认或可见交互辅助，不能作为凭证提取或落盘证明。
+- `agent-browser` 只能作为页面状态确认或可见交互辅助，不能作为凭证提取或落盘证明；实际使用该辅助前，当前会话必须先完成 `ae:setup` / `/ae-setup` 并得到环境就绪结果。
+
 - 输出只包含脱敏来源、相对路径、文件大小和 checksum 摘要。
 
 ## 工具调用

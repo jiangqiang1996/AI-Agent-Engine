@@ -193,13 +193,27 @@ function isRuntimeEvidencePath(filePath: string): boolean {
     || normalized.startsWith('docs/ae/reviews/')
 }
 
+const GIT_EXEC_TIMEOUT = 30_000
+const GIT_EXEC_MAX_RETRIES = 2
+
 function runGit(repoRoot: string, args: string[]): string {
-  return execFileSync('git', args, {
-    cwd: repoRoot,
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'ignore'],
-    timeout: 10_000,
-  }).trim()
+  let lastError: unknown
+  for (let attempt = 0; attempt <= GIT_EXEC_MAX_RETRIES; attempt++) {
+    try {
+      return execFileSync('git', args, {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+        timeout: GIT_EXEC_TIMEOUT,
+      }).trim()
+    } catch (error) {
+      lastError = error
+      if (attempt < GIT_EXEC_MAX_RETRIES) {
+        continue
+      }
+    }
+  }
+  throw lastError
 }
 
 /**
@@ -278,12 +292,7 @@ function validateArtifactPath(repoRoot: string, filePath: string | undefined): P
 
 function collectChangedFiles(repoRoot: string): string[] {
   try {
-    const output = execFileSync('git', ['status', '--porcelain'], {
-      cwd: repoRoot,
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-      timeout: 10_000,
-    })
+    const output = runGit(repoRoot, ['status', '--porcelain'])
 
     return output
       .split('\n')

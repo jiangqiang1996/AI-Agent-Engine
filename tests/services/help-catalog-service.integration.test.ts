@@ -33,4 +33,15 @@ describe('help-catalog-service 集成', () => {
     expect(text).toContain(`/${COMMAND.SAVE_SESSION_FLOW}${PA_SUFFIX}`)
     expect(text).toContain('[目标技能名\\|流程关注点]')
   })
+
+  it('应该在真实帮助目录中展示 ae:test-browser 的 setup 前置语义', () => {
+    const text = generateHelpText('test-browser')
+
+    expect(text).toContain(SKILL.TEST_BROWSER)
+    expect(text).toContain(`/${COMMAND.TEST_BROWSER}`)
+    expect(text).toContain(`/${COMMAND.TEST_BROWSER}${PO_SUFFIX}`)
+    expect(text).toContain(`/${COMMAND.TEST_BROWSER}${PA_SUFFIX}`)
+    expect(text).toContain('先完成 ae:setup')
+    expect(text).not.toContain('agent-browser 可用')
+  })
 })

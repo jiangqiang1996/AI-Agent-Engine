@@ -51,6 +51,13 @@ argument-hint: "[auto] [提示词内容]"
 - 优先保持用户原有表述风格，仅在确实模糊时才改写
 - 补充的上下文应有明确依据（用户已提及或显而易见），不凭空假设
 
+**浏览器能力门禁：**
+
+- 如果原始输入会引导目标新会话使用 `agent-browser`、`ae:test-browser`、`/ae-test-browser`、`@design-iterator`、`@figma-design-sync`、`ae:frontend-design` 或 `/ae-frontend-design`，优化后的提示词必须明确要求目标新会话先执行 `ae:setup` / `/ae-setup`，得到环境就绪结果后再执行浏览器流程。
+- 源会话已经执行过 setup 不能迁移到目标新会话；目标新会话必须自行完成 setup。
+- `agent-browser` 已安装、用户声称已安装或本地 CLI 可用性检查成功，都不能替代目标新会话中的 setup。
+- 注入 setup 门禁时不得破坏“首个引用必须是第一个 token”的硬规则；如果优化后提示词以 `@agent` 或 `/command` 引用开头，setup 约束必须放在该首引用之后。
+
 **自检清单（优化完成后逐项确认）：**
 
 - [ ] 用户原始意图是否完整保留？
