@@ -6,6 +6,7 @@ import {
 } from './ae-catalog.js'
 import { buildCommandConfig } from './command-registration.js'
 import { buildAgentConfig } from './agent-registration.js'
+import { createRuntimeAssetManifest } from './runtime-asset-manifest.js'
 import { createRuntimeAssetManifestFromRoot } from './runtime-asset-manifest.js'
 import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
 import { resolveRepoRootFromModuleUrl } from '../utils/path-utils.js'
@@ -125,8 +126,7 @@ export interface HelpCatalog {
 }
 
 export function buildHelpCatalog(repoRoot?: string): HelpCatalog {
-  const root = repoRoot || getRepoRoot()
-  const manifest = createRuntimeAssetManifestFromRoot(root)
+  const manifest = repoRoot ? createRuntimeAssetManifestFromRoot(repoRoot) : createRuntimeAssetManifest(import.meta.url)
 
   return {
     skills: buildSkillEntries(),

@@ -1,9 +1,10 @@
 import type { Config, PluginModule } from '@opencode-ai/plugin'
 
 import { registerAgents } from './services/agent-registration.js'
-import { buildCommandConfig } from './services/command-registration.js'
+import { buildCommandConfig, mergeBuiltinAndUserCommands } from './services/command-registration.js'
 import { registerMcp } from './services/mcp-registration.js'
 import { registerRulesInstructions } from './services/rules-instructions-service.js'
+import { injectBuiltinRulesIntoSystem } from './services/rules-system-transform-service.js'
 import { createRuntimeAssetManifest } from './services/runtime-asset-manifest.js'
 import { registerSkillsPath } from './services/skills-path-service.js'
 import { createToolRegistry } from './tools/index.js'
@@ -28,10 +29,7 @@ interface RuntimeConfigShape {
 }
 
 function mergeCommandConfig(config: RuntimeConfigShape, manifest = createRuntimeAssetManifest(import.meta.url)): void {
-  config.command = {
-    ...(config.command ?? {}),
-    ...buildCommandConfig(manifest.commandsDir),
-  }
+  config.command = mergeBuiltinAndUserCommands(buildCommandConfig(manifest.commandsDir), config.command)
 }
 
 const plugin: PluginModule = {
@@ -42,11 +40,14 @@ const plugin: PluginModule = {
 
     return {
       config: async (config) => {
-        registerSkillsPath(config as RuntimeConfigShape, manifest)
+        await registerSkillsPath(config as RuntimeConfigShape, manifest)
         mergeCommandConfig(config as RuntimeConfigShape, manifest)
         registerAgents(config as RuntimeConfigShape, manifest)
         registerMcp(config as RuntimeConfigShape, manifest)
         registerRulesInstructions(config as RuntimeConfigShape, manifest)
+      },
+      'experimental.chat.system.transform': async (_input, output) => {
+        await injectBuiltinRulesIntoSystem(manifest, output)
       },
       tool: createToolRegistry(),
     }

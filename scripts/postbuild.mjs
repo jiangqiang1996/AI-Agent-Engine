@@ -1,10 +1,12 @@
-import { mkdir, writeFile } from 'node:fs/promises'
+import { cp, mkdir, rm, writeFile } from 'node:fs/promises'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(__dirname, '..')
 const distDir = join(repoRoot, 'dist', 'src')
+const sourceAssetsDir = join(repoRoot, 'src', 'assets')
+const distAssetsDir = join(distDir, 'assets')
 const pluginDir = join(repoRoot, '.opencode', 'plugins')
 
 async function writePluginWrapper(targetPath, importPath) {
@@ -18,6 +20,8 @@ async function main() {
 
   await writePluginWrapper(join(pluginDir, 'ae-server.js'), join(distDir, 'index.js'))
   await writePluginWrapper(join(pluginDir, 'ae-tui.js'), join(distDir, 'tui.js'))
+  await rm(distAssetsDir, { recursive: true, force: true })
+  await cp(sourceAssetsDir, distAssetsDir, { recursive: true })
 }
 
 await main()

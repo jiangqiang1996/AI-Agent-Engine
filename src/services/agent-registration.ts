@@ -16,10 +16,9 @@ interface AgentConfigShape {
 
 export function buildAgentConfig(manifest: RuntimeAssetManifest): NonNullable<AgentConfigShape['agent']> {
   const result: NonNullable<AgentConfigShape['agent']> = {}
-  const repoRoot = manifest.repoRoot
 
   for (const agent of getAllAgentDefinitions()) {
-    const fullPath = join(repoRoot, agent.path)
+    const fullPath = join(manifest.agentsDir, agent.stage, `${agent.name}.md`)
     const content = readFileSync(fullPath, 'utf8')
     const parsed = parseFrontmatter(content)
 
@@ -35,7 +34,7 @@ export function buildAgentConfig(manifest: RuntimeAssetManifest): NonNullable<Ag
 
 export function registerAgents(config: AgentConfigShape, manifest: RuntimeAssetManifest): void {
   config.agent = {
-    ...(config.agent ?? {}),
     ...buildAgentConfig(manifest),
+    ...(config.agent ?? {}),
   }
 }

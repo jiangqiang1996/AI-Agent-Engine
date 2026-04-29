@@ -4,7 +4,11 @@ import { describe, expect, it } from 'vitest'
 
 import { COMMAND, PA_SUFFIX, PO_SUFFIX, SKILL } from '../../src/schemas/ae-asset-schema.js'
 import { getPhaseOneEntries } from '../../src/services/ae-catalog.js'
-import { buildCommandConfig, createTuiCommands } from '../../src/services/command-registration.js'
+import {
+  buildCommandConfig,
+  createTuiCommands,
+  mergeBuiltinAndUserCommands,
+} from '../../src/services/command-registration.js'
 import { parseFrontmatter } from '../../src/utils/frontmatter.js'
 
 describe('command-registration', () => {
@@ -112,5 +116,30 @@ describe('command-registration', () => {
     expect(frontmatter.name).toBe(catalogEntry?.skillName)
     expect(frontmatter.description).toBe(catalogEntry?.description)
     expect(frontmatter['argument-hint']).toBe(catalogEntry?.argumentHint)
+  })
+
+  it('用户同名命令应覆盖插件内置命令', () => {
+    const merged = mergeBuiltinAndUserCommands(
+      {
+        'ae-demo': {
+          template: 'builtin template',
+          description: 'builtin description',
+        },
+      },
+      {
+        'ae-demo': {
+          template: 'user template',
+          description: 'user description',
+        },
+        'ae-user-only': {
+          template: 'user only',
+          description: 'user only description',
+        },
+      },
+    )
+
+    expect(merged['ae-demo']?.template).toBe('user template')
+    expect(merged['ae-demo']?.description).toBe('user description')
+    expect(merged['ae-user-only']?.template).toBe('user only')
   })
 })

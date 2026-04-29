@@ -16,6 +16,12 @@ vi.mock('../../src/services/agent-registration.js', () => ({
 }))
 
 vi.mock('../../src/services/runtime-asset-manifest.js', () => ({
+  createRuntimeAssetManifest: vi.fn(() => ({
+    repoRoot: '/runtime-repo',
+    skillsDir: '/runtime-repo/dist/src/assets/skills',
+    agentsDir: '/runtime-repo/dist/src/assets/agents',
+    commandsDir: '/runtime-repo/dist/src/assets/commands',
+  })),
   createRuntimeAssetManifestFromRoot: vi.fn((repoRoot: string) => ({
     repoRoot,
     skillsDir: `${repoRoot}/src/assets/skills`,
@@ -208,6 +214,22 @@ describe('help-catalog-service', () => {
       expect(runtimeAssetManifest.createRuntimeAssetManifestFromRoot).toHaveBeenCalledWith('/custom-repo')
       expect(agentRegistration.buildAgentConfig).toHaveBeenCalledWith(
         expect.objectContaining({ repoRoot: '/custom-repo' }),
+      )
+    })
+
+    it('未传 repoRoot 时应使用运行时资产清单', () => {
+      vi.mocked(aeCatalog.getPhaseOneEntries).mockReturnValue([])
+      vi.mocked(aeCatalog.getPhaseOnePoEntries).mockReturnValue([])
+      vi.mocked(aeCatalog.getPhaseOnePaEntries).mockReturnValue([])
+      vi.mocked(aeCatalog.getAllAgentDefinitions).mockReturnValue([])
+      vi.mocked(commandRegistration.buildCommandConfig).mockReturnValue({})
+      vi.mocked(agentRegistration.buildAgentConfig).mockReturnValue({})
+
+      buildHelpCatalog()
+
+      expect(runtimeAssetManifest.createRuntimeAssetManifest).toHaveBeenCalled()
+      expect(agentRegistration.buildAgentConfig).toHaveBeenCalledWith(
+        expect.objectContaining({ commandsDir: '/runtime-repo/dist/src/assets/commands' }),
       )
     })
   })

@@ -176,3 +176,13 @@ export function createTuiCommands(
 
   return tuiCommands
 }
+
+export function mergeBuiltinAndUserCommands(
+  builtinCommands: NonNullable<Config['command']>,
+  userCommands: Config['command'] | undefined,
+): NonNullable<Config['command']> {
+  return {
+    ...builtinCommands,
+    ...(userCommands ?? {}),
+  }
+}

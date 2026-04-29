@@ -6,7 +6,10 @@ interface SkillPathConfig {
   }
 }
 
-export function registerSkillsPath(config: SkillPathConfig, manifest: RuntimeAssetManifest): void {
+export async function registerSkillsPath(
+  config: SkillPathConfig,
+  manifest: RuntimeAssetManifest,
+): Promise<void> {
   config.skills = config.skills ?? {}
   config.skills.paths = [...new Set([...(config.skills.paths ?? []), manifest.skillsDir])]
 }
