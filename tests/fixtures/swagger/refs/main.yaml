@@ -1,0 +1,13 @@
+openapi: 3.0.0
+info:
+  title: Relative Ref API
+paths:
+  /users:
+    get:
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: './schemas.yaml#/User'

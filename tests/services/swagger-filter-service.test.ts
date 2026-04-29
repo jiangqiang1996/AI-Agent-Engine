@@ -6,6 +6,7 @@ import type { SwaggerParseResult } from '../../src/services/swagger-parser-servi
 const parseResult: SwaggerParseResult = {
   title: 'Test API',
   specification: 'openapi3',
+  openapiVersion: '3.0',
   operations: [
     { method: 'GET', path: '/pets', tags: ['pets'], parameters: [], responses: [], security: [], servers: [], summary: 'list' },
     { method: 'POST', path: '/pets', tags: ['pets'], parameters: [], responses: [], security: [], servers: [], summary: 'create' },

@@ -14,8 +14,18 @@ Base URL：https://api.example.com/v1
 ## 请求头
 - X-Trace-Id: string - 链路追踪 ID
 
+## Cookie 参数
+- 未声明。
+
 ## 请求体字段
 - 未声明请求体。
+
+## curl 示例
+```bash
+curl -X GET 'https://api.example.com/v1/orders/<id>' \
+  -H 'X-Trace-Id: <X-Trace-Id>'
+```
+> 示例使用占位值，不代表请求可直接成功。
 
 ## 响应
 - 200: 成功返回订单

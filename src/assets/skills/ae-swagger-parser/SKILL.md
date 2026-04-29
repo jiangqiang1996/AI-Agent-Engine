@@ -1,22 +1,22 @@
 ---
 name: ae:swagger-parser
-description: 解析 Swagger/OpenAPI JSON 并输出接口联调摘要
+description: 解析 Swagger/OpenAPI JSON/YAML 并输出接口联调摘要
 argument-hint: "[source] [method:<HTTP_METHOD>] [path:<PATH>] [tag:<TAG>] [keyword:<TEXT>] [mode:overview|detail]"
 ---
 
 # Skill: ae:swagger-parser
 
-解析工作区内或远程 HTTP(S) 的 Swagger/OpenAPI JSON，输出用于接口联调的概览或详情摘要。
+解析工作区内或远程 HTTP(S) 的 Swagger/OpenAPI JSON/YAML，输出用于接口联调的概览或详情摘要。
 
 ## 使用场景
 
-- 用户提供 Swagger 2.0 或 OpenAPI 3.x JSON 文件，需要快速了解接口列表。
+- 用户提供 Swagger 2.0 或 OpenAPI 3.0/3.1 JSON/YAML 文件，需要快速了解接口列表。
 - 用户需要查看单个接口的路径参数、查询参数、请求头、请求体字段、认证方式和响应结构。
 - 用户使用 `method`、`path`、`tag` 或 `keyword` 缩小接口范围。
 
 ## 参数
 
-- `source`：必填，本地 JSON 路径或 HTTP(S) URL。
+- `source`：必填，本地 JSON/YAML 路径或 HTTP(S) URL。
 - `method`：可选，HTTP 方法，例如 `GET`、`POST`。
 - `path`：可选，OpenAPI path 模板，例如 `/pets/{id}`。
 - `tag`：可选，标签名。
@@ -29,7 +29,8 @@ argument-hint: "[source] [method:<HTTP_METHOD>] [path:<PATH>] [tag:<TAG>] [keywo
 - `method + path` 唯一命中时输出接口详情。
 - 非 `method + path` 的唯一命中默认仍输出概览；显式 `mode:detail` 才输出详情。
 - 多命中默认输出候选概览；显式 `mode:detail` 且不超过 5 个接口时输出有限多接口请求摘要。
-- 首版只支持 JSON，不支持 YAML。
+- 支持 JSON/YAML 主文档；Swagger UI HTML 页面只提示用户提供真实 JSON/YAML 规格地址，不自动爬取。
+- 远程 `$ref` 默认不展开；本地相对文件 `$ref` 仅在安全边界内支持或降级。
 - 首版不生成 SDK、类型定义、测试脚手架，也不自动请求业务接口。
 
 ## 工具调用

@@ -6,6 +6,9 @@ export type SwaggerErrorCode =
   | 'file_empty'
   | 'file_too_large'
   | 'json_parse_failed'
+  | 'yaml_parse_failed'
+  | 'html_document_received'
+  | 'document_structure_invalid'
   | 'unsupported_version'
   | 'remote_protocol_unsupported'
   | 'remote_address_blocked'
@@ -32,7 +35,7 @@ export function formatSwaggerError(error: unknown): string {
   }
 
   if (error instanceof SyntaxError) {
-    return 'JSON 解析失败：请确认输入是合法的 Swagger/OpenAPI JSON 文件。'
+    return 'JSON 解析失败：请确认输入是合法的 Swagger/OpenAPI JSON 或 YAML 文件。'
   }
 
   const message = error instanceof Error ? error.message : String(error)

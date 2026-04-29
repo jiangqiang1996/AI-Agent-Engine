@@ -40,9 +40,18 @@ describe('ae-swagger-parser 工具', () => {
     expect(output).toContain('认证：BearerAuth')
   })
 
-  it('应该返回 YAML 不支持提示', async () => {
-    const output = await callTool({ source: 'api.yaml' })
+  it('应该解析本地 OpenAPI YAML 概览', async () => {
+    const output = await callTool({ source: 'tests/fixtures/swagger/openapi-3-basic.yaml' })
 
-    expect(output).toContain('首版不支持 YAML')
+    expect(output).toContain('# Swagger 概览')
+    expect(output).toContain('Pet Store YAML')
+    expect(output).toContain('GET /pets')
+  })
+
+  it('应该提示 Swagger UI HTML 误传', async () => {
+    const output = await callTool({ source: 'tests/fixtures/swagger/swagger-ui.html' })
+
+    expect(output).toContain('Swagger UI HTML 页面')
+    expect(output).toContain('OpenAPI JSON/YAML')
   })
 })

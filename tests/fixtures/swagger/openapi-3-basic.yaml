@@ -1,0 +1,31 @@
+openapi: 3.0.3
+info:
+  title: Pet Store YAML
+  version: 1.0.0
+servers:
+  - url: https://api.example.com
+paths:
+  /pets:
+    get:
+      tags:
+        - pets
+      operationId: listPets
+      summary: 列出宠物
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: 返回数量
+      responses:
+        '200':
+          description: 成功返回宠物列表
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    description: 宠物列表

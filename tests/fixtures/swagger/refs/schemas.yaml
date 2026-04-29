@@ -1,0 +1,16 @@
+User:
+  type: object
+  required:
+    - id
+  properties:
+    id:
+      type: string
+      description: 用户 ID
+    address:
+      $ref: '#/Address'
+Address:
+  type: object
+  properties:
+    city:
+      type: string
+      description: 城市

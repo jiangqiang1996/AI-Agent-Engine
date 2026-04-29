@@ -10,6 +10,9 @@ const MAX_LOCAL_BYTES = 5 * 1024 * 1024
 export interface SwaggerSourceResult {
   sourceType: 'local' | 'remote'
   content: string
+  realPath?: string
+  documentDir?: string
+  workspaceRoot?: string
 }
 
 function isRemoteSource(source: string): boolean {
@@ -32,11 +35,11 @@ export async function loadSwaggerSource(source: string, worktree: string): Promi
     const encoding = Array.isArray(response.headers['content-encoding'])
       ? response.headers['content-encoding'][0]
       : response.headers['content-encoding']
-    return { sourceType: 'remote', content: decodeRemoteResponse(response.body, encoding) }
-  }
-
-  if (/\.ya?ml$/i.test(source)) {
-    throw new SwaggerError('json_parse_failed', '首版不支持 YAML，请转换为 JSON。')
+    const content = decodeRemoteResponse(response.body, encoding)
+    if (!content.trim()) {
+      throw new SwaggerError('remote_empty_response', '远程响应为空：当前无法读取该远程规格。')
+    }
+    return { sourceType: 'remote', content }
   }
 
   rejectWindowsSpecialPath(source)
@@ -46,25 +49,25 @@ export async function loadSwaggerSource(source: string, worktree: string): Promi
   try {
     realTarget = await fs.realpath(target)
   } catch {
-    throw new SwaggerError('path_not_found', '路径不存在：请确认 Swagger/OpenAPI JSON 文件位于当前工作区。')
+    throw new SwaggerError('path_not_found', '路径不存在：请确认 Swagger/OpenAPI JSON/YAML 文件位于当前工作区。')
   }
 
   const relative = path.relative(root, realTarget)
   if (relative.startsWith('..') || path.isAbsolute(relative)) {
-    throw new SwaggerError('path_outside_root', '路径越界：只能读取当前工作区内的 JSON 文件。')
+    throw new SwaggerError('path_outside_root', '路径越界：只能读取当前工作区内的 JSON/YAML 文件。')
   }
 
   const stat = await fs.stat(realTarget)
   if (!stat.isFile()) {
-    throw new SwaggerError('path_not_file', '路径不是文件：请提供 Swagger/OpenAPI JSON 文件路径。')
+    throw new SwaggerError('path_not_file', '路径不是文件：请提供 Swagger/OpenAPI JSON/YAML 文件路径。')
   }
   if (stat.size > MAX_LOCAL_BYTES) {
-    throw new SwaggerError('file_too_large', '文件过大：首版仅支持 5 MB 以内的 Swagger/OpenAPI JSON。')
+    throw new SwaggerError('file_too_large', '文件过大：仅支持 5 MB 以内的 Swagger/OpenAPI JSON/YAML。')
   }
 
   const content = await fs.readFile(realTarget, 'utf8')
   if (!content.trim()) {
-    throw new SwaggerError('file_empty', '文件为空：请提供有效的 Swagger/OpenAPI JSON。')
+    throw new SwaggerError('file_empty', '文件为空：请提供有效的 Swagger/OpenAPI JSON/YAML。')
   }
-  return { sourceType: 'local', content }
+  return { sourceType: 'local', content, realPath: realTarget, documentDir: path.dirname(realTarget), workspaceRoot: root }
 }

@@ -42,4 +42,25 @@ describe('swagger-summary-service', () => {
     expect(output).toContain('路径参数：')
     expect(output).toContain('请求体字段：')
   })
+
+  it('应该转义 curl 示例中的 shell 单引号', () => {
+    const parsed = parseSwaggerDocument({
+      openapi: '3.0.0',
+      info: { title: 'Shell Safe API' },
+      servers: [{ url: "https://api.example.com'; rm -rf / #'" }],
+      paths: {
+        "/pets/{id}'": {
+          get: {
+            parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+            responses: { 200: { description: 'ok' } },
+          },
+        },
+      },
+    })
+    const output = formatSwaggerSummary(filterSwaggerOperations(parsed, { method: 'GET', path: "/pets/{id}'" }))
+
+    const curlLine = output.split('\n').find((line) => line.startsWith('curl -X GET')) ?? ''
+    expect(curlLine).toContain("'\"'\"'")
+    expect(curlLine).not.toContain("api.example.com'; rm")
+  })
 })

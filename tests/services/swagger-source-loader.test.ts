@@ -25,7 +25,11 @@ describe('swagger-source-loader', () => {
     }
   })
 
-  it('应该拒绝 YAML 输入', async () => {
-    await expect(loadSwaggerSource('openapi.yaml', process.cwd())).rejects.toThrow('首版不支持 YAML')
+  it('应该读取工作区内 YAML 文件', async () => {
+    const result = await loadSwaggerSource('tests/fixtures/swagger/openapi-3-basic.yaml', process.cwd())
+
+    expect(result.sourceType).toBe('local')
+    expect(result.content).toContain('Pet Store YAML')
+    expect(result.documentDir).toContain('swagger')
   })
 })
