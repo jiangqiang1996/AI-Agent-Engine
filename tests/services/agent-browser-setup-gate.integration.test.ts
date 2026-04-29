@@ -9,7 +9,7 @@ const SCAN_ROOTS = [
   'src/assets/commands',
   'src/tools',
   'src/services',
-  'docs/ae/usage-guide.md',
+  'docs/usage-guide.md',
 ]
 
 const SETUP_PATH = 'src/assets/skills/ae-setup/SKILL.md'
@@ -27,7 +27,7 @@ const REQUIRED_SETUP_FILES = [
   'src/assets/agents/workflow/design-iterator.md',
   'src/assets/agents/workflow/figma-design-sync.md',
   'src/services/ae-catalog.ts',
-  'docs/ae/usage-guide.md',
+  'docs/usage-guide.md',
 ]
 
 const TRIGGER_PATTERNS = [
@@ -166,7 +166,7 @@ describe('agent-browser setup 前置门禁', () => {
   })
 
   it('公开使用指南的截图代理流程应该声明 setup 前置', () => {
-    const content = readFileSync('docs/ae/usage-guide.md', 'utf8')
+    const content = readFileSync('docs/usage-guide.md', 'utf8')
     const rows = content.split('\n').filter((line) => line.startsWith('| `@'))
 
     for (const row of rows) {

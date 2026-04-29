@@ -27,7 +27,7 @@ depth: standard
 - `src/services/ae-catalog.ts` 中 `ae:test-browser` 描述包含 `agent-browser`，命令模板默认由 `src/services/command-registration.ts` 根据 catalog 生成。
 - `src/assets/commands/` 当前未发现 `agent-browser` 引用；`src/tools/` 当前未发现直接包含 `agent-browser` 的工具描述或执行逻辑。
 - `src/assets/skills/ae-test-browser/references/login-detection.md` 与 `src/assets/skills/ae-lfg/references/pipeline.md` 是会被技能引用的自然语言参考，也需要同步门禁语义。
-- `docs/ae/usage-guide.md` 是面向使用者的公开能力说明，当前仍描述 `/ae-test-browser` “先检查 agent-browser 是否可用”，需要同步为 setup 前置语义，避免公开文档与技能/命令行为不一致。
+- `docs/usage-guide.md` 是面向使用者的公开能力说明，当前仍描述 `/ae-test-browser` “先检查 agent-browser 是否可用”，需要同步为 setup 前置语义，避免公开文档与技能/命令行为不一致。
 
 ## 影响范围
 
@@ -58,7 +58,7 @@ depth: standard
 - [ ] 目标：在修改前建立完整 `agent-browser` 自然语言出现点清单，避免只修复已知文件。
 - [ ] 需求：输出 `path + line + context + 分类`，分类至少包含执行性命令、引用链、公开说明、安全边界和 `ae:setup` 自身例外。
 - [ ] 依赖：无。
-- [ ] 文件：扫描 `src/assets/skills/**/*.md`、`src/assets/agents/**/*.md`、`src/assets/commands/**/*.md`、`src/tools/**/*.ts`、`src/services/**/*.ts`、`docs/ae/usage-guide.md`；清单产物固定写入 `docs/ae/plans/2026-04-29-002-agent-browser-inventory.md`。
+- [ ] 文件：扫描 `src/assets/skills/**/*.md`、`src/assets/agents/**/*.md`、`src/assets/commands/**/*.md`、`src/tools/**/*.ts`、`src/services/**/*.ts`、`docs/usage-guide.md`；清单产物固定写入 `docs/ae/plans/2026-04-29-002-agent-browser-inventory.md`。
 - [ ] 方法：使用脚本化扫描或 Vitest helper 批量处理固定 glob 列表；第一轮匹配 `agent-browser` 字面；第二轮匹配非字面触发词：`snapshot -i`、`screenshot`、`open <url>`、`浏览器验收`、`截图证据`、`登录检测`、`可见页面状态确认`、`使用 ae:test-browser`、`@design-iterator`、`@figma-design-sync`；第三轮匹配反模式短语；输出字段固定为 `path`、`line`、`match`、`context`、`category`、`requiresSetup`；最后人工判断是否会引导正式浏览器流程。
 - [ ] 测试场景：清单覆盖当前已知技能、代理、catalog、公开使用指南和参考文档；`ae:setup` 自身被标记为例外；安全边界中不执行 `agent-browser` 的说明不强制 setup。
 - [ ] 验证：后续实现单元只依赖 `docs/ae/plans/2026-04-29-002-agent-browser-inventory.md` 的当前版本；如发现新增出现点，先回到本单元更新清单，再继续修改；后续实现单元 12 的集成测试固化扫描规则。
@@ -174,9 +174,9 @@ depth: standard
 ### 11. 同步公开使用指南
 
 - [ ] 目标：公开使用指南不会继续暗示 `/ae-test-browser` 可直接检查或使用 `agent-browser`。
-- [ ] 需求：`docs/ae/usage-guide.md` 与 catalog、技能、代理说明保持 setup 前置语义一致。
+- [ ] 需求：`docs/usage-guide.md` 与 catalog、技能、代理说明保持 setup 前置语义一致。
 - [ ] 依赖：实现单元 1、2、10。
-- [ ] 文件：`docs/ae/usage-guide.md`。
+- [ ] 文件：`docs/usage-guide.md`。
 - [ ] 方法：将 `/ae-test-browser` 的“先检查 agent-browser 是否可用”改为“先执行 /ae-setup 完成环境检查”；必要时同步前端设计、Figma 同步、设计迭代转交流程中对 `/ae-test-browser` 的引用链说明。
 - [ ] 测试场景：公开指南中浏览器验收、截图或交互验证路径不会把已安装或 CLI 可用作为 setup 替代证据。
 - [ ] 验证：`npm run test -- tests/services/agent-browser-setup-gate.integration.test.ts`。
@@ -187,7 +187,7 @@ depth: standard
 - [ ] 需求：测试覆盖技能、代理、命令真源和工具/服务中嵌入的自然语言。
 - [ ] 依赖：实现单元 2、3、4、5、6、8、9、10、11。
 - [ ] 文件：固定新增 `tests/services/agent-browser-setup-gate.integration.test.ts`；不合并到 `tests/services/command-registration.test.ts`。
-- [ ] 方法：扫描 `src/assets/skills/**/*.md`、`src/assets/agents/**/*.md`、`src/assets/commands/**/*.md`、`src/tools/**/*.ts`、`src/services/**/*.ts`、`docs/ae/usage-guide.md` 中包含 `agent-browser` 的出现点；对 `src/assets/skills/ae-setup/SKILL.md` 设为例外；仅对包含可复制 `agent-browser ...` 命令、明确要求调用 `ae:test-browser`、或明确让代理执行浏览器截图/交互的段落强制 setup；安全边界、能力描述、状态字段、转交建议列为允许类别；文件级包含只能作为粗筛，不能作为通过标准；补充引用链和非字面触发词扫描，捕获不直接写 `agent-browser` 但会触发浏览器流程的文案。
+- [ ] 方法：扫描 `src/assets/skills/**/*.md`、`src/assets/agents/**/*.md`、`src/assets/commands/**/*.md`、`src/tools/**/*.ts`、`src/services/**/*.ts`、`docs/usage-guide.md` 中包含 `agent-browser` 的出现点；对 `src/assets/skills/ae-setup/SKILL.md` 设为例外；仅对包含可复制 `agent-browser ...` 命令、明确要求调用 `ae:test-browser`、或明确让代理执行浏览器截图/交互的段落强制 setup；安全边界、能力描述、状态字段、转交建议列为允许类别；文件级包含只能作为粗筛，不能作为通过标准；补充引用链和非字面触发词扫描，捕获不直接写 `agent-browser` 但会触发浏览器流程的文案。
 - [ ] 反模式短语：`command -v agent-browser`、`Get-Command agent-browser`、`where agent-browser`、`agent-browser 已安装，运行`、`agent-browser 未安装，跳过`、`未安装则提示用户运行 /ae-setup`、`用户已安装`、`已经安装即可继续`、`已安装则直接运行 agent-browser`。
 - [ ] 测试场景：当前已知消费方全部通过；`ae-setup` 自身允许包含安装检查命令；安全边界说明允许出现；CLI 参考和示例命令区只要包含可复制 `agent-browser` 命令，就必须自身声明本轮未实际完成 setup 前不得执行；无关工具文件没有误报。
 - [ ] 验证：`npm run test -- tests/services/agent-browser-setup-gate.integration.test.ts`。
@@ -240,7 +240,7 @@ depth: standard
 
 ## 交付标准
 
-- 所有 `src` 下 `agent-browser` 自然语言使用点和 `docs/ae/usage-guide.md` 公开说明已经统一为 setup 前置语义，`ae:setup` 自身除外。
+- 所有 `src` 下 `agent-browser` 自然语言使用点和 `docs/usage-guide.md` 公开说明已经统一为 setup 前置语义，`ae:setup` 自身除外。
 - 旧的“各消费方自行检查安装”“未安装则跳过浏览器测试”“不可用才提示运行 setup”语义被移除或收敛。
 - 普通命令、`-po`、`-pa` 不会绕过 setup 前置说明。
 - 直接 `/ae-prompt-optimize` 优化浏览器任务时，目标新会话提示词不会绕过 setup 前置说明。

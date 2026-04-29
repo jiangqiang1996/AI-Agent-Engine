@@ -297,8 +297,8 @@ OpenAPI 3.x 需要覆盖 `servers`、`components.schemas`、`components.security
 
 - [ ] 目标：让用户和代理知道何时使用该技能、如何提供参数、首版边界是什么。
 - [ ] 需求：覆盖 R8-R13 的使用体验。
-- [ ] 文件：`src/assets/skills/ae-swagger-parser/SKILL.md`、`tests/schemas/ae-asset-schema.test.ts`，可选 `docs/ae/usage-guide.md`、`.opencode/rules/core/base.md`、`.opencode/rules/architecture/architecture.md`。
-- [ ] 方法：`SKILL.md` 写明使用场景、输入格式、筛选语义、概览/详情触发、安全限制、YAML 不支持、无状态继续模型；如将其列为常见场景，再更新 `docs/ae/usage-guide.md`。
+- [ ] 文件：`src/assets/skills/ae-swagger-parser/SKILL.md`、`tests/schemas/ae-asset-schema.test.ts`，可选 `docs/usage-guide.md`、`.opencode/rules/core/base.md`、`.opencode/rules/architecture/architecture.md`。
+- [ ] 方法：`SKILL.md` 写明使用场景、输入格式、筛选语义、概览/详情触发、安全限制、YAML 不支持、无状态继续模型；如将其列为常见场景，再更新 `docs/usage-guide.md`。
 - [ ] 测试场景：frontmatter `argument-hint` 与 `src/services/ae-catalog.ts` 字面一致；`AeSkillNameSchema` 接受 `ae:swagger-parser`；命令 schema 接受 `ae-swagger-parser`、`ae-swagger-parser-po`、`ae-swagger-parser-pa`；非法技能名/命令名被拒绝；帮助输出包含首版参数提示。`-po` / `-pa` 属于平台通用命令生成行为，不是 Swagger 解析新增产品行为。
 - [ ] 文档检查：若项目规范或架构文档仍硬编码工具数量或资产数量，执行阶段同步更新或改成“以 `TOOL` 常量和注册表为准”。
 - [ ] 验证：`npm run test -- tests/schemas/ae-asset-schema.test.ts tests/services/help-catalog-service.test.ts tests/services/help-catalog-service.integration.test.ts`。

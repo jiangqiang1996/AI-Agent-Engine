@@ -2,7 +2,7 @@
 
 生成时间：2026-04-29
 
-扫描范围：`src/assets/skills/**/*.md`、`src/assets/agents/**/*.md`、`src/assets/commands/**/*.md`、`src/tools/**/*.ts`、`src/services/**/*.ts`、`docs/ae/usage-guide.md`。
+扫描范围：`src/assets/skills/**/*.md`、`src/assets/agents/**/*.md`、`src/assets/commands/**/*.md`、`src/tools/**/*.ts`、`src/services/**/*.ts`、`docs/usage-guide.md`。
 
 匹配词：`agent-browser`、`snapshot -i`、`screenshot`、`open <url>`、`浏览器验收`、`截图证据`、`登录检测`、`可见页面状态确认`、`使用 ae:test-browser`、`@design-iterator`、`@figma-design-sync`、手写 CLI 检查反模式。
 
@@ -21,7 +21,7 @@
 | `src/assets/agents/workflow/figma-design-sync.md` | 20-63, 121-123 | `agent-browser snapshot`, `agent-browser open`, `screenshot` | Figma 对齐的实现截图采集 | 执行性命令 | yes |
 | `src/services/ae-catalog.ts` | 78-94 | `agent-browser` | setup 与 test-browser catalog 描述、命令模板来源 | 公开说明 | yes |
 | `src/tools/ae-gate.tool.ts` | 174, 192 | `浏览器验收` | 门禁参数和说明，不执行 agent-browser | 安全边界 | no |
-| `docs/ae/usage-guide.md` | 63-74 | `/ae-test-browser`, `agent-browser`, `@design-iterator`, `@figma-design-sync` | 公开使用指南的浏览器验收与设计链路说明 | 公开说明 | conditional |
+| `docs/usage-guide.md` | 63-74 | `/ae-test-browser`, `agent-browser`, `@design-iterator`, `@figma-design-sync` | 公开使用指南的浏览器验收与设计链路说明 | 公开说明 | conditional |
 
 ## 判断说明
 
