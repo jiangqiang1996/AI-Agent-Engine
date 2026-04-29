@@ -1,7 +1,7 @@
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import { Effect } from 'effect'
 import { afterEach, describe, expect, it } from 'vitest'
 
@@ -15,6 +15,14 @@ function createRepoRoot(): string {
   mkdirSync(join(root, 'docs', 'ae', 'brainstorms'), { recursive: true })
   mkdirSync(join(root, 'docs', 'ae', 'plans'), { recursive: true })
   return root
+}
+
+function createAllowedWorktreeRoot(root: string, name: string): string {
+  const target = join(root, '..', 'worktrees', `${name}-${basename(root)}`)
+  tempRoots.push(target)
+  mkdirSync(join(target, 'docs', 'ae', 'brainstorms'), { recursive: true })
+  mkdirSync(join(target, 'docs', 'ae', 'plans'), { recursive: true })
+  return target
 }
 
 function writePlan(root: string): void {
@@ -192,6 +200,7 @@ describe('门禁服务', () => {
       },
       trustedReviewRefs: ['review-run-1'],
       gitOperations: [],
+      worktreeDecision: 'created',
       noCodeChangeReason: '测试用例中无真实代码变更',
     })
 
@@ -993,12 +1002,53 @@ describe('门禁服务', () => {
     const root = createRepoRoot()
     writePlan(root)
 
+    for (const worktreeDecision of ['transferred', 'cancelled'] as const) {
+      const result = runGateSync(root, {
+        workflow: 'work',
+        checkpoint: 'final',
+        planPath: 'docs/ae/plans/test-plan.md',
+        validationCommands: ['npm run test'],
+        reviewStatus: 'not_applicable',
+        gitOperations: [],
+        worktreeDecision,
+        noCodeChangeReason: '测试场景',
+        writeProof: false,
+      })
+
+      expect(result.status).toBe('block')
+      expect(result.blockers).toContain('worktree_decision 为 transferred/cancelled 时不能作为功能交付最终门禁通过。')
+    }
+  })
+
+  it('应该阻断 LFG 缺少 worktree_decision 的最终交付门禁', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+
     const result = runGateSync(root, {
-      workflow: 'work',
+      workflow: 'lfg',
       checkpoint: 'final',
       planPath: 'docs/ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
+      gitOperations: [],
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('缺少 worktree_decision，不能证明实现前已完成 worktree 决策。')
+  })
+
+  it('应该阻断 LFG transferred 的最终交付门禁', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+
+    const result = runGateSync(root, {
+      workflow: 'lfg',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'passed',
       gitOperations: [],
       worktreeDecision: 'transferred',
       noCodeChangeReason: '测试场景',
@@ -1023,10 +1073,10 @@ describe('门禁服务', () => {
 
   it('应该允许 B worktree 引用 A 启动证明覆盖 git worktree add', () => {
     const rootA = createRepoRoot()
-    const rootB = createRepoRoot()
+    const rootB = createAllowedWorktreeRoot(rootA, 'repo-b')
     writePlan(rootB)
     const fingerprint = initGitRepo(rootB)
-    const commandArgs = ['git', 'worktree', 'add', rootB, '-b', 'feat/x']
+    const commandArgs = ['git', 'worktree', 'add', '-b', 'feat/x', rootB]
 
     const result = runGateSync(rootB, {
       workflow: 'work',
@@ -1059,12 +1109,253 @@ describe('门禁服务', () => {
     expect(result.evidenceSources.gitAuthorization).toBe('user_confirmation')
   })
 
+  it('应该允许 B worktree 在 HEAD 变化后继续引用 A 启动证明覆盖 git worktree add', () => {
+    const rootA = createRepoRoot()
+    const rootB = createAllowedWorktreeRoot(rootA, 'repo-b')
+    writePlan(rootB)
+    const creationFingerprint = initGitRepo(rootB)
+    writeFileSync(join(rootB, 'CHANGELOG.md'), '# change\n', 'utf8')
+    execFileSync('git', ['add', '.'], { cwd: rootB, stdio: 'ignore' })
+    execFileSync('git', ['commit', '-m', 'change'], { cwd: rootB, stdio: 'ignore' })
+    const commandArgs = ['git', 'worktree', 'add', '-b', 'feat/x', rootB]
+
+    const result = runGateSync(rootB, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'not_applicable',
+      gitOperationArgs: [commandArgs],
+      gitAuthorizationEvidence: [{
+        authorizationSource: 'user_confirmation',
+        authorizationSummary: '用户授权 A 创建 B worktree',
+        authorizationTrust: 'verified',
+        coveredCommandArgs: commandArgs,
+        sourceSessionId: 'session-a',
+        operationWorktree: rootA,
+        targetWorktree: rootB,
+        branch: creationFingerprint.branch,
+        head: creationFingerprint.head,
+        authorizedAtOrMessageRef: 'message-a',
+        finalCommandArgs: commandArgs,
+      }],
+      trustedAuthorizationRefs: ['message-a'],
+      currentSessionId: 'session-b',
+      worktreeDecision: 'created',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('pass')
+    expect(result.evidenceSources.gitAuthorization).toBe('user_confirmation')
+  })
+
+  it('应该阻断 B worktree 复用分支不匹配的启动证明', () => {
+    const rootA = createRepoRoot()
+    const rootB = createAllowedWorktreeRoot(rootA, 'repo-b')
+    writePlan(rootB)
+    const fingerprint = initGitRepo(rootB)
+    const commandArgs = ['git', 'worktree', 'add', '-b', 'feat/x', rootB]
+
+    const result = runGateSync(rootB, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'not_applicable',
+      gitOperationArgs: [commandArgs],
+      gitAuthorizationEvidence: [{
+        authorizationSource: 'user_confirmation',
+        authorizationSummary: '用户授权 A 创建 B worktree',
+        authorizationTrust: 'verified',
+        coveredCommandArgs: commandArgs,
+        sourceSessionId: 'session-a',
+        operationWorktree: rootA,
+        targetWorktree: rootB,
+        branch: 'stale-branch',
+        head: fingerprint.head,
+        authorizedAtOrMessageRef: 'message-a',
+        finalCommandArgs: commandArgs,
+      }],
+      trustedAuthorizationRefs: ['message-a'],
+      currentSessionId: 'session-b',
+      worktreeDecision: 'created',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('Git 写操作授权证据未覆盖实际执行的命令范围或当前 worktree。')
+  })
+
+  it('应该阻断 worktree 非 add 写操作跨会话复用授权证据', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+    const fingerprint = initGitRepo(root)
+    const commandArgs = ['git', 'worktree', 'remove', '../worktrees/old']
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'not_applicable',
+      gitOperationArgs: [commandArgs],
+      gitAuthorizationEvidence: [{
+        authorizationSource: 'user_confirmation',
+        authorizationSummary: '用户授权移除 worktree',
+        authorizationTrust: 'verified',
+        coveredCommandArgs: commandArgs,
+        sourceSessionId: 'session-a',
+        operationWorktree: root,
+        targetWorktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        authorizedAtOrMessageRef: 'message-a',
+        finalCommandArgs: commandArgs,
+      }],
+      trustedAuthorizationRefs: ['message-a'],
+      currentSessionId: 'session-b',
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('Git 写操作授权证据未覆盖实际执行的命令范围或当前 worktree。')
+  })
+
+  it('应该允许 git worktree add 使用 -- 分隔符后的合法目标路径', () => {
+    const rootA = createRepoRoot()
+    const rootB = createAllowedWorktreeRoot(rootA, 'repo-b')
+    writePlan(rootB)
+    const fingerprint = initGitRepo(rootB)
+    const commandArgs = ['git', 'worktree', 'add', '--', rootB]
+
+    const result = runGateSync(rootB, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'not_applicable',
+      gitOperationArgs: [commandArgs],
+      gitAuthorizationEvidence: [{
+        authorizationSource: 'user_confirmation',
+        authorizationSummary: '用户授权 A 创建 B worktree',
+        authorizationTrust: 'verified',
+        coveredCommandArgs: commandArgs,
+        sourceSessionId: 'session-a',
+        operationWorktree: rootA,
+        targetWorktree: rootB,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        authorizedAtOrMessageRef: 'message-a',
+        finalCommandArgs: commandArgs,
+      }],
+      trustedAuthorizationRefs: ['message-a'],
+      currentSessionId: 'session-b',
+      worktreeDecision: 'created',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('pass')
+  })
+
+  it('应该阻断 git worktree add 使用未允许选项导致目标路径无法可靠解析', () => {
+    const rootA = createRepoRoot()
+    const rootB = createAllowedWorktreeRoot(rootA, 'repo-b')
+    writePlan(rootB)
+    const fingerprint = initGitRepo(rootB)
+
+    for (const commandArgs of [
+      ['git', 'worktree', 'add', '--force', rootB],
+      ['git', 'worktree', 'add', '--quiet', rootB],
+      ['git', 'worktree', 'add', '-B', 'feat/x', rootB],
+      ['git', 'worktree', 'add', rootB, '--force'],
+      ['git', 'worktree', 'add', rootB, '--quiet'],
+      ['git', 'worktree', 'add', rootB, '-B', 'feat/x'],
+      ['git', 'worktree', 'add', rootB, '--unknown'],
+      ['git', 'worktree', '-q', 'add', rootB],
+      ['git', 'worktree', '--porcelain', 'add', rootB],
+    ]) {
+      const result = runGateSync(rootB, {
+        workflow: 'work',
+        checkpoint: 'final',
+        planPath: 'docs/ae/plans/test-plan.md',
+        validationCommands: ['npm run test'],
+        reviewStatus: 'not_applicable',
+        gitOperationArgs: [commandArgs],
+        gitAuthorizationEvidence: [{
+          authorizationSource: 'user_confirmation',
+          authorizationSummary: '用户授权 A 创建 B worktree',
+          authorizationTrust: 'verified',
+          coveredCommandArgs: commandArgs,
+          sourceSessionId: 'session-a',
+          operationWorktree: rootA,
+          targetWorktree: rootB,
+          branch: fingerprint.branch,
+          head: fingerprint.head,
+          authorizedAtOrMessageRef: 'message-a',
+          finalCommandArgs: commandArgs,
+        }],
+        trustedAuthorizationRefs: ['message-a'],
+        currentSessionId: 'session-b',
+        worktreeDecision: 'created',
+        noCodeChangeReason: '测试场景',
+        writeProof: false,
+      })
+
+      expect(result.status).toBe('block')
+      expect(result.blockers).toContain('Git 写操作授权证据未覆盖实际执行的命令范围或当前 worktree。')
+    }
+  })
+
+  it('应该阻断 git worktree add -- 指向授权目标以外的路径', () => {
+    const rootA = createRepoRoot()
+    const rootB = createAllowedWorktreeRoot(rootA, 'repo-b')
+    const outsideRoot = createRepoRoot()
+    writePlan(rootB)
+    const fingerprint = initGitRepo(rootB)
+    const commandArgs = ['git', 'worktree', 'add', '--', outsideRoot]
+
+    const result = runGateSync(rootB, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'not_applicable',
+      gitOperationArgs: [commandArgs],
+      gitAuthorizationEvidence: [{
+        authorizationSource: 'user_confirmation',
+        authorizationSummary: '用户授权 A 创建 B worktree',
+        authorizationTrust: 'verified',
+        coveredCommandArgs: commandArgs,
+        sourceSessionId: 'session-a',
+        operationWorktree: rootA,
+        targetWorktree: rootB,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        authorizedAtOrMessageRef: 'message-a',
+        finalCommandArgs: commandArgs,
+      }],
+      trustedAuthorizationRefs: ['message-a'],
+      currentSessionId: 'session-b',
+      worktreeDecision: 'created',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('Git 写操作授权证据未覆盖实际执行的命令范围或当前 worktree。')
+  })
+
   it('应该阻断 A worktree 复用 A 到 B 的启动证明', () => {
     const rootA = createRepoRoot()
-    const rootB = createRepoRoot()
+    const rootB = createAllowedWorktreeRoot(rootA, 'repo-b')
     writePlan(rootA)
     const fingerprint = initGitRepo(rootA)
-    const commandArgs = ['git', 'worktree', 'add', rootB, '-b', 'feat/x']
+    const commandArgs = ['git', 'worktree', 'add', '-b', 'feat/x', rootB]
 
     const result = runGateSync(rootA, {
       workflow: 'work',
@@ -1097,12 +1388,12 @@ describe('门禁服务', () => {
     expect(result.blockers).toContain('Git 写操作授权证据未覆盖实际执行的命令范围或当前 worktree。')
   })
 
-  it('应该阻断 B worktree 复用过期启动证明', () => {
+  it('应该阻断创建到非 ../worktrees 直接子目录的 worktree', () => {
     const rootA = createRepoRoot()
     const rootB = createRepoRoot()
     writePlan(rootB)
     const fingerprint = initGitRepo(rootB)
-    const commandArgs = ['git', 'worktree', 'add', rootB, '-b', 'feat/x']
+    const commandArgs = ['git', 'worktree', 'add', '-b', 'feat/x', rootB]
 
     const result = runGateSync(rootB, {
       workflow: 'work',
@@ -1120,7 +1411,47 @@ describe('门禁服务', () => {
         operationWorktree: rootA,
         targetWorktree: rootB,
         branch: fingerprint.branch,
-        head: 'stale-head',
+        head: fingerprint.head,
+        authorizedAtOrMessageRef: 'message-a',
+        finalCommandArgs: commandArgs,
+      }],
+      trustedAuthorizationRefs: ['message-a'],
+      currentSessionId: 'session-b',
+      worktreeDecision: 'created',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('Git 写操作授权证据未覆盖实际执行的命令范围或当前 worktree。')
+  })
+
+  it('应该阻断创建到 ../worktrees 下的嵌套子目录', () => {
+    const rootA = createRepoRoot()
+    const rootB = join(rootA, '..', 'worktrees', 'repo-b', 'nested')
+    tempRoots.push(rootB)
+    mkdirSync(join(rootB, 'docs', 'ae', 'plans'), { recursive: true })
+    writePlan(rootB)
+    const fingerprint = initGitRepo(rootB)
+    const commandArgs = ['git', 'worktree', 'add', rootB]
+
+    const result = runGateSync(rootB, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'not_applicable',
+      gitOperationArgs: [commandArgs],
+      gitAuthorizationEvidence: [{
+        authorizationSource: 'user_confirmation',
+        authorizationSummary: '用户授权 A 创建 B worktree',
+        authorizationTrust: 'verified',
+        coveredCommandArgs: commandArgs,
+        sourceSessionId: 'session-a',
+        operationWorktree: rootA,
+        targetWorktree: rootB,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
         authorizedAtOrMessageRef: 'message-a',
         finalCommandArgs: commandArgs,
       }],

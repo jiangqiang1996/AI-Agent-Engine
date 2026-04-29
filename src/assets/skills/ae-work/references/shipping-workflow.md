@@ -41,8 +41,13 @@
 
 最小 gate 场景：
 - 无 Git 写操作：`git_operations: []`，记录 `worktree_decision`
+- 非 Git 项目或 `git worktree` 不可用：跳过 worktree 询问，记录 `worktree_decision: not_applicable`
+- 不创建新 worktree 并直接在当前分支执行：记录 `worktree_decision: rejected`，产物、验证、审查和最终门禁均归属于当前 `ctx.worktree`
+- `ae:lfg` 调用 `ae:work` 且用户未在参数中显式声明不使用 worktree：不展示 worktree 选择，Git 仓库中默认创建独立 worktree；如显式声明 `--no-worktree` 或“不使用 worktree”，才可记录 `worktree_decision: rejected`
 - 普通 Git 写操作：同时记录 `git_operation_args` 和覆盖相同参数数组的 `git_authorization_evidence`
-- A→B 启动证明：授权证据区分 `operation_worktree` 与 `target_worktree`，B 中最终 gate 的当前 worktree 必须匹配 `target_worktree`
+- A→B 启动证明：授权证据区分 `operation_worktree` 与 `target_worktree`，`target_worktree` 必须是 A 项目根目录同级的 `../worktrees/<name>` 直接子目录，B 中最终 gate 的当前 worktree 必须匹配 `target_worktree`
+- A→B 产物迁移：创建 B 后，A 会话只允许把当前任务已确定的需求/计划产物迁移到 B，包含 A 中未跟踪的 `docs/ae/brainstorms/*-requirements.md` 和 `docs/ae/plans/*-plan.md`；不迁移 gate/review 运行时产物，不修改 B 中代码、配置、测试或其他项目文件
+- A→B 交接文件：创建 B 后，A 会话只允许在 B 写入 `docs/ae/handoffs/<timestamp>-worktree-handoff.md` 或等价明确路径，记录当前会话核心上下文；A 的结束提示必须包含在 B 新会话读取该文件继续的提示词
 - 未运行审查：`review_status: not_run` 搭配 `review_evidence.type: not_run_reason`
 - 已通过审查：`review_status: passed` 搭配已存在的 `report_path` 证据及当前工作区指纹；`tool_output` 只能作为声明记录，不能独立放行最终门禁
 
@@ -80,7 +85,8 @@
 
 - “已验证”只能写入可观察工作区状态、工具输出或可引用执行结果支撑的事实。
 - 仅来自用户口头确认、工具参数或代理自述的内容，必须放入“未验证 / 无法验证”或“Git 操作状态”。
-- A 会话执行 `git worktree add` 成功后，终止状态是“执行已转移 / 等待用户在 B 重启”，不是“功能交付完成”；A 不运行最终门禁来宣称功能交付。
+- A 会话执行 `git worktree add`、迁移当前任务需求/计划产物并写入交接 Markdown 成功后，终止状态是“执行已转移 / 等待用户在 B 重启”，不是“功能交付完成”；A 不运行最终门禁来宣称功能交付。
+- A 的终止提示必须包含目标 B 路径、交接 Markdown 路径，以及类似“请在 B 目录打开 opencode，先读取 `<handoff-path>`、需求文档和计划文档，然后从待办事项继续执行”的可复制提示词。
 - 问答和只读审查可使用更轻量的对应输出，不强制套用整份模板。
 
 5. **准备运维验证计划（必需）**

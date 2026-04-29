@@ -142,6 +142,12 @@ interface GitOperation {
   worktreeTargetPath?: string
 }
 
+interface WorktreeOperationParseResult {
+  action?: string
+  targetPath?: string
+  reliable: boolean
+}
+
 const WRITE_SUBCOMMANDS = new Set([
   'add',
   'commit',
@@ -366,43 +372,75 @@ function skipGlobalGitOptions(args: string[], start: number): number {
   return index
 }
 
-function getWorktreeTargetPath(action: string | undefined, targetArgs: string[]): string | undefined {
-  if (!action || !WORKTREE_WRITE_SUBCOMMANDS.has(action)) {
-    return undefined
-  }
-
-  const candidates = targetArgs.slice(1)
+function parseWorktreeAddTarget(candidates: string[]): Pick<WorktreeOperationParseResult, 'targetPath' | 'reliable'> {
   let index = 0
   while (index < candidates.length) {
     const token = candidates[index]
     if (!token) {
-      return undefined
+      return { reliable: false }
     }
 
-    if (WORKTREE_OPTIONS_WITH_VALUE.has(token.toLowerCase())) {
+    const optionKey = token.startsWith('--') ? token.toLowerCase() : token
+    if (WORKTREE_OPTIONS_WITH_VALUE.has(optionKey)) {
+      if (!candidates[index + 1]) {
+        return { reliable: false }
+      }
       index += 2
       continue
     }
 
-    if (WORKTREE_BOOLEAN_OPTIONS.has(token.toLowerCase())) {
+    if (WORKTREE_BOOLEAN_OPTIONS.has(optionKey)) {
       index += 1
       continue
     }
 
-    if (token.startsWith('--')) {
-      index += token.includes('=') ? 1 : 2
-      continue
+    if (token === '--') {
+      const targetPath = candidates[index + 1]
+      return targetPath && !targetPath.startsWith('-')
+        ? { targetPath, reliable: isWorktreeAddTailReliable(candidates.slice(index + 2)) }
+        : { reliable: false }
     }
 
     if (token.startsWith('-')) {
-      index += 1
-      continue
+      return { reliable: false }
     }
 
-    return token
+    return { targetPath: token, reliable: isWorktreeAddTailReliable(candidates.slice(index + 1)) }
   }
 
-  return undefined
+  return { reliable: false }
+}
+
+function isWorktreeAddTailReliable(tail: string[]): boolean {
+  if (tail.length === 0) {
+    return true
+  }
+
+  return tail.length === 1 && !!tail[0] && !tail[0].startsWith('-') && tail[0] !== '--'
+}
+
+function parseWorktreeOperation(targetArgs: string[]): WorktreeOperationParseResult {
+  let index = 0
+  while (index < targetArgs.length) {
+    const token = targetArgs[index]
+    if (!token || token === '--') {
+      return { reliable: false }
+    }
+
+    if (token.startsWith('-')) {
+      return { reliable: false }
+    }
+
+    const action = token.toLowerCase()
+    if (action !== 'add') {
+      return { action, reliable: true }
+    }
+
+    const parsedTarget = parseWorktreeAddTarget(targetArgs.slice(index + 1))
+    return { action, ...parsedTarget }
+  }
+
+  return { reliable: true }
 }
 
 function parseGitOperation(
@@ -446,9 +484,11 @@ function parseGitOperation(
   let worktreeAction: string | undefined
   let worktreeTargetPath: string | undefined
   if (subcommand === 'worktree') {
-    worktreeAction = targetArgs.find((token) => !token.startsWith('-'))?.toLowerCase()
+    const worktreeOperation = parseWorktreeOperation(targetArgs)
+    worktreeAction = worktreeOperation.action
     write = worktreeAction ? WORKTREE_WRITE_SUBCOMMANDS.has(worktreeAction) : true
-    worktreeTargetPath = getWorktreeTargetPath(worktreeAction, targetArgs)
+    parseReliable = parseReliable && worktreeOperation.reliable
+    worktreeTargetPath = worktreeOperation.targetPath
   }
 
   return {
@@ -498,6 +538,18 @@ function isMatchingWorktreePath(actual: string | undefined, expected: string): b
   }
 
   return normalizePathForEvidence(actual) === normalizePathForEvidence(expected)
+}
+
+function isAllowedWorktreeTarget(operationWorktree: string, targetWorktree: string): boolean {
+  const allowedParent = normalizePathForEvidence(resolve(operationWorktree, '..', 'worktrees'))
+  const normalizedTarget = normalizePathForEvidence(targetWorktree)
+  const prefix = `${allowedParent}/`
+  if (!normalizedTarget.startsWith(prefix)) {
+    return false
+  }
+
+  const childName = normalizedTarget.slice(prefix.length)
+  return Boolean(childName) && !childName.includes('/')
 }
 
 function isAuthorizationVerified(
@@ -560,13 +612,26 @@ function authorizationCoversOperation(
     }
 
     if (operation.worktreeAction === 'add') {
+      if (!operation.worktreeTargetPath) {
+        return false
+      }
+
+      if (!isAllowedWorktreeTarget(evidence.operationWorktree, evidence.targetWorktree)) {
+        return false
+      }
+
       return isMatchingWorktreePath(currentFingerprint.worktreePath, evidence.targetWorktree)
         && !isMatchingWorktreePath(currentFingerprint.worktreePath, evidence.operationWorktree)
         && currentFingerprint.branch === evidence.branch
-        && currentFingerprint.head === evidence.head
+    }
+
+    if (currentSessionId && evidence.sourceSessionId !== currentSessionId) {
+      return false
     }
 
     return isMatchingWorktreePath(currentFingerprint.worktreePath, evidence.operationWorktree)
+      && currentFingerprint.branch === evidence.branch
+      && currentFingerprint.head === evidence.head
   }
 
   if (currentSessionId && evidence.sourceSessionId !== currentSessionId) {
@@ -954,15 +1019,17 @@ function addFinalBlockers(
     blockers.push('ae:work 最终门禁检测到审查失败，不能交付。')
   }
 
-  if (input.workflow === 'work' && !result.evidence.worktreeDecision) {
+  const requiresWorktreeDecision = input.workflow === 'work' || input.workflow === 'lfg'
+
+  if (requiresWorktreeDecision && !result.evidence.worktreeDecision) {
     blockers.push('缺少 worktree_decision，不能证明实现前已完成 worktree 决策。')
     addMissingEvidence(missingEvidence, 'worktree_decision')
     addNextStep(nextSteps, '补充 worktree_decision，记录本次选择 created、rejected、transferred、cancelled 或 not_applicable。')
-  } else if (input.workflow === 'work' && ['transferred', 'cancelled'].includes(result.evidence.worktreeDecision ?? '')) {
+  } else if (requiresWorktreeDecision && ['transferred', 'cancelled'].includes(result.evidence.worktreeDecision ?? '')) {
     blockers.push('worktree_decision 为 transferred/cancelled 时不能作为功能交付最终门禁通过。')
     addNextStep(nextSteps, '在目标 worktree 重新执行 ae:work 并运行最终门禁，或将取消状态作为非交付结果记录。')
   } else if (
-    input.workflow === 'work'
+    requiresWorktreeDecision
       && result.evidence.worktreeDecision === 'not_applicable'
       && result.evidence.currentWorktreeFingerprint.available
   ) {

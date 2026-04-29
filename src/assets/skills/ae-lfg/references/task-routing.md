@@ -21,7 +21,7 @@ S3 必须先经过只读定位子阶段。定位阶段只允许读取和搜索�
 - 是否触发升级停点
 - 无需计划原因，或升级为 S4 的原因
 
-只有明确判定仍属 S3，并在修改项目文件前完成 worktree 决策后，才允许开始修改。拒绝 worktree 不等于允许直接在默认分支实现；若用户坚持在默认分支修改，必须二次确认风险并记录到最终 Git 操作状态和门禁 notes。
+只有明确判定仍属 S3，并在修改项目文件前完成 worktree 决策后，才允许开始修改。通过 `ae:lfg` 进入正式实现时，当前目录是 Git 仓库且 `git worktree` 可用的情况下，不询问用户是否创建 worktree，默认创建独立 worktree 并同步创建对应分支；Git 写操作授权应尽量在前置澄清阶段一次性取得，后续仅校验实际命令是否仍落在授权范围内。只有用户在参数中显式声明不使用 worktree（如 `--no-worktree` 或明确写明“不使用 worktree”）时，才允许记录 `worktree_decision: rejected` 并继续当前分支。当前项目不是 Git 仓库、Git 不可用或 `git worktree` 不支持时，不询问 worktree 选择并记录 `worktree_decision: not_applicable`。拒绝 worktree 不等于允许直接在默认分支实现；若用户坚持在默认分支修改，必须二次确认风险并记录到最终 Git 操作状态和门禁 notes。
 
 出现以下任一信号，必须停止轻路径并升级到 S4：
 
