@@ -3,7 +3,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { getAllAgentDefinitions } from './ae-catalog.js'
-import { resolveRepoRootFromModuleUrl } from '../utils/path-utils.js'
+import { resolvePluginRootFromModuleUrl } from '../utils/path-utils.js'
 
 export interface RuntimeAssetManifest {
   repoRoot: string
@@ -35,17 +35,27 @@ function resolveRuntimeAssetsDir(repoRoot: string, moduleDir: string): string {
   return candidates.find((dir) => existsSync(dir)) ?? candidates[1]
 }
 
+function resolveAssetsDirFromRoot(repoRoot: string): string {
+  const candidates = [
+    join(repoRoot, 'dist', 'src', 'assets'),
+    join(repoRoot, 'src', 'assets'),
+  ]
+
+  return candidates.find((dir) => existsSync(dir)) ?? candidates[0]
+}
+
 export function createRuntimeAssetManifestFromRoot(repoRoot: string): RuntimeAssetManifest {
   const root = resolve(repoRoot)
   const runtimeAgentDir = join(root, '.opencode', 'agents', 'ae')
-  const agentsDir = join(root, 'src', 'assets', 'agents')
+  const assetsDir = resolveAssetsDirFromRoot(root)
+  const agentsDir = join(assetsDir, 'agents')
 
   return {
     repoRoot: root,
-    skillsDir: join(root, 'src', 'assets', 'skills'),
-    rulesDir: join(root, 'src', 'assets', 'rules'),
-    commandsDir: join(root, 'src', 'assets', 'commands'),
-    builtinConfigFile: join(root, 'src', 'assets', 'config', 'builtin-opencode.jsonc'),
+    skillsDir: join(assetsDir, 'skills'),
+    rulesDir: join(assetsDir, 'rules'),
+    commandsDir: join(assetsDir, 'commands'),
+    builtinConfigFile: join(assetsDir, 'config', 'builtin-opencode.jsonc'),
     toolsDir: join(root, 'tools'),
     agentsDir,
     runtimeAgentDir,
@@ -55,7 +65,7 @@ export function createRuntimeAssetManifestFromRoot(repoRoot: string): RuntimeAss
 }
 
 export function createRuntimeAssetManifest(moduleUrl: string): RuntimeAssetManifest {
-  const root = resolveRepoRootFromModuleUrl(moduleUrl)
+  const root = resolvePluginRootFromModuleUrl(moduleUrl)
   const moduleDir = dirname(fileURLToPath(moduleUrl))
   const runtimeAgentDir = join(root, '.opencode', 'agents', 'ae')
   const assetsDir = resolveRuntimeAssetsDir(root, moduleDir)

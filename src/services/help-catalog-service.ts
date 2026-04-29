@@ -9,7 +9,7 @@ import { buildAgentConfig } from './agent-registration.js'
 import { createRuntimeAssetManifest } from './runtime-asset-manifest.js'
 import { createRuntimeAssetManifestFromRoot } from './runtime-asset-manifest.js'
 import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
-import { resolveRepoRootFromModuleUrl } from '../utils/path-utils.js'
+import { resolvePluginRootFromModuleUrl } from '../utils/path-utils.js'
 
 export interface SkillEntry {
   name: string
@@ -33,7 +33,7 @@ export interface AgentEntry {
 }
 
 function getRepoRoot(): string {
-  return resolveRepoRootFromModuleUrl(import.meta.url)
+  return resolvePluginRootFromModuleUrl(import.meta.url)
 }
 
 function buildSkillEntries(): SkillEntry[] {

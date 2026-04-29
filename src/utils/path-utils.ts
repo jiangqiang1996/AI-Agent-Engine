@@ -1,17 +1,37 @@
 import { existsSync } from 'node:fs'
-import { dirname, join, relative, resolve } from 'node:path'
+import { basename, dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 export function toPosixPath(p: string): string {
   return p.replaceAll('\\', '/')
 }
 
-export function resolveRepoRootFromModuleUrl(moduleUrl: string): string {
+function isPluginRootCandidate(dir: string): boolean {
+  return [
+    join(dir, 'dist', 'src', 'assets'),
+    join(dir, 'opencode.json'),
+  ].some((candidate) => existsSync(candidate))
+}
+
+/**
+ * 根据模块 URL 推断 AE 插件根目录，兼容源码运行和仅分发 dist 产物两种结构。
+ */
+export function resolvePluginRootFromModuleUrl(moduleUrl: string): string {
   let dir = dirname(fileURLToPath(moduleUrl))
 
   while (dir !== dirname(dir)) {
-    // opencode.json 是插件项目的稳定锚点，比依赖当前工作目录更适合构建产物和测试环境。
-    if (existsSync(join(dir, 'opencode.json'))) {
+    const parentDir = dirname(dir)
+
+    if (basename(dir) === 'src' && basename(parentDir) === 'dist' && existsSync(join(dir, 'assets'))) {
+      return dirname(parentDir)
+    }
+
+    if (basename(dir) === 'src' && existsSync(join(dir, 'assets'))) {
+      return parentDir
+    }
+
+    // 优先根据插件结构推断根目录，兼容只有桥接文件和 dist 产物的安装方式。
+    if (isPluginRootCandidate(dir)) {
       return dir
     }
     dir = dirname(dir)
@@ -19,6 +39,11 @@ export function resolveRepoRootFromModuleUrl(moduleUrl: string): string {
 
   throw new Error(`无法从模块路径推断仓库根目录: ${moduleUrl}`)
 }
+
+/**
+ * 兼容旧命名，等价于 `resolvePluginRootFromModuleUrl()`。
+ */
+export const resolveRepoRootFromModuleUrl = resolvePluginRootFromModuleUrl
 
 export function isInsideRoot(root: string, filePath: string): boolean {
   const rel = relative(resolve(root), resolve(filePath))
