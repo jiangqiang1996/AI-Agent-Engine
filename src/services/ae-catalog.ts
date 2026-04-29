@@ -174,6 +174,15 @@ const PHASE_ONE_ENTRIES = [
     skillFile: `src/assets/skills/${skillDir(SKILL.SAVE_RULES)}/SKILL.md`,
   },
   {
+    skillName: SKILL.SAVE_SESSION_FLOW,
+    skillSlug: skillDir(SKILL.SAVE_SESSION_FLOW),
+    commandName: COMMAND.SAVE_SESSION_FLOW,
+    description: '总结当前会话的执行流程，经用户确认后保存为项目级或 AE 内置技能',
+    argumentHint: '[目标技能名|流程关注点]',
+    defaultEntry: false,
+    skillFile: `src/assets/skills/${skillDir(SKILL.SAVE_SESSION_FLOW)}/SKILL.md`,
+  },
+  {
     skillName: SKILL.ASSET_DEBUG,
     skillSlug: skillDir(SKILL.ASSET_DEBUG),
     commandName: COMMAND.ASSET_DEBUG,

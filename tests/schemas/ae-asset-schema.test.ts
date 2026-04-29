@@ -24,4 +24,11 @@ describe('ae-asset-schema', () => {
     expect(AeCommandNameSchema.parse(`${COMMAND.FIGMA_ASSETS}${PA_SUFFIX}`)).toBe('ae-figma-assets-pa')
     expect(TOOL.AE_FIGMA_ASSETS).toBe('ae-figma-assets')
   })
+
+  it('应该接受 save-session-flow 技能和命令', () => {
+    expect(AeSkillNameSchema.parse(SKILL.SAVE_SESSION_FLOW)).toBe('ae:save-session-flow')
+    expect(AeCommandNameSchema.parse(COMMAND.SAVE_SESSION_FLOW)).toBe('ae-save-session-flow')
+    expect(AeCommandNameSchema.parse(`${COMMAND.SAVE_SESSION_FLOW}${PO_SUFFIX}`)).toBe('ae-save-session-flow-po')
+    expect(AeCommandNameSchema.parse(`${COMMAND.SAVE_SESSION_FLOW}${PA_SUFFIX}`)).toBe('ae-save-session-flow-pa')
+  })
 })

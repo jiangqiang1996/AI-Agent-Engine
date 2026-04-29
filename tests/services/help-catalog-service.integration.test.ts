@@ -23,4 +23,14 @@ describe('help-catalog-service 集成', () => {
     expect(text).toContain(`/${COMMAND.REFACTOR}${PA_SUFFIX}`)
     expect(text).toContain('[重构目标\\|计划路径\\|需求文档路径\\|代码异味描述]')
   })
+
+  it('应该在真实帮助目录中暴露 ae:save-session-flow 入口', () => {
+    const text = generateHelpText('save-session-flow')
+
+    expect(text).toContain(SKILL.SAVE_SESSION_FLOW)
+    expect(text).toContain(`/${COMMAND.SAVE_SESSION_FLOW}`)
+    expect(text).toContain(`/${COMMAND.SAVE_SESSION_FLOW}${PO_SUFFIX}`)
+    expect(text).toContain(`/${COMMAND.SAVE_SESSION_FLOW}${PA_SUFFIX}`)
+    expect(text).toContain('[目标技能名\\|流程关注点]')
+  })
 })
