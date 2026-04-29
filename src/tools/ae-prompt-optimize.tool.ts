@@ -5,6 +5,7 @@ import { Effect } from 'effect'
 import { getGlobalClient } from '../services/client-holder.js'
 import { executePromptSubmit } from '../services/prompt-optimize.service.js'
 import { showToast } from '../services/toast-holder.js'
+import { ensureBrowserSetupGate } from '../services/browser-setup-gate.js'
 
 export const aePromptOptimizeTool: ToolDefinition = tool({
   description: [
@@ -47,10 +48,12 @@ export const aePromptOptimizeTool: ToolDefinition = tool({
       ].join('\n')
     }
 
+    const safePrompt = ensureBrowserSetupGate(args.optimized_prompt)
+
     context.metadata({ title: '正在创建新会话...' })
 
     return Effect.runPromise(
-      executePromptSubmit(client, args.optimized_prompt, args.session_title).pipe(
+      executePromptSubmit(client, safePrompt, args.session_title).pipe(
         Effect.map((result) => {
           context.metadata({ title: '优化提示词已提交' })
 

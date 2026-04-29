@@ -35,6 +35,8 @@ description: "通过 N 轮截图-分析-改进循环打磨已实现 UI。当初�
 
 ### 准备：设置合适的窗口尺寸
 
+在执行任何 `agent-browser` 命令前，当前会话必须已实际完成 `ae:setup` / `/ae-setup` 并得到环境就绪结果。CLI 已安装、用户声称已安装或本地可用性检查成功都不能替代 setup。
+
 开始迭代前，以有头模式打开浏览器以便查看和调整大小：
 
 ```bash
@@ -190,13 +192,9 @@ agent-browser --headed open [url]
 
 ### 步骤 0：前置检查与设计技能加载
 
-**首先检查 agent-browser 是否可用：**
+**首先执行 setup 前置门禁：**
 
-```bash
-command -v agent-browser 2>/dev/null || where agent-browser 2>NUL
-```
-
-如果不可用，返回提示："agent-browser 未安装。请先运行 /ae-setup 安装。"
+如果当前会话尚未实际完成 `ae:setup` / `/ae-setup`，先执行 `/ae-setup`。环境就绪后，再执行任何 `agent-browser` 命令。若 setup 安装失败、用户拒绝安装或当前环境无法安装，停止截图迭代并报告无法验证原因。
 
 **登录状态检测：**
 

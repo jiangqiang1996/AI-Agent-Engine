@@ -22,5 +22,5 @@
 5. `ae:review mode:headless domain:document <plan-path>` — 计划审查
 6. `ae:work` — 执行实现
 7. `ae:review mode:autofix plan:<path>` — 代码审查（含需求验证）
-8. `ae:test-browser` — 浏览器测试（仅当项目有 UI 且 agent-browser 可用时）
+8. `ae:setup` → `ae:test-browser` — 浏览器测试（仅当项目有 UI 时；先完成 setup，环境就绪后再测试）
 9. 输出 `<promise>DONE</promise>`

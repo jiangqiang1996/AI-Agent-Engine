@@ -54,9 +54,9 @@ disable-model-invocation: true
 
 ## 管道步骤
 
-### 步骤 1（可选）：依赖安装
+### 步骤 1（可选）：浏览器能力依赖说明
 
-如果 `ae-setup` 技能可用，运行 `/ae-setup`。如果不可用或失败，跳过并继续步骤 2。
+主管道开始时不无条件运行 `/ae-setup`。只有步骤 8 检测到项目需要浏览器测试，或后续流程实际准备使用 `agent-browser` 时，才先运行 `ae:setup` / `/ae-setup`。
 
 ### 步骤 2：需求探索
 
@@ -118,8 +118,8 @@ disable-model-invocation: true
 
 检查项目中是否有 UI 相关文件（`src/app/*`、`src/components/*`、`src/views/*`、`*.html` 等）：
 
-- 如果存在 UI 文件且 `agent-browser` 已安装，运行 `ae:test-browser`
-- 如果存在 UI 文件但 `agent-browser` 未安装，输出提示："`agent-browser` 未安装，跳过浏览器测试。运行 `/ae-setup` 安装。"
+- 如果存在 UI 文件，先运行 `ae:setup` / `/ae-setup`；环境就绪后再运行 `ae:test-browser`
+- 如果 `ae:setup` 安装失败、用户拒绝安装或当前环境无法安装，记录“无法验证：浏览器测试未执行”，不得运行 `agent-browser` 命令
 - 如果项目无 UI 文件，跳过此步骤
 
 **门控：** 如果浏览器测试全部失败，输出警告但允许继续。
