@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, realpathSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { isAbsolute, join, resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { Effect } from 'effect'
@@ -8,12 +8,61 @@ import { isInsideRoot, toPosixPath, toRepoRelativePath } from '../utils/path-uti
 export type GateWorkflow = 'lfg' | 'work'
 export type GateCheckpoint = 'start' | 'before_plan' | 'before_work' | 'before_review' | 'final'
 export type GateReviewStatus = 'passed' | 'failed' | 'not_run' | 'not_applicable'
+export type EvidenceTrust = 'verified' | 'declaration_only'
+export type WorktreeDecision = 'created' | 'rejected' | 'cancelled' | 'transferred' | 'not_applicable'
 export type GateEvidenceSource =
   | 'observable_workspace'
   | 'tool_output'
   | 'tool_input_declared'
   | 'user_confirmation'
   | 'not_provided'
+
+export interface GitAuthorizationEvidence {
+  authorizationSource: string
+  authorizationSummary: string
+  authorizationTrust: EvidenceTrust
+  coveredCommandArgs: string[]
+  sourceSessionId: string
+  operationWorktree: string
+  targetWorktree: string
+  branch: string
+  head: string
+  authorizedAtOrMessageRef: string
+  finalCommandArgs: string[]
+}
+
+export type ReviewEvidence =
+  | {
+      type: 'tool_output'
+      reviewTrust: EvidenceTrust
+      reviewRunIdOrMessageRef: string
+      worktree: string
+      branch: string
+      head: string
+      statusSummary: string
+      summary: string
+    }
+  | {
+      type: 'report_path'
+      reviewTrust: EvidenceTrust
+      path: string
+      reviewRunIdOrMessageRef: string
+      worktree: string
+      branch: string
+      head: string
+      statusSummary: string
+    }
+  | { type: 'not_run_reason'; reason: string }
+  | { type: 'declared'; summary: string; reviewTrust: 'declaration_only' }
+
+export interface WorktreeFingerprint {
+  worktreePath: string
+  branch?: string
+  head?: string
+  statusSummary?: string
+  available: boolean
+  error?: string
+}
 
 export interface GateInput {
   workflow: GateWorkflow
@@ -24,6 +73,13 @@ export interface GateInput {
   reviewStatus?: GateReviewStatus
   browserTestStatus?: GateReviewStatus
   gitOperations?: string[]
+  gitOperationArgs?: string[][]
+  gitAuthorizationEvidence?: GitAuthorizationEvidence[]
+  reviewEvidence?: ReviewEvidence
+  worktreeDecision?: WorktreeDecision
+  currentSessionId?: string
+  trustedAuthorizationRefs?: string[]
+  trustedReviewRefs?: string[]
   userAuthorizedGitWrite?: boolean
   noCodeChangeReason?: string
   notes?: string
@@ -58,6 +114,11 @@ export interface GateResult {
     reviewStatus: GateReviewStatus
     browserTestStatus: GateReviewStatus
     gitOperations: string[]
+    gitOperationArgs: string[][]
+    gitAuthorizationEvidence: GitAuthorizationEvidence[]
+    reviewEvidence?: ReviewEvidence
+    worktreeDecision?: WorktreeDecision
+    currentWorktreeFingerprint: WorktreeFingerprint
     userAuthorizedGitWrite: boolean
     noCodeChangeReason?: string
     latestArtifacts: {
@@ -69,20 +130,122 @@ export interface GateResult {
   proofPath?: string
 }
 
+interface GitOperation {
+  args: string[]
+  display: string
+  write: boolean
+  parseReliable: boolean
+  subcommand?: string
+  targetArgs: string[]
+  hasGitDirectoryOverride: boolean
+  worktreeAction?: string
+  worktreeTargetPath?: string
+}
+
+const WRITE_SUBCOMMANDS = new Set([
+  'add',
+  'commit',
+  'push',
+  'reset',
+  'checkout',
+  'switch',
+  'rebase',
+  'merge',
+  'restore',
+  'clean',
+  'stash',
+  'cherry-pick',
+  'revert',
+  'pull',
+  'tag',
+  'branch',
+  'config',
+  'maintenance',
+  'mv',
+  'notes',
+  'remote',
+  'replace',
+  'rm',
+  'submodule',
+  'update-ref',
+])
+
+const WORKTREE_WRITE_SUBCOMMANDS = new Set(['add', 'remove', 'move', 'prune', 'repair', 'lock', 'unlock'])
+const WORKTREE_OPTIONS_WITH_VALUE = new Set(['-b', '--orphan', '--reason'])
+const WORKTREE_BOOLEAN_OPTIONS = new Set([
+  '--detach',
+  '--lock',
+  '--guess-remote',
+  '--no-guess-remote',
+  '--checkout',
+  '--no-checkout',
+])
+
+function normalizePathForEvidence(path: string): string {
+  const normalized = toPosixPath(resolve(path))
+  return process.platform === 'win32' ? normalized.toLowerCase() : normalized
+}
+
+function isRuntimeEvidencePath(filePath: string): boolean {
+  const normalized = toPosixPath(filePath)
+  return normalized.startsWith('docs/ae/gates/')
+    || normalized.startsWith('docs/ae/review/')
+    || normalized.startsWith('docs/ae/reviews/')
+}
+
+function runGit(repoRoot: string, args: string[]): string {
+  return execFileSync('git', args, {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+    timeout: 10_000,
+  }).trim()
+}
+
+/**
+ * 采集当前 worktree 指纹。
+ * 门禁依赖该指纹防止跨分支、跨 worktree 或过期证据复用。
+ */
+export function collectCurrentWorktreeFingerprint(repoRoot: string): WorktreeFingerprint {
+  try {
+    const worktreePath = normalizePathForEvidence(realpathSync(repoRoot))
+    const branch = runGit(repoRoot, ['rev-parse', '--abbrev-ref', 'HEAD'])
+    const head = runGit(repoRoot, ['rev-parse', 'HEAD'])
+    const statusSummary = runGit(repoRoot, ['status', '--porcelain'])
+      .split('\n')
+      .filter((line) => line.trim())
+      .filter((line) => !isRuntimeEvidencePath(line.slice(3).trim()))
+      .map((line) => line.trim())
+      .join('\n')
+
+    return { worktreePath, branch, head, statusSummary, available: true }
+  } catch (error) {
+    return {
+      worktreePath: normalizePathForEvidence(repoRoot),
+      available: false,
+      error: error instanceof Error ? error.message : String(error),
+    }
+  }
+}
+
 function listLatestMarkdown(repoRoot: string, dir: string): string | undefined {
-  const absDir = join(repoRoot, dir)
-  if (!existsSync(absDir)) {
+  try {
+    const absDir = join(repoRoot, dir)
+    if (!existsSync(absDir)) {
+      return undefined
+    }
+
+    const files = readdirSync(absDir)
+      .filter((file) => file.endsWith('.md'))
+      .map((file) => join(absDir, file))
+      .filter((file) => statSync(file).isFile())
+      .sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs)
+
+    const latest = files[0]
+    return latest ? toRepoRelativePath(repoRoot, latest) : undefined
+  } catch {
     return undefined
   }
-
-  const files = readdirSync(absDir)
-    .filter((file) => file.endsWith('.md'))
-    .map((file) => join(absDir, file))
-    .filter((file) => statSync(file).isFile())
-    .sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs)
-
-  const latest = files[0]
-  return latest ? toRepoRelativePath(repoRoot, latest) : undefined
 }
 
 function resolveOptionalPath(repoRoot: string, filePath?: string): string | undefined {
@@ -119,57 +282,335 @@ function collectChangedFiles(repoRoot: string): string[] {
       cwd: repoRoot,
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
+      timeout: 10_000,
     })
 
     return output
       .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
+      .filter((line) => line.trim())
       .map((line) => line.slice(3).trim())
       .filter(Boolean)
+      .filter((file) => !isRuntimeEvidencePath(file))
       .map(toPosixPath)
   } catch {
     return []
   }
 }
 
-function containsGitWriteOperation(operations: string[]): boolean {
-  return operations.some((operation) => {
-    const tokens = operation.toLowerCase().trim().split(/\s+/).filter(Boolean)
-    const gitIndex = tokens.indexOf('git')
-    if (gitIndex === -1) {
-      return false
-    }
+function parseLegacyGitOperation(command: string): GitOperation | undefined {
+  const trimmed = command.trim()
+  if (!trimmed) {
+    return undefined
+  }
 
-    const subcommand = tokens.slice(gitIndex + 1).find((token) => !token.startsWith('-') && token !== '.')
-    if (!subcommand) {
-      return false
-    }
+  const reliable = !/["']/.test(trimmed)
+  return parseGitOperation(trimmed.split(/\s+/).filter(Boolean), trimmed, reliable, false)
+}
 
-    const writeSubcommands = new Set([
-      'commit',
-      'push',
-      'reset',
-      'checkout',
-      'switch',
-      'rebase',
-      'merge',
-      'restore',
-      'clean',
-      'stash',
-      'cherry-pick',
-      'revert',
-      'pull',
-      'tag',
-      'branch',
-      'update-ref',
-    ])
+function containsEmbeddedGitWrite(args: string[]): boolean {
+  const writePattern = Array.from(WRITE_SUBCOMMANDS)
+    .map((command) => command.replaceAll('-', '[ -]'))
+    .join('|')
+  const worktreePattern = Array.from(WORKTREE_WRITE_SUBCOMMANDS).join('|')
+  const gitGlobalOption = String.raw`(?:\s+(?:-C|-c|--git-dir|--work-tree)\s+\S+|\s+(?:-c\S+|--git-dir=\S+|--work-tree=\S+|--no-pager))*`
+  const pattern = new RegExp(`\\bgit\\b${gitGlobalOption}\\s+(?:${writePattern}|worktree\\s+(?:${worktreePattern}))\\b`, 'i')
+  const text = args.join(' ')
+  return args.some((arg) => pattern.test(arg) || /\bgit\b.*(?:alias\.|!git\s+)/i.test(arg))
+    || pattern.test(text)
+    || /\bgit\b.*(?:alias\.|!git\s+)/i.test(text)
+}
 
-    return writeSubcommands.has(subcommand) || [
-      '--no-verify',
-      '--amend',
-    ].some((token) => tokens.includes(token))
+function hasGitDirectoryOverride(args: string[]): boolean {
+  return args.some((token) => {
+    const lower = token.toLowerCase()
+    return token === '-C'
+      || lower === '--git-dir'
+      || lower === '--work-tree'
+      || lower.startsWith('--git-dir=')
+      || lower.startsWith('--work-tree=')
   })
+}
+
+function skipGlobalGitOptions(args: string[], start: number): number {
+  let index = start
+  while (index < args.length) {
+    const token = args[index]?.toLowerCase()
+    if (!token) {
+      break
+    }
+
+    const original = args[index]
+    if (original === '-C' || token === '-c' || token === '--git-dir' || token === '--work-tree') {
+      index += 2
+      continue
+    }
+
+    if (token.startsWith('-c') && token.length > 2) {
+      index += 1
+      continue
+    }
+
+    if (token.startsWith('--git-dir=') || token.startsWith('--work-tree=')) {
+      index += 1
+      continue
+    }
+
+    if (token.startsWith('-')) {
+      index += 1
+      continue
+    }
+
+    break
+  }
+
+  return index
+}
+
+function getWorktreeTargetPath(action: string | undefined, targetArgs: string[]): string | undefined {
+  if (!action || !WORKTREE_WRITE_SUBCOMMANDS.has(action)) {
+    return undefined
+  }
+
+  const candidates = targetArgs.slice(1)
+  let index = 0
+  while (index < candidates.length) {
+    const token = candidates[index]
+    if (!token) {
+      return undefined
+    }
+
+    if (WORKTREE_OPTIONS_WITH_VALUE.has(token.toLowerCase())) {
+      index += 2
+      continue
+    }
+
+    if (WORKTREE_BOOLEAN_OPTIONS.has(token.toLowerCase())) {
+      index += 1
+      continue
+    }
+
+    if (token.startsWith('--')) {
+      index += token.includes('=') ? 1 : 2
+      continue
+    }
+
+    if (token.startsWith('-')) {
+      index += 1
+      continue
+    }
+
+    return token
+  }
+
+  return undefined
+}
+
+function parseGitOperation(
+  args: string[],
+  display = args.join(' '),
+  parseReliable = true,
+  assumeGitCommand = true,
+): GitOperation | undefined {
+  if (args[0]?.toLowerCase() !== 'git' && containsEmbeddedGitWrite(args)) {
+    return {
+      args,
+      display,
+      write: true,
+      parseReliable: false,
+      targetArgs: [],
+      hasGitDirectoryOverride: hasGitDirectoryOverride(args),
+    }
+  }
+
+  const normalizedArgs = assumeGitCommand && args[0]?.toLowerCase() !== 'git' ? ['git', ...args] : args
+  const gitIndex = normalizedArgs.findIndex((token) => token.toLowerCase() === 'git')
+  if (gitIndex === -1) {
+    return undefined
+  }
+
+  const subcommandIndex = skipGlobalGitOptions(normalizedArgs, gitIndex + 1)
+  const subcommand = normalizedArgs[subcommandIndex]?.toLowerCase()
+  if (!subcommand) {
+    return undefined
+  }
+
+  const lowerArgs = normalizedArgs.map((arg) => arg.toLowerCase())
+  const targetArgs = normalizedArgs.slice(subcommandIndex + 1)
+  const hasAliasOverride = lowerArgs.some((arg) => arg.startsWith('alias.') || arg.startsWith('-calias.'))
+  const directoryOverride = hasGitDirectoryOverride(normalizedArgs.slice(gitIndex + 1, subcommandIndex))
+  let write = hasAliasOverride
+    || WRITE_SUBCOMMANDS.has(subcommand)
+    || lowerArgs.includes('--no-verify')
+    || lowerArgs.includes('--amend')
+
+  let worktreeAction: string | undefined
+  let worktreeTargetPath: string | undefined
+  if (subcommand === 'worktree') {
+    worktreeAction = targetArgs.find((token) => !token.startsWith('-'))?.toLowerCase()
+    write = worktreeAction ? WORKTREE_WRITE_SUBCOMMANDS.has(worktreeAction) : true
+    worktreeTargetPath = getWorktreeTargetPath(worktreeAction, targetArgs)
+  }
+
+  return {
+    args: normalizedArgs,
+    display,
+    write,
+    parseReliable,
+    subcommand,
+    targetArgs,
+    hasGitDirectoryOverride: directoryOverride,
+    worktreeAction,
+    worktreeTargetPath,
+  }
+}
+
+function getGitOperations(input: GateInput, normalizedOperations: string[]): GitOperation[] {
+  const structured = (input.gitOperationArgs ?? [])
+    .map((args) => parseGitOperation(args.filter(Boolean)))
+    .filter((operation): operation is GitOperation => Boolean(operation))
+  const legacy = normalizedOperations
+    .map(parseLegacyGitOperation)
+    .filter((operation): operation is GitOperation => Boolean(operation))
+
+  const operations = [...structured]
+  for (const legacyOperation of legacy) {
+    if (!operations.some((operation) => sameCommandArgs(operation.args, legacyOperation.args))) {
+      operations.push(legacyOperation)
+    }
+  }
+
+  return operations
+}
+
+function normalizeCommandArgs(args: string[]): string[] {
+  return args.map((arg) => arg.trim()).filter(Boolean)
+}
+
+function sameCommandArgs(left: string[], right: string[]): boolean {
+  const normalizedLeft = normalizeCommandArgs(left)
+  const normalizedRight = normalizeCommandArgs(right)
+  return normalizedLeft.length === normalizedRight.length && normalizedLeft.every((value, index) => value === normalizedRight[index])
+}
+
+function isMatchingWorktreePath(actual: string | undefined, expected: string): boolean {
+  if (!actual) {
+    return false
+  }
+
+  return normalizePathForEvidence(actual) === normalizePathForEvidence(expected)
+}
+
+function isAuthorizationVerified(
+  evidence: GitAuthorizationEvidence,
+  currentFingerprint: WorktreeFingerprint,
+  trustedAuthorizationRefs: string[],
+): boolean {
+  return Boolean(
+    evidence.authorizationTrust === 'verified'
+      && evidence.authorizationSource === 'user_confirmation'
+      && evidence.authorizationSource
+      && evidence.authorizationSummary
+      && evidence.sourceSessionId
+      && evidence.authorizedAtOrMessageRef
+      && trustedAuthorizationRefs.includes(evidence.authorizedAtOrMessageRef)
+      && evidence.operationWorktree
+      && evidence.targetWorktree
+      && evidence.branch
+      && evidence.head
+      && evidence.coveredCommandArgs.length > 0
+      && evidence.finalCommandArgs.length > 0
+      && currentFingerprint.available,
+  )
+}
+
+function authorizationCoversOperation(
+  operation: GitOperation,
+  evidence: GitAuthorizationEvidence,
+  currentFingerprint: WorktreeFingerprint,
+  currentSessionId?: string,
+  trustedAuthorizationRefs: string[] = [],
+): boolean {
+  if (!operation.parseReliable || !isAuthorizationVerified(evidence, currentFingerprint, trustedAuthorizationRefs)) {
+    return false
+  }
+
+  if (!sameCommandArgs(operation.args, evidence.finalCommandArgs)) {
+    return false
+  }
+
+  if (!sameCommandArgs(evidence.coveredCommandArgs, evidence.finalCommandArgs)) {
+    return false
+  }
+
+  if (hasUnsafeGitDirectoryOverride(operation, currentFingerprint)) {
+    return false
+  }
+
+  const evidenceOperation = parseGitOperation(evidence.finalCommandArgs)
+  if (!evidenceOperation?.write || evidenceOperation.subcommand !== operation.subcommand) {
+    return false
+  }
+
+  if (operation.subcommand === 'worktree') {
+    if (operation.worktreeTargetPath) {
+      const expectedTarget = normalizePathForEvidence(resolve(evidence.operationWorktree, operation.worktreeTargetPath))
+      if (!isMatchingWorktreePath(expectedTarget, evidence.targetWorktree)) {
+        return false
+      }
+    }
+
+    if (operation.worktreeAction === 'add') {
+      return isMatchingWorktreePath(currentFingerprint.worktreePath, evidence.targetWorktree)
+        && !isMatchingWorktreePath(currentFingerprint.worktreePath, evidence.operationWorktree)
+        && currentFingerprint.branch === evidence.branch
+        && currentFingerprint.head === evidence.head
+    }
+
+    return isMatchingWorktreePath(currentFingerprint.worktreePath, evidence.operationWorktree)
+  }
+
+  if (currentSessionId && evidence.sourceSessionId !== currentSessionId) {
+    return false
+  }
+
+  return isMatchingWorktreePath(currentFingerprint.worktreePath, evidence.operationWorktree)
+    && isMatchingWorktreePath(currentFingerprint.worktreePath, evidence.targetWorktree)
+    && currentFingerprint.branch === evidence.branch
+    && currentFingerprint.head === evidence.head
+}
+
+function hasUnsafeGitDirectoryOverride(operation: GitOperation, currentFingerprint: WorktreeFingerprint): boolean {
+  const gitIndex = operation.args.findIndex((token) => token.toLowerCase() === 'git')
+  if (gitIndex === -1) {
+    return false
+  }
+
+  const subcommandIndex = skipGlobalGitOptions(operation.args, gitIndex + 1)
+  for (let index = gitIndex + 1; index < subcommandIndex; index += 1) {
+    const token = operation.args[index]
+    const lower = token?.toLowerCase()
+    if (!token || !lower) {
+      continue
+    }
+
+    if (lower === '--git-dir' || lower === '--work-tree' || lower.startsWith('--git-dir=') || lower.startsWith('--work-tree=')) {
+      return true
+    }
+
+    if (token === '-C') {
+      const target = operation.args[index + 1]
+      if (!target || !isMatchingWorktreePath(resolve(currentFingerprint.worktreePath, target), currentFingerprint.worktreePath)) {
+        return true
+      }
+      index += 1
+    }
+  }
+
+  return false
+}
+
+function containsGitWriteOperation(operations: GitOperation[]): boolean {
+  return operations.some((operation) => operation.write)
 }
 
 function normalizeCommands(commands: string[] | undefined): string[] {
@@ -208,13 +649,148 @@ function getOptionalStatusSource(status: GateReviewStatus | undefined): GateEvid
   return status === undefined ? 'not_provided' : 'tool_input_declared'
 }
 
-function getGitAuthorizationSource(userAuthorizedGitWrite: boolean, inputProvided: boolean): GateEvidenceSource {
-  if (!inputProvided) {
+function getGitAuthorizationSource(
+  userAuthorizedGitWrite: boolean,
+  inputProvided: boolean,
+  evidence: GitAuthorizationEvidence[],
+  trustedAuthorizationRefs: string[],
+): GateEvidenceSource {
+  if (evidence.some((item) => item.authorizationTrust === 'verified' && trustedAuthorizationRefs.includes(item.authorizedAtOrMessageRef))) {
+    return 'user_confirmation'
+  }
+
+  if (!inputProvided && evidence.length === 0) {
     return 'not_provided'
   }
 
   void userAuthorizedGitWrite
   return 'tool_input_declared'
+}
+
+function addReviewEvidenceBlockers(
+  repoRoot: string,
+  input: GateInput,
+  blockers: string[],
+  missingEvidence: string[],
+  nextSteps: string[],
+  result: GateResult,
+): void {
+  const reviewStatus = result.evidence.reviewStatus
+  const reviewEvidence = result.evidence.reviewEvidence
+
+  if (reviewStatus === 'not_run') {
+    if (reviewEvidence?.type !== 'not_run_reason') {
+      blockers.push('review_status 为 not_run 时必须提供未运行原因。')
+      addMissingEvidence(missingEvidence, '审查未运行原因')
+      addNextStep(nextSteps, '补充 review_evidence: { type: "not_run_reason", reason: "..." }，说明为何未运行审查。')
+    }
+    return
+  }
+
+  if (reviewStatus === 'not_applicable') {
+    if (result.evidence.changedFiles.length > 0) {
+      blockers.push('当前存在工作区变更，review_status 不能标记为 not_applicable。')
+      addMissingEvidence(missingEvidence, '审查状态或未运行原因')
+      addNextStep(nextSteps, '对当前变更运行审查；如确实无法审查，使用 review_status: not_run 并提供 not_run_reason。')
+    }
+    return
+  }
+
+  if (!reviewEvidence || reviewEvidence.type === 'declared' || reviewEvidence.type === 'not_run_reason') {
+    blockers.push('review_status 为 passed/failed 时必须提供可验证的审查来源证据。')
+    addMissingEvidence(missingEvidence, '可验证的审查来源证据')
+    addNextStep(nextSteps, '补充 review_evidence，包含审查运行来源、当前 worktree、branch、HEAD 和状态摘要。')
+    return
+  }
+
+  const fingerprint = result.evidence.currentWorktreeFingerprint
+  if (!fingerprint.available) {
+    blockers.push('当前工作区指纹不可用，不能证明审查状态属于当前 worktree。')
+    addMissingEvidence(missingEvidence, '当前工作区指纹')
+    return
+  }
+
+  if (reviewEvidence.type === 'tool_output') {
+    blockers.push('审查工具输出证据暂不能由门禁独立验证，passed/failed 必须提供仓库内审查报告路径。')
+    addMissingEvidence(missingEvidence, '可验证的审查报告路径')
+    addNextStep(nextSteps, '补充 review_evidence: { type: "report_path", path: "..." }，并确保报告绑定当前 worktree、branch、HEAD 和状态摘要。')
+    return
+  }
+
+  if (reviewEvidence.type === 'report_path') {
+    const reportPath = validateArtifactPath(repoRoot, reviewEvidence.path)
+    if (reportPath.error || !reportPath.exists) {
+      blockers.push('审查报告路径无效或不存在，不能作为可验证审查来源证据。')
+      addMissingEvidence(missingEvidence, '存在的审查报告路径')
+      addNextStep(nextSteps, '补充 docs/ae/review/<run-id>/metadata.json 形式的审查元数据路径。')
+      return
+    }
+
+    if (!isReviewMetadataPath(reviewEvidence.path)) {
+      blockers.push('审查报告路径必须指向 docs/ae/review/<run-id>/metadata.json。')
+      addMissingEvidence(missingEvidence, '结构化审查元数据路径')
+      addNextStep(nextSteps, '使用 ae:review 生成结构化审查元数据，再将 metadata.json 作为 review_evidence.path。')
+      return
+    }
+
+    const reportAbsPath = resolve(repoRoot, reviewEvidence.path)
+    let content: string
+    try {
+      content = readFileSync(reportAbsPath, 'utf8')
+    } catch {
+      blockers.push('审查报告路径无效或不可读取，不能作为可验证审查来源证据。')
+      addMissingEvidence(missingEvidence, '可读取的审查报告路径')
+      addNextStep(nextSteps, '确认 review_evidence.path 指向当前工作区内可读取的审查报告。')
+      return
+    }
+    if (!reviewReportMatchesEvidence(content, reviewEvidence, reviewStatus, input.trustedReviewRefs ?? [])) {
+      blockers.push('审查报告内容未绑定当前 review_evidence 指纹，不能作为可验证审查来源证据。')
+      addMissingEvidence(missingEvidence, '包含匹配指纹元数据的审查报告')
+      addNextStep(nextSteps, '使用 ae:review 生成包含 run id、worktree、branch、HEAD 和 statusSummary 的审查报告。')
+      return
+    }
+  }
+
+  if (
+    reviewEvidence.reviewTrust !== 'verified'
+      || !reviewEvidence.reviewRunIdOrMessageRef
+      || !isMatchingWorktreePath(fingerprint.worktreePath, reviewEvidence.worktree)
+      || fingerprint.branch !== reviewEvidence.branch
+      || fingerprint.head !== reviewEvidence.head
+      || (fingerprint.statusSummary ?? '') !== reviewEvidence.statusSummary
+  ) {
+    blockers.push('审查来源证据与当前 worktree 指纹不匹配，不能复用为通过审查。')
+    addMissingEvidence(missingEvidence, '匹配当前工作区指纹的审查证据')
+  }
+
+  if (input.reviewStatus === 'passed') {
+    result.evidenceSources.review = 'observable_workspace'
+  }
+}
+
+function reviewReportMatchesEvidence(
+  content: string,
+  evidence: Extract<ReviewEvidence, { type: 'report_path' }>,
+  expectedStatus: GateReviewStatus,
+  trustedReviewRefs: string[],
+): boolean {
+  try {
+    const metadata = JSON.parse(content) as Record<string, unknown>
+    return metadata.generatedBy === 'ae:review'
+      && metadata.reviewRunIdOrMessageRef === evidence.reviewRunIdOrMessageRef
+      && trustedReviewRefs.includes(evidence.reviewRunIdOrMessageRef)
+      && metadata.worktree === normalizePathForEvidence(evidence.worktree)
+      && metadata.branch === evidence.branch
+      && metadata.head === evidence.head
+      && metadata.statusSummary === evidence.statusSummary
+      && metadata.reviewStatus === expectedStatus
+  } catch {
+    return false
+  }
+}
+
+function isReviewMetadataPath(path: string): boolean {
+  return /^docs\/ae\/review\/[^/]+\/metadata\.json$/.test(toPosixPath(path))
 }
 
 function addMissingEvidence(missingEvidence: string[], item: string): void {
@@ -293,14 +869,58 @@ function addCheckpointBlockers(
   }
 }
 
-function addFinalBlockers(
+function addGitAuthorizationBlockers(
   input: GateInput,
+  gitOperations: GitOperation[],
+  blockers: string[],
+  missingEvidence: string[],
+  nextSteps: string[],
+  result: GateResult,
+): void {
+  const writeOperations = gitOperations.filter((operation) => operation.write)
+  if (!containsGitWriteOperation(gitOperations)) {
+    return
+  }
+
+  const uncovered = writeOperations.filter((operation) => !result.evidence.gitAuthorizationEvidence.some((evidence) => (
+    authorizationCoversOperation(
+      operation,
+      evidence,
+      result.evidence.currentWorktreeFingerprint,
+      input.currentSessionId,
+      input.trustedAuthorizationRefs ?? [],
+    )
+  )))
+
+  if (uncovered.length === 0) {
+    result.evidenceSources.gitAuthorization = 'user_confirmation'
+  } else if (!result.evidence.userAuthorizedGitWrite && result.evidence.gitAuthorizationEvidence.length === 0) {
+    blockers.push('检测到 Git 写操作记录，但缺少可引用的用户授权证据。')
+    addMissingEvidence(missingEvidence, 'Git 写操作授权证据')
+    addNextStep(nextSteps, '在执行 Git 写操作前获取用户明确授权；当前阶段如无结构化授权证据，请撤销本次 Git 写操作或改为不执行写操作。')
+  } else if (result.evidence.gitAuthorizationEvidence.length === 0) {
+    blockers.push('user_authorized_git_write 仅是工具输入声明，当前门禁不能单独据此放行 Git 写操作。')
+    addMissingEvidence(missingEvidence, '可引用的 Git 授权证据')
+    addNextStep(nextSteps, '当前版本尚不接受仅靠 user_authorized_git_write 放行 Git 写操作；请避免在首阶段依赖 Git 写操作通过门禁。')
+  } else {
+    blockers.push('Git 写操作授权证据未覆盖实际执行的命令范围或当前 worktree。')
+    addMissingEvidence(missingEvidence, '覆盖实际 Git 写命令的结构化授权证据')
+    addNextStep(nextSteps, '确认 git_operation_args 与 git_authorization_evidence.final_command_args 完全一致，并绑定当前 worktree。')
+  }
+}
+
+function addFinalBlockers(
+  repoRoot: string,
+  input: GateInput,
+  gitOperations: GitOperation[],
   blockers: string[],
   missingEvidence: string[],
   nextSteps: string[],
   warnings: string[],
   result: GateResult,
 ): void {
+  addGitAuthorizationBlockers(input, gitOperations, blockers, missingEvidence, nextSteps, result)
+
   if (input.checkpoint !== 'final') {
     return
   }
@@ -320,7 +940,7 @@ function addFinalBlockers(
     warnings.push('validation_commands 当前只记录代理声明的命令列表；除非附带可引用执行结果，否则不能单独证明验证已成功执行。')
   }
 
-  if (!input.gitOperations) {
+  if (!input.gitOperations && !input.gitOperationArgs) {
     blockers.push('缺少 git_operations 记录；没有 Git 写操作时也必须显式传空数组。')
     addMissingEvidence(missingEvidence, 'git_operations 记录')
     addNextStep(nextSteps, '补充 git_operations；若没有 Git 写操作，请显式传入空数组。')
@@ -334,21 +954,28 @@ function addFinalBlockers(
     blockers.push('ae:work 最终门禁检测到审查失败，不能交付。')
   }
 
+  if (input.workflow === 'work' && !result.evidence.worktreeDecision) {
+    blockers.push('缺少 worktree_decision，不能证明实现前已完成 worktree 决策。')
+    addMissingEvidence(missingEvidence, 'worktree_decision')
+    addNextStep(nextSteps, '补充 worktree_decision，记录本次选择 created、rejected、transferred、cancelled 或 not_applicable。')
+  } else if (input.workflow === 'work' && ['transferred', 'cancelled'].includes(result.evidence.worktreeDecision ?? '')) {
+    blockers.push('worktree_decision 为 transferred/cancelled 时不能作为功能交付最终门禁通过。')
+    addNextStep(nextSteps, '在目标 worktree 重新执行 ae:work 并运行最终门禁，或将取消状态作为非交付结果记录。')
+  } else if (
+    input.workflow === 'work'
+      && result.evidence.worktreeDecision === 'not_applicable'
+      && result.evidence.currentWorktreeFingerprint.available
+  ) {
+    blockers.push('当前目录是 Git worktree，worktree_decision 不能标记为 not_applicable。')
+    addMissingEvidence(missingEvidence, '实际 worktree 决策')
+    addNextStep(nextSteps, '在 Git worktree 中记录 created 或 rejected，只有 Git 不可用或不支持 worktree 时才使用 not_applicable。')
+  }
+
   if (input.noCodeChangeReason) {
     warnings.push('no_code_change_reason 属于声明证据；它可以解释为何没有代码变更，但不能替代可观察的实现或验证结果。')
   }
 
-  if (containsGitWriteOperation(result.evidence.gitOperations)) {
-    if (!result.evidence.userAuthorizedGitWrite) {
-      blockers.push('检测到 Git 写操作记录，但缺少可引用的用户授权证据。')
-      addMissingEvidence(missingEvidence, 'Git 写操作授权证据')
-      addNextStep(nextSteps, '在执行 Git 写操作前获取用户明确授权；当前阶段如无结构化授权证据，请撤销本次 Git 写操作或改为不执行写操作。')
-    } else {
-      blockers.push('user_authorized_git_write 仅是工具输入声明，当前门禁不能单独据此放行 Git 写操作。')
-      addMissingEvidence(missingEvidence, '可引用的 Git 授权证据')
-      addNextStep(nextSteps, '当前版本尚不接受仅靠 user_authorized_git_write 放行 Git 写操作；请避免在首阶段依赖 Git 写操作通过门禁。')
-    }
-  }
+  addReviewEvidenceBlockers(repoRoot, input, blockers, missingEvidence, nextSteps, result)
 }
 
 function buildSummary(result: GateResult): string {
@@ -384,6 +1011,9 @@ function runGateSync(repoRoot: string, input: GateInput): GateResult {
   const warnings: string[] = []
   const requirementsPath = validateArtifactPath(repoRoot, input.requirementsPath)
   const planPath = validateArtifactPath(repoRoot, input.planPath)
+  const currentWorktreeFingerprint = collectCurrentWorktreeFingerprint(repoRoot)
+  const gitOperations = normalizeCommands(input.gitOperations)
+  const parsedGitOperations = getGitOperations(input, gitOperations)
 
   if (requirementsPath.error) {
     blockers.push(`需求文档${requirementsPath.error}`)
@@ -408,10 +1038,12 @@ function runGateSync(repoRoot: string, input: GateInput): GateResult {
       validation: 'not_provided',
       review: 'not_provided',
       browserTest: 'not_provided',
-      gitOperations: input.gitOperations ? 'tool_input_declared' : 'not_provided',
+      gitOperations: input.gitOperations || input.gitOperationArgs ? 'tool_input_declared' : 'not_provided',
       gitAuthorization: getGitAuthorizationSource(
         input.userAuthorizedGitWrite ?? false,
         input.userAuthorizedGitWrite !== undefined,
+        input.gitAuthorizationEvidence ?? [],
+        input.trustedAuthorizationRefs ?? [],
       ),
     },
     evidence: {
@@ -423,7 +1055,12 @@ function runGateSync(repoRoot: string, input: GateInput): GateResult {
       validationCommands: normalizeCommands(input.validationCommands),
       reviewStatus: input.reviewStatus ?? 'not_run',
       browserTestStatus: input.browserTestStatus ?? 'not_applicable',
-      gitOperations: input.gitOperations ?? [],
+      gitOperations,
+      gitOperationArgs: input.gitOperationArgs ?? [],
+      gitAuthorizationEvidence: input.gitAuthorizationEvidence ?? [],
+      reviewEvidence: input.reviewEvidence,
+      worktreeDecision: input.worktreeDecision,
+      currentWorktreeFingerprint,
       userAuthorizedGitWrite: input.userAuthorizedGitWrite ?? false,
       noCodeChangeReason: input.noCodeChangeReason,
       latestArtifacts: {
@@ -444,7 +1081,7 @@ function runGateSync(repoRoot: string, input: GateInput): GateResult {
 
   addArtifactBlockers(input, blockers, missingEvidence, nextSteps, warnings, result)
   addCheckpointBlockers(input, blockers, missingEvidence, nextSteps, result)
-  addFinalBlockers(input, blockers, missingEvidence, nextSteps, warnings, result)
+  addFinalBlockers(repoRoot, input, parsedGitOperations, blockers, missingEvidence, nextSteps, warnings, result)
 
   result.status = blockers.length > 0 ? 'block' : 'pass'
   result.summary = buildSummary(result)

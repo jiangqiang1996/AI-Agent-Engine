@@ -51,7 +51,7 @@ const PHASE_ONE_ENTRIES = [
     skillName: SKILL.WORK,
     skillSlug: skillDir(SKILL.WORK),
     commandName: COMMAND.WORK,
-    description: '按演进式计划执行工作并尽量委派给子代理',
+    description: '按计划高效执行工作，保持质量并完成功能交付',
     argumentHint: '[计划路径|工作描述]',
     defaultEntry: false,
     skillFile: `src/assets/skills/${skillDir(SKILL.WORK)}/SKILL.md`,

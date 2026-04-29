@@ -258,4 +258,61 @@ topic: requirements
       `${SKILL.REVIEW} mode:headless domain:document docs/ae/brainstorms/requirements.md`,
     )
   })
+
+  it('应该只在当前 worktree 根目录内恢复计划产物', () => {
+    const rootA = createRepoRoot()
+    const rootB = createRepoRoot()
+    writePlan(rootA, 'a-plan.md', `
+type: plan
+status: active
+date: 2026-04-27
+title: a-plan
+`)
+
+    const result = resolveRecovery(createRuntimeAssetManifestFromRoot(rootB), 'work')
+
+    expect(result.resolution).not.toBe('resolved')
+    expect(JSON.stringify(result)).not.toContain(rootA)
+    expect(JSON.stringify(result)).not.toContain('a-plan.md')
+  })
+
+  it('当前 worktree 有自己的计划时不跨其他 worktree 恢复', () => {
+    const rootA = createRepoRoot()
+    const rootB = createRepoRoot()
+    writePlan(rootA, 'a-plan.md', `
+type: plan
+status: active
+date: 2026-04-27
+title: a-plan
+`)
+    writePlan(rootB, 'b-plan.md', `
+type: plan
+status: active
+date: 2026-04-28
+title: b-plan
+`)
+
+    const result = resolveRecovery(createRuntimeAssetManifestFromRoot(rootB), 'work')
+
+    expect(result.resolution).toBe('resolved')
+    expect(result.path).toBe('docs/ae/plans/b-plan.md')
+    expect(JSON.stringify(result)).not.toContain(rootA)
+    expect(JSON.stringify(result)).not.toContain('a-plan.md')
+  })
+
+  it('仅有 A 到 B 启动证明时不把证明当作计划产物恢复', () => {
+    const rootB = createRepoRoot()
+    mkdirSync(join(rootB, 'docs', 'ae'), { recursive: true })
+    writeFileSync(join(rootB, 'docs', 'ae', 'worktree-startup-proof.md'), [
+      '# A 到 B 启动证明',
+      '',
+      'source_session_id: session-a',
+      'target_worktree: B',
+    ].join('\n'), 'utf8')
+
+    const result = resolveRecovery(createRuntimeAssetManifestFromRoot(rootB), 'work')
+
+    expect(result.resolution).not.toBe('resolved')
+    expect(JSON.stringify(result)).not.toContain('worktree-startup-proof.md')
+  })
 })

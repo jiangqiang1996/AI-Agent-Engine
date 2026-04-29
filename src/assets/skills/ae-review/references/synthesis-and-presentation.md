@@ -105,7 +105,7 @@
 
 ### 步骤 2：写入运行产物
 
-写入 `docs/ae/review/<run-id>/`，包含 metadata.json。
+写入 `docs/ae/review/<run-id>/`，包含 `metadata.json`。代码域 `metadata.json` 必须包含 `generatedBy: "ae:review"`、`reviewRunIdOrMessageRef`、`worktree`、`branch`、`head`、`statusSummary`、`reviewStatus`，供 `ae-gate` 的 `review_evidence.type=report_path` 校验。
 
 ### 步骤 3：最终下一步（仅交互模式）
 
@@ -122,7 +122,7 @@
 
 ### 步骤 4：更新状态文件
 
-更新 `.opencode/review-state.json`（将当前 HEAD 写入 `lastReviewed`）。仅代码域执行。
+更新 `.opencode/review-state.json`（写入当前 worktree 身份、branch、HEAD、工作区状态摘要和审查时间）。仅代码域执行。后续读取时必须校验这些字段，缺失或不匹配时保守视为未审查。
 
 ## 质量门
 

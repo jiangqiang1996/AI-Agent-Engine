@@ -29,7 +29,7 @@ argument-hint: "[计划路径|工作描述]"
 
 | 复杂度 | 信号 | 操作 |
 |--------|------|------|
-| **S3 轻量修复** | 明确 bug、单点故障、预估不超过 2 个生产文件 | 记录定位证据、升级判断和无需计划原因后，进入实现 |
+| **S3 轻量修复** | 明确 bug、单点故障、预估不超过 2 个生产文件 | 记录定位证据、升级判断和无需计划原因后，进入阶段 1；完成准备环境 / worktree 决策后再实现 |
 | **S3 扩展任务** | 范围明确，但需要多个步骤协作 | 构建任务列表，进入阶段 1 |
 | **S4 多步骤实现** | 跨模块、架构决策、需求模糊、10+ 文件 | 停止实现并建议先运行 `/ae-plan`；纯重构或架构债治理先运行 `/ae-refactor` |
 
@@ -53,9 +53,18 @@ argument-hint: "[计划路径|工作描述]"
    - 若有不明之处立即提问
 
 2. **准备环境**
-   - 检查当前分支
-   - 若在默认分支上：创建新分支或使用 worktree
-   - 若已在功能分支：建议重命名无意义分支名
+   - 每次正式实现型任务在修改项目文件前，都先询问是否创建独立 worktree，并说明会同步创建对应分支
+   - 选项至少包含：创建 worktree、拒绝并继续当前工作区、取消任务
+   - 当前目录不是 Git 仓库、Git 不可用或 `git worktree` 不支持时，将 worktree 决策记录为 `not_applicable`，继续强调产物归属以当前 `ctx.worktree` 为准
+   - 创建 worktree、创建分支、切换分支或执行任何 Git 写操作前，必须获得覆盖具体命令范围的用户授权；`git worktree add`、`git branch`、`git switch`、`git checkout` 都不能静默执行
+   - 用户拒绝 worktree 不等于允许直接在默认分支实现；继续询问是否在当前工作区创建/切换功能分支，若用户坚持默认分支，二次确认风险并记录到最终 Git 操作状态和 gate notes
+   - 创建 B worktree 后，当前 opencode 会话仍属于 A 的 `ctx.worktree`；如果用户选择在 B 执行，必须在 B 目录重新启动 opencode，不得在 A 会话通过 shell 工作目录修改 B
+   - 首版不自动迁移 AE 产物；提示用户手动携带本次需求/计划，或在 B 中重新运行 `ae:brainstorm` / `ae:plan`
+   - 校验用户提供的 worktree 路径、分支名和 base ref：分支名用 `git check-ref-format --branch` 或等价规则，base ref 用 `git rev-parse --verify <base>^{commit}` 或等价方式解析到 commit，路径规范化且拒绝危险位置、符号链接绕过和 option-like 输入
+   - 执行 Git 命令必须使用参数数组或等价安全执行方式，不拼接 shell 字符串；授权前向用户展示校验后的最终参数
+   - A→B 启动证明必须包含 `source_session_id`、A 的 `ctx.worktree`、`target_worktree`、branch、HEAD、授权来源、授权覆盖范围、`covered_command_args`、`final_command_args`、创建结果、首版不自动迁移产物说明和在 B 重新启动 opencode 的指引
+   - 若用户要求迁移产物但无法唯一确定当前任务关联需求/计划，必须询问用户；不得靠最近修改时间或相近 topic 批量复制 `docs/ae/*`
+   - 检查当前分支；若已在功能分支，建议重命名无意义分支名
    - 未经明确许可不创建任何 Git 提交
    - 即使用户授权提交，也不得未经明确许可提交到默认分支
 
@@ -117,6 +126,9 @@ argument-hint: "[计划路径|工作描述]"
 - `validation_commands`（本次实际运行的测试、构建、类型检查、lint 等命令）
 - `review_status`（代码审查状态；未运行时说明原因）
 - `git_operations`（本次会话执行过的 Git 写操作；没有则传空数组）
+- `worktree_decision`（创建、拒绝、转移、取消或不适用）
+- 如执行 Git 写操作，传入 `git_operation_args` 和 `git_authorization_evidence`；不能只依赖 `user_authorized_git_write`
+- 如 `review_status` 为 `passed` 或 `failed`，传入绑定当前 worktree、branch、HEAD 和状态摘要的 `review_evidence`
 
 如果 `ae-gate` 返回 `status: block`，先补齐阻断项，不得宣称交付完成。
 

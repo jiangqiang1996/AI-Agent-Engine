@@ -32,9 +32,19 @@
 4. **AE 门禁证明（必需）**
     - 调用 `ae-gate workflow:work checkpoint:final`
     - 传入实际运行的 `validation_commands`
-    - 传入 `review_status`，未审查时必须说明原因
+    - 传入 `review_status`，未审查时必须通过 `review_evidence: { type: 'not_run_reason' }` 说明原因
+    - `review_status: passed` 或 `failed` 必须附带可验证 `review_evidence`，绑定当前 `ctx.worktree`、branch、HEAD 和状态摘要
     - 传入 `git_operations`，没有 Git 写操作时传空数组
+    - 传入 `worktree_decision`，记录创建、拒绝、转移、取消或不适用
+    - 若有 Git 写操作，优先传入 `git_operation_args` 和 `git_authorization_evidence`；`user_authorized_git_write` 只是声明证据，不能放行 Git 写操作
     - 若门禁阻断，先补齐阻断项再进入交付
+
+最小 gate 场景：
+- 无 Git 写操作：`git_operations: []`，记录 `worktree_decision`
+- 普通 Git 写操作：同时记录 `git_operation_args` 和覆盖相同参数数组的 `git_authorization_evidence`
+- A→B 启动证明：授权证据区分 `operation_worktree` 与 `target_worktree`，B 中最终 gate 的当前 worktree 必须匹配 `target_worktree`
+- 未运行审查：`review_status: not_run` 搭配 `review_evidence.type: not_run_reason`
+- 已通过审查：`review_status: passed` 搭配已存在的 `report_path` 证据及当前工作区指纹；`tool_output` 只能作为声明记录，不能独立放行最终门禁
 
 ## 最终交付模板
 
@@ -55,7 +65,8 @@
 ## Git 操作状态
 - 本次是否执行 Git 写操作
 - 若无，明确写“无”
-- 若有，说明用户授权范围与结果
+- 若有，说明用户授权范围、可引用证据、结构化命令参数与结果
+- 当前 `ctx.worktree`、`git rev-parse --show-toplevel`、当前分支、HEAD、worktree decision，以及是否与目标执行 worktree 一致
 
 ## 门禁结果
 - `ae-gate` 状态
@@ -69,6 +80,7 @@
 
 - “已验证”只能写入可观察工作区状态、工具输出或可引用执行结果支撑的事实。
 - 仅来自用户口头确认、工具参数或代理自述的内容，必须放入“未验证 / 无法验证”或“Git 操作状态”。
+- A 会话执行 `git worktree add` 成功后，终止状态是“执行已转移 / 等待用户在 B 重启”，不是“功能交付完成”；A 不运行最终门禁来宣称功能交付。
 - 问答和只读审查可使用更轻量的对应输出，不强制套用整份模板。
 
 5. **准备运维验证计划（必需）**

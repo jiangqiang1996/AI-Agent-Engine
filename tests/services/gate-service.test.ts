@@ -1,10 +1,11 @@
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Effect } from 'effect'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { runGate } from '../../src/services/gate-service.js'
+import { collectCurrentWorktreeFingerprint, runGate } from '../../src/services/gate-service.js'
 
 const tempRoots: string[] = []
 
@@ -18,6 +19,46 @@ function createRepoRoot(): string {
 
 function writePlan(root: string): void {
   writeFileSync(join(root, 'docs', 'ae', 'plans', 'test-plan.md'), '# 测试计划\n', 'utf8')
+}
+
+function initGitRepo(root: string): { branch: string; head: string; statusSummary: string } {
+  execFileSync('git', ['init'], { cwd: root, stdio: 'ignore' })
+  execFileSync('git', ['config', 'user.email', 'test@example.com'], { cwd: root, stdio: 'ignore' })
+  execFileSync('git', ['config', 'user.name', 'Test User'], { cwd: root, stdio: 'ignore' })
+  writeFileSync(join(root, 'README.md'), '# test\n', 'utf8')
+  execFileSync('git', ['add', '.'], { cwd: root, stdio: 'ignore' })
+  execFileSync('git', ['commit', '-m', 'init'], { cwd: root, stdio: 'ignore' })
+  const branch = execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim()
+  const head = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim()
+  return { branch, head, statusSummary: '' }
+}
+
+function normalizedEvidencePath(path: string): string {
+  const normalized = path.replaceAll('\\', '/')
+  return process.platform === 'win32' ? normalized.toLowerCase() : normalized
+}
+
+function writeReviewReport(
+  root: string,
+  evidence: {
+    reviewRunIdOrMessageRef: string
+    worktree: string
+    branch: string
+    head: string
+    statusSummary: string
+    reviewStatus?: 'passed' | 'failed'
+  },
+): void {
+  mkdirSync(join(root, 'docs', 'ae', 'review', evidence.reviewRunIdOrMessageRef), { recursive: true })
+  writeFileSync(join(root, 'docs', 'ae', 'review', evidence.reviewRunIdOrMessageRef, 'metadata.json'), `${JSON.stringify({
+    generatedBy: 'ae:review',
+    reviewRunIdOrMessageRef: evidence.reviewRunIdOrMessageRef,
+    worktree: normalizedEvidencePath(evidence.worktree),
+    branch: evidence.branch,
+    head: evidence.head,
+    statusSummary: evidence.statusSummary,
+    reviewStatus: evidence.reviewStatus ?? 'passed',
+  }, null, 2)}\n`, 'utf8')
 }
 
 afterEach(() => {
@@ -114,6 +155,7 @@ describe('门禁服务', () => {
       validationCommands: ['npm run typecheck'],
       reviewStatus: 'not_applicable',
       gitOperations: [],
+      worktreeDecision: 'rejected',
       noCodeChangeReason: '简单规则更新，无需计划文档',
       notes: '裸提示词小任务',
       writeProof: false,
@@ -129,6 +171,8 @@ describe('门禁服务', () => {
   it('应该为通过的最终门禁写入证明文件', () => {
     const root = createRepoRoot()
     writePlan(root)
+    const fingerprint = initGitRepo(root)
+    writeReviewReport(root, { reviewRunIdOrMessageRef: 'review-run-1', worktree: root, ...fingerprint })
 
     const result = runGateSync(root, {
       workflow: 'lfg',
@@ -136,6 +180,17 @@ describe('门禁服务', () => {
       planPath: 'docs/ae/plans/test-plan.md',
       validationCommands: ['npm run typecheck', 'npm run test'],
       reviewStatus: 'passed',
+      reviewEvidence: {
+        type: 'report_path',
+        reviewTrust: 'verified',
+        path: 'docs/ae/review/review-run-1/metadata.json',
+        reviewRunIdOrMessageRef: 'review-run-1',
+        worktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        statusSummary: fingerprint.statusSummary,
+      },
+      trustedReviewRefs: ['review-run-1'],
       gitOperations: [],
       noCodeChangeReason: '测试用例中无真实代码变更',
     })
@@ -249,6 +304,116 @@ describe('门禁服务', () => {
     expect(result.blockers).toContain('检测到 Git 写操作记录，但缺少可引用的用户授权证据。')
   })
 
+  it('应该识别 git worktree 写操作并允许 list 只读', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+
+    const writeResult = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'not_applicable',
+      gitOperations: ['git worktree add ../x -b feat/x'],
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+    const readResult = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'not_applicable',
+      gitOperations: ['git worktree list'],
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(writeResult.status).toBe('block')
+    expect(writeResult.blockers).toContain('检测到 Git 写操作记录，但缺少可引用的用户授权证据。')
+    expect(readResult.status).toBe('pass')
+  })
+
+  it('应该接受覆盖实际 Git 写命令的结构化授权证据', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+    const fingerprint = initGitRepo(root)
+    const commandArgs = ['git', 'commit', '-m', 'test']
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'not_applicable',
+      gitOperations: ['git commit -m test'],
+      gitOperationArgs: [commandArgs],
+      gitAuthorizationEvidence: [{
+        authorizationSource: 'user_confirmation',
+        authorizationSummary: '用户授权执行 git commit',
+        authorizationTrust: 'verified',
+        coveredCommandArgs: commandArgs,
+        sourceSessionId: 'session-a',
+        operationWorktree: root,
+        targetWorktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        authorizedAtOrMessageRef: 'message-1',
+        finalCommandArgs: commandArgs,
+      }],
+      worktreeDecision: 'rejected',
+      trustedAuthorizationRefs: ['message-1'],
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('pass')
+    expect(result.evidenceSources.gitAuthorization).toBe('user_confirmation')
+  })
+
+  it('应该阻断 review_status passed 但缺少可验证审查来源证据', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'passed',
+      gitOperations: [],
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('review_status 为 passed/failed 时必须提供可验证的审查来源证据。')
+  })
+
+  it('应该在 Git 仓库中采集当前 worktree 指纹', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+    const fingerprint = initGitRepo(root)
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'not_applicable',
+      gitOperations: [],
+      worktreeDecision: 'rejected',
+      trustedReviewRefs: ['review-1'],
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.evidence.currentWorktreeFingerprint.available).toBe(true)
+    expect(result.evidence.currentWorktreeFingerprint.branch).toBe(fingerprint.branch)
+    expect(result.evidence.currentWorktreeFingerprint.head).toBe(fingerprint.head)
+  })
+
   it('应该在无代码变更但有说明时保留声明证据来源', () => {
     const root = createRepoRoot()
     writePlan(root)
@@ -260,6 +425,7 @@ describe('门禁服务', () => {
       validationCommands: ['npm run typecheck'],
       reviewStatus: 'not_applicable',
       gitOperations: [],
+      worktreeDecision: 'rejected',
       noCodeChangeReason: '仅更新文档约束',
       writeProof: false,
     })
@@ -280,6 +446,7 @@ describe('门禁服务', () => {
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperations: [],
+      worktreeDecision: 'rejected',
       noCodeChangeReason: '测试场景',
       writeProof: false,
     })
@@ -301,11 +468,838 @@ describe('门禁服务', () => {
       reviewStatus: 'not_applicable',
       browserTestStatus: 'passed',
       gitOperations: [],
+      worktreeDecision: 'rejected',
       noCodeChangeReason: '测试场景',
       writeProof: false,
     })
 
     expect(result.status).toBe('pass')
     expect(result.evidenceSources.browserTest).toBe('tool_input_declared')
+  })
+
+  it('应该阻断缺少 worktree 决策的 ae:work 最终门禁', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'not_applicable',
+      gitOperations: [],
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('缺少 worktree_decision，不能证明实现前已完成 worktree 决策。')
+  })
+
+  it('应该阻断 not_run 审查状态但缺少未运行原因', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'not_run',
+      gitOperations: [],
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('review_status 为 not_run 时必须提供未运行原因。')
+  })
+
+  it('应该识别省略 git 的结构化写命令', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'not_applicable',
+      gitOperations: [],
+      gitOperationArgs: [['commit', '-m', 'test']],
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('检测到 Git 写操作记录，但缺少可引用的用户授权证据。')
+  })
+
+  it('应该识别会修改索引或工作区的 Git 子命令', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+
+    for (const commandArgs of [
+      ['git', 'add', '.'],
+      ['git', 'rm', 'a.txt'],
+      ['git', 'mv', 'a.txt', 'b.txt'],
+      ['git', 'branch', 'feature/test'],
+      ['git', 'switch', '-c', 'feature/test'],
+      ['git', 'checkout', '-b', 'feature/test'],
+    ]) {
+      const result = runGateSync(root, {
+        workflow: 'work',
+        checkpoint: 'final',
+        planPath: 'docs/ae/plans/test-plan.md',
+        validationCommands: ['npm run test'],
+        reviewStatus: 'not_applicable',
+        gitOperationArgs: [commandArgs],
+        worktreeDecision: 'rejected',
+        noCodeChangeReason: '测试场景',
+        writeProof: false,
+      })
+
+      expect(result.status).toBe('block')
+      expect(result.blockers).toContain('检测到 Git 写操作记录，但缺少可引用的用户授权证据。')
+    }
+  })
+
+  it('应该在非最终门禁阻断未授权 Git 写操作', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+
+    for (const commandArgs of [
+      ['git', 'worktree', 'add', '../repo-b', '-b', 'feature/test'],
+      ['git', 'branch', 'feature/test'],
+      ['git', 'switch', '-c', 'feature/test'],
+      ['git', 'checkout', '-b', 'feature/test'],
+    ]) {
+      const result = runGateSync(root, {
+        workflow: 'work',
+        checkpoint: 'before_work',
+        planPath: 'docs/ae/plans/test-plan.md',
+        gitOperationArgs: [commandArgs],
+        worktreeDecision: 'rejected',
+        writeProof: false,
+      })
+
+      expect(result.status).toBe('block')
+      expect(result.blockers).toContain('检测到 Git 写操作记录，但缺少可引用的用户授权证据。')
+    }
+  })
+
+  it('应该将 Git alias 覆盖保守识别为写操作', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'not_applicable',
+      gitOperationArgs: [['-c', 'alias.safe=!git commit -m test', 'safe']],
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('检测到 Git 写操作记录，但缺少可引用的用户授权证据。')
+  })
+
+  it('应该将紧凑 Git alias 覆盖保守识别为写操作', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'not_applicable',
+      gitOperationArgs: [['git', '-calias.safe=!git commit -m test', 'safe']],
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('检测到 Git 写操作记录，但缺少可引用的用户授权证据。')
+  })
+
+  it('应该将 shell wrapper 内的 Git 写操作视为不可靠写操作', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+
+    for (const commandArgs of [
+      ['bash', '-lc', 'git commit -m test'],
+      ['bash', '-lc', 'git -C . commit -m test'],
+      ['bash', '-lc', 'git -c alias.safe=!git commit -m test safe'],
+    ]) {
+      const result = runGateSync(root, {
+        workflow: 'work',
+        checkpoint: 'final',
+        planPath: 'docs/ae/plans/test-plan.md',
+        validationCommands: ['npm run test'],
+        reviewStatus: 'not_applicable',
+        gitOperationArgs: [commandArgs],
+        worktreeDecision: 'rejected',
+        noCodeChangeReason: '测试场景',
+        writeProof: false,
+      })
+
+      expect(result.status).toBe('block')
+      expect(result.blockers).toContain('检测到 Git 写操作记录，但缺少可引用的用户授权证据。')
+    }
+  })
+
+  it('应该阻断未被可信消息引用支撑的 Git 授权证据', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+    const fingerprint = initGitRepo(root)
+    const commandArgs = ['git', 'commit', '-m', 'test']
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'not_applicable',
+      gitOperationArgs: [commandArgs],
+      gitAuthorizationEvidence: [{
+        authorizationSource: 'user_confirmation',
+        authorizationSummary: '用户授权执行 git commit',
+        authorizationTrust: 'verified',
+        coveredCommandArgs: commandArgs,
+        sourceSessionId: 'session-a',
+        operationWorktree: root,
+        targetWorktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        authorizedAtOrMessageRef: 'message-1',
+        finalCommandArgs: commandArgs,
+      }],
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('Git 写操作授权证据未覆盖实际执行的命令范围或当前 worktree。')
+  })
+
+  it('应该阻断普通 Git 写操作跨会话复用授权证据', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+    const fingerprint = initGitRepo(root)
+    const commandArgs = ['git', 'commit', '-m', 'test']
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'not_applicable',
+      gitOperationArgs: [commandArgs],
+      gitAuthorizationEvidence: [{
+        authorizationSource: 'user_confirmation',
+        authorizationSummary: '用户授权执行 git commit',
+        authorizationTrust: 'verified',
+        coveredCommandArgs: commandArgs,
+        sourceSessionId: 'session-a',
+        operationWorktree: root,
+        targetWorktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        authorizedAtOrMessageRef: 'message-1',
+        finalCommandArgs: commandArgs,
+      }],
+      trustedAuthorizationRefs: ['message-1'],
+      worktreeDecision: 'rejected',
+      currentSessionId: 'session-b',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('Git 写操作授权证据未覆盖实际执行的命令范围或当前 worktree。')
+  })
+
+  it('应该阻断授权证据命令范围与实际 Git 写命令不一致', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+    const fingerprint = initGitRepo(root)
+    const commandArgs = ['git', 'commit', '-m', 'test']
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'not_applicable',
+      gitOperationArgs: [commandArgs],
+      gitAuthorizationEvidence: [{
+        authorizationSource: 'user_confirmation',
+        authorizationSummary: '用户授权执行其他 Git 命令',
+        authorizationTrust: 'verified',
+        coveredCommandArgs: ['git', 'commit', '-m', 'other'],
+        sourceSessionId: 'session-a',
+        operationWorktree: root,
+        targetWorktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        authorizedAtOrMessageRef: 'message-1',
+        finalCommandArgs: commandArgs,
+      }],
+      trustedAuthorizationRefs: ['message-1'],
+      worktreeDecision: 'rejected',
+      currentSessionId: 'session-a',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('Git 写操作授权证据未覆盖实际执行的命令范围或当前 worktree。')
+  })
+
+  it('应该阻断声明型审查证据', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'passed',
+      reviewEvidence: { type: 'declared', summary: '审查通过', reviewTrust: 'declaration_only' },
+      gitOperations: [],
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('review_status 为 passed/failed 时必须提供可验证的审查来源证据。')
+  })
+
+  it('应该阻断不存在的审查报告路径', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+    const fingerprint = initGitRepo(root)
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'passed',
+      reviewEvidence: {
+        type: 'report_path',
+        reviewTrust: 'verified',
+        path: 'docs/ae/review/review-1/missing.json',
+        reviewRunIdOrMessageRef: 'review-1',
+        worktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        statusSummary: fingerprint.statusSummary,
+      },
+      gitOperations: [],
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('审查报告路径无效或不存在，不能作为可验证审查来源证据。')
+  })
+
+  it('应该阻断工作区外的审查报告路径', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+    const fingerprint = initGitRepo(root)
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'passed',
+      reviewEvidence: {
+        type: 'report_path',
+        reviewTrust: 'verified',
+        path: '../outside-review.md',
+        reviewRunIdOrMessageRef: 'review-1',
+        worktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        statusSummary: fingerprint.statusSummary,
+      },
+      gitOperations: [],
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('审查报告路径无效或不存在，不能作为可验证审查来源证据。')
+  })
+
+  it('应该阻断非结构化审查报告路径', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+    const fingerprint = initGitRepo(root)
+    mkdirSync(join(root, 'docs', 'ae', 'reviews'), { recursive: true })
+    writeFileSync(join(root, 'docs', 'ae', 'reviews', 'review.md'), '# 伪报告\n', 'utf8')
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'passed',
+      reviewEvidence: {
+        type: 'report_path',
+        reviewTrust: 'verified',
+        path: 'docs/ae/reviews/review.md',
+        reviewRunIdOrMessageRef: 'review-1',
+        worktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        statusSummary: fingerprint.statusSummary,
+      },
+      gitOperations: [],
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('审查报告路径必须指向 docs/ae/review/<run-id>/metadata.json。')
+  })
+
+  it('应该同时检查 legacy 和结构化 Git 操作记录', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'not_applicable',
+      gitOperations: ['git commit -m test'],
+      gitOperationArgs: [['git', 'status']],
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('检测到 Git 写操作记录，但缺少可引用的用户授权证据。')
+  })
+
+  it('应该识别带 wrapper 前缀的 legacy Git 写操作', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'not_applicable',
+      gitOperations: ['cmd /c git commit -m test'],
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('检测到 Git 写操作记录，但缺少可引用的用户授权证据。')
+  })
+
+  it('应该阻断带 Git 目录切换选项的写操作授权复用', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+    const fingerprint = initGitRepo(root)
+    const commandArgs = ['git', '-C', '..', 'commit', '-m', 'test']
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'not_applicable',
+      gitOperationArgs: [commandArgs],
+      gitAuthorizationEvidence: [{
+        authorizationSource: 'user_confirmation',
+        authorizationSummary: '用户授权执行 git commit',
+        authorizationTrust: 'verified',
+        coveredCommandArgs: commandArgs,
+        sourceSessionId: 'session-a',
+        operationWorktree: root,
+        targetWorktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        authorizedAtOrMessageRef: 'message-1',
+        finalCommandArgs: commandArgs,
+      }],
+      worktreeDecision: 'rejected',
+      trustedAuthorizationRefs: ['message-1'],
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('Git 写操作授权证据未覆盖实际执行的命令范围或当前 worktree。')
+  })
+
+  it('应该阻断 tool_output 伪造 passed 审查证据', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+    const fingerprint = initGitRepo(root)
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'passed',
+      reviewEvidence: {
+        type: 'tool_output',
+        reviewTrust: 'verified',
+        reviewRunIdOrMessageRef: 'fake-review',
+        worktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        statusSummary: fingerprint.statusSummary,
+        summary: '审查通过',
+      },
+      gitOperations: [],
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('审查工具输出证据暂不能由门禁独立验证，passed/failed 必须提供仓库内审查报告路径。')
+  })
+
+  it('应该阻断 transferred 或 cancelled 的最终交付门禁', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'not_applicable',
+      gitOperations: [],
+      worktreeDecision: 'transferred',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('worktree_decision 为 transferred/cancelled 时不能作为功能交付最终门禁通过。')
+  })
+
+  it('应该在采集指纹时过滤 unstaged 运行时证据文件', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+    initGitRepo(root)
+    mkdirSync(join(root, 'docs', 'ae', 'reviews'), { recursive: true })
+    writeFileSync(join(root, 'docs', 'ae', 'reviews', 'review.md'), '# 审查报告\n', 'utf8')
+
+    const fingerprint = collectCurrentWorktreeFingerprint(root)
+
+    expect(fingerprint.statusSummary).not.toContain('docs/ae/reviews/review.md')
+  })
+
+  it('应该允许 B worktree 引用 A 启动证明覆盖 git worktree add', () => {
+    const rootA = createRepoRoot()
+    const rootB = createRepoRoot()
+    writePlan(rootB)
+    const fingerprint = initGitRepo(rootB)
+    const commandArgs = ['git', 'worktree', 'add', rootB, '-b', 'feat/x']
+
+    const result = runGateSync(rootB, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'not_applicable',
+      gitOperationArgs: [commandArgs],
+      gitAuthorizationEvidence: [{
+        authorizationSource: 'user_confirmation',
+        authorizationSummary: '用户授权 A 创建 B worktree',
+        authorizationTrust: 'verified',
+        coveredCommandArgs: commandArgs,
+        sourceSessionId: 'session-a',
+        operationWorktree: rootA,
+        targetWorktree: rootB,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        authorizedAtOrMessageRef: 'message-a',
+        finalCommandArgs: commandArgs,
+      }],
+      trustedAuthorizationRefs: ['message-a'],
+      currentSessionId: 'session-b',
+      worktreeDecision: 'created',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('pass')
+    expect(result.evidenceSources.gitAuthorization).toBe('user_confirmation')
+  })
+
+  it('应该阻断 A worktree 复用 A 到 B 的启动证明', () => {
+    const rootA = createRepoRoot()
+    const rootB = createRepoRoot()
+    writePlan(rootA)
+    const fingerprint = initGitRepo(rootA)
+    const commandArgs = ['git', 'worktree', 'add', rootB, '-b', 'feat/x']
+
+    const result = runGateSync(rootA, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'not_applicable',
+      gitOperationArgs: [commandArgs],
+      gitAuthorizationEvidence: [{
+        authorizationSource: 'user_confirmation',
+        authorizationSummary: '用户授权 A 创建 B worktree',
+        authorizationTrust: 'verified',
+        coveredCommandArgs: commandArgs,
+        sourceSessionId: 'session-a',
+        operationWorktree: rootA,
+        targetWorktree: rootB,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        authorizedAtOrMessageRef: 'message-a',
+        finalCommandArgs: commandArgs,
+      }],
+      trustedAuthorizationRefs: ['message-a'],
+      currentSessionId: 'session-a',
+      worktreeDecision: 'created',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('Git 写操作授权证据未覆盖实际执行的命令范围或当前 worktree。')
+  })
+
+  it('应该阻断 B worktree 复用过期启动证明', () => {
+    const rootA = createRepoRoot()
+    const rootB = createRepoRoot()
+    writePlan(rootB)
+    const fingerprint = initGitRepo(rootB)
+    const commandArgs = ['git', 'worktree', 'add', rootB, '-b', 'feat/x']
+
+    const result = runGateSync(rootB, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'not_applicable',
+      gitOperationArgs: [commandArgs],
+      gitAuthorizationEvidence: [{
+        authorizationSource: 'user_confirmation',
+        authorizationSummary: '用户授权 A 创建 B worktree',
+        authorizationTrust: 'verified',
+        coveredCommandArgs: commandArgs,
+        sourceSessionId: 'session-a',
+        operationWorktree: rootA,
+        targetWorktree: rootB,
+        branch: fingerprint.branch,
+        head: 'stale-head',
+        authorizedAtOrMessageRef: 'message-a',
+        finalCommandArgs: commandArgs,
+      }],
+      trustedAuthorizationRefs: ['message-a'],
+      currentSessionId: 'session-b',
+      worktreeDecision: 'created',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('Git 写操作授权证据未覆盖实际执行的命令范围或当前 worktree。')
+  })
+
+  it('应该允许 git -C . 在当前 worktree 内复用授权证据', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+    const fingerprint = initGitRepo(root)
+    const commandArgs = ['git', '-C', '.', 'commit', '-m', 'test']
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'not_applicable',
+      gitOperationArgs: [commandArgs],
+      gitAuthorizationEvidence: [{
+        authorizationSource: 'user_confirmation',
+        authorizationSummary: '用户授权执行 git commit',
+        authorizationTrust: 'verified',
+        coveredCommandArgs: commandArgs,
+        sourceSessionId: 'session-a',
+        operationWorktree: root,
+        targetWorktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        authorizedAtOrMessageRef: 'message-1',
+        finalCommandArgs: commandArgs,
+      }],
+      trustedAuthorizationRefs: ['message-1'],
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('pass')
+  })
+
+  it('应该阻断审查报告内容指纹不匹配', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+    const fingerprint = initGitRepo(root)
+    writeReviewReport(root, { reviewRunIdOrMessageRef: 'review-1', worktree: root, ...fingerprint, head: 'wrong-head' })
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'passed',
+      reviewEvidence: {
+        type: 'report_path',
+        reviewTrust: 'verified',
+        path: 'docs/ae/review/review-1/metadata.json',
+        reviewRunIdOrMessageRef: 'review-1',
+        worktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        statusSummary: fingerprint.statusSummary,
+      },
+      gitOperations: [],
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('审查报告内容未绑定当前 review_evidence 指纹，不能作为可验证审查来源证据。')
+  })
+
+  it('应该阻断审查报告状态与门禁审查状态不一致', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+    const fingerprint = initGitRepo(root)
+    writeReviewReport(root, { reviewRunIdOrMessageRef: 'review-1', worktree: root, ...fingerprint, reviewStatus: 'failed' })
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'passed',
+      reviewEvidence: {
+        type: 'report_path',
+        reviewTrust: 'verified',
+        path: 'docs/ae/review/review-1/metadata.json',
+        reviewRunIdOrMessageRef: 'review-1',
+        worktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        statusSummary: fingerprint.statusSummary,
+      },
+      gitOperations: [],
+      worktreeDecision: 'rejected',
+      trustedReviewRefs: ['review-1'],
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('审查报告内容未绑定当前 review_evidence 指纹，不能作为可验证审查来源证据。')
+  })
+
+  it('应该阻断审查证据与当前 worktree 指纹不匹配', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+    const fingerprint = initGitRepo(root)
+    writeReviewReport(root, { reviewRunIdOrMessageRef: 'review-1', worktree: root, ...fingerprint })
+    writeFileSync(join(root, 'README.md'), '# changed\n', 'utf8')
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'passed',
+      reviewEvidence: {
+        type: 'report_path',
+        reviewTrust: 'verified',
+        path: 'docs/ae/review/review-1/metadata.json',
+        reviewRunIdOrMessageRef: 'review-1',
+        worktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        statusSummary: fingerprint.statusSummary,
+      },
+      gitOperations: [],
+      worktreeDecision: 'rejected',
+      trustedReviewRefs: ['review-1'],
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('审查来源证据与当前 worktree 指纹不匹配，不能复用为通过审查。')
+  })
+
+  it('应该阻断同分支同 HEAD 但不同 worktree 的审查报告复用', () => {
+    const root = createRepoRoot()
+    const otherRoot = createRepoRoot()
+    writePlan(root)
+    const fingerprint = initGitRepo(root)
+    writeReviewReport(root, { reviewRunIdOrMessageRef: 'review-1', worktree: otherRoot, ...fingerprint })
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'passed',
+      reviewEvidence: {
+        type: 'report_path',
+        reviewTrust: 'verified',
+        path: 'docs/ae/review/review-1/metadata.json',
+        reviewRunIdOrMessageRef: 'review-1',
+        worktree: otherRoot,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        statusSummary: fingerprint.statusSummary,
+      },
+      gitOperations: [],
+      worktreeDecision: 'rejected',
+      trustedReviewRefs: ['review-1'],
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('审查来源证据与当前 worktree 指纹不匹配，不能复用为通过审查。')
   })
 })

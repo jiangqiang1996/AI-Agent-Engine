@@ -6,14 +6,20 @@
 
 ## 状态文件
 
-审查完成后将当前 HEAD 的 commit hash 和时间戳写入 `.opencode/review-state.json`（本地存储，不提交到仓库）。
+审查完成后将当前 worktree 身份、HEAD 的 commit hash、工作区状态摘要和时间戳写入 `.opencode/review-state.json`（本地存储，不提交到仓库）。
 
 状态文件格式：
 ```json
-{ "branch": "<branch-name>", "lastReviewed": "<commit-hash>", "lastReviewTime": "<ISO-8601>" }
+{
+  "worktree": "<normalized-worktree-path>",
+  "branch": "<branch-name>",
+  "lastReviewed": "<commit-hash>",
+  "statusSummary": "<git-status-summary>",
+  "lastReviewTime": "<ISO-8601>"
+}
 ```
 
-读取时校验：当前分支名与 `branch` 字段是否匹配。不匹配则视为首次运行（防止跨分支状态混淆）。
+读取时校验：当前 worktree 身份、分支名、HEAD 和工作区状态摘要是否与状态文件匹配。字段缺失、不匹配或无法证明一致时，一律视为首次运行 / 未审查，防止同分支不同 worktree 或不同变更状态复用旧审查。
 
 ## 检测优先级
 
@@ -58,7 +64,9 @@
 ## 状态文件更新
 
 审查完成后更新状态文件：
+- 写入当前 worktree 规范化身份
 - 将当前 HEAD commit hash 写入 `lastReviewed`
+- 写入当前工作区状态摘要 `statusSummary`
 - 更新 `lastReviewTime` 为当前时间
 
 ## 范围分类
