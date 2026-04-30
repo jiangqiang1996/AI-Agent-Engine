@@ -53,14 +53,19 @@ argument-hint: "[计划路径|工作描述]"
    - 若有不明之处立即提问
 
 2. **准备环境**
-   - 每次正式实现型任务在修改项目文件前，先判断当前目录是否为 Git 仓库且 `git worktree` 可用；只有满足时才询问是否创建独立 worktree，并说明会同步创建对应分支
-   - 如果本次由 `ae:lfg` 调用，且用户没有在上游参数中显式声明不使用 worktree（如 `--no-worktree` 或明确写明“不使用 worktree”），则不展示“是否创建 worktree”的选择；当前目录是 Git 仓库且 `git worktree` 可用时，一律准备创建独立 worktree 并同步创建对应分支
-   - 选项至少包含：创建 worktree、不创建新 worktree 并直接在当前分支执行、取消任务
+   - 每次正式实现型任务在修改项目文件前，先解析 worktree 模式：`worktree`、`current-worktree`、`auto`；兼容输入 `--no-worktree` 映射为 `current-worktree`
+   - 单独使用 `ae:work` 且未显式传入 worktree 模式时，必须基于任务上下文给出推荐依据并明确询问是否创建新的 worktree；不得默认采用 `auto`
+   - `worktree` 模式不展示“是否创建 worktree”的选择，直接进入 Git/worktree 可用性、安全校验和授权流程；创建 worktree 时仍说明会同步创建对应分支
+   - `current-worktree` 模式不展示“是否创建 worktree”的选择，继续在当前 `ctx.worktree` 执行，但仍必须检查默认分支、脏工作区和 detached HEAD 风险
+   - 显式 `auto` 模式复用阶段 0 的 S3/S4 分流和强制升级停点作为推荐依据：S3 轻量修复、明确 bug、预计不超过 2 个生产文件且无高风险领域时推荐 `current-worktree`；S3 扩展任务、S4 多步骤实现、跨模块、10+ 文件、高风险领域、新抽象、公共配置或运行时资产变更时推荐 `worktree`
+   - `auto` 模式必须在提示文本和最终 gate notes / Git 操作状态中记录推荐依据；推荐依据不足、默认分支、脏工作区、detached HEAD 或 Git 写授权不足时，不得静默继续，必须确认、停止或按已确认的安全降级执行
+   - 如果调用方是 `ae:lfg` 或 `ae:task-loop`，只接收其透传的 `worktree`、`current-worktree`、`auto` 模式；调用方未显式传入时由调用方补齐并传入 `auto`，`ae:work` 不维护调用方专属的独立 worktree 决策规则
+   - 需要交互式降级或普通确认时，选项至少包含：创建 worktree、不创建新 worktree 并直接在当前分支执行、取消任务
    - 用户选择取消任务时，立即终止 `ae:work`，只输出取消状态、已完成/未完成项和 `worktree_decision: cancelled`；不得修改项目文件、执行实现、审查、浏览器测试或最终功能交付 gate
-   - 用户选择不创建新 worktree 时，继续在当前 `ctx.worktree` 和当前分支执行任务，最终交付和 gate 记录 `worktree_decision: rejected`
-   - 当前项目不是 Git 仓库、Git 不可用或 `git worktree` 不支持时，跳过 worktree 询问，将 gate 字段记录为 `worktree_decision: not_applicable`，继续强调产物归属以当前 `ctx.worktree` 为准
+   - 用户选择不创建新 worktree、`current-worktree` 模式或 `auto` 推荐当前工作区时，继续在当前 `ctx.worktree` 和当前分支执行任务，最终交付和 gate 记录 `worktree_decision: rejected`，表示未创建新 worktree 并留在当前工作区；但如果当前会话是 A→B 后在 B worktree 中继续执行，必须优先按 B 会话最终交付规则记录 `worktree_decision: created`
+   - 当前项目不是 Git 仓库、Git 不可用或 `git worktree` 不支持时，显式 `worktree` 模式停止或请求降级确认；`current-worktree` 可继续当前目录但说明风险；`auto` 降级当前目录时将 gate 字段记录为 `worktree_decision: not_applicable`，继续强调产物归属以当前 `ctx.worktree` 为准
    - 创建 worktree、创建分支、切换分支或执行任何 Git 写操作前，必须获得覆盖具体命令范围的用户授权；`git worktree add`、`git branch`、`git switch`、`git checkout` 都不能静默执行
-   - 用户拒绝 worktree 不等于允许直接在默认分支实现；继续询问是否在当前工作区创建/切换功能分支，若用户坚持默认分支，二次确认风险并记录到最终 Git 操作状态和 gate notes
+   - 未创建 worktree 不等于允许直接在默认分支实现；继续询问是否在当前工作区创建/切换功能分支，若用户坚持默认分支，二次确认风险并记录到最终 Git 操作状态和 gate notes
    - 创建 worktree 的本地目录固定为当前项目根目录同级的 `../worktrees/<name>` 直接子目录；`<name>` 使用分支名或任务名净化后的短名，冲突时先询问，不接受任意外部路径
    - 创建 B worktree 后，当前 opencode 会话仍属于 A 的 `ctx.worktree`；如果用户选择在 B 执行，必须在 B 目录重新启动 opencode，不得在 A 会话通过 shell 工作目录修改 B 中代码、配置、测试或其他项目文件
    - 创建 B worktree 后，A 会话只允许执行窄范围启动交接操作：自动迁移当前任务已确定的 AE 需求/计划产物到 B，包含本次读取或生成的 `docs/ae/brainstorms/*-requirements.md` 与 `docs/ae/plans/*-plan.md`，即使这些文件在 A 中仍未跟踪；迁移时保留仓库相对路径并创建缺失目录
@@ -68,6 +73,7 @@ argument-hint: "[计划路径|工作描述]"
    - 创建 B worktree 后，A 会话只允许在 B 写入当前会话核心交接 Markdown（建议路径：`docs/ae/handoffs/<timestamp>-worktree-handoff.md`），内容包含用户目标、已确定决策、已迁移产物、待办事项、验证要求、Git/worktree 状态和继续执行约束
    - A 会话终止提示必须给出可直接复制的继续提示词，引导用户在 B 目录新开 opencode 后先读取指定交接文件、需求文档和计划文档，再继续任务；不得只说“去新 worktree 继续”
    - 创建 B worktree、迁移产物并写入交接 Markdown 后，立即停止 `ae:work` 阶段 2-4，只返回/报告 `worktree_decision: transferred`、B worktree 路径、已迁移产物、交接 Markdown 路径和继续提示词；不得在 A 会话运行功能实现、审查、浏览器测试或最终功能交付 gate
+   - B 会话才是实际执行会话；若当前 `ctx.worktree` 匹配 A→B 交接文件或启动证明中的目标 B worktree，B 中即使选择当前工作区或 `auto` 推荐当前工作区，最终功能交付 gate 也必须记录 `worktree_decision: created`，表示本任务已在独立 worktree 中执行并交付，不得沿用 A 的 `transferred` 或普通当前工作区的 `rejected` 作为最终 gate 取值
    - 若无法唯一确定当前任务关联需求/计划，必须询问用户；不得靠最近修改时间或相近 topic 批量复制 `docs/ae/*`
    - 校验 worktree 名称、分支名和 base ref：分支名用 `git check-ref-format --branch` 或等价规则，base ref 用 `git rev-parse --verify <base>^{commit}` 或等价方式解析到 commit，路径必须解析到 `../worktrees/<name>` 且拒绝危险位置、符号链接绕过和 option-like 输入
    - 执行 Git 命令必须使用参数数组或等价安全执行方式，不拼接 shell 字符串；授权前向用户展示校验后的最终参数

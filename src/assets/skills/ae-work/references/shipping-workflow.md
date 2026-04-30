@@ -35,19 +35,21 @@
     - 传入 `review_status`，未审查时必须通过 `review_evidence: { type: 'not_run_reason' }` 说明原因
     - `review_status: passed` 或 `failed` 必须附带可验证 `review_evidence`，绑定当前 `ctx.worktree`、branch、HEAD 和状态摘要
     - 传入 `git_operations`，没有 Git 写操作时传空数组
-    - 传入 `worktree_decision`，记录创建、拒绝、转移、取消或不适用
+    - 传入 `worktree_decision`，记录创建、未创建新 worktree 并留在当前工作区、转移、取消或不适用
     - 若有 Git 写操作，优先传入 `git_operation_args` 和 `git_authorization_evidence`；`user_authorized_git_write` 只是声明证据，不能放行 Git 写操作
     - 若门禁阻断，先补齐阻断项再进入交付
 
 最小 gate 场景：
 - 无 Git 写操作：`git_operations: []`，记录 `worktree_decision`
-- 非 Git 项目或 `git worktree` 不可用：跳过 worktree 询问，记录 `worktree_decision: not_applicable`
-- 不创建新 worktree 并直接在当前分支执行：记录 `worktree_decision: rejected`，产物、验证、审查和最终门禁均归属于当前 `ctx.worktree`
-- `ae:lfg` 调用 `ae:work` 且用户未在参数中显式声明不使用 worktree：不展示 worktree 选择，Git 仓库中默认创建独立 worktree；如显式声明 `--no-worktree` 或“不使用 worktree”，才可记录 `worktree_decision: rejected`
+- 非 Git 项目或 `git worktree` 不可用：显式 `worktree` 模式必须停止或请求降级确认，不得静默记录 `not_applicable` 后继续；`current-worktree` 可继续当前目录但必须说明风险；`auto` 降级当前目录时记录 `worktree_decision: not_applicable`
+- 单独使用 `ae:work` 且未显式传入 `worktree`、`current-worktree`、`auto`：必须明确询问是否创建新的 worktree，不得默认采用 `auto`
+- 不创建新 worktree 并直接在当前分支执行、`current-worktree` 模式、或 `auto` 推荐当前工作区：记录 `worktree_decision: rejected`，表示未创建新 worktree 并留在当前 `ctx.worktree`；产物、验证、审查和最终门禁均归属于当前 `ctx.worktree`。若当前会话是 A→B 后在目标 B worktree 中执行，则 B 会话最终交付优先记录 `worktree_decision: created`
+- `ae:lfg` 或 `ae:task-loop` 调用 `ae:work` 时，调用方未显式传入 `worktree`、`current-worktree`、`auto` 的情况下必须补齐并透传 `auto`；`--no-worktree` 仅作为兼容输入映射到 `current-worktree`，不再作为默认策略中心
 - 普通 Git 写操作：同时记录 `git_operation_args` 和覆盖相同参数数组的 `git_authorization_evidence`
 - A→B 启动证明：授权证据区分 `operation_worktree` 与 `target_worktree`，`target_worktree` 必须是 A 项目根目录同级的 `../worktrees/<name>` 直接子目录，B 中最终 gate 的当前 worktree 必须匹配 `target_worktree`
 - A→B 产物迁移：创建 B 后，A 会话只允许把当前任务已确定的需求/计划产物迁移到 B，包含 A 中未跟踪的 `docs/ae/brainstorms/*-requirements.md` 和 `docs/ae/plans/*-plan.md`；不迁移 gate/review 运行时产物，不修改 B 中代码、配置、测试或其他项目文件
 - A→B 交接文件：创建 B 后，A 会话只允许在 B 写入 `docs/ae/handoffs/<timestamp>-worktree-handoff.md` 或等价明确路径，记录当前会话核心上下文；A 的结束提示必须包含在 B 新会话读取该文件继续的提示词
+- A→B 最终交付：A 会话的 `worktree_decision: transferred` 只表示执行已转移；若当前 `ctx.worktree` 匹配 A→B 交接文件或启动证明中的目标 B worktree，B 会话最终功能交付使用 `worktree_decision: created` 表示已在独立 worktree 中执行并交付，并覆盖普通当前工作区场景的 `rejected`；`transferred` 和 `cancelled` 不得通过最终功能交付 gate
 - 未运行审查：`review_status: not_run` 搭配 `review_evidence.type: not_run_reason`
 - 已通过审查：`review_status: passed` 搭配已存在的 `report_path` 证据及当前工作区指纹；`tool_output` 只能作为声明记录，不能独立放行最终门禁
 
