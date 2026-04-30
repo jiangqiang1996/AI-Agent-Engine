@@ -17,3 +17,7 @@ skills/ae-sql/script/drivers/*.jar
 !graphify-out/graph.html
 !graphify-out/GRAPH_REPORT.md
 /.env.local
+
+docs/ae/gates
+docs/ae/handoffs
+docs/ae/reviews
