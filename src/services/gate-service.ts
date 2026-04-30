@@ -200,26 +200,14 @@ function isRuntimeEvidencePath(filePath: string): boolean {
 }
 
 const GIT_EXEC_TIMEOUT = 30_000
-const GIT_EXEC_MAX_RETRIES = 2
 
 function runGit(repoRoot: string, args: string[]): string {
-  let lastError: unknown
-  for (let attempt = 0; attempt <= GIT_EXEC_MAX_RETRIES; attempt++) {
-    try {
-      return execFileSync('git', args, {
-        cwd: repoRoot,
-        encoding: 'utf8',
-        stdio: ['ignore', 'pipe', 'ignore'],
-        timeout: GIT_EXEC_TIMEOUT,
-      }).trim()
-    } catch (error) {
-      lastError = error
-      if (attempt < GIT_EXEC_MAX_RETRIES) {
-        continue
-      }
-    }
-  }
-  throw lastError
+  return execFileSync('git', args, {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+    timeout: GIT_EXEC_TIMEOUT,
+  }).trim()
 }
 
 /**
@@ -229,10 +217,12 @@ function runGit(repoRoot: string, args: string[]): string {
 export function collectCurrentWorktreeFingerprint(repoRoot: string): WorktreeFingerprint {
   try {
     const worktreePath = normalizePathForEvidence(realpathSync(repoRoot))
-    const branch = runGit(repoRoot, ['rev-parse', '--abbrev-ref', 'HEAD'])
     const head = runGit(repoRoot, ['rev-parse', 'HEAD'])
-    const statusSummary = runGit(repoRoot, ['status', '--porcelain'])
+    const statusOutput = runGit(repoRoot, ['status', '--porcelain', '--branch'])
+    const branch = parseBranchFromStatus(statusOutput) ?? runGit(repoRoot, ['rev-parse', '--abbrev-ref', 'HEAD'])
+    const statusSummary = statusOutput
       .split('\n')
+      .filter((line) => !line.startsWith('## '))
       .filter((line) => line.trim())
       .filter((line) => !isRuntimeEvidencePath(line.slice(3).trim()))
       .map((line) => line.trim())
@@ -298,18 +288,46 @@ function validateArtifactPath(repoRoot: string, filePath: string | undefined): P
 
 function collectChangedFiles(repoRoot: string): string[] {
   try {
-    const output = runGit(repoRoot, ['status', '--porcelain'])
-
-    return output
-      .split('\n')
-      .filter((line) => line.trim())
-      .map((line) => line.slice(3).trim())
-      .filter(Boolean)
-      .filter((file) => !isRuntimeEvidencePath(file))
-      .map(toPosixPath)
+    return parseChangedFiles(runGit(repoRoot, ['status', '--porcelain']))
   } catch {
     return []
   }
+}
+
+function parseBranchFromStatus(statusOutput: string): string | undefined {
+  const branchLine = statusOutput.split('\n').find((line) => line.startsWith('## '))
+  if (!branchLine) {
+    return undefined
+  }
+
+  const branch = branchLine.slice(3).split('...')[0]?.trim()
+  if (!branch || branch.startsWith('HEAD ')) {
+    return undefined
+  }
+
+  return branch
+}
+
+function parseChangedFiles(statusSummary: string): string[] {
+  return statusSummary
+    .split('\n')
+    .filter((line) => line.trim())
+    .map(parseChangedFilePath)
+    .filter(Boolean)
+    .filter((file) => !isRuntimeEvidencePath(file))
+    .map(toPosixPath)
+}
+
+function parseChangedFilePath(statusLine: string): string {
+  if (statusLine.length >= 3 && statusLine[2] === ' ') {
+    return statusLine.slice(3).trim()
+  }
+
+  if (statusLine.length >= 2 && statusLine[1] === ' ') {
+    return statusLine.slice(2).trim()
+  }
+
+  return statusLine.trim()
 }
 
 function parseLegacyGitOperation(command: string): GitOperation | undefined {
@@ -1127,7 +1145,9 @@ function runGateSync(repoRoot: string, input: GateInput): GateResult {
       requirementsExists: requirementsPath.exists,
       planPath: planPath.normalizedPath,
       planExists: planPath.exists,
-      changedFiles: collectChangedFiles(repoRoot),
+      changedFiles: currentWorktreeFingerprint.available
+        ? parseChangedFiles(currentWorktreeFingerprint.statusSummary ?? '')
+        : collectChangedFiles(repoRoot),
       validationCommands: normalizeCommands(input.validationCommands),
       reviewStatus: input.reviewStatus ?? 'not_run',
       browserTestStatus: input.browserTestStatus ?? 'not_applicable',

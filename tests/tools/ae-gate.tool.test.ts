@@ -47,12 +47,21 @@ function writeReviewReport(
   }, null, 2)}\n`, 'utf8')
 }
 
-async function getToolDefinition() {
-  const { aeGateTool } = await import('../../src/tools/ae-gate.tool.js')
-  return aeGateTool as unknown as {
-    args: Record<string, unknown>
-    execute: (args: Record<string, unknown>, ctx: Record<string, unknown>) => Promise<string>
+interface GateToolDefinitionForTest {
+  args: Record<string, unknown>
+  execute: (args: Record<string, unknown>, ctx: Record<string, unknown>) => Promise<string>
+}
+
+let cachedToolDefinition: GateToolDefinitionForTest | undefined
+
+async function getToolDefinition(): Promise<GateToolDefinitionForTest> {
+  if (cachedToolDefinition) {
+    return cachedToolDefinition
   }
+
+  const { aeGateTool } = await import('../../src/tools/ae-gate.tool.js')
+  cachedToolDefinition = aeGateTool as unknown as GateToolDefinitionForTest
+  return cachedToolDefinition
 }
 
 afterEach(() => {
