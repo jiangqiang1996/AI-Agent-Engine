@@ -69,3 +69,10 @@ fix(hooks): 修复消息转换中的空值处理
 - 禁止提交敏感信息（密钥、Token、密码等）
 - 禁止提交 `node_modules`、`.env` 等文件
 - 禁止在提交信息中包含无关内容
+
+## 危险 Git 操作授权
+
+- 对当前工作区执行 `reset --hard`、`clean -fd`、覆盖 checkout、rebase、删除分支、pull 合并等可能改变或丢弃本地状态的操作前，必须取得用户对目标仓库、目标分支和具体命令的明确授权。
+- 插件维护专项能力可以指导或执行本地 `git pull`、`git reset --hard`、`git clean`，但必须先确认目标是 AE 插件安装/源码维护目录，而不是用户业务项目，并提示会丢弃或覆盖的本地状态。
+- 面向普通下游项目的通用工程流程不得把 destructive Git 命令作为默认步骤；如需处理工作区冲突，应先输出状态、风险和可选方案，让用户选择。
+- 即使用户授权本地 destructive 操作，也不等于授权 push、force push、PR、release、跳过 hooks 或修改 Git 配置；这些操作仍需单独明确授权。

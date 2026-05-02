@@ -163,14 +163,21 @@ export function registerHooks(input: PluginInput): Partial<Hooks> {
 
 ### 排列原则
 
-1. **主流程优先** 主流程包括：ideate brainstorm document-review plan/refactor work review
-2. **辅助工具随后** 除了主流程以外的其他技能
-3. **同一类工具之间的顺序参照功能执行顺序**
+1. **用户流程优先** 主流程包括：ideate brainstorm document-review plan/refactor work review；`lfg` 是默认入口，允许紧随主流程放置，也允许在面向入口选择的列表中前置。
+2. **浏览器/设计能力成组** `setup`、`test-browser`、`figma-assets`、`frontend-design` 这类需要环境准备或视觉验证的能力可作为一组，组内按执行依赖排序：setup → test-browser/figma-assets/frontend-design。
+3. **辅助与维护能力随后** handoff、prompt-optimize、task-loop、sql、swagger-parser、save-rules、save-session-flow、asset-debug、help、update 等按功能执行顺序或用户发现成本排序。
+4. **不同展示面可有不同优化目标** catalog、帮助输出、命令别名、文档总览可以为了默认入口、常用程度或分组展示做局部调整；审查时只在顺序会造成发现性、依赖或注册错误时报告。
 
 ### 适用范围
 
 - ts代码中的数组
 - 提示词文件以及各种文档中的技能列举
+
+### 审查要求
+
+- 不要仅因 `lfg`、`setup` 或维护类技能的位置与某个示例顺序不同就判为违规。
+- 若报告顺序问题，必须说明该顺序导致的具体后果，例如命令注册错误、帮助信息误导、依赖能力后置导致用户无法发现，或同一文件内相互矛盾。
+- 新增资产时仍应优先保持同一文件内已有分组风格，避免为了机械排序打散语义相关能力。
 
 ## 面向插件使用者的能力边界
 
@@ -183,17 +190,28 @@ export function registerHooks(input: PluginInput): Partial<Hooks> {
 豁免范围：
 - 本仓库开发规范、测试、构建脚本和内部维护文档
 - 仅服务插件源码维护者的资产图谱、CI 建议和仓库诊断脚本
+- 用户明确触发的插件安装、更新、资产调试、会话流程固化、项目级 opencode 配置管理等专项维护能力；这些能力的目标本身就是管理 AE 插件安装或配置，而不是作为下游项目的通用工程流程
 
 执行要求：
 - 面向用户的能力不得硬编码本仓库的 `src/assets/`、`.opencode/plugins/`、`npm run build` 等源码仓库结构或命令作为通用前提
 - 如需引用当前仓库结构、构建命令或内部维护流程，必须明确标注为插件源码仓库开发语境
 - 用户侧提示和错误信息应描述通用操作证据，而不是要求目标项目符合本仓库布局
+- 专项维护能力可以引用 `.opencode/plugins/`、`~/.config/opencode/ai-agent-engine`、`src/assets/`、`npm run build`、桥接文件等路径或命令，但必须满足三点：能力名称或开头说明明确这是 AE 插件安装/更新/源码维护/配置管理语境；不能把这些路径描述为普通下游项目必须具备的业务结构；涉及覆盖、删除、重置、拉取等写操作时必须遵守 Git 与文件写入授权边界。
+
+### 能力分类判定
+
+- **通用运行时能力**：`ae:lfg`、`ae:brainstorm`、`ae:plan`、`ae:work`、`ae:review`、门禁、审查者和普通工具描述。必须完全避免把本仓库布局当作用户项目前提。
+- **插件维护专项能力**：`ae:update`、`ae:asset-debug`、`ae:save-session-flow` 的 AE 内置技能模式、安装/桥接/配置管理说明。允许引用插件源码仓库或安装目录，但必须把引用限定在维护目标上。
+- **混合能力**：同一技能同时支持普通项目和 AE 内置模式时，必须在文案中先分流，再分别应用对应边界；不要用普通项目规则否定 AE 内置分支，也不要让 AE 内置分支污染普通项目分支。
+
+审查公开资产时，先判断能力分类，再套用边界。只有当源码仓库假设泄漏到通用运行时路径，或专项维护能力缺少语境/授权说明时，才报告违规。
 
 ## GitHub 远程操作边界
 
 - 面向插件用户的技能、命令、代理、工具和流程文案可以从 GitHub 只读获取信息，例如搜索公开代码、研究仓库实践、读取已有 PR 评论。
 - 面向插件用户的资产不得提供创建 Issue、创建 Pull Request、创建 Release、推送远程分支等远程写操作流程或可复制命令。
 - 当用户需要外部协作或跟踪时，用户侧流程只输出摘要、证据、路径或后续建议，由用户在外部系统自行处理。
+- 本边界限制 GitHub 远程写操作，不禁止插件维护专项能力执行本地 Git 更新流程；本地 `git pull`、`git reset`、`git clean` 等仍必须按 Git 工作流规范取得明确授权并限定目标仓库。
 
 ## 通用门禁与交付证明
 
