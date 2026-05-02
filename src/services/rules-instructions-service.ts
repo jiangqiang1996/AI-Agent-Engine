@@ -33,7 +33,7 @@ interface InstructionsConfig {
  */
 export function registerRulesInstructions(config: InstructionsConfig, manifest: RuntimeAssetManifest): void {
   const projectRuleGlobs = ['.opencode/rules/**/*.md']
-  const globalRulesGlob = toPosixPath(join(homedir(), '.opencode', 'rules', '**', '*.md'))
+  const globalRulesGlob = toPosixPath(join(homedir(), '.config', 'opencode', 'rules', '**', '*.md'))
   const builtinRulesGlob = toPosixPath(join(manifest.rulesDir, '**', '*.md'))
   config.instructions = [...new Set([...(config.instructions ?? []), builtinRulesGlob, ...projectRuleGlobs, globalRulesGlob])]
 }

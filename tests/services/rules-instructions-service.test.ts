@@ -23,7 +23,7 @@ function createManifest(root: string): RuntimeAssetManifest {
 }
 
 describe('rules-instructions-service', () => {
-  const globalRulesGlob = toPosixPath(join(homedir(), '.opencode', 'rules', '**', '*.md'))
+  const globalRulesGlob = toPosixPath(join(homedir(), '.config', 'opencode', 'rules', '**', '*.md'))
 
   it('应该注入内置规则和项目级规则目录', () => {
     const config = { instructions: ['AGENTS.md'] }
@@ -46,6 +46,20 @@ describe('rules-instructions-service', () => {
     expect(config.instructions).toEqual([
       '.opencode/rules/**/*.md',
       '/repo/src/assets/rules/**/*.md',
+      globalRulesGlob,
+    ])
+  })
+
+  it('应该使用 manifest 中的分发规则目录', () => {
+    const config = { instructions: [] }
+    const manifest = createManifest('/plugin')
+    manifest.rulesDir = join('/plugin', 'dist', 'src', 'assets', 'rules')
+
+    registerRulesInstructions(config, manifest)
+
+    expect(config.instructions).toEqual([
+      '/plugin/dist/src/assets/rules/**/*.md',
+      '.opencode/rules/**/*.md',
       globalRulesGlob,
     ])
   })
