@@ -26,19 +26,8 @@
 
 **选项：**
 1. **启动 `/ae-work`**（推荐）
-2. **创建 Issue** — 在 GitHub 或 Linear 中创建跟踪 Issue
-3. **暂时完成**
+2. **暂时完成**
 
 **上下文中提供额外的文档审查：** 当有未解决的 P0/P1 发现时提议再跑一轮。
 
-根据选择路由。如果选择"创建 Issue"，检测项目跟踪器（GitHub/Linear）并使用 CLI 创建。
-
-## Issue 创建
-
-检测 `AGENTS.md` 中的 `project_tracker` 配置：
-
-- GitHub: `gh issue create --title "<type>: <title>" --body-file <plan_path>`
-- Linear: `linear issue create --title "<title>" --description "$(cat <plan_path>)"`
-- 未配置：询问用户选择，提供持久化选择选项
-
-创建 Issue 后显示 URL 并询问是否继续到 `/ae-work`。
+根据选择路由。如用户需要外部跟踪，输出计划路径和摘要即可。

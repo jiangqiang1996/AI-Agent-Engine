@@ -116,7 +116,7 @@ agent-browser screenshot implementation.png
 - 将宽度约束和水平内边距移至父级 HTML/JSX 中的包装 div
 - 更新组件 props 或配置
 - 根据需要调整布局结构
-- 确保变更遵循 AGENTS.md 中的项目编码标准
+- 确保变更遵循项目已声明的编码标准；如存在 `AGENTS.md`、`CLAUDE.md` 或同类标准文件，则按其约束执行
 - 使用移动优先响应式模式（例如 `flex-col lg:flex-row`）
 - 保留暗色模式支持
 
@@ -163,7 +163,7 @@ agent-browser screenshot implementation.png
 - **精确性**：使用 Figma 中的精确值，但在足够接近时优先使用 Tailwind 默认值
 - **图片基准**：当存在 Figma 设计图片时，以图片中的可见结果作为最终判定标准
 - **完整性**：解决所有差异，无论多小
-- **代码质量**：遵循 AGENTS.md 中项目特定的前端规范
+- **代码质量**：遵循项目已声明的前端规范；如存在 `AGENTS.md`、`CLAUDE.md` 或同类标准文件，则按其约束执行
 - **迭代就绪**：设计修复以允许代理再次运行进行验证
 - **响应式优先**：始终实现移动优先的响应式设计
 
