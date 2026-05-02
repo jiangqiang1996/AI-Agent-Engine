@@ -10,7 +10,7 @@ argument-hint: "[规范类型]"
 
 **重要约束**：
 1. 规范只能保存为**项目级规范**，写入 `.opencode/rules/` 目录。禁止保存到全局目录
-2. 项目规范的范围覆盖 `opencode.json` 中 `instructions` 数组引用的所有文件（包括 glob 匹配、明确路径、`@` 前缀引用的文件）
+2. 如项目存在 `opencode.json`，项目规范的范围可参考其中 `instructions` 数组引用的文件（包括 glob 匹配、明确路径、`@` 前缀引用的文件）；文件缺失或未配置时，只基于当前可发现的项目规范目录继续执行
 
 ## 第一步：识别候选规范
 
@@ -70,7 +70,7 @@ argument-hint: "[规范类型]"
 
 搜索范围：
 - 项目规范文件（.opencode/rules/ 目录下所有 .md 文件）
-- opencode.json 中 instructions 引用的所有文件
+- 如存在，opencode.json 中 instructions 引用的所有文件
 - 项目产物（docs/ 目录下的文件）
 - Git 历史（近期提交信息）
 
@@ -145,10 +145,11 @@ argument-hint: "[规范类型]"
 
 ## 第四步：前置检查
 
-读取 `opencode.json`，检查 `instructions` 数组中是否包含 `.opencode/rules/**/*.md`：
+如根目录存在 `opencode.json`，读取并检查 `instructions` 数组中是否包含 `.opencode/rules/**/*.md`：
 
 - **已存在**：继续
 - **不存在**：提示用户确认是否自动添加；拒绝则停止并提示手动添加
+- **opencode.json 不存在**：继续写入 `.opencode/rules/`，完成汇报中提示“未发现 opencode.json，规范文件已保存，运行时是否自动加载取决于当前项目的 opencode 配置”
 
 ## 第五步：写入文件
 

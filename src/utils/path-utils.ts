@@ -7,10 +7,7 @@ export function toPosixPath(p: string): string {
 }
 
 function isPluginRootCandidate(dir: string): boolean {
-  return [
-    join(dir, 'dist', 'src', 'assets'),
-    join(dir, 'opencode.json'),
-  ].some((candidate) => existsSync(candidate))
+  return existsSync(join(dir, 'dist', 'src', 'assets'))
 }
 
 /**

@@ -32,6 +32,27 @@ describe('path-utils', () => {
     expect(resolved).toBe(root)
   })
 
+  it('应该在桥接文件指向 dist 产物时推断插件根目录', () => {
+    const root = createTempRoot()
+    mkdirSync(join(root, 'dist', 'src', 'assets'), { recursive: true })
+    writeFileSync(join(root, 'dist', 'src', 'index.js'), 'export {}')
+
+    const resolved = resolvePluginRootFromModuleUrl(pathToFileURL(join(root, 'dist', 'src', 'index.js')).href)
+
+    expect(resolved).toBe(root)
+  })
+
+  it('不应该把上层项目 opencode.json 当作插件根目录', () => {
+    const projectRoot = createTempRoot()
+    const pluginRoot = join(projectRoot, '.opencode', 'ai-agent-engine')
+    mkdirSync(join(pluginRoot, 'dist', 'src'), { recursive: true })
+    writeFileSync(join(projectRoot, 'opencode.json'), '{}')
+    writeFileSync(join(pluginRoot, 'dist', 'src', 'index.js'), 'export {}')
+
+    expect(() => resolvePluginRootFromModuleUrl(pathToFileURL(join(pluginRoot, 'dist', 'src', 'index.js')).href))
+      .toThrow('无法从模块路径推断仓库根目录')
+  })
+
   it('应该在源码结构下推断插件根目录', () => {
     const root = createTempRoot()
     mkdirSync(join(root, 'src', 'assets'), { recursive: true })

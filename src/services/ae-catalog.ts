@@ -26,7 +26,7 @@ const PHASE_ONE_ENTRIES = [
     description: '面向文档的专项审查（通过 ae:review 统一技能执行），核心流程审查需求和计划文档，也支持审查任意文档',
     argumentHint: '[mode:*] [文档路径]',
     defaultEntry: false,
-    skillFile: `src/assets/skills/ae-document-review/SKILL.md`,
+    skillFile: `src/assets/skills/${skillDir(SKILL.DOCUMENT_REVIEW)}/SKILL.md`,
     customTemplate: `使用 \`ae:review\` 技能处理这次请求，指定 domain:document，并沿用参数：\`$ARGUMENTS\`。`,
   },
   {
