@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, realpathSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { isAbsolute, join, resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import { Effect } from 'effect'
 
 import { isInsideRoot, toPosixPath, toRepoRelativePath } from '../utils/path-utils.js'
@@ -80,6 +81,7 @@ export interface GateInput {
   currentSessionId?: string
   trustedAuthorizationRefs?: string[]
   trustedReviewRefs?: string[]
+  trustedReviewOutputs?: Record<string, string>
   userAuthorizedGitWrite?: boolean
   noCodeChangeReason?: string
   notes?: string
@@ -177,7 +179,7 @@ const WRITE_SUBCOMMANDS = new Set([
 ])
 
 const WORKTREE_WRITE_SUBCOMMANDS = new Set(['add', 'remove', 'move', 'prune', 'repair', 'lock', 'unlock'])
-const WORKTREE_OPTIONS_WITH_VALUE = new Set(['-b', '--orphan', '--reason'])
+const WORKTREE_OPTIONS_WITH_VALUE = new Set(['-b', '-B', '--orphan', '--reason'])
 const WORKTREE_BOOLEAN_OPTIONS = new Set([
   '--detach',
   '--lock',
@@ -803,13 +805,30 @@ function addReviewEvidenceBlockers(
   }
 
   if (reviewEvidence.type === 'tool_output') {
-    blockers.push('审查工具输出证据暂不能由门禁独立验证，passed/failed 必须提供仓库内审查报告路径。')
-    addMissingEvidence(missingEvidence, '可验证的审查报告路径')
-    addNextStep(nextSteps, '补充 review_evidence: { type: "report_path", path: "..." }，并确保报告绑定当前 worktree、branch、HEAD 和状态摘要。')
-    return
+    if (reviewEvidence.reviewTrust !== 'verified') {
+      blockers.push('审查来源证据必须是 verified，声明型审查不能作为最终门禁依据。')
+      addMissingEvidence(missingEvidence, 'verified 审查来源证据')
+      return
+    }
+
+    const output = input.trustedReviewOutputs?.[reviewEvidence.reviewRunIdOrMessageRef]
+    if (!input.trustedReviewRefs?.includes(reviewEvidence.reviewRunIdOrMessageRef)
+      || !output
+      || !reviewOutputMatchesEvidence(output, reviewEvidence, reviewStatus)) {
+      blockers.push('审查工具输出未绑定当前 review_evidence 指纹，不能作为可验证审查来源证据。')
+      addMissingEvidence(missingEvidence, '匹配当前工作区指纹的真实审查工具输出')
+      addNextStep(nextSteps, '使用本会话中的 ae:review 或审查子代理输出作为 review_evidence，并确保输出包含当前 worktree、branch、HEAD 和 statusSummary。')
+      return
+    }
   }
 
   if (reviewEvidence.type === 'report_path') {
+    if (reviewEvidence.reviewTrust !== 'verified') {
+      blockers.push('审查来源证据必须是 verified，声明型审查不能作为最终门禁依据。')
+      addMissingEvidence(missingEvidence, 'verified 审查来源证据')
+      return
+    }
+
     const reportPath = validateArtifactPath(repoRoot, reviewEvidence.path)
     if (reportPath.error || !reportPath.exists) {
       blockers.push('审查报告路径无效或不存在，不能作为可验证审查来源证据。')
@@ -835,7 +854,13 @@ function addReviewEvidenceBlockers(
       addNextStep(nextSteps, '确认 review_evidence.path 指向当前工作区内可读取的审查报告。')
       return
     }
-    if (!reviewReportMatchesEvidence(content, reviewEvidence, reviewStatus, input.trustedReviewRefs ?? [])) {
+    if (!reviewReportMatchesEvidence(
+      content,
+      reviewEvidence,
+      reviewStatus,
+      input.trustedReviewRefs ?? [],
+      input.trustedReviewOutputs ?? {},
+    )) {
       blockers.push('审查报告内容未绑定当前 review_evidence 指纹，不能作为可验证审查来源证据。')
       addMissingEvidence(missingEvidence, '包含匹配指纹元数据的审查报告')
       addNextStep(nextSteps, '使用 ae:review 生成包含 run id、worktree、branch、HEAD 和 statusSummary 的审查报告。')
@@ -844,8 +869,7 @@ function addReviewEvidenceBlockers(
   }
 
   if (
-    reviewEvidence.reviewTrust !== 'verified'
-      || !reviewEvidence.reviewRunIdOrMessageRef
+    !reviewEvidence.reviewRunIdOrMessageRef
       || !isMatchingWorktreePath(fingerprint.worktreePath, reviewEvidence.worktree)
       || fingerprint.branch !== reviewEvidence.branch
       || fingerprint.head !== reviewEvidence.head
@@ -865,12 +889,19 @@ function reviewReportMatchesEvidence(
   evidence: Extract<ReviewEvidence, { type: 'report_path' }>,
   expectedStatus: GateReviewStatus,
   trustedReviewRefs: string[],
+  trustedReviewOutputs: Record<string, string>,
 ): boolean {
   try {
     const metadata = JSON.parse(content) as Record<string, unknown>
+    const output = trustedReviewOutputs[evidence.reviewRunIdOrMessageRef]
+    const outputHash = output ? hashReviewOutput(output) : undefined
     return metadata.generatedBy === 'ae:review'
       && metadata.reviewRunIdOrMessageRef === evidence.reviewRunIdOrMessageRef
       && trustedReviewRefs.includes(evidence.reviewRunIdOrMessageRef)
+      && typeof outputHash === 'string'
+      && outputHash.length > 0
+      && metadata.reviewOutputHash === outputHash
+      && reviewOutputMatchesEvidence(output, evidence, expectedStatus)
       && metadata.worktree === normalizePathForEvidence(evidence.worktree)
       && metadata.branch === evidence.branch
       && metadata.head === evidence.head
@@ -879,6 +910,95 @@ function reviewReportMatchesEvidence(
   } catch {
     return false
   }
+}
+
+function reviewOutputMatchesEvidence(
+  output: string,
+  evidence: Extract<ReviewEvidence, { type: 'report_path' | 'tool_output' }>,
+  expectedStatus: GateReviewStatus,
+): boolean {
+  const parsed = parseStructuredReviewOutput(output)
+  if (!parsed
+    || parsed.worktree !== normalizePathForEvidence(evidence.worktree)
+    || parsed.branch !== evidence.branch
+    || parsed.head !== evidence.head
+    || parsed.statusSummary !== evidence.statusSummary) {
+    return false
+  }
+
+  if (expectedStatus === 'passed') {
+    return parsed.status === 'passed' && !parsed.hasHighOrMediumFinding
+  }
+
+  if (expectedStatus === 'failed') {
+    return parsed.status === 'failed' || parsed.hasHighOrMediumFinding
+  }
+
+  return true
+}
+
+export function hashReviewOutput(content: string): string {
+  return createHash('sha256').update(content, 'utf8').digest('hex')
+}
+
+function parseStructuredReviewOutput(output: string): {
+  status: 'passed' | 'failed'
+  worktree?: string
+  branch?: string
+  head?: string
+  statusSummary?: string
+  hasHighOrMediumFinding: boolean
+} | undefined {
+  const jsonText = extractJsonObject(output)
+  if (!jsonText) {
+    return undefined
+  }
+
+  try {
+    const parsed = JSON.parse(jsonText) as Record<string, unknown>
+    const rawStatus = parsed.reviewStatus ?? parsed.status ?? parsed.conclusion
+    const normalizedStatus = typeof rawStatus === 'string' ? rawStatus.toLowerCase() : undefined
+    if (normalizedStatus !== 'passed' && normalizedStatus !== 'pass'
+      && normalizedStatus !== 'failed' && normalizedStatus !== 'fail') {
+      return undefined
+    }
+
+    return {
+      status: normalizedStatus === 'passed' || normalizedStatus === 'pass' ? 'passed' : 'failed',
+      worktree: typeof parsed.worktree === 'string' ? normalizePathForEvidence(parsed.worktree) : undefined,
+      branch: typeof parsed.branch === 'string' ? parsed.branch : undefined,
+      head: typeof parsed.head === 'string' ? parsed.head : undefined,
+      statusSummary: typeof parsed.statusSummary === 'string' ? parsed.statusSummary : undefined,
+      hasHighOrMediumFinding: hasBlockingFinding(parsed.findings),
+    }
+  } catch {
+    return undefined
+  }
+}
+
+function extractJsonObject(output: string): string | undefined {
+  const taskResultMatch = /<task_result>\s*([\s\S]*?)\s*<\/task_result>/.exec(output)
+  const candidate = taskResultMatch?.[1] ?? output
+  const start = candidate.indexOf('{')
+  const end = candidate.lastIndexOf('}')
+  if (start < 0 || end <= start) {
+    return undefined
+  }
+  return candidate.slice(start, end + 1)
+}
+
+function hasBlockingFinding(findings: unknown): boolean {
+  if (!Array.isArray(findings)) {
+    return false
+  }
+
+  return findings.some((finding) => {
+    if (!finding || typeof finding !== 'object') {
+      return false
+    }
+    const severity = (finding as { severity?: unknown }).severity
+    return typeof severity === 'string' && /^(p0|p1|p2|critical|high|medium)$/i.test(severity)
+  })
 }
 
 function isReviewMetadataPath(path: string): boolean {

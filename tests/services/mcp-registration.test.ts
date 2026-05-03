@@ -52,7 +52,7 @@ describe('mcp-registration', () => {
   }
 }`)
 
-    const config = loadBuiltinMcpConfig(createManifest(root))
+    const config = loadBuiltinMcpConfig(createManifest(root), root)
 
     expect(config.context7.type).toBe('remote')
     if (config.context7.type === 'remote') {
@@ -60,7 +60,7 @@ describe('mcp-registration', () => {
     }
   })
 
-  it('同名且 type 相同时应该做字段级浅合并', () => {
+  it('opencode 既有同名 MCP 应该整条优先且不继承 builtin 字段', () => {
     const merged = mergeBuiltinAndUserMcp(
       {
         context7: {
@@ -83,7 +83,6 @@ describe('mcp-registration', () => {
       type: 'remote',
       url: 'https://user.example/mcp',
       enabled: false,
-      timeout: 5000,
     })
   })
 
@@ -113,7 +112,7 @@ describe('mcp-registration', () => {
     })
   })
 
-  it('registerMcp 应该把内置默认值并入用户配置', () => {
+  it('registerMcp 应该把内置默认值并入用户配置且同名用户配置整条优先', () => {
     const root = createRepoRoot()
     writeFileSync(join(root, 'src', 'assets', 'config', 'builtin-opencode.jsonc'), `{
   "$schema": "./builtin-opencode.schema.json",
@@ -142,18 +141,146 @@ describe('mcp-registration', () => {
       },
     }
 
-    registerMcp(config, createManifest(root))
+    registerMcp(config, createManifest(root), root)
 
     expect(config.mcp.context7).toEqual({
       type: 'remote',
       url: 'https://override.example/mcp',
       enabled: false,
-      timeout: 5000,
     })
     expect(config.mcp.gh_grep).toEqual({
       type: 'remote',
       url: 'https://mcp.grep.app',
       enabled: true,
     })
+  })
+
+  it('应该消费三层 builtin 合并结果', () => {
+    const root = createRepoRoot()
+    mkdirSync(join(root, '.opencode'), { recursive: true })
+    writeFileSync(join(root, 'src', 'assets', 'config', 'builtin-opencode.jsonc'), `{
+  "mcp": {
+    "context7": {
+      "type": "remote",
+      "url": "https://builtin.example/mcp",
+      "enabled": true,
+      "timeout": 5000
+    }
+  }
+}`)
+    writeFileSync(join(root, '.opencode', 'builtin-opencode.jsonc'), `{
+  "mcp": {
+    "context7": {
+      "enabled": false
+    }
+  }
+}`)
+    const config: { mcp?: Config['mcp'] } = {}
+
+    registerMcp(config, createManifest(root), root)
+
+    expect(config.mcp?.context7).toEqual({
+      type: 'remote',
+      url: 'https://builtin.example/mcp',
+      enabled: false,
+      timeout: 5000,
+    })
+  })
+
+  it('即使临时目录存在 opencode.json 也不读取磁盘 opencode 配置', () => {
+    const root = createRepoRoot()
+    writeFileSync(join(root, 'opencode.json'), `{
+  "mcp": {
+    "context7": {
+      "type": "remote",
+      "url": "https://opencode-file.example/mcp",
+      "enabled": false
+    }
+  }
+}`)
+    writeFileSync(join(root, 'src', 'assets', 'config', 'builtin-opencode.jsonc'), `{
+  "mcp": {
+    "context7": {
+      "type": "remote",
+      "url": "https://builtin.example/mcp",
+      "enabled": true
+    }
+  }
+}`)
+    const config: { mcp?: Config['mcp'] } = {}
+
+    registerMcp(config, createManifest(root), root)
+
+    expect(config.mcp?.context7).toEqual({
+      type: 'remote',
+      url: 'https://builtin.example/mcp',
+      enabled: true,
+    })
+  })
+
+  it('项目级 builtin-opencode 不应该新增远程 MCP', () => {
+    const root = createRepoRoot()
+    mkdirSync(join(root, '.opencode'), { recursive: true })
+    writeFileSync(join(root, 'src', 'assets', 'config', 'builtin-opencode.jsonc'), `{
+  "mcp": {
+    "context7": { "type": "remote", "url": "https://builtin.example/mcp" }
+  }
+}`)
+    writeFileSync(join(root, '.opencode', 'builtin-opencode.jsonc'), `{
+  "mcp": {
+    "attacker": { "type": "remote", "url": "https://attacker.example/mcp" }
+  }
+}`)
+    const config: { mcp?: Config['mcp'] } = {}
+
+    expect(() => registerMcp(config, createManifest(root), root)).toThrow(
+      /项目级 builtin-opencode 配置不能新增 MCP "attacker"/,
+    )
+  })
+
+  it('项目级 builtin-opencode 覆盖已有 MCP 后仍必须得到有效最终配置', () => {
+    const root = createRepoRoot()
+    mkdirSync(join(root, '.opencode'), { recursive: true })
+    writeFileSync(join(root, 'src', 'assets', 'config', 'builtin-opencode.jsonc'), `{
+  "mcp": {
+    "context7": { "type": "remote", "url": "https://builtin.example/mcp" }
+  }
+}`)
+    writeFileSync(join(root, '.opencode', 'builtin-opencode.jsonc'), `{
+  "mcp": {
+    "context7": { "type": "local" }
+  }
+}`)
+    const config: { mcp?: Config['mcp'] } = {}
+
+    expect(() => registerMcp(config, createManifest(root), root)).toThrow(
+      /项目级 builtin-opencode MCP "context7" 不能覆盖字段 "type"/,
+    )
+  })
+
+  it('项目级 builtin-opencode 不应该覆盖已有 MCP 的连接端点或本地命令', () => {
+    const root = createRepoRoot()
+    mkdirSync(join(root, '.opencode'), { recursive: true })
+    writeFileSync(join(root, 'src', 'assets', 'config', 'builtin-opencode.jsonc'), `{
+  "mcp": {
+    "context7": { "type": "remote", "url": "https://builtin.example/mcp", "enabled": true }
+  }
+}`)
+    const config: { mcp?: Config['mcp'] } = {}
+
+    for (const [field, value] of [
+      ['url', '"https://attacker.example/mcp"'],
+      ['command', '["node", "server.js"]'],
+    ]) {
+      writeFileSync(join(root, '.opencode', 'builtin-opencode.jsonc'), `{
+  "mcp": {
+    "context7": { "${field}": ${value} }
+  }
+}`)
+
+      expect(() => registerMcp(config, createManifest(root), root)).toThrow(
+        new RegExp(`项目级 builtin-opencode MCP "context7" 不能覆盖字段 "${field}"`),
+      )
+    }
   })
 })

@@ -2,10 +2,9 @@
   "$schema": "https://json-schema.org/draft-07/schema#",
   "$id": "./builtin-opencode.schema.json",
   "title": "AE Builtin Opencode Config",
-  "description": "Built-in opencode config nodes provided by AE.",
+  "description": "Builtin opencode config nodes provided by AE. Known nodes are validated, future top-level nodes are preserved by runtime merge logic.",
   "type": "object",
-  "additionalProperties": false,
-  "required": ["mcp"],
+  "additionalProperties": true,
   "properties": {
     "$schema": {
       "type": "string"
@@ -24,7 +23,7 @@
     "localMcp": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type", "command"],
+      "required": ["type"],
       "properties": {
         "type": {
           "const": "local"
@@ -53,7 +52,7 @@
     "remoteMcp": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type", "url"],
+      "required": ["type"],
       "properties": {
         "type": {
           "const": "remote"

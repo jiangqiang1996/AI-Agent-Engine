@@ -59,6 +59,7 @@ describe('runtime-asset-manifest', () => {
     expect(manifest.repoRoot).not.toBe(hostRoot)
     expect(manifest.skillsDir).toBe(join(pluginRoot, 'dist', 'src', 'assets', 'skills'))
     expect(manifest.agentsDir).toBe(join(pluginRoot, 'dist', 'src', 'assets', 'agents'))
+    expect(manifest.builtinConfigFile).toBe(join(pluginRoot, 'dist', 'src', 'assets', 'config', 'builtin-opencode.jsonc'))
   })
 
   it('应该在源码模块路径下定位到项目根目录', () => {

@@ -94,11 +94,11 @@
 
 ## 内置 MCP
 
-AE 默认附带一组最低优先级的内置 MCP，可直接用于文档检索和代码示例搜索。
+AE 默认附带一组最低优先级的内置 MCP，可直接用于文档检索和代码示例搜索。项目可以通过 `.opencode/builtin-opencode.jsonc` 覆盖团队默认值，全局默认值可放在 `~/.config/opencode/builtin-opencode.jsonc`。
 
-- 默认项、优先级和合并规则见 [builtin-mcp.md](builtin-mcp.md)
-- 想禁用某个默认 MCP：在 `opencode.json` 中对同名项设置 `enabled: false`
-- 想覆盖默认配置：在 `opencode.json` 中声明同名 `mcp` 条目即可
+- 默认项、三层来源、优先级和合并规则见 [builtin-mcp.md](builtin-mcp.md)
+- 想按字段覆盖默认 MCP：在项目级或全局 `builtin-opencode.jsonc` 中声明同名 `mcp` 条目
+- 想让 opencode 既有配置完全接管某个 MCP：在 `opencode.json` 中声明同名 `mcp` 条目，AE 不会从 builtin 同名项补字段
 
 ## 最新帮助
 
