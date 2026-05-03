@@ -24,6 +24,16 @@ describe('help-catalog-service 集成', () => {
     expect(text).toContain('[重构目标\\|计划路径\\|需求文档路径\\|代码异味描述]')
   })
 
+  it('应该在真实帮助目录中暴露 ae:merge-branch 入口', () => {
+    const text = generateHelpText('merge-branch')
+
+    expect(text).toContain(SKILL.MERGE_BRANCH)
+    expect(text).toContain(`/${COMMAND.MERGE_BRANCH}`)
+    expect(text).toContain(`/${COMMAND.MERGE_BRANCH}${PO_SUFFIX}`)
+    expect(text).toContain(`/${COMMAND.MERGE_BRANCH}${PA_SUFFIX}`)
+    expect(text).toContain('[目标分支名\\|本地 worktree 路径]')
+  })
+
   it('应该在真实帮助目录中暴露 ae:save-session-flow 入口', () => {
     const text = generateHelpText('save-session-flow')
 

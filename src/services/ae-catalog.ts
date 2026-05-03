@@ -57,6 +57,15 @@ const PHASE_ONE_ENTRIES = [
     skillFile: `src/assets/skills/${skillDir(SKILL.WORK)}/SKILL.md`,
   },
   {
+    skillName: SKILL.MERGE_BRANCH,
+    skillSlug: skillDir(SKILL.MERGE_BRANCH),
+    commandName: COMMAND.MERGE_BRANCH,
+    description: '将其他分支或本地 worktree 的变更合并到当前分支，并用目标分支的 AE 交接、需求和计划辅助解决冲突',
+    argumentHint: '[目标分支名|本地 worktree 路径]',
+    defaultEntry: false,
+    skillFile: `src/assets/skills/${skillDir(SKILL.MERGE_BRANCH)}/SKILL.md`,
+  },
+  {
     skillName: SKILL.REVIEW,
     skillSlug: skillDir(SKILL.REVIEW),
     commandName: COMMAND.REVIEW,

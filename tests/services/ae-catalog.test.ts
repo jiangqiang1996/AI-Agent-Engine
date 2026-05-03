@@ -29,4 +29,25 @@ describe('AE catalog 一致性', () => {
     expect(entry?.description).toContain('按')
     expect(frontmatter.description).toContain('按计划高效执行工作')
   })
+
+  it('ae:merge-branch 的 catalog 应与 frontmatter 字面一致', () => {
+    const entry = getPhaseOneEntries().find((item) => item.skillName === SKILL.MERGE_BRANCH)
+    const frontmatter = readFrontmatter('src/assets/skills/ae-merge-branch/SKILL.md')
+
+    expect(entry?.argumentHint).toBe(frontmatter['argument-hint'])
+    expect(entry?.description).toBe(frontmatter.description)
+    expect(entry?.commandName).toBe('ae-merge-branch')
+  })
+
+  it('ae:merge-branch 应包含合并安全边界', () => {
+    const text = readFileSync('src/assets/skills/ae-merge-branch/SKILL.md', 'utf8')
+
+    expect(text).toContain('git merge --no-commit --no-ff -- <target>')
+    expect(text).toContain('git show <target>:<path>')
+    expect(text).toContain('git worktree list --porcelain')
+    expect(text).toContain('ae:commit')
+    expect(text).toContain('未提交文件不会进入当前分支')
+    expect(text).toContain('不可信数据')
+    expect(text).toContain('冲突修复前')
+  })
 })

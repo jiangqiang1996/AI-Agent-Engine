@@ -31,4 +31,11 @@ describe('ae-asset-schema', () => {
     expect(AeCommandNameSchema.parse(`${COMMAND.SAVE_SESSION_FLOW}${PO_SUFFIX}`)).toBe('ae-save-session-flow-po')
     expect(AeCommandNameSchema.parse(`${COMMAND.SAVE_SESSION_FLOW}${PA_SUFFIX}`)).toBe('ae-save-session-flow-pa')
   })
+
+  it('应该接受 merge-branch 技能和命令', () => {
+    expect(AeSkillNameSchema.parse(SKILL.MERGE_BRANCH)).toBe('ae:merge-branch')
+    expect(AeCommandNameSchema.parse(COMMAND.MERGE_BRANCH)).toBe('ae-merge-branch')
+    expect(AeCommandNameSchema.parse(`${COMMAND.MERGE_BRANCH}${PO_SUFFIX}`)).toBe('ae-merge-branch-po')
+    expect(AeCommandNameSchema.parse(`${COMMAND.MERGE_BRANCH}${PA_SUFFIX}`)).toBe('ae-merge-branch-pa')
+  })
 })
