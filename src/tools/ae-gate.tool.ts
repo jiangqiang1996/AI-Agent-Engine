@@ -212,7 +212,7 @@ export const aeGateTool: ToolDefinition = tool({
       .optional()
       .describe('结构化 Git 写操作授权证据；不能用 user_authorized_git_write 替代'),
     review_evidence: tool.schema
-      .union([
+      .discriminatedUnion('type', [
         tool.schema.object({
           type: tool.schema.literal('tool_output').describe('审查工具输出证据'),
           review_trust: tool.schema.enum(['verified', 'declaration_only']).describe('审查证据可信度'),

@@ -422,6 +422,34 @@ describe('ae-gate 工具', () => {
     expect(result.blockers).toEqual([])
   })
 
+  it('应该正确映射 declared 类型审查证据', async () => {
+    const root = createRepoRoot()
+    const tool = await getToolDefinition()
+    const output = await tool.execute({
+      workflow: 'work',
+      checkpoint: 'final',
+      plan_path: 'docs/ae/plans/test-plan.md',
+      validation_commands: ['npm run test'],
+      review_status: 'not_run',
+      review_evidence: { type: 'declared', summary: '仅声明审查', review_trust: 'declaration_only' },
+      git_operations: [],
+      worktree_decision: 'rejected',
+      no_code_change_reason: '测试 declared 映射',
+      write_proof: false,
+    }, {
+      metadata: () => undefined,
+      worktree: root,
+      directory: root,
+      sessionID: 'test-session',
+      abort: new AbortController().signal,
+    })
+    const result = JSON.parse(output) as {
+      evidence: { reviewEvidence?: { type: string; summary?: string; reviewTrust?: string } }
+    }
+
+    expect(result.evidence.reviewEvidence).toMatchObject({ type: 'declared', summary: '仅声明审查', reviewTrust: 'declaration_only' })
+  })
+
   it('不应该把普通助手文本视为可信审查引用', async () => {
     const root = createRepoRoot()
     const fingerprint = initGitRepo(root)
