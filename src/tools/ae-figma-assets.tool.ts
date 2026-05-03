@@ -2,7 +2,8 @@ import { tool } from '@opencode-ai/plugin/tool'
 
 import { TOOL } from '../schemas/ae-asset-schema.js'
 import { FigmaAssetToolArgsSchema } from '../schemas/figma-asset-schema.js'
-import { formatFigmaAssetError, runFigmaAssetTool } from '../services/figma-asset-service.js'
+import { formatFigmaAssetError } from '../services/figma-result-formatter.js'
+import { runFigmaAssetTool } from '../services/figma-asset-service.js'
 import { showToast } from '../services/toast-holder.js'
 
 export const aeFigmaAssetsTool = tool({
@@ -10,7 +11,7 @@ export const aeFigmaAssetsTool = tool({
     '从已授权的 Figma 文件或用户手动导出目录收集素材。',
     '',
     '功能说明：',
-    '- api 模式使用用户提供的 Figma token 调用官方 images API 下载指定节点素材',
+    '- api 模式使用 allowlist 环境变量或 envFile 中的 Figma token 调用官方 images API 下载指定节点素材',
     '- collect 模式收集工作区内用户手动导出的图片文件',
     '- validate 模式校验 .figma/manifest.json 中的文件大小和 SHA-256',
     '- 所有产物写入工作区内 .figma 目录，并生成 manifest',

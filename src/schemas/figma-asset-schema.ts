@@ -14,9 +14,9 @@ export const FigmaAssetToolArgsSchema = z.object({
   source: z.string().optional().describe('Figma 文件或节点 URL，可从 URL 中解析 fileKey 与 nodeId'),
   fileKey: z.string().optional().describe('Figma 文件 Key，API 模式可由 source 解析'),
   nodeId: z.string().optional().describe('Figma 节点 ID，API 模式必填或可由 source 解析'),
-  token: z.string().optional().describe('Figma 访问令牌。仅用于本次调用，工具不会写入日志、manifest 或输出'),
-  tokenEnv: z.string().optional().describe('读取 Figma 访问令牌的环境变量名，默认 FIGMA_TOKEN'),
-  envFile: z.string().optional().describe('工作区内 dotenv 文件路径，用于读取 tokenEnv 指定的令牌'),
+  token: z.string().optional().describe('已弃用：直接传入 token 不再支持。请通过 tokenEnv 或 envFile 提供令牌'),
+  tokenEnv: z.string().optional().describe('读取 Figma 访问令牌的环境变量名，仅允许 FIGMA_OAUTH_TOKEN、FIGMA_API_KEY、FIGMA_TOKEN'),
+  envFile: z.string().optional().describe('工作区内 dotenv 文件路径，仅读取 FIGMA_OAUTH_TOKEN、FIGMA_API_KEY、FIGMA_TOKEN'),
   outputDir: z.string().optional().describe('工作区内输出目录，默认 .figma'),
   format: FigmaExportFormatSchema.optional().describe('API 导出格式，默认 png'),
   scale: z.number().min(0.01).max(4).optional().describe('API 导出缩放，默认 1'),
@@ -24,7 +24,7 @@ export const FigmaAssetToolArgsSchema = z.object({
 })
 
 export const FigmaAssetManifestItemSchema = z.object({
-  nodeId: z.string().describe('Figma 节点 ID 或本地素材标识'),
+  sourceIdHash: z.string().min(8).describe('源标识的脱敏哈希前缀'),
   fileName: z.string().describe('素材文件名'),
   relativePath: z.string().describe('相对工作区路径'),
   format: z.string().describe('素材格式'),
@@ -32,14 +32,36 @@ export const FigmaAssetManifestItemSchema = z.object({
   sha256: z.string().length(64).describe('SHA-256 校验和'),
 })
 
+export const FigmaAssetSourceSchema = z.object({
+  type: z.enum(['figma_url', 'manual', 'unknown']).describe('素材来源类型'),
+  host: z.string().optional().describe('脱敏后的来源域名'),
+  fileKeyHash: z.string().optional().describe('Figma 文件 Key 的脱敏哈希前缀'),
+  nodeIdHashes: z.array(z.string()).default([]).describe('Figma 节点 ID 的脱敏哈希前缀'),
+})
+
+export const FigmaAssetEvidenceSchema = z.object({
+  agentBrowserUsed: z.boolean().describe('本次是否使用 agent-browser 辅助'),
+  saved: z.literal(false).describe('本轮不落盘保存浏览器 evidence'),
+  types: z.array(z.string()).describe('已保存 evidence 类型，本轮固定为空'),
+  paths: z.array(z.string()).describe('已保存 evidence 路径，本轮固定为空'),
+})
+
+export const FigmaAssetNoticeSchema = z.object({
+  code: z.string().describe('结构化提示或失败代码'),
+  message: z.string().describe('脱敏后的用户可读说明'),
+})
+
 export const FigmaAssetManifestSchema = z.object({
-  version: z.literal(1).describe('manifest 版本'),
+  schemaVersion: z.literal(2).describe('manifest 版本'),
   mode: FigmaAssetModeSchema.describe('生成该 manifest 的执行模式'),
   runId: z.string().describe('运行 ID'),
-  createdAt: z.string().describe('ISO 格式创建时间'),
-  source: z.string().optional().describe('脱敏后的 Figma 来源'),
-  fileKey: z.string().optional().describe('Figma 文件 Key'),
-  nodeIds: z.array(z.string()).describe('本次处理的节点 ID 列表'),
+  startedAt: z.string().describe('ISO 格式开始时间'),
+  completedAt: z.string().describe('ISO 格式完成时间'),
+  status: z.enum(['success', 'failed']).describe('本次运行状态'),
+  source: FigmaAssetSourceSchema.optional().describe('结构化脱敏来源'),
+  evidence: FigmaAssetEvidenceSchema.describe('本次运行证据元数据'),
+  warnings: z.array(FigmaAssetNoticeSchema).describe('脱敏后的警告列表'),
+  failures: z.array(FigmaAssetNoticeSchema).describe('脱敏后的失败列表'),
   assets: z.array(FigmaAssetManifestItemSchema).describe('素材条目'),
 })
 
@@ -47,3 +69,6 @@ export type FigmaAssetToolArgs = z.infer<typeof FigmaAssetToolArgsSchema>
 export type FigmaAssetMode = z.infer<typeof FigmaAssetModeSchema>
 export type FigmaAssetManifest = z.infer<typeof FigmaAssetManifestSchema>
 export type FigmaAssetManifestItem = z.infer<typeof FigmaAssetManifestItemSchema>
+export type FigmaAssetSource = z.infer<typeof FigmaAssetSourceSchema>
+
+export type AuthMode = 'oauth' | 'api_key' | 'legacy'

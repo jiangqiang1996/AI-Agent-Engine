@@ -12,13 +12,18 @@ describe('Figma 素材 Schema', () => {
 
   it('应该校验 manifest checksum 长度', () => {
     const manifest = FigmaAssetManifestSchema.parse({
-      version: 1,
+      schemaVersion: 2,
       mode: 'collect',
       runId: 'run-1',
-      createdAt: '2026-04-28T00:00:00.000Z',
-      nodeIds: ['icon'],
+      startedAt: '2026-04-28T00:00:00.000Z',
+      completedAt: '2026-04-28T00:00:00.000Z',
+      status: 'success',
+      source: { type: 'manual', nodeIdHashes: ['hash123456789abc'] },
+      evidence: { agentBrowserUsed: false, saved: false, types: [], paths: [] },
+      warnings: [],
+      failures: [],
       assets: [{
-        nodeId: 'icon',
+        sourceIdHash: 'hash123456789abc',
         fileName: 'icon.png',
         relativePath: '.figma/assets/icon.png',
         format: 'png',
@@ -41,13 +46,18 @@ describe('Figma 素材 Schema', () => {
 
   it('应该拒绝非法 manifest 字段', () => {
     expect(() => FigmaAssetManifestSchema.parse({
-      version: 1,
+      schemaVersion: 2,
       mode: 'collect',
       runId: 'run-1',
-      createdAt: '2026-04-28T00:00:00.000Z',
-      nodeIds: ['icon'],
+      startedAt: '2026-04-28T00:00:00.000Z',
+      completedAt: '2026-04-28T00:00:00.000Z',
+      status: 'success',
+      source: { type: 'manual', nodeIdHashes: ['hash123456789abc'] },
+      evidence: { agentBrowserUsed: false, saved: false, types: [], paths: [] },
+      warnings: [],
+      failures: [],
       assets: [{
-        nodeId: 'icon',
+        sourceIdHash: 'hash123456789abc',
         fileName: 'icon.png',
         relativePath: '.figma/assets/icon.png',
         format: 'png',

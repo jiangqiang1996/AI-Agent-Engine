@@ -116,10 +116,20 @@ function collectTrustedReviewRefs(context: Record<string, unknown>, evidence: To
       return []
     }
 
-    const candidate = entry as { role?: unknown; content?: unknown; text?: unknown; message?: { role?: unknown; content?: unknown; text?: unknown } }
+    const candidate = entry as {
+      id?: unknown
+      role?: unknown
+      content?: unknown
+      text?: unknown
+      message?: { id?: unknown; role?: unknown; content?: unknown; text?: unknown }
+    }
     const role = candidate.role ?? candidate.message?.role
+    const id = candidate.id ?? candidate.message?.id
     const text = extractHistoryText(candidate.content ?? candidate.text ?? candidate.message?.content ?? candidate.message?.text)
-    return role === 'tool' && text.includes('ae:review') && text.includes(evidence.review_run_id_or_message_ref)
+    return role === 'tool'
+      && id === evidence.review_run_id_or_message_ref
+      && text.includes('ae:review')
+      && text.includes(evidence.review_run_id_or_message_ref)
       ? [evidence.review_run_id_or_message_ref]
       : []
   })
@@ -212,7 +222,7 @@ export const aeGateTool: ToolDefinition = tool({
       .optional()
       .describe('结构化 Git 写操作授权证据；不能用 user_authorized_git_write 替代'),
     review_evidence: tool.schema
-      .union([
+      .discriminatedUnion('type', [
         tool.schema.object({
           type: tool.schema.literal('tool_output').describe('审查工具输出证据'),
           review_trust: tool.schema.enum(['verified', 'declaration_only']).describe('审查证据可信度'),

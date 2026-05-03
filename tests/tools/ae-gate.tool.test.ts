@@ -413,13 +413,81 @@ describe('ae-gate 工具', () => {
       worktree: root,
       directory: root,
       sessionID: 'test-session',
-      history: [{ id: 'tool-1', role: 'tool', content: 'ae:review 已生成审查运行 review-1，结论 passed' }],
+      history: [{ id: 'review-1', role: 'tool', content: 'ae:review 已生成审查运行 review-1，结论 passed' }],
       abort: new AbortController().signal,
     })
     const result = JSON.parse(output) as { status: string; blockers: string[] }
 
     expect(result.status).toBe('pass')
     expect(result.blockers).toEqual([])
+  })
+
+  it('不应该把非匹配 id 的工具文本视为可信审查引用', async () => {
+    const root = createRepoRoot()
+    const fingerprint = initGitRepo(root)
+    writeReviewReport(root, { reviewRunIdOrMessageRef: 'review-1', worktree: root, ...fingerprint })
+    const tool = await getToolDefinition()
+
+    const output = await tool.execute({
+      workflow: 'work',
+      checkpoint: 'final',
+      plan_path: 'docs/ae/plans/test-plan.md',
+      validation_commands: ['npm run test'],
+      review_status: 'passed',
+      review_evidence: {
+        type: 'report_path',
+        review_trust: 'verified',
+        path: 'docs/ae/review/review-1/metadata.json',
+        review_run_id_or_message_ref: 'review-1',
+        worktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        status_summary: fingerprint.statusSummary,
+      },
+      git_operations: [],
+      worktree_decision: 'rejected',
+      no_code_change_reason: '测试工具映射',
+      write_proof: false,
+    }, {
+      metadata: () => undefined,
+      worktree: root,
+      directory: root,
+      sessionID: 'test-session',
+      history: [{ id: 'other-tool', role: 'tool', content: 'ae:review 已生成审查运行 review-1，结论 passed' }],
+      abort: new AbortController().signal,
+    })
+    const result = JSON.parse(output) as { status: string; blockers: string[] }
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('审查报告内容未绑定当前 review_evidence 指纹，不能作为可验证审查来源证据。')
+  })
+
+  it('应该正确映射 declared 类型审查证据', async () => {
+    const root = createRepoRoot()
+    const tool = await getToolDefinition()
+    const output = await tool.execute({
+      workflow: 'work',
+      checkpoint: 'final',
+      plan_path: 'docs/ae/plans/test-plan.md',
+      validation_commands: ['npm run test'],
+      review_status: 'not_run',
+      review_evidence: { type: 'declared', summary: '仅声明审查', review_trust: 'declaration_only' },
+      git_operations: [],
+      worktree_decision: 'rejected',
+      no_code_change_reason: '测试 declared 映射',
+      write_proof: false,
+    }, {
+      metadata: () => undefined,
+      worktree: root,
+      directory: root,
+      sessionID: 'test-session',
+      abort: new AbortController().signal,
+    })
+    const result = JSON.parse(output) as {
+      evidence: { reviewEvidence?: { type: string; summary?: string; reviewTrust?: string } }
+    }
+
+    expect(result.evidence.reviewEvidence).toMatchObject({ type: 'declared', summary: '仅声明审查', reviewTrust: 'declaration_only' })
   })
 
   it('不应该把普通助手文本视为可信审查引用', async () => {
