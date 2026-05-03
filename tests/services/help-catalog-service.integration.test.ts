@@ -31,7 +31,7 @@ describe('help-catalog-service 集成', () => {
     expect(text).toContain(`/${COMMAND.MERGE_BRANCH}`)
     expect(text).not.toContain(`/${COMMAND.MERGE_BRANCH}${PO_SUFFIX}`)
     expect(text).not.toContain(`/${COMMAND.MERGE_BRANCH}${PA_SUFFIX}`)
-    expect(text).toContain('[目标分支名\\|本地 worktree 路径]')
+    expect(text).toContain('[来源分支名\\|本地 worktree 路径]')
   })
 
   it('应该在真实帮助目录中暴露 ae:save-session-flow 入口', () => {
