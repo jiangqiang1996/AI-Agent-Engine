@@ -9,8 +9,8 @@ describe('help-catalog-service 集成', () => {
 
     expect(text).toContain(SKILL.ASSET_DEBUG)
     expect(text).toContain(`/${COMMAND.ASSET_DEBUG}`)
-    expect(text).toContain(`/${COMMAND.ASSET_DEBUG}${PO_SUFFIX}`)
-    expect(text).toContain(`/${COMMAND.ASSET_DEBUG}${PA_SUFFIX}`)
+    expect(text).not.toContain(`/${COMMAND.ASSET_DEBUG}${PO_SUFFIX}`)
+    expect(text).not.toContain(`/${COMMAND.ASSET_DEBUG}${PA_SUFFIX}`)
     expect(text).toContain('[资产名\\|纠偏摘要]')
   })
 
@@ -29,8 +29,8 @@ describe('help-catalog-service 集成', () => {
 
     expect(text).toContain(SKILL.MERGE_BRANCH)
     expect(text).toContain(`/${COMMAND.MERGE_BRANCH}`)
-    expect(text).toContain(`/${COMMAND.MERGE_BRANCH}${PO_SUFFIX}`)
-    expect(text).toContain(`/${COMMAND.MERGE_BRANCH}${PA_SUFFIX}`)
+    expect(text).not.toContain(`/${COMMAND.MERGE_BRANCH}${PO_SUFFIX}`)
+    expect(text).not.toContain(`/${COMMAND.MERGE_BRANCH}${PA_SUFFIX}`)
     expect(text).toContain('[目标分支名\\|本地 worktree 路径]')
   })
 
@@ -39,8 +39,8 @@ describe('help-catalog-service 集成', () => {
 
     expect(text).toContain(SKILL.SAVE_SESSION_FLOW)
     expect(text).toContain(`/${COMMAND.SAVE_SESSION_FLOW}`)
-    expect(text).toContain(`/${COMMAND.SAVE_SESSION_FLOW}${PO_SUFFIX}`)
-    expect(text).toContain(`/${COMMAND.SAVE_SESSION_FLOW}${PA_SUFFIX}`)
+    expect(text).not.toContain(`/${COMMAND.SAVE_SESSION_FLOW}${PO_SUFFIX}`)
+    expect(text).not.toContain(`/${COMMAND.SAVE_SESSION_FLOW}${PA_SUFFIX}`)
     expect(text).toContain('[目标技能名\\|流程关注点]')
   })
 
@@ -49,8 +49,8 @@ describe('help-catalog-service 集成', () => {
 
     expect(text).toContain(SKILL.TEST_BROWSER)
     expect(text).toContain(`/${COMMAND.TEST_BROWSER}`)
-    expect(text).toContain(`/${COMMAND.TEST_BROWSER}${PO_SUFFIX}`)
-    expect(text).toContain(`/${COMMAND.TEST_BROWSER}${PA_SUFFIX}`)
+    expect(text).not.toContain(`/${COMMAND.TEST_BROWSER}${PO_SUFFIX}`)
+    expect(text).not.toContain(`/${COMMAND.TEST_BROWSER}${PA_SUFFIX}`)
     expect(text).toContain('先完成 ae:setup')
     expect(text).not.toContain('agent-browser 可用')
   })

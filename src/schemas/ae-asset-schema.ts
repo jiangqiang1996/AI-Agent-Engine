@@ -30,6 +30,28 @@ export const PO_SUFFIX = '-po'
 export const PA_SUFFIX = '-pa'
 export const AUTO_SUFFIX = '-auto'
 
+export const PROMPT_OPTIMIZE_VARIANT_EXCLUDED_SKILLS = [
+  SKILL.DOCUMENT_REVIEW,
+  SKILL.MERGE_BRANCH,
+  SKILL.REVIEW,
+  SKILL.SETUP,
+  SKILL.TEST_BROWSER,
+  SKILL.FIGMA_ASSETS,
+  SKILL.HANDOFF,
+  SKILL.PROMPT_OPTIMIZE,
+  SKILL.SQL,
+  SKILL.SWAGGER_PARSER,
+  SKILL.SAVE_RULES,
+  SKILL.SAVE_SESSION_FLOW,
+  SKILL.ASSET_DEBUG,
+  SKILL.HELP,
+  SKILL.UPDATE,
+] as const
+
+export function hasPromptOptimizeVariant(skillName: string): boolean {
+  return !PROMPT_OPTIMIZE_VARIANT_EXCLUDED_SKILLS.some((excludedSkill) => excludedSkill === skillName)
+}
+
 type SkillToCommand<S extends string> = S extends `ae:${infer R}` ? `ae-${R}` : S
 
 export const COMMAND = Object.fromEntries(
@@ -113,11 +135,11 @@ export const AeSkillNameSchema = z
   .describe('AE 技能名')
 
 const PO_COMMAND_NAMES = Object.values(COMMAND)
-  .filter((v) => v !== COMMAND.PROMPT_OPTIMIZE)
+  .filter((v) => hasPromptOptimizeVariant(v.replace(/^ae-/, 'ae:')))
   .map((v) => `${v}${PO_SUFFIX}`)
 
 const PA_COMMAND_NAMES = Object.values(COMMAND)
-  .filter((v) => v !== COMMAND.PROMPT_OPTIMIZE)
+  .filter((v) => hasPromptOptimizeVariant(v.replace(/^ae-/, 'ae:')))
   .map((v) => `${v}${PA_SUFFIX}`)
 
 const ALL_COMMAND_NAMES = [

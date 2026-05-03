@@ -1,4 +1,17 @@
-import { AeAssetEntrySchema, type AeAssetEntry, AgentDefinitionSchema, type AgentDefinition, SKILL, COMMAND, AGENT, skillDir, PO_SUFFIX, PA_SUFFIX, AUTO_SUFFIX } from '../schemas/ae-asset-schema.js'
+import {
+  AeAssetEntrySchema,
+  type AeAssetEntry,
+  AgentDefinitionSchema,
+  type AgentDefinition,
+  SKILL,
+  COMMAND,
+  AGENT,
+  skillDir,
+  PO_SUFFIX,
+  PA_SUFFIX,
+  AUTO_SUFFIX,
+  hasPromptOptimizeVariant,
+} from '../schemas/ae-asset-schema.js'
 
 const PHASE_ONE_ENTRIES = [
   {
@@ -226,7 +239,7 @@ const PHASE_ONE_ENTRIES = [
 ] satisfies AeAssetEntry[]
 
 const PHASE_ONE_PO_ENTRIES: AeAssetEntry[] = PHASE_ONE_ENTRIES
-  .filter((e) => e.skillName !== SKILL.PROMPT_OPTIMIZE)
+  .filter((e) => hasPromptOptimizeVariant(e.skillName))
   .map((e) => ({
     skillName: SKILL.PROMPT_OPTIMIZE,
     skillSlug: skillDir(SKILL.PROMPT_OPTIMIZE),
@@ -238,7 +251,7 @@ const PHASE_ONE_PO_ENTRIES: AeAssetEntry[] = PHASE_ONE_ENTRIES
   } satisfies AeAssetEntry))
 
 const PHASE_ONE_PA_ENTRIES: AeAssetEntry[] = PHASE_ONE_ENTRIES
-  .filter((e) => e.skillName !== SKILL.PROMPT_OPTIMIZE)
+  .filter((e) => hasPromptOptimizeVariant(e.skillName))
   .map((e) => ({
     skillName: SKILL.PROMPT_OPTIMIZE,
     skillSlug: skillDir(SKILL.PROMPT_OPTIMIZE),
