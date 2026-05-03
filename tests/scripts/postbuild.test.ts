@@ -25,6 +25,7 @@ describe('postbuild 构建脚本', () => {
     const root = createTempRoot()
     const entryPath = join(root, 'dist', 'src', 'index.js')
     mkdirSync(join(root, 'dist', 'src'), { recursive: true })
+    writeFileSync(join(root, 'package.json'), '{"type":"module"}\n', 'utf8')
     writeFileSync(entryPath, "import { z } from 'zod'\nexport default z.string().parse('ok')\n", 'utf8')
 
     execFileSync(process.execPath, [

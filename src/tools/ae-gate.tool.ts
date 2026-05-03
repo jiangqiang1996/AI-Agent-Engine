@@ -1,8 +1,32 @@
 import { tool, type ToolDefinition } from '@opencode-ai/plugin/tool'
 import { Effect } from 'effect'
 
-import { runGate, type ReviewEvidence } from '../services/gate-service.js'
+import { hashReviewOutput, runGate, type ReviewEvidence } from '../services/gate-service.js'
 import { showToast } from '../services/toast-holder.js'
+
+const REVIEW_SUBAGENT_TYPES = new Set([
+  'adversarial-reviewer',
+  'agent-native-reviewer',
+  'api-contract-reviewer',
+  'architecture-strategist',
+  'coherence-reviewer',
+  'correctness-reviewer',
+  'data-migrations-reviewer',
+  'design-lens-reviewer',
+  'feasibility-reviewer',
+  'maintainability-reviewer',
+  'pattern-recognition-specialist',
+  'performance-reviewer',
+  'previous-comments-reviewer',
+  'product-lens-reviewer',
+  'reliability-reviewer',
+  'research-reviewer',
+  'security-reviewer',
+  'standards-reviewer',
+  'step-granularity-reviewer',
+  'test-case-reviewer',
+  'testing-reviewer',
+])
 
 type ToolReviewEvidenceInput =
   | {
@@ -102,27 +126,76 @@ function collectTrustedAuthorizationRefs(
 }
 
 function collectTrustedReviewRefs(context: Record<string, unknown>, evidence: ToolReviewEvidenceInput | undefined): string[] {
+  return Object.keys(collectTrustedReviewOutputs(context, evidence))
+}
+
+function collectTrustedReviewOutputs(
+  context: Record<string, unknown>,
+  evidence: ToolReviewEvidenceInput | undefined,
+): Record<string, string> {
   if (!evidence || (evidence.type !== 'report_path' && evidence.type !== 'tool_output')) {
-    return []
+    return {}
   }
 
   const history = (context as { history?: unknown }).history
   if (!Array.isArray(history)) {
-    return []
+    return {}
   }
 
-  return history.flatMap((entry) => {
+  const trustedOutputs: Record<string, string> = {}
+  for (const entry of history) {
     if (!entry || typeof entry !== 'object') {
-      return []
+      continue
     }
 
-    const candidate = entry as { role?: unknown; content?: unknown; text?: unknown; message?: { role?: unknown; content?: unknown; text?: unknown } }
+    const candidate = entry as {
+      id?: unknown
+      task_id?: unknown
+      role?: unknown
+      tool?: unknown
+      name?: unknown
+      toolName?: unknown
+      subagent_type?: unknown
+      content?: unknown
+      text?: unknown
+      message?: {
+        id?: unknown
+        task_id?: unknown
+        role?: unknown
+        tool?: unknown
+        name?: unknown
+        toolName?: unknown
+        subagent_type?: unknown
+        content?: unknown
+        text?: unknown
+      }
+    }
     const role = candidate.role ?? candidate.message?.role
-    const text = extractHistoryText(candidate.content ?? candidate.text ?? candidate.message?.content ?? candidate.message?.text)
-    return role === 'tool' && text.includes('ae:review') && text.includes(evidence.review_run_id_or_message_ref)
-      ? [evidence.review_run_id_or_message_ref]
-      : []
-  })
+    const id = candidate.id ?? candidate.message?.id
+    const taskId = candidate.task_id ?? candidate.message?.task_id
+    const reviewRef = evidence.review_run_id_or_message_ref
+    const content = extractHistoryText(candidate.content ?? candidate.text ?? candidate.message?.content ?? candidate.message?.text)
+    const toolNames = [
+      candidate.tool,
+      candidate.toolName,
+      candidate.message?.tool,
+      candidate.message?.toolName,
+    ]
+    const subagentTypes = [
+      candidate.subagent_type,
+      candidate.message?.subagent_type,
+    ]
+    const isReviewTool = toolNames.some((toolName) => typeof toolName === 'string'
+      && /^(ae:review|ae-review)$/.test(toolName))
+    const isReviewSubagent = subagentTypes.some((subagentType) => typeof subagentType === 'string'
+      && REVIEW_SUBAGENT_TYPES.has(subagentType))
+    const isReviewSource = isReviewTool || isReviewSubagent
+    if (role === 'tool' && (id === reviewRef || taskId === reviewRef) && isReviewSource && content) {
+      trustedOutputs[reviewRef] = content
+    }
+  }
+
+  return trustedOutputs
 }
 
 function extractHistoryText(value: unknown): string {
@@ -292,6 +365,10 @@ export const aeGateTool: ToolDefinition = tool({
           args.git_authorization_evidence,
         ),
         trustedReviewRefs: collectTrustedReviewRefs(context as Record<string, unknown>, args.review_evidence),
+        trustedReviewOutputs: collectTrustedReviewOutputs(
+          context as Record<string, unknown>,
+          args.review_evidence,
+        ),
         userAuthorizedGitWrite: args.user_authorized_git_write,
         noCodeChangeReason: args.no_code_change_reason,
         notes: args.notes,
