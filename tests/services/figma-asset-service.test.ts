@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { runFigmaAssetTool } from '../../src/services/figma-asset-service.js'
+import { hashPrefix, type FigmaAgentBrowserRunner } from '../../src/services/figma-agent-browser-runner.js'
 
 interface ManifestAssetFixture {
   sourceIdHash: string
@@ -29,13 +30,17 @@ interface ManifestFixture {
     nodeIdHashes: string[]
   }
   failures: Array<{ code: string; message: string }>
+  warnings: Array<{ code: string; message: string }>
+  evidence: Record<string, unknown>
   assets: ManifestAssetFixture[]
 }
 
 let workspace: string
+const TEST_SESSION_ID = 'test-session'
 
 beforeEach(async () => {
   workspace = await mkdtemp(join(tmpdir(), 'ae-figma-assets-'))
+  await writeSetupProofFixture(TEST_SESSION_ID)
 })
 
 afterEach(async () => {
@@ -215,6 +220,329 @@ describe('Figma 素材服务', () => {
     expect(apiCallInit?.headers?.['X-Figma-Token']).toBe('env-file-secret')
     expectNoSensitiveOutput(output, ['env-file-secret', 'do-not-leak', '.figma-env', workspace])
     expectNoSensitiveOutput(manifest, ['env-file-secret', 'do-not-leak', '.figma-env', workspace])
+  })
+
+  it('应该通过 browser runner 下载素材并写入脱敏 manifest', async () => {
+    const figmaUrl = 'https://www.figma.com/design/fileKey/demo?node-id=1-30&token=query-secret'
+    const signedUrl = 'https://s3-alpha-sig.figma.com/img/abc/icon.png?Expires=secret&Signature=secret'
+    const runner = createBrowserRunner({ pageUrl: figmaUrl, nodeId: '1:30', resourceUrls: [signedUrl] })
+    vi.stubGlobal('fetch', vi.fn(async (input: string | URL, init?: RequestInit) => {
+      expect(String(input)).toBe(signedUrl)
+      expect(init?.redirect).toBe('manual')
+      return new Response(Buffer.from('image'), {
+        status: 200,
+        headers: { 'content-type': 'image/png', 'content-length': '5' },
+      })
+    }))
+
+    const output = await runFigmaAssetTool({ mode: 'browser', source: figmaUrl }, workspace, {
+      browser: { runner, sessionId: TEST_SESSION_ID },
+    })
+    const manifest = await readManifest()
+
+    expect(output).toContain('- 模式：browser')
+    expect(output).toContain('素材数量：1')
+    expect(manifest.source).toMatchObject({ type: 'browser_page', host: 'www.figma.com' })
+    expect(manifest.evidence).toMatchObject({
+      agentBrowserUsed: true,
+      saved: false,
+      browserAuthStatus: 'node_exportable',
+      downloadSourceType: 's3_presigned',
+      discoveryScriptId: 'figma-export-urls',
+      discoveryEventType: 'page_eval',
+      savedLocalEvidence: false,
+      evidenceTypes: [],
+    })
+    expect(manifest.assets[0]).toMatchObject({ bytes: 5, format: 'png' })
+    expectNoSensitiveOutput([output, manifest], [signedUrl, 'query-secret', 'Expires=secret', 'Signature=secret'])
+    expect(runner.close).toHaveBeenCalledTimes(1)
+  })
+
+  it('应该在 browser 发现不可信资源时写入 failed manifest 且关闭 session', async () => {
+    const figmaUrl = 'https://www.figma.com/design/fileKey/demo?node-id=1-30'
+    const unsafeUrl = 'https://example.com/icon.png?secret=leak'
+    const runner = createBrowserRunner({ pageUrl: figmaUrl, nodeId: '1:30', resourceUrls: [unsafeUrl] })
+
+    await expect(runFigmaAssetTool({ mode: 'browser', source: figmaUrl }, workspace, {
+      browser: { runner, sessionId: TEST_SESSION_ID },
+    }))
+      .rejects.toMatchObject({ code: 'unsafe_browser_resource_url' })
+    const manifest = await readManifest()
+
+    expect(manifest.status).toBe('failed')
+    expect(manifest.failures[0]).toMatchObject({ code: 'unsafe_browser_resource_url' })
+    expectNoSensitiveOutput(manifest, [unsafeUrl, 'secret=leak'])
+    expect(runner.close).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([
+    'http://www.figma.com/design/fileKey/demo?node-id=1-30',
+    'https://user:pass@www.figma.com/design/fileKey/demo?node-id=1-30',
+    'https://www.figma.com:444/design/fileKey/demo?node-id=1-30',
+    'https://example.com/design/fileKey/demo?node-id=1-30',
+    'https://127.0.0.1/design/fileKey/demo?node-id=1-30',
+  ])('应该拒绝 browser 模式打开非 allowlist Figma URL：%s', async (source) => {
+    const runner = createBrowserRunner({ pageUrl: source, nodeId: '1:30', resourceUrls: [] })
+
+    await expect(runFigmaAssetTool({ mode: 'browser', source, nodeId: '1:30' }, workspace, {
+      browser: { runner, sessionId: TEST_SESSION_ID },
+    }))
+      .rejects.toMatchObject({ code: 'invalid_figma_browser_url' })
+
+    expect(runner.open).not.toHaveBeenCalled()
+  })
+
+  it('应该要求服务层默认 browser runner 也必须有 setup proof 标记', async () => {
+    await rm(join(workspace, '.opencode'), { recursive: true, force: true })
+
+    await expect(runFigmaAssetTool({
+      mode: 'browser',
+      source: 'https://www.figma.com/design/fileKey/demo?node-id=1-30',
+    }, workspace)).rejects.toMatchObject({ code: 'setup_not_completed' })
+  })
+
+  it('应该要求注入 browser runner 时也必须有匹配当前会话的 setup proof', async () => {
+    await writeSetupProofFixture('other-session')
+    const runner = createBrowserRunner({
+      pageUrl: 'https://www.figma.com/design/fileKey/demo?node-id=1-30',
+      nodeId: '1:30',
+      resourceUrls: [],
+    })
+
+    await expect(runFigmaAssetTool({
+      mode: 'browser',
+      source: 'https://www.figma.com/design/fileKey/demo?node-id=1-30',
+    }, workspace, { browser: { runner, sessionId: TEST_SESSION_ID } })).rejects.toMatchObject({ code: 'setup_not_completed' })
+
+    expect(runner.open).not.toHaveBeenCalled()
+  })
+
+  it('应该拒绝 browser 资源发现 page provenance 不匹配', async () => {
+    const figmaUrl = 'https://www.figma.com/design/fileKey/demo?node-id=1-30'
+    const runner = createBrowserRunner({ pageUrl: figmaUrl, nodeId: '1:30', resourceUrls: [] })
+    vi.mocked(runner.discoverResources).mockResolvedValueOnce({
+      sessionIdHash: hashPrefix('figma-assets-wrong'),
+      pageUrlHash: hashPrefix('https://www.figma.com/design/other/demo?node-id=1-30'),
+      targetNodeId: '1:30',
+      scriptId: 'figma-export-urls',
+      capturedAt: '2026-04-28T00:00:00.000Z',
+      eventType: 'page_eval',
+      resourceUrls: ['https://s3-alpha-sig.figma.com/img/abc/icon.png'],
+    })
+
+    await expect(runFigmaAssetTool({ mode: 'browser', source: figmaUrl }, workspace, {
+      browser: { runner, sessionId: TEST_SESSION_ID },
+    }))
+      .rejects.toMatchObject({ code: 'browser_resource_discovery_failed' })
+  })
+
+  it('应该拒绝 browser 发现多个候选资源以避免错误节点误成功', async () => {
+    const figmaUrl = 'https://www.figma.com/design/fileKey/demo?node-id=1-30'
+    const runner = createBrowserRunner({
+      pageUrl: figmaUrl,
+      nodeId: '1:30',
+      resourceUrls: [
+        'https://s3-alpha-sig.figma.com/img/abc/icon-a.png',
+        'https://s3-alpha-sig.figma.com/img/abc/icon-b.png',
+      ],
+    })
+
+    await expect(runFigmaAssetTool({ mode: 'browser', source: figmaUrl }, workspace, {
+      browser: { runner, sessionId: TEST_SESSION_ID },
+    })).rejects.toMatchObject({ code: 'browser_resource_ambiguous' })
+  })
+
+  it('应该拒绝 browser 资源发现 node-id 前缀误匹配', async () => {
+    const figmaUrl = 'https://www.figma.com/design/fileKey/demo?node-id=1-30'
+    const runner = createBrowserRunner({
+      pageUrl: figmaUrl,
+      nodeId: '1:3',
+      resourceUrls: ['https://s3-alpha-sig.figma.com/img/abc/icon.png'],
+    })
+
+    await expect(runFigmaAssetTool({
+      mode: 'browser',
+      source: figmaUrl,
+      nodeId: '1:3',
+    }, workspace, { browser: { runner, sessionId: TEST_SESSION_ID } }))
+      .rejects.toMatchObject({ code: 'browser_resource_discovery_failed' })
+  })
+
+  it('应该拒绝 browser 下载重定向并写入 failed manifest', async () => {
+    const figmaUrl = 'https://www.figma.com/design/fileKey/demo?node-id=1-30'
+    const signedUrl = 'https://s3-alpha-sig.figma.com/img/abc/icon.png?Signature=secret'
+    const runner = createBrowserRunner({ pageUrl: figmaUrl, nodeId: '1:30', resourceUrls: [signedUrl] })
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('', {
+      status: 302,
+      headers: { location: 'https://example.com/redirect?secret=leak' },
+    })))
+
+    await expect(runFigmaAssetTool({ mode: 'browser', source: figmaUrl }, workspace, {
+      browser: { runner, sessionId: TEST_SESSION_ID },
+    }))
+      .rejects.toMatchObject({ code: 'download_redirect_not_allowed' })
+    const manifest = await readManifest()
+
+    expect(manifest.status).toBe('failed')
+    expect(manifest.failures[0]).toMatchObject({ code: 'download_redirect_not_allowed' })
+    expectNoSensitiveOutput(manifest, [signedUrl, 'Signature=secret', 'redirect?secret=leak'])
+  })
+
+  it('应该拒绝 browser 流式下载超过单文件大小上限', async () => {
+    const figmaUrl = 'https://www.figma.com/design/fileKey/demo?node-id=1-30'
+    const signedUrl = 'https://s3-alpha-sig.figma.com/img/abc/icon.png?Signature=secret'
+    const runner = createBrowserRunner({ pageUrl: figmaUrl, nodeId: '1:30', resourceUrls: [signedUrl] })
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(new ReadableStream({
+      start(controller) {
+        controller.enqueue(new Uint8Array(26 * 1024 * 1024))
+        controller.close()
+      },
+    }), {
+      status: 200,
+      headers: { 'content-type': 'image/png' },
+    })))
+
+    await expect(runFigmaAssetTool({ mode: 'browser', source: figmaUrl }, workspace, {
+      browser: { runner, sessionId: TEST_SESSION_ID },
+    })).rejects.toMatchObject({ code: 'download_too_large' })
+    const manifest = await readManifest()
+
+    expect(manifest.status).toBe('failed')
+    expect(manifest.failures[0]).toMatchObject({ code: 'download_too_large' })
+  })
+
+  it('应该在 browser session 关闭失败时返回失败 manifest', async () => {
+    const figmaUrl = 'https://www.figma.com/design/fileKey/demo?node-id=1-30'
+    const signedUrl = 'https://s3-alpha-sig.figma.com/img/abc/icon.png'
+    const runner = createBrowserRunner({ pageUrl: figmaUrl, nodeId: '1:30', resourceUrls: [signedUrl] })
+    vi.mocked(runner.close).mockRejectedValueOnce(new Error('close failed'))
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(Buffer.from('image'), {
+      status: 200,
+      headers: { 'content-type': 'image/png', 'content-length': '5' },
+    })))
+
+    await expect(runFigmaAssetTool({ mode: 'browser', source: figmaUrl }, workspace, {
+      browser: { runner, sessionId: TEST_SESSION_ID },
+    })).rejects.toMatchObject({ code: 'browser_session_close_failed' })
+    const manifest = await readManifest()
+
+    expect(manifest.status).toBe('failed')
+    expect(manifest.warnings[0]).toMatchObject({ code: 'browser_session_close_failed' })
+    expect(manifest.failures[0]).toMatchObject({ code: 'browser_session_close_failed' })
+  })
+
+  it('应该在 browser 下载遇到 403+set-cookie 时返回 requires_auth 错误', async () => {
+    const figmaUrl = 'https://www.figma.com/design/fileKey/demo?node-id=1-30'
+    const signedUrl = 'https://s3-alpha-sig.figma.com/img/abc/icon.png'
+    const runner = createBrowserRunner({ pageUrl: figmaUrl, nodeId: '1:30', resourceUrls: [signedUrl] })
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('', {
+      status: 403,
+      headers: { 'set-cookie': 'session=abc; Path=/' },
+    })))
+
+    await expect(runFigmaAssetTool({ mode: 'browser', source: figmaUrl }, workspace, {
+      browser: { runner, sessionId: TEST_SESSION_ID },
+    })).rejects.toMatchObject({ code: 'browser_resource_requires_auth' })
+    const manifest = await readManifest()
+
+    expect(manifest.status).toBe('failed')
+    expect(manifest.failures[0]).toMatchObject({ code: 'browser_resource_requires_auth' })
+    expectNoSensitiveOutput(manifest, ['session=abc'])
+  })
+
+  it('应该在 browser 下载遇到 403 无 set-cookie 时返回 expired_url 错误', async () => {
+    const figmaUrl = 'https://www.figma.com/design/fileKey/demo?node-id=1-30'
+    const signedUrl = 'https://s3-alpha-sig.figma.com/img/abc/icon.png?Signature=secret'
+    const runner = createBrowserRunner({ pageUrl: figmaUrl, nodeId: '1:30', resourceUrls: [signedUrl] })
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 403 })))
+
+    await expect(runFigmaAssetTool({ mode: 'browser', source: figmaUrl }, workspace, {
+      browser: { runner, sessionId: TEST_SESSION_ID },
+    })).rejects.toMatchObject({ code: 'expired_browser_resource_url' })
+    const manifest = await readManifest()
+
+    expect(manifest.status).toBe('failed')
+    expect(manifest.failures[0]).toMatchObject({ code: 'expired_browser_resource_url' })
+    expectNoSensitiveOutput(manifest, [signedUrl, 'Signature=secret'])
+  })
+
+  it('应该在 browser 下载遇到 404 时返回 expired_url 错误', async () => {
+    const figmaUrl = 'https://www.figma.com/design/fileKey/demo?node-id=1-30'
+    const signedUrl = 'https://s3-alpha-sig.figma.com/img/abc/icon.png'
+    const runner = createBrowserRunner({ pageUrl: figmaUrl, nodeId: '1:30', resourceUrls: [signedUrl] })
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('', { status: 404 })))
+
+    await expect(runFigmaAssetTool({ mode: 'browser', source: figmaUrl }, workspace, {
+      browser: { runner, sessionId: TEST_SESSION_ID },
+    })).rejects.toMatchObject({ code: 'expired_browser_resource_url' })
+    const manifest = await readManifest()
+
+    expect(manifest.status).toBe('failed')
+    expect(manifest.failures[0]).toMatchObject({ code: 'expired_browser_resource_url' })
+  })
+
+  it('应该在 browser 下载遇到 500 时返回 download_failed 错误', async () => {
+    const figmaUrl = 'https://www.figma.com/design/fileKey/demo?node-id=1-30'
+    const signedUrl = 'https://s3-alpha-sig.figma.com/img/abc/icon.png'
+    const runner = createBrowserRunner({ pageUrl: figmaUrl, nodeId: '1:30', resourceUrls: [signedUrl] })
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('server error', { status: 500 })))
+
+    await expect(runFigmaAssetTool({ mode: 'browser', source: figmaUrl }, workspace, {
+      browser: { runner, sessionId: TEST_SESSION_ID },
+    })).rejects.toMatchObject({ code: 'download_failed' })
+    const manifest = await readManifest()
+
+    expect(manifest.status).toBe('failed')
+    expect(manifest.failures[0]).toMatchObject({ code: 'download_failed' })
+  })
+
+  it('应该在 browser snapshot 返回需要登录时拒绝并写入 failed manifest', async () => {
+    const figmaUrl = 'https://www.figma.com/design/fileKey/demo?node-id=1-30'
+    const runner = createBrowserRunner({ pageUrl: figmaUrl, nodeId: '1:30', resourceUrls: [] })
+    vi.mocked(runner.snapshotInteractive).mockResolvedValueOnce('Sign in to Figma')
+
+    await expect(runFigmaAssetTool({ mode: 'browser', source: figmaUrl }, workspace, {
+      browser: { runner, sessionId: TEST_SESSION_ID },
+    })).rejects.toMatchObject({ code: 'login_required' })
+    const manifest = await readManifest()
+
+    expect(manifest.status).toBe('failed')
+    expect(manifest.failures[0]).toMatchObject({ code: 'login_required' })
+    expect(runner.close).toHaveBeenCalledTimes(1)
+  })
+
+  it('应该在 browser snapshot 返回无权限时拒绝并写入 failed manifest', async () => {
+    const figmaUrl = 'https://www.figma.com/design/fileKey/demo?node-id=1-30'
+    const runner = createBrowserRunner({ pageUrl: figmaUrl, nodeId: '1:30', resourceUrls: [] })
+    vi.mocked(runner.snapshotInteractive).mockResolvedValueOnce('Request access to this file')
+
+    await expect(runFigmaAssetTool({ mode: 'browser', source: figmaUrl }, workspace, {
+      browser: { runner, sessionId: TEST_SESSION_ID },
+    })).rejects.toMatchObject({ code: 'access_denied' })
+    const manifest = await readManifest()
+
+    expect(manifest.status).toBe('failed')
+    expect(manifest.failures[0]).toMatchObject({ code: 'access_denied' })
+  })
+
+  it('应该在 browser snapshot 返回文件不存在时拒绝', async () => {
+    const figmaUrl = 'https://www.figma.com/design/fileKey/demo?node-id=1-30'
+    const runner = createBrowserRunner({ pageUrl: figmaUrl, nodeId: '1:30', resourceUrls: [] })
+    vi.mocked(runner.snapshotInteractive).mockResolvedValueOnce('File not found - 404')
+
+    await expect(runFigmaAssetTool({ mode: 'browser', source: figmaUrl }, workspace, {
+      browser: { runner, sessionId: TEST_SESSION_ID },
+    })).rejects.toMatchObject({ code: 'file_not_found' })
+  })
+
+  it('应该在 browser snapshot 返回空内容时拒绝', async () => {
+    const figmaUrl = 'https://www.figma.com/design/fileKey/demo?node-id=1-30'
+    const runner = createBrowserRunner({ pageUrl: figmaUrl, nodeId: '1:30', resourceUrls: [] })
+    vi.mocked(runner.snapshotInteractive).mockResolvedValueOnce('')
+
+    await expect(runFigmaAssetTool({ mode: 'browser', source: figmaUrl }, workspace, {
+      browser: { runner, sessionId: TEST_SESSION_ID },
+    })).rejects.toMatchObject({ code: 'page_load_failed' })
   })
 
   it('应该校验最新 manifest', async () => {
@@ -499,3 +827,33 @@ describe('Figma 素材服务', () => {
   })
 
 })
+
+function createBrowserRunner(options: {
+  pageUrl: string
+  nodeId: string
+  resourceUrls: string[]
+}): FigmaAgentBrowserRunner {
+  return {
+    open: vi.fn(async () => undefined),
+    snapshotInteractive: vi.fn(async () => 'Export PNG'),
+    discoverResources: vi.fn(async (sessionId, pageUrl, nodeId, scriptId) => ({
+      sessionIdHash: hashPrefix(sessionId),
+      pageUrlHash: hashPrefix(pageUrl),
+      targetNodeId: nodeId,
+      scriptId: scriptId as 'figma-export-urls',
+      capturedAt: '2026-04-28T00:00:00.000Z',
+      eventType: 'page_eval' as const,
+      resourceUrls: pageUrl === options.pageUrl && nodeId === options.nodeId ? options.resourceUrls : [],
+    })),
+    close: vi.fn(async () => undefined),
+  }
+}
+
+async function writeSetupProofFixture(sessionId: string): Promise<void> {
+  await mkdir(join(workspace, '.opencode', 'ae'), { recursive: true })
+  await writeFile(join(workspace, '.opencode', 'ae', 'setup-proof.json'), `${JSON.stringify({
+    sessionId,
+    completedAt: '2026-04-28T00:00:00.000Z',
+    version: '0.25.4',
+  }, null, 2)}\n`)
+}

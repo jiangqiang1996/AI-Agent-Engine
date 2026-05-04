@@ -8,12 +8,21 @@ import { ensureSafeDirectoryPath, ensureSafeOutputRoot, resolveWorkspacePath } f
 import { validateLatestManifest, writeManifests } from './figma-manifest-repo.js'
 import { runApiMode } from './figma-api-mode.js'
 import { runCollectMode } from './figma-collect-mode.js'
+import { runBrowserMode, type BrowserModeOptions } from './figma-browser-mode.js'
 
 export type { FigmaAssetError } from './figma-result-formatter.js'
 
 const DEFAULT_OUTPUT_DIR = '.figma'
 
-export async function runFigmaAssetTool(args: FigmaAssetToolArgs, workspaceRoot: string): Promise<string> {
+export interface RunFigmaAssetToolOptions {
+  browser?: BrowserModeOptions
+}
+
+export async function runFigmaAssetTool(
+  args: FigmaAssetToolArgs,
+  workspaceRoot: string,
+  options: RunFigmaAssetToolOptions = {},
+): Promise<string> {
   const parsed = parseFigmaSource(args.source)
   const outputRoot = await resolveWorkspacePath(workspaceRoot, args.outputDir ?? DEFAULT_OUTPUT_DIR)
   ensureManagedOutputDir(workspaceRoot, outputRoot)
@@ -33,6 +42,15 @@ export async function runFigmaAssetTool(args: FigmaAssetToolArgs, workspaceRoot:
   if (args.mode === 'collect') {
     const manifest = await runCollectMode(args, parsed, workspaceRoot, outputRoot, runId, runAssetsDir)
     await writeManifests(workspaceRoot, outputRoot, runRoot, manifest)
+    return formatSummary(manifest, workspaceRoot, outputRoot)
+  }
+
+  if (args.mode === 'browser') {
+    const { manifest, error } = await runBrowserMode(args, parsed, workspaceRoot, runId, runAssetsDir, options.browser)
+    await writeManifests(workspaceRoot, outputRoot, runRoot, manifest)
+    if (manifest.status === 'failed') {
+      throw error ?? new Error('browser 模式执行失败。')
+    }
     return formatSummary(manifest, workspaceRoot, outputRoot)
   }
 

@@ -1,7 +1,7 @@
 ---
 name: ae:figma-assets
 description: 从用户已授权的 Figma 文件或节点导出素材到当前工作区
-argument-hint: "[Figma URL|fileKey:<KEY> nodeId:<ID>] [mode:api|collect|validate]"
+argument-hint: "[Figma URL|fileKey:<KEY> nodeId:<ID>] [mode:browser|api|collect|validate]"
 ---
 
 # Skill: ae:figma-assets
@@ -10,19 +10,20 @@ argument-hint: "[Figma URL|fileKey:<KEY> nodeId:<ID>] [mode:api|collect|validate
 
 ## 使用场景
 
+- 用户提供 Figma 文件或节点 URL，并愿意在 `agent-browser` 隔离会话中完成登录授权。
 - 用户提供 Figma 文件或节点 URL，并通过 allowlist 环境变量或工作区 envFile 提供 Figma token。
 - 用户已经手动从 Figma 导出素材，需要收集到项目统一目录并生成 manifest。
 - 用户需要验证 `.figma/manifest.json` 中记录的素材是否仍与磁盘文件一致。
 
 ## 参数
 
-- `mode`：可选，`api`、`collect` 或 `validate`，默认 `api`。
+- `mode`：可选，`browser`、`api`、`collect` 或 `validate`，默认 `browser`。
 - `source`：可选，Figma 文件或节点 URL。
 - `fileKey`：可选，Figma 文件 Key；API 模式可从 `source` 解析。
-- `nodeId`：API 模式必填，或从 `source` 的 `node-id` 参数解析。
+- `nodeId`：`browser` / `api` 模式必填，或从 `source` 的 `node-id` 参数解析。
 - `token`：已弃用；不要在对话或参数中粘贴 token，工具会拒绝非空值。
-- `tokenEnv`：可选，仅允许 `FIGMA_OAUTH_TOKEN`、`FIGMA_API_KEY` 或 `FIGMA_TOKEN`。
-- `envFile`：可选，工作区内 dotenv 文件路径；仅读取 `FIGMA_OAUTH_TOKEN`、`FIGMA_API_KEY`、`FIGMA_TOKEN`。
+- `tokenEnv`：可选，仅 `api` 模式需要；仅允许 `FIGMA_OAUTH_TOKEN`、`FIGMA_API_KEY` 或 `FIGMA_TOKEN`。
+- `envFile`：可选，仅 `api` 模式需要；工作区内 dotenv 文件路径；仅读取 `FIGMA_OAUTH_TOKEN`、`FIGMA_API_KEY`、`FIGMA_TOKEN`。
 - `manualSourceDir`：`collect` 模式必填，用户手动导出素材所在目录。
 - `outputDir`：可选，默认 `.figma`。
 
@@ -30,13 +31,31 @@ argument-hint: "[Figma URL|fileKey:<KEY> nodeId:<ID>] [mode:api|collect|validate
 
 | 条件 | 推荐模式 | 说明 |
 |------|---------|------|
+| 有 Figma URL + 当前会话已完成 `ae:setup` | `browser` | 默认路径；用户在隔离浏览器中登录，工具内部 runner 发现页面资源并受控下载 |
 | 有 Figma URL + allowlist token 来源 | `api` | 调用官方 images API 下载节点素材 |
-| 无 API 凭证或权限不足 | `collect` | 用户手动导出后统一收集 |
+| browser/API 不可用或权限不足 | `collect` | 用户手动导出后统一收集 |
 | 已有 `.figma/manifest.json` | `validate` | 校验素材完整性 |
 
 ## 执行流程
 
-### API 主路径
+### Browser 主路径
+
+1. 当前会话先完成 `ae:setup` / `/ae-setup`；未完成时不得进入 browser 模式。
+2. 使用 `ae-figma-assets` 工具的 `browser` 模式，传入含 `node-id` 的 Figma URL。
+3. 工具层精确校验 setup proof：`ctx.sessionID` 必须等于 `.opencode/ae/setup-proof.json` 中的 `sessionId`。
+4. 工具内部 runner 使用本轮 runId 派生的 `--session` 打开页面，用户在浏览器中完成登录、二次验证或组织授权。
+5. runner 轮询 `snapshot -i` 判断页面状态；页面可导出后使用预定义脚本 `figma-export-urls` 做资源发现。
+6. 预定义脚本只读取 `performance.getEntriesByType('resource')` 中的 Figma S3 图片资源；禁止读取 `document.cookie`、`localStorage`、`sessionStorage` 或 `indexedDB`。
+7. 服务层只在内存中接收资源 URL，校验 session/page/node/script/capturedAt provenance、域名 allowlist、Content-Type、大小和重定向策略后写入 `.figma/runs/<runId>/assets/`。
+8. 成功只以本轮新增素材文件、manifest 和 SHA-256 校验为准；页面打开成功或点击过按钮不算下载成功。
+
+SKILL.md 不输出可复制的 `agent-browser` 命令；browser 自动化由 `ae-figma-assets` 工具内部 runner 在 setup proof 通过后执行。
+
+缺少 `node-id` 时，引导用户在已打开的 Figma 页面中右键目标节点 → 复制链接，再重新执行。
+
+失败降级优先建议 `mode: collect` 手动导出；`api` 仅作为用户明确提供 token 时的兼容路径。
+
+### API 兼容路径
 
 1. 从用户提供的 Figma URL 或参数获取 `fileKey` 和 `nodeId`。
 2. 使用 `ae-figma-assets` 工具的 `api` 模式下载明确 `nodeId` 对应素材。
@@ -74,7 +93,7 @@ argument-hint: "[Figma URL|fileKey:<KEY> nodeId:<ID>] [mode:api|collect|validate
 
 ## 方案选择说明
 
-- MVP 采用 agent-browser 辅助选择 + 官方 API 下载；tool 自带 WebView 不进入主线。
+- MVP 采用 browser 授权资源发现 + 受控写盘；API token 路径保留为兼容模式。
 - Figma Plugin Bridge 作为二阶段增强候选，不在当前技能中实现。
 - "加入对话"的 MVP 等价交互是用户复制含 `node-id` 的节点链接到对话，而不是浏览器选中后自动注入当前 Figma selection。
 
