@@ -145,7 +145,15 @@ export function hashSourceId(value: string, runSalt: string): string {
 }
 
 export function defaultEvidence(): FigmaAssetManifest['evidence'] {
-  return { agentBrowserUsed: false, saved: false, types: [], paths: [] }
+  return {
+    agentBrowserUsed: false,
+    saved: false,
+    types: [],
+    paths: [],
+    savedLocalEvidence: false,
+    evidenceTypes: [],
+    experimental: false,
+  }
 }
 
 export function buildFigmaSource(

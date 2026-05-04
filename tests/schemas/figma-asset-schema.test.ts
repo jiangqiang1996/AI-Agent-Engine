@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { FigmaAssetManifestSchema, FigmaAssetToolArgsSchema } from '../../src/schemas/figma-asset-schema.js'
+import {
+  FIGMA_BROWSER_MODE_AVAILABLE,
+  FIGMA_DEFAULT_MODE,
+  FigmaAssetManifestSchema,
+  FigmaAssetToolArgsSchema,
+} from '../../src/schemas/figma-asset-schema.js'
 
 describe('Figma 素材 Schema', () => {
   it('应该为工具参数提供默认模式和格式', () => {
@@ -8,6 +13,11 @@ describe('Figma 素材 Schema', () => {
 
     expect(result.mode).toBe('api')
     expect(result.format).toBe('png')
+  })
+
+  it('应该在 browser 能力未验证通过前保持 api 默认模式', () => {
+    expect(FIGMA_BROWSER_MODE_AVAILABLE).toBe(false)
+    expect(FIGMA_DEFAULT_MODE).toBe('api')
   })
 
   it('应该校验 manifest checksum 长度', () => {
@@ -33,6 +43,38 @@ describe('Figma 素材 Schema', () => {
     })
 
     expect(manifest.assets[0]?.sha256).toHaveLength(64)
+  })
+
+  it('应该允许 browser 模式 manifest 记录脱敏浏览器证据', () => {
+    const manifest = FigmaAssetManifestSchema.parse({
+      schemaVersion: 2,
+      mode: 'browser',
+      runId: 'run-1',
+      startedAt: '2026-04-28T00:00:00.000Z',
+      completedAt: '2026-04-28T00:00:00.000Z',
+      status: 'success',
+      source: { type: 'browser_page', host: 'www.figma.com', nodeIdHashes: ['hash123456789abc'] },
+      evidence: {
+        agentBrowserUsed: true,
+        saved: false,
+        types: [],
+        paths: [],
+        browserAuthStatus: 'node_exportable',
+        downloadSourceType: 's3_presigned',
+        browserSessionIdHash: 'sessionhash',
+        pageUrlHash: 'pagehash',
+        discoveryScriptId: 'figma-export-urls',
+        discoveryCapturedAt: '2026-04-28T00:00:00.000Z',
+        discoveryEventType: 'page_eval',
+      },
+      warnings: [],
+      failures: [],
+      assets: [],
+    })
+
+    expect(manifest.mode).toBe('browser')
+    expect(manifest.evidence.savedLocalEvidence).toBe(false)
+    expect(manifest.evidence.evidenceTypes).toEqual([])
   })
 
   it.each([

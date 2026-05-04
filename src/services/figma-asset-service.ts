@@ -1,19 +1,29 @@
 import { mkdir } from 'node:fs/promises'
 import { basename, join, resolve } from 'node:path'
 
-import { type FigmaAssetToolArgs } from '../schemas/figma-asset-schema.js'
+import { FIGMA_BROWSER_MODE_AVAILABLE, type FigmaAssetToolArgs } from '../schemas/figma-asset-schema.js'
 import { parseFigmaSource } from './figma-source-utils.js'
 import { createRunId, FigmaAssetError, formatSummary } from './figma-result-formatter.js'
 import { ensureSafeDirectoryPath, ensureSafeOutputRoot, resolveWorkspacePath } from './figma-path-safety.js'
 import { validateLatestManifest, writeManifests } from './figma-manifest-repo.js'
 import { runApiMode } from './figma-api-mode.js'
 import { runCollectMode } from './figma-collect-mode.js'
+import { runBrowserMode, type BrowserModeOptions } from './figma-browser-mode.js'
 
 export type { FigmaAssetError } from './figma-result-formatter.js'
 
 const DEFAULT_OUTPUT_DIR = '.figma'
 
-export async function runFigmaAssetTool(args: FigmaAssetToolArgs, workspaceRoot: string): Promise<string> {
+export interface RunFigmaAssetToolOptions {
+  browser?: BrowserModeOptions
+  allowExperimentalBrowserMode?: boolean
+}
+
+export async function runFigmaAssetTool(
+  args: FigmaAssetToolArgs,
+  workspaceRoot: string,
+  options: RunFigmaAssetToolOptions = {},
+): Promise<string> {
   const parsed = parseFigmaSource(args.source)
   const outputRoot = await resolveWorkspacePath(workspaceRoot, args.outputDir ?? DEFAULT_OUTPUT_DIR)
   ensureManagedOutputDir(workspaceRoot, outputRoot)
@@ -33,6 +43,18 @@ export async function runFigmaAssetTool(args: FigmaAssetToolArgs, workspaceRoot:
   if (args.mode === 'collect') {
     const manifest = await runCollectMode(args, parsed, workspaceRoot, outputRoot, runId, runAssetsDir)
     await writeManifests(workspaceRoot, outputRoot, runRoot, manifest)
+    return formatSummary(manifest, workspaceRoot, outputRoot)
+  }
+
+  if (args.mode === 'browser') {
+    if (!FIGMA_BROWSER_MODE_AVAILABLE && !options.allowExperimentalBrowserMode) {
+      throw new FigmaAssetError('browser 模式仍处于实验能力验证阶段，当前默认不可用。请改用 mode: api 或 mode: collect。', 'browser_mode_unavailable')
+    }
+    const { manifest, error } = await runBrowserMode(args, parsed, workspaceRoot, runId, runAssetsDir, options.browser)
+    await writeManifests(workspaceRoot, outputRoot, runRoot, manifest)
+    if (manifest.status === 'failed') {
+      throw error ?? new Error('browser 模式执行失败。')
+    }
     return formatSummary(manifest, workspaceRoot, outputRoot)
   }
 

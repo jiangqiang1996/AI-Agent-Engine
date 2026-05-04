@@ -124,7 +124,7 @@ const PHASE_ONE_ENTRIES = [
     skillSlug: skillDir(SKILL.FIGMA_ASSETS),
     commandName: COMMAND.FIGMA_ASSETS,
     description: '从用户已授权的 Figma 文件或节点导出素材到当前工作区',
-    argumentHint: '[Figma URL|fileKey:<KEY> nodeId:<ID>] [mode:api|collect|validate]',
+    argumentHint: '[Figma URL|fileKey:<KEY> nodeId:<ID>] [mode:api|collect|validate|browser]',
     defaultEntry: false,
     skillFile: `src/assets/skills/${skillDir(SKILL.FIGMA_ASSETS)}/SKILL.md`,
   },

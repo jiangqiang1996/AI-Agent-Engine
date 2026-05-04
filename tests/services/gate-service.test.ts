@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { Effect } from 'effect'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { collectCurrentWorktreeFingerprint, hashReviewOutput, runGate } from '../../src/services/gate-service.js'
 
@@ -55,6 +55,7 @@ function initGitRepo(root: string): { branch: string; head: string; statusSummar
   const head = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim()
   return { branch, head, statusSummary: '' }
 }
+
 
 function normalizedEvidencePath(path: string): string {
   const normalized = path.replaceAll('\\', '/')
@@ -1123,6 +1124,77 @@ describe('门禁服务', () => {
     const fingerprint = collectCurrentWorktreeFingerprint(root)
 
     expect(fingerprint.statusSummary).not.toContain('docs/ae/reviews/review.md')
+  })
+
+  it('应该在 git status 降级省略未跟踪文件时阻断审查证据复用', async () => {
+    const root = createRepoRoot()
+    writePlan(root)
+    const evidence = {
+      reviewRunIdOrMessageRef: 'review-degraded',
+      worktree: root,
+      branch: 'main',
+      head: 'head123',
+      statusSummary: 'M src/a.ts',
+    }
+    const reviewOutput = createReviewOutput(evidence)
+    writeReviewReport(root, { ...evidence, reviewOutputHash: hashReviewOutput(reviewOutput) })
+    vi.resetModules()
+    vi.doMock('node:child_process', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('node:child_process')>()
+      return {
+        ...actual,
+        execFileSync: (command: string, args?: readonly string[]) => {
+          if (command !== 'git') {
+            return actual.execFileSync(command, args)
+          }
+          if (args?.[0] === 'rev-parse' && args[1] === 'HEAD') {
+            return 'head123\n'
+          }
+          if (args?.[0] === 'rev-parse' && args[1] === '--abbrev-ref') {
+            return 'main\n'
+          }
+          if (args?.[0] === 'status' && args.includes('--untracked-files=no')) {
+            return '## main\nM src/a.ts\n'
+          }
+          if (args?.[0] === 'status') {
+            throw new Error('git status timeout')
+          }
+          throw new Error(`unexpected git command: ${args?.join(' ') ?? ''}`)
+        },
+      }
+    })
+
+    try {
+      const gateService = await import('../../src/services/gate-service.js')
+      const fingerprint = gateService.collectCurrentWorktreeFingerprint(root)
+      const result = Effect.runSync(gateService.runGate(root, {
+        workflow: 'work',
+        checkpoint: 'final',
+        planPath: 'docs/ae/plans/test-plan.md',
+        validationCommands: ['npm run test'],
+        reviewStatus: 'passed',
+        reviewEvidence: {
+          type: 'report_path',
+          reviewTrust: 'verified',
+          path: 'docs/ae/review/review-degraded/metadata.json',
+          ...evidence,
+        },
+        trustedReviewRefs: ['review-degraded'],
+        trustedReviewOutputs: { 'review-degraded': reviewOutput },
+        gitOperations: [],
+        worktreeDecision: 'created',
+        writeProof: false,
+      }))
+
+      expect(fingerprint.available).toBe(true)
+      expect(fingerprint.degraded).toBe(true)
+      expect(fingerprint.statusSummary).toBe('M src/a.ts')
+      expect(result.status).toBe('block')
+      expect(result.blockers).toContain('当前工作区指纹省略了未跟踪文件，不能作为可验证审查来源证据。')
+    } finally {
+      vi.doUnmock('node:child_process')
+      vi.resetModules()
+    }
   })
 
   it('应该允许 B worktree 引用 A 启动证明覆盖 git worktree add', () => {

@@ -95,6 +95,44 @@ describe('ae-figma-assets 工具', () => {
     expect(showToast).toHaveBeenCalledWith(output)
   })
 
+  it('应该要求 browser 模式先完成当前会话 setup proof', async () => {
+    const output = await callTool({
+      mode: 'browser',
+      source: 'https://www.figma.com/design/fileKey/demo?node-id=1-30',
+    })
+
+    expect(output).toContain('Figma 素材处理失败')
+    expect(output).toContain('/ae-setup')
+    expect(showToast).toHaveBeenCalledWith(output)
+  })
+
+  it('应该在 setup proof 会话不匹配时拒绝 browser 模式', async () => {
+    await writeSetupProofFixture('other-session')
+
+    const output = await callTool({
+      mode: 'browser',
+      source: 'https://www.figma.com/design/fileKey/demo?node-id=1-30',
+    })
+
+    expect(output).toContain('Figma 素材处理失败')
+    expect(output).toContain('/ae-setup')
+    expect(showToast).toHaveBeenCalledWith(output)
+  })
+
+  it('应该在 browser 实验能力未启用时拒绝真实工具调用', async () => {
+    await writeSetupProofFixture('test-session')
+
+    const output = await callTool({
+      mode: 'browser',
+      source: 'https://www.figma.com/design/fileKey/demo?node-id=1-30',
+    })
+
+    expect(output).toContain('Figma 素材处理失败')
+    expect(output).toContain('browser 模式仍处于实验能力验证阶段')
+    expect(output).toContain('mode: api')
+    expect(showToast).toHaveBeenCalledWith(output)
+  })
+
   it('应该在 API 失败输出中保持 token、envFile、下载 URL 和工作区路径脱敏', async () => {
     const downloadUrl = 'https://figma.com/exported/icon.png?signature=temporary-secret'
     vi.stubGlobal('fetch', vi.fn(async (input: string | URL) => {
@@ -120,3 +158,12 @@ describe('ae-figma-assets 工具', () => {
     expect(showToast).toHaveBeenCalledWith(output)
   })
 })
+
+async function writeSetupProofFixture(sessionId: string): Promise<void> {
+  await mkdir(join(workspace, '.opencode', 'ae'), { recursive: true })
+  await writeFile(join(workspace, '.opencode', 'ae', 'setup-proof.json'), `${JSON.stringify({
+    sessionId,
+    completedAt: '2026-04-28T00:00:00.000Z',
+    version: '0.25.4',
+  }, null, 2)}\n`)
+}

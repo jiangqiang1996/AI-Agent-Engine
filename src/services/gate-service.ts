@@ -62,6 +62,8 @@ export interface WorktreeFingerprint {
   head?: string
   statusSummary?: string
   available: boolean
+  degraded?: boolean
+  degradationReason?: string
   error?: string
 }
 
@@ -202,14 +204,26 @@ function isRuntimeEvidencePath(filePath: string): boolean {
 }
 
 const GIT_EXEC_TIMEOUT = 30_000
+const GIT_STATUS_TIMEOUT = 5_000
 
-function runGit(repoRoot: string, args: string[]): string {
+function runGit(repoRoot: string, args: string[], timeout = GIT_EXEC_TIMEOUT): string {
   return execFileSync('git', args, {
     cwd: repoRoot,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'ignore'],
-    timeout: GIT_EXEC_TIMEOUT,
+    timeout,
   }).trim()
+}
+
+function runGitStatus(repoRoot: string): { output: string; degraded: boolean } {
+  try {
+    return { output: runGit(repoRoot, ['status', '--porcelain', '--branch'], GIT_STATUS_TIMEOUT), degraded: false }
+  } catch {
+    return {
+      output: runGit(repoRoot, ['status', '--porcelain', '--branch', '--untracked-files=no'], GIT_EXEC_TIMEOUT),
+      degraded: true,
+    }
+  }
 }
 
 /**
@@ -220,7 +234,8 @@ export function collectCurrentWorktreeFingerprint(repoRoot: string): WorktreeFin
   try {
     const worktreePath = normalizePathForEvidence(realpathSync(repoRoot))
     const head = runGit(repoRoot, ['rev-parse', 'HEAD'])
-    const statusOutput = runGit(repoRoot, ['status', '--porcelain', '--branch'])
+    const status = runGitStatus(repoRoot)
+    const statusOutput = status.output
     const branch = parseBranchFromStatus(statusOutput) ?? runGit(repoRoot, ['rev-parse', '--abbrev-ref', 'HEAD'])
     const statusSummary = statusOutput
       .split('\n')
@@ -230,7 +245,15 @@ export function collectCurrentWorktreeFingerprint(repoRoot: string): WorktreeFin
       .map((line) => line.trim())
       .join('\n')
 
-    return { worktreePath, branch, head, statusSummary, available: true }
+    return {
+      worktreePath,
+      branch,
+      head,
+      statusSummary,
+      available: true,
+      degraded: status.degraded,
+      degradationReason: status.degraded ? 'git status omitted untracked files after timeout' : undefined,
+    }
   } catch (error) {
     return {
       worktreePath: normalizePathForEvidence(repoRoot),
@@ -801,6 +824,13 @@ function addReviewEvidenceBlockers(
   if (!fingerprint.available) {
     blockers.push('当前工作区指纹不可用，不能证明审查状态属于当前 worktree。')
     addMissingEvidence(missingEvidence, '当前工作区指纹')
+    return
+  }
+
+  if (fingerprint.degraded) {
+    blockers.push('当前工作区指纹省略了未跟踪文件，不能作为可验证审查来源证据。')
+    addMissingEvidence(missingEvidence, '包含未跟踪文件的完整工作区指纹')
+    addNextStep(nextSteps, '清理或纳入未跟踪文件后重新运行门禁，确保审查证据绑定完整工作区状态。')
     return
   }
 
