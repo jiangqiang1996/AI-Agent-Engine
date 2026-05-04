@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -48,5 +48,38 @@ describe('postbuild 构建脚本', () => {
     ], { cwd: root, encoding: 'utf8' })
 
     expect(output.trim()).toBe('ok')
+  })
+
+  it('应该把 TUI 桥接写入独立目录避免 server 调试扫描', () => {
+    const root = createTempRoot()
+    const distSrc = join(root, 'dist', 'src')
+    mkdirSync(distSrc, { recursive: true })
+    mkdirSync(join(root, '.opencode', 'plugins'), { recursive: true })
+    mkdirSync(join(root, 'src', 'assets'), { recursive: true })
+    writeFileSync(join(root, 'package.json'), '{"type":"module"}\n', 'utf8')
+    writeFileSync(join(distSrc, 'index.js'), 'export default { id: "server", server: async () => ({}) }\n', 'utf8')
+    writeFileSync(join(distSrc, 'tui.js'), 'export default { id: "tui", tui: async () => {} }\n', 'utf8')
+    writeFileSync(join(root, 'src', 'assets', '.keep'), '', 'utf8')
+    writeFileSync(join(root, '.opencode', 'plugins', 'ae-tui.js'), 'export default { tui() {} }\n', 'utf8')
+    writeFileSync(join(root, '.opencode', 'tui.json'), '{"plugin":["./tui-plugins/custom.js"]}\n', 'utf8')
+
+    execFileSync(process.execPath, [
+      '--input-type=module',
+      '--eval',
+      [
+        `import { main } from ${JSON.stringify(pathToFileURL(join(process.cwd(), 'scripts', 'postbuild.mjs')).href)}`,
+        `await main(${JSON.stringify(root)})`,
+      ].join('\n'),
+    ], { stdio: 'pipe' })
+
+    expect(readFileSync(join(root, '.opencode', 'plugins', 'ae-server.js'), 'utf8')).toContain(
+      "../../dist/src/index.js",
+    )
+    expect(readFileSync(join(root, '.opencode', 'tui-plugins', 'ae-tui.js'), 'utf8')).toContain(
+      "../../dist/src/tui.js",
+    )
+    expect(existsSync(join(root, '.opencode', 'plugins', 'ae-tui.js'))).toBe(false)
+    const tuiConfig = JSON.parse(readFileSync(join(root, '.opencode', 'tui.json'), 'utf8'))
+    expect(tuiConfig.plugin).toEqual(['./tui-plugins/custom.js', './tui-plugins/ae-tui.js'])
   })
 })

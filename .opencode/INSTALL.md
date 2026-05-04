@@ -45,17 +45,20 @@ npm install
 npm run build
 ```
 
-3. 在全局插件目录 `~/.config/opencode/plugins/` 下创建两个桥接文件，指向克隆仓库的构建产物：
+3. 创建 server 桥接文件和 TUI 配置，指向克隆仓库的构建产物：
 
 ```bash
 # ae-server.js
 echo "export { default } from '../ai-agent-engine/dist/src/index.js'" > ~/.config/opencode/plugins/ae-server.js
 
 # ae-tui.js
-echo "export { default } from '../ai-agent-engine/dist/src/tui.js'" > ~/.config/opencode/plugins/ae-tui.js
+mkdir -p ~/.config/opencode/tui-plugins
+rm -f ~/.config/opencode/plugins/ae-tui.js
+echo "export { default } from '../ai-agent-engine/dist/src/tui.js'" > ~/.config/opencode/tui-plugins/ae-tui.js
+node -e "const fs=require('fs'); const file=process.argv[1]; const entry='./tui-plugins/ae-tui.js'; let json={}; try{json=JSON.parse(fs.readFileSync(file,'utf8'))}catch{}; const plugins=Array.isArray(json.plugin)?json.plugin.filter((x)=>typeof x==='string'&&x!==entry):[]; json.plugin=[...plugins,entry]; fs.writeFileSync(file, JSON.stringify(json,null,2)+'\\n')" "$HOME/.config/opencode/tui.json"
 ```
 
-> **为什么这样做？** opencode 的 `opencode.json` 中 `plugin` 字段仅用于 npm 包名，不支持本地文件路径。本地插件应放入全局插件目录 `~/.config/opencode/plugins/`（或项目级 `.opencode/plugins/`），opencode 会自动加载该目录下的 `.js` / `.ts` 文件。
+> **为什么这样做？** server 插件放入 `plugins/` 自动加载；TUI 插件通过 `tui.json` 注册，避免被 server 调试进程当作 server 插件加载。
 
 如果用户选择了不同安装目录，请同步调整桥接文件中的相对路径。
 
@@ -80,14 +83,17 @@ npm install
 npm run build
 ```
 
-3. 在项目的 `.opencode/plugins/` 目录下创建两个桥接文件，指向克隆仓库的构建产物：
+3. 创建项目级 server 桥接文件和 TUI 配置，指向克隆仓库的构建产物：
 
 ```bash
 # ae-server.js
 echo "export { default } from '../ai-agent-engine/dist/src/index.js'" > .opencode/plugins/ae-server.js
 
 # ae-tui.js
-echo "export { default } from '../ai-agent-engine/dist/src/tui.js'" > .opencode/plugins/ae-tui.js
+mkdir -p .opencode/tui-plugins
+rm -f .opencode/plugins/ae-tui.js
+echo "export { default } from '../ai-agent-engine/dist/src/tui.js'" > .opencode/tui-plugins/ae-tui.js
+node -e "const fs=require('fs'); const file=process.argv[1]; const entry='./tui-plugins/ae-tui.js'; let json={}; try{json=JSON.parse(fs.readFileSync(file,'utf8'))}catch{}; const plugins=Array.isArray(json.plugin)?json.plugin.filter((x)=>typeof x==='string'&&x!==entry):[]; json.plugin=[...plugins,entry]; fs.writeFileSync(file, JSON.stringify(json,null,2)+'\\n')" .opencode/tui.json
 ```
 
 4. 重启 opencode。
@@ -121,6 +127,8 @@ echo "export { default } from '../ai-agent-engine/dist/src/tui.js'" > .opencode/
 
 #### 全局更新
 
+执行以下 Git 命令前，必须确认目标目录是 AE 插件安装仓库，并取得用户对 `git reset --hard HEAD`、`git clean -fd --exclude=node_modules`、`git pull` 的明确授权；这些命令会丢弃该安装仓库中的本地未提交修改和未追踪文件。
+
 ```bash
 cd ~/.config/opencode/ai-agent-engine
 git reset --hard HEAD
@@ -131,6 +139,8 @@ npm run build
 ```
 
 #### 项目级更新
+
+执行以下 Git 命令前，必须确认目标目录是当前项目的 AE 插件安装仓库，并取得用户对 `git reset --hard HEAD`、`git clean -fd --exclude=node_modules`、`git pull` 的明确授权；这些命令会丢弃该安装仓库中的本地未提交修改和未追踪文件。
 
 ```bash
 cd .opencode/ai-agent-engine
@@ -151,7 +161,8 @@ npm run build
 
 ```bash
 rm ~/.config/opencode/plugins/ae-server.js
-rm ~/.config/opencode/plugins/ae-tui.js
+rm ~/.config/opencode/tui-plugins/ae-tui.js
+node -e "const fs=require('fs'); const file=process.argv[1]; const entry='./tui-plugins/ae-tui.js'; if(!fs.existsSync(file)) process.exit(0); const json=JSON.parse(fs.readFileSync(file,'utf8')); if(Array.isArray(json.plugin)){json.plugin=json.plugin.filter((x)=>x!==entry); fs.writeFileSync(file, JSON.stringify(json,null,2)+'\\n')}" "$HOME/.config/opencode/tui.json"
 ```
 
 2. 删除克隆的仓库目录：
@@ -171,7 +182,8 @@ rm -rf ~/.config/opencode/ai-agent-engine
 
 ```bash
 rm .opencode/plugins/ae-server.js
-rm .opencode/plugins/ae-tui.js
+rm .opencode/tui-plugins/ae-tui.js
+node -e "const fs=require('fs'); const file=process.argv[1]; const entry='./tui-plugins/ae-tui.js'; if(!fs.existsSync(file)) process.exit(0); const json=JSON.parse(fs.readFileSync(file,'utf8')); if(Array.isArray(json.plugin)){json.plugin=json.plugin.filter((x)=>x!==entry); fs.writeFileSync(file, JSON.stringify(json,null,2)+'\\n')}" .opencode/tui.json
 ```
 
 2. 删除克隆的仓库目录：
@@ -189,7 +201,7 @@ rm -rf .opencode/ai-agent-engine
 ## 注意事项
 
 - 不要为非 opencode 运行时写安装配置
-- **不要**在 `opencode.json` 的 `plugin` 字段中填写本地文件路径，该字段仅接受 npm 包名
+- 本地 server 插件使用 `opencode.json` 或 `plugins/` 自动加载；TUI 插件使用 `tui.json` 注册
 - 兼容性警告不能省略；只要检测到 `oh-my-openagent`、`oh-my-opencode` 或 `superpowers`，就要先在对话里提醒用户
 - 项目级安装和全局安装可以共存，项目级优先加载
 - Windows 环境下 `~` 对应 `%USERPROFILE%`，`~/.config/opencode/` 实际路径为 `%USERPROFILE%\.config\opencode\`

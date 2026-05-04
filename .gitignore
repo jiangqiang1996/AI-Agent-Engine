@@ -6,6 +6,8 @@ dist
 .opencode/commands/
 .opencode/agents/ae/
 .opencode/plugins/*.js
+.opencode/tui-plugins/*.js
+.opencode/tui.json
 **/tmp
 **/temp
 

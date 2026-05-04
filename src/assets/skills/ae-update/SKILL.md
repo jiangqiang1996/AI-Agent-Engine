@@ -25,6 +25,8 @@ argument-hint: "[project]"
 
 如果对应目录不存在或不是 git 仓库，提示用户未找到安装目录并建议先安装。
 
+执行任何 Git 写操作前，必须确认目标目录是 AE 插件安装或源码维护仓库，并取得用户对目标仓库、目标分支和具体命令 `git reset --hard HEAD`、`git clean -fd --exclude=node_modules`、`git pull` 的明确授权。必须提示这些命令会丢弃该安装仓库中的本地未提交修改和未追踪文件。
+
 ## 第一步：还原仓库并拉取最新代码
 
 在已确定的仓库目录中依次执行：
@@ -58,7 +60,7 @@ npm run build
 
 ## 第三步：确认桥接文件
 
-根据更新模式，在对应目录下重新写入桥接文件（内容幂等，可安全覆写）：
+根据更新模式，在对应目录下重新写入桥接文件与 TUI 配置（内容幂等；TUI 配置只合并 AE 插件条目，不覆盖用户已有 TUI 插件条目）：
 
 ### 全局模式
 
@@ -67,7 +69,10 @@ npm run build
 echo "export { default } from '../ai-agent-engine/dist/src/index.js'" > ~/.config/opencode/plugins/ae-server.js
 
 # ae-tui.js
-echo "export { default } from '../ai-agent-engine/dist/src/tui.js'" > ~/.config/opencode/plugins/ae-tui.js
+mkdir -p ~/.config/opencode/tui-plugins
+rm -f ~/.config/opencode/plugins/ae-tui.js
+echo "export { default } from '../ai-agent-engine/dist/src/tui.js'" > ~/.config/opencode/tui-plugins/ae-tui.js
+node -e "const fs=require('fs'); const file=process.argv[1]; const entry='./tui-plugins/ae-tui.js'; let json={}; try{json=JSON.parse(fs.readFileSync(file,'utf8'))}catch{}; const plugins=Array.isArray(json.plugin)?json.plugin.filter((x)=>typeof x==='string'&&x!==entry):[]; json.plugin=[...plugins,entry]; fs.writeFileSync(file, JSON.stringify(json,null,2)+'\\n')" "$HOME/.config/opencode/tui.json"
 ```
 
 ### 项目级模式
@@ -77,7 +82,10 @@ echo "export { default } from '../ai-agent-engine/dist/src/tui.js'" > ~/.config/
 echo "export { default } from '../ai-agent-engine/dist/src/index.js'" > .opencode/plugins/ae-server.js
 
 # ae-tui.js
-echo "export { default } from '../ai-agent-engine/dist/src/tui.js'" > .opencode/plugins/ae-tui.js
+mkdir -p .opencode/tui-plugins
+rm -f .opencode/plugins/ae-tui.js
+echo "export { default } from '../ai-agent-engine/dist/src/tui.js'" > .opencode/tui-plugins/ae-tui.js
+node -e "const fs=require('fs'); const file=process.argv[1]; const entry='./tui-plugins/ae-tui.js'; let json={}; try{json=JSON.parse(fs.readFileSync(file,'utf8'))}catch{}; const plugins=Array.isArray(json.plugin)?json.plugin.filter((x)=>typeof x==='string'&&x!==entry):[]; json.plugin=[...plugins,entry]; fs.writeFileSync(file, JSON.stringify(json,null,2)+'\\n')" .opencode/tui.json
 ```
 
 > 跳过安装阶段的兼容性检查，因为用户首次安装时已确认兼容性。
