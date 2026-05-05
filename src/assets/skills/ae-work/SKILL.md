@@ -68,6 +68,8 @@ argument-hint: "[计划路径|工作描述]"
    - 未创建 worktree 不等于允许直接在默认分支实现；继续询问是否在当前工作区创建/切换功能分支，若用户坚持默认分支，二次确认风险并记录到最终 Git 操作状态和 gate notes
    - 创建 worktree 的本地目录固定为当前项目根目录同级的 `../worktrees/<name>` 直接子目录；`<name>` 使用分支名或任务名净化后的短名，冲突时先询问，不接受任意外部路径
    - 创建 B worktree 后，当前 opencode 会话仍属于 A 的 `ctx.worktree`；如果用户选择在 B 执行，必须在 B 目录重新启动 opencode，不得在 A 会话通过 shell 工作目录修改 B 中代码、配置、测试或其他项目文件
+   - 在判断当前会话是否已经处于 B worktree 前，必须用可观察方式获取当前真实工作空间路径（例如读取 `ctx.worktree`，并运行 `pwd`、`Get-Location` 或等价只读命令获取当前进程工作目录），将结果与 A→B 交接文件或启动证明中的 `target_worktree` 做规范化对比；不得仅凭工具调用的 `workdir` 参数、用户提示词、路径字符串或已读取到 B 文件就认定当前会话属于 B
+   - 如果无法获取当前真实工作空间路径，或路径与 `target_worktree` 不一致，必须停止阶段 2-4 并提示用户在 B 目录重新打开 opencode；不得通过 shell 的 `workdir`、`cd` 或跨目录文件工具在 A 会话继续修改 B worktree。若当前工具集没有获取真实工作空间的能力，应先新增或调用一个只读工作空间探测工具，探测成功前不得实现
    - 创建 B worktree 后，A 会话只允许执行窄范围启动交接操作：自动迁移当前任务已确定的 AE 需求/计划产物到 B，包含本次读取或生成的 `docs/ae/brainstorms/*-requirements.md` 与 `docs/ae/plans/*-plan.md`，即使这些文件在 A 中仍未跟踪；迁移时保留仓库相对路径并创建缺失目录
    - 只迁移当前任务已明确关联的需求/计划产物，不迁移 `docs/ae/gates/*`、`docs/ae/review/*`、`docs/ae/reviews/*` 等运行时证明或审查产物
    - 创建 B worktree 后，A 会话只允许在 B 写入当前会话核心交接 Markdown（建议路径：`docs/ae/handoffs/<timestamp>-worktree-handoff.md`），内容包含用户目标、已确定决策、已迁移产物、待办事项、验证要求、Git/worktree 状态和继续执行约束

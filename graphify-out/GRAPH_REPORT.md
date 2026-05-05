@@ -1,7 +1,7 @@
 # Graph Report - ai-agent-engine  (2026-05-05)
 
 ## Corpus Check
-- 124 files · ~80,462 words
+- 124 files · ~81,193 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `987594c6`
+- Built from commit: `b8b457b6`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
