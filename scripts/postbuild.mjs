@@ -31,28 +31,30 @@ async function writePluginWrapper(targetPath, importPath) {
   await writeFile(targetPath, `export { default } from '${normalizedImport}'\n`, 'utf8')
 }
 
-async function writeTuiConfig(targetPath, pluginPath) {
-  let existingConfig = {}
+async function removeTuiConfigPlugin(targetPath, pluginPath) {
+  let existingConfig
 
   try {
     const content = await readFile(targetPath, 'utf8')
     const parsed = JSON.parse(content)
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      existingConfig = parsed
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return
     }
+    existingConfig = parsed
   } catch {
-    existingConfig = {}
+    return
   }
 
-  const existingPlugins = Array.isArray(existingConfig.plugin)
-    ? existingConfig.plugin.filter((entry) => typeof entry === 'string' && entry !== pluginPath)
-    : []
-  const nextConfig = {
-    ...existingConfig,
-    plugin: [...existingPlugins, pluginPath],
+  if (!Array.isArray(existingConfig.plugin)) {
+    return
   }
 
-  await writeFile(targetPath, `${JSON.stringify(nextConfig, null, 2)}\n`, 'utf8')
+  const nextPlugins = existingConfig.plugin.filter((entry) => entry !== pluginPath)
+  if (nextPlugins.length === existingConfig.plugin.length) {
+    return
+  }
+
+  await writeFile(targetPath, `${JSON.stringify({ ...existingConfig, plugin: nextPlugins }, null, 2)}\n`, 'utf8')
 }
 
 export async function main(root = repoRoot) {
@@ -64,15 +66,16 @@ export async function main(root = repoRoot) {
   const tuiConfigPath = join(root, '.opencode', 'tui.json')
 
   await mkdir(pluginDir, { recursive: true })
-  await mkdir(tuiPluginDir, { recursive: true })
 
   await bundlePluginEntry(join(distDir, 'index.js'))
-  await bundlePluginEntry(join(distDir, 'tui.js'))
 
   await writePluginWrapper(join(pluginDir, 'ae-server.js'), join(distDir, 'index.js'))
   await rm(join(pluginDir, 'ae-tui.js'), { force: true })
-  await writePluginWrapper(join(tuiPluginDir, 'ae-tui.js'), join(distDir, 'tui.js'))
-  await writeTuiConfig(tuiConfigPath, './tui-plugins/ae-tui.js')
+  await rm(join(distDir, 'tui.js'), { force: true })
+  await rm(join(distDir, 'tui.d.ts'), { force: true })
+  await rm(join(distDir, 'tui.js.map'), { force: true })
+  await rm(join(tuiPluginDir, 'ae-tui.js'), { force: true })
+  await removeTuiConfigPlugin(tuiConfigPath, './tui-plugins/ae-tui.js')
   await rm(distAssetsDir, { recursive: true, force: true })
   await cp(sourceAssetsDir, distAssetsDir, { recursive: true })
 }

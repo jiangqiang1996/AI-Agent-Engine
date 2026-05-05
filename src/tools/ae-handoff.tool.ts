@@ -8,7 +8,6 @@ import { join, resolve, normalize, relative } from 'node:path'
 import { getGlobalClient } from '../services/client-holder.js'
 import { executeHandoff } from '../services/handoff.service.js'
 import { isInsideRoot } from '../utils/path-utils.js'
-import { showToast } from '../services/toast-holder.js'
 
 function extractTodosFromPlanFile(filePath: string): Promise<string[]> {
   return readFile(filePath, 'utf-8').then((content) => {
@@ -115,7 +114,6 @@ export const aeHandoffTool: ToolDefinition = tool({
   async execute(args, context) {
     const client = getGlobalClient()
     if (!client) {
-      showToast('客户端初始化失败，无法创建新会话，请重启 OpenCode 后重试')
       return '❌ 客户端初始化失败，无法创建新会话，请重启 OpenCode 后重试。'
     }
 
@@ -188,7 +186,6 @@ export const aeHandoffTool: ToolDefinition = tool({
         }),
         Effect.catch((error) => {
           const message = error instanceof Error ? error.message : String(error)
-          showToast(`会话交接失败：${message}`)
           return Effect.succeed(`❌ 会话交接失败：${message}`)
         }),
       ),

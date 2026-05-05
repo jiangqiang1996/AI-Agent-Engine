@@ -2,10 +2,8 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
 
 import type { Config } from '@opencode-ai/plugin'
-import type { TuiCommand } from '@opencode-ai/plugin/tui'
 
 import { parseFrontmatter } from '../utils/frontmatter.js'
-import { getArgumentContracts } from './argument-contract.js'
 import { getPhaseOneEntries, getPhaseOnePoEntries, getPhaseOnePaEntries } from './ae-catalog.js'
 import { COMMAND, AUTO_SUFFIX, PO_SUFFIX, PA_SUFFIX } from '../schemas/ae-asset-schema.js'
 
@@ -103,78 +101,6 @@ export function buildCommandConfig(commandsDir: string): NonNullable<Config['com
   }
 
   return result
-}
-
-export function createTuiCommands(
-  trigger?: (value: string) => void,
-  commandsDir?: string,
-): TuiCommand[] {
-  const contracts = getArgumentContracts()
-  const phaseOne = getPhaseOneEntries()
-  const poEntries = getPhaseOnePoEntries()
-  const paEntries = getPhaseOnePaEntries()
-  const allCatalogEntries = [...phaseOne, ...poEntries, ...paEntries]
-  const catalogNames: ReadonlySet<string> = new Set(allCatalogEntries.map((e) => e.commandName))
-  const fileCommands = commandsDir ? loadCommandFiles(commandsDir) : new Map<string, LoadedCommand>()
-
-  const tuiCommands: TuiCommand[] = phaseOne.map((entry) => {
-    const contract = contracts.find((item) => item.commandName === entry.commandName)
-    const fileOverride = fileCommands.get(entry.commandName)
-    const description = fileOverride
-      ? fileOverride.description
-      : [entry.description, contract?.argumentHint].filter(Boolean).join(' | ')
-
-    return {
-      title: entry.commandName,
-      value: `/${entry.commandName}`,
-      description,
-      category: entry.defaultEntry ? 'AE 默认入口' : 'AE 工作流',
-      suggested: entry.defaultEntry,
-      slash: {
-        name: entry.commandName,
-      },
-      onSelect: trigger ? () => trigger(`/${entry.commandName}`) : undefined,
-    } satisfies TuiCommand
-  })
-
-  for (const entry of poEntries) {
-    const contract = contracts.find((item) => item.commandName === entry.commandName)
-    tuiCommands.push({
-      title: entry.commandName,
-      value: `/${entry.commandName}`,
-      description: [entry.description, contract?.argumentHint ?? entry.argumentHint].filter(Boolean).join(' | '),
-      category: 'AE 提示词优化',
-      slash: { name: entry.commandName },
-      onSelect: trigger ? () => trigger(`/${entry.commandName}`) : undefined,
-    } satisfies TuiCommand)
-  }
-
-  for (const entry of paEntries) {
-    const contract = contracts.find((item) => item.commandName === entry.commandName)
-    tuiCommands.push({
-      title: entry.commandName,
-      value: `/${entry.commandName}`,
-      description: [entry.description, contract?.argumentHint ?? entry.argumentHint].filter(Boolean).join(' | '),
-      category: 'AE 提示词优化（自动）',
-      slash: { name: entry.commandName },
-      onSelect: trigger ? () => trigger(`/${entry.commandName}`) : undefined,
-    } satisfies TuiCommand)
-  }
-
-  for (const [name, cmd] of fileCommands) {
-    // catalog 已生成的命令不重复展示；自定义磁盘命令追加到独立分类。
-    if (catalogNames.has(name)) continue
-    tuiCommands.push({
-      title: name,
-      value: `/${name}`,
-      description: cmd.description,
-      category: 'AE 自定义命令',
-      slash: { name },
-      onSelect: trigger ? () => trigger(`/${name}`) : undefined,
-    } satisfies TuiCommand)
-  }
-
-  return tuiCommands
 }
 
 export function mergeBuiltinAndUserCommands(

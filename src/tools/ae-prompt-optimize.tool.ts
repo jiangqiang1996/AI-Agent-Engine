@@ -4,7 +4,6 @@ import { Effect } from 'effect'
 
 import { getGlobalClient } from '../services/client-holder.js'
 import { executePromptSubmit } from '../services/prompt-optimize.service.js'
-import { showToast } from '../services/toast-holder.js'
 import { ensureBrowserSetupGate } from '../services/browser-setup-gate.js'
 
 export const aePromptOptimizeTool: ToolDefinition = tool({
@@ -39,7 +38,6 @@ export const aePromptOptimizeTool: ToolDefinition = tool({
   async execute(args, context) {
     const client = getGlobalClient()
     if (!client) {
-      showToast('客户端初始化失败，无法创建新会话，请重启 OpenCode 后重试')
       return [
         '❌ 客户端初始化失败，无法创建新会话，请重启 OpenCode 后重试。',
         '',
@@ -68,7 +66,6 @@ export const aePromptOptimizeTool: ToolDefinition = tool({
         }),
         Effect.catch((error) => {
           const message = error instanceof Error ? error.message : String(error)
-          showToast(`提示词提交失败：${message}`)
           return Effect.succeed([
             `❌ 提交失败（${error instanceof Error ? error.name : '未知错误'}）：${message}`,
             '',

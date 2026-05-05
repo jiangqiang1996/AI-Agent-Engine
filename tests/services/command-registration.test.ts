@@ -6,7 +6,6 @@ import { COMMAND, PA_SUFFIX, PO_SUFFIX, PROMPT_OPTIMIZE_VARIANT_EXCLUDED_SKILLS,
 import { getPhaseOneEntries, getPhaseOnePaEntries, getPhaseOnePoEntries } from '../../src/services/ae-catalog.js'
 import {
   buildCommandConfig,
-  createTuiCommands,
   mergeBuiltinAndUserCommands,
 } from '../../src/services/command-registration.js'
 import { parseFrontmatter } from '../../src/utils/frontmatter.js'
@@ -27,22 +26,6 @@ describe('command-registration', () => {
     }
   })
 
-  it('应该在 TUI 命令列表中只暴露 ae:asset-debug 基础入口', () => {
-    const commands = createTuiCommands()
-    const values = commands.map((command) => command.value)
-    const poCommand = `${COMMAND.ASSET_DEBUG}${PO_SUFFIX}`
-    const paCommand = `${COMMAND.ASSET_DEBUG}${PA_SUFFIX}`
-
-    expect(values).toContain(`/${COMMAND.ASSET_DEBUG}`)
-    expect(values).not.toContain(`/${poCommand}`)
-    expect(values).not.toContain(`/${paCommand}`)
-
-    const assetDebugCommand = commands.find((command) => command.value === `/${COMMAND.ASSET_DEBUG}`)
-    expect(assetDebugCommand?.category).toBe('AE 工作流')
-    expect(assetDebugCommand?.slash?.name).toBe(COMMAND.ASSET_DEBUG)
-    expect(assetDebugCommand?.description).toContain('[资产名|纠偏摘要]')
-  })
-
   it('应该为 ae:refactor 生成基础命令和提示词优化命令', () => {
     const config = buildCommandConfig('__missing_commands_dir__')
     const poCommand = `${COMMAND.REFACTOR}${PO_SUFFIX}`
@@ -57,27 +40,6 @@ describe('command-registration', () => {
     expect(config[paCommand]?.template).toContain(`先使用 \`${SKILL.PROMPT_OPTIMIZE}\` 技能以 auto 模式优化以下用户输入`)
     expect(config[paCommand]?.template).toContain('跳过确认直接提交')
     expect(config[paCommand]?.template).toContain(`使用 \`${SKILL.REFACTOR}\` 技能处理这次请求`)
-  })
-
-  it('应该在 TUI 命令列表中暴露 ae:refactor 入口', () => {
-    const commands = createTuiCommands()
-    const values = commands.map((command) => command.value)
-    const poCommand = `${COMMAND.REFACTOR}${PO_SUFFIX}`
-    const paCommand = `${COMMAND.REFACTOR}${PA_SUFFIX}`
-
-    expect(values).toContain(`/${COMMAND.REFACTOR}`)
-    expect(values).toContain(`/${poCommand}`)
-    expect(values).toContain(`/${paCommand}`)
-
-    const refactorCommand = commands.find((command) => command.value === `/${COMMAND.REFACTOR}`)
-    expect(refactorCommand?.category).toBe('AE 工作流')
-    expect(refactorCommand?.slash?.name).toBe(COMMAND.REFACTOR)
-    expect(refactorCommand?.description).toContain('[重构目标|计划路径|需求文档路径|代码异味描述]')
-
-    const poTuiCommand = commands.find((command) => command.value === `/${poCommand}`)
-    const paTuiCommand = commands.find((command) => command.value === `/${paCommand}`)
-    expect(poTuiCommand?.description).toContain('[重构目标|计划路径|需求文档路径|代码异味描述]')
-    expect(paTuiCommand?.description).toContain('[重构目标|计划路径|需求文档路径|代码异味描述]')
   })
 
   it('应该为 ae:swagger-parser 只生成基础命令', () => {
@@ -105,18 +67,6 @@ describe('command-registration', () => {
     expect(config[paCommand]).toBeUndefined()
   })
 
-  it('应该在 TUI 命令描述中展示 ae:test-browser 的 setup 前置语义', () => {
-    const commands = createTuiCommands()
-    const command = commands.find((item) => item.value === `/${COMMAND.TEST_BROWSER}`)
-    const poCommand = commands.find((item) => item.value === `/${COMMAND.TEST_BROWSER}${PO_SUFFIX}`)
-    const paCommand = commands.find((item) => item.value === `/${COMMAND.TEST_BROWSER}${PA_SUFFIX}`)
-
-    expect(command?.description).toContain('先完成 ae:setup')
-    expect(command?.description).not.toContain('agent-browser 可用')
-    expect(poCommand).toBeUndefined()
-    expect(paCommand).toBeUndefined()
-  })
-
   it('应该为 ae:save-session-flow 只生成基础命令', () => {
     const config = buildCommandConfig('__missing_commands_dir__')
     const poCommand = `${COMMAND.SAVE_SESSION_FLOW}${PO_SUFFIX}`
@@ -126,22 +76,6 @@ describe('command-registration', () => {
     expect(config[COMMAND.SAVE_SESSION_FLOW]?.template).toContain(`使用 \`${SKILL.SAVE_SESSION_FLOW}\` 技能处理这次请求`)
     expect(config[poCommand]).toBeUndefined()
     expect(config[paCommand]).toBeUndefined()
-  })
-
-  it('应该在 TUI 命令列表中只暴露 ae:save-session-flow 基础入口', () => {
-    const commands = createTuiCommands()
-    const values = commands.map((command) => command.value)
-    const poCommand = `${COMMAND.SAVE_SESSION_FLOW}${PO_SUFFIX}`
-    const paCommand = `${COMMAND.SAVE_SESSION_FLOW}${PA_SUFFIX}`
-
-    expect(values).toContain(`/${COMMAND.SAVE_SESSION_FLOW}`)
-    expect(values).not.toContain(`/${poCommand}`)
-    expect(values).not.toContain(`/${paCommand}`)
-
-    const saveSessionFlowCommand = commands.find((command) => command.value === `/${COMMAND.SAVE_SESSION_FLOW}`)
-    expect(saveSessionFlowCommand?.category).toBe('AE 工作流')
-    expect(saveSessionFlowCommand?.slash?.name).toBe(COMMAND.SAVE_SESSION_FLOW)
-    expect(saveSessionFlowCommand?.description).toContain('[目标技能名|流程关注点]')
   })
 
   it('应该保持 ae:swagger-parser catalog 与 SKILL.md frontmatter 名称一致', () => {

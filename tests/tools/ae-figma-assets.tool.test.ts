@@ -4,11 +4,6 @@ import { tmpdir } from 'node:os'
 
 import { Effect } from 'effect'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { showToast } from '../../src/services/toast-holder.js'
-
-vi.mock('../../src/services/toast-holder.js', () => ({
-  showToast: vi.fn(),
-}))
 
 let workspace: string
 
@@ -63,8 +58,6 @@ describe('ae-figma-assets 工具', () => {
     expect(output).toContain('Figma 素材处理失败')
     expect(output).toContain('nodeId')
     expect(output).not.toContain('secret-token')
-    expect(showToast).toHaveBeenCalledTimes(1)
-    expect(showToast).toHaveBeenCalledWith(output)
   })
 
   it('应该在 collect 成功摘要中只返回相对路径', async () => {
@@ -80,19 +73,17 @@ describe('ae-figma-assets 工具', () => {
     expect(output).not.toContain(workspace)
   })
 
-  it('应该在 validate 未预期失败时脱敏输出并触发 toast', async () => {
+  it('应该在 validate 未预期失败时脱敏输出', async () => {
     const output = await callTool({ mode: 'validate' })
 
     expect(output).toContain('Figma 素材处理失败')
     expect(output).not.toContain(workspace)
-    expect(showToast).toHaveBeenCalledWith(output)
   })
 
   it('应该捕获非法参数校验错误', async () => {
     const output = await callTool({ mode: 'bad' })
 
     expect(output).toContain('Figma 素材处理失败')
-    expect(showToast).toHaveBeenCalledWith(output)
   })
 
   it('应该要求 browser 模式先完成当前会话 setup proof', async () => {
@@ -103,7 +94,6 @@ describe('ae-figma-assets 工具', () => {
 
     expect(output).toContain('Figma 素材处理失败')
     expect(output).toContain('/ae-setup')
-    expect(showToast).toHaveBeenCalledWith(output)
   })
 
   it('应该在 setup proof 会话不匹配时拒绝 browser 模式', async () => {
@@ -116,7 +106,6 @@ describe('ae-figma-assets 工具', () => {
 
     expect(output).toContain('Figma 素材处理失败')
     expect(output).toContain('/ae-setup')
-    expect(showToast).toHaveBeenCalledWith(output)
   })
 
   it('应该在 browser 实验能力未启用时拒绝真实工具调用', async () => {
@@ -130,7 +119,6 @@ describe('ae-figma-assets 工具', () => {
     expect(output).toContain('Figma 素材处理失败')
     expect(output).toContain('browser 模式仍处于实验能力验证阶段')
     expect(output).toContain('mode: api')
-    expect(showToast).toHaveBeenCalledWith(output)
   })
 
   it('应该在 API 失败输出中保持 token、envFile、下载 URL 和工作区路径脱敏', async () => {
@@ -155,7 +143,6 @@ describe('ae-figma-assets 工具', () => {
       'temporary-secret',
       'redirect-secret',
     ])
-    expect(showToast).toHaveBeenCalledWith(output)
   })
 })
 

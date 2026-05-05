@@ -5,7 +5,6 @@ import { FigmaAssetToolArgsSchema } from '../schemas/figma-asset-schema.js'
 import { FigmaAssetError, formatFigmaAssetError } from '../services/figma-result-formatter.js'
 import { runFigmaAssetTool } from '../services/figma-asset-service.js'
 import { readSetupProof } from '../services/setup-proof-service.js'
-import { showToast } from '../services/toast-holder.js'
 
 export const aeFigmaAssetsTool = tool({
   description: [
@@ -45,7 +44,6 @@ export const aeFigmaAssetsTool = tool({
       }
     } catch (error) {
       const message = formatFigmaAssetError(error)
-      showToast(message)
       return message
     }
   },

@@ -10,6 +10,7 @@ import plugin from '../src/index.js'
 const tempRoots: string[] = []
 
 interface RuntimeConfigShape {
+  command?: Config['command']
   mcp?: Config['mcp']
 }
 
@@ -85,5 +86,15 @@ describe('插件入口', () => {
     } finally {
       process.chdir(originalCwd)
     }
+  })
+
+  it('应该通过 server config 注册 catalog 命令和磁盘命令', async () => {
+    const hostRoot = createTempRoot()
+    isolateHome(createTempRoot())
+
+    const config = await runConfigHook({ worktree: hostRoot, client: {} })
+
+    expect(config.command?.['ae-lfg']?.template).toContain('ae:lfg')
+    expect(config.command?.['ae-commit']?.template).toContain('智能提交当前变更文件')
   })
 })

@@ -3,7 +3,6 @@ import { Effect } from 'effect'
 
 import { createRuntimeAssetManifestFromRoot } from '../services/runtime-asset-manifest.js'
 import { resolveRecovery } from '../services/recovery-service.js'
-import { showToast } from '../services/toast-holder.js'
 
 export const aeRecoveryTool: ToolDefinition = tool({
   description: [
@@ -43,7 +42,6 @@ export const aeRecoveryTool: ToolDefinition = tool({
         catch: (error) => error instanceof Error ? error : new Error(String(error)),
       }).pipe(
         Effect.catch((error) => {
-          showToast(`恢复建议生成失败：${error instanceof Error ? error.message : String(error)}`)
           return Effect.succeed(`❌ 恢复建议生成失败：${error instanceof Error ? error.message : String(error)}`)
         }),
       ),

@@ -5,7 +5,6 @@ import { z } from 'zod'
 import { TOOL } from '../schemas/ae-asset-schema.js'
 import { formatSwaggerError } from '../services/swagger-errors.js'
 import { parseSwaggerSource } from '../services/swagger-service.js'
-import { showToast } from '../services/toast-holder.js'
 
 function redactSourceForDisplay(source: string): string {
   try {
@@ -76,7 +75,6 @@ export const aeSwaggerParserTool = tool({
       }
     } catch (error) {
       const message = formatSwaggerError(error)
-      showToast(message)
       return message
     }
   },

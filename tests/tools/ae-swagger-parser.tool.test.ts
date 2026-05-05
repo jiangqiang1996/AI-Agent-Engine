@@ -1,10 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { Effect } from 'effect'
 
-vi.mock('../../src/services/toast-holder.js', () => ({
-  showToast: vi.fn(),
-}))
-
 async function callTool(args: Record<string, unknown>) {
   const { aeSwaggerParserTool: tool } = await import('../../src/tools/ae-swagger-parser.tool.js')
   const definition = tool as unknown as {

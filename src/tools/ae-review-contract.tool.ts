@@ -2,7 +2,6 @@ import { tool, type ToolDefinition } from '@opencode-ai/plugin/tool'
 import { Effect } from 'effect'
 
 import { selectReviewers, type ReviewSelectionInput } from '../services/review-selector.js'
-import { showToast } from '../services/toast-holder.js'
 import { AeModeSchema } from '../schemas/ae-asset-schema.js'
 
 function resolveKind(raw: string): ReviewSelectionInput['kind'] {
@@ -109,7 +108,6 @@ export const aeReviewContractTool: ToolDefinition = tool({
       }).pipe(
         Effect.catch((error) => {
           const message = error instanceof Error ? error.message : String(error)
-          showToast(`审查契约生成失败：${message}`)
           return Effect.succeed(`❌ 审查契约生成失败：${message}`)
         }),
       ),

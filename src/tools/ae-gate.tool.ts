@@ -2,7 +2,6 @@ import { tool, type ToolDefinition } from '@opencode-ai/plugin/tool'
 import { Effect } from 'effect'
 
 import { runGate, type ReviewEvidence } from '../services/gate-service.js'
-import { showToast } from '../services/toast-holder.js'
 
 const REVIEW_SUBAGENT_TYPES = new Set([
   'adversarial-reviewer',
@@ -377,7 +376,6 @@ export const aeGateTool: ToolDefinition = tool({
         Effect.map((result) => JSON.stringify(result, null, 2)),
         Effect.catch((error) => {
           const message = error instanceof Error ? error.message : String(error)
-          showToast(`AE 门禁检查失败：${message}`)
           return Effect.succeed(`❌ AE 门禁检查失败：${message}`)
         }),
       ),
