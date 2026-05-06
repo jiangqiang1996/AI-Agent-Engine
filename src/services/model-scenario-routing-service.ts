@@ -1,9 +1,10 @@
 import type { BuiltinOpencodeConfigLayerName, ModelScenarioSource } from './builtin-opencode-config-service.js'
-import type { ModelScenario } from '../schemas/model-scenario-schema.js'
+import { MODEL_SCENARIO, type ModelScenario } from '../schemas/model-scenario-schema.js'
 
 export interface UnresolvedModelReference {
   reference: string
   assetLabel: string
+  source: 'builtin' | 'configured'
 }
 
 export interface ModelScenarioRoutingContext {
@@ -30,8 +31,8 @@ export function resolveModelScenario(
   context: ModelScenarioRoutingContext,
   scenario: ModelScenario,
 ): ModelScenarioResolution {
-  const source = context.sources.get(scenario)
-  if (!source) {
+  const scenarioSource = context.sources.get(scenario)
+  if (!scenarioSource) {
     return {
       scenario,
       writeModel: false,
@@ -42,34 +43,43 @@ export function resolveModelScenario(
   return {
     scenario,
     writeModel: true,
-    model: source.model,
-    sourceLayer: source.layer,
-    sourcePath: source.path,
-    reason: `命中${source.layer} modelScenarios.${scenario}`,
+    model: scenarioSource.model,
+    sourceLayer: scenarioSource.layer,
+    sourcePath: scenarioSource.path,
+    reason: `命中${scenarioSource.layer} modelScenarios.${scenario}`,
   }
 }
 
 /**
  * 解析 frontmatter 中的模型引用
- * 含 `/` 的引用按 opencode 真实模型标识透传，其余引用按 modelScenarios 变量解析。
+ * `$name` 优先按 modelScenarios 变量解析；未命中时，内置稳定场景回退默认模型，自定义场景则原样透传引用。
  */
 export function resolveModelReference(
   context: ModelScenarioRoutingContext | undefined,
   reference: string | undefined,
-  assetLabel?: string,
 ): string | undefined {
   if (!reference) {
     return undefined
   }
 
-  if (reference.includes('/')) {
+  if (!reference.startsWith('$')) {
     return reference
   }
 
-  const resolved = context?.sources.get(reference)?.model
-  if (!resolved && context && assetLabel) {
-    context.unresolvedReferences.push({ reference, assetLabel })
+  const scenario = reference.slice(1)
+  const resolved = context?.sources.get(scenario)?.model
+  if (resolved) {
+    return resolved
   }
 
-  return resolved
+  if (
+    scenario === MODEL_SCENARIO.QUICK
+    || scenario === MODEL_SCENARIO.STANDARD
+    || scenario === MODEL_SCENARIO.DEEP
+    || scenario === MODEL_SCENARIO.VISION
+  ) {
+    return undefined
+  }
+
+  return reference
 }

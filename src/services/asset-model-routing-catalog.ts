@@ -73,13 +73,16 @@ export function getAssetModelRoutingEntries(manifest?: RuntimeAssetManifest): As
     const fullPath = join(manifest.agentsDir, agent.stage, `${agent.name}.md`)
     const content = readFileSync(fullPath, 'utf8')
     const parsed = parseFrontmatter(content)
-    const scenario = parsed.data.model
+    const modelReference = parsed.data.model
+    const scenario = modelReference?.startsWith('$') ? modelReference.slice(1) : modelReference
     entries.push({
       type: 'agent',
       name: agent.name,
       scenario,
       applyMode: scenario ? 'direct' : 'inherit-default',
-      reason: scenario ? `内置代理 frontmatter 声明 ${scenario} 模型引用` : '未声明模型引用，继承 opencode 当前默认模型',
+      reason: modelReference
+        ? `内置代理 frontmatter 声明 ${modelReference} 模型引用`
+        : '未声明模型引用，继承 opencode 当前默认模型',
     })
   }
 

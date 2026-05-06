@@ -53,7 +53,7 @@ function applyAgentModel(
     return
   }
 
-  const resolvedModel = resolveModelReference(routingContext, frontmatterModel, `@${agentName}`)
+  const resolvedModel = resolveModelReference(routingContext, frontmatterModel)
   if (resolvedModel) {
     agentConfig.model = resolvedModel
   }

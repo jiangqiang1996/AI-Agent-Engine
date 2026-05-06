@@ -158,13 +158,13 @@ Agent Markdown 和命令 Markdown 的 frontmatter 也可以声明 `model`：
 ```yaml
 ---
 description: 示例代理或命令
-model: deep
+model: $deep
 ---
 ```
 
-- `model: deep` 这类不包含 `/` 的值会按 `modelScenarios.deep` 解析。
-- `model: anthropic/claude-sonnet-4-20250514` 这类真实模型标识会直接透传给 opencode。
-- 变量未配置时不写入 `model`，由 opencode 使用当前默认模型执行。
+- `model: $deep` 这类 `$` 前缀的值会按 `modelScenarios.deep` 解析。
+- `model: anthropic/claude-sonnet-4-20250514`、`model: standard` 这类不以 `$` 开头的值会直接透传给 opencode，不由 AE 校验是否存在。
+- `$` 变量未配置时会将变量字符串原样作为 `model` 传给 opencode，不由 AE 提示或校验是否存在。
 
 ## 三层优先级
 
@@ -182,7 +182,7 @@ model: deep
 
 - 用户在 `opencode.json` 的 `command` 或 `agent` 中显式指定 `model` 时，用户配置最终覆盖场景路由。
 - 项目级或全局命令 Markdown 重写内置命令时，可通过 frontmatter `model` 覆盖该命令的默认场景路由。
-- 未配置任何 `modelScenarios` 时，所有内置命令和代理保持零配置行为，继承 opencode 当前默认模型。
+- 未配置任何 `modelScenarios` 时，内置命令和代理会将声明的 `$quick`、`$standard`、`$deep` 或 `$vision` 原样作为 `model` 传给 opencode。
 - `vision` 仅表示视觉任务场景，首版不探测模型是否支持图像输入。
 
 ## 内置资产场景清单

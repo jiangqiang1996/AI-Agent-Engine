@@ -172,12 +172,13 @@ describe('command-registration', () => {
     expect(config[COMMAND.PLAN]?.model).toBe('provider/deep')
   })
 
-  it('零配置时 command 注册结果不写入 model', () => {
+  it('零配置时内置 command 注册结果不写入 model', () => {
     const routingContext = createModelScenarioRoutingContext(new Map())
 
     const config = buildCommandConfig('__missing_commands_dir__', routingContext)
 
     expect(config[COMMAND.PLAN]?.model).toBeUndefined()
+    expect(routingContext.unresolvedReferences).toEqual([])
   })
 
   it('应该将磁盘命令 frontmatter model 变量解析为 modelScenarios 中的模型', () => {
@@ -186,7 +187,7 @@ describe('command-registration', () => {
     mkdirSync(commandsDir, { recursive: true })
     writeFileSync(
       join(commandsDir, 'custom.md'),
-      ['---', 'description: custom command', 'model: quick', '---', 'custom template'].join('\n'),
+      ['---', 'description: custom command', 'model: $quick', '---', 'custom template'].join('\n'),
     )
     const routingContext = createModelScenarioRoutingContext(new Map([
       ['quick', { scenario: 'quick', model: 'provider/quick', layer: '项目级', path: '/repo/.opencode/ae.jsonc' }],
@@ -197,18 +198,18 @@ describe('command-registration', () => {
     expect(config.custom?.model).toBe('provider/quick')
   })
 
-  it('磁盘命令 frontmatter model 变量未配置时应该继承默认模型', () => {
+  it('磁盘命令 frontmatter 自定义模型变量未配置时应该原样透传', () => {
     const root = createTempRoot()
     const commandsDir = join(root, 'commands')
     mkdirSync(commandsDir, { recursive: true })
     writeFileSync(
       join(commandsDir, 'custom.md'),
-      ['---', 'description: custom command', 'model: missing', '---', 'custom template'].join('\n'),
+      ['---', 'description: custom command', 'model: $missing', '---', 'custom template'].join('\n'),
     )
 
     const config = buildCommandConfig(commandsDir, createModelScenarioRoutingContext(new Map()))
 
-    expect(config.custom?.model).toBeUndefined()
+    expect(config.custom?.model).toBe('$missing')
   })
 
   it('磁盘命令重写内置命令时应该用 frontmatter model 覆盖默认路由', () => {

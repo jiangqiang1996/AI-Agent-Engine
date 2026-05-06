@@ -38,6 +38,7 @@ function writeModelScenariosConfig(root: string): void {
   writeFileSync(join(root, '.opencode', 'ae.jsonc'), `{
   "modelScenarios": {
     "quick": "project/quick",
+    "standard": "project/standard",
     "deep": "project/deep",
     "vision": "project/vision"
   }
@@ -53,6 +54,7 @@ async function runConfigHook(input: unknown): Promise<RuntimeConfigShape> {
 
 afterEach(() => {
   vi.unstubAllEnvs()
+  vi.restoreAllMocks()
   for (const root of tempRoots.splice(0)) {
     rmSync(root, { recursive: true, force: true })
   }
@@ -110,35 +112,14 @@ describe('插件入口', () => {
     expect(config.command?.['ae-commit']?.template).toContain('智能提交当前变更文件')
   })
 
-  it('零配置时不应该为内置命令和代理写入 model', async () => {
+  it('零配置时应该让内置命令和代理继承默认模型', async () => {
     const hostRoot = createTempRoot()
     isolateHome(createTempRoot())
 
-    const showToast = vi.fn().mockResolvedValue(undefined)
-    const config = await runConfigHook({ worktree: hostRoot, client: { tui: { showToast } } })
+    const config = await runConfigHook({ worktree: hostRoot, client: {} })
 
     expect(config.command?.['ae-plan']?.model).toBeUndefined()
     expect(config.agent?.['correctness-reviewer']?.model).toBeUndefined()
-    expect(showToast).toHaveBeenCalledWith({
-      body: expect.objectContaining({
-        variant: 'warning',
-        title: 'AE 模型场景未配置',
-        message: expect.stringContaining('内置资产声明的模型场景未配置'),
-      }),
-    })
-    expect(showToast).toHaveBeenCalledTimes(1)
-  })
-
-  it('模型场景告警 toast 失败时不应该阻断配置注册', async () => {
-    const hostRoot = createTempRoot()
-    isolateHome(createTempRoot())
-    const showToast = vi.fn().mockRejectedValue(new Error('toast failed'))
-
-    const config = await runConfigHook({ worktree: hostRoot, client: { tui: { showToast } } })
-
-    expect(config.command?.['ae-plan']).toBeDefined()
-    expect(config.agent?.['correctness-reviewer']).toBeDefined()
-    expect(showToast).toHaveBeenCalled()
   })
 
   it('应该根据项目级 modelScenarios 为内置命令和代理写入 model', async () => {
@@ -151,5 +132,79 @@ describe('插件入口', () => {
     expect(config.command?.['ae-help']?.model).toBe('project/quick')
     expect(config.command?.['ae-plan']?.model).toBe('project/deep')
     expect(config.agent?.['correctness-reviewer']?.model).toBe('project/deep')
+  })
+
+  it('用户配置的模型场景变量未配置时应该原样透传', async () => {
+    const hostRoot = createTempRoot()
+    isolateHome(createTempRoot())
+    writeModelScenariosConfig(hostRoot)
+    const server = await plugin.server({ worktree: hostRoot, client: {} } as never)
+    const config: RuntimeConfigShape = {
+      command: {
+        'ae-custom': {
+          template: 'custom template',
+          model: '$missing',
+        },
+      },
+      agent: {
+        'custom-agent': {
+          model: '$missing',
+        },
+      },
+    }
+
+    await server.config?.(config as never)
+
+    expect(config.command?.['ae-custom']?.model).toBe('$missing')
+    expect(config.agent?.['custom-agent']?.model).toBe('$missing')
+  })
+
+  it('用户覆盖内置资产时模型场景变量未配置也应该原样透传', async () => {
+    const hostRoot = createTempRoot()
+    isolateHome(createTempRoot())
+    const server = await plugin.server({ worktree: hostRoot, client: {} } as never)
+    const config: RuntimeConfigShape = {
+      command: {
+        'ae-plan': {
+          template: 'user plan',
+          model: '$missing',
+        },
+      },
+      agent: {
+        'correctness-reviewer': {
+          model: '$missing',
+        },
+      },
+    }
+
+    await server.config?.(config as never)
+
+    expect(config.command?.['ae-plan']?.model).toBe('$missing')
+    expect(config.agent?.['correctness-reviewer']?.model).toBe('$missing')
+  })
+
+  it('用户配置的不带 $ 模型常量名应该直接透传且不记录为缺失场景变量', async () => {
+    const hostRoot = createTempRoot()
+    isolateHome(createTempRoot())
+    writeModelScenariosConfig(hostRoot)
+    const server = await plugin.server({ worktree: hostRoot, client: {} } as never)
+    const config: RuntimeConfigShape = {
+      command: {
+        'ae-custom': {
+          template: 'custom template',
+          model: 'missing-model-constant',
+        },
+      },
+      agent: {
+        'custom-agent': {
+          model: 'another-model-constant',
+        },
+      },
+    }
+
+    await server.config?.(config as never)
+
+    expect(config.command?.['ae-custom']?.model).toBe('missing-model-constant')
+    expect(config.agent?.['custom-agent']?.model).toBe('another-model-constant')
   })
 })

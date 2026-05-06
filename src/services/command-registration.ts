@@ -52,7 +52,7 @@ function applyCommandModel(
   routingContext?: ModelScenarioRoutingContext,
 ): LoadedCommand {
   if (command.modelReference) {
-    const resolvedModel = resolveModelReference(routingContext, command.modelReference, `/${commandName}`)
+    const resolvedModel = resolveModelReference(routingContext, command.modelReference)
     const { modelReference: _modelReference, ...commandWithoutReference } = command
     return resolvedModel ? { ...commandWithoutReference, model: resolvedModel } : commandWithoutReference
   }

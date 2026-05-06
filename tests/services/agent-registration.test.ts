@@ -122,7 +122,7 @@ describe('agent-registration', () => {
     mkdirSync(join(root, 'src', 'assets', 'agents', 'review'), { recursive: true })
     writeFileSync(
       join(root, 'src', 'assets', 'agents', 'review', 'demo-reviewer.md'),
-      ['---', 'description: markdown description', 'model: reviewer', '---', 'builtin prompt'].join('\n'),
+      ['---', 'description: markdown description', 'model: $reviewer', '---', 'builtin prompt'].join('\n'),
     )
     const routingContext = createModelScenarioRoutingContext(new Map([
       ['reviewer', { scenario: 'reviewer', model: 'provider/reviewer', layer: '项目级', path: '/repo/.opencode/ae.jsonc' }],
@@ -150,18 +150,18 @@ describe('agent-registration', () => {
     expect(config['demo-reviewer']?.model).toBe('provider/explicit-model')
   })
 
-  it('agent frontmatter model 变量未配置时应该继承默认模型', () => {
+  it('agent frontmatter model 变量未配置时应该原样透传', () => {
     const root = createTempRoot()
     mkdirSync(join(root, 'src', 'assets', 'agents', 'review'), { recursive: true })
     writeFileSync(
       join(root, 'src', 'assets', 'agents', 'review', 'demo-reviewer.md'),
-      ['---', 'description: markdown description', 'model: reviewer', '---', 'builtin prompt'].join('\n'),
+      ['---', 'description: markdown description', 'model: $reviewer', '---', 'builtin prompt'].join('\n'),
     )
     const routingContext = createModelScenarioRoutingContext(new Map())
 
     const config = buildAgentConfig(createManifest(root), routingContext)
 
-    expect(config['demo-reviewer']?.model).toBeUndefined()
+    expect(config['demo-reviewer']?.model).toBe('$reviewer')
   })
 
   it('用户同名 agent model 应最终覆盖场景注入 model', () => {
@@ -186,7 +186,7 @@ describe('agent-registration', () => {
     mkdirSync(join(root, 'src', 'assets', 'agents', 'review'), { recursive: true })
     writeFileSync(
       join(root, 'src', 'assets', 'agents', 'review', 'demo-reviewer.md'),
-      ['---', 'description: markdown description', 'model: reviewer', '---', 'builtin prompt'].join('\n'),
+      ['---', 'description: markdown description', 'model: $reviewer', '---', 'builtin prompt'].join('\n'),
     )
     const routingContext = createModelScenarioRoutingContext(new Map([
       ['reviewer', { scenario: 'reviewer', model: 'provider/reviewer', layer: '项目级', path: '/repo/.opencode/ae.jsonc' }],

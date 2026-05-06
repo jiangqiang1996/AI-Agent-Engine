@@ -9,7 +9,7 @@ import {
 } from './services/builtin-opencode-config-service.js'
 import {
   createModelScenarioRoutingContext,
-  type UnresolvedModelReference,
+  resolveModelReference,
 } from './services/model-scenario-routing-service.js'
 import { registerRulesInstructions } from './services/rules-instructions-service.js'
 import { injectBuiltinRulesIntoSystem } from './services/rules-system-transform-service.js'
@@ -22,11 +22,14 @@ interface RuntimeConfigShape {
   command?: Record<string, {
     template: string
     description?: string
+    model?: string
+    [key: string]: unknown
   }>
   agent?: Record<string, {
     description?: string
     prompt?: string
     mode?: 'subagent' | 'primary' | 'all'
+    model?: string
     [key: string]: unknown
   } | undefined>
   skills?: {
@@ -34,19 +37,6 @@ interface RuntimeConfigShape {
   }
   mcp?: Config['mcp']
   instructions?: string[]
-}
-
-interface ToastClientShape {
-  tui?: {
-    showToast?: (args: {
-      body: {
-        variant?: 'success' | 'error' | 'warning' | 'info'
-        title?: string
-        message: string
-        duration?: number
-      }
-    }) => Promise<unknown>
-  }
 }
 
 function resolveHostWorktree(input: unknown): string {
@@ -58,34 +48,42 @@ function mergeCommandConfigWithRouting(
   config: RuntimeConfigShape,
   manifest: ReturnType<typeof createRuntimeAssetManifest>,
   hostWorktree: string,
-  client: ToastClientShape,
 ): void {
   const routingContext = createModelScenarioRoutingContext(
     collectModelScenarioSources(resolveBuiltinOpencodeConfigPaths(manifest, hostWorktree)),
   )
   config.command = mergeBuiltinAndUserCommands(buildCommandConfig(manifest.commandsDir, routingContext), config.command)
   registerAgents(config, manifest, routingContext)
-  notifyUnresolvedModelReferences(client, routingContext.unresolvedReferences)
+  resolveConfiguredModelReferences(config, routingContext)
 }
 
-function notifyUnresolvedModelReferences(client: ToastClientShape, references: UnresolvedModelReference[]): void {
-  if (!client.tui?.showToast || references.length === 0) {
-    return
+function resolveConfiguredModelReferences(
+  config: RuntimeConfigShape,
+  routingContext: ReturnType<typeof createModelScenarioRoutingContext>,
+): void {
+  for (const [commandName, command] of Object.entries(config.command ?? {})) {
+    if (!command.model) {
+      continue
+    }
+    const resolvedModel = resolveModelReference(routingContext, command.model)
+    if (resolvedModel) {
+      command.model = resolvedModel
+    } else {
+      delete command.model
+    }
   }
 
-  const examples = references.slice(0, 3)
-    .map((reference) => `${reference.assetLabel}: ${reference.reference}`)
-    .join('；')
-  const omittedCount = references.length - 3
-  const suffix = omittedCount > 0 ? `；另有 ${omittedCount} 项` : ''
-  void client.tui.showToast({
-    body: {
-      variant: 'warning',
-      title: 'AE 模型场景未配置',
-      message: `有 ${references.length} 个内置资产声明的模型场景未配置，将使用 opencode 默认模型：${examples}${suffix}。`,
-      duration: 6000,
-    },
-  }).catch(() => undefined)
+  for (const [agentName, agent] of Object.entries(config.agent ?? {})) {
+    if (!agent?.model) {
+      continue
+    }
+    const resolvedModel = resolveModelReference(routingContext, agent.model)
+    if (resolvedModel) {
+      agent.model = resolvedModel
+    } else {
+      delete agent.model
+    }
+  }
 }
 
 const plugin: PluginModule = {
@@ -102,7 +100,6 @@ const plugin: PluginModule = {
           config as RuntimeConfigShape,
           manifest,
           hostWorktree,
-          input.client as ToastClientShape,
         )
         registerMcp(config as RuntimeConfigShape, manifest, hostWorktree)
         registerRulesInstructions(config as RuntimeConfigShape, manifest)

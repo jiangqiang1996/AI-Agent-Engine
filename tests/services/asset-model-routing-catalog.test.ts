@@ -66,7 +66,8 @@ describe('asset-model-routing-catalog', () => {
         continue
       }
       const content = readFileSync(join(manifest.agentsDir, stage, `${entry.name}.md`), 'utf8')
-      expect(entry.scenario).toBe(parseFrontmatter(content).data.model)
+      const modelReference = parseFrontmatter(content).data.model
+      expect(entry.scenario).toBe(modelReference.startsWith('$') ? modelReference.slice(1) : modelReference)
     }
   })
 })

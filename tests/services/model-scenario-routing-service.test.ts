@@ -23,7 +23,7 @@ describe('model-scenario-routing-service', () => {
     })
   })
 
-  it('应该在场景缺失时继承 opencode 当前默认模型', () => {
+  it('应该在内置场景缺失时继承默认模型', () => {
     const context = createModelScenarioRoutingContext(new Map())
 
     const result = resolveModelScenario(context, MODEL_SCENARIO.DEEP)
@@ -31,6 +31,16 @@ describe('model-scenario-routing-service', () => {
     expect(result.writeModel).toBe(false)
     expect(result.model).toBeUndefined()
     expect(result.reason).toContain('继承 opencode 当前默认模型')
+    expect(context.unresolvedReferences).toEqual([])
+  })
+
+  it('应该在内置场景缺失时不记录提示状态', () => {
+    const context = createModelScenarioRoutingContext(new Map())
+
+    const result = resolveModelScenario(context, MODEL_SCENARIO.DEEP)
+
+    expect(result.writeModel).toBe(false)
+    expect(context.unresolvedReferences).toEqual([])
   })
 
   it('应该按原样透传模型字符串', () => {
@@ -46,36 +56,45 @@ describe('model-scenario-routing-service', () => {
       ['reviewer', { scenario: 'reviewer', model: 'project/reviewer', layer: '项目级', path: '/repo/.opencode/ae.jsonc' }],
     ]))
 
-    const result = resolveModelReference(context, 'reviewer', '@reviewer')
+    const result = resolveModelReference(context, '$reviewer')
 
     expect(result).toBe('project/reviewer')
     expect(context.unresolvedReferences).toEqual([])
   })
 
-  it('应该记录未配置的 frontmatter 模型变量并继承默认模型', () => {
+  it('应该将未配置的 frontmatter 自定义模型变量原样透传', () => {
     const context = createModelScenarioRoutingContext(new Map())
 
-    const result = resolveModelReference(context, 'reviewer', '@reviewer')
+    const result = resolveModelReference(context, '$reviewer')
 
-    expect(result).toBeUndefined()
-    expect(context.unresolvedReferences).toEqual([{ reference: 'reviewer', assetLabel: '@reviewer' }])
+    expect(result).toBe('$reviewer')
+    expect(context.unresolvedReferences).toEqual([])
   })
 
-  it('缺少 frontmatter 模型引用时应该继承默认模型且不记录未配置变量', () => {
+  it('缺少 frontmatter 模型引用时应该不写入 model 且不记录未配置变量', () => {
     const context = createModelScenarioRoutingContext(new Map())
 
-    const result = resolveModelReference(context, undefined, '@reviewer')
+    const result = resolveModelReference(context, undefined)
 
     expect(result).toBeUndefined()
     expect(context.unresolvedReferences).toEqual([])
   })
 
-  it('应该保留 frontmatter 中的真实模型标识且不记录未配置变量', () => {
+  it('应该保留包含 provider 的真实模型标识且不记录未配置变量', () => {
     const context = createModelScenarioRoutingContext(new Map())
 
-    const result = resolveModelReference(context, 'provider/explicit-model', '@reviewer')
+    const result = resolveModelReference(context, 'provider/explicit-model')
 
     expect(result).toBe('provider/explicit-model')
+    expect(context.unresolvedReferences).toEqual([])
+  })
+
+  it('应该保留不含 provider 的模型常量名且不校验是否存在', () => {
+    const context = createModelScenarioRoutingContext(new Map())
+
+    const result = resolveModelReference(context, 'standard')
+
+    expect(result).toBe('standard')
     expect(context.unresolvedReferences).toEqual([])
   })
 })
