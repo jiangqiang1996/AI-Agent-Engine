@@ -100,10 +100,11 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 
 ```text
 /ae-help
+/ae-help review
 /ae-lfg 实现一个功能
 ```
 
-更多使用方式见 [用户手册](docs/usage-guide.md)。
+`/ae-help` 是运行时权威帮助，可按技能名、命令名或关键词过滤。更多使用方式见 [用户手册](docs/usage-guide.md)。
 
 内置 MCP 和模型场景路由的配置方式见 [docs/builtin-config.md](docs/builtin-config.md)。
 

@@ -7,15 +7,20 @@
 | 目标 | 推荐入口 |
 | --- | --- |
 | 查看全部能力 | `/ae-help` |
+| 生成可落地想法 | `/ae-ideate` |
 | 从需求到交付 | `/ae-lfg` |
 | 澄清需求 | `/ae-brainstorm` |
 | 生成计划 | `/ae-plan` |
 | 执行计划 | `/ae-work` |
 | 重构或技术债治理 | `/ae-refactor` |
 | 审查代码或文档 | `/ae-review` |
+| 合并分支或 worktree | `/ae-merge-branch` |
 | 构建前端界面 | `/ae-frontend-design` |
 | 浏览器验收 | `/ae-test-browser` |
 | 数据库操作 | `/ae-sql` |
+| 解析 Swagger/OpenAPI | `/ae-swagger-parser` |
+| 优化提示词 | `/ae-prompt-optimize` |
+| 跨会话交接 | `/ae-handoff` |
 
 ## 主流程
 
@@ -38,6 +43,8 @@
 
 ## 常见场景
 
+需要先探索方向时，用 `/ae-ideate` 生成并批判性评估多个落地想法。
+
 需求不清楚时，先用 `/ae-brainstorm` 讨论目标、范围、约束和成功标准。
 
 已有需求或任务描述时，用 `/ae-plan` 生成结构化计划。
@@ -47,6 +54,30 @@
 只做重构或技术债治理时，用 `/ae-refactor` 先建立“保持外部行为、分阶段迁移、带测试护栏”的计划约束。
 
 需要审查时，用 `/ae-review` 审查代码，或用 `/ae-review domain:document <文档路径>` 审查文档。
+
+需要只审查文档时，可以继续使用 `/ae-document-review <文档路径>`，该入口会通过统一的 `ae:review` 文档域执行。
+
+需要合并来源分支或本地 worktree 时，用 `/ae-merge-branch <来源分支名或本地 worktree 路径>`，并按提示确认本地 Git 写操作范围。
+
+需要把当前会话交给新会话继续时，用 `/ae-handoff` 提取核心上下文并创建独立新会话。
+
+需要把随意描述整理成更适合 AI 执行的提示词时，用 `/ae-prompt-optimize <提示词内容>`；确定无需确认时用 `/ae-prompt-optimize-auto <提示词内容>`。
+
+需要解析 Swagger 或 OpenAPI 文档时，用 `/ae-swagger-parser`，例如：
+
+```text
+/ae-swagger-parser ./openapi.json method:POST keyword:login mode:detail
+```
+
+需要保存本次会话总结出的长期项目规范时，用 `/ae-save-rules`。
+
+需要把当前执行流程固化为可复用流程时，用 `/ae-save-session-flow`。
+
+需要诊断 AE 资产执行偏差时，用 `/ae-asset-debug`。
+
+需要更新 AE 插件时，用 `/ae-update`，项目级安装使用 `/ae-update project`。
+
+需要智能提交当前变更时，用 `/ae-commit`。该命令只负责本地提交，不等同于 push 或创建 PR。
 
 探索性调试和修复时，用 `/ae-task-loop` 循环执行并验证，例如：
 
@@ -76,12 +107,65 @@
 
 ## 命令变体
 
-多数技能命令支持提示词优化变体：
+部分技能命令支持提示词优化变体。`-po` 会先优化提示词并等待确认，`-pa` 会以 auto 模式优化后直接执行。
 
 | 变体 | 作用 | 示例 |
 | --- | --- | --- |
 | `-po` | 先优化提示词，再确认执行 | `/ae-plan-po 搞个权限系统` |
 | `-pa` | auto 模式优化提示词并直接执行 | `/ae-lfg-pa 加个文件上传功能` |
+
+当前支持变体的基础命令：
+
+| 基础命令 | 确认执行 | 自动执行 |
+| --- | --- | --- |
+| `/ae-ideate` | `/ae-ideate-po` | `/ae-ideate-pa` |
+| `/ae-brainstorm` | `/ae-brainstorm-po` | `/ae-brainstorm-pa` |
+| `/ae-plan` | `/ae-plan-po` | `/ae-plan-pa` |
+| `/ae-refactor` | `/ae-refactor-po` | `/ae-refactor-pa` |
+| `/ae-work` | `/ae-work-po` | `/ae-work-pa` |
+| `/ae-lfg` | `/ae-lfg-po` | `/ae-lfg-pa` |
+| `/ae-frontend-design` | `/ae-frontend-design-po` | `/ae-frontend-design-pa` |
+| `/ae-task-loop` | `/ae-task-loop-po` | `/ae-task-loop-pa` |
+
+## 代理
+
+代理通过 `@<代理名>` 在会话中主动调用。完整描述以 `/ae-help` 输出为准；常见使用方式如下。
+
+### 审查代理
+
+| 代理 | 适用场景 |
+| --- | --- |
+| `@correctness-reviewer` | 审查逻辑错误、边界情况、状态管理和错误传播 |
+| `@testing-reviewer` | 审查测试覆盖、断言质量和边界用例 |
+| `@standards-reviewer` | 审查项目规范、命名、工具选择和跨平台可移植性 |
+| `@maintainability-reviewer` | 审查过早抽象、耦合、死代码、重复和命名问题 |
+| `@security-reviewer` | 审查认证授权、输入处理、数据暴露和 API 攻击面 |
+| `@api-contract-reviewer` | 审查 API、请求响应类型、序列化和导出类型签名 |
+| `@reliability-reviewer` | 审查错误处理、重试、超时、后台任务和异步处理 |
+| `@performance-reviewer` | 审查数据库查询、循环密集转换、缓存和 I/O 路径 |
+| `@architecture-strategist` | 从架构视角审查模式合规性和结构性重构 |
+| `@pattern-recognition-specialist` | 分析设计模式、反模式、命名规范和重复代码 |
+| `@data-migrations-reviewer` | 审查迁移、schema 变更、数据转换和回填脚本 |
+| `@previous-comments-reviewer` | 检查已有 PR 评论或审查讨论是否已处理 |
+| `@agent-native-reviewer` | 审查工具、UI 或代理配置是否支持代理对等操作 |
+| `@adversarial-reviewer` | 对大 diff、高风险领域或复杂文档做对抗式审查 |
+| `@coherence-reviewer` | 审查文档内部一致性、术语漂移和结构歧义 |
+| `@feasibility-reviewer` | 审查文档方案的依赖缺口、迁移风险和可实现性 |
+| `@product-lens-reviewer` | 从产品价值、战略后果和范围复杂度审查文档 |
+| `@design-lens-reviewer` | 审查信息架构、交互状态、用户流程和设计决策缺口 |
+| `@step-granularity-reviewer` | 审查计划步骤是否足够原子、产物是否唯一 |
+| `@test-case-reviewer` | 审查测试用例文档的覆盖、步骤和结果可验证性 |
+| `@research-reviewer` | 综合历史方案、外部最佳实践和框架文档 |
+
+### 研究与流程代理
+
+| 代理 | 适用场景 |
+| --- | --- |
+| `@repo-research-analyst` | 研究仓库结构、文档、约定和实现模式 |
+| `@web-researcher` | 做外部网络研究、竞品扫描和跨领域类比 |
+| `@spec-flow-analyzer` | 分析规格、计划或功能描述中的用户流程缺口 |
+| `@design-iterator` | 对已有可运行 UI 做多轮截图、分析和审美优化 |
+| `@figma-design-sync` | 按 Figma 或设计图片修复 Web 实现视觉偏差 |
 
 ## 产物路径
 
@@ -118,6 +202,7 @@ AE 内置命令和代理各自声明了模型场景（如 `/ae-plan` → `deep`�
 - 稳定场景：`quick`（低延迟）、`standard`（平衡）、`deep`（强推理）、`vision`（图片输入）
 - 未配置的场景继承 opencode 默认模型，零配置行为不变
 - 用户在 `opencode.json` 中显式指定的 `model` 最终覆盖场景路由
+- `/ae-help` 会输出当前内置命令和代理声明的模型场景，便于核对实际路由
 - 三层优先级、完整场景清单和覆盖规则见 [builtin-config.md](builtin-config.md#模型场景路由)
 
 ## 最新帮助
