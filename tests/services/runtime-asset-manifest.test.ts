@@ -35,7 +35,7 @@ describe('runtime-asset-manifest', () => {
     expect(manifest.skillsDir).toBe(join(root, 'dist', 'src', 'assets', 'skills'))
     expect(manifest.rulesDir).toBe(join(root, 'dist', 'src', 'assets', 'rules'))
     expect(manifest.commandsDir).toBe(join(root, 'dist', 'src', 'assets', 'commands'))
-    expect(manifest.builtinConfigFile).toBe(join(root, 'dist', 'src', 'assets', 'config', 'builtin-opencode.jsonc'))
+    expect(manifest.builtinConfigFile).toBe(join(root, 'dist', 'src', 'assets', 'config', 'ae.jsonc'))
     expect(manifest.agentsDir).toBe(join(root, 'dist', 'src', 'assets', 'agents'))
     expect(manifest.runtimeAgentFiles[0]?.source).toContain(join('dist', 'src', 'assets', 'agents'))
   })
@@ -59,7 +59,7 @@ describe('runtime-asset-manifest', () => {
     expect(manifest.repoRoot).not.toBe(hostRoot)
     expect(manifest.skillsDir).toBe(join(pluginRoot, 'dist', 'src', 'assets', 'skills'))
     expect(manifest.agentsDir).toBe(join(pluginRoot, 'dist', 'src', 'assets', 'agents'))
-    expect(manifest.builtinConfigFile).toBe(join(pluginRoot, 'dist', 'src', 'assets', 'config', 'builtin-opencode.jsonc'))
+    expect(manifest.builtinConfigFile).toBe(join(pluginRoot, 'dist', 'src', 'assets', 'config', 'ae.jsonc'))
   })
 
   it('应该在源码模块路径下定位到项目根目录', () => {
@@ -82,6 +82,6 @@ describe('runtime-asset-manifest', () => {
 
     expect(manifest.skillsDir).toBe(join(root, 'dist', 'src', 'assets', 'skills'))
     expect(manifest.agentsDir).toBe(join(root, 'dist', 'src', 'assets', 'agents'))
-    expect(manifest.builtinConfigFile).toBe(join(root, 'dist', 'src', 'assets', 'config', 'builtin-opencode.jsonc'))
+    expect(manifest.builtinConfigFile).toBe(join(root, 'dist', 'src', 'assets', 'config', 'ae.jsonc'))
   })
 })

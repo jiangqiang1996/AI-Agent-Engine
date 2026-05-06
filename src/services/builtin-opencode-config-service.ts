@@ -358,8 +358,8 @@ export function resolveBuiltinOpencodeConfigPaths(
   worktree: string,
 ): BuiltinOpencodeConfigPaths {
   return {
-    projectConfigFile: join(worktree, '.opencode', 'builtin-opencode.jsonc'),
-    globalConfigFile: join(homedir(), '.config', 'opencode', 'builtin-opencode.jsonc'),
+    projectConfigFile: join(worktree, '.opencode', 'ae.jsonc'),
+    globalConfigFile: join(homedir(), '.config', 'opencode', 'ae.jsonc'),
     builtinConfigFile: manifest.builtinConfigFile,
   }
 }

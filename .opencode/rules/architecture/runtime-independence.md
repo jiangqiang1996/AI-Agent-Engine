@@ -20,10 +20,10 @@
 
 ## 用户 builtin-opencode 配置边界
 
-- AE 插件的运行时能力包含三层 builtin-opencode 配置：内置 `src/assets/config/builtin-opencode.jsonc`、当前项目 `.opencode/builtin-opencode.jsonc`、全局 `~/.config/opencode/builtin-opencode.jsonc`。
-- 当前项目和全局 `builtin-opencode.jsonc` 属于插件明确支持的可选用户配置入口，不应被视为运行时独立性违规；文件缺失时必须自然降级到低优先级层。
-- 该入口只允许读取固定文件名 `builtin-opencode.jsonc`，不得扩大为默认读取本机 opencode 全局配置、其他全局技能、其他全局代理或当前源码仓库 `.opencode/` 下的调试资产。
-- 除用户规则目录和 `builtin-opencode.jsonc` 外，不得默认读取本机 opencode 全局配置、其他全局技能、其他全局代理或当前源码仓库 `.opencode/` 下的调试资产。
+- AE 插件的运行时能力包含三层 builtin-opencode 配置：内置 `src/assets/config/ae.jsonc`、当前项目 `.opencode/ae.jsonc`、全局 `~/.config/opencode/ae.jsonc`。
+- 当前项目和全局 `ae.jsonc` 属于插件明确支持的可选用户配置入口，不应被视为运行时独立性违规；文件缺失时必须自然降级到低优先级层。
+- 该入口只允许读取固定文件名 `ae.jsonc`，不得扩大为默认读取本机 opencode 全局配置、其他全局技能、其他全局代理或当前源码仓库 `.opencode/` 下的调试资产。
+- 除用户规则目录和 `ae.jsonc` 外，不得默认读取本机 opencode 全局配置、其他全局技能、其他全局代理或当前源码仓库 `.opencode/` 下的调试资产。
 
 ## src 运行时封闭边界
 

@@ -47,8 +47,8 @@ describe('mcp-registration 集成', () => {
     const root = createTempRoot()
     const config = loadBuiltinOpencodeConfig({
       builtinConfigFile: manifest.builtinConfigFile,
-      globalConfigFile: join(root, 'missing-global-builtin-opencode.jsonc'),
-      projectConfigFile: join(root, 'missing-project-builtin-opencode.jsonc'),
+      globalConfigFile: join(root, 'missing-global-ae.jsonc'),
+      projectConfigFile: join(root, 'missing-project-ae.jsonc'),
     }).mcp ?? {}
 
     expect(config.context7).toBeDefined()
@@ -98,7 +98,7 @@ describe('mcp-registration 集成', () => {
     const paths = resolveBuiltinOpencodeConfigPaths(manifest, root)
     const config = loadBuiltinOpencodeConfig({
       ...paths,
-      globalConfigFile: join(root, 'missing-global-builtin-opencode.jsonc'),
+      globalConfigFile: join(root, 'missing-global-ae.jsonc'),
     })
 
     expect(config.$schema).toBe('./builtin-opencode.schema.json')

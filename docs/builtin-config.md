@@ -1,6 +1,6 @@
 # AE 内置配置
 
-AE 会在插件 `config` 钩子里注入一组最低优先级的默认配置，通过 `builtin-opencode.jsonc` 管理。当前支持两个顶层配置节点：
+AE 会在插件 `config` 钩子里注入一组最低优先级的默认配置，通过 `ae.jsonc` 管理。当前支持两个顶层配置节点：
 
 | 节点 | 作用 |
 | --- | --- |
@@ -16,20 +16,20 @@ AE 会在插件 `config` 钩子里注入一组最低优先级的 MCP 默认值�
 | `context7` | `remote` | 获取最新的库/框架文档 |
 | `gh_grep` | `remote` | 搜索真实的 GitHub 代码示例 |
 
-默认配置由三层可选 `builtin-opencode.jsonc` 合并而来，并通过本地 `builtin-opencode.schema.json` 作为 `$schema`。当前已知配置节点是 opencode 官方 `mcp` 节点；后续新增其他 builtin 配置节点时可在同一文件中扩展。
+默认配置由三层可选 `ae.jsonc` 合并而来，并通过本地 `builtin-opencode.schema.json` 作为 `$schema`。当前已知配置节点是 opencode 官方 `mcp` 节点；后续新增其他 builtin 配置节点时可在同一文件中扩展。
 
 ## 优先级
 
-`builtin-opencode.jsonc` 的来源和优先级如下：
+`ae.jsonc` 的来源和优先级如下：
 
 ```text
-插件内置 builtin-opencode.jsonc
-  -> 全局 ~/.config/opencode/builtin-opencode.jsonc
-  -> 项目级 .opencode/builtin-opencode.jsonc
+插件内置 ae.jsonc
+  -> 全局 ~/.config/opencode/ae.jsonc
+  -> 项目级 .opencode/ae.jsonc
   -> opencode 已传入插件钩子的既有 config.mcp
 ```
 
-项目级和全局 `builtin-opencode.jsonc` 是 AE 支持的可选配置入口；项目不存在这些文件时会自然使用低优先级默认值。
+项目级和全局 `ae.jsonc` 是 AE 支持的可选配置入口；项目不存在这些文件时会自然使用低优先级默认值。
 
 三层 builtin 配置的合并规则如下：
 
@@ -43,7 +43,7 @@ AE 不读取或合并项目级、全局 `opencode.json`；这部分优先级由 
 
 ## 禁用内置 MCP
 
-可以在项目级 `.opencode/builtin-opencode.jsonc` 中只覆盖需要调整的字段：
+可以在项目级 `.opencode/ae.jsonc` 中只覆盖需要调整的字段：
 
 ```jsonc
 {
@@ -71,7 +71,7 @@ AE 不读取或合并项目级、全局 `opencode.json`；这部分优先级由 
 
 ## 覆盖内置 MCP
 
-项目级 `.opencode/builtin-opencode.jsonc` 只能覆盖已有 MCP 的安全字段：
+项目级 `.opencode/ae.jsonc` 只能覆盖已有 MCP 的安全字段：
 
 1. `enabled: false` 用于禁用已有 MCP。
 2. `timeout` 用于调整超时，必须是 `1000` 到 `120000` 之间的整数毫秒。
@@ -90,7 +90,7 @@ AE 不读取或合并项目级、全局 `opencode.json`；这部分优先级由 
 
 remote MCP 的最终 URL 只允许 `http` / `https`，不能包含内嵌凭证，也不能使用本机、内网、链路本地、云 metadata、运营商级 NAT、benchmark 等特殊用途 IP 字面量。域名会按域名字面量注册；AE 不在配置合并阶段解析 DNS，因此不要把解析到内网或本机地址的域名写入全局 remote MCP。
 
-全局 `~/.config/opencode/builtin-opencode.jsonc` 可以新增或替换 builtin MCP 条目：
+全局 `~/.config/opencode/ae.jsonc` 可以新增或替换 builtin MCP 条目：
 
 ```jsonc
 {
@@ -103,7 +103,7 @@ remote MCP 的最终 URL 只允许 `http` / `https`，不能包含内嵌凭证�
 }
 ```
 
-如果需要把同名远程 MCP 改成本地 MCP，应在全局 `builtin-opencode.jsonc` 或 opencode 既有 `config.mcp` 中直接替换类型：
+如果需要把同名远程 MCP 改成本地 MCP，应在全局 `ae.jsonc` 或 opencode 既有 `config.mcp` 中直接替换类型：
 
 ```json
 {
@@ -138,7 +138,7 @@ AE 内置命令和代理各自声明了一个模型场景（如 `/ae-plan` 声�
 
 ## 配置方式
 
-在 `builtin-opencode.jsonc` 中添加 `modelScenarios` 字段，将场景键映射到模型标识字符串：
+在 `ae.jsonc` 中添加 `modelScenarios` 字段，将场景键映射到模型标识字符串：
 
 ```jsonc
 {
@@ -155,12 +155,12 @@ AE 内置命令和代理各自声明了一个模型场景（如 `/ae-plan` 声�
 
 ## 三层优先级
 
-与 MCP 配置共用同一套 `builtin-opencode.jsonc` 三层合并机制：
+与 MCP 配置共用同一套 `ae.jsonc` 三层合并机制：
 
 ```text
-插件内置 builtin-opencode.jsonc（无默认 modelScenarios）
-  -> 全局 ~/.config/opencode/builtin-opencode.jsonc
-  -> 项目级 .opencode/builtin-opencode.jsonc
+插件内置 ae.jsonc（无默认 modelScenarios）
+  -> 全局 ~/.config/opencode/ae.jsonc
+  -> 项目级 .opencode/ae.jsonc
 ```
 
 项目级覆盖全局，全局覆盖插件内置。未配置的场景键继承 opencode 当前默认模型。

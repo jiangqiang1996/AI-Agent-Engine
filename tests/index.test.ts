@@ -23,7 +23,7 @@ function createTempRoot(): string {
 
 function writeBuiltinConfig(root: string): void {
   mkdirSync(join(root, '.opencode'), { recursive: true })
-  writeFileSync(join(root, '.opencode', 'builtin-opencode.jsonc'), `{
+  writeFileSync(join(root, '.opencode', 'ae.jsonc'), `{
   "mcp": {
     "context7": {
       "enabled": false,
@@ -35,7 +35,7 @@ function writeBuiltinConfig(root: string): void {
 
 function writeModelScenariosConfig(root: string): void {
   mkdirSync(join(root, '.opencode'), { recursive: true })
-  writeFileSync(join(root, '.opencode', 'builtin-opencode.jsonc'), `{
+  writeFileSync(join(root, '.opencode', 'ae.jsonc'), `{
   "modelScenarios": {
     "quick": "project/quick",
     "deep": "project/deep",

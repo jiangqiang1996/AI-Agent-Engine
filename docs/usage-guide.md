@@ -94,15 +94,15 @@
 
 ## 内置 MCP
 
-AE 默认附带一组最低优先级的内置 MCP，可直接用于文档检索和代码示例搜索。项目可以通过 `.opencode/builtin-opencode.jsonc` 覆盖团队默认值，全局默认值可放在 `~/.config/opencode/builtin-opencode.jsonc`。
+AE 默认附带一组最低优先级的内置 MCP，可直接用于文档检索和代码示例搜索。项目可以通过 `.opencode/ae.jsonc` 覆盖团队默认值，全局默认值可放在 `~/.config/opencode/ae.jsonc`。
 
 - 默认项、三层来源、优先级和合并规则见 [builtin-config.md](builtin-config.md)
-- 想按字段覆盖默认 MCP：在项目级或全局 `builtin-opencode.jsonc` 中声明同名 `mcp` 条目
+- 想按字段覆盖默认 MCP：在项目级或全局 `ae.jsonc` 中声明同名 `mcp` 条目
 - 想让 opencode 既有配置完全接管某个 MCP：在 `opencode.json` 中声明同名 `mcp` 条目，AE 不会从 builtin 同名项补字段
 
 ## 模型场景路由
 
-AE 内置命令和代理各自声明了模型场景（如 `/ae-plan` → `deep`、`/ae-help` → `quick`）。通过在 `builtin-opencode.jsonc` 中配置 `modelScenarios`，可以让不同场景自动使用不同模型：
+AE 内置命令和代理各自声明了模型场景（如 `/ae-plan` → `deep`、`/ae-help` → `quick`）。通过在 `ae.jsonc` 中配置 `modelScenarios`，可以让不同场景自动使用不同模型：
 
 ```jsonc
 {

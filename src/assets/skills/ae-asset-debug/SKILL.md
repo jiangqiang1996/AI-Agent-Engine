@@ -226,7 +226,7 @@ LLM 行为验证只能降低风险，不能承诺根除。无法自动验证时�
 当用户询问模型场景、`modelScenarios` 或某个资产为什么使用/未使用某个模型时：
 
 - 先调用 `ae-help` 工具，用资产名、`model` 或场景键过滤静态路由总览。
-- 检查 `builtin-opencode.jsonc` 时只确认顶层 `modelScenarios` 字符串映射，不推断 fallback、capabilities、params 或动态路由。
+- 检查 `ae.jsonc` 时只确认顶层 `modelScenarios` 字符串映射，不推断 fallback、capabilities、params 或动态路由。
 - 输出必须区分静态默认场景、注册期可写入的 `model`、用户同名 agent/command 最终覆盖，以及未配置场景时继承 opencode 当前默认模型。
 - 对 `vision` 只说明场景选择，不声明模型具备视觉能力；首版不做模型能力探测。
 

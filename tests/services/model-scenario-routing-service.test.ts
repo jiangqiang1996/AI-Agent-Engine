@@ -6,7 +6,7 @@ import { createModelScenarioRoutingContext, resolveModelScenario } from '../../s
 describe('model-scenario-routing-service', () => {
   it('应该在项目级场景命中后返回模型和来源', () => {
     const context = createModelScenarioRoutingContext(new Map([
-      ['quick', { scenario: 'quick', model: 'project/quick', layer: '项目级', path: '/repo/.opencode/builtin-opencode.jsonc' }],
+      ['quick', { scenario: 'quick', model: 'project/quick', layer: '项目级', path: '/repo/.opencode/ae.jsonc' }],
     ]))
 
     const result = resolveModelScenario(context, MODEL_SCENARIO.QUICK)

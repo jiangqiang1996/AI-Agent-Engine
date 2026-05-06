@@ -148,7 +148,7 @@ describe('command-registration', () => {
 
   it('应该根据模型场景为内置 command 注入 model', () => {
     const routingContext = createModelScenarioRoutingContext(new Map([
-      ['deep', { scenario: 'deep', model: 'provider/deep', layer: '项目级', path: '/repo/.opencode/builtin-opencode.jsonc' }],
+      ['deep', { scenario: 'deep', model: 'provider/deep', layer: '项目级', path: '/repo/.opencode/ae.jsonc' }],
     ]))
 
     const config = buildCommandConfig('__missing_commands_dir__', routingContext)

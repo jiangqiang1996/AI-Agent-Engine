@@ -13,7 +13,7 @@ function createManifest(root: string): RuntimeAssetManifest {
     skillsDir: join(root, 'src', 'assets', 'skills'),
     rulesDir: join(root, 'src', 'assets', 'rules'),
     commandsDir: join(root, 'src', 'assets', 'commands'),
-    builtinConfigFile: join(root, 'src', 'assets', 'config', 'builtin-opencode.jsonc'),
+    builtinConfigFile: join(root, 'src', 'assets', 'config', 'ae.jsonc'),
     toolsDir: join(root, 'tools'),
     agentsDir: join(root, 'src', 'assets', 'agents'),
     runtimeAgentDir: join(root, '.opencode', 'agents', 'ae'),

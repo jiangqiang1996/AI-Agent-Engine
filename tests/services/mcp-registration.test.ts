@@ -23,7 +23,7 @@ function createManifest(root: string): RuntimeAssetManifest {
     skillsDir: join(root, 'src', 'assets', 'skills'),
     rulesDir: join(root, 'src', 'assets', 'rules'),
     commandsDir: join(root, 'src', 'assets', 'commands'),
-    builtinConfigFile: join(root, 'src', 'assets', 'config', 'builtin-opencode.jsonc'),
+    builtinConfigFile: join(root, 'src', 'assets', 'config', 'ae.jsonc'),
     toolsDir: join(root, 'tools'),
     agentsDir: join(root, 'src', 'assets', 'agents'),
     runtimeAgentDir: join(root, '.opencode', 'agents', 'ae'),
@@ -41,7 +41,7 @@ afterEach(() => {
 describe('mcp-registration', () => {
   it('应该读取 JSONC 配置中的 mcp 节点', () => {
     const root = createRepoRoot()
-    writeFileSync(join(root, 'src', 'assets', 'config', 'builtin-opencode.jsonc'), `{
+    writeFileSync(join(root, 'src', 'assets', 'config', 'ae.jsonc'), `{
   "$schema": "./builtin-opencode.schema.json",
   // comment
   "mcp": {
@@ -114,7 +114,7 @@ describe('mcp-registration', () => {
 
   it('registerMcp 应该把内置默认值并入用户配置且同名用户配置整条优先', () => {
     const root = createRepoRoot()
-    writeFileSync(join(root, 'src', 'assets', 'config', 'builtin-opencode.jsonc'), `{
+    writeFileSync(join(root, 'src', 'assets', 'config', 'ae.jsonc'), `{
   "$schema": "./builtin-opencode.schema.json",
   "mcp": {
     "context7": {
@@ -158,7 +158,7 @@ describe('mcp-registration', () => {
   it('应该消费三层 builtin 合并结果', () => {
     const root = createRepoRoot()
     mkdirSync(join(root, '.opencode'), { recursive: true })
-    writeFileSync(join(root, 'src', 'assets', 'config', 'builtin-opencode.jsonc'), `{
+    writeFileSync(join(root, 'src', 'assets', 'config', 'ae.jsonc'), `{
   "mcp": {
     "context7": {
       "type": "remote",
@@ -168,7 +168,7 @@ describe('mcp-registration', () => {
     }
   }
 }`)
-    writeFileSync(join(root, '.opencode', 'builtin-opencode.jsonc'), `{
+    writeFileSync(join(root, '.opencode', 'ae.jsonc'), `{
   "mcp": {
     "context7": {
       "enabled": false
@@ -198,7 +198,7 @@ describe('mcp-registration', () => {
     }
   }
 }`)
-    writeFileSync(join(root, 'src', 'assets', 'config', 'builtin-opencode.jsonc'), `{
+    writeFileSync(join(root, 'src', 'assets', 'config', 'ae.jsonc'), `{
   "mcp": {
     "context7": {
       "type": "remote",
@@ -221,12 +221,12 @@ describe('mcp-registration', () => {
   it('项目级 builtin-opencode 不应该新增远程 MCP', () => {
     const root = createRepoRoot()
     mkdirSync(join(root, '.opencode'), { recursive: true })
-    writeFileSync(join(root, 'src', 'assets', 'config', 'builtin-opencode.jsonc'), `{
+    writeFileSync(join(root, 'src', 'assets', 'config', 'ae.jsonc'), `{
   "mcp": {
     "context7": { "type": "remote", "url": "https://builtin.example/mcp" }
   }
 }`)
-    writeFileSync(join(root, '.opencode', 'builtin-opencode.jsonc'), `{
+    writeFileSync(join(root, '.opencode', 'ae.jsonc'), `{
   "mcp": {
     "attacker": { "type": "remote", "url": "https://attacker.example/mcp" }
   }
@@ -241,12 +241,12 @@ describe('mcp-registration', () => {
   it('项目级 builtin-opencode 覆盖已有 MCP 后仍必须得到有效最终配置', () => {
     const root = createRepoRoot()
     mkdirSync(join(root, '.opencode'), { recursive: true })
-    writeFileSync(join(root, 'src', 'assets', 'config', 'builtin-opencode.jsonc'), `{
+    writeFileSync(join(root, 'src', 'assets', 'config', 'ae.jsonc'), `{
   "mcp": {
     "context7": { "type": "remote", "url": "https://builtin.example/mcp" }
   }
 }`)
-    writeFileSync(join(root, '.opencode', 'builtin-opencode.jsonc'), `{
+    writeFileSync(join(root, '.opencode', 'ae.jsonc'), `{
   "mcp": {
     "context7": { "type": "local" }
   }
@@ -261,7 +261,7 @@ describe('mcp-registration', () => {
   it('项目级 builtin-opencode 不应该覆盖已有 MCP 的连接端点或本地命令', () => {
     const root = createRepoRoot()
     mkdirSync(join(root, '.opencode'), { recursive: true })
-    writeFileSync(join(root, 'src', 'assets', 'config', 'builtin-opencode.jsonc'), `{
+    writeFileSync(join(root, 'src', 'assets', 'config', 'ae.jsonc'), `{
   "mcp": {
     "context7": { "type": "remote", "url": "https://builtin.example/mcp", "enabled": true }
   }
@@ -272,7 +272,7 @@ describe('mcp-registration', () => {
       ['url', '"https://attacker.example/mcp"'],
       ['command', '["node", "server.js"]'],
     ]) {
-      writeFileSync(join(root, '.opencode', 'builtin-opencode.jsonc'), `{
+      writeFileSync(join(root, '.opencode', 'ae.jsonc'), `{
   "mcp": {
     "context7": { "${field}": ${value} }
   }
