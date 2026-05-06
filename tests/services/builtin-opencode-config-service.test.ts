@@ -260,7 +260,7 @@ describe('builtin-opencode-config-service', () => {
       )
     }
 
-    for (const invalid of ['""', '"   "', '1', 'false', '{}', '[]']) {
+    for (const invalid of ['""', '"   "', '" provider/model"', '"provider/model "', '1', 'false', '{}', '[]']) {
       writeConfig(builtinConfigFile, `{ "modelScenarios": { "quick": ${invalid} } }`)
       expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile })).toThrow(
         /modelScenarios.quick 必须是非空字符串模型标识/,

@@ -347,7 +347,7 @@ function validateModelScenariosConfig(config: BuiltinOpencodeConfig, label = 'bu
   }
 
   for (const [scenario, model] of Object.entries(config.modelScenarios)) {
-    if (typeof model !== 'string' || model.trim().length === 0) {
+    if (typeof model !== 'string' || model.trim().length === 0 || model !== model.trim()) {
       throw new Error(`${label} modelScenarios.${scenario} 必须是非空字符串模型标识`)
     }
   }
