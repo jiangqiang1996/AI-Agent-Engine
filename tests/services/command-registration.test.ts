@@ -8,6 +8,7 @@ import {
   buildCommandConfig,
   mergeBuiltinAndUserCommands,
 } from '../../src/services/command-registration.js'
+import { createModelScenarioRoutingContext } from '../../src/services/model-scenario-routing-service.js'
 import { parseFrontmatter } from '../../src/utils/frontmatter.js'
 
 describe('command-registration', () => {
@@ -143,5 +144,44 @@ describe('command-registration', () => {
     expect(merged['ae-demo']?.template).toBe('user template')
     expect(merged['ae-demo']?.description).toBe('user description')
     expect(merged['ae-user-only']?.template).toBe('user only')
+  })
+
+  it('应该根据模型场景为内置 command 注入 model', () => {
+    const routingContext = createModelScenarioRoutingContext(new Map([
+      ['deep', { scenario: 'deep', model: 'provider/deep', layer: '项目级', path: '/repo/.opencode/builtin-opencode.jsonc' }],
+    ]))
+
+    const config = buildCommandConfig('__missing_commands_dir__', routingContext)
+
+    expect(config[COMMAND.PLAN]?.model).toBe('provider/deep')
+  })
+
+  it('零配置时 command 注册结果不写入 model', () => {
+    const routingContext = createModelScenarioRoutingContext(new Map())
+
+    const config = buildCommandConfig('__missing_commands_dir__', routingContext)
+
+    expect(config[COMMAND.PLAN]?.model).toBeUndefined()
+  })
+
+  it('用户同名 command model 应最终覆盖场景注入 model', () => {
+    const merged = mergeBuiltinAndUserCommands(
+      {
+        [COMMAND.PLAN]: {
+          template: 'builtin template',
+          description: 'builtin description',
+          model: 'provider/deep',
+        },
+      },
+      {
+        [COMMAND.PLAN]: {
+          template: 'user template',
+          description: 'user description',
+          model: 'user/model',
+        },
+      },
+    )
+
+    expect(merged[COMMAND.PLAN]?.model).toBe('user/model')
   })
 })

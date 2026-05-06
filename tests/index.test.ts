@@ -11,6 +11,7 @@ const tempRoots: string[] = []
 
 interface RuntimeConfigShape {
   command?: Config['command']
+  agent?: Record<string, { model?: string; [key: string]: unknown } | undefined>
   mcp?: Config['mcp']
 }
 
@@ -28,6 +29,17 @@ function writeBuiltinConfig(root: string): void {
       "enabled": false,
       "timeout": 1234
     }
+  }
+}`)
+}
+
+function writeModelScenariosConfig(root: string): void {
+  mkdirSync(join(root, '.opencode'), { recursive: true })
+  writeFileSync(join(root, '.opencode', 'builtin-opencode.jsonc'), `{
+  "modelScenarios": {
+    "quick": "project/quick",
+    "deep": "project/deep",
+    "vision": "project/vision"
   }
 }`)
 }
@@ -96,5 +108,27 @@ describe('插件入口', () => {
 
     expect(config.command?.['ae-lfg']?.template).toContain('ae:lfg')
     expect(config.command?.['ae-commit']?.template).toContain('智能提交当前变更文件')
+  })
+
+  it('零配置时不应该为内置命令和代理写入 model', async () => {
+    const hostRoot = createTempRoot()
+    isolateHome(createTempRoot())
+
+    const config = await runConfigHook({ worktree: hostRoot, client: {} })
+
+    expect(config.command?.['ae-plan']?.model).toBeUndefined()
+    expect(config.agent?.['correctness-reviewer']?.model).toBeUndefined()
+  })
+
+  it('应该根据项目级 modelScenarios 为内置命令和代理写入 model', async () => {
+    const hostRoot = createTempRoot()
+    isolateHome(createTempRoot())
+    writeModelScenariosConfig(hostRoot)
+
+    const config = await runConfigHook({ worktree: hostRoot, client: {} })
+
+    expect(config.command?.['ae-help']?.model).toBe('project/quick')
+    expect(config.command?.['ae-plan']?.model).toBe('project/deep')
+    expect(config.agent?.['correctness-reviewer']?.model).toBe('project/deep')
   })
 })

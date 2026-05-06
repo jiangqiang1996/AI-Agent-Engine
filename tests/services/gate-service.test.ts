@@ -75,8 +75,8 @@ function writeReviewReport(
   },
 ): void {
   const reviewOutputHash = evidence.reviewOutputHash ?? hashReviewOutput(createReviewOutput(evidence))
-  mkdirSync(join(root, 'docs', 'ae', 'review', evidence.reviewRunIdOrMessageRef), { recursive: true })
-  writeFileSync(join(root, 'docs', 'ae', 'review', evidence.reviewRunIdOrMessageRef, 'metadata.json'), `${JSON.stringify({
+  mkdirSync(join(root, 'docs', 'ae', 'reviews', evidence.reviewRunIdOrMessageRef), { recursive: true })
+  writeFileSync(join(root, 'docs', 'ae', 'reviews', evidence.reviewRunIdOrMessageRef, 'metadata.json'), `${JSON.stringify({
     generatedBy: 'ae:review',
     reviewRunIdOrMessageRef: evidence.reviewRunIdOrMessageRef,
     worktree: normalizedEvidencePath(evidence.worktree),
@@ -211,7 +211,7 @@ describe('门禁服务', () => {
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/review/review-run-1/metadata.json',
+        path: 'docs/ae/reviews/review-run-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-run-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -829,7 +829,7 @@ describe('门禁服务', () => {
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/review/review-1/missing.json',
+        path: 'docs/ae/reviews/review-1/missing.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -907,7 +907,7 @@ describe('门禁服务', () => {
     })
 
     expect(result.status).toBe('block')
-    expect(result.blockers).toContain('审查报告路径必须指向 docs/ae/review/<run-id>/metadata.json。')
+    expect(result.blockers).toContain('审查报告路径必须指向 docs/ae/reviews/<run-id>/metadata.json。')
   })
 
   it('应该同时检查 legacy 和结构化 Git 操作记录', () => {
@@ -1176,7 +1176,7 @@ describe('门禁服务', () => {
         reviewEvidence: {
           type: 'report_path',
           reviewTrust: 'verified',
-          path: 'docs/ae/review/review-degraded/metadata.json',
+          path: 'docs/ae/reviews/review-degraded/metadata.json',
           ...evidence,
         },
         trustedReviewRefs: ['review-degraded'],
@@ -1678,7 +1678,7 @@ describe('门禁服务', () => {
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/review/review-1/metadata.json',
+        path: 'docs/ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -1710,7 +1710,7 @@ describe('门禁服务', () => {
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/review/review-1/metadata.json',
+        path: 'docs/ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -1743,7 +1743,7 @@ describe('门禁服务', () => {
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/review/review-1/metadata.json',
+        path: 'docs/ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -1785,7 +1785,7 @@ describe('门禁服务', () => {
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/review/review-1/metadata.json',
+        path: 'docs/ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -1825,7 +1825,7 @@ describe('门禁服务', () => {
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/review/review-1/metadata.json',
+        path: 'docs/ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -1873,7 +1873,7 @@ describe('门禁服务', () => {
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/review/review-1/metadata.json',
+        path: 'docs/ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -1920,7 +1920,7 @@ describe('门禁服务', () => {
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/review/review-1/metadata.json',
+        path: 'docs/ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -1967,7 +1967,7 @@ describe('门禁服务', () => {
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/review/review-1/metadata.json',
+        path: 'docs/ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -2014,7 +2014,7 @@ current evidence: ${normalizedEvidencePath(root)} ${fingerprint.branch} ${finger
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/review/review-1/metadata.json',
+        path: 'docs/ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -2049,7 +2049,7 @@ current evidence: ${normalizedEvidencePath(root)} ${fingerprint.branch} ${finger
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'declaration_only',
-        path: 'docs/ae/review/review-1/metadata.json',
+        path: 'docs/ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -2074,7 +2074,7 @@ current evidence: ${normalizedEvidencePath(root)} ${fingerprint.branch} ${finger
     const fingerprint = initGitRepo(root)
     const reviewOutput = createReviewOutput({ worktree: root, ...fingerprint })
     writeReviewReport(root, { reviewRunIdOrMessageRef: 'review-1', worktree: root, ...fingerprint })
-    writeFileSync(join(root, 'docs', 'ae', 'review', 'review-1', 'metadata.json'), `${JSON.stringify({
+    writeFileSync(join(root, 'docs', 'ae', 'reviews', 'review-1', 'metadata.json'), `${JSON.stringify({
       generatedBy: 'manual',
       reviewRunIdOrMessageRef: 'review-1',
       worktree: normalizedEvidencePath(root),
@@ -2093,7 +2093,7 @@ current evidence: ${normalizedEvidencePath(root)} ${fingerprint.branch} ${finger
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/review/review-1/metadata.json',
+        path: 'docs/ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -2128,7 +2128,7 @@ current evidence: ${normalizedEvidencePath(root)} ${fingerprint.branch} ${finger
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/review/review-1/metadata.json',
+        path: 'docs/ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -2163,7 +2163,7 @@ current evidence: ${normalizedEvidencePath(root)} ${fingerprint.branch} ${finger
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/review/review-1/metadata.json',
+        path: 'docs/ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -2199,7 +2199,7 @@ current evidence: ${normalizedEvidencePath(root)} ${fingerprint.branch} ${finger
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/review/review-1/metadata.json',
+        path: 'docs/ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -2235,7 +2235,7 @@ current evidence: ${normalizedEvidencePath(root)} ${fingerprint.branch} ${finger
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/review/review-1/metadata.json',
+        path: 'docs/ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: otherRoot,
         branch: fingerprint.branch,

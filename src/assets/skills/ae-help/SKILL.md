@@ -7,6 +7,7 @@ argument-hint: "[技能名或关键词]"
 # AE 帮助信息
 
 获取 AE 插件中所有可调用的技能、命令和代理的完整列表。
+帮助结果还包含内置 agent/command 的静态模型路由总览，展示其声明的 `quick`、`standard`、`deep`、`vision` 场景。
 
 ## 执行方式
 
@@ -14,8 +15,16 @@ argument-hint: "[技能名或关键词]"
 
 - 无参数：调用 `ae-help` 工具，不传入 `query`
 - 有参数：调用 `ae-help` 工具，将用户输入传入 `query`
+- 查询模型路由：调用 `ae-help` 工具，将 `model`、场景名或资产名传入 `query`
 
 **禁止手动列举或扫描文件**，列表内容只能来自 `ae-help` 工具的返回值。
+
+## 模型路由说明
+
+- 用户可在 `builtin-opencode.jsonc` 的顶层 `modelScenarios` 中配置场景到模型字符串的映射。
+- 稳定场景为 `quick`、`standard`、`deep`、`vision`；具体模型标识由用户自己的 opencode 环境决定。
+- `vision` 只表示视觉任务场景，首版不探测模型是否支持图像输入。
+- 首版不支持 fallback、capabilities、params、动态路由或内置推荐模型链。
 
 ## 适用与退出
 

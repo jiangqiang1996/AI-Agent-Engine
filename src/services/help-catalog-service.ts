@@ -6,6 +6,7 @@ import {
 } from './ae-catalog.js'
 import { buildCommandConfig } from './command-registration.js'
 import { buildAgentConfig } from './agent-registration.js'
+import { getAssetModelRoutingEntries, type AssetModelRoutingEntry } from './asset-model-routing-catalog.js'
 import { createRuntimeAssetManifest } from './runtime-asset-manifest.js'
 import { createRuntimeAssetManifestFromRoot } from './runtime-asset-manifest.js'
 import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
@@ -123,6 +124,7 @@ export interface HelpCatalog {
   skills: SkillEntry[]
   commands: CommandEntry[]
   agents: AgentEntry[]
+  modelRoutes?: AssetModelRoutingEntry[]
 }
 
 export function buildHelpCatalog(repoRoot?: string): HelpCatalog {
@@ -132,6 +134,7 @@ export function buildHelpCatalog(repoRoot?: string): HelpCatalog {
     skills: buildSkillEntries(),
     commands: buildCommandEntries(manifest),
     agents: buildAgentEntries(manifest),
+    modelRoutes: getAssetModelRoutingEntries(),
   }
 }
 
@@ -158,7 +161,16 @@ export function filterCatalog(catalog: HelpCatalog, query?: string): HelpCatalog
     (a) => matchesQuery(a.name, q) || matchesQuery(a.description, q) || matchesQuery(a.stage, q),
   )
 
-  return { skills, commands, agents }
+  const modelRoutes = catalog.modelRoutes?.filter(
+    (route) =>
+      matchesQuery(route.name, q) ||
+      matchesQuery(route.type, q) ||
+      matchesQuery(route.scenario ?? '', q) ||
+      matchesQuery(route.applyMode, q) ||
+      matchesQuery(route.reason, q),
+  )
+
+  return { skills, commands, agents, modelRoutes }
 }
 
 export function formatHelpCatalog(catalog: HelpCatalog, query?: string): string {
@@ -247,7 +259,22 @@ export function formatHelpCatalog(catalog: HelpCatalog, query?: string): string 
     }
   }
 
-  const total = catalog.skills.length + catalog.commands.length + catalog.agents.length
+  if (catalog.modelRoutes && catalog.modelRoutes.length > 0) {
+    lines.push('## 模型路由')
+    lines.push('')
+    lines.push('静态默认路由只说明内置资产声明的场景；只有用户配置 `modelScenarios` 后，注册期才会写入 `model`。')
+    lines.push('')
+    lines.push('| 类型 | 资产 | 场景 | 应用方式 | 说明 |')
+    lines.push('|------|------|------|------|------|')
+    for (const route of catalog.modelRoutes) {
+      lines.push(
+        `| ${route.type} | \`${escapeMarkdownTableCell(route.name)}\` | \`${route.scenario ?? '—'}\` | ${route.applyMode} | ${escapeMarkdownTableCell(route.reason)} |`,
+      )
+    }
+    lines.push('')
+  }
+
+  const total = catalog.skills.length + catalog.commands.length + catalog.agents.length + (catalog.modelRoutes?.length ?? 0)
   if (total === 0) {
     lines.push('未找到匹配的结果。')
     lines.push('')

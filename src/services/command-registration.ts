@@ -6,10 +6,14 @@ import type { Config } from '@opencode-ai/plugin'
 import { parseFrontmatter } from '../utils/frontmatter.js'
 import { getPhaseOneEntries, getPhaseOnePoEntries, getPhaseOnePaEntries } from './ae-catalog.js'
 import { COMMAND, AUTO_SUFFIX, PO_SUFFIX, PA_SUFFIX } from '../schemas/ae-asset-schema.js'
+import { getCommandModelScenario } from './asset-model-routing-catalog.js'
+import type { ModelScenarioRoutingContext } from './model-scenario-routing-service.js'
+import { resolveModelScenario } from './model-scenario-routing-service.js'
 
 interface LoadedCommand {
   template: string
   description: string
+  model?: string
 }
 
 export function loadCommandFiles(commandsDir: string): Map<string, LoadedCommand> {
@@ -36,7 +40,28 @@ export function loadCommandFiles(commandsDir: string): Map<string, LoadedCommand
   return result
 }
 
-export function buildCommandConfig(commandsDir: string): NonNullable<Config['command']> {
+function applyCommandModel(
+  command: LoadedCommand,
+  commandName: string,
+  routingContext?: ModelScenarioRoutingContext,
+): LoadedCommand {
+  const scenario = getCommandModelScenario(commandName)
+  if (!routingContext || !scenario) {
+    return command
+  }
+
+  const resolved = resolveModelScenario(routingContext, scenario)
+  if (!resolved.writeModel) {
+    return command
+  }
+
+  return { ...command, model: resolved.model }
+}
+
+export function buildCommandConfig(
+  commandsDir: string,
+  routingContext?: ModelScenarioRoutingContext,
+): NonNullable<Config['command']> {
   const result: NonNullable<Config['command']> = {}
   const phaseOne = getPhaseOneEntries()
   const commandToSkill = new Map(phaseOne.map((e) => [e.commandName, e.skillName]))
@@ -50,10 +75,10 @@ export function buildCommandConfig(commandsDir: string): NonNullable<Config['com
       ?? (isAutoPo
         ? `使用 \`${entry.skillName}\` 技能以 auto 模式处理这次请求（跳过确认直接提交），并沿用参数：\`auto $ARGUMENTS\`。`
         : `使用 \`${entry.skillName}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`)
-    result[entry.commandName] = {
+    result[entry.commandName] = applyCommandModel({
       template,
       description: entry.description,
-    }
+    }, entry.commandName, routingContext)
   }
 
   for (const entry of getPhaseOnePoEntries()) {
@@ -63,7 +88,7 @@ export function buildCommandConfig(commandsDir: string): NonNullable<Config['com
     // -po 命令必须先优化用户输入，再把优化后的提示词交回原始命令模板执行。
     const baseTemplate = baseEntry?.customTemplate
       ?? `使用 \`${baseSkillName}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`
-    result[entry.commandName] = {
+    result[entry.commandName] = applyCommandModel({
       template: [
         `先使用 \`${entry.skillName}\` 技能优化以下用户输入，将优化结果作为最终提示词：`,
         '',
@@ -72,7 +97,7 @@ export function buildCommandConfig(commandsDir: string): NonNullable<Config['com
         '---',
       ].join('\n'),
       description: entry.description,
-    }
+    }, entry.commandName, routingContext)
   }
 
   for (const entry of getPhaseOnePaEntries()) {
@@ -82,7 +107,7 @@ export function buildCommandConfig(commandsDir: string): NonNullable<Config['com
     // -pa 与 -po 使用同一条基础命令链路，只是固定启用 prompt-optimize 的 auto 模式。
     const baseTemplate = baseEntry?.customTemplate
       ?? `使用 \`${baseSkillName}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`
-    result[entry.commandName] = {
+    result[entry.commandName] = applyCommandModel({
       template: [
         `先使用 \`${entry.skillName}\` 技能以 auto 模式优化以下用户输入（跳过确认直接提交），将优化结果作为最终提示词：`,
         '',
@@ -91,7 +116,7 @@ export function buildCommandConfig(commandsDir: string): NonNullable<Config['com
         '---',
       ].join('\n'),
       description: entry.description,
-    }
+    }, entry.commandName, routingContext)
   }
 
   const fileCommands = loadCommandFiles(commandsDir)

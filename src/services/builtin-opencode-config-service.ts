@@ -9,10 +9,20 @@ import stripJsonComments from 'strip-json-comments'
 import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
 
 type McpConfig = NonNullable<Config['mcp']>
+export type ModelScenariosConfig = Record<string, string>
+export type BuiltinOpencodeConfigLayerName = '插件内置' | '全局' | '项目级'
+
+export interface ModelScenarioSource {
+  scenario: string
+  model: string
+  layer: BuiltinOpencodeConfigLayerName
+  path: string
+}
 
 export interface BuiltinOpencodeConfig {
   $schema?: string
   mcp?: McpConfig
+  modelScenarios?: ModelScenariosConfig
   [key: string]: unknown
 }
 
@@ -23,7 +33,7 @@ export interface BuiltinOpencodeConfigPaths {
 }
 
 interface ConfigLayer {
-  label: string
+  label: BuiltinOpencodeConfigLayerName
   path: string
   required: boolean
   allowNewMcpEntries: boolean
@@ -246,6 +256,14 @@ function mergeMcpConfig(
   return merged
 }
 
+function mergeModelScenariosConfig(lowPriority: unknown, highPriority: unknown): unknown {
+  if (!isRecord(lowPriority) || !isRecord(highPriority)) {
+    return highPriority
+  }
+
+  return { ...lowPriority, ...highPriority }
+}
+
 function mergeConfigObject(
   lowPriority: Record<string, unknown>,
   highPriority: Record<string, unknown>,
@@ -259,6 +277,8 @@ function mergeConfigObject(
     const lowPriorityValue = merged[key]
     if (mergeTopLevelMcp && key === 'mcp') {
       merged[key] = mergeMcpConfig(lowPriorityValue, highPriorityValue, allowNewMcpEntries, projectMcpOverlay)
+    } else if (mergeTopLevelMcp && key === 'modelScenarios') {
+      merged[key] = mergeModelScenariosConfig(lowPriorityValue, highPriorityValue)
     } else if (isRecord(lowPriorityValue) && isRecord(highPriorityValue)) {
       merged[key] = mergeConfigObject(lowPriorityValue, highPriorityValue, false, allowNewMcpEntries, projectMcpOverlay)
     } else {
@@ -317,6 +337,22 @@ function validateMcpConfig(config: BuiltinOpencodeConfig): void {
   }
 }
 
+function validateModelScenariosConfig(config: BuiltinOpencodeConfig, label = 'builtin-opencode'): void {
+  if (!('modelScenarios' in config)) {
+    return
+  }
+
+  if (!isRecord(config.modelScenarios)) {
+    throw new Error(`${label} modelScenarios 必须是 JSON 对象`)
+  }
+
+  for (const [scenario, model] of Object.entries(config.modelScenarios)) {
+    if (typeof model !== 'string' || model.trim().length === 0) {
+      throw new Error(`${label} modelScenarios.${scenario} 必须是非空字符串模型标识`)
+    }
+  }
+}
+
 export function resolveBuiltinOpencodeConfigPaths(
   manifest: RuntimeAssetManifest,
   worktree: string,
@@ -343,7 +379,30 @@ export function loadBuiltinOpencodeConfig(paths: BuiltinOpencodeConfigPaths): Bu
     }) : merged
   }, {})
   validateMcpConfig(config)
+  validateModelScenariosConfig(config)
   return config
+}
+
+export function collectModelScenarioSources(paths: BuiltinOpencodeConfigPaths): Map<string, ModelScenarioSource> {
+  const layers: ConfigLayer[] = [
+    { label: '插件内置', path: paths.builtinConfigFile, required: true, allowNewMcpEntries: true, projectMcpOverlay: false },
+    { label: '全局', path: paths.globalConfigFile, required: false, allowNewMcpEntries: true, projectMcpOverlay: false },
+    { label: '项目级', path: paths.projectConfigFile, required: false, allowNewMcpEntries: false, projectMcpOverlay: true },
+  ]
+  const sources = new Map<string, ModelScenarioSource>()
+
+  for (const layer of layers) {
+    const config = readBuiltinOpencodeConfigLayer(layer)
+    if (!config) {
+      continue
+    }
+    validateModelScenariosConfig(config, `${layer.label} builtin-opencode 配置`)
+    for (const [scenario, model] of Object.entries(config.modelScenarios ?? {})) {
+      sources.set(scenario, { scenario, model, layer: layer.label, path: layer.path })
+    }
+  }
+
+  return sources
 }
 
 export function loadBuiltinMcpConfigFromPaths(paths: BuiltinOpencodeConfigPaths): McpConfig {

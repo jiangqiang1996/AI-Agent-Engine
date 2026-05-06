@@ -155,11 +155,11 @@ depth: standard
 需求：R8。
 
 文件：
-- `docs/builtin-mcp.md`
+- `docs/builtin-config.md`
 - `docs/usage-guide.md`
 
 方法：
-- 在 `docs/builtin-mcp.md` 中加入三层 `builtin-opencode.jsonc` 来源、优先级和示例。
+- 在 `docs/builtin-config.md` 中加入三层 `builtin-opencode.jsonc` 来源、优先级和示例。
 - 明确 `mcp` 与 opencode 既有配置同名时，opencode 既有配置整条优先，不继承 builtin 同名项的字段。
 - 说明项目级和全局 builtin 配置是 AE 支持的可选用户配置入口，不是下游项目必须具备的结构。
 - 在 `docs/usage-guide.md` 的 MCP 或配置章节增加指向说明，避免旧文档继续描述浅合并继承 builtin 字段。

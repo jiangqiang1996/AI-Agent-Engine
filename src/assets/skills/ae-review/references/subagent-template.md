@@ -17,7 +17,7 @@
 根据是否提供了运行 ID，你最多产生两个输出：
 
 1. **产物文件（当运行 ID 存在时）。** 将完整分析以 JSON 格式写入：
-   docs/ae/review/{run_id}/{reviewer_name}.json
+   docs/ae/reviews/{run_id}/{reviewer_name}.json
    这是你被允许执行的一次写操作。如果写入失败，继续执行。
 
 2. **精简返回（始终执行）。** 向父级返回精简 JSON，每个发现仅包含合并层级字段：

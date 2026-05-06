@@ -59,8 +59,8 @@ function writeReviewReport(
   },
 ): void {
   const reviewOutputHash = evidence.reviewOutputHash ?? hashReviewOutput(createReviewOutput(evidence))
-  mkdirSync(join(root, 'docs', 'ae', 'review', evidence.reviewRunIdOrMessageRef), { recursive: true })
-  writeFileSync(join(root, 'docs', 'ae', 'review', evidence.reviewRunIdOrMessageRef, 'metadata.json'), `${JSON.stringify({
+  mkdirSync(join(root, 'docs', 'ae', 'reviews', evidence.reviewRunIdOrMessageRef), { recursive: true })
+  writeFileSync(join(root, 'docs', 'ae', 'reviews', evidence.reviewRunIdOrMessageRef, 'metadata.json'), `${JSON.stringify({
     generatedBy: 'ae:review',
     reviewRunIdOrMessageRef: evidence.reviewRunIdOrMessageRef,
     worktree: normalizedEvidencePath(evidence.worktree),
@@ -464,7 +464,7 @@ describe('ae-gate 工具', () => {
       review_evidence: {
         type: 'report_path',
         review_trust: 'verified',
-        path: 'docs/ae/review/review-1/metadata.json',
+        path: 'docs/ae/reviews/review-1/metadata.json',
         review_run_id_or_message_ref: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -510,7 +510,7 @@ describe('ae-gate 工具', () => {
       review_evidence: {
         type: 'report_path',
         review_trust: 'verified',
-        path: 'docs/ae/review/review-1/metadata.json',
+        path: 'docs/ae/reviews/review-1/metadata.json',
         review_run_id_or_message_ref: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -577,7 +577,7 @@ describe('ae-gate 工具', () => {
         review_evidence: {
           type: 'report_path',
           review_trust: 'verified',
-          path: `docs/ae/review/${reviewId}/metadata.json`,
+          path: `docs/ae/reviews/${reviewId}/metadata.json`,
           review_run_id_or_message_ref: reviewId,
           worktree: root,
           branch: fingerprint.branch,
@@ -624,7 +624,7 @@ describe('ae-gate 工具', () => {
       review_evidence: {
         type: 'report_path',
         review_trust: 'verified',
-        path: 'docs/ae/review/review-1/metadata.json',
+        path: 'docs/ae/reviews/review-1/metadata.json',
         review_run_id_or_message_ref: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -663,7 +663,7 @@ describe('ae-gate 工具', () => {
       review_evidence: {
         type: 'report_path',
         review_trust: 'verified',
-        path: 'docs/ae/review/review-1/metadata.json',
+        path: 'docs/ae/reviews/review-1/metadata.json',
         review_run_id_or_message_ref: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -703,7 +703,7 @@ describe('ae-gate 工具', () => {
       review_evidence: {
         type: 'report_path',
         review_trust: 'verified',
-        path: 'docs/ae/review/review-1/metadata.json',
+        path: 'docs/ae/reviews/review-1/metadata.json',
         review_run_id_or_message_ref: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -771,7 +771,7 @@ describe('ae-gate 工具', () => {
       review_evidence: {
         type: 'report_path',
         review_trust: 'verified',
-        path: 'docs/ae/review/review-1/metadata.json',
+        path: 'docs/ae/reviews/review-1/metadata.json',
         review_run_id_or_message_ref: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -811,7 +811,7 @@ describe('ae-gate 工具', () => {
       review_evidence: {
         type: 'report_path',
         review_trust: 'verified',
-        path: 'docs/ae/review/review-1/metadata.json',
+        path: 'docs/ae/reviews/review-1/metadata.json',
         review_run_id_or_message_ref: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -851,7 +851,7 @@ describe('ae-gate 工具', () => {
       review_evidence: {
         type: 'report_path',
         review_trust: 'verified',
-        path: 'docs/ae/review/review-1/metadata.json',
+        path: 'docs/ae/reviews/review-1/metadata.json',
         review_run_id_or_message_ref: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -897,7 +897,7 @@ describe('ae-gate 工具', () => {
       review_evidence: {
         type: 'report_path',
         review_trust: 'verified',
-        path: 'docs/ae/review/review-1/metadata.json',
+        path: 'docs/ae/reviews/review-1/metadata.json',
         review_run_id_or_message_ref: 'review-1',
         worktree: root,
         branch: fingerprint.branch,

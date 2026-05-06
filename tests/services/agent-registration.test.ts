@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { RuntimeAssetManifest } from '../../src/services/runtime-asset-manifest.js'
 import { buildAgentConfig, registerAgents } from '../../src/services/agent-registration.js'
+import { createModelScenarioRoutingContext } from '../../src/services/model-scenario-routing-service.js'
 
 vi.mock('../../src/services/ae-catalog.js', () => ({
   getAllAgentDefinitions: () => [
@@ -98,5 +99,38 @@ describe('agent-registration', () => {
       mode: 'primary',
       temperature: 0.1,
     })
+  })
+
+  it('应该根据模型场景为内置 agent 注入 model', () => {
+    const root = createTempRoot()
+    mkdirSync(join(root, 'src', 'assets', 'agents', 'review'), { recursive: true })
+    writeFileSync(
+      join(root, 'src', 'assets', 'agents', 'review', 'demo-reviewer.md'),
+      ['---', 'description: markdown description', '---', 'builtin prompt'].join('\n'),
+    )
+    const routingContext = createModelScenarioRoutingContext(new Map([
+      ['deep', { scenario: 'deep', model: 'provider/deep', layer: '项目级', path: '/repo/.opencode/builtin-opencode.jsonc' }],
+    ]))
+
+    const config = buildAgentConfig(createManifest(root), routingContext)
+
+    expect(config['demo-reviewer']?.model).toBe('provider/deep')
+  })
+
+  it('用户同名 agent model 应最终覆盖场景注入 model', () => {
+    const root = createTempRoot()
+    mkdirSync(join(root, 'src', 'assets', 'agents', 'review'), { recursive: true })
+    writeFileSync(
+      join(root, 'src', 'assets', 'agents', 'review', 'demo-reviewer.md'),
+      ['---', 'description: markdown description', '---', 'builtin prompt'].join('\n'),
+    )
+    const routingContext = createModelScenarioRoutingContext(new Map([
+      ['deep', { scenario: 'deep', model: 'provider/deep', layer: '项目级', path: '/repo/.opencode/builtin-opencode.jsonc' }],
+    ]))
+    const config = { agent: { 'demo-reviewer': { model: 'user/model' } } }
+
+    registerAgents(config, createManifest(root), routingContext)
+
+    expect(config.agent['demo-reviewer'].model).toBe('user/model')
   })
 })

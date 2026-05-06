@@ -91,7 +91,6 @@ describe('ae:work worktree 启动文本契约', () => {
       '即使这些文件在 A 中仍未跟踪',
       '保留仓库相对路径并创建缺失目录',
       '不迁移 `docs/ae/gates/*`',
-      '`docs/ae/review/*`',
       '`docs/ae/reviews/*`',
     ])
   })

@@ -8,7 +8,7 @@ AI Agent Engine（AE）是面向 opencode 的工程工作流插件，提供从�
 | --- | --- |
 | `README.md` | 项目入口、安装、更新、卸载和开发信息 |
 | [docs/usage-guide.md](docs/usage-guide.md) | 用户手册：使用场景、命令、代理、参数和前端流程 |
-| [docs/builtin-mcp.md](docs/builtin-mcp.md) | 内置 MCP：默认项、优先级、禁用与覆盖方式 |
+| [docs/builtin-config.md](docs/builtin-config.md) | 内置配置：MCP 默认值、模型场景路由、优先级与覆盖方式 |
 | `/ae-help` | 运行时权威帮助：输出当前可用技能、命令和代理 |
 
 ## 支持范围
@@ -105,7 +105,7 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 
 更多使用方式见 [用户手册](docs/usage-guide.md)。
 
-内置 MCP 的默认值、覆盖和禁用方式见 [docs/builtin-mcp.md](docs/builtin-mcp.md)。
+内置 MCP 和模型场景路由的配置方式见 [docs/builtin-config.md](docs/builtin-config.md)。
 
 ## 开发
 

@@ -1,4 +1,13 @@
-# AE 内置 MCP
+# AE 内置配置
+
+AE 会在插件 `config` 钩子里注入一组最低优先级的默认配置，通过 `builtin-opencode.jsonc` 管理。当前支持两个顶层配置节点：
+
+| 节点 | 作用 |
+| --- | --- |
+| `mcp` | 内置 MCP 默认值 |
+| `modelScenarios` | 模型场景路由映射 |
+
+## 内置 MCP
 
 AE 会在插件 `config` 钩子里注入一组最低优先级的 MCP 默认值，当前内置配置包含：
 
@@ -107,3 +116,70 @@ remote MCP 的最终 URL 只允许 `http` / `https`，不能包含内嵌凭证�
   }
 }
 ```
+
+# 模型场景路由
+
+AE 支持通过 `modelScenarios` 将不同任务场景映射到不同模型，让内置命令和代理在注册时自动注入对应的 `model`。
+
+## 工作原理
+
+AE 内置命令和代理各自声明了一个模型场景（如 `/ae-plan` 声明 `deep`、`/ae-help` 声明 `quick`）。插件在注册时会查询 `modelScenarios` 配置：命中则注入对应模型；未命中则继承 opencode 当前默认模型。
+
+## 稳定场景
+
+| 场景 | 用途 | 典型模型特征 |
+| --- | --- | --- |
+| `quick` | 快速响应（`/ae-help`、`/ae-prompt-optimize`） | 低延迟、低成本 |
+| `standard` | 常规任务（`/ae-ideate`、`/ae-brainstorm`、`/ae-sql`） | 平衡性能与质量 |
+| `deep` | 深度推理（`/ae-plan`、`/ae-work`、`/ae-review`、`/ae-lfg`） | 强推理、长上下文 |
+| `vision` | 视觉任务（`/ae-test-browser`、`/ae-frontend-design`） | 支持图片输入 |
+
+允许使用自定义场景键，但 AE 内置资产首版只依赖上述四个稳定场景。
+
+## 配置方式
+
+在 `builtin-opencode.jsonc` 中添加 `modelScenarios` 字段，将场景键映射到模型标识字符串：
+
+```jsonc
+{
+  "modelScenarios": {
+    "quick": "openrouter/google/gemini-2.5-flash",
+    "standard": "openrouter/anthropic/claude-sonnet-4",
+    "deep": "openrouter/anthropic/claude-sonnet-4",
+    "vision": "openrouter/google/gemini-2.5-flash"
+  }
+}
+```
+
+值必须是非空字符串，不支持 fallback、capabilities、params 或动态路由策略。
+
+## 三层优先级
+
+与 MCP 配置共用同一套 `builtin-opencode.jsonc` 三层合并机制：
+
+```text
+插件内置 builtin-opencode.jsonc（无默认 modelScenarios）
+  -> 全局 ~/.config/opencode/builtin-opencode.jsonc
+  -> 项目级 .opencode/builtin-opencode.jsonc
+```
+
+项目级覆盖全局，全局覆盖插件内置。未配置的场景键继承 opencode 当前默认模型。
+
+## 覆盖与降级
+
+- 用户在 `opencode.json` 的 `command` 或 `agent` 中显式指定 `model` 时，用户配置最终覆盖场景路由。
+- 未配置任何 `modelScenarios` 时，所有内置命令和代理保持零配置行为，继承 opencode 当前默认模型。
+- `vision` 仅表示视觉任务场景，首版不探测模型是否支持图像输入。
+
+## 内置资产场景清单
+
+| 资产 | 场景 |
+| --- | --- |
+| `/ae-ideate`、`/ae-brainstorm`、`/ae-setup`、`/ae-handoff`、`/ae-sql`、`/ae-swagger-parser`、`/ae-save-rules`、`/ae-save-session-flow`、`/ae-asset-debug`、`/ae-update` | `standard` |
+| `/ae-document-review`、`/ae-plan`、`/ae-refactor`、`/ae-work`、`/ae-merge-branch`、`/ae-review`、`/ae-lfg`、`/ae-task-loop` | `deep` |
+| `/ae-prompt-optimize`、`/ae-prompt-optimize-auto`、`/ae-help` | `quick` |
+| `/ae-test-browser`、`/ae-frontend-design` | `vision` |
+| `@repo-research-analyst`、`@web-researcher` | `standard` |
+| `@design-iterator`、`@figma-design-sync` | `vision` |
+| 其他内置代理 | `deep`（默认） |
+| 未列出的内置命令 | 继承 opencode 当前默认模型 |

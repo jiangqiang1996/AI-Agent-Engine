@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import {
+  collectModelScenarioSources,
   loadBuiltinMcpConfigFromPaths,
   loadBuiltinOpencodeConfig,
   mergeBuiltinOpencodeConfig,
@@ -220,6 +221,51 @@ describe('builtin-opencode-config-service', () => {
     })
 
     expect(config.mcp?.context7).toEqual({ type: 'remote', url: 'https://builtin.example/mcp' })
+  })
+
+  it('应该按项目级、全局、插件内置优先级合并 modelScenarios', () => {
+    const root = createTempRoot()
+    const builtinConfigFile = join(root, 'builtin-opencode.jsonc')
+    const globalConfigFile = join(root, 'global.jsonc')
+    const projectConfigFile = join(root, '.opencode', 'builtin-opencode.jsonc')
+    writeConfig(builtinConfigFile, '{ "modelScenarios": { "quick": "builtin/quick", "deep": "builtin/deep" } }')
+    writeConfig(globalConfigFile, '{ "modelScenarios": { "quick": "global/quick", "standard": "global/standard" } }')
+    writeConfig(projectConfigFile, '{ "modelScenarios": { "quick": "project/quick", "custom": "project/custom" } }')
+
+    const paths = { builtinConfigFile, globalConfigFile, projectConfigFile }
+    const config = loadBuiltinOpencodeConfig(paths)
+    const sources = collectModelScenarioSources(paths)
+
+    expect(config.modelScenarios).toEqual({
+      quick: 'project/quick',
+      deep: 'builtin/deep',
+      standard: 'global/standard',
+      custom: 'project/custom',
+    })
+    expect(sources.get('quick')).toMatchObject({ model: 'project/quick', layer: '项目级' })
+    expect(sources.get('standard')).toMatchObject({ model: 'global/standard', layer: '全局' })
+    expect(sources.get('deep')).toMatchObject({ model: 'builtin/deep', layer: '插件内置' })
+  })
+
+  it('应该校验 modelScenarios 必须是非空字符串映射', () => {
+    const root = createTempRoot()
+    const builtinConfigFile = join(root, 'builtin-opencode.jsonc')
+    const globalConfigFile = join(root, 'global.jsonc')
+    const projectConfigFile = join(root, 'project.jsonc')
+
+    for (const invalid of ['[]', 'null', '"model"', '1', 'true']) {
+      writeConfig(builtinConfigFile, `{ "modelScenarios": ${invalid} }`)
+      expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile })).toThrow(
+        /modelScenarios 必须是 JSON 对象/,
+      )
+    }
+
+    for (const invalid of ['""', '"   "', '1', 'false', '{}', '[]']) {
+      writeConfig(builtinConfigFile, `{ "modelScenarios": { "quick": ${invalid} } }`)
+      expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile })).toThrow(
+        /modelScenarios.quick 必须是非空字符串模型标识/,
+      )
+    }
   })
 
   it('应该允许全局配置新增 MCP，但阻断项目级配置新增 MCP', () => {

@@ -96,9 +96,29 @@
 
 AE 默认附带一组最低优先级的内置 MCP，可直接用于文档检索和代码示例搜索。项目可以通过 `.opencode/builtin-opencode.jsonc` 覆盖团队默认值，全局默认值可放在 `~/.config/opencode/builtin-opencode.jsonc`。
 
-- 默认项、三层来源、优先级和合并规则见 [builtin-mcp.md](builtin-mcp.md)
+- 默认项、三层来源、优先级和合并规则见 [builtin-config.md](builtin-config.md)
 - 想按字段覆盖默认 MCP：在项目级或全局 `builtin-opencode.jsonc` 中声明同名 `mcp` 条目
 - 想让 opencode 既有配置完全接管某个 MCP：在 `opencode.json` 中声明同名 `mcp` 条目，AE 不会从 builtin 同名项补字段
+
+## 模型场景路由
+
+AE 内置命令和代理各自声明了模型场景（如 `/ae-plan` → `deep`、`/ae-help` → `quick`）。通过在 `builtin-opencode.jsonc` 中配置 `modelScenarios`，可以让不同场景自动使用不同模型：
+
+```jsonc
+{
+  "modelScenarios": {
+    "quick": "openrouter/google/gemini-2.5-flash",
+    "standard": "openrouter/anthropic/claude-sonnet-4",
+    "deep": "openrouter/anthropic/claude-sonnet-4",
+    "vision": "openrouter/google/gemini-2.5-flash"
+  }
+}
+```
+
+- 稳定场景：`quick`（低延迟）、`standard`（平衡）、`deep`（强推理）、`vision`（图片输入）
+- 未配置的场景继承 opencode 默认模型，零配置行为不变
+- 用户在 `opencode.json` 中显式指定的 `model` 最终覆盖场景路由
+- 三层优先级、完整场景清单和覆盖规则见 [builtin-config.md](builtin-config.md#模型场景路由)
 
 ## 最新帮助
 

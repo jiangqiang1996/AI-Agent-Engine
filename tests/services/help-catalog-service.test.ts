@@ -15,6 +15,10 @@ vi.mock('../../src/services/agent-registration.js', () => ({
   buildAgentConfig: vi.fn(),
 }))
 
+vi.mock('../../src/services/asset-model-routing-catalog.js', () => ({
+  getAssetModelRoutingEntries: vi.fn(() => []),
+}))
+
 vi.mock('../../src/services/runtime-asset-manifest.js', () => ({
   createRuntimeAssetManifest: vi.fn(() => ({
     repoRoot: '/runtime-repo',
@@ -33,6 +37,7 @@ vi.mock('../../src/services/runtime-asset-manifest.js', () => ({
 import * as aeCatalog from '../../src/services/ae-catalog.js'
 import * as commandRegistration from '../../src/services/command-registration.js'
 import * as agentRegistration from '../../src/services/agent-registration.js'
+import * as assetModelRoutingCatalog from '../../src/services/asset-model-routing-catalog.js'
 import * as runtimeAssetManifest from '../../src/services/runtime-asset-manifest.js'
 import { COMMAND, PA_SUFFIX, PO_SUFFIX, SKILL, skillDir } from '../../src/schemas/ae-asset-schema.js'
 
@@ -163,6 +168,7 @@ describe('help-catalog-service', () => {
       expect(catalog.agents).toHaveLength(1)
       expect(catalog.agents[0].name).toBe('correctness-reviewer')
       expect(catalog.agents[0].stage).toBe('review')
+      expect(assetModelRoutingCatalog.getAssetModelRoutingEntries).toHaveBeenCalled()
     })
 
     it('应该对技能去重（同一技能多个命令只保留一个）', () => {
@@ -383,6 +389,7 @@ describe('help-catalog-service', () => {
           { name: 'ae-ideate-po', description: '先优化提示词', category: '提示词优化', baseCommand: 'ae-ideate' },
         ],
         agents: [{ name: 'correctness-reviewer', stage: 'review', description: '审查逻辑' }],
+        modelRoutes: [{ type: 'command' as const, name: 'ae-ideate', scenario: 'standard' as const, applyMode: 'direct' as const, reason: '内置命令声明 standard 场景' }],
       }
 
       const text = formatHelpCatalog(catalog)
@@ -394,6 +401,8 @@ describe('help-catalog-service', () => {
       expect(text).toContain('/ae-ideate-po')
       expect(text).toContain('## 代理')
       expect(text).toContain('@correctness-reviewer')
+      expect(text).toContain('## 模型路由')
+      expect(text).toContain('modelScenarios')
     })
 
     it('应该为空参数技能显示占位符', () => {

@@ -199,7 +199,6 @@ function normalizePathForEvidence(path: string): string {
 function isRuntimeEvidencePath(filePath: string): boolean {
   const normalized = toPosixPath(filePath)
   return normalized.startsWith('docs/ae/gates/')
-    || normalized.startsWith('docs/ae/review/')
     || normalized.startsWith('docs/ae/reviews/')
 }
 
@@ -863,12 +862,12 @@ function addReviewEvidenceBlockers(
     if (reportPath.error || !reportPath.exists) {
       blockers.push('审查报告路径无效或不存在，不能作为可验证审查来源证据。')
       addMissingEvidence(missingEvidence, '存在的审查报告路径')
-      addNextStep(nextSteps, '补充 docs/ae/review/<run-id>/metadata.json 形式的审查元数据路径。')
+      addNextStep(nextSteps, '补充 docs/ae/reviews/<run-id>/metadata.json 形式的审查元数据路径。')
       return
     }
 
     if (!isReviewMetadataPath(reviewEvidence.path)) {
-      blockers.push('审查报告路径必须指向 docs/ae/review/<run-id>/metadata.json。')
+      blockers.push('审查报告路径必须指向 docs/ae/reviews/<run-id>/metadata.json。')
       addMissingEvidence(missingEvidence, '结构化审查元数据路径')
       addNextStep(nextSteps, '使用 ae:review 生成结构化审查元数据，再将 metadata.json 作为 review_evidence.path。')
       return
@@ -1032,7 +1031,7 @@ function hasBlockingFinding(findings: unknown): boolean {
 }
 
 function isReviewMetadataPath(path: string): boolean {
-  return /^docs\/ae\/review\/[^/]+\/metadata\.json$/.test(toPosixPath(path))
+  return /^docs\/ae\/reviews\/[^/]+\/metadata\.json$/.test(toPosixPath(path))
 }
 
 function addMissingEvidence(missingEvidence: string[], item: string): void {

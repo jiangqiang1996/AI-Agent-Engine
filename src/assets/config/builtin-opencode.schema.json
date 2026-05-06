@@ -17,6 +17,22 @@
           { "$ref": "#/definitions/remoteMcp" }
         ]
       }
+    },
+    "modelScenarios": {
+      "type": "object",
+      "description": "模型场景到 opencode 模型标识的极简映射。稳定场景包括 quick、standard、deep、vision；允许自定义场景键，但 AE 内置资产首版只依赖稳定场景。值必须是非空字符串，不支持 fallback、capabilities、params 或动态路由策略。",
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      },
+      "examples": [
+        {
+          "quick": "provider/fast-model",
+          "standard": "provider/default-model",
+          "deep": "provider/strong-model",
+          "vision": "provider/vision-model"
+        }
+      ]
     }
   },
   "definitions": {

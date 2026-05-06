@@ -34,7 +34,7 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 **始终排除（任何情况下不可覆盖）：**
 - 敏感文件：`.env`、`.env.*`（保留 `.env.example`、`.env.template`）——在文件收集阶段即从文件列表中移除，后续任何阶段不可读取或引用
 - `.opencode/` 目录下的所有文件
-- 受保护产物：`docs/ae/review/*`、`docs/ae/solutions/*`
+- 受保护产物：`docs/ae/reviews/*`、`docs/ae/solutions/*`
 
 **全域默认排除（域安全需求 R4-R5）：**
 - `docs/ae/brainstorms/` 下的文件
@@ -230,7 +230,7 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 
 向每个文档域代理传递**完整文档**——不要按章节拆分。
 
-所有角色子代理作为并行子代理生成。角色子代理相对于项目是**只读**的。每个代理将完整 JSON 写入 `docs/ae/review/{run_id}/{reviewer_name}.json`，返回精简 JSON。
+所有角色子代理作为并行子代理生成。角色子代理相对于项目是**只读**的。每个代理将完整 JSON 写入 `docs/ae/reviews/{run_id}/{reviewer_name}.json`，返回精简 JSON。
 
 **错误处理：** 如果代理失败或超时，使用已完成代理的发现继续。在覆盖范围部分注明失败的代理。
 

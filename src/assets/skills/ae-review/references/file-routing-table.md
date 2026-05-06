@@ -20,7 +20,7 @@
 - 锁文件：package-lock.json yarn.lock pnpm-lock.yaml
 - 密钥：.env .env.*（保留 .env.example .env.template）——**在文件收集阶段即从变更文件列表中移除，后续任何阶段不可读取或引用这些文件的内容**
 - 运行时目录：.opencode/ 下的所有文件——**始终排除，不可覆盖**
-- 受保护产物：docs/ae/review/* docs/ae/solutions/*
+- 受保护产物：docs/ae/reviews/* docs/ae/solutions/*
 - 需求文档和计划文档：docs/ae/brainstorms/ 和 docs/ae/plans/ 下的文件——**默认排除，用户明确指定时纳入**
 
 ## 全局审查者

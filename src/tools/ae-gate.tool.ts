@@ -298,7 +298,7 @@ export const aeGateTool: ToolDefinition = tool({
         tool.schema.object({
           type: tool.schema.literal('report_path').describe('审查报告路径证据'),
           review_trust: tool.schema.enum(['verified', 'declaration_only']).describe('审查证据可信度'),
-          path: tool.schema.string().describe('审查元数据路径，格式为 docs/ae/review/<run-id>/metadata.json'),
+          path: tool.schema.string().describe('审查元数据路径，格式为 docs/ae/reviews/<run-id>/metadata.json'),
           review_run_id_or_message_ref: tool.schema.string().describe('审查运行 ID 或消息引用'),
           worktree: tool.schema.string().describe('审查发生的 worktree'),
           branch: tool.schema.string().describe('审查发生的分支'),

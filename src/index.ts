@@ -3,6 +3,11 @@ import type { Config, PluginModule } from '@opencode-ai/plugin'
 import { registerAgents } from './services/agent-registration.js'
 import { buildCommandConfig, mergeBuiltinAndUserCommands } from './services/command-registration.js'
 import { registerMcp } from './services/mcp-registration.js'
+import {
+  collectModelScenarioSources,
+  resolveBuiltinOpencodeConfigPaths,
+} from './services/builtin-opencode-config-service.js'
+import { createModelScenarioRoutingContext } from './services/model-scenario-routing-service.js'
 import { registerRulesInstructions } from './services/rules-instructions-service.js'
 import { injectBuiltinRulesIntoSystem } from './services/rules-system-transform-service.js'
 import { createRuntimeAssetManifest } from './services/runtime-asset-manifest.js'
@@ -33,8 +38,16 @@ function resolveHostWorktree(input: unknown): string {
   return typeof maybeInput.worktree === 'string' && maybeInput.worktree ? maybeInput.worktree : process.cwd()
 }
 
-function mergeCommandConfig(config: RuntimeConfigShape, manifest = createRuntimeAssetManifest(import.meta.url)): void {
-  config.command = mergeBuiltinAndUserCommands(buildCommandConfig(manifest.commandsDir), config.command)
+function mergeCommandConfigWithRouting(
+  config: RuntimeConfigShape,
+  manifest: ReturnType<typeof createRuntimeAssetManifest>,
+  hostWorktree: string,
+): void {
+  const routingContext = createModelScenarioRoutingContext(
+    collectModelScenarioSources(resolveBuiltinOpencodeConfigPaths(manifest, hostWorktree)),
+  )
+  config.command = mergeBuiltinAndUserCommands(buildCommandConfig(manifest.commandsDir, routingContext), config.command)
+  registerAgents(config, manifest, routingContext)
 }
 
 const plugin: PluginModule = {
@@ -47,8 +60,7 @@ const plugin: PluginModule = {
     return {
       config: async (config) => {
         await registerSkillsPath(config as RuntimeConfigShape, manifest)
-        mergeCommandConfig(config as RuntimeConfigShape, manifest)
-        registerAgents(config as RuntimeConfigShape, manifest)
+        mergeCommandConfigWithRouting(config as RuntimeConfigShape, manifest, hostWorktree)
         registerMcp(config as RuntimeConfigShape, manifest, hostWorktree)
         registerRulesInstructions(config as RuntimeConfigShape, manifest)
       },

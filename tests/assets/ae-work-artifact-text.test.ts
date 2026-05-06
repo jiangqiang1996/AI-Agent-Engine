@@ -10,7 +10,6 @@ describe('ae:work 产物与交付文本契约', () => {
     expect(skillText).toContain('即使这些文件在 A 中仍未跟踪')
     expect(skillText).toContain('迁移时保留仓库相对路径并创建缺失目录')
     expect(skillText).toContain('不迁移 `docs/ae/gates/*`')
-    expect(skillText).toContain('`docs/ae/review/*`')
     expect(skillText).toContain('`docs/ae/reviews/*`')
     expect(skillText).toContain('不得靠最近修改时间或相近 topic 批量复制 `docs/ae/*`')
     expect(skillText).toContain('若无法唯一确定当前任务关联需求/计划，必须询问用户')
