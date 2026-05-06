@@ -1,6 +1,6 @@
 ---
 name: pattern-recognition-specialist
-model: deep
+model: $deep
 description: "分析代码中的设计模式、反模式、命名规范和重复代码。适用于检查代码库一致性或验证新代码是否遵循既有模式。"
 ---
 

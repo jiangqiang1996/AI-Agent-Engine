@@ -1,6 +1,6 @@
 ---
 name: maintainability-reviewer
-model: deep
+model: $deep
 description: 常驻代码审查角色。审查代码中的过早抽象、不必要的间接层、死代码、耦合、命名模糊，以及设计模式误用和代码重复。
 ---
 

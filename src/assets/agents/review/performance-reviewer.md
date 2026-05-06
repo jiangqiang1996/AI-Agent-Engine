@@ -1,6 +1,6 @@
 ---
 name: performance-reviewer
-model: deep
+model: $deep
 description: 条件性代码审查角色，当 diff 涉及数据库查询、循环密集的数据转换、缓存层或 I/O 密集路径时启用。审查代码中的运行时性能和可扩展性问题。
 ---
 

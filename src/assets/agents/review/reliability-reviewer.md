@@ -1,6 +1,6 @@
 ---
 name: reliability-reviewer
-model: deep
+model: $deep
 description: 条件性代码审查角色，当 diff 涉及错误处理、重试、熔断器、超时、健康检查、后台任务或异步处理器时启用。审查代码中的生产可靠性和故障模式。
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: spec-flow-analyzer
-model: deep
+model: $deep
 description: "分析规格说明和功能描述的用户流程完整性和缺口识别。当规格、计划或功能描述需要流程分析、边界用例发现或需求验证时使用。"
 ---
 
