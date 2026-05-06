@@ -1,5 +1,6 @@
 ---
 description: 智能提交变更，遵循项目 Git 提交规范
+model: $standard
 subtask: true
 ---
 
