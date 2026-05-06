@@ -38,7 +38,7 @@ describe('mcp-registration 集成', () => {
       unknown
     >
 
-    expect(parsed.$schema).toBe('./builtin-opencode.schema.json')
+    expect(parsed.$schema).toBe('./ae.schema.json')
     expect(parsed.mcp).toBeDefined()
   })
 
@@ -101,7 +101,7 @@ describe('mcp-registration 集成', () => {
       globalConfigFile: join(root, 'missing-global-ae.jsonc'),
     })
 
-    expect(config.$schema).toBe('./builtin-opencode.schema.json')
+    expect(config.$schema).toBe('./ae.schema.json')
     expect(config.mcp?.context7).toBeDefined()
     expect(config.mcp?.gh_grep).toBeDefined()
   })

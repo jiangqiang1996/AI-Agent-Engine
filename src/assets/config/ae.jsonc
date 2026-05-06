@@ -1,5 +1,5 @@
 {
-  "$schema": "./builtin-opencode.schema.json",
+  "$schema": "ae.schema.json",
   "mcp": {
     "context7": {
       "type": "remote",

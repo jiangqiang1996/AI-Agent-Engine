@@ -42,7 +42,7 @@ describe('mcp-registration', () => {
   it('应该读取 JSONC 配置中的 mcp 节点', () => {
     const root = createRepoRoot()
     writeFileSync(join(root, 'src', 'assets', 'config', 'ae.jsonc'), `{
-  "$schema": "./builtin-opencode.schema.json",
+  "$schema": "./ae.schema.json",
   // comment
   "mcp": {
     "context7": {
@@ -115,7 +115,7 @@ describe('mcp-registration', () => {
   it('registerMcp 应该把内置默认值并入用户配置且同名用户配置整条优先', () => {
     const root = createRepoRoot()
     writeFileSync(join(root, 'src', 'assets', 'config', 'ae.jsonc'), `{
-  "$schema": "./builtin-opencode.schema.json",
+  "$schema": "./ae.schema.json",
   "mcp": {
     "context7": {
       "type": "remote",

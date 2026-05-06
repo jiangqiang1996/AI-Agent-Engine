@@ -16,7 +16,7 @@ AE 会在插件 `config` 钩子里注入一组最低优先级的 MCP 默认值�
 | `context7` | `remote` | 获取最新的库/框架文档 |
 | `gh_grep` | `remote` | 搜索真实的 GitHub 代码示例 |
 
-默认配置由三层可选 `ae.jsonc` 合并而来，并通过本地 `builtin-opencode.schema.json` 作为 `$schema`。当前已知配置节点是 opencode 官方 `mcp` 节点；后续新增其他 builtin 配置节点时可在同一文件中扩展。
+默认配置由三层可选 `ae.jsonc` 合并而来，并通过本地 `ae.schema.json` 作为 `$schema`。当前已知配置节点是 opencode 官方 `mcp` 节点；后续新增其他 builtin 配置节点时可在同一文件中扩展。
 
 ## 优先级
 

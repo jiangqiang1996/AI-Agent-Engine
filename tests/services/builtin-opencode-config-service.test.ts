@@ -52,7 +52,7 @@ describe('builtin-opencode-config-service', () => {
     const root = createTempRoot()
     const builtinConfigFile = join(root, 'ae.jsonc')
     writeConfig(builtinConfigFile, `{
-  "$schema": "./builtin-opencode.schema.json",
+  "$schema": "./ae.schema.json",
   // comment
   "mcp": {
     "context7": {
@@ -69,7 +69,7 @@ describe('builtin-opencode-config-service', () => {
       projectConfigFile: join(root, 'missing-project.jsonc'),
     })
 
-    expect(config.$schema).toBe('./builtin-opencode.schema.json')
+    expect(config.$schema).toBe('./ae.schema.json')
     expect(config.future).toEqual({ enabled: true })
     expect(config.mcp?.context7.type).toBe('remote')
   })
