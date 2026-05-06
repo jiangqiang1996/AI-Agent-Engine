@@ -16,7 +16,6 @@
 
 - `ae:setup` 自身不需要先执行自己，它负责检查、安装、复检。
 - 安全边界中提到 `agent-browser` 但不实际调用它的描述不强制 setup。
-- 不使用 `agent-browser` CLI 的主路径（如 `ae:figma-assets` 的 API/collect/validate 模式）不强制 setup。
 
 ## 适用范围
 
@@ -24,7 +23,7 @@
 
 | 场景类型 | 示例 |
 |---------|------|
-| 内置技能 | `ae:test-browser`、`ae:frontend-design` 视觉验证路径、`ae:figma-assets` 页面确认路径 |
+| 内置技能 | `ae:test-browser`、`ae:frontend-design` 视觉验证路径 |
 | 工作流代理 | `@design-iterator`、`@figma-design-sync` |
 | 命令 | `/ae-test-browser`、任何生成 `agent-browser` 命令的自定义命令 |
 | prompt optimize | 优化后提示词引导目标新会话使用浏览器能力 |

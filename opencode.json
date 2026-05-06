@@ -4,9 +4,6 @@
     "AGENTS.md",
     ".opencode/rules/**/*.md"
   ],
-  "plugin": [
-    ".opencode/plugins/graphify.js"
-  ],
   "permission": {
     "bash": {
       "*": "allow",

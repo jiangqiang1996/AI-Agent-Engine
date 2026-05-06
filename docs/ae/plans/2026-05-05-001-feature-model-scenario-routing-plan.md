@@ -206,7 +206,7 @@ flowchart TD
 
   测试场景：未 setup 阻断浏览器命令；已 setup 但无 `vision` 模型时视觉验收标记未验证；能力未知时只能参考；已知不支持视觉的模型不被用于门禁；已知支持视觉时允许门禁级结论。
 
-  验证：`npx vitest run tests/services/vision-model-gate-service.test.ts tests/services/agent-browser-setup-gate.integration.test.ts tests/tools/ae-figma-assets.tool.test.ts`。
+  验证：`npx vitest run tests/services/vision-model-gate-service.test.ts tests/services/agent-browser-setup-gate.integration.test.ts`。
 
 - [ ] 单元 6B：同步视觉相关技能和代理资产文案。
 
@@ -214,9 +214,9 @@ flowchart TD
 
   需求追溯：R17-R18、R24。
 
-  文件：`src/assets/skills/ae-test-browser/SKILL.md`、`src/assets/skills/ae-frontend-design/SKILL.md`、`src/assets/skills/ae-figma-assets/SKILL.md`、`src/assets/agents/workflow/design-iterator.md`、`src/assets/agents/workflow/figma-design-sync.md`。
+  文件：`src/assets/skills/ae-test-browser/SKILL.md`、`src/assets/skills/ae-frontend-design/SKILL.md`、`src/assets/agents/workflow/design-iterator.md`、`src/assets/agents/workflow/figma-design-sync.md`。
 
-  方法：可先用文件清单或小脚本定位包含 `agent-browser`、`视觉验收`、`Figma`、`截图`、`setup` 的段落，再人工复核并插入统一门禁说明。不得削弱现有 setup gate，也不得让 API/collect/validate 模式错误依赖 setup。
+  方法：可先用文件清单或小脚本定位包含 `agent-browser`、`视觉验收`、`Figma`、`截图`、`setup` 的段落，再人工复核并插入统一门禁说明。不得削弱现有 setup gate。
 
   测试场景：公开资产仍包含 setup 前置要求；视觉结论文案区分“参考/未验证/门禁通过”；没有出现“已安装即可跳过 setup”的反模式。
 

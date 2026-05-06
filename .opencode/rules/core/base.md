@@ -35,7 +35,6 @@
 - `dist/` 是 TypeScript 与 postbuild 生成产物，不要手工维护。
 - `.opencode/plugins/` 是本仓库使用当前开发中插件的调试桥接目录，便于快速验证插件，不代表打包后插件内容。
 - `.opencode/` 其余内容是开发当前仓库时生效的 opencode 配置、规则和本地依赖，不代表打包后插件内容。
-- `graphify-out/` 是当前仓库的代码图谱分析输出，只用于本仓库开发参考，不是插件资产。
 - `docs/ae/`、`runs/`、`tmp/`、`figma-exports/` 多为运行或调试产物；不要把其中内容当作插件能力真源。
 - `opencode.json` 当前会加载 `AGENTS.md` 和 `.opencode/rules/**/*.md`；不要把该加载方式写成插件用户项目必须具备的结构。
 

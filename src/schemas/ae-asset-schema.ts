@@ -12,7 +12,6 @@ export const SKILL = {
   LFG: 'ae:lfg',
   SETUP: 'ae:setup',
   TEST_BROWSER: 'ae:test-browser',
-  FIGMA_ASSETS: 'ae:figma-assets',
   FRONTEND_DESIGN: 'ae:frontend-design',
   HANDOFF: 'ae:handoff',
   PROMPT_OPTIMIZE: 'ae:prompt-optimize',
@@ -36,7 +35,6 @@ export const PROMPT_OPTIMIZE_VARIANT_EXCLUDED_SKILLS = [
   SKILL.REVIEW,
   SKILL.SETUP,
   SKILL.TEST_BROWSER,
-  SKILL.FIGMA_ASSETS,
   SKILL.HANDOFF,
   SKILL.PROMPT_OPTIMIZE,
   SKILL.SQL,
@@ -99,7 +97,6 @@ export const TOOL = {
   AE_HELP: 'ae-help',
   AE_GATE: 'ae-gate',
   AE_SWAGGER_PARSER: 'ae-swagger-parser',
-  AE_FIGMA_ASSETS: 'ae-figma-assets',
 } as const
 
 export const AeModeSchema = z
@@ -119,7 +116,6 @@ export const AeSkillNameSchema = z
     SKILL.LFG,
     SKILL.SETUP,
     SKILL.TEST_BROWSER,
-    SKILL.FIGMA_ASSETS,
     SKILL.FRONTEND_DESIGN,
     SKILL.HANDOFF,
     SKILL.PROMPT_OPTIMIZE,

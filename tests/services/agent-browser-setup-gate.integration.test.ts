@@ -22,7 +22,6 @@ const REQUIRED_SETUP_FILES = [
   'src/assets/skills/ae-frontend-design/SKILL.md',
   'src/assets/skills/ae-lfg/SKILL.md',
   'src/assets/skills/ae-lfg/references/pipeline.md',
-  'src/assets/skills/ae-figma-assets/SKILL.md',
   'src/assets/skills/ae-prompt-optimize/SKILL.md',
   'src/assets/agents/workflow/design-iterator.md',
   'src/assets/agents/workflow/figma-design-sync.md',
@@ -112,11 +111,6 @@ function nearbyContent(lines: string[], lineNumber: number, radius: number): str
   return lines.slice(start, end).join('\n')
 }
 
-function sectionContent(content: string, heading: string): string {
-  const match = content.match(new RegExp(`^## ${heading}\\r?\\n([\\s\\S]*?)(?=^## |\\z)`, 'm'))
-  return match?.[1] ?? ''
-}
-
 describe('agent-browser setup 前置门禁', () => {
   it('应该让所有已知浏览器消费方包含 setup 前置语义', () => {
     for (const file of REQUIRED_SETUP_FILES) {
@@ -191,16 +185,6 @@ describe('agent-browser setup 前置门禁', () => {
       expect(content, file).not.toContain('agent-browser 可用')
       expect(content, file).not.toContain('用户声称已安装即可继续')
     }
-  })
-
-  it('ae:figma-assets 的纯工具路径不应该被描述为强制 setup', () => {
-    const content = readFileSync('src/assets/skills/ae-figma-assets/SKILL.md', 'utf8')
-    const executionFlow = sectionContent(content, '执行流程')
-
-    expect(executionFlow).toContain('API 主路径')
-    expect(executionFlow).toContain('手动降级')
-    expect(executionFlow).toContain('校验路径')
-    expect(executionFlow).not.toMatch(/(API 主路径|api|collect|validate|手动降级|校验路径)[^。\n]*(ae:setup|\/ae-setup|setup 前置|先完成 ae:setup)/i)
   })
 
   it('ae:setup 技能应该包含完整的验证步骤', () => {
