@@ -1,13 +1,17 @@
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 
 import { COMMAND, PA_SUFFIX, PO_SUFFIX } from '../../src/schemas/ae-asset-schema.js'
 import { MODEL_SCENARIO } from '../../src/schemas/model-scenario-schema.js'
-import { getAllAgentDefinitions, getPhaseOneEntries, getPhaseOnePaEntries, getPhaseOnePoEntries } from '../../src/services/ae-catalog.js'
+import { getPhaseOneEntries, getPhaseOnePaEntries, getPhaseOnePoEntries } from '../../src/services/ae-catalog.js'
 import {
-  getAgentModelScenario,
   getAssetModelRoutingEntries,
   getCommandModelScenario,
 } from '../../src/services/asset-model-routing-catalog.js'
+import { createRuntimeAssetManifestFromRoot } from '../../src/services/runtime-asset-manifest.js'
+import { parseFrontmatter } from '../../src/utils/frontmatter.js'
 
 describe('asset-model-routing-catalog', () => {
   it('应该为所有内置命令和派生命令提供路由状态', () => {
@@ -30,15 +34,39 @@ describe('asset-model-routing-catalog', () => {
     }
   })
 
-  it('视觉相关命令和代理应该引用 vision 场景', () => {
+  it('视觉相关命令应该引用 vision 场景', () => {
     expect(getCommandModelScenario(COMMAND.TEST_BROWSER)).toBe(MODEL_SCENARIO.VISION)
     expect(getCommandModelScenario(COMMAND.FRONTEND_DESIGN)).toBe(MODEL_SCENARIO.VISION)
-    expect(getAgentModelScenario('figma-design-sync')).toBe(MODEL_SCENARIO.VISION)
   })
 
-  it('应该为所有内置代理提供路由状态', () => {
-    for (const agent of getAllAgentDefinitions()) {
-      expect(getAgentModelScenario(agent.name)).toBeDefined()
+  it('应该从 agent frontmatter 读取模型路由状态', () => {
+    const manifest = {
+      ...createRuntimeAssetManifestFromRoot(process.cwd()),
+      agentsDir: join(process.cwd(), 'src', 'assets', 'agents'),
+    }
+
+    const entries = getAssetModelRoutingEntries(manifest).filter((entry) => entry.type === 'agent')
+    const figmaRoute = entries.find((entry) => entry.name === 'figma-design-sync')
+
+    expect(figmaRoute?.scenario).toBe(MODEL_SCENARIO.VISION)
+  })
+
+  it('内置 agent 路由状态应该与 frontmatter model 保持一致', () => {
+    const manifest = {
+      ...createRuntimeAssetManifestFromRoot(process.cwd()),
+      agentsDir: join(process.cwd(), 'src', 'assets', 'agents'),
+    }
+    const entries = getAssetModelRoutingEntries(manifest).filter((entry) => entry.type === 'agent')
+
+    for (const entry of entries) {
+      const stage = ['review', 'research', 'workflow'].find((value) =>
+        existsSync(join(manifest.agentsDir, value, `${entry.name}.md`)),
+      )
+      if (!stage) {
+        continue
+      }
+      const content = readFileSync(join(manifest.agentsDir, stage, `${entry.name}.md`), 'utf8')
+      expect(entry.scenario).toBe(parseFrontmatter(content).data.model)
     }
   })
 })

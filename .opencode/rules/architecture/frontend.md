@@ -2,7 +2,9 @@
 
 ## TUI toast 分层原则
 
-工具层（`src/tools/*.tool.ts`）是最接近用户的错误处理边界，`showToast` 调用仅在此层执行。service 层、utils 层、schemas 层等内层模块保持纯异常抛出机制，禁止调用 `showToast`。
+工具层（`src/tools/*.tool.ts`）是最接近用户的错误处理边界，运行期错误的 `showToast` 调用仅在此层执行。service 层、utils 层、schemas 层等内层模块保持纯异常抛出机制，禁止调用 `showToast`。
+
+插件入口（`src/index.ts`）只允许在 config 注册阶段发出一次性配置告警 toast，用于没有工具执行上下文的配置降级场景，例如内置资产声明的可选配置未解析但已安全回退。入口层不得为工具执行错误、业务逻辑错误或可由工具层处理的异常调用 toast。
 
 ### 理由
 
@@ -13,6 +15,8 @@
 ### 规则
 
 - ✅ 工具层 `execute` 函数中的 `Effect.catch`、`catch`、客户端为空检查等错误路径：调用 `showToast`
+- ✅ 插件入口 `config` 注册阶段的一次性配置降级告警：调用 `client.tui.showToast`
+- ❌ 插件入口中的工具执行错误、业务错误或非注册期错误：不调用 toast
 - ❌ service 层的 `Effect.tryPromise` 内部、`throw new Error` 前面：不调用 `showToast`
 - ❌ utils 层的纯工具函数：不调用 `showToast`
-- ❌ 任何非工具层的代码：不调用 `showToast`
+- ❌ 除上述入口注册期豁免外，任何非工具层的代码：不调用 `showToast`

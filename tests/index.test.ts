@@ -114,10 +114,31 @@ describe('插件入口', () => {
     const hostRoot = createTempRoot()
     isolateHome(createTempRoot())
 
-    const config = await runConfigHook({ worktree: hostRoot, client: {} })
+    const showToast = vi.fn().mockResolvedValue(undefined)
+    const config = await runConfigHook({ worktree: hostRoot, client: { tui: { showToast } } })
 
     expect(config.command?.['ae-plan']?.model).toBeUndefined()
     expect(config.agent?.['correctness-reviewer']?.model).toBeUndefined()
+    expect(showToast).toHaveBeenCalledWith({
+      body: expect.objectContaining({
+        variant: 'warning',
+        title: 'AE 模型场景未配置',
+        message: expect.stringContaining('内置资产声明的模型场景未配置'),
+      }),
+    })
+    expect(showToast).toHaveBeenCalledTimes(1)
+  })
+
+  it('模型场景告警 toast 失败时不应该阻断配置注册', async () => {
+    const hostRoot = createTempRoot()
+    isolateHome(createTempRoot())
+    const showToast = vi.fn().mockRejectedValue(new Error('toast failed'))
+
+    const config = await runConfigHook({ worktree: hostRoot, client: { tui: { showToast } } })
+
+    expect(config.command?.['ae-plan']).toBeDefined()
+    expect(config.agent?.['correctness-reviewer']).toBeDefined()
+    expect(showToast).toHaveBeenCalled()
   })
 
   it('应该根据项目级 modelScenarios 为内置命令和代理写入 model', async () => {

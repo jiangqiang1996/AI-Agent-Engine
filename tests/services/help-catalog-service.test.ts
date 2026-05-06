@@ -168,7 +168,9 @@ describe('help-catalog-service', () => {
       expect(catalog.agents).toHaveLength(1)
       expect(catalog.agents[0].name).toBe('correctness-reviewer')
       expect(catalog.agents[0].stage).toBe('review')
-      expect(assetModelRoutingCatalog.getAssetModelRoutingEntries).toHaveBeenCalled()
+      expect(assetModelRoutingCatalog.getAssetModelRoutingEntries).toHaveBeenCalledWith(
+        expect.objectContaining({ repoRoot: '/repo' }),
+      )
     })
 
     it('应该对技能去重（同一技能多个命令只保留一个）', () => {

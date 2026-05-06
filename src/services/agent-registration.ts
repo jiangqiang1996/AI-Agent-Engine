@@ -3,9 +3,8 @@ import { join } from 'node:path'
 
 import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
 import { getAllAgentDefinitions } from './ae-catalog.js'
-import { getAgentModelScenario } from './asset-model-routing-catalog.js'
 import type { ModelScenarioRoutingContext } from './model-scenario-routing-service.js'
-import { resolveModelScenario } from './model-scenario-routing-service.js'
+import { resolveModelReference } from './model-scenario-routing-service.js'
 import { parseFrontmatter } from '../utils/frontmatter.js'
 
 interface AgentConfigShape {
@@ -16,6 +15,8 @@ interface AgentConfigShape {
     [key: string]: unknown
   } | undefined>
 }
+
+type AgentConfigEntry = NonNullable<NonNullable<AgentConfigShape['agent']>[string]>
 
 export function buildAgentConfig(
   manifest: RuntimeAssetManifest,
@@ -28,24 +29,34 @@ export function buildAgentConfig(
     const content = readFileSync(fullPath, 'utf8')
     const parsed = parseFrontmatter(content)
 
-    const agentConfig: NonNullable<AgentConfigShape['agent']>[string] = {
+    const agentConfig: AgentConfigEntry = {
       description: parsed.data.description || agent.description,
       prompt: parsed.body.trim(),
       mode: 'subagent',
     }
 
-    const scenario = getAgentModelScenario(agent.name)
-    if (routingContext && scenario) {
-      const resolved = resolveModelScenario(routingContext, scenario)
-      if (resolved.writeModel) {
-        agentConfig.model = resolved.model
-      }
-    }
+    applyAgentModel(agentConfig, agent.name, parsed.data.model, routingContext)
 
     result[agent.name] = agentConfig
   }
 
   return result
+}
+
+function applyAgentModel(
+  agentConfig: AgentConfigEntry,
+  agentName: string,
+  frontmatterModel?: string,
+  routingContext?: ModelScenarioRoutingContext,
+): void {
+  if (!frontmatterModel) {
+    return
+  }
+
+  const resolvedModel = resolveModelReference(routingContext, frontmatterModel, `@${agentName}`)
+  if (resolvedModel) {
+    agentConfig.model = resolvedModel
+  }
 }
 
 export function registerAgents(

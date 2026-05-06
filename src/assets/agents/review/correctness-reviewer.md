@@ -1,5 +1,6 @@
 ---
 name: correctness-reviewer
+model: deep
 description: 常驻代码审查角色。审查代码中的逻辑错误、边界情况、状态管理 bug、错误传播失败以及意图与实现的不匹配。当审查 TypeScript 代码时自动启用严格类型审查模式。
 ---
 

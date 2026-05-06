@@ -22,6 +22,7 @@ argument-hint: "[技能名或关键词]"
 ## 模型路由说明
 
 - 用户可在 `ae.jsonc` 的顶层 `modelScenarios` 中配置场景到模型字符串的映射。
+- Agent/command Markdown frontmatter 的 `model` 可以写场景变量，也可以写真实模型标识；变量未配置时提示并继承默认模型。
 - 稳定场景为 `quick`、`standard`、`deep`、`vision`；具体模型标识由用户自己的 opencode 环境决定。
 - `vision` 只表示视觉任务场景，首版不探测模型是否支持图像输入。
 - 首版不支持 fallback、capabilities、params、动态路由或内置推荐模型链。

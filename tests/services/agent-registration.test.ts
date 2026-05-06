@@ -101,7 +101,7 @@ describe('agent-registration', () => {
     })
   })
 
-  it('应该根据模型场景为内置 agent 注入 model', () => {
+  it('未声明 frontmatter model 时不应该为内置 agent 注入 model', () => {
     const root = createTempRoot()
     mkdirSync(join(root, 'src', 'assets', 'agents', 'review'), { recursive: true })
     writeFileSync(
@@ -114,7 +114,54 @@ describe('agent-registration', () => {
 
     const config = buildAgentConfig(createManifest(root), routingContext)
 
-    expect(config['demo-reviewer']?.model).toBe('provider/deep')
+    expect(config['demo-reviewer']?.model).toBeUndefined()
+  })
+
+  it('应该将 agent frontmatter model 变量解析为 modelScenarios 中的模型', () => {
+    const root = createTempRoot()
+    mkdirSync(join(root, 'src', 'assets', 'agents', 'review'), { recursive: true })
+    writeFileSync(
+      join(root, 'src', 'assets', 'agents', 'review', 'demo-reviewer.md'),
+      ['---', 'description: markdown description', 'model: reviewer', '---', 'builtin prompt'].join('\n'),
+    )
+    const routingContext = createModelScenarioRoutingContext(new Map([
+      ['reviewer', { scenario: 'reviewer', model: 'provider/reviewer', layer: '项目级', path: '/repo/.opencode/ae.jsonc' }],
+      ['deep', { scenario: 'deep', model: 'provider/deep', layer: '项目级', path: '/repo/.opencode/ae.jsonc' }],
+    ]))
+
+    const config = buildAgentConfig(createManifest(root), routingContext)
+
+    expect(config['demo-reviewer']?.model).toBe('provider/reviewer')
+  })
+
+  it('应该保留 agent frontmatter 中的真实模型标识', () => {
+    const root = createTempRoot()
+    mkdirSync(join(root, 'src', 'assets', 'agents', 'review'), { recursive: true })
+    writeFileSync(
+      join(root, 'src', 'assets', 'agents', 'review', 'demo-reviewer.md'),
+      ['---', 'description: markdown description', 'model: provider/explicit-model', '---', 'builtin prompt'].join('\n'),
+    )
+    const routingContext = createModelScenarioRoutingContext(new Map([
+      ['deep', { scenario: 'deep', model: 'provider/deep', layer: '项目级', path: '/repo/.opencode/ae.jsonc' }],
+    ]))
+
+    const config = buildAgentConfig(createManifest(root), routingContext)
+
+    expect(config['demo-reviewer']?.model).toBe('provider/explicit-model')
+  })
+
+  it('agent frontmatter model 变量未配置时应该继承默认模型', () => {
+    const root = createTempRoot()
+    mkdirSync(join(root, 'src', 'assets', 'agents', 'review'), { recursive: true })
+    writeFileSync(
+      join(root, 'src', 'assets', 'agents', 'review', 'demo-reviewer.md'),
+      ['---', 'description: markdown description', 'model: reviewer', '---', 'builtin prompt'].join('\n'),
+    )
+    const routingContext = createModelScenarioRoutingContext(new Map())
+
+    const config = buildAgentConfig(createManifest(root), routingContext)
+
+    expect(config['demo-reviewer']?.model).toBeUndefined()
   })
 
   it('用户同名 agent model 应最终覆盖场景注入 model', () => {
@@ -126,6 +173,23 @@ describe('agent-registration', () => {
     )
     const routingContext = createModelScenarioRoutingContext(new Map([
       ['deep', { scenario: 'deep', model: 'provider/deep', layer: '项目级', path: '/repo/.opencode/ae.jsonc' }],
+    ]))
+    const config = { agent: { 'demo-reviewer': { model: 'user/model' } } }
+
+    registerAgents(config, createManifest(root), routingContext)
+
+    expect(config.agent['demo-reviewer'].model).toBe('user/model')
+  })
+
+  it('用户同名 agent model 应最终覆盖 frontmatter model', () => {
+    const root = createTempRoot()
+    mkdirSync(join(root, 'src', 'assets', 'agents', 'review'), { recursive: true })
+    writeFileSync(
+      join(root, 'src', 'assets', 'agents', 'review', 'demo-reviewer.md'),
+      ['---', 'description: markdown description', 'model: reviewer', '---', 'builtin prompt'].join('\n'),
+    )
+    const routingContext = createModelScenarioRoutingContext(new Map([
+      ['reviewer', { scenario: 'reviewer', model: 'provider/reviewer', layer: '项目级', path: '/repo/.opencode/ae.jsonc' }],
     ]))
     const config = { agent: { 'demo-reviewer': { model: 'user/model' } } }
 

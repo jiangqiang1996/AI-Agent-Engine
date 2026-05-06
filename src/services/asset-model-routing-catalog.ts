@@ -1,6 +1,11 @@
-import { AGENT, AUTO_SUFFIX, COMMAND } from '../schemas/ae-asset-schema.js'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
+import { AUTO_SUFFIX, COMMAND } from '../schemas/ae-asset-schema.js'
 import { MODEL_SCENARIO, type ModelScenario } from '../schemas/model-scenario-schema.js'
 import { getAllAgentDefinitions, getPhaseOneEntries, getPhaseOnePaEntries, getPhaseOnePoEntries } from './ae-catalog.js'
+import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
+import { parseFrontmatter } from '../utils/frontmatter.js'
 
 export type ModelRoutingAssetType = 'agent' | 'command'
 
@@ -9,7 +14,7 @@ export type ModelRoutingApplyMode = 'direct' | 'inherit-default'
 export interface AssetModelRoutingEntry {
   type: ModelRoutingAssetType
   name: string
-  scenario?: ModelScenario
+  scenario?: string
   applyMode: ModelRoutingApplyMode
   reason: string
 }
@@ -40,13 +45,6 @@ const COMMAND_SCENARIOS: Record<string, ModelScenario> = {
   [COMMAND.UPDATE]: MODEL_SCENARIO.STANDARD,
 }
 
-const AGENT_SCENARIOS: Record<string, ModelScenario> = {
-  [AGENT.REPO_RESEARCH_ANALYST]: MODEL_SCENARIO.STANDARD,
-  [AGENT.WEB_RESEARCHER]: MODEL_SCENARIO.STANDARD,
-  [AGENT.DESIGN_ITERATOR]: MODEL_SCENARIO.VISION,
-  [AGENT.FIGMA_DESIGN_SYNC]: MODEL_SCENARIO.VISION,
-}
-
 export function getCommandModelScenario(commandName: string): ModelScenario | undefined {
   if (commandName.endsWith('-po') || commandName.endsWith('-pa')) {
     return COMMAND_SCENARIOS[commandName.slice(0, -3)]
@@ -54,11 +52,7 @@ export function getCommandModelScenario(commandName: string): ModelScenario | un
   return COMMAND_SCENARIOS[commandName]
 }
 
-export function getAgentModelScenario(agentName: string): ModelScenario | undefined {
-  return AGENT_SCENARIOS[agentName] ?? MODEL_SCENARIO.DEEP
-}
-
-export function getAssetModelRoutingEntries(): AssetModelRoutingEntry[] {
+export function getAssetModelRoutingEntries(manifest?: RuntimeAssetManifest): AssetModelRoutingEntry[] {
   const entries: AssetModelRoutingEntry[] = []
   for (const command of [...getPhaseOneEntries(), ...getPhaseOnePoEntries(), ...getPhaseOnePaEntries()]) {
     const scenario = getCommandModelScenario(command.commandName)
@@ -71,14 +65,21 @@ export function getAssetModelRoutingEntries(): AssetModelRoutingEntry[] {
     })
   }
 
+  if (!manifest) {
+    return entries
+  }
+
   for (const agent of getAllAgentDefinitions()) {
-    const scenario = getAgentModelScenario(agent.name)
+    const fullPath = join(manifest.agentsDir, agent.stage, `${agent.name}.md`)
+    const content = readFileSync(fullPath, 'utf8')
+    const parsed = parseFrontmatter(content)
+    const scenario = parsed.data.model
     entries.push({
       type: 'agent',
       name: agent.name,
       scenario,
-      applyMode: 'direct',
-      reason: `内置代理声明 ${scenario} 场景`,
+      applyMode: scenario ? 'direct' : 'inherit-default',
+      reason: scenario ? `内置代理 frontmatter 声明 ${scenario} 模型引用` : '未声明模型引用，继承 opencode 当前默认模型',
     })
   }
 

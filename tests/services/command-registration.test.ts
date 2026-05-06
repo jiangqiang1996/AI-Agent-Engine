@@ -1,6 +1,8 @@
-import { readFileSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { COMMAND, PA_SUFFIX, PO_SUFFIX, PROMPT_OPTIMIZE_VARIANT_EXCLUDED_SKILLS, SKILL } from '../../src/schemas/ae-asset-schema.js'
 import { getPhaseOneEntries, getPhaseOnePaEntries, getPhaseOnePoEntries } from '../../src/services/ae-catalog.js'
@@ -10,6 +12,20 @@ import {
 } from '../../src/services/command-registration.js'
 import { createModelScenarioRoutingContext } from '../../src/services/model-scenario-routing-service.js'
 import { parseFrontmatter } from '../../src/utils/frontmatter.js'
+
+const tempRoots: string[] = []
+
+function createTempRoot(): string {
+  const root = mkdtempSync(join(tmpdir(), 'ae-command-'))
+  tempRoots.push(root)
+  return root
+}
+
+afterEach(() => {
+  for (const root of tempRoots.splice(0)) {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
 
 describe('command-registration', () => {
   it('应该按排除列表跳过不适合提示词优化包装的命令变体', () => {
@@ -162,6 +178,58 @@ describe('command-registration', () => {
     const config = buildCommandConfig('__missing_commands_dir__', routingContext)
 
     expect(config[COMMAND.PLAN]?.model).toBeUndefined()
+  })
+
+  it('应该将磁盘命令 frontmatter model 变量解析为 modelScenarios 中的模型', () => {
+    const root = createTempRoot()
+    const commandsDir = join(root, 'commands')
+    mkdirSync(commandsDir, { recursive: true })
+    writeFileSync(
+      join(commandsDir, 'custom.md'),
+      ['---', 'description: custom command', 'model: quick', '---', 'custom template'].join('\n'),
+    )
+    const routingContext = createModelScenarioRoutingContext(new Map([
+      ['quick', { scenario: 'quick', model: 'provider/quick', layer: '项目级', path: '/repo/.opencode/ae.jsonc' }],
+    ]))
+
+    const config = buildCommandConfig(commandsDir, routingContext)
+
+    expect(config.custom?.model).toBe('provider/quick')
+  })
+
+  it('磁盘命令 frontmatter model 变量未配置时应该继承默认模型', () => {
+    const root = createTempRoot()
+    const commandsDir = join(root, 'commands')
+    mkdirSync(commandsDir, { recursive: true })
+    writeFileSync(
+      join(commandsDir, 'custom.md'),
+      ['---', 'description: custom command', 'model: missing', '---', 'custom template'].join('\n'),
+    )
+
+    const config = buildCommandConfig(commandsDir, createModelScenarioRoutingContext(new Map()))
+
+    expect(config.custom?.model).toBeUndefined()
+  })
+
+  it('磁盘命令重写内置命令时应该用 frontmatter model 覆盖默认路由', () => {
+    const root = createTempRoot()
+    const commandsDir = join(root, 'commands')
+    mkdirSync(commandsDir, { recursive: true })
+    writeFileSync(
+      join(commandsDir, `${COMMAND.PLAN}.md`),
+      ['---', 'description: custom plan', 'model: provider/custom-plan', '---', 'custom plan template'].join('\n'),
+    )
+    const routingContext = createModelScenarioRoutingContext(new Map([
+      ['deep', { scenario: 'deep', model: 'provider/deep', layer: '项目级', path: '/repo/.opencode/ae.jsonc' }],
+    ]))
+
+    const config = buildCommandConfig(commandsDir, routingContext)
+
+    expect(config[COMMAND.PLAN]).toEqual({
+      template: 'custom plan template',
+      description: 'custom plan',
+      model: 'provider/custom-plan',
+    })
   })
 
   it('用户同名 command model 应最终覆盖场景注入 model', () => {

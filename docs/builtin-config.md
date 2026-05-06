@@ -123,7 +123,7 @@ AE 支持通过 `modelScenarios` 将不同任务场景映射到不同模型，�
 
 ## 工作原理
 
-AE 内置命令和代理各自声明了一个模型场景（如 `/ae-plan` 声明 `deep`、`/ae-help` 声明 `quick`）。插件在注册时会查询 `modelScenarios` 配置：命中则注入对应模型；未命中则继承 opencode 当前默认模型。
+AE 内置命令通过 catalog 声明模型场景（如 `/ae-plan` 声明 `deep`、`/ae-help` 声明 `quick`）。内置代理通过各自 Markdown frontmatter 的 `model` 声明模型引用。插件在注册时会查询 `modelScenarios` 配置：命中则注入对应模型；未命中则右上角提示并继承 opencode 当前默认模型。
 
 ## 稳定场景
 
@@ -153,6 +153,19 @@ AE 内置命令和代理各自声明了一个模型场景（如 `/ae-plan` 声�
 
 值必须是非空字符串，不支持 fallback、capabilities、params 或动态路由策略。
 
+Agent Markdown 和命令 Markdown 的 frontmatter 也可以声明 `model`：
+
+```yaml
+---
+description: 示例代理或命令
+model: deep
+---
+```
+
+- `model: deep` 这类不包含 `/` 的值会按 `modelScenarios.deep` 解析。
+- `model: anthropic/claude-sonnet-4-20250514` 这类真实模型标识会直接透传给 opencode。
+- 变量未配置时不写入 `model`，由 opencode 使用当前默认模型执行。
+
 ## 三层优先级
 
 与 MCP 配置共用同一套 `ae.jsonc` 三层合并机制：
@@ -168,6 +181,7 @@ AE 内置命令和代理各自声明了一个模型场景（如 `/ae-plan` 声�
 ## 覆盖与降级
 
 - 用户在 `opencode.json` 的 `command` 或 `agent` 中显式指定 `model` 时，用户配置最终覆盖场景路由。
+- 项目级或全局命令 Markdown 重写内置命令时，可通过 frontmatter `model` 覆盖该命令的默认场景路由。
 - 未配置任何 `modelScenarios` 时，所有内置命令和代理保持零配置行为，继承 opencode 当前默认模型。
 - `vision` 仅表示视觉任务场景，首版不探测模型是否支持图像输入。
 

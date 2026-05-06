@@ -1,5 +1,6 @@
 ---
 name: figma-design-sync
+model: vision
 description: "检测并修复 Web 实现与 Figma 设计之间的视觉差异。以 Figma 设计图片或 Figma 规格为准进行截图采集、差异分级和精确修复；不负责自由设计方向、多轮主观打磨或完整浏览器验收。"
 ---
 

@@ -8,12 +8,13 @@ import { getPhaseOneEntries, getPhaseOnePoEntries, getPhaseOnePaEntries } from '
 import { COMMAND, AUTO_SUFFIX, PO_SUFFIX, PA_SUFFIX } from '../schemas/ae-asset-schema.js'
 import { getCommandModelScenario } from './asset-model-routing-catalog.js'
 import type { ModelScenarioRoutingContext } from './model-scenario-routing-service.js'
-import { resolveModelScenario } from './model-scenario-routing-service.js'
+import { resolveModelReference, resolveModelScenario } from './model-scenario-routing-service.js'
 
 interface LoadedCommand {
   template: string
   description: string
   model?: string
+  modelReference?: string
 }
 
 export function loadCommandFiles(commandsDir: string): Map<string, LoadedCommand> {
@@ -31,10 +32,15 @@ export function loadCommandFiles(commandsDir: string): Map<string, LoadedCommand
     const content = readFileSync(join(commandsDir, file), 'utf8')
     const parsed = parseFrontmatter(content)
 
-    result.set(name, {
+    const command: LoadedCommand = {
       template: parsed.body.trim() || `$ARGUMENTS`,
       description: parsed.data.description || '',
-    })
+    }
+    if (parsed.data.model) {
+      command.modelReference = parsed.data.model
+    }
+
+    result.set(name, command)
   }
 
   return result
@@ -45,6 +51,12 @@ function applyCommandModel(
   commandName: string,
   routingContext?: ModelScenarioRoutingContext,
 ): LoadedCommand {
+  if (command.modelReference) {
+    const resolvedModel = resolveModelReference(routingContext, command.modelReference, `/${commandName}`)
+    const { modelReference: _modelReference, ...commandWithoutReference } = command
+    return resolvedModel ? { ...commandWithoutReference, model: resolvedModel } : commandWithoutReference
+  }
+
   const scenario = getCommandModelScenario(commandName)
   if (!routingContext || !scenario) {
     return command
@@ -122,7 +134,7 @@ export function buildCommandConfig(
   const fileCommands = loadCommandFiles(commandsDir)
   for (const [name, cmd] of fileCommands) {
     // 磁盘命令最后合并，允许运行时命令文件覆盖内置 catalog 以便本地调试和热修正。
-    result[name] = cmd
+    result[name] = applyCommandModel(cmd, name, routingContext)
   }
 
   return result

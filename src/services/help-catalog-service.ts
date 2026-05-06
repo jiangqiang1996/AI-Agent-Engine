@@ -134,7 +134,7 @@ export function buildHelpCatalog(repoRoot?: string): HelpCatalog {
     skills: buildSkillEntries(),
     commands: buildCommandEntries(manifest),
     agents: buildAgentEntries(manifest),
-    modelRoutes: getAssetModelRoutingEntries(),
+    modelRoutes: getAssetModelRoutingEntries(manifest),
   }
 }
 
@@ -262,7 +262,7 @@ export function formatHelpCatalog(catalog: HelpCatalog, query?: string): string 
   if (catalog.modelRoutes && catalog.modelRoutes.length > 0) {
     lines.push('## 模型路由')
     lines.push('')
-    lines.push('静态默认路由只说明内置资产声明的场景；只有用户配置 `modelScenarios` 后，注册期才会写入 `model`。')
+    lines.push('静态默认路由只说明内置命令声明的场景和 agent frontmatter 的模型引用；只有用户配置 `modelScenarios` 或资产直接声明真实模型后，注册期才会写入 `model`。')
     lines.push('')
     lines.push('| 类型 | 资产 | 场景 | 应用方式 | 说明 |')
     lines.push('|------|------|------|------|------|')
