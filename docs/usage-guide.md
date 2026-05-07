@@ -207,7 +207,7 @@
 
 ## 内置 MCP
 
-AE 默认附带一组最低优先级的内置 MCP，可直接用于文档检索和代码示例搜索。项目可以通过 `.opencode/ae.jsonc` 覆盖团队默认值，全局默认值可放在 `~/.config/opencode/ae.jsonc`。
+AE 默认附带一组最低优先级的内置 MCP，可直接用于文档检索和代码示例搜索。团队可以通过 AE 配置 JSONC 覆盖默认值，个人也可以在全局配置中提供跨项目默认值。
 
 - 默认项、三层来源、优先级和合并规则见 [builtin-config.md](builtin-config.md)
 - 想按字段覆盖默认 MCP：在项目级或全局 `ae.jsonc` 中声明同名 `mcp` 条目
@@ -215,19 +215,21 @@ AE 默认附带一组最低优先级的内置 MCP，可直接用于文档检索�
 
 ## 模型场景路由
 
-AE 内置命令和代理各自声明了模型场景（如 `/ae-plan` → `deep`、`/ae-help` → `quick`）。通过在 `ae.jsonc` 中配置 `modelScenarios`，可以让不同场景自动使用不同模型：
+AE 内置命令和代理各自声明了模型场景（如 `/ae-plan` → `deep`、`/ae-help` → `quick`）。通过在 AE 配置 JSONC 中配置 `modelScenarios`，可以让不同场景自动使用不同模型。下面是一份可直接使用的配置内容示例：
 
 ```jsonc
 {
+  "$schema": "https://raw.giteeusercontent.com/jiangqiang1996/ai-agent-engine/raw/master/src/assets/config/ae.schema.json",
   "modelScenarios": {
-    "quick": "openrouter/google/gemini-2.5-flash",
-    "standard": "openrouter/anthropic/claude-sonnet-4",
-    "deep": "openrouter/anthropic/claude-sonnet-4",
-    "vision": "openrouter/google/gemini-2.5-flash"
+    "quick": "provider/fast-model",
+    "standard": "provider/default-model",
+    "deep": "provider/strong-model",
+    "vision": "provider/vision-model"
   }
 }
 ```
 
+- 将 `provider/fast-model`、`provider/default-model`、`provider/strong-model`、`provider/vision-model` 替换为当前 opencode 环境可用的真实模型标识
 - 稳定场景：`quick`（低延迟）、`standard`（平衡）、`deep`（强推理）、`vision`（图片输入）
 - 未配置的场景继承 opencode 默认模型，零配置行为不变
 - 用户在 `opencode.json` 中显式指定的 `model` 最终覆盖场景路由
