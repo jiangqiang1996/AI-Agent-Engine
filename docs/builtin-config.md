@@ -202,7 +202,7 @@ model: $deep
 
 | 资产 | 场景 |
 | --- | --- |
-| `/ae-ideate`、`/ae-brainstorm`、`/ae-setup`、`/ae-handoff`、`/ae-sql`、`/ae-swagger-parser`、`/ae-save-rules`、`/ae-save-session-flow`、`/ae-asset-debug`、`/ae-update` | `standard` |
+| `/ae-ideate`、`/ae-brainstorm`、`/ae-setup`、`/ae-handoff`、`/ae-sql`、`/ae-swagger-parser`、`/ae-save-experience`、`/ae-save-session-flow`、`/ae-asset-debug`、`/ae-update` | `standard` |
 | `/ae-document-review`、`/ae-plan`、`/ae-refactor`、`/ae-work`、`/ae-merge-branch`、`/ae-review`、`/ae-lfg`、`/ae-task-loop` | `deep` |
 | `/ae-prompt-optimize`、`/ae-prompt-optimize-auto`、`/ae-help` | `quick` |
 | `/ae-test-browser`、`/ae-frontend-design` | `vision` |

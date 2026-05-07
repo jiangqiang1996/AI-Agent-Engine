@@ -22,6 +22,7 @@
 | 数据库操作 | `/ae-sql` |
 | 解析 Swagger/OpenAPI | `/ae-swagger-parser` |
 | 优化提示词 | `/ae-prompt-optimize` |
+| 保存经验沉淀 | `/ae-save-experience` |
 | 跨会话交接 | `/ae-handoff` |
 
 ## 什么时候用 AE
@@ -82,7 +83,7 @@
 /ae-swagger-parser ./openapi.json method:POST keyword:login mode:detail
 ```
 
-需要保存本次会话总结出的长期项目规范时，用 `/ae-save-rules`。
+需要保存本次会话中的可复用经验时，用 `/ae-save-experience`。该入口先把方案、复盘或研究沉淀保存为 solution，再按需提炼长期 rules；即使只保存长期项目规范，也使用这个统一入口。
 
 需要把当前执行流程固化为可复用流程时，用 `/ae-save-session-flow`。
 

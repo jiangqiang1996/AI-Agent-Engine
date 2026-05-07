@@ -26,7 +26,7 @@ AE 不试图替代项目自身的工程规范，也不要求用户项目采用�
 | 前端与浏览器验收 | `/ae-frontend-design`、`/ae-test-browser`、`@figma-design-sync`、`@design-iterator` | 构建前端初版、执行浏览器验收、按设计稿修正视觉偏差或多轮打磨已有 UI |
 | 接口与数据辅助 | `/ae-swagger-parser`、`/ae-sql` | 解析 Swagger/OpenAPI 生成联调摘要；通过 JDBC 执行数据库查询或操作 |
 | 会话与提示词 | `/ae-handoff`、`/ae-prompt-optimize` | 创建带上下文的新会话，或把随意输入整理成更适合 AI 执行的提示词 |
-| 项目规范沉淀 | `/ae-save-rules`、`/ae-save-session-flow` | 保存可复用项目规则，或把当前执行流程固化为项目级/AE 内置技能 |
+| 经验与流程沉淀 | `/ae-save-experience`、`/ae-save-session-flow` | 保存可复用 solution 与长期 rules，或把当前执行流程固化为项目级/AE 内置技能 |
 | 插件维护 | `/ae-update`、`/ae-asset-debug` | 更新 AE 插件安装仓库，或诊断当前 opencode 会话中生效资产的执行偏差 |
 
 安装后可用 `/ae-help` 查看当前运行时实际注册的技能、命令、代理和模型场景路由。该输出由运行时代码生成，是核对可用能力的权威入口。
@@ -101,7 +101,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 规则 | 当前快照 4 | `src/assets/rules/` | 注入到会话中的 AI 编码、执行护栏、全局开发和浏览器 setup 前置规则 |
 | 内置配置 | 当前快照 1 | `src/assets/config/ae.jsonc` | 默认 MCP 配置，项目级/全局 `ae.jsonc` 可按规则覆盖 |
 
-主要技能包括：`ae:ideate`、`ae:brainstorm`、`ae:plan`、`ae:refactor`、`ae:work`、`ae:review`、`ae:lfg`、`ae:setup`、`ae:test-browser`、`ae:frontend-design`、`ae:handoff`、`ae:prompt-optimize`、`ae:task-loop`、`ae:sql`、`ae:swagger-parser`、`ae:save-rules`、`ae:save-session-flow`、`ae:asset-debug`、`ae:help`、`ae:update` 等。完整说明以 `/ae-help` 为准。
+主要技能包括：`ae:ideate`、`ae:brainstorm`、`ae:plan`、`ae:refactor`、`ae:work`、`ae:review`、`ae:lfg`、`ae:setup`、`ae:test-browser`、`ae:frontend-design`、`ae:handoff`、`ae:prompt-optimize`、`ae:task-loop`、`ae:sql`、`ae:swagger-parser`、`ae:save-experience`、`ae:save-session-flow`、`ae:asset-debug`、`ae:help`、`ae:update` 等。完整说明以 `/ae-help` 为准。
 
 ## 工作方式
 

@@ -24,6 +24,15 @@ describe('ae-asset-schema', () => {
     expect(AeCommandNameSchema.safeParse(`${COMMAND.SAVE_SESSION_FLOW}${PA_SUFFIX}`).success).toBe(false)
   })
 
+  it('应该只接受 save-experience 经验沉淀入口', () => {
+    expect(AeSkillNameSchema.parse(SKILL.SAVE_EXPERIENCE)).toBe('ae:save-experience')
+    expect(AeCommandNameSchema.parse(COMMAND.SAVE_EXPERIENCE)).toBe('ae-save-experience')
+    expect(AeSkillNameSchema.safeParse('ae:save-rules').success).toBe(false)
+    expect(AeCommandNameSchema.safeParse('ae-save-rules').success).toBe(false)
+    expect(AeCommandNameSchema.safeParse(`${COMMAND.SAVE_EXPERIENCE}${PO_SUFFIX}`).success).toBe(false)
+    expect(AeCommandNameSchema.safeParse(`${COMMAND.SAVE_EXPERIENCE}${PA_SUFFIX}`).success).toBe(false)
+  })
+
   it('应该接受 merge-branch 技能和命令', () => {
     expect(AeSkillNameSchema.parse(SKILL.MERGE_BRANCH)).toBe('ae:merge-branch')
     expect(AeCommandNameSchema.parse(COMMAND.MERGE_BRANCH)).toBe('ae-merge-branch')

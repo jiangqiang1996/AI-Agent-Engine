@@ -95,6 +95,17 @@ describe('command-registration', () => {
     expect(config[paCommand]).toBeUndefined()
   })
 
+  it('应该为 ae:save-experience 只生成基础命令', () => {
+    const config = buildCommandConfig('__missing_commands_dir__')
+    const poCommand = `${COMMAND.SAVE_EXPERIENCE}${PO_SUFFIX}`
+    const paCommand = `${COMMAND.SAVE_EXPERIENCE}${PA_SUFFIX}`
+
+    expect(config[COMMAND.SAVE_EXPERIENCE]).toBeDefined()
+    expect(config[COMMAND.SAVE_EXPERIENCE]?.template).toContain(`使用 \`${SKILL.SAVE_EXPERIENCE}\` 技能处理这次请求`)
+    expect(config[poCommand]).toBeUndefined()
+    expect(config[paCommand]).toBeUndefined()
+  })
+
   it('应该保持 ae:swagger-parser catalog 与 SKILL.md frontmatter 名称一致', () => {
     const skillContent = readFileSync('src/assets/skills/ae-swagger-parser/SKILL.md', 'utf8')
 

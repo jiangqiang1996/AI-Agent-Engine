@@ -419,6 +419,21 @@ describe('help-catalog-service', () => {
       expect(text).toContain('| `ae:setup` | `/ae-setup` | `—` | 安装依赖 |')
     })
 
+    it('应该显示 save-experience 且不显示旧 save-rules 入口', () => {
+      const catalog = {
+        skills: [{ name: SKILL.SAVE_EXPERIENCE, description: '统一经验沉淀入口', argumentHint: '[经验摘要|保存目标]', commandName: COMMAND.SAVE_EXPERIENCE, defaultEntry: false }],
+        commands: [{ name: COMMAND.SAVE_EXPERIENCE, description: '统一经验沉淀入口', category: '基础命令' }],
+        agents: [],
+      }
+
+      const text = formatHelpCatalog(catalog)
+
+      expect(text).toContain('ae:save-experience')
+      expect(text).toContain('/ae-save-experience')
+      expect(text).not.toContain('ae:save-rules')
+      expect(text).not.toContain('/ae-save-rules')
+    })
+
     it('无结果时应提示未找到', () => {
       const catalog = { skills: [], commands: [], agents: [] }
       const text = formatHelpCatalog(catalog, 'xxx')

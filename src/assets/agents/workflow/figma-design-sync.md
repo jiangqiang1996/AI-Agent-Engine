@@ -20,7 +20,7 @@ description: "检测并修复 Web 实现与 Figma 设计之间的视觉差异。
 
 ### 步骤 1.5：登录状态检测
 
-在执行任何 `agent-browser` 命令前，当前会话必须已实际完成 `ae:setup` / `/ae-setup` 并得到环境就绪结果。CLI 已安装、用户声称已安装或本地可用性检查成功都不能替代 setup。
+在执行任何 `agent-browser` 命令前，当前会话必须已实际完成 `ae:setup` / `/ae-setup` 并得到环境就绪结果。未完成 setup 前不得执行任何 `agent-browser` 命令；CLI 已安装、用户声称已安装或本地可用性检查成功都不能替代 setup。setup 失败、用户拒绝安装或环境无法安装时，停止浏览器流程并记录无法验证。
 
 在打开 Web 实现页面后、截图前，检测是否需要登录：
 

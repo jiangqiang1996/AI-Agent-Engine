@@ -12,7 +12,7 @@ description: "搜索 docs/ae/solutions/ 查找相关过往解决方案、研究�
 
 ### 阶段 1：组织经验搜索
 
-`docs/ae/solutions/` 目录包含带有 YAML frontmatter 的已记录解决方案。使用高效策略以最小化工具调用：
+`docs/ae/solutions/` 目录包含带有 YAML frontmatter 的已记录解决方案。目录或 `docs/ae/solutions/patterns/critical-patterns.md` 缺失、为空或没有相关命中时，报告“无组织经验可用”，然后继续技能、文档和外部研究，不得失败。使用高效策略以最小化工具调用：
 
 1. **从功能描述中提取关键词**：模块名称、技术术语、问题指标、组件类型
 2. **基于类别缩小范围**（可选）：性能优化→performance-issues/、数据库变更→database-issues/、Bug 修复→runtime-errors/ 等
