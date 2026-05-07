@@ -192,8 +192,8 @@
 | `@repo-research-analyst` | 研究仓库结构、文档、约定和实现模式 |
 | `@web-researcher` | 做外部网络研究、竞品扫描和跨领域类比 |
 | `@spec-flow-analyzer` | 分析规格、计划或功能描述中的用户流程缺口 |
-| `@design-iterator` | 对已有可运行 UI 做多轮截图、分析和审美优化 |
-| `@figma-design-sync` | 按 Figma 或设计图片修复 Web 实现视觉偏差 |
+| `@design-iterator` | 先执行 `/ae-setup`，再对已有可运行 UI 做多轮截图、分析和审美优化 |
+| `@figma-design-sync` | 先执行 `/ae-setup`，再按 Figma 或设计图片修复 Web 实现视觉偏差 |
 
 ## 产物路径
 

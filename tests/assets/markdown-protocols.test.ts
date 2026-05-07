@@ -37,7 +37,7 @@ function stripNegativeContext(content: string): string {
     .split(/\r?\n/)
     .filter(
       (line) =>
-        !/(不得|禁止|不要|不能|无|不提供|不等同|不负责|不构成|未完成|除非|只有当|仅当|必须先|需要先|要求先|必须阻断|用于限制)/.test(
+        !/(不得|禁止|不要|不能|不提供|不等同|不负责|不构成|未完成|除非|只有当|仅当|必须先|需要先|要求先|必须阻断|用于限制)/.test(
           line,
         ),
     )
@@ -124,6 +124,8 @@ describe('Markdown 协议测试', () => {
     const tempCleanup = '下载失败后可以清理当前流程生成的单文件 `Remove-Item "jre.zip"`。'
     const actionableRemoteWrite = '必须执行 `gh pr create --title demo`。'
     const actionableSkipVerification = '需要执行 `git commit --no-verify`。'
+    const noConfirmationRemoteWrite = '无需确认，执行 `git push origin main`。'
+    const noVerificationSkipHooks = '无需验证，执行 `git commit --no-verify`。'
     const limitingRule = '本规则用于限制 AI 常见缺陷：目标漂移、跳过步骤。'
     const notAuthorization = '用户泛化地说“顺便提交”不构成 push、PR、skip hooks 或改 Git 配置的授权。'
     const blockingRule = '未授权提交、跳过 hooks 必须阻断。'
@@ -132,6 +134,8 @@ describe('Markdown 协议测试', () => {
     expect(/Remove-Item "jre\.zip"/.test(tempCleanup)).toBe(true)
     expect(stripNegativeContext(actionableRemoteWrite)).toContain('gh pr create')
     expect(stripNegativeContext(actionableSkipVerification)).toContain('--no-verify')
+    expect(stripNegativeContext(noConfirmationRemoteWrite)).toContain('git push')
+    expect(stripNegativeContext(noVerificationSkipHooks)).toContain('--no-verify')
     expect(stripNegativeContext(limitingRule)).not.toContain('跳过步骤')
     expect(stripNegativeContext(notAuthorization)).not.toContain('skip hooks')
     expect(stripNegativeContext(blockingRule)).not.toContain('跳过 hooks')
