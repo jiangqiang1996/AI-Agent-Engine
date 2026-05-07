@@ -2,29 +2,30 @@ import { tool, type ToolDefinition } from '@opencode-ai/plugin/tool'
 import { Effect } from 'effect'
 
 import { runGate, type ReviewEvidence } from '../services/gate-service.js'
+import { AGENT, COMMAND, SKILL } from '../schemas/ae-asset-schema.js'
 
-const REVIEW_SUBAGENT_TYPES = new Set([
-  'adversarial-reviewer',
-  'agent-native-reviewer',
-  'api-contract-reviewer',
-  'architecture-strategist',
-  'coherence-reviewer',
-  'correctness-reviewer',
-  'data-migrations-reviewer',
-  'design-lens-reviewer',
-  'feasibility-reviewer',
-  'maintainability-reviewer',
-  'pattern-recognition-specialist',
-  'performance-reviewer',
-  'previous-comments-reviewer',
-  'product-lens-reviewer',
-  'reliability-reviewer',
-  'research-reviewer',
-  'security-reviewer',
-  'standards-reviewer',
-  'step-granularity-reviewer',
-  'test-case-reviewer',
-  'testing-reviewer',
+const REVIEW_SUBAGENT_TYPES: ReadonlySet<string> = new Set([
+  AGENT.ADVERSARIAL_REVIEWER,
+  AGENT.AGENT_NATIVE_REVIEWER,
+  AGENT.API_CONTRACT_REVIEWER,
+  AGENT.ARCHITECTURE_STRATEGIST,
+  AGENT.COHERENCE_REVIEWER,
+  AGENT.CORRECTNESS_REVIEWER,
+  AGENT.DATA_MIGRATIONS_REVIEWER,
+  AGENT.DESIGN_LENS_REVIEWER,
+  AGENT.FEASIBILITY_REVIEWER,
+  AGENT.MAINTAINABILITY_REVIEWER,
+  AGENT.PATTERN_RECOGNITION_SPECIALIST,
+  AGENT.PERFORMANCE_REVIEWER,
+  AGENT.PREVIOUS_COMMENTS_REVIEWER,
+  AGENT.PRODUCT_LENS_REVIEWER,
+  AGENT.RELIABILITY_REVIEWER,
+  AGENT.RESEARCH_REVIEWER,
+  AGENT.SECURITY_REVIEWER,
+  AGENT.STANDARDS_REVIEWER,
+  AGENT.STEP_GRANULARITY_REVIEWER,
+  AGENT.TEST_CASE_REVIEWER,
+  AGENT.TESTING_REVIEWER,
 ])
 
 type ToolReviewEvidenceInput =
@@ -185,7 +186,7 @@ function collectTrustedReviewOutputs(
       candidate.message?.subagent_type,
     ]
     const isReviewTool = toolNames.some((toolName) => typeof toolName === 'string'
-      && /^(ae:review|ae-review)$/.test(toolName))
+      && (toolName === SKILL.REVIEW || toolName === COMMAND.REVIEW))
     const isReviewSubagent = subagentTypes.some((subagentType) => typeof subagentType === 'string'
       && REVIEW_SUBAGENT_TYPES.has(subagentType))
     const isReviewSource = isReviewTool || isReviewSubagent

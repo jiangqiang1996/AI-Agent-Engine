@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 
+import { AGENT } from '../../src/schemas/ae-asset-schema.js'
 import { hashReviewOutput } from '../../src/services/gate-service.js'
 
 const tempRoots: string[] = []
@@ -540,22 +541,22 @@ describe('ae-gate 工具', () => {
     const fingerprint = initGitRepo(root)
     const reviewOutput = createReviewOutput({ worktree: root, ...fingerprint })
     const reviewerTypes = [
-      'adversarial-reviewer',
-      'coherence-reviewer',
-      'performance-reviewer',
-      'reliability-reviewer',
-      'standards-reviewer',
-      'api-contract-reviewer',
-      'data-migrations-reviewer',
-      'agent-native-reviewer',
-      'design-lens-reviewer',
-      'feasibility-reviewer',
-      'pattern-recognition-specialist',
-      'previous-comments-reviewer',
-      'product-lens-reviewer',
-      'research-reviewer',
-      'step-granularity-reviewer',
-      'test-case-reviewer',
+      AGENT.ADVERSARIAL_REVIEWER,
+      AGENT.COHERENCE_REVIEWER,
+      AGENT.PERFORMANCE_REVIEWER,
+      AGENT.RELIABILITY_REVIEWER,
+      AGENT.STANDARDS_REVIEWER,
+      AGENT.API_CONTRACT_REVIEWER,
+      AGENT.DATA_MIGRATIONS_REVIEWER,
+      AGENT.AGENT_NATIVE_REVIEWER,
+      AGENT.DESIGN_LENS_REVIEWER,
+      AGENT.FEASIBILITY_REVIEWER,
+      AGENT.PATTERN_RECOGNITION_SPECIALIST,
+      AGENT.PREVIOUS_COMMENTS_REVIEWER,
+      AGENT.PRODUCT_LENS_REVIEWER,
+      AGENT.RESEARCH_REVIEWER,
+      AGENT.STEP_GRANULARITY_REVIEWER,
+      AGENT.TEST_CASE_REVIEWER,
     ]
     const tool = await getToolDefinition()
 

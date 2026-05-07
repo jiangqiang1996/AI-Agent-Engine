@@ -40,7 +40,7 @@ const PHASE_ONE_ENTRIES = [
     argumentHint: '[mode:*] [文档路径]',
     defaultEntry: false,
     skillFile: `src/assets/skills/${skillDir(SKILL.DOCUMENT_REVIEW)}/SKILL.md`,
-    customTemplate: `使用 \`ae:review\` 技能处理这次请求，指定 domain:document，并沿用参数：\`$ARGUMENTS\`。`,
+    customTemplate: `使用 \`${SKILL.REVIEW}\` 技能处理这次请求，指定 domain:document，并沿用参数：\`$ARGUMENTS\`。`,
   },
   {
     skillName: SKILL.PLAN,

@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto'
 import { Effect } from 'effect'
 
 import { isInsideRoot, toPosixPath, toRepoRelativePath } from '../utils/path-utils.js'
+import { SKILL } from '../schemas/ae-asset-schema.js'
 
 export type GateWorkflow = 'lfg' | 'work'
 export type GateCheckpoint = 'start' | 'before_plan' | 'before_work' | 'before_review' | 'final'
@@ -924,7 +925,7 @@ function reviewReportMatchesEvidence(
     const metadata = JSON.parse(content) as Record<string, unknown>
     const output = trustedReviewOutputs[evidence.reviewRunIdOrMessageRef]
     const outputHash = output ? hashReviewOutput(output) : undefined
-    return metadata.generatedBy === 'ae:review'
+    return metadata.generatedBy === SKILL.REVIEW
       && metadata.reviewRunIdOrMessageRef === evidence.reviewRunIdOrMessageRef
       && trustedReviewRefs.includes(evidence.reviewRunIdOrMessageRef)
       && typeof outputHash === 'string'
