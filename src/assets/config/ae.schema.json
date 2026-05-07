@@ -21,6 +21,28 @@
     "modelScenarios": {
       "type": "object",
       "description": "模型场景到 opencode 模型标识的极简映射。稳定场景包括 quick、standard、deep、vision；允许自定义场景键。",
+      "properties": {
+        "quick": {
+          "type": "string",
+          "minLength": 1,
+          "description": "快速任务使用的模型标识"
+        },
+        "standard": {
+          "type": "string",
+          "minLength": 1,
+          "description": "标准任务使用的模型标识"
+        },
+        "deep": {
+          "type": "string",
+          "minLength": 1,
+          "description": "深度推理任务使用的模型标识"
+        },
+        "vision": {
+          "type": "string",
+          "minLength": 1,
+          "description": "视觉任务使用的模型标识"
+        }
+      },
       "additionalProperties": {
         "type": "string",
         "minLength": 1
