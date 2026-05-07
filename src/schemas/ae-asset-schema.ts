@@ -96,6 +96,7 @@ export const TOOL = {
   AE_PROMPT_OPTIMIZE: 'ae-prompt-optimize',
   AE_HELP: 'ae-help',
   AE_GATE: 'ae-gate',
+  AE_SETUP_PROOF: 'ae-setup-proof',
   AE_SWAGGER_PARSER: 'ae-swagger-parser',
 } as const
 

@@ -53,7 +53,7 @@ argument-hint: "[auto] [提示词内容]"
 
 **浏览器能力门禁：**
 
-- 如果原始输入会引导目标新会话使用 `agent-browser`、`ae:test-browser`、`/ae-test-browser`、`@design-iterator`、`@figma-design-sync`、`ae:frontend-design` 或 `/ae-frontend-design`，优化后的提示词必须明确要求目标新会话先执行 `ae:setup` / `/ae-setup`，得到环境就绪结果后再执行浏览器流程。
+- 如果原始输入会引导目标新会话使用 `agent-browser`、`ae:test-browser`、`/ae-test-browser`、`@design-iterator`、`@figma-design-sync`、`ae:frontend-design` 或 `/ae-frontend-design`，优化后的提示词必须明确要求目标新会话先调用 `ae-setup-proof action=check` 检查 ae:setup 证明；若未完成，则先执行 `ae:setup` / `/ae-setup`，得到环境就绪结果并写入证明后再执行浏览器流程。
 - 源会话已经执行过 setup 不能迁移到目标新会话；目标新会话必须自行完成 setup。
 - `agent-browser` 已安装、用户声称已安装或本地 CLI 可用性检查成功，都不能替代目标新会话中的 setup。
 - 注入 setup 门禁时不得破坏“首个引用必须是第一个 token”的硬规则；如果优化后提示词以 `@agent` 或 `/command` 引用开头，setup 约束必须放在该首引用之后。

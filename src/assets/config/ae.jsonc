@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.giteeusercontent.com/jiangqiang1996/ai-agent-engine/raw/master/src/assets/config/ae.schema.json",
+  "$schema": "./ae.schema.json",
   "mcp": {
     "context7": {
       "type": "remote",

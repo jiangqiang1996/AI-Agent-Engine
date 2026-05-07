@@ -54,7 +54,6 @@ async function runConfigHook(input: unknown): Promise<RuntimeConfigShape> {
 
 afterEach(() => {
   vi.unstubAllEnvs()
-  vi.restoreAllMocks()
   for (const root of tempRoots.splice(0)) {
     rmSync(root, { recursive: true, force: true })
   }

@@ -1,4 +1,4 @@
-import { SKILL, COMMAND, AGENT } from '../schemas/ae-asset-schema.js'
+import { SKILL, COMMAND, AGENT, TOOL } from '../schemas/ae-asset-schema.js'
 
 const BROWSER_TRIGGER_PATTERNS = [
   'agent-browser',
@@ -12,8 +12,11 @@ const BROWSER_TRIGGER_PATTERNS = [
 
 const BROWSER_SETUP_MARKERS = [SKILL.SETUP, `/${COMMAND.SETUP}`]
 
-const BROWSER_SETUP_GATE_PROMPT =
-  '当前会话必须先执行 ae:setup / /ae-setup，得到环境就绪结果后再执行浏览器流程。agent-browser 已安装或用户声称已安装都不能替代本轮 setup。'
+const BROWSER_SETUP_GATE_PROMPT = [
+  `当前会话必须先调用 ${TOOL.AE_SETUP_PROOF} action=check 检查 ae:setup 证明；`,
+  '若未完成，先执行 ae:setup / /ae-setup，得到环境就绪结果并写入证明后再执行浏览器流程。',
+  'agent-browser 已安装或用户声称已安装都不能替代本轮 setup。',
+].join('')
 
 const FIRST_REFERENCE_RE = /^([@/][\w:-]+)\s*/
 

@@ -20,6 +20,11 @@ interface AeConfigSchema {
       examples?: Array<Record<string, string>>
     }
   }
+  definitions?: {
+    localMcp?: { required?: string[] }
+    remoteMcp?: { required?: string[] }
+    mcpOverlay?: { properties?: Record<string, unknown>; required?: string[] }
+  }
 }
 
 const schema = JSON.parse(readFileSync('src/assets/config/ae.schema.json', 'utf8')) as AeConfigSchema
@@ -54,5 +59,14 @@ describe('ae.schema.json 模型场景契约', () => {
     for (const scenario of Object.values(MODEL_SCENARIO)) {
       expect(example?.[scenario]).toMatch(/^provider\/.+/)
     }
+  })
+
+  it('MCP schema 必须要求运行时必要字段', () => {
+    expect(schema.definitions?.localMcp?.required).toEqual(['command'])
+    expect(schema.definitions?.remoteMcp?.required).toEqual(['url'])
+    expect(schema.definitions?.mcpOverlay?.required).toBeUndefined()
+    expect(schema.definitions?.mcpOverlay?.properties).toHaveProperty('type')
+    expect(schema.definitions?.mcpOverlay?.properties).toHaveProperty('url')
+    expect(schema.definitions?.mcpOverlay?.properties).toHaveProperty('command')
   })
 })

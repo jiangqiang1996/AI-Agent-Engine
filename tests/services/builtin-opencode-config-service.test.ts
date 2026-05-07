@@ -268,7 +268,7 @@ describe('builtin-opencode-config-service', () => {
     }
   })
 
-  it('应该允许全局配置新增 MCP，但阻断项目级配置新增 MCP', () => {
+  it('应该允许全局和项目级配置新增 MCP', () => {
     const root = createTempRoot()
     const builtinConfigFile = join(root, 'ae.jsonc')
     const globalConfigFile = join(root, 'global.jsonc')
@@ -289,9 +289,35 @@ describe('builtin-opencode-config-service', () => {
   }
 }`)
 
-    expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile })).toThrow(
-      /项目级 builtin-opencode 配置不能新增 MCP "project_only"/,
-    )
+    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile }).mcp?.project_only)
+      .toEqual({ type: 'remote', url: 'https://project.example/mcp' })
+
+    writeConfig(projectConfigFile, `{
+  "mcp": {
+    "project_remote_inferred": { "url": "https://project.example/inferred" }
+  }
+}`)
+
+    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile }).mcp?.project_remote_inferred)
+      .toEqual({ type: 'remote', url: 'https://project.example/inferred' })
+
+    writeConfig(projectConfigFile, `{
+  "mcp": {
+    "project_local": { "type": "local", "command": ["node", "server.js"] }
+  }
+}`)
+
+    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile }).mcp?.project_local)
+      .toEqual({ type: 'local', command: ['node', 'server.js'] })
+
+    writeConfig(projectConfigFile, `{
+  "mcp": {
+    "project_local_inferred": { "command": ["node", "server.js"] }
+  }
+}`)
+
+    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile }).mcp?.project_local_inferred)
+      .toEqual({ type: 'local', command: ['node', 'server.js'] })
   })
 
   it('应该校验最终 MCP 配置必须包含 type 对应的必要字段', () => {
@@ -311,7 +337,7 @@ describe('builtin-opencode-config-service', () => {
     )
   })
 
-  it('应该阻断项目级 MCP 覆盖会改变信任边界的字段', () => {
+  it('应该允许项目级 MCP 覆盖连接配置', () => {
     const root = createTempRoot()
     const builtinConfigFile = join(root, 'ae.jsonc')
     const globalConfigFile = join(root, 'global.jsonc')
@@ -322,25 +348,43 @@ describe('builtin-opencode-config-service', () => {
   }
 }`)
 
-    for (const [field, value] of [
-      ['url', '"https://attacker.example/mcp"'],
-      ['type', '"local"'],
-      ['command', '["node", "server.js"]'],
-      ['headers', '{ "Authorization": "Bearer token" }'],
-    ]) {
-      writeConfig(projectConfigFile, `{
+    writeConfig(projectConfigFile, `{
   "mcp": {
-    "context7": { "${field}": ${value} }
+    "context7": { "url": "https://project.example/mcp", "headers": { "X-AE-Test": "1" } }
   }
 }`)
 
-      expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile })).toThrow(
-        new RegExp(`项目级 builtin-opencode MCP "context7" 不能覆盖字段 "${field}"`),
-      )
-    }
+    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile }).mcp?.context7)
+      .toEqual({
+        type: 'remote',
+        url: 'https://project.example/mcp',
+        enabled: true,
+        headers: { 'X-AE-Test': '1' },
+      })
   })
 
-  it('应该允许项目级禁用 MCP 但阻断项目级重新启用 MCP', () => {
+  it('应该允许项目级 MCP 显式切换 type 并整体替换配置', () => {
+    const root = createTempRoot()
+    const builtinConfigFile = join(root, 'ae.jsonc')
+    const globalConfigFile = join(root, 'global.jsonc')
+    const projectConfigFile = join(root, '.opencode', 'ae.jsonc')
+    writeConfig(builtinConfigFile, `{
+  "mcp": {
+    "context7": { "type": "remote", "url": "https://builtin.example/mcp", "enabled": true }
+  }
+}`)
+
+    writeConfig(projectConfigFile, `{
+  "mcp": {
+    "context7": { "type": "local", "command": ["node", "server.js"] }
+  }
+}`)
+
+    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile }).mcp?.context7)
+      .toEqual({ type: 'local', command: ['node', 'server.js'] })
+  })
+
+  it('应该允许项目级覆盖 enabled 字段', () => {
     const root = createTempRoot()
     const builtinConfigFile = join(root, 'ae.jsonc')
     const globalConfigFile = join(root, 'global.jsonc')
@@ -370,9 +414,8 @@ describe('builtin-opencode-config-service', () => {
   }
 }`)
 
-    expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile })).toThrow(
-      /项目级 builtin-opencode MCP "context7" 不能将 enabled 设置为 true/,
-    )
+    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile }).mcp?.context7)
+      .toMatchObject({ enabled: true })
 
     for (const value of ['"true"', '1', '{}']) {
       writeConfig(projectConfigFile, `{
@@ -382,7 +425,7 @@ describe('builtin-opencode-config-service', () => {
 }`)
 
       expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile })).toThrow(
-        /项目级 builtin-opencode MCP "context7" 的 enabled 只能设置为 false/,
+        /builtin-opencode MCP "context7" 的 enabled 必须是 boolean/,
       )
     }
   })
@@ -456,7 +499,7 @@ describe('builtin-opencode-config-service', () => {
     }
   })
 
-  it('应该阻断 remote MCP 使用危险 URL', () => {
+  it('应该阻断 remote MCP 使用无效 URL 结构或内嵌凭证', () => {
     const root = createTempRoot()
     const builtinConfigFile = join(root, 'ae.jsonc')
     const globalConfigFile = join(root, 'global.jsonc')
@@ -465,35 +508,6 @@ describe('builtin-opencode-config-service', () => {
     for (const url of [
       'file:///tmp/server',
       'https://user:pass@example.com/mcp',
-      'file:///tmp/server',
-      'https://user:pass@example.com/mcp',
-      'http://localhost:3000/mcp',
-      'http://localhost./mcp',
-      'http://api.localhost/mcp',
-      'http://api.localhost./mcp',
-      'http://0.0.0.0/mcp',
-      'http://127.0.0.1:3000/mcp',
-      'http://10.0.0.1/mcp',
-      'http://172.16.0.1/mcp',
-      'http://192.168.1.1/mcp',
-      'http://169.254.169.254/latest/meta-data',
-      'http://100.64.0.1/mcp',
-      'http://198.18.0.1/mcp',
-      'http://metadata.google.internal/computeMetadata/v1',
-      'http://metadata.google.internal./computeMetadata/v1',
-      'http://[::1]/mcp',
-      'http://[::]/mcp',
-      'http://[fc00::1]/mcp',
-      'http://[fd00::1]/mcp',
-      'http://[fe80::1]/mcp',
-      'http://[fe90::1]/mcp',
-      'http://[febf::1]/mcp',
-      'http://[::ffff:127.0.0.1]/mcp',
-      'http://[::ffff:7f00:1]/mcp',
-      'http://[::ffff:100.64.0.1]/mcp',
-      'http://[::ffff:6440:1]/mcp',
-      'http://[::ffff:198.18.0.1]/mcp',
-      'http://[::ffff:c612:1]/mcp',
     ]) {
       writeConfig(builtinConfigFile, `{
   "mcp": {
@@ -504,6 +518,46 @@ describe('builtin-opencode-config-service', () => {
       expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile })).toThrow(
         /builtin-opencode remote MCP "context7" 的 url/,
       )
+    }
+  })
+
+  it('应该允许用户配置任意 http 或 https remote MCP 主机', () => {
+    const root = createTempRoot()
+    const builtinConfigFile = join(root, 'ae.jsonc')
+    const globalConfigFile = join(root, 'global.jsonc')
+    const projectConfigFile = join(root, 'project.jsonc')
+    for (const [name, url] of [
+      ['localhost', 'http://localhost:3000/mcp'],
+      ['unspecified_ipv4', 'http://0.0.0.0/mcp'],
+      ['loopback', 'http://127.0.0.1:3000/mcp'],
+      ['private_ip', 'http://10.0.0.1/mcp'],
+      ['private_172', 'http://172.16.0.1/mcp'],
+      ['private_192', 'https://192.168.1.1/mcp'],
+      ['carrier_nat', 'http://100.64.0.1/mcp'],
+      ['benchmark', 'http://198.18.0.1/mcp'],
+      ['metadata_ip', 'http://169.254.169.254/latest/meta-data'],
+      ['metadata_host', 'http://metadata.google.internal/computeMetadata/v1'],
+      ['localhost_subdomain', 'http://api.localhost/mcp'],
+      ['ipv6_loopback', 'http://[::1]/mcp'],
+      ['ipv6_unspecified', 'http://[::]/mcp'],
+      ['ipv6_unique_local', 'http://[fc00::1]/mcp'],
+      ['ipv6_unique_local_fd', 'http://[fd00::1]/mcp'],
+      ['ipv6_link_local', 'http://[fe80::1]/mcp'],
+      ['ipv6_link_local_mid', 'http://[fe90::1]/mcp'],
+      ['ipv6_link_local_end', 'http://[febf::1]/mcp'],
+      ['ipv4_mapped_ipv6', 'http://[::ffff:127.0.0.1]/mcp'],
+      ['ipv4_mapped_ipv6_hex_loopback', 'http://[::ffff:7f00:1]/mcp'],
+      ['ipv4_mapped_ipv6_hex_carrier_nat', 'http://[::ffff:6440:1]/mcp'],
+      ['ipv4_mapped_ipv6_hex_benchmark', 'http://[::ffff:c612:1]/mcp'],
+    ]) {
+      writeConfig(builtinConfigFile, `{
+  "mcp": {
+    "${name}": { "type": "remote", "url": "${url}" }
+  }
+}`)
+
+      expect(loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile }).mcp?.[name])
+        .toEqual({ type: 'remote', url })
     }
   })
 

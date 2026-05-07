@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { AeCommandNameSchema, AeSkillNameSchema, COMMAND, PA_SUFFIX, PO_SUFFIX, SKILL } from '../../src/schemas/ae-asset-schema.js'
+import { AeCommandNameSchema, AeSkillNameSchema, COMMAND, PA_SUFFIX, PO_SUFFIX, SKILL, TOOL } from '../../src/schemas/ae-asset-schema.js'
+import { createToolRegistry } from '../../src/tools/index.js'
 
 describe('ae-asset-schema', () => {
   it('应该接受 asset-debug 技能和命令', () => {
@@ -38,5 +39,16 @@ describe('ae-asset-schema', () => {
     expect(AeCommandNameSchema.parse(COMMAND.MERGE_BRANCH)).toBe('ae-merge-branch')
     expect(AeCommandNameSchema.safeParse(`${COMMAND.MERGE_BRANCH}${PO_SUFFIX}`).success).toBe(false)
     expect(AeCommandNameSchema.safeParse(`${COMMAND.MERGE_BRANCH}${PA_SUFFIX}`).success).toBe(false)
+  })
+
+  it('应该声明 setup 证明工具名', () => {
+    expect(TOOL.AE_SETUP_PROOF).toBe('ae-setup-proof')
+  })
+
+  it('工具注册表应该暴露 setup 证明工具', () => {
+    const registry = createToolRegistry()
+
+    expect(registry[TOOL.AE_SETUP_PROOF]).toBeDefined()
+    expect(registry[TOOL.AE_SETUP_PROOF]).toHaveProperty('execute')
   })
 })

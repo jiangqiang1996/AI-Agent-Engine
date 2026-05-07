@@ -1,5 +1,4 @@
 import { existsSync, readFileSync } from 'node:fs'
-import { isIP } from 'node:net'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
@@ -37,22 +36,10 @@ interface ConfigLayer {
   path: string
   required: boolean
   allowNewMcpEntries: boolean
-  projectMcpOverlay: boolean
 }
 
-const PROJECT_MCP_OVERLAY_KEYS = new Set(['enabled', 'timeout'])
 const MIN_MCP_TIMEOUT_MS = 1000
 const MAX_MCP_TIMEOUT_MS = 120000
-const BLOCKED_IPV4_RANGES: ReadonlyArray<readonly [number, number]> = [
-  [ipv4ToNumber('0.0.0.0'), 8],
-  [ipv4ToNumber('10.0.0.0'), 8],
-  [ipv4ToNumber('127.0.0.0'), 8],
-  [ipv4ToNumber('169.254.0.0'), 16],
-  [ipv4ToNumber('172.16.0.0'), 12],
-  [ipv4ToNumber('192.168.0.0'), 16],
-  [ipv4ToNumber('100.64.0.0'), 10],
-  [ipv4ToNumber('198.18.0.0'), 15],
-]
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
@@ -69,79 +56,6 @@ function validateMcpTimeout(name: string, timeout: unknown): void {
       `builtin-opencode MCP "${name}" 的 timeout 必须是 ${MIN_MCP_TIMEOUT_MS}-${MAX_MCP_TIMEOUT_MS} 之间的整数毫秒`,
     )
   }
-}
-
-function ipv4ToNumber(ip: string): number {
-  return ip.split('.').reduce((acc, part) => (acc << 8) + Number(part), 0) >>> 0
-}
-
-function isBlockedIPv4(hostname: string): boolean {
-  const parts = hostname.split('.').map((part) => Number(part))
-  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
-    return false
-  }
-
-  const value = ipv4ToNumber(hostname)
-  return BLOCKED_IPV4_RANGES.some(([range, bits]) => {
-    const mask = (0xffffffff << (32 - bits)) >>> 0
-    return (value & mask) === (range & mask)
-  })
-}
-
-function normalizeIPv4MappedIPv6(hostname: string): string | undefined {
-  const dottedMatch = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/.exec(hostname)
-  if (dottedMatch) {
-    return dottedMatch[1]
-  }
-
-  const hexMatch = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(hostname)
-  if (!hexMatch) {
-    return undefined
-  }
-
-  const high = Number.parseInt(hexMatch[1] ?? '', 16)
-  const low = Number.parseInt(hexMatch[2] ?? '', 16)
-  if (!Number.isInteger(high) || !Number.isInteger(low) || high > 0xffff || low > 0xffff) {
-    return undefined
-  }
-
-  return [high >> 8, high & 0xff, low >> 8, low & 0xff].join('.')
-}
-
-function isLinkLocalIPv6(hostname: string): boolean {
-  const firstGroup = hostname.split(':')[0]
-  if (!firstGroup) {
-    return false
-  }
-
-  const value = Number.parseInt(firstGroup, 16)
-  return Number.isInteger(value) && value >= 0xfe80 && value <= 0xfebf
-}
-
-function isDangerousHostname(hostname: string): boolean {
-  const normalized = hostname.toLowerCase().replace(/^\[(.*)]$/, '$1').replace(/\.+$/, '')
-  if (['localhost', 'metadata.google.internal'].includes(normalized)) {
-    return true
-  }
-
-  const mappedIPv4 = normalizeIPv4MappedIPv6(normalized)
-  if (mappedIPv4) {
-    return isBlockedIPv4(mappedIPv4)
-  }
-
-  if (isIP(normalized) === 4) {
-    return isBlockedIPv4(normalized)
-  }
-
-  if (isIP(normalized) === 6) {
-    return normalized === '::1'
-      || normalized === '::'
-      || normalized.startsWith('fc')
-      || normalized.startsWith('fd')
-      || isLinkLocalIPv6(normalized)
-  }
-
-  return normalized.endsWith('.localhost')
 }
 
 function validateRemoteMcpUrl(name: string, url: unknown): void {
@@ -164,9 +78,6 @@ function validateRemoteMcpUrl(name: string, url: unknown): void {
     throw new Error(`builtin-opencode remote MCP "${name}" 的 url 不能包含内嵌凭证`)
   }
 
-  if (isDangerousHostname(parsed.hostname)) {
-    throw new Error(`builtin-opencode remote MCP "${name}" 的 url 不能指向本机、内网或元数据地址`)
-  }
 }
 
 function readBuiltinOpencodeConfigLayer(layer: ConfigLayer): BuiltinOpencodeConfig | undefined {
@@ -193,49 +104,38 @@ function readBuiltinOpencodeConfigLayer(layer: ConfigLayer): BuiltinOpencodeConf
   return parsed as BuiltinOpencodeConfig
 }
 
-function mergeProjectMcpEntry(name: string, lowPriority: unknown, highPriority: unknown): unknown {
-  if (!isRecord(lowPriority) || !isRecord(highPriority)) {
-    throw new Error(`项目级 builtin-opencode MCP "${name}" 只能覆盖已有 MCP 的安全字段`)
-  }
-
-  for (const key of Object.keys(highPriority)) {
-    if (!PROJECT_MCP_OVERLAY_KEYS.has(key)) {
-      throw new Error(`项目级 builtin-opencode MCP "${name}" 不能覆盖字段 "${key}"`)
-    }
-  }
-
-  if (highPriority.enabled === true) {
-    throw new Error(`项目级 builtin-opencode MCP "${name}" 不能将 enabled 设置为 true`)
-  }
-
-  if ('enabled' in highPriority && highPriority.enabled !== false) {
-    throw new Error(`项目级 builtin-opencode MCP "${name}" 的 enabled 只能设置为 false`)
-  }
-
-  if ('timeout' in highPriority) {
-    validateMcpTimeout(name, highPriority.timeout)
-  }
-
-  return mergeConfigObject(lowPriority, highPriority, false, true, false)
-}
-
 function mergeMcpEntry(lowPriority: unknown, highPriority: unknown): unknown {
   if (!isRecord(lowPriority) || !isRecord(highPriority)) {
     return highPriority
   }
 
-  if (lowPriority.type !== highPriority.type) {
+  if ('type' in highPriority && lowPriority.type !== highPriority.type) {
     return highPriority
   }
 
-  return mergeConfigObject(lowPriority, highPriority, false, true, false)
+  return mergeConfigObject(lowPriority, highPriority, false, true)
+}
+
+function normalizeNewMcpEntry(entry: unknown): unknown {
+  if (!isRecord(entry) || 'type' in entry) {
+    return entry
+  }
+
+  if ('url' in entry && !('command' in entry)) {
+    return { type: 'remote', ...entry }
+  }
+
+  if ('command' in entry && !('url' in entry)) {
+    return { type: 'local', ...entry }
+  }
+
+  return entry
 }
 
 function mergeMcpConfig(
   lowPriority: unknown,
   highPriority: unknown,
   allowNewEntries: boolean,
-  projectOverlay: boolean,
 ): unknown {
   if (!isRecord(lowPriority) || !isRecord(highPriority)) {
     return highPriority
@@ -244,11 +144,9 @@ function mergeMcpConfig(
   const merged: Record<string, unknown> = { ...lowPriority }
   for (const [name, highPriorityEntry] of Object.entries(highPriority)) {
     if (name in merged) {
-      merged[name] = projectOverlay
-        ? mergeProjectMcpEntry(name, merged[name], highPriorityEntry)
-        : mergeMcpEntry(merged[name], highPriorityEntry)
+      merged[name] = mergeMcpEntry(merged[name], highPriorityEntry)
     } else if (allowNewEntries) {
-      merged[name] = highPriorityEntry
+      merged[name] = normalizeNewMcpEntry(highPriorityEntry)
     } else {
       throw new Error(`项目级 builtin-opencode 配置不能新增 MCP "${name}"，只能覆盖已有内置或全局 MCP`)
     }
@@ -269,18 +167,17 @@ function mergeConfigObject(
   highPriority: Record<string, unknown>,
   mergeTopLevelMcp: boolean,
   allowNewMcpEntries: boolean,
-  projectMcpOverlay: boolean,
 ): BuiltinOpencodeConfig {
   const merged: Record<string, unknown> = { ...lowPriority }
 
   for (const [key, highPriorityValue] of Object.entries(highPriority)) {
     const lowPriorityValue = merged[key]
     if (mergeTopLevelMcp && key === 'mcp') {
-      merged[key] = mergeMcpConfig(lowPriorityValue, highPriorityValue, allowNewMcpEntries, projectMcpOverlay)
+      merged[key] = mergeMcpConfig(lowPriorityValue, highPriorityValue, allowNewMcpEntries)
     } else if (mergeTopLevelMcp && key === 'modelScenarios') {
       merged[key] = mergeModelScenariosConfig(lowPriorityValue, highPriorityValue)
     } else if (isRecord(lowPriorityValue) && isRecord(highPriorityValue)) {
-      merged[key] = mergeConfigObject(lowPriorityValue, highPriorityValue, false, allowNewMcpEntries, projectMcpOverlay)
+      merged[key] = mergeConfigObject(lowPriorityValue, highPriorityValue, false, allowNewMcpEntries)
     } else {
       merged[key] = highPriorityValue
     }
@@ -292,14 +189,13 @@ function mergeConfigObject(
 export function mergeBuiltinOpencodeConfig(
   lowPriority: Record<string, unknown>,
   highPriority: Record<string, unknown>,
-  options: { allowNewMcpEntries?: boolean; projectMcpOverlay?: boolean } = {},
+  options: { allowNewMcpEntries?: boolean } = {},
 ): BuiltinOpencodeConfig {
   return mergeConfigObject(
     lowPriority,
     highPriority,
     true,
     options.allowNewMcpEntries ?? true,
-    options.projectMcpOverlay ?? false,
   )
 }
 
@@ -366,16 +262,15 @@ export function resolveBuiltinOpencodeConfigPaths(
 
 export function loadBuiltinOpencodeConfig(paths: BuiltinOpencodeConfigPaths): BuiltinOpencodeConfig {
   const layers: ConfigLayer[] = [
-    { label: '插件内置', path: paths.builtinConfigFile, required: true, allowNewMcpEntries: true, projectMcpOverlay: false },
-    { label: '全局', path: paths.globalConfigFile, required: false, allowNewMcpEntries: true, projectMcpOverlay: false },
-    { label: '项目级', path: paths.projectConfigFile, required: false, allowNewMcpEntries: false, projectMcpOverlay: true },
+    { label: '插件内置', path: paths.builtinConfigFile, required: true, allowNewMcpEntries: true },
+    { label: '全局', path: paths.globalConfigFile, required: false, allowNewMcpEntries: true },
+    { label: '项目级', path: paths.projectConfigFile, required: false, allowNewMcpEntries: true },
   ]
 
   const config = layers.reduce<BuiltinOpencodeConfig>((merged, layer) => {
     const config = readBuiltinOpencodeConfigLayer(layer)
     return config ? mergeBuiltinOpencodeConfig(merged, config, {
       allowNewMcpEntries: layer.allowNewMcpEntries,
-      projectMcpOverlay: layer.projectMcpOverlay,
     }) : merged
   }, {})
   validateMcpConfig(config)
@@ -385,9 +280,9 @@ export function loadBuiltinOpencodeConfig(paths: BuiltinOpencodeConfigPaths): Bu
 
 export function collectModelScenarioSources(paths: BuiltinOpencodeConfigPaths): Map<string, ModelScenarioSource> {
   const layers: ConfigLayer[] = [
-    { label: '插件内置', path: paths.builtinConfigFile, required: true, allowNewMcpEntries: true, projectMcpOverlay: false },
-    { label: '全局', path: paths.globalConfigFile, required: false, allowNewMcpEntries: true, projectMcpOverlay: false },
-    { label: '项目级', path: paths.projectConfigFile, required: false, allowNewMcpEntries: false, projectMcpOverlay: true },
+    { label: '插件内置', path: paths.builtinConfigFile, required: true, allowNewMcpEntries: true },
+    { label: '全局', path: paths.globalConfigFile, required: false, allowNewMcpEntries: true },
+    { label: '项目级', path: paths.projectConfigFile, required: false, allowNewMcpEntries: true },
   ]
   const sources = new Map<string, ModelScenarioSource>()
 

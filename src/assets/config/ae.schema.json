@@ -12,9 +12,10 @@
     "mcp": {
       "type": "object",
       "additionalProperties": {
-        "oneOf": [
+        "anyOf": [
           { "$ref": "#/definitions/localMcp" },
-          { "$ref": "#/definitions/remoteMcp" }
+          { "$ref": "#/definitions/remoteMcp" },
+          { "$ref": "#/definitions/mcpOverlay" }
         ]
       }
     },
@@ -61,7 +62,7 @@
     "localMcp": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type"],
+      "required": ["command"],
       "properties": {
         "type": {
           "const": "local"
@@ -90,10 +91,70 @@
     "remoteMcp": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type"],
+      "required": ["url"],
       "properties": {
         "type": {
           "const": "remote"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "oauth": {
+          "oneOf": [
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "clientId": {
+                  "type": "string"
+                },
+                "clientSecret": {
+                  "type": "string"
+                },
+                "scope": {
+                  "type": "string"
+                }
+              }
+            },
+            {
+              "const": false
+            }
+          ]
+        },
+        "timeout": {
+          "type": "number"
+        }
+      }
+    },
+    "mcpOverlay": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": ["local", "remote"]
+        },
+        "command": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "environment": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
         },
         "url": {
           "type": "string",

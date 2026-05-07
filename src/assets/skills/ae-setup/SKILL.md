@@ -94,16 +94,10 @@ agent-browser install
 
 ## 第四步：完成
 
-写入会话级安装证明：
+调用 `ae-setup-proof` 工具写入会话级安装证明：
 
-``json
-// 写入 .opencode/ae/setup-proof.json
-{
-  "sessionId": "<当前会话ID>",
-  "completedAt": "<ISO 时间戳>",
-  "version": "<agent-browser 版本>"
-}
-``
+- `action`: `complete`
+- `version`: 第二步中 `agent-browser --version` 的实际输出
 
 此证明文件供其他技能在当前会话中机器校验 setup 完成状态。
 
