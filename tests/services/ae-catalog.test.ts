@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-import { getPhaseOneEntries } from '../../src/services/ae-catalog.js'
+import { getPhaseOneEntries, getPhaseOnePaEntries, getPhaseOnePoEntries } from '../../src/services/ae-catalog.js'
 import { SKILL } from '../../src/schemas/ae-asset-schema.js'
 
 function readFrontmatter(filePath: string): Record<string, string> {
@@ -51,5 +51,22 @@ describe('AE catalog 一致性', () => {
     expect(text).toContain('冲突修复前')
     expect(text).toContain('来源文档权威覆盖')
     expect(text).toContain('同名需求文档或设计文档')
+  })
+
+  it('ae:agent-creator 应注册为非默认入口并可被帮助目录发现', () => {
+    const entry = getPhaseOneEntries().find((item) => item.skillName === SKILL.AGENT_CREATOR)
+    const frontmatter = readFrontmatter('src/assets/skills/ae-agent-creator/SKILL.md')
+
+    expect(entry).toBeDefined()
+    expect(entry?.commandName).toBe('ae-agent-creator')
+    expect(entry?.skillSlug).toBe('ae-agent-creator')
+    expect(entry?.defaultEntry).toBe(false)
+    expect(entry?.skillFile).toBe('src/assets/skills/ae-agent-creator/SKILL.md')
+    expect(entry?.description).toBe(frontmatter.description)
+  })
+
+  it('ae:agent-creator 应生成提示词优化命令变体', () => {
+    expect(getPhaseOnePoEntries().some((item) => item.commandName === 'ae-agent-creator-po')).toBe(true)
+    expect(getPhaseOnePaEntries().some((item) => item.commandName === 'ae-agent-creator-pa')).toBe(true)
   })
 })
