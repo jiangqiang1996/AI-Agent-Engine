@@ -81,6 +81,17 @@ describe('ae:work worktree 启动文本契约', () => {
     ])
   })
 
+  it('应该要求已授权创建 worktree 后先初始化非 Git 目标目录', () => {
+    expectTextIncludes(skillText, [
+      '用户已授权创建 worktree 后',
+      '真正执行 `git worktree add` 前',
+      '先判断当前目标目录是否为 Git 仓库',
+      '如果不是 Git 仓库',
+      '必须先在该目录执行已授权范围内的 `git init` 初始化仓库',
+      '再继续后续 worktree 创建流程',
+    ])
+  })
+
   it('应该声明 A/B worktree 执行归属和产物迁移要求', () => {
     expectTextIncludes(skillText, [
       '当前 opencode 会话仍属于 A 的 `ctx.worktree`',

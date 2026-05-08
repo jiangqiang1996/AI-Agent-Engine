@@ -64,6 +64,7 @@ argument-hint: "[计划路径|工作描述]"
    - 用户选择取消任务时，立即终止 `ae:work`，只输出取消状态、已完成/未完成项和 `worktree_decision: cancelled`；不得修改项目文件、执行实现、审查、浏览器测试或最终功能交付 gate
    - 用户选择不创建新 worktree、`current-worktree` 模式或 `auto` 推荐当前工作区时，继续在当前 `ctx.worktree` 和当前分支执行任务，最终交付和 gate 记录 `worktree_decision: rejected`，表示未创建新 worktree 并留在当前工作区；但如果当前会话是 A→B 后在 B worktree 中继续执行，必须优先按 B 会话最终交付规则记录 `worktree_decision: created`
    - 当前项目不是 Git 仓库、Git 不可用或 `git worktree` 不支持时，显式 `worktree` 模式停止或请求降级确认；`current-worktree` 可继续当前目录但说明风险；`auto` 降级当前目录时将 gate 字段记录为 `worktree_decision: not_applicable`，继续强调产物归属以当前 `ctx.worktree` 为准
+   - 用户已授权创建 worktree 后、真正执行 `git worktree add` 前，先判断当前目标目录是否为 Git 仓库；如果不是 Git 仓库，必须先在该目录执行已授权范围内的 `git init` 初始化仓库，再继续后续 worktree 创建流程
    - 创建 worktree、创建分支、切换分支或执行任何 Git 写操作前，必须获得覆盖具体命令范围的用户授权；授权必须绑定目标仓库、目标分支、工作区、完整命令参数、风险说明和明确授权来源，未授权时必须停止；`git worktree add`、`git branch`、`git switch`、`git checkout` 都不能静默执行
    - 未创建 worktree 不等于允许直接在默认分支实现；继续询问是否在当前工作区创建/切换功能分支，若用户坚持默认分支，二次确认风险并记录到最终 Git 操作状态和 gate notes
    - 创建 worktree 的本地目录固定为当前项目根目录同级的 `../worktrees/<name>` 直接子目录；`<name>` 使用分支名或任务名净化后的短名，冲突时先询问，不接受任意外部路径
