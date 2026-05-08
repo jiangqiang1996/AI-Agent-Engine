@@ -69,4 +69,23 @@ describe('AE catalog 一致性', () => {
     expect(getPhaseOnePoEntries().some((item) => item.commandName === 'ae-agent-creator-po')).toBe(true)
     expect(getPhaseOnePaEntries().some((item) => item.commandName === 'ae-agent-creator-pa')).toBe(true)
   })
+
+  it('ae:skill-creator 应保持单一入口并描述创建与更新能力', () => {
+    const entries = getPhaseOneEntries()
+    const entry = entries.find((item) => item.skillName === SKILL.SKILL_CREATOR)
+    const skillNames = entries.map((item) => item.skillName as string)
+    const commandNames = entries.map((item) => item.commandName as string)
+    const skillText = readFileSync('src/assets/skills/ae-skill-creator/SKILL.md', 'utf8')
+    const frontmatter = readFrontmatter('src/assets/skills/ae-skill-creator/SKILL.md')
+
+    expect(entry).toBeDefined()
+    expect(entry?.commandName).toBe('ae-skill-creator')
+    expect(entry?.description).toBe(frontmatter.description)
+    expect(entry?.description).toContain('创建或更新')
+    expect(skillText).toContain('先读取现有 `SKILL.md`')
+    expect(skillText).toContain('展示更新摘要或草案')
+    expect(skillText).toContain('得到明确确认后再编辑')
+    expect(skillNames).not.toContain('ae:skill-updater')
+    expect(commandNames).not.toContain('ae-skill-updater')
+  })
 })

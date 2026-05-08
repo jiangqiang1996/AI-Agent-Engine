@@ -213,7 +213,7 @@ const PHASE_ONE_ENTRIES = [
     skillName: SKILL.SKILL_CREATOR,
     skillSlug: skillDir(SKILL.SKILL_CREATOR),
     commandName: COMMAND.SKILL_CREATOR,
-    description: '创建 OpenCode 原生技能，并按同一级别生成可触发该技能的命令',
+    description: '创建或更新 OpenCode 原生技能，并按同一级别维护可触发该技能的命令',
     argumentHint: '<技能名或需求描述> [--global] [--no-command]',
     defaultEntry: false,
     skillFile: `src/assets/skills/${skillDir(SKILL.SKILL_CREATOR)}/SKILL.md`,
