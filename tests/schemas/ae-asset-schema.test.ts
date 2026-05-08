@@ -41,6 +41,13 @@ describe('ae-asset-schema', () => {
     expect(AeCommandNameSchema.safeParse(`${COMMAND.MERGE_BRANCH}${PA_SUFFIX}`).success).toBe(false)
   })
 
+  it('应该接受 agent-creator 技能和命令，并生成提示词优化变体', () => {
+    expect(AeSkillNameSchema.parse(SKILL.AGENT_CREATOR)).toBe('ae:agent-creator')
+    expect(AeCommandNameSchema.parse(COMMAND.AGENT_CREATOR)).toBe('ae-agent-creator')
+    expect(AeCommandNameSchema.parse(`${COMMAND.AGENT_CREATOR}${PO_SUFFIX}`)).toBe('ae-agent-creator-po')
+    expect(AeCommandNameSchema.parse(`${COMMAND.AGENT_CREATOR}${PA_SUFFIX}`)).toBe('ae-agent-creator-pa')
+  })
+
   it('应该声明 setup 证明工具名', () => {
     expect(TOOL.AE_SETUP_PROOF).toBe('ae-setup-proof')
   })
