@@ -50,6 +50,13 @@ describe('ae-asset-schema', () => {
     expect(AeCommandNameSchema.safeParse('ae-agent-updater').success).toBe(false)
   })
 
+  it('应该保留 skill-creator 单一入口并拒绝 skill-updater', () => {
+    expect(AeSkillNameSchema.parse(SKILL.SKILL_CREATOR)).toBe('ae:skill-creator')
+    expect(AeCommandNameSchema.parse(COMMAND.SKILL_CREATOR)).toBe('ae-skill-creator')
+    expect(AeSkillNameSchema.safeParse('ae:skill-updater').success).toBe(false)
+    expect(AeCommandNameSchema.safeParse('ae-skill-updater').success).toBe(false)
+  })
+
   it('应该声明 setup 证明工具名', () => {
     expect(TOOL.AE_SETUP_PROOF).toBe('ae-setup-proof')
   })
