@@ -99,6 +99,7 @@ export const TOOL = {
   AE_GATE: 'ae-gate',
   AE_SETUP_PROOF: 'ae-setup-proof',
   AE_SWAGGER_PARSER: 'ae-swagger-parser',
+  AE_TASK_ANALYZER: 'ae-task-analyzer',
 } as const
 
 export const AeModeSchema = z

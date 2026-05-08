@@ -52,61 +52,113 @@ argument-hint: "[计划路径|工作描述]"
    - 若用户明确要求 TDD，即使计划无 Execution note 也要遵循
    - 若有不明之处立即提问
 
-2. **准备环境**
-   - 每次正式实现型任务在修改项目文件前，先解析 worktree 模式：`worktree`、`current-worktree`、`auto`；兼容输入 `--no-worktree` 映射为 `current-worktree`
-   - 单独使用 `ae:work` 且未显式传入 worktree 模式时，必须基于任务上下文给出推荐依据并明确询问是否创建新的 worktree；不得默认采用 `auto`
-   - `worktree` 模式不展示“是否创建 worktree”的选择，直接进入 Git/worktree 可用性、安全校验和授权流程；创建 worktree 时仍说明会同步创建对应分支
-   - `current-worktree` 模式不展示“是否创建 worktree”的选择，继续在当前 `ctx.worktree` 执行，但仍必须检查默认分支、脏工作区和 detached HEAD 风险
-   - 显式 `auto` 模式复用阶段 0 的 S3/S4 分流和强制升级停点作为推荐依据：S3 轻量修复、明确 bug、预计不超过 2 个生产文件且无高风险领域时推荐 `current-worktree`；S3 扩展任务、S4 多步骤实现、跨模块、10+ 文件、高风险领域、新抽象、公共配置或运行时资产变更时推荐 `worktree`
-   - `auto` 模式必须在提示文本和最终 gate notes / Git 操作状态中记录推荐依据；推荐依据不足、默认分支、脏工作区、detached HEAD 或 Git 写授权不足时，不得静默继续，必须确认、停止或按已确认的安全降级执行
-   - 如果调用方是 `ae:lfg` 或 `ae:task-loop`，只接收其透传的 `worktree`、`current-worktree`、`auto` 模式；调用方未显式传入时由调用方补齐并传入 `auto`，`ae:work` 不维护调用方专属的独立 worktree 决策规则
-   - 需要交互式降级或普通确认时，选项至少包含：创建 worktree、不创建新 worktree 并直接在当前分支执行、取消任务
-   - 用户选择取消任务时，立即终止 `ae:work`，只输出取消状态、已完成/未完成项和 `worktree_decision: cancelled`；不得修改项目文件、执行实现、审查、浏览器测试或最终功能交付 gate
-   - 用户选择不创建新 worktree、`current-worktree` 模式或 `auto` 推荐当前工作区时，继续在当前 `ctx.worktree` 和当前分支执行任务，最终交付和 gate 记录 `worktree_decision: rejected`，表示未创建新 worktree 并留在当前工作区；但如果当前会话是 A→B 后在 B worktree 中继续执行，必须优先按 B 会话最终交付规则记录 `worktree_decision: created`
-   - 当前项目不是 Git 仓库、Git 不可用或 `git worktree` 不支持时，显式 `worktree` 模式停止或请求降级确认；`current-worktree` 可继续当前目录但说明风险；`auto` 降级当前目录时将 gate 字段记录为 `worktree_decision: not_applicable`，继续强调产物归属以当前 `ctx.worktree` 为准
-   - 用户已授权创建 worktree 后、真正执行 `git worktree add` 前，先判断当前目标目录是否为 Git 仓库；如果不是 Git 仓库，必须先在该目录执行已授权范围内的 `git init` 初始化仓库，再继续后续 worktree 创建流程
-   - 创建 worktree、创建分支、切换分支或执行任何 Git 写操作前，必须获得覆盖具体命令范围的用户授权；授权必须绑定目标仓库、目标分支、工作区、完整命令参数、风险说明和明确授权来源，未授权时必须停止；`git worktree add`、`git branch`、`git switch`、`git checkout` 都不能静默执行
-   - 未创建 worktree 不等于允许直接在默认分支实现；继续询问是否在当前工作区创建/切换功能分支，若用户坚持默认分支，二次确认风险并记录到最终 Git 操作状态和 gate notes
-   - 创建 worktree 的本地目录固定为当前项目根目录同级的 `../worktrees/<name>` 直接子目录；`<name>` 使用分支名或任务名净化后的短名，冲突时先询问，不接受任意外部路径
-   - 创建 B worktree 后，当前 opencode 会话仍属于 A 的 `ctx.worktree`；如果用户选择在 B 执行，必须在 B 目录重新启动 opencode，不得在 A 会话通过 shell 工作目录修改 B 中代码、配置、测试或其他项目文件
-   - 在判断当前会话是否已经处于 B worktree 前，必须用可观察方式获取当前真实工作空间路径（例如读取 `ctx.worktree`，并运行 `pwd`、`Get-Location` 或等价只读命令获取当前进程工作目录），将结果与 A→B 交接文件或启动证明中的 `target_worktree` 做规范化对比；不得仅凭工具调用的 `workdir` 参数、用户提示词、路径字符串或已读取到 B 文件就认定当前会话属于 B
-   - 如果无法获取当前真实工作空间路径，或路径与 `target_worktree` 不一致，必须停止阶段 2-4 并提示用户在 B 目录重新打开 opencode；不得通过 shell 的 `workdir`、`cd` 或跨目录文件工具在 A 会话继续修改 B worktree。若当前工具集没有获取真实工作空间的能力，应先新增或调用一个只读工作空间探测工具，探测成功前不得实现
-   - 创建 B worktree 后，A 会话只允许执行窄范围启动交接操作：自动迁移当前任务已确定的 AE 需求/计划产物到 B，包含本次读取或生成的 `docs/ae/brainstorms/*-requirements.md` 与 `docs/ae/plans/*-plan.md`，即使这些文件在 A 中仍未跟踪；迁移时保留仓库相对路径并创建缺失目录
-   - 只迁移当前任务已明确关联的需求/计划产物，不迁移 `docs/ae/gates/*`、`docs/ae/reviews/*` 等运行时证明或审查产物
-   - 创建 B worktree 后，A 会话只允许在 B 写入当前会话核心交接 Markdown（建议路径：`docs/ae/handoffs/<timestamp>-worktree-handoff.md`），内容包含用户目标、已确定决策、已迁移产物、待办事项、验证要求、Git/worktree 状态和继续执行约束
-   - A 会话终止提示必须给出可直接复制的继续提示词，引导用户在 B 目录新开 opencode 后先读取指定交接文件、需求文档和计划文档，再继续任务；不得只说“去新 worktree 继续”
-   - 创建 B worktree、迁移产物并写入交接 Markdown 后，立即停止 `ae:work` 阶段 2-4，只返回/报告 `worktree_decision: transferred`、B worktree 路径、已迁移产物、交接 Markdown 路径和继续提示词；不得在 A 会话运行功能实现、审查、浏览器测试或最终功能交付 gate
-   - B 会话才是实际执行会话；若当前 `ctx.worktree` 匹配 A→B 交接文件或启动证明中的目标 B worktree，B 中即使选择当前工作区或 `auto` 推荐当前工作区，最终功能交付 gate 也必须记录 `worktree_decision: created`，表示本任务已在独立 worktree 中执行并交付，不得沿用 A 的 `transferred` 或普通当前工作区的 `rejected` 作为最终 gate 取值
-   - 若无法唯一确定当前任务关联需求/计划，必须询问用户；不得靠最近修改时间或相近 topic 批量复制 `docs/ae/*`
-   - 校验 worktree 名称、分支名和 base ref：分支名用 `git check-ref-format --branch` 或等价规则，base ref 用 `git rev-parse --verify <base>^{commit}` 或等价方式解析到 commit，路径必须解析到 `../worktrees/<name>` 且拒绝危险位置、符号链接绕过和 option-like 输入
-   - 执行 Git 命令必须使用参数数组或等价安全执行方式，不拼接 shell 字符串；授权前向用户展示校验后的最终参数
-   - A→B 启动证明必须包含 `source_session_id`、A 的 `ctx.worktree`、`target_worktree`、branch、HEAD、授权来源、授权覆盖范围、`covered_command_args`、`final_command_args`、创建结果、已迁移产物清单、交接 Markdown 路径和在 B 重新启动 opencode 的继续提示词
-   - 检查当前分支；若已在功能分支，建议重命名无意义分支名
-   - 未经明确许可不创建任何 Git 提交
-   - 即使用户授权提交，也不得未经明确许可提交到默认分支
+2. **准备环境（硬性门禁 — 不得跳过）**
 
-3. **创建待办列表**（若已构建或路由为简单则跳过）
+   > ⛔ **执行阻断规则**：以下所有子步骤必须在修改任何项目文件之前完成。未完成时，不得进入阶段 2、不得执行实现、不得修改任何 `.ts`、`.js`、`.md`、`.json` 或其他项目文件。违反此规则等同于流程失败。
+
+   **2a. 解析 worktree 模式**
+
+   - 检查调用方是否显式传入了 worktree 模式：`worktree`、`current-worktree`、`auto`
+   - 兼容输入 `--no-worktree` 映射为 `current-worktree`
+   - 如果调用方是 `ae:lfg` 或 `ae:task-loop`，只接收其透传的模式；调用方未显式传入时由调用方补齐并传入 `auto`
+   - 单独使用 `ae:work` 且未显式传入三值中的任何一个时，**必须向用户询问**，不得自行推断或默认采用 `auto`
+
+   **2b. 执行 Git 状态检查（必须实际运行命令）**
+
+   必须实际运行以下命令并获取输出，不得凭假设跳过：
+
+   ```bash
+   git status --short
+   git branch --show-current
+   git log --oneline -1
+   ```
+
+   记录：当前分支、工作区脏状态（有/无）、最近提交。
+
+   **2c. 风险评估与用户确认**
+
+   根据 Git 状态和 worktree 模式，向用户展示风险评估并等待确认：
+
+   | 场景 | 必须向用户说明的风险 | 必须提供的选项 |
+   |------|---------------------|---------------|
+   | 默认分支 + 脏工作区 | "当前在默认分支 `{branch}` 上，工作区有未提交变更。在默认分支做功能开发会污染历史。" | 创建 worktree / 创建功能分支 / 继续当前工作区（需二次确认风险） / 取消 |
+   | 默认分支 + 干净工作区 | "当前在默认分支 `{branch}` 上。" | 创建 worktree / 创建功能分支 / 继续当前工作区（需二次确认风险） / 取消 |
+   | 功能分支 + 脏工作区 | "当前在功能分支 `{branch}` 上，工作区有未提交变更。" | 创建 worktree / 继续当前工作区 / 取消 |
+   | 功能分支 + 干净工作区 | "当前在功能分支 `{branch}` 上。" | 创建 worktree / 继续当前工作区 / 取消 |
+
+   用户选择取消时：立即终止 `ae:work`，只输出取消状态和 `worktree_decision: cancelled`，不得修改任何文件。
+
+   **2d. 记录决策**
+
+   无论用户选择什么，必须在后续所有输出中记录：
+   - `worktree_mode`：`worktree` / `current-worktree` / `auto`
+   - `worktree_decision`：`created` / `rejected` / `transferred` / `cancelled` / `not_applicable`
+   - `branch`：实际执行的分支名
+   - `recommendation_basis`：推荐依据（auto 模式必须记录）
+
+   **2e. worktree 创建流程**（仅当用户选择创建时）
+
+   - 创建 worktree 前必须获得用户对具体 `git worktree add` 命令参数的明确授权
+   - 本地目录固定为 `../worktrees/<name>`，`<name>` 使用分支名或任务名净化后的短名
+   - 创建后，当前会话不得在 A 目录修改 B worktree 的文件；必须引导用户在 B 目录重新启动 opencode
+    - A 会话只允许写入交接 Markdown 和迁移需求/计划产物
+    - 创建 B worktree、迁移产物并写入交接 Markdown 后，立即停止 `ae:work` 阶段 2-4，只返回/报告 `worktree_decision: transferred`、B worktree 路径、已迁移产物、交接 Markdown 路径和继续提示词
+    - A→B 启动证明必须包含 `source_session_id`、A 的 `ctx.worktree`、`target_worktree`、branch、HEAD、授权来源、授权覆盖范围、`covered_command_args`、`final_command_args`、创建结果、已迁移产物清单和继续提示词
+
+3. **分析任务结构**
+   - 调用 `ae-task-analyzer` 工具：
+     - 计划文档输入 → `mode:plan`，传入计划路径
+     - 裸提示词输入 → `mode:scan`，传入任务描述
+   - 工具输出结构化任务列表（`units`）、文件冲突矩阵（`conflict_matrix`）和并行组（`parallel_groups`）
+   - 如果工具返回警告（如无法识别文件），降级为手动任务拆分
+
+4. **创建待办列表**（若已构建或路由为简单则跳过）
    - 从计划推导任务，包含依赖关系、文件范围、共享产物、验证要求和优先级排序
    - 从裸提示词进入时，若定位后发现明显可拆分且文件范围互不重叠的子任务，也必须构建任务列表
    - 将每个单元的 Verification 作为完成信号
 
-4. **选择执行策略**
+5. **选择执行策略**
 
 | 策略 | 适用场景 |
 |------|----------|
-| **内联** | 1-2 个小任务 |
-| **串行子代理** | 3+ 有依赖的任务 |
-| **并行子代理** | 3+ 通过安全检查的任务 |
+| **内联** | 1-2 个小任务，或 ae-task-analyzer 输出仅 1 个并行组 |
+| **串行子代理** | 3+ 有依赖的任务，或 ae-task-analyzer 输出的并行组全部 is_parallel_safe=false |
+| **并行子代理** | 3+ 通过安全检查的任务，ae-task-analyzer 输出至少 2 个 is_parallel_safe=true 的并行组 |
 
-**并行安全检查：** 必须先构建“文件到任务单元”的映射。若文件范围、状态、迁移、配置、公共契约、测试夹具或共享中间产物存在冲突，或任一任务依赖另一任务的未完成输出，则降级为串行。
+**并行安全检查：** 由 `ae-task-analyzer` 工具自动完成。工具输出的 `conflict_matrix` 列出了所有文件冲突，`parallel_groups` 标注了每个组是否 `is_parallel_safe`。若工具未被调用，必须手动构建"文件到任务单元"映射：若文件范围、状态、迁移、配置、公共契约、测试夹具或共享中间产物存在冲突，或任一任务依赖另一任务的未完成输出，则降级为串行。
 
-**并行子代理约束：** 每个子代理只处理分配给自己的文件和任务；不得暂存、提交、运行全量测试套件；不得修改共享配置、锁文件、迁移文件或未分配文件；不得启动服务、浏览器测试、E2E、集成测试，或任何会占用端口、数据库、缓存、固定临时目录等共享资源的命令；遇到跨任务依赖、文件冲突、共享资源需求或需要共享中间产物时，必须停止并报告主代理。
+**并行子代理约束：** 读取 `references/work-subagent-template.md` 构建每个子代理的提示。每个子代理只处理分配给自己的文件和任务；不得暂存、提交、运行全量测试套件；不得修改共享配置、锁文件、迁移文件或未分配文件；不得启动服务、浏览器测试、E2E、集成测试，或任何会占用端口、数据库、缓存、固定临时目录等共享资源的命令；遇到跨任务依赖、文件冲突、共享资源需求或需要共享中间产物时，必须停止并报告主代理。
 
 ### 阶段 2：执行
 
+> ⛔ **执行前验证**：在修改任何项目文件之前，必须确认以下清单全部满足。任一项未满足时，停止执行并返回阶段 1 补齐。
+>
+> - [ ] 阶段 1 步骤 2 的 worktree 决策已完成（用户已确认 worktree 模式和分支策略）
+> - [ ] 已实际运行 `git status --short`、`git branch --show-current` 并记录输出
+> - [ ] 用户已确认在当前分支/工作区执行（或已创建新 worktree）
+> - [ ] `worktree_decision` 值已确定（`created` / `rejected` / `transferred` / `cancelled` / `not_applicable`）
+>
+> 如果以上清单有任何一项未满足，不得开始修改文件。先返回阶段 1 步骤 2 完成 worktree 决策。
+
 1. **任务执行循环或并行执行**
 
-   按阶段 1 选定策略执行任务。串行时按优先级处理每个任务；并行时由主代理一次性分派已通过安全检查的独立单元，并在分派说明中列出每个子代理允许修改的文件、禁止修改的文件类型、禁止运行的共享资源命令、只读检查或纯静态局部验证建议，以及冲突上报要求。所有执行都必须遵循 Execution note 指引。
+   按阶段 1 选定的策略和 `ae-task-analyzer` 输出执行任务：
+
+   **串行执行** — 按优先级处理每个任务。
+
+   **并行执行** — 按 `ae-task-analyzer` 输出的 `parallel_groups` 执行：
+   - 读取 `references/work-subagent-template.md` 构建每个子代理的提示
+   - 同一并行组（`is_parallel_safe=true`）的任务在同一轮消息中并发派发（使用 Task 工具）
+   - 不同并行组按 `execution_order` 顺序依次执行
+   - 每个子代理的提示词必须包含：任务 ID、允许文件、禁止文件、禁止命令、验证命令、冲突上报要求
+
+   **部分失败处理** — 并行组内任一子代理失败时：
+   - 已完成的子代理结果保留
+   - 失败的任务标记为需要串行重试
+   - 在下一轮中单独执行失败任务
+   - 如果重试仍失败，报告失败原因并询问用户
+
+   所有执行都必须遵循 Execution note 指引。
 
    **测试发现** — 变更前查找已有测试文件。新行为添加新测试、变更行为修改测试、删除行为移除测试。
 
@@ -121,7 +173,14 @@ argument-hint: "[计划路径|工作描述]"
 
    **系统级测试检查** — 任务完成前检查：回调/中间件、集成测试覆盖、失败时的孤立状态、跨接口一致性、错误策略。
 
-   **并行汇总职责** — 并行子代理完成后，主代理必须收集结果、检查工作区冲突和未授权文件修改、修复集成问题、运行统一验证命令、更新最终任务状态，并在阶段 3-4 执行 `ae-gate`。
+   **并行汇总职责** — 并行子代理完成后，主代理必须：
+   1. 收集所有子代理返回的 JSON 结果
+   2. 检查 `conflicts_found` 字段，处理越权文件修改
+   3. 检查 `files_modified` 字段，确保无跨任务文件冲突
+   4. 修复集成问题
+   5. 运行统一验证命令
+   6. 更新最终任务状态
+   7. 在阶段 3-4 执行 `ae-gate`
 
 2. **增量提交**
 
