@@ -4,14 +4,15 @@ import { COMMAND, PA_SUFFIX, PO_SUFFIX, SKILL } from '../../src/schemas/ae-asset
 import { generateHelpText } from '../../src/services/help-catalog-service.js'
 
 describe('help-catalog-service 集成', () => {
-  it('应该在真实帮助目录中暴露 ae:asset-debug 入口', () => {
-    const text = generateHelpText('asset-debug')
+  it('应该在真实帮助目录中暴露 ae:skill-from-session 入口', () => {
+    const text = generateHelpText('skill-from-session')
 
-    expect(text).toContain(SKILL.ASSET_DEBUG)
-    expect(text).toContain(`/${COMMAND.ASSET_DEBUG}`)
-    expect(text).not.toContain(`/${COMMAND.ASSET_DEBUG}${PO_SUFFIX}`)
-    expect(text).not.toContain(`/${COMMAND.ASSET_DEBUG}${PA_SUFFIX}`)
-    expect(text).toContain('[资产名\\|纠偏摘要]')
+    expect(text).toContain(SKILL.SKILL_FROM_SESSION)
+    expect(text).toContain(`/${COMMAND.SKILL_FROM_SESSION}`)
+    expect(text).not.toContain(`/${COMMAND.SKILL_FROM_SESSION}${PO_SUFFIX}`)
+    expect(text).not.toContain(`/${COMMAND.SKILL_FROM_SESSION}${PA_SUFFIX}`)
+    expect(text).toContain('从当前会话创建或更新 OpenCode 原生技能')
+    expect(text).toContain('[目标技能名\\|流程关注点\\|资产名\\|纠偏摘要]')
   })
 
   it('应该在真实帮助目录中暴露 ae:refactor 入口', () => {
@@ -34,14 +35,26 @@ describe('help-catalog-service 集成', () => {
     expect(text).toContain('[来源分支名\\|本地 worktree 路径]')
   })
 
-  it('应该在真实帮助目录中暴露 ae:save-session-flow 入口', () => {
-    const text = generateHelpText('save-session-flow')
+  it('真实帮助目录不应该暴露旧会话沉淀和资产纠偏入口', () => {
+    const text = generateHelpText()
 
-    expect(text).toContain(SKILL.SAVE_SESSION_FLOW)
-    expect(text).toContain(`/${COMMAND.SAVE_SESSION_FLOW}`)
-    expect(text).not.toContain(`/${COMMAND.SAVE_SESSION_FLOW}${PO_SUFFIX}`)
-    expect(text).not.toContain(`/${COMMAND.SAVE_SESSION_FLOW}${PA_SUFFIX}`)
-    expect(text).toContain('[目标技能名\\|流程关注点]')
+    expect(text).not.toContain('ae:save-session-flow')
+    expect(text).not.toContain('/ae-save-session-flow')
+    expect(text).not.toContain('ae:asset-debug')
+    expect(text).not.toContain('/ae-asset-debug')
+  })
+
+  it('按旧入口查询时不应该暴露旧会话沉淀和资产纠偏入口', () => {
+    for (const query of ['save-session-flow', 'asset-debug']) {
+      const text = generateHelpText(query)
+
+      expect(text).not.toContain('ae:save-session-flow')
+      expect(text).not.toContain('/ae-save-session-flow')
+      expect(text).not.toContain('[目标技能名\\|流程关注点]')
+      expect(text).not.toContain('ae:asset-debug')
+      expect(text).not.toContain('/ae-asset-debug')
+      expect(text).not.toContain('[资产名\\|纠偏摘要]')
+    }
   })
 
   it('应该在真实帮助目录中展示 ae:test-browser 的 setup 前置语义', () => {

@@ -4,11 +4,11 @@ import { AeCommandNameSchema, AeSkillNameSchema, COMMAND, PA_SUFFIX, PO_SUFFIX, 
 import { createToolRegistry } from '../../src/tools/index.js'
 
 describe('ae-asset-schema', () => {
-  it('应该接受 asset-debug 技能和命令', () => {
-    expect(AeSkillNameSchema.parse(SKILL.ASSET_DEBUG)).toBe('ae:asset-debug')
-    expect(AeCommandNameSchema.parse(COMMAND.ASSET_DEBUG)).toBe('ae-asset-debug')
-    expect(AeCommandNameSchema.safeParse(`${COMMAND.ASSET_DEBUG}${PO_SUFFIX}`).success).toBe(false)
-    expect(AeCommandNameSchema.safeParse(`${COMMAND.ASSET_DEBUG}${PA_SUFFIX}`).success).toBe(false)
+  it('应该接受 skill-from-session 技能和命令', () => {
+    expect(AeSkillNameSchema.parse(SKILL.SKILL_FROM_SESSION)).toBe('ae:skill-from-session')
+    expect(AeCommandNameSchema.parse(COMMAND.SKILL_FROM_SESSION)).toBe('ae-skill-from-session')
+    expect(AeCommandNameSchema.safeParse(`${COMMAND.SKILL_FROM_SESSION}${PO_SUFFIX}`).success).toBe(false)
+    expect(AeCommandNameSchema.safeParse(`${COMMAND.SKILL_FROM_SESSION}${PA_SUFFIX}`).success).toBe(false)
   })
 
   it('应该接受 swagger-parser 技能和命令', () => {
@@ -18,11 +18,11 @@ describe('ae-asset-schema', () => {
     expect(AeCommandNameSchema.safeParse(`${COMMAND.SWAGGER_PARSER}${PA_SUFFIX}`).success).toBe(false)
   })
 
-  it('应该接受 save-session-flow 技能和命令', () => {
-    expect(AeSkillNameSchema.parse(SKILL.SAVE_SESSION_FLOW)).toBe('ae:save-session-flow')
-    expect(AeCommandNameSchema.parse(COMMAND.SAVE_SESSION_FLOW)).toBe('ae-save-session-flow')
-    expect(AeCommandNameSchema.safeParse(`${COMMAND.SAVE_SESSION_FLOW}${PO_SUFFIX}`).success).toBe(false)
-    expect(AeCommandNameSchema.safeParse(`${COMMAND.SAVE_SESSION_FLOW}${PA_SUFFIX}`).success).toBe(false)
+  it('应该拒绝旧会话沉淀和资产纠偏入口', () => {
+    expect(AeSkillNameSchema.safeParse('ae:save-session-flow').success).toBe(false)
+    expect(AeCommandNameSchema.safeParse('ae-save-session-flow').success).toBe(false)
+    expect(AeSkillNameSchema.safeParse('ae:asset-debug').success).toBe(false)
+    expect(AeCommandNameSchema.safeParse('ae-asset-debug').success).toBe(false)
   })
 
   it('应该只接受 save-experience 经验沉淀入口', () => {

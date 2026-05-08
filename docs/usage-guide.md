@@ -85,9 +85,7 @@
 
 需要保存本次会话中的可复用经验时，用 `/ae-save-experience`。该入口先把方案、复盘或研究沉淀保存为 solution，再按需提炼长期 rules；即使只保存长期项目规范，也使用这个统一入口。
 
-需要把当前执行流程固化为可复用流程时，用 `/ae-save-session-flow`。
-
-需要诊断 AE 资产执行偏差时，用 `/ae-asset-debug`。
+需要把当前执行流程或资产纠偏经验固化为可复用技能时，用 `/ae-skill-from-session`。
 
 需要更新 AE 插件时，用 `/ae-update`，项目级安装使用 `/ae-update project`。
 
@@ -245,7 +243,7 @@ AE 内置命令和代理各自声明了模型场景（如 `/ae-plan` → `deep`�
 | 远程协作 | 用户侧流程不提供 push、创建 PR、创建 Issue 或 Release 的远程写操作流程 |
 | 浏览器验收 | 当前会话实际执行任何 `agent-browser` 命令前，必须先完成 `/ae-setup` |
 | 门禁 | `ae-gate` 只检查证据完整性，不会代替实际验证命令或审查过程 |
-| 插件维护 | `/ae-update` 和 `/ae-asset-debug` 面向 AE 插件安装或源码维护语境，不代表普通业务项目必须有 AE 源码目录 |
+| 插件维护 | `/ae-update` 面向 AE 插件安装或源码维护语境，不代表普通业务项目必须有 AE 源码目录 |
 
 ## 最新帮助
 

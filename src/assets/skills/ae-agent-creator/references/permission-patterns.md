@@ -24,7 +24,7 @@
 
 - `mode` 从 `subagent` 扩大为 `primary` 或 `all`。
 - 新增工具、移除工具禁用项，或把 `tools` / `permission` 从拒绝、询问改为允许。
-- 新增或放宽 destructive Git、删除文件、覆盖文件、跳过 hooks、远程写操作、网络写操作或外部副作用指令。
+- 新增或放宽 destructive Git、删除文件、覆盖文件、绕过提交钩子、远程写操作、网络写操作或外部副作用指令。
 - 新增浏览器命令或 `agent-browser` 能力；浏览器流程仍必须先完成当前会话 `ae:setup`。
 - 删除旧正文中的安全边界、确认要求或禁止事项。
 

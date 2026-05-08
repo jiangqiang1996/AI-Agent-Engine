@@ -26,8 +26,8 @@ AE 不试图替代项目自身的工程规范，也不要求用户项目采用�
 | 前端与浏览器验收 | `/ae-frontend-design`、`/ae-test-browser`、`@figma-design-sync`、`@design-iterator` | 构建前端初版、执行浏览器验收、按设计稿修正视觉偏差或多轮打磨已有 UI |
 | 接口与数据辅助 | `/ae-swagger-parser`、`/ae-sql` | 解析 Swagger/OpenAPI 生成联调摘要；通过 JDBC 执行数据库查询或操作 |
 | 会话与提示词 | `/ae-handoff`、`/ae-prompt-optimize` | 创建带上下文的新会话，或把随意输入整理成更适合 AI 执行的提示词 |
-| 经验与流程沉淀 | `/ae-save-experience`、`/ae-save-session-flow` | 保存可复用 solution 与长期 rules，或把当前执行流程固化为项目级/AE 内置技能 |
-| 插件维护 | `/ae-update`、`/ae-asset-debug` | 更新 AE 插件安装仓库，或诊断当前 opencode 会话中生效资产的执行偏差 |
+| 经验与流程沉淀 | `/ae-save-experience`、`/ae-skill-from-session` | 保存可复用 solution 与长期 rules，或从当前会话创建或更新技能 |
+| 插件维护 | `/ae-update` | 更新 AE 插件安装仓库 |
 
 安装后可用 `/ae-help` 查看当前运行时实际注册的技能、命令、代理和模型场景路由。该输出由运行时代码生成，是核对可用能力的权威入口。
 
@@ -94,14 +94,14 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 
 | 类型 | 数量 | 真源 | 说明 |
 | --- | ---: | --- | --- |
-| 技能 | 当前快照 22 | `src/assets/skills/`、`src/services/ae-catalog.ts` | 面向用户的工作流入口，可通过 `/ae-*` 命令触发 |
-| 命令 | 当前快照 40 | `src/services/command-registration.ts`、`src/assets/commands/` | 包含基础命令、`-po` 提示词优化变体、`-pa` 自动优化变体和 `/ae-commit` |
+| 技能 | 当前快照 23 | `src/assets/skills/`、`src/services/ae-catalog.ts` | 面向用户的工作流入口，可通过 `/ae-*` 命令触发 |
+| 命令 | 当前快照 43 | `src/services/command-registration.ts`、`src/assets/commands/` | 包含基础命令、`-po` 提示词优化变体、`-pa` 自动优化变体和 `/ae-commit` |
 | 代理 | 当前快照 26 | `src/assets/agents/`、`src/services/agent-registration.ts` | 按审查、研究、工作流分组，通过 `@<代理名>` 调用 |
 | 工具 | 当前快照 7 | `src/tools/` | 供技能和代理调用的结构化工具，如恢复、审查契约、门禁、帮助、交接和 Swagger 解析 |
 | 规则 | 当前快照 4 | `src/assets/rules/` | 注入到会话中的 AI 编码、执行护栏、全局开发和浏览器 setup 前置规则 |
 | 内置配置 | 当前快照 1 | `src/assets/config/ae.jsonc` | 默认 MCP 配置，项目级/全局 `ae.jsonc` 可按规则覆盖 |
 
-主要技能包括：`ae:ideate`、`ae:brainstorm`、`ae:plan`、`ae:refactor`、`ae:work`、`ae:review`、`ae:lfg`、`ae:setup`、`ae:test-browser`、`ae:frontend-design`、`ae:handoff`、`ae:prompt-optimize`、`ae:task-loop`、`ae:sql`、`ae:swagger-parser`、`ae:save-experience`、`ae:save-session-flow`、`ae:asset-debug`、`ae:help`、`ae:update` 等。完整说明以 `/ae-help` 为准。
+主要技能包括：`ae:ideate`、`ae:brainstorm`、`ae:plan`、`ae:refactor`、`ae:work`、`ae:review`、`ae:lfg`、`ae:setup`、`ae:test-browser`、`ae:frontend-design`、`ae:handoff`、`ae:prompt-optimize`、`ae:task-loop`、`ae:sql`、`ae:swagger-parser`、`ae:save-experience`、`ae:skill-from-session`、`ae:help`、`ae:update` 等。完整说明以 `/ae-help` 为准。
 
 ## 工作方式
 
@@ -126,7 +126,7 @@ AE 的公开能力按真实实现有以下边界：
 | 不默认执行远程写操作 | 用户侧能力不会提供 push、创建 PR、创建 Release 等远程写流程；本地 Git 写操作也需要授权 |
 | 浏览器能力有前置 setup | 任何实际 `agent-browser` 调用前，当前会话必须先完成 `/ae-setup` |
 | 项目配置是可选入口 | `.opencode/rules/` 和 `.opencode/ae.jsonc` 是受支持的可选用户配置，不是所有项目的必备结构 |
-| 插件维护能力有专门语境 | `/ae-update`、`/ae-asset-debug` 等可以引用 AE 安装仓库；普通用户项目流程不应依赖本源码仓库布局 |
+| 插件维护能力有专门语境 | `/ae-update` 可以引用 AE 安装仓库；普通用户项目流程不应依赖本源码仓库布局 |
 
 ## 配置
 

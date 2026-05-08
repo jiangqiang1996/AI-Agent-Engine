@@ -20,9 +20,8 @@ export const SKILL = {
   SQL: 'ae:sql',
   SWAGGER_PARSER: 'ae:swagger-parser',
   SAVE_EXPERIENCE: 'ae:save-experience',
-  SAVE_SESSION_FLOW: 'ae:save-session-flow',
+  SKILL_FROM_SESSION: 'ae:skill-from-session',
   SKILL_CREATOR: 'ae:skill-creator',
-  ASSET_DEBUG: 'ae:asset-debug',
   HELP: 'ae:help',
   UPDATE: 'ae:update',
 } as const
@@ -42,9 +41,8 @@ export const PROMPT_OPTIMIZE_VARIANT_EXCLUDED_SKILLS = [
   SKILL.SQL,
   SKILL.SWAGGER_PARSER,
   SKILL.SAVE_EXPERIENCE,
-  SKILL.SAVE_SESSION_FLOW,
+  SKILL.SKILL_FROM_SESSION,
   SKILL.SKILL_CREATOR,
-  SKILL.ASSET_DEBUG,
   SKILL.HELP,
   SKILL.UPDATE,
 ] as const
@@ -128,9 +126,8 @@ export const AeSkillNameSchema = z
     SKILL.SQL,
     SKILL.SWAGGER_PARSER,
     SKILL.SAVE_EXPERIENCE,
-    SKILL.SAVE_SESSION_FLOW,
+    SKILL.SKILL_FROM_SESSION,
     SKILL.SKILL_CREATOR,
-    SKILL.ASSET_DEBUG,
     SKILL.HELP,
     SKILL.UPDATE,
   ])
