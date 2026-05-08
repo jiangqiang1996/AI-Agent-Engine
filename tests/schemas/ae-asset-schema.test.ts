@@ -46,6 +46,8 @@ describe('ae-asset-schema', () => {
     expect(AeCommandNameSchema.parse(COMMAND.AGENT_CREATOR)).toBe('ae-agent-creator')
     expect(AeCommandNameSchema.parse(`${COMMAND.AGENT_CREATOR}${PO_SUFFIX}`)).toBe('ae-agent-creator-po')
     expect(AeCommandNameSchema.parse(`${COMMAND.AGENT_CREATOR}${PA_SUFFIX}`)).toBe('ae-agent-creator-pa')
+    expect(AeSkillNameSchema.safeParse('ae:agent-updater').success).toBe(false)
+    expect(AeCommandNameSchema.safeParse('ae-agent-updater').success).toBe(false)
   })
 
   it('应该声明 setup 证明工具名', () => {

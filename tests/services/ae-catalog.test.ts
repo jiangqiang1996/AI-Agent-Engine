@@ -63,6 +63,19 @@ describe('AE catalog 一致性', () => {
     expect(entry?.defaultEntry).toBe(false)
     expect(entry?.skillFile).toBe('src/assets/skills/ae-agent-creator/SKILL.md')
     expect(entry?.description).toBe(frontmatter.description)
+    expect(entry?.description).toContain('创建或更新')
+  })
+
+  it('ae:agent-creator 应保持单一创建与更新入口', () => {
+    const entries = getPhaseOneEntries()
+    const entry = entries.find((item) => item.skillName === SKILL.AGENT_CREATOR)
+    const text = readFileSync('src/assets/skills/ae-agent-creator/SKILL.md', 'utf8')
+
+    expect(entry?.description).toContain('更新')
+    expect(entries.map((item) => item.skillName)).not.toContain('ae:agent-updater')
+    expect(entries.map((item) => item.commandName)).not.toContain('ae-agent-updater')
+    expect(text).toContain('不新增或引导寻找 `ae:agent-updater`')
+    expect(text).toContain('init_agent.mjs` 拒绝覆盖既有目标是预期安全语义')
   })
 
   it('ae:agent-creator 应生成提示词优化命令变体', () => {

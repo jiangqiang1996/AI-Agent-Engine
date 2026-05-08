@@ -64,7 +64,7 @@ const PHASE_ONE_ENTRIES = [
     skillName: SKILL.AGENT_CREATOR,
     skillSlug: skillDir(SKILL.AGENT_CREATOR),
     commandName: COMMAND.AGENT_CREATOR,
-    description: '创建 OpenCode 原生代理，默认项目级，支持显式全局级和可选同级命令',
+    description: '创建或更新 OpenCode 原生代理，默认项目级，支持显式全局级和可选同级命令',
     argumentHint: '[代理用途|代理名称] [--global] [--command]',
     defaultEntry: false,
     skillFile: `src/assets/skills/${skillDir(SKILL.AGENT_CREATOR)}/SKILL.md`,
