@@ -138,4 +138,17 @@ describe('资产健康巡检', () => {
     expect(text).not.toContain('ae:save-rules')
     expect(text).not.toContain('/ae-save-rules')
   })
+
+  it('agent-creator 文档应该固定更新流程安全边界', () => {
+    const text = readFileSync('src/assets/skills/ae-agent-creator/SKILL.md', 'utf8')
+    const conventions = readFileSync('src/assets/skills/ae-agent-creator/references/opencode-agent-conventions.md', 'utf8')
+    const permissions = readFileSync('src/assets/skills/ae-agent-creator/references/permission-patterns.md', 'utf8')
+
+    expect(text).toContain('读取旧文件')
+    expect(text).toContain('项目级影子代理')
+    expect(text).toContain('默认不创建或重写命令')
+    expect(conventions).toContain('同名候选')
+    expect(conventions).toContain('敏感字段或正文指令变化')
+    expect(permissions).toContain('正文新增、删除或重写 destructive Git')
+  })
 })
