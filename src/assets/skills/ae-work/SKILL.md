@@ -100,9 +100,10 @@ argument-hint: "[计划路径|工作描述]"
 
    - 创建 worktree 前必须获得用户对具体 `git worktree add` 命令参数的明确授权
    - 本地目录固定为 `../worktrees/<name>`，`<name>` 使用分支名或任务名净化后的短名
-   - 创建后，当前会话不得在 A 目录修改 B worktree 的文件；必须引导用户在 B 目录重新启动 opencode
-    - A 会话只允许写入交接 Markdown 和迁移需求/计划产物
-    - 创建 B worktree、迁移产物并写入交接 Markdown 后，立即停止 `ae:work` 阶段 2-4，只返回/报告 `worktree_decision: transferred`、B worktree 路径、已迁移产物、交接 Markdown 路径和继续提示词
+   - 创建 B 后，A 会话不得再写入 A worktree 的任何文件，也不得在 B 中修改代码、配置、测试或其他项目文件
+    - A 会话只允许在 B 写入当前任务已确定的需求/计划产物，以及唯一规范交接文件 `docs/ae/handoffs/<timestamp>-worktree-handoff.md`
+    - 交接文件路径不得使用 `docs/ae/handoff-*.md`、A worktree 路径或其他等价路径；写错位置时必须停止并报告流程失败，不得继续实现
+    - 创建 B worktree、迁移产物并写入规范交接 Markdown 后，立即停止 `ae:work` 阶段 2-4，只返回/报告 `worktree_decision: transferred`、B worktree 路径、已迁移产物、交接 Markdown 路径和继续提示词
     - A→B 启动证明必须包含 `source_session_id`、A 的 `ctx.worktree`、`target_worktree`、branch、HEAD、授权来源、授权覆盖范围、`covered_command_args`、`final_command_args`、创建结果、已迁移产物清单和继续提示词
 
 3. **分析任务结构**
