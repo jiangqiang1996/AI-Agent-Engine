@@ -53,6 +53,7 @@ describe('ae:work 并行子代理模板文本契约', () => {
     expect(templateText).toContain('不得启动服务、浏览器测试、E2E、集成测试')
     expect(templateText).toContain('不得占用端口、数据库、缓存、固定临时目录')
     expect(templateText).toContain('遇到跨任务依赖时停止并报告')
+    expect(templateText).toContain('主代理会使用 Git diff/status 独立核验真实修改范围')
     expect(templateText).toContain('完成后返回结构化结果')
   })
 

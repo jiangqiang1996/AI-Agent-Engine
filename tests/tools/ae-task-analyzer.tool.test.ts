@@ -140,9 +140,152 @@ describe('ae-task-analyzer 工具', () => {
       expect(parsed.warnings.length).toBeGreaterThan(0)
       expect(parsed.warnings[0]).toContain('不存在')
     })
+
+    it('应该解析无标题单元并归一化文件路径', async () => {
+      createTestFile('docs/plan-no-title.md', [
+        '- [ ] **单元 1：**',
+        '  **文件**：',
+        '  - `./src/tools/../tools/ae-task-analyzer.tool.ts`',
+        '  **验证**：',
+        '  - `npm run typecheck`',
+      ].join('\n'))
+
+      const tool = await getTool()
+      const result = await tool.execute(
+        { mode: 'plan', plan_path: 'docs/plan-no-title.md', worktree },
+        createMockContext(),
+      )
+      const parsed = JSON.parse(result) as { units: Array<{ description: string; files: Array<{ path: string }> }> }
+
+      expect(parsed.units).toHaveLength(1)
+      expect(parsed.units[0].description).toBe('单元 1')
+      expect(parsed.units[0].files[0].path).toBe('src/tools/ae-task-analyzer.tool.ts')
+    })
+
+    it('应该拒绝越出工作区的计划路径', async () => {
+      const tool = await getTool()
+      const result = await tool.execute(
+        { mode: 'plan', plan_path: '../outside-plan.md', worktree },
+        createMockContext(),
+      )
+      const parsed = JSON.parse(result) as { units: unknown[]; warnings: string[] }
+
+      expect(parsed.units).toHaveLength(0)
+      expect(parsed.warnings[0]).toContain('必须是仓库相对路径')
+    })
+
+    it('应该拒绝绝对计划路径', async () => {
+      const tool = await getTool()
+      const result = await tool.execute(
+        { mode: 'plan', plan_path: join(worktree, 'docs/plan-no-title.md'), worktree },
+        createMockContext(),
+      )
+      const parsed = JSON.parse(result) as { units: unknown[]; warnings: string[] }
+
+      expect(parsed.units).toHaveLength(0)
+      expect(parsed.warnings[0]).toContain('必须是仓库相对路径')
+    })
+
+    it('应该拒绝跨平台绝对或盘符计划路径', async () => {
+      const tool = await getTool()
+
+      for (const planPath of ['/tmp/plan.md', 'C:secret.md', 'C:\\secret.md', '\\\\server\\share\\plan.md']) {
+        const result = await tool.execute(
+          { mode: 'plan', plan_path: planPath, worktree },
+          createMockContext(),
+        )
+        const parsed = JSON.parse(result) as { units: unknown[]; warnings: string[] }
+
+        expect(parsed.units).toHaveLength(0)
+        expect(parsed.warnings[0]).toContain('必须是仓库相对路径')
+      }
+    })
+
+    it('应该忽略计划中的绝对路径和越界文件路径', async () => {
+      createTestFile('docs/plan-invalid-files.md', [
+        '- [ ] **单元 1：** 路径校验',
+        '  **文件**：',
+        '  - `../secret.ts`',
+        '  - `..\\secret.ts`',
+        '  - `/tmp/secret.ts`',
+        '  - `C:/secret.ts`',
+        '  - `C:secret.ts`',
+        '  - `C:\\secret.ts`',
+        '  - `\\\\server\\share\\secret.ts`',
+        '  - `src/tools/ae-task-analyzer.tool.ts`',
+      ].join('\n'))
+
+      const tool = await getTool()
+      const result = await tool.execute(
+        { mode: 'plan', plan_path: 'docs/plan-invalid-files.md', worktree },
+        createMockContext(),
+      )
+      const parsed = JSON.parse(result) as { units: Array<{ files: Array<{ path: string }> }>; warnings: string[] }
+
+      expect(parsed.units[0].files.map((file) => file.path)).toEqual(['src/tools/ae-task-analyzer.tool.ts'])
+      expect(parsed.warnings.some((warning) => warning.includes('已忽略无效或越界文件路径'))).toBe(true)
+    })
+
+    it('应该把共享配置资源识别为冲突', async () => {
+      createTestFile('docs/plan-shared-config.md', [
+        '- [ ] **单元 1：** 修改配置一',
+        '  **文件**：',
+        '  - `tsconfig.json`',
+        '- [ ] **单元 2：** 修改配置二',
+        '  **文件**：',
+        '  - `tsconfig.build.json`',
+      ].join('\n'))
+
+      const tool = await getTool()
+      const result = await tool.execute(
+        { mode: 'plan', plan_path: 'docs/plan-shared-config.md', worktree },
+        createMockContext(),
+      )
+      const parsed = JSON.parse(result) as {
+        conflict_matrix: Array<{ shared_files: string[] }>
+        parallel_groups: Array<{ is_parallel_safe: boolean; unit_ids: string[] }>
+      }
+
+      expect(parsed.conflict_matrix[0].shared_files).toContain('<shared-resource:typescript-config>')
+      expect(parsed.parallel_groups.every((group) => group.is_parallel_safe)).toBe(true)
+      expect(parsed.parallel_groups.every((group) => group.unit_ids.length === 1)).toBe(true)
+    })
+
+    it('应该识别多类共享资源冲突', async () => {
+      const cases = [
+        ['package.json', 'package-lock.json', '<shared-resource:package-or-lockfile>'],
+        ['src/db/migrations/001.sql', 'src/db/migrations/002.sql', '<shared-resource:migration>'],
+        ['tests/fixtures/user.json', 'tests/__fixtures__/org.json', '<shared-resource:test-fixture>'],
+        ['dist/index.js', 'build/index.js', '<shared-resource:generated-output>'],
+      ]
+
+      const tool = await getTool()
+
+      for (const [fileA, fileB, expectedConflict] of cases) {
+        const planPath = `docs/plan-shared-${expectedConflict.replace(/[^a-z-]/g, '')}.md`
+        createTestFile(planPath, [
+          '- [ ] **单元 1：** 修改共享资源一',
+          '  **文件**：',
+          `  - \`${fileA}\``,
+          '- [ ] **单元 2：** 修改共享资源二',
+          '  **文件**：',
+          `  - \`${fileB}\``,
+        ].join('\n'))
+
+        const result = await tool.execute(
+          { mode: 'plan', plan_path: planPath, worktree },
+          createMockContext(),
+        )
+        const parsed = JSON.parse(result) as { conflict_matrix: Array<{ shared_files: string[] }> }
+
+        expect(parsed.conflict_matrix[0].shared_files).toContain(expectedConflict)
+      }
+    })
   })
 
   describe('输出结构', () => {
+    const requiredFields = ['units', 'conflict_matrix', 'parallel_groups', 'execution_order', 'warnings']
+
     it('应该包含所有必需字段', async () => {
       const tool = await getTool()
       const result = await tool.execute(
@@ -151,11 +294,30 @@ describe('ae-task-analyzer 工具', () => {
       )
       const parsed = JSON.parse(result) as Record<string, unknown>
 
-      expect(parsed).toHaveProperty('units')
-      expect(parsed).toHaveProperty('conflict_matrix')
-      expect(parsed).toHaveProperty('parallel_groups')
-      expect(parsed).toHaveProperty('execution_order')
-      expect(parsed).toHaveProperty('warnings')
+      for (const field of requiredFields) {
+        expect(parsed).toHaveProperty(field)
+      }
+    })
+
+    it('应该在 plan 模式成功和错误路径都保持输出字段完整', async () => {
+      createTestFile('docs/plan-output-contract.md', [
+        '- [ ] **单元 1：** 输出契约',
+        '  **文件**：',
+        '  - `src/tools/ae-task-analyzer.tool.ts`',
+      ].join('\n'))
+
+      const tool = await getTool()
+      const results = await Promise.all([
+        tool.execute({ mode: 'plan', plan_path: 'docs/plan-output-contract.md', worktree }, createMockContext()),
+        tool.execute({ mode: 'plan', plan_path: '../outside-plan.md', worktree }, createMockContext()),
+      ])
+
+      for (const result of results) {
+        const parsed = JSON.parse(result) as Record<string, unknown>
+        for (const field of requiredFields) {
+          expect(parsed).toHaveProperty(field)
+        }
+      }
     })
 
     it('应该为每个单元包含 suggested_validation', async () => {

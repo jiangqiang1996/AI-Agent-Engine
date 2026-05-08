@@ -1,5 +1,5 @@
 import { readdir, readFile, stat } from 'node:fs/promises'
-import { join, relative, extname } from 'node:path'
+import { extname, isAbsolute, join, normalize, posix, relative, resolve, win32 } from 'node:path'
 
 import { tool, type ToolDefinition } from '@opencode-ai/plugin/tool'
 import { Effect } from 'effect'
@@ -25,6 +25,30 @@ const EXCLUDED_FILENAMES = new Set([
   '.env', '.env.local', '.env.production',
 ])
 
+const ENGLISH_STOP_WORDS = new Set([
+  'the', 'a', 'an', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'and', 'or', 'is', 'are', 'was', 'were',
+  'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should',
+  'may', 'might', 'can', 'this', 'that', 'these', 'those', 'it', 'its', 'from', 'by', 'as', 'not', 'no',
+  'but', 'if', 'then', 'else', 'when', 'where', 'how', 'what', 'which', 'who', 'whom', 'why', 'all',
+  'each', 'every', 'both', 'few', 'some', 'any', 'most', 'other', 'such', 'than', 'too', 'very', 'just',
+  'about', 'above', 'after', 'again', 'also', 'am', 'aren', 'because', 'before', 'below', 'between',
+  'cannot', 'couldn', 'didn', 'doesn', 'doing', 'don', 'down', 'during', 'further', 'get', 'got', 'hadn',
+  'hasn', 'haven', 'having', 'he', 'her', 'here', 'hers', 'herself', 'him', 'himself', 'his', 'i', 'into',
+  'isn', 'itself', 'let', 'll', 'me', 'more', 'must', 'mustn', 'my', 'myself', 'nor', 'now', 'off', 'once',
+  'only', 'our', 'ours', 'ourselves', 'out', 'over', 'own', 're', 'same', 'shan', 'she', 'shouldn', 'so',
+  'their', 'theirs', 'them', 'themselves', 'there', 'they', 'through', 'under', 'until', 'up', 'us', 've',
+  'wasn', 'we', 'weren', 'while', 'won', 'wouldn', 'you', 'your', 'yours', 'yourself', 'yourselves',
+])
+
+const SHARED_RESOURCE_PATTERNS: Array<{ key: string; pattern: RegExp }> = [
+  { key: '<shared-resource:package-or-lockfile>', pattern: /(^|\/)(package\.json|.*lock.*|pnpm-workspace\.yaml)$/ },
+  { key: '<shared-resource:typescript-config>', pattern: /(^|\/)(tsconfig[^/]*\.json|.*\.config\.[cm]?[jt]s)$/ },
+  { key: '<shared-resource:environment-config>', pattern: /(^|\/)(\.env[^/]*|config\/|configs\/)/ },
+  { key: '<shared-resource:migration>', pattern: /(^|\/)(migrations?|schema)\// },
+  { key: '<shared-resource:test-fixture>', pattern: /(^|\/)(fixtures?|__fixtures__|setupTests?|test-setup)\b/ },
+  { key: '<shared-resource:generated-output>', pattern: /(^|\/)(dist|build|coverage|generated|__generated__)\// },
+]
+
 // 可源码文件扩展名
 const SOURCE_EXTENSIONS = new Set([
   '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs',
@@ -49,6 +73,95 @@ interface TaskUnit {
   files: Array<{ path: string; source: 'tool_scan' | 'llm_suggestion' }>
   suggested_validation: string[]
   priority: number
+}
+
+function isInsideDirectory(root: string, target: string): boolean {
+  const relativePath = relative(root, target)
+  return relativePath === '' || (!relativePath.startsWith('..') && !isAbsolute(relativePath))
+}
+
+function resolvePlanPath(planPath: string, worktree: string): { absolutePath?: string; warning?: string } {
+  if (isUnsafeRelativePath(planPath)) {
+    return { warning: '计划文件路径必须是仓库相对路径' }
+  }
+
+  const normalizedWorktree = resolve(worktree)
+  const absolutePath = resolve(normalizedWorktree, planPath)
+
+  if (!isInsideDirectory(normalizedWorktree, absolutePath)) {
+    return { warning: `计划文件路径越出工作区边界：${planPath}` }
+  }
+
+  return { absolutePath }
+}
+
+function normalizePlanFilePath(filePath: string): string | undefined {
+  const cleaned = filePath.trim().replace(/^\.\//, '')
+  if (!cleaned || cleaned.startsWith('（') || cleaned.startsWith('(') || isUnsafeRelativePath(cleaned)) {
+    return undefined
+  }
+
+  const normalized = toPosixPath(posix.normalize(cleaned.replace(/\\/g, '/')))
+  if (normalized === '.' || hasParentPathSegment(normalized)) {
+    return undefined
+  }
+
+  return normalized
+}
+
+function isUnsafeRelativePath(inputPath: string): boolean {
+  const trimmedPath = inputPath.trim()
+  const slashPath = trimmedPath.replace(/\\/g, '/')
+  const normalizedSlashPath = posix.normalize(slashPath)
+
+  return (
+    trimmedPath === '' ||
+    isAbsolute(trimmedPath) ||
+    posix.isAbsolute(slashPath) ||
+    win32.isAbsolute(trimmedPath) ||
+    /^[a-zA-Z]:/.test(trimmedPath) ||
+    slashPath.startsWith('//') ||
+    hasParentPathSegment(normalizedSlashPath)
+  )
+}
+
+function hasParentPathSegment(inputPath: string): boolean {
+  return inputPath.split('/').includes('..')
+}
+
+function getSharedResourceKeys(path: string): string[] {
+  return SHARED_RESOURCE_PATTERNS.filter(({ pattern }) => pattern.test(path)).map(({ key }) => key)
+}
+
+function extractPlanSectionLines(unitContent: string, sectionName: string): string[] {
+  const lines = unitContent.split('\n')
+  const sectionLines: string[] = []
+  let inSection = false
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+    if (trimmed.startsWith(`**${sectionName}**`)) {
+      inSection = true
+      continue
+    }
+
+    if (!inSection) {
+      continue
+    }
+
+    if (
+      trimmed.startsWith('**') ||
+      trimmed.startsWith('---') ||
+      trimmed.startsWith('###') ||
+      /^- \[[ xX]\] \*\*单元\s*\d+/.test(trimmed)
+    ) {
+      break
+    }
+
+    sectionLines.push(line)
+  }
+
+  return sectionLines
 }
 
 interface ConflictEntry {
@@ -81,19 +194,29 @@ async function collectSourceFiles(root: string, dir = root): Promise<FileEntry[]
     const entryPath = join(dir, entry.name)
 
     if (entry.isDirectory()) {
-      if (EXCLUDED_DIRS.has(entry.name)) continue
+      if (EXCLUDED_DIRS.has(entry.name)) {
+        continue
+      }
       files.push(...await collectSourceFiles(root, entryPath))
       continue
     }
 
-    if (!entry.isFile()) continue
+    if (!entry.isFile()) {
+      continue
+    }
 
     const ext = extname(entry.name)
     const baseName = entry.name
 
-    if (EXCLUDED_EXTENSIONS.has(ext)) continue
-    if (EXCLUDED_FILENAMES.has(baseName)) continue
-    if (baseName.startsWith('.env')) continue
+    if (EXCLUDED_EXTENSIONS.has(ext)) {
+      continue
+    }
+    if (EXCLUDED_FILENAMES.has(baseName)) {
+      continue
+    }
+    if (baseName.startsWith('.env')) {
+      continue
+    }
 
     if (SOURCE_EXTENSIONS.has(ext) || SOURCE_EXTENSIONS.has(baseName)) {
       files.push({
@@ -122,10 +245,9 @@ function extractKeywords(description: string): string[] {
 
   // 提取驼峰或 kebab-case 标识符
   const identifierPattern = /\b[a-z][a-zA-Z0-9]*(?:[-/][a-z][a-zA-Z0-9]*)*\b/g
-  const stopWords = new Set(['the', 'a', 'an', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'and', 'or', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'this', 'that', 'these', 'those', 'it', 'its', 'from', 'by', 'as', 'not', 'no', 'but', 'if', 'then', 'else', 'when', 'where', 'how', 'what', 'which', 'who', 'whom', 'why', 'all', 'each', 'every', 'both', 'few', 'some', 'any', 'most', 'other', 'such', 'than', 'too', 'very', 'just', 'about', 'above', 'after', 'again', 'also', 'am', 'an', 'and', 'any', 'are', 'aren', 'as', 'at', 'be', 'because', 'been', 'before', 'being', 'below', 'between', 'both', 'but', 'by', 'can', 'cannot', 'could', 'couldn', 'did', 'didn', 'do', 'does', 'doesn', 'doing', 'don', 'down', 'during', 'each', 'few', 'for', 'from', 'further', 'get', 'got', 'had', 'hadn', 'has', 'hasn', 'have', 'haven', 'having', 'he', 'her', 'here', 'hers', 'herself', 'him', 'himself', 'his', 'how', 'i', 'if', 'in', 'into', 'is', 'isn', 'it', 'its', 'itself', 'just', 'let', 'll', 'me', 'might', 'more', 'most', 'must', 'mustn', 'my', 'myself', 'no', 'nor', 'not', 'now', 'of', 'off', 'on', 'once', 'only', 'or', 'other', 'our', 'ours', 'ourselves', 'out', 'over', 'own', 're', 'same', 'shan', 'she', 'she', 'should', 'shouldn', 'so', 'some', 'such', 'than', 'that', 'the', 'their', 'theirs', 'them', 'themselves', 'then', 'there', 'these', 'they', 'this', 'those', 'through', 'to', 'too', 'under', 'until', 'up', 'us', 've', 'very', 'was', 'wasn', 'we', 'were', 'weren', 'what', 'when', 'where', 'which', 'while', 'who', 'whom', 'why', 'will', 'with', 'won', 'would', 'wouldn', 'you', 'your', 'yours', 'yourself', 'yourselves'])
   const identifiers = description.match(identifierPattern) || []
   for (const id of identifiers) {
-    if (!stopWords.has(id) && id.length >= 3) {
+    if (!ENGLISH_STOP_WORDS.has(id) && id.length >= 3) {
       keywords.push(id)
     }
   }
@@ -222,12 +344,15 @@ function computeConflictMatrix(units: TaskUnit[]): ConflictEntry[] {
       const filesA = new Set(units[i].files.map((f) => f.path))
       const filesB = new Set(units[j].files.map((f) => f.path))
       const shared = [...filesA].filter((f) => filesB.has(f))
+      const sharedResourceKeysA = new Set([...filesA].flatMap(getSharedResourceKeys))
+      const sharedResourceKeysB = new Set([...filesB].flatMap(getSharedResourceKeys))
+      const sharedResources = [...sharedResourceKeysA].filter((key) => sharedResourceKeysB.has(key))
 
-      if (shared.length > 0) {
+      if (shared.length > 0 || sharedResources.length > 0) {
         conflicts.push({
           unit_a: units[i].id,
           unit_b: units[j].id,
-          shared_files: shared,
+          shared_files: [...shared, ...sharedResources],
         })
       }
     }
@@ -266,7 +391,9 @@ function computeParallelGroups(units: TaskUnit[], conflicts: ConflictEntry[]): P
 
     // 找到最小可用颜色
     let color = 0
-    while (usedColors.has(color)) color++
+    while (usedColors.has(color)) {
+      color++
+    }
     colorMap.set(unit.id, color)
     if (color > maxColor) maxColor = color
   }
@@ -286,7 +413,7 @@ function computeParallelGroups(units: TaskUnit[], conflicts: ConflictEntry[]): P
     parallelGroups.push({
       id: `G${groupIndex}`,
       unit_ids: unitIds,
-      is_parallel_safe: unitIds.length > 1 && !hasInternalConflicts(unitIds, conflicts),
+      is_parallel_safe: !hasInternalConflicts(unitIds, conflicts),
     })
     groupIndex++
   }
@@ -300,16 +427,21 @@ function hasInternalConflicts(unitIds: string[], conflicts: ConflictEntry[]): bo
   return conflicts.some((c) => idSet.has(c.unit_a) && idSet.has(c.unit_b))
 }
 
-// 计算执行顺序（基于依赖：有更多被依赖的组先执行）
+// 计算执行顺序
 function computeExecutionOrder(groups: ParallelGroup[], units: TaskUnit[]): string[] {
   // 简单策略：按组 ID 顺序执行（G1, G2, G3...）
-  // 更复杂的依赖排序需要计划文档中的 depends_on 信息
+  // 更复杂的依赖排序需要上游计划提供结构化依赖信息
   return groups.map((g) => g.id)
 }
 
 // 从计划文档中提取实现单元
 async function extractUnitsFromPlan(planPath: string, worktree: string): Promise<{ units: TaskUnit[]; warnings: string[] }> {
-  const absolutePath = join(worktree, planPath)
+  const resolvedPlan = resolvePlanPath(planPath, worktree)
+  if (!resolvedPlan.absolutePath) {
+    return { units: [], warnings: [resolvedPlan.warning || `计划文件路径无效：${planPath}`] }
+  }
+
+  const absolutePath = resolvedPlan.absolutePath
   const fileStat = await stat(absolutePath).catch(() => undefined)
 
   if (!fileStat?.isFile()) {
@@ -325,46 +457,43 @@ async function extractUnitsFromPlan(planPath: string, worktree: string): Promise
   const warnings: string[] = []
 
   // 解析实现单元（匹配 - [ ] **单元 N：** 或 - [x] **单元 N：** 格式）
-  const unitPattern = /^- \[[ xX]\] \*\*单元 (\d+)[：:]\*\*\s*(.+)$/gm
+  const unitPattern = /^- \[[ xX]\] \*\*单元\s*(\d+)[：:]\*\*(?:[^\S\r\n]*(.*))?$/gm
   let match
 
   while ((match = unitPattern.exec(content)) !== null) {
     const unitNum = match[1]
-    const unitTitle = match[2].trim()
+    const unitTitle = match[2]?.trim() || `单元 ${unitNum}`
     const unitId = `U${unitNum}`
 
     // 查找该单元的文件列表（在后续行中查找 **文件**：部分）
     const unitStartIndex = match.index + match[0].length
-    const nextUnitMatch = content.substring(unitStartIndex).match(/^- \[[ xX]\] \*\*单元 \d+/m)
-    const unitEndIndex = nextUnitMatch ? unitStartIndex + nextUnitMatch.index! : content.length
+    const nextUnitMatch = content.substring(unitStartIndex).match(/^- \[[ xX]\] \*\*单元\s*\d+/m)
+    const unitEndIndex = nextUnitMatch?.index === undefined ? content.length : unitStartIndex + nextUnitMatch.index
     const unitContent = content.substring(unitStartIndex, unitEndIndex)
 
     // 提取文件路径
     const files: Array<{ path: string; source: 'tool_scan' | 'llm_suggestion' }> = []
-    const fileSectionMatch = unitContent.match(/\*\*文件\*\*[:：]\s*\n([\s\S]*?)(?=\n\s*\*\*[^*]+\*\*[:：]|\n---|\n###|\n- \[[ xX]\] \*\*单元|\n$)/)
-    if (fileSectionMatch) {
-      const fileLines = fileSectionMatch[1].split('\n')
-      for (const line of fileLines) {
-        const fileMatch = line.match(/[-*]\s*`?([^`\n]+)`?/)
-        if (fileMatch) {
-          const filePath = fileMatch[1].trim()
-          if (filePath && !filePath.startsWith('（') && !filePath.startsWith('(')) {
-            files.push({ path: filePath, source: 'llm_suggestion' })
-          }
+    const fileLines = extractPlanSectionLines(unitContent, '文件')
+    for (const line of fileLines) {
+      const fileMatch = line.match(/[-*]\s*`?([^`\n]+)`?/)
+      if (fileMatch) {
+        const filePath = fileMatch[1].trim()
+        const normalizedFilePath = normalizePlanFilePath(filePath)
+        if (normalizedFilePath) {
+          files.push({ path: normalizedFilePath, source: 'llm_suggestion' })
+        } else if (filePath) {
+          warnings.push(`已忽略无效或越界文件路径：${filePath}`)
         }
       }
     }
 
     // 提取验证命令
-    const suggested_validation: string[] = []
-    const verifySection = unitContent.match(/\*\*验证\*\*[:：]\s*\n([\s\S]*?)(?=\n\*\*|\n---|\n###|\n$)/)
-    if (verifySection) {
-      const verifyLines = verifySection[1].split('\n')
-      for (const line of verifyLines) {
-        const cmdMatch = line.match(/[-*]\s*`?([^`\n]+)`?/)
-        if (cmdMatch) {
-          suggested_validation.push(cmdMatch[1].trim())
-        }
+    const suggestedValidation: string[] = []
+    const verifyLines = extractPlanSectionLines(unitContent, '验证')
+    for (const line of verifyLines) {
+      const cmdMatch = line.match(/[-*]\s*`?([^`\n]+)`?/)
+      if (cmdMatch) {
+        suggestedValidation.push(cmdMatch[1].trim())
       }
     }
 
@@ -372,7 +501,7 @@ async function extractUnitsFromPlan(planPath: string, worktree: string): Promise
       id: unitId,
       description: unitTitle,
       files,
-      suggested_validation: suggested_validation.length > 0 ? suggested_validation : ['npm run typecheck'],
+      suggested_validation: suggestedValidation.length > 0 ? suggestedValidation : ['npm run typecheck'],
       priority: parseInt(unitNum, 10),
     })
   }
@@ -455,7 +584,7 @@ export const aeTaskAnalyzerTool: ToolDefinition = tool({
     '- 扫描代码库文件，按目录/模块边界拆分任务单元',
     '- 计算文件冲突矩阵，检测任务间共享文件',
     '- 通过图着色算法计算并行组',
-    '- 从计划文档中提取实现单元和依赖关系',
+    '- 从计划文档中提取实现单元、文件范围和验证命令',
     '',
     '适用场景：',
     '- ae:work 需要自动分解任务并行执行时',
@@ -501,7 +630,13 @@ export const aeTaskAnalyzerTool: ToolDefinition = tool({
       }).pipe(
         Effect.catch((error) => {
           const message = error instanceof Error ? error.message : String(error)
-          return Effect.succeed(`❌ 任务分析失败：${message}`)
+          return Effect.succeed(JSON.stringify({
+            units: [],
+            conflict_matrix: [],
+            parallel_groups: [],
+            execution_order: [],
+            warnings: [`任务分析失败：${message}`],
+          }, null, 2))
         }),
       ),
     )
