@@ -1,8 +1,8 @@
 # AE 内置配置
 
-本文说明 AI Agent Engine（AE）在 opencode 插件 `config` 钩子中注入的默认配置，以及用户如何通过可选的 `ae.jsonc` 覆盖这些默认值。这里描述的是 AE 运行时配置入口，不要求业务项目采用本仓库源码结构。
+本文说明 AE 注入的默认配置，以及用户如何通过可选的 `ae.jsonc` 覆盖这些默认值。这里描述的是运行时配置入口，不要求业务项目采用本仓库源码结构。
 
-AE 会在插件 `config` 钩子里注入一组最低优先级的默认配置，通过 `ae.jsonc` 管理。当前支持两个顶层配置节点：
+当前支持两个顶层配置节点：
 
 | 节点 | 作用 |
 | --- | --- |
@@ -11,14 +11,14 @@ AE 会在插件 `config` 钩子里注入一组最低优先级的默认配置，�
 
 ## 内置 MCP
 
-AE 会在插件 `config` 钩子里注入一组最低优先级的 MCP 默认值，当前内置配置包含：
+AE 会注入一组最低优先级的 MCP 默认值：
 
 | 名称 | 类型 | 作用 |
 | --- | --- | --- |
 | `context7` | `remote` | 获取最新的库/框架文档 |
 | `gh_grep` | `remote` | 搜索真实的 GitHub 代码示例 |
 
-MCP 默认配置由三层可选 `ae.jsonc` 合并而来，并通过本地 `ae.schema.json` 作为 `$schema`。除本节说明的 `mcp` 外，AE 还支持下文说明的 `modelScenarios` 节点。
+MCP 默认配置由三层可选 `ae.jsonc` 合并而来，并通过本地 `ae.schema.json` 作为 `$schema`。
 
 ## 优先级
 
@@ -31,9 +31,9 @@ MCP 默认配置由三层可选 `ae.jsonc` 合并而来，并通过本地 `ae.sc
   -> opencode 已传入插件钩子的既有 config.mcp
 ```
 
-项目级和全局 `ae.jsonc` 是 AE 支持的可选配置入口；项目不存在这些文件时会自然使用低优先级默认值。
+项目级和全局 `ae.jsonc` 都是可选入口；文件不存在时使用低优先级默认值。
 
-三层 builtin 配置的合并规则如下：
+合并规则：
 
 1. 对象递归合并，未声明字段保留低优先级值。
 2. 数组、标量、`null` 和类型冲突由高优先级整值替换。
@@ -119,13 +119,13 @@ remote MCP 的最终 URL 当前允许 `http` / `https`，建议优先使用 `htt
 }
 ```
 
-# 模型场景路由
+## 模型场景路由
 
-AE 支持通过 `modelScenarios` 将不同任务场景映射到不同模型，让内置命令和代理在注册时自动注入对应的 `model`。
+`modelScenarios` 可把不同任务场景映射到不同模型。命令或代理注册时命中场景，就写入对应 `model`；未命中则继承 opencode 当前默认模型。
 
 ## 工作原理
 
-AE 内置命令通过 catalog 声明模型场景（如 `/ae-plan` 声明 `deep`、`/ae-help` 声明 `quick`）。内置代理通过各自 Markdown frontmatter 的 `model` 声明模型引用。插件在注册时会查询 `modelScenarios` 配置：命中则注入对应模型；未命中稳定场景时不写入 `model` 字段，继承 opencode 当前默认模型。
+内置命令通过 catalog 声明模型场景，如 `/ae-plan` 声明 `deep`、`/ae-help` 声明 `quick`。内置代理通过 Markdown frontmatter 的 `model` 声明模型引用。
 
 ## 稳定场景
 
@@ -203,9 +203,10 @@ model: $deep
 | 资产 | 场景 |
 | --- | --- |
 | `/ae-ideate`、`/ae-brainstorm`、`/ae-work-report`、`/ae-setup`、`/ae-handoff`、`/ae-sql`、`/ae-swagger-parser`、`/ae-save-experience`、`/ae-skill-from-session`、`/ae-update`、`/ae-ideate-po`、`/ae-brainstorm-po`、`/ae-work-report-po`、`/ae-ideate-pa`、`/ae-brainstorm-pa`、`/ae-work-report-pa` | `standard` |
-| `/ae-document-review`、`/ae-plan`、`/ae-refactor`、`/ae-work`、`/ae-merge-branch`、`/ae-review`、`/ae-lfg`、`/ae-task-loop`、`/ae-plan-po`、`/ae-refactor-po`、`/ae-work-po`、`/ae-lfg-po`、`/ae-task-loop-po`、`/ae-plan-pa`、`/ae-refactor-pa`、`/ae-work-pa`、`/ae-lfg-pa`、`/ae-task-loop-pa` | `deep` |
+| `/ae-document-review`、`/ae-plan`、`/ae-refactor`、`/ae-work`、`/ae-merge-branch`、`/ae-review`、`/ae-lfg`、`/ae-doc-humanize`、`/ae-doc-structure`、`/ae-task-loop`、`/ae-plan-po`、`/ae-refactor-po`、`/ae-work-po`、`/ae-lfg-po`、`/ae-doc-humanize-po`、`/ae-doc-structure-po`、`/ae-task-loop-po`、`/ae-plan-pa`、`/ae-refactor-pa`、`/ae-work-pa`、`/ae-lfg-pa`、`/ae-doc-humanize-pa`、`/ae-doc-structure-pa`、`/ae-task-loop-pa` | `deep` |
 | `/ae-prompt-optimize`、`/ae-prompt-optimize-auto`、`/ae-help` | `quick` |
 | `/ae-test-browser`、`/ae-frontend-design`、`/ae-frontend-design-po`、`/ae-frontend-design-pa` | `vision` |
+| `/ae-agent-creator`、`/ae-skill-creator`、`/ae-agent-creator-po`、`/ae-agent-creator-pa` | 继承 opencode 当前默认模型 |
 | `@repo-research-analyst`、`@web-researcher` | `standard` |
 | `@design-iterator`、`@figma-design-sync` | `vision` |
 | 其他内置代理 | `deep`（默认） |
