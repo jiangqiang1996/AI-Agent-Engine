@@ -55,11 +55,6 @@ export const myTool = tool({
 
 ## Agent 设计模式
 
-### Agent 组织
-
-- 本项目自定义Agent，以 `.md` 文件存放在 `src/assets/agents/` 目录
-- Agent 按职责分为：流程驱动、审查、计划、前端设计、测试等类别
-
 ### 工具组合
 
 - 将复杂任务拆分为多个独立工具
