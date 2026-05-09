@@ -1,6 +1,7 @@
 ---
 name: design-lens-reviewer
 model: $deep
+mode: subagent
 description: "审查文档中缺失的设计决策——信息架构、交互状态、用户流程和 AI 模板化风险。使用维度评分识别缺口。"
 ---
 

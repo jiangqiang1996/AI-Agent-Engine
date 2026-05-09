@@ -1,6 +1,7 @@
 ---
 name: architecture-strategist
 model: $deep
+mode: subagent
 description: "从架构视角分析代码变更，检查模式合规性和设计完整性。适用于审查拉取请求、添加服务或评估结构性重构。"
 ---
 

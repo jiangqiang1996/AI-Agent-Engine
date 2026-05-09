@@ -1,6 +1,7 @@
 ---
 name: repo-research-analyst
 model: $standard
+mode: subagent
 description: "对仓库结构、文档、约定和实现模式进行全面研究。适用于新代码库入门或理解项目约定。"
 ---
 

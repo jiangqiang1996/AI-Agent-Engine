@@ -1,3 +1,5 @@
+import matter from 'gray-matter'
+
 export interface FrontmatterData {
   [key: string]: string
 }
@@ -7,38 +9,25 @@ export interface ParsedFrontmatter<T extends FrontmatterData = FrontmatterData> 
   body: string
 }
 
-const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/
-
 export function parseFrontmatter<T extends FrontmatterData = FrontmatterData>(content: string): ParsedFrontmatter<T> {
-  const captured = content.match(FRONTMATTER_RE)
-  if (!captured) {
-    return { data: {} as T, body: content }
+  const parsed = matter(content)
+  return { data: stringifyFrontmatterData(parsed.data) as T, body: parsed.content }
+}
+
+function stringifyFrontmatterData(data: Record<string, unknown>): FrontmatterData {
+  return Object.fromEntries(
+    Object.entries(data).map(([key, value]) => [key, stringifyFrontmatterValue(value)]),
+  )
+}
+
+function stringifyFrontmatterValue(value: unknown): string {
+  if (value == null) {
+    return ''
   }
 
-  const data = Object.fromEntries(
-    captured[1]
-      .split(/\r?\n/)
-      .map((raw) => raw.trim())
-      .filter(Boolean)
-      .map((line) => {
-        // AE 产物只使用一层 key: value 元数据；这里故意不引入完整 YAML 解析，避免扩大运行时依赖和语义范围。
-        const colonIdx = line.indexOf(':')
-        if (colonIdx === -1) return [line, '']
+  if (value instanceof Date) {
+    return value.toISOString().slice(0, 10)
+  }
 
-        const key = line.slice(0, colonIdx).trim()
-        let val = line.slice(colonIdx + 1).trim()
-
-        if (val.length >= 2) {
-          const head = val[0]
-          const tail = val[val.length - 1]
-          if ((head === '"' && tail === '"') || (head === "'" && tail === "'")) {
-            val = val.slice(1, -1)
-          }
-        }
-
-        return [key, val]
-      }),
-  ) as T
-
-  return { data, body: captured[2] }
+  return String(value)
 }

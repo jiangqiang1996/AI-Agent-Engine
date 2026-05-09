@@ -1,6 +1,7 @@
 ---
 name: design-iterator
 model: $vision
+mode: subagent
 description: "通过 N 轮截图-分析-改进循环打磨已实现 UI。当初版可用后仍需多轮审美优化，或用户明确请求迭代优化时使用；不替代初版设计、Figma 对齐或完整浏览器验收。"
 ---
 

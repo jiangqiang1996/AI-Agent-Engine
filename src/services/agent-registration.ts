@@ -11,12 +11,14 @@ interface AgentConfigShape {
   agent?: Record<string, {
     description?: string
     prompt?: string
-    mode?: 'subagent' | 'primary' | 'all'
+    mode?: AgentMode
     [key: string]: unknown
   } | undefined>
 }
 
+type AgentMode = 'subagent' | 'primary' | 'all'
 type AgentConfigEntry = NonNullable<NonNullable<AgentConfigShape['agent']>[string]>
+const VALID_AGENT_MODES = new Set<AgentMode>(['primary', 'subagent', 'all'])
 
 export function buildAgentConfig(
   manifest: RuntimeAssetManifest,
@@ -32,7 +34,7 @@ export function buildAgentConfig(
     const agentConfig: AgentConfigEntry = {
       description: parsed.data.description || agent.description,
       prompt: parsed.body.trim(),
-      mode: 'subagent',
+      mode: resolveAgentMode(parsed.data.mode, agent.name),
     }
 
     applyAgentModel(agentConfig, agent.name, parsed.data.model, routingContext)
@@ -41,6 +43,18 @@ export function buildAgentConfig(
   }
 
   return result
+}
+
+function resolveAgentMode(frontmatterMode: string | undefined, agentName: string): AgentMode {
+  if (!frontmatterMode) {
+    return 'subagent'
+  }
+
+  if (VALID_AGENT_MODES.has(frontmatterMode as AgentMode)) {
+    return frontmatterMode as AgentMode
+  }
+
+  throw new Error(`agent ${agentName} frontmatter mode 不合法: ${frontmatterMode}`)
 }
 
 function applyAgentModel(

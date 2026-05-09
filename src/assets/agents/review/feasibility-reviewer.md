@@ -1,6 +1,7 @@
 ---
 name: feasibility-reviewer
 model: $deep
+mode: subagent
 description: "评估文档中提出的技术方法能否经受现实考验——架构冲突、依赖缺口、迁移风险和可实现性。"
 ---
 

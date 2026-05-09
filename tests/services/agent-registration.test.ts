@@ -53,7 +53,7 @@ describe('agent-registration', () => {
     mkdirSync(join(root, 'src', 'assets', 'agents', 'review'), { recursive: true })
     writeFileSync(
       join(root, 'src', 'assets', 'agents', 'review', 'demo-reviewer.md'),
-      ['---', 'description: markdown description', '---', 'agent prompt body'].join('\n'),
+      ['---', 'description: markdown description', 'mode: primary', '---', 'agent prompt body'].join('\n'),
     )
 
     const config = buildAgentConfig(createManifest(root))
@@ -61,8 +61,48 @@ describe('agent-registration', () => {
     expect(config['demo-reviewer']).toEqual({
       description: 'markdown description',
       prompt: 'agent prompt body',
-      mode: 'subagent',
+      mode: 'primary',
     })
+  })
+
+  it('agent frontmatter 未声明 mode 时应该默认使用 subagent', () => {
+    const root = createTempRoot()
+    mkdirSync(join(root, 'src', 'assets', 'agents', 'review'), { recursive: true })
+    writeFileSync(
+      join(root, 'src', 'assets', 'agents', 'review', 'demo-reviewer.md'),
+      ['---', 'description: markdown description', '---', 'agent prompt body'].join('\n'),
+    )
+
+    const config = buildAgentConfig(createManifest(root))
+
+    expect(config['demo-reviewer']?.mode).toBe('subagent')
+  })
+
+  it('agent frontmatter 带 BOM 时也应该读取 mode', () => {
+    const root = createTempRoot()
+    mkdirSync(join(root, 'src', 'assets', 'agents', 'review'), { recursive: true })
+    writeFileSync(
+      join(root, 'src', 'assets', 'agents', 'review', 'demo-reviewer.md'),
+      ['\uFEFF---', 'description: markdown description', 'mode: primary', '---', 'agent prompt body'].join('\n'),
+    )
+
+    const config = buildAgentConfig(createManifest(root))
+
+    expect(config['demo-reviewer']).toMatchObject({
+      mode: 'primary',
+      prompt: 'agent prompt body',
+    })
+  })
+
+  it('agent frontmatter mode 不合法时应该失败', () => {
+    const root = createTempRoot()
+    mkdirSync(join(root, 'src', 'assets', 'agents', 'review'), { recursive: true })
+    writeFileSync(
+      join(root, 'src', 'assets', 'agents', 'review', 'demo-reviewer.md'),
+      ['---', 'description: markdown description', 'mode: invalid', '---', 'agent prompt body'].join('\n'),
+    )
+
+    expect(() => buildAgentConfig(createManifest(root))).toThrow('frontmatter mode 不合法')
   })
 
   it('用户同名 agent 应覆盖插件内置 agent', () => {

@@ -1,6 +1,7 @@
 ---
 name: agent-native-reviewer
 model: $deep
+mode: subagent
 description: "审查代码以确保 opencode 代理具备与用户对等的操作能力——用户能做的任何操作，代理也能通过工具或命令完成。在添加 UI 功能、自定义工具或代理配置后使用。包含 CLI 代理就绪度审计能力。"
 ---
 

@@ -1,6 +1,7 @@
 ---
 name: testing-reviewer
 model: $deep
+mode: subagent
 description: 常驻代码审查角色。审查代码中的测试覆盖缺口、弱断言、与实现耦合的脆弱测试，以及缺失的边界情况覆盖。
 ---
 

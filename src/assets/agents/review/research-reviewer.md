@@ -1,6 +1,7 @@
 ---
 name: research-reviewer
 model: $deep
+mode: subagent
 description: "搜索 docs/ae/solutions/ 查找相关过往解决方案、研究并综合外部最佳实践和框架文档。融合组织知识发掘、最佳实践研究和框架文档收集能力。"
 ---
 
