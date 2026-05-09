@@ -7,7 +7,7 @@ import { listArtifacts } from './artifact-store.js'
 import type { RecoveryResult } from '../schemas/recovery-schema.js'
 import { ArtifactFrontmatterSchema } from '../schemas/artifact-schema.js'
 import { SKILL } from '../schemas/ae-asset-schema.js'
-import { parseFrontmatter } from '../utils/frontmatter.js'
+import { getFrontmatterString, parseFrontmatter, type FrontmatterData } from '../utils/frontmatter.js'
 
 type ArtifactKind = 'brainstorm' | 'plan' | 'work' | 'review'
 
@@ -127,7 +127,7 @@ function resumePhaseForArtifact(
 
 function hasValidMetadata(artifact: {
   type: ArtifactKind
-  frontmatter: Record<string, string>
+  frontmatter: FrontmatterData
 }): boolean {
   const result = ArtifactFrontmatterSchema.safeParse(artifact.frontmatter)
   return result.success && result.data.type === artifact.type
@@ -146,37 +146,44 @@ function kebabCase(value: string): string {
     .toLowerCase()
 }
 
-function fingerprintFromFrontmatter(frontmatter: Record<string, string>): string | undefined {
-  if (!frontmatter.date) {
+function fingerprintFromFrontmatter(frontmatter: FrontmatterData): string | undefined {
+  const date = getFrontmatterString(frontmatter, 'date')
+  const topic = getFrontmatterString(frontmatter, 'topic')
+  const title = getFrontmatterString(frontmatter, 'title')
+
+  if (!date) {
     return undefined
   }
-  if (frontmatter.topic) {
-    return `${frontmatter.date}-${kebabCase(frontmatter.topic)}`
+  if (topic) {
+    return `${date}-${kebabCase(topic)}`
   }
-  if (frontmatter.title) {
-    return `${frontmatter.date}-${kebabCase(frontmatter.title)}`
+  if (title) {
+    return `${date}-${kebabCase(title)}`
   }
   return undefined
 }
 
 function validateOriginFingerprint(
   manifest: RuntimeAssetManifest,
-  artifact: { path: string; frontmatter: Record<string, string> },
+  artifact: { path: string; frontmatter: FrontmatterData },
 ): string | undefined {
+  const origin = getFrontmatterString(artifact.frontmatter, 'origin')
+  const originFingerprint = getFrontmatterString(artifact.frontmatter, 'originFingerprint')
+
   // originFingerprint 只有在成对出现时才有校验意义；缺任一字段都提示人工介入。
-  if (!artifact.frontmatter.origin && !artifact.frontmatter.originFingerprint) {
+  if (!origin && !originFingerprint) {
     return undefined
   }
-  if (!artifact.frontmatter.origin) {
+  if (!origin) {
     return `originFingerprint 无法校验：${displayPath(manifest, artifact.path)} 缺少 origin 字段`
   }
-  if (!artifact.frontmatter.originFingerprint) {
+  if (!originFingerprint) {
     return `originFingerprint 无法校验：${displayPath(manifest, artifact.path)} 缺少 originFingerprint 字段`
   }
 
-  const originPath = join(manifest.repoRoot, artifact.frontmatter.origin)
+  const originPath = join(manifest.repoRoot, origin)
 
-  let originFrontmatter: Record<string, string>
+  let originFrontmatter: FrontmatterData
   try {
     originFrontmatter = Effect.runSync(
       Effect.try({
@@ -185,16 +192,16 @@ function validateOriginFingerprint(
       }),
     )
   } catch {
-    return `originFingerprint 无法校验：读取上游产物失败 ${artifact.frontmatter.origin}（文件不存在或不可读）`
+    return `originFingerprint 无法校验：读取上游产物失败 ${origin}（文件不存在或不可读）`
   }
 
   const expected = fingerprintFromFrontmatter(originFrontmatter)
   if (!expected) {
-    return `originFingerprint 无法校验：上游产物缺少 date+topic/title ${artifact.frontmatter.origin}`
+    return `originFingerprint 无法校验：上游产物缺少 date+topic/title ${origin}`
   }
   // 指纹由上游产物的稳定元数据派生，用于识别同名或过期产物导致的误恢复。
-  if (artifact.frontmatter.originFingerprint !== expected) {
-    return `originFingerprint 不匹配：${displayPath(manifest, artifact.path)} 期望 '${expected}'，实际 '${artifact.frontmatter.originFingerprint}'`
+  if (originFingerprint !== expected) {
+    return `originFingerprint 不匹配：${displayPath(manifest, artifact.path)} 期望 '${expected}'，实际 '${originFingerprint}'`
   }
   return undefined
 }
@@ -247,7 +254,7 @@ export function resolveRecovery(
       return invalidResult(phase, `frontmatter 无效：${displayPath(manifest, invalidMetadata.path)}`)
     }
 
-    const activeArtifacts = artifacts.filter((artifact) => !artifact.frontmatter.supersededBy)
+    const activeArtifacts = artifacts.filter((artifact) => !getFrontmatterString(artifact.frontmatter, 'supersededBy'))
     if (activeArtifacts.length === 0) {
       continue
     }
@@ -256,7 +263,7 @@ export function resolveRecovery(
     if (options.expectedOriginFingerprint) {
       // 调用方给出期望上游指纹时优先精确匹配；找不到匹配项仍保留候选并返回警告，避免误判为完全不可恢复。
       const matchingArtifacts = activeArtifacts.filter(
-        (artifact) => artifact.frontmatter.originFingerprint === options.expectedOriginFingerprint,
+        (artifact) => getFrontmatterString(artifact.frontmatter, 'originFingerprint') === options.expectedOriginFingerprint,
       )
 
       if (matchingArtifacts.length > 0) {

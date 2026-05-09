@@ -5,7 +5,7 @@ import { AUTO_SUFFIX, COMMAND } from '../schemas/ae-asset-schema.js'
 import { MODEL_SCENARIO, type ModelScenario } from '../schemas/model-scenario-schema.js'
 import { getAllAgentDefinitions, getPhaseOneEntries, getPhaseOnePaEntries, getPhaseOnePoEntries } from './ae-catalog.js'
 import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
-import { parseFrontmatter } from '../utils/frontmatter.js'
+import { getFrontmatterString, parseFrontmatter } from '../utils/frontmatter.js'
 
 export type ModelRoutingAssetType = 'agent' | 'command'
 
@@ -73,7 +73,7 @@ export function getAssetModelRoutingEntries(manifest?: RuntimeAssetManifest): As
     const fullPath = join(manifest.agentsDir, agent.stage, `${agent.name}.md`)
     const content = readFileSync(fullPath, 'utf8')
     const parsed = parseFrontmatter(content)
-    const modelReference = parsed.data.model
+    const modelReference = getFrontmatterString(parsed.data, 'model')
     const scenario = modelReference?.startsWith('$') ? modelReference.slice(1) : modelReference
     entries.push({
       type: 'agent',

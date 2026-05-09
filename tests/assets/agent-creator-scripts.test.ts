@@ -256,9 +256,33 @@ describe('ae-agent-creator 脚本', () => {
       path.join(commands, 'single-quoted-command.md'),
       "---\ndescription: ok\nagent: 'single-quoted-command'\n---\n$ARGUMENTS\n",
     )
+    await writeFile(
+      path.join(agents, 'full-frontmatter.md'),
+      [
+        '---',
+        'description: ok',
+        'mode: subagent',
+        'temperature: 0.1',
+        'top_p: 0.8',
+        'steps: 3',
+        'disable: false',
+        'hidden: true',
+        'color: accent',
+        'tools:',
+        '  write: false',
+        'permission:',
+        '  bash:',
+        '    "*": ask',
+        '---',
+        '# Role',
+        '',
+        '## Workflow',
+      ].join('\n'),
+    )
 
     await runNode([validateScript, path.join(agents, 'valid-agent.md')])
     await runNode([validateScript, path.join(agents, 'single-quoted-command.md')])
+    await runNode([validateScript, path.join(agents, 'full-frontmatter.md')])
     await runNode([validateScript, validAgents])
 
     const invalidCases = new Map([

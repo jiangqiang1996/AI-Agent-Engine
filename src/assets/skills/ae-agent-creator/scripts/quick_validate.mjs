@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { readdir, readFile, stat } from 'node:fs/promises'
 import path from 'node:path'
+import matter from 'gray-matter'
 
 const VALID_MODES = new Set(['primary', 'subagent', 'all'])
 
@@ -9,36 +10,12 @@ function usage() {
 }
 
 function parseFrontmatter(text) {
-  const match = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/.exec(text)
-  if (!match) {
+  if (!text.startsWith('---\n') && !text.startsWith('---\r\n')) {
     return { frontmatter: null, body: text }
   }
 
-  const data = {}
-  const lines = match[1].split(/\r?\n/)
-  for (const line of lines) {
-    if (!line.trim() || /^\s/.test(line)) {
-      continue
-    }
-    const separator = line.indexOf(':')
-    if (separator === -1) {
-      continue
-    }
-    const key = line.slice(0, separator).trim()
-    data[key] = parseScalar(line.slice(separator + 1).trim())
-  }
-
-  return { frontmatter: data, body: match[2] }
-}
-
-function parseScalar(value) {
-  const withoutComment = value.replace(/\s+#.*$/, '').trim()
-  const isDoubleQuoted = withoutComment.startsWith('"') && withoutComment.endsWith('"')
-  const isSingleQuoted = withoutComment.startsWith("'") && withoutComment.endsWith("'")
-  if (isDoubleQuoted || isSingleQuoted) {
-    return withoutComment.slice(1, -1)
-  }
-  return withoutComment
+  const parsed = matter(text)
+  return { frontmatter: parsed.data, body: parsed.content }
 }
 
 async function collectAgentFiles(target) {
@@ -73,7 +50,7 @@ async function validateAgent(filePath) {
     } else if (!VALID_MODES.has(frontmatter.mode)) {
       issues.push('mode 只能是 primary、subagent 或 all')
     }
-    if (frontmatter.hidden === 'true' && frontmatter.mode !== 'subagent') {
+    if (frontmatter.hidden === true && frontmatter.mode !== 'subagent') {
       issues.push('hidden 只适用于 mode: subagent')
     }
     if (Object.hasOwn(frontmatter, 'maxSteps')) {

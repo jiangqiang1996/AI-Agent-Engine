@@ -49,16 +49,16 @@ argument-hint: "[代理用途|代理名称] [--global] [--command]"
 
 1. 定位候选：未指定 scope 时列出项目级和全局级候选；两个都存在时让用户选择，选择全局时再次确认影响范围。
 2. 读取旧文件：读取既有代理和必要的同级命令，把旧内容作为本轮会话内恢复依据。
-3. 识别变更：整理职责、名称、输入约定、frontmatter、正文段落、工具和权限的变化。
+3. 识别变更：整理职责、名称、输入约定、frontmatter、正文段落、工具和权限的变化；OpenCode 支持的 agent frontmatter 均可保留或按需写入，但不要为了“完整”而同时配置所有可选字段。
 4. 展示草案：至少包含目标路径、scope、frontmatter 变化表、正文增删摘要、将删除或重写的旧段落、敏感变化、命令检查结果和确认问题。
-5. 敏感确认：`mode`、`tools`、`permission`、`model`、`temperature`、`top_p`、`steps`、`hidden` 变化必须展示；`mode` 扩大触发范围、工具或权限放宽、destructive Git、远程写操作、浏览器命令和外部副作用指令变化必须单独确认。
+5. 敏感确认：`mode`、`tools`、`permission`、`model`、`temperature`、`top_p`、`steps`、`disable`、`prompt`、`hidden`、`color` 和其他模型选项变化必须展示；`mode` 扩大触发范围、工具或权限放宽、destructive Git、远程写操作、浏览器命令和外部副作用指令变化必须单独确认。
 6. 最小编辑：只在用户明确确认后写入，优先保留仍有效的职责边界、禁用项、工作流和输出契约。
 
 ### 命令检查
 
 1. 默认只检查同级同名命令：项目级代理对应 `.opencode/commands/<name>.md`，全局级代理对应 `~/.config/opencode/commands/<name>.md`。
 2. 当代理职责、名称或输入约定变化时，在同一 scope 的命令目录中搜索 `agent: <name>` 的非同名绑定并报告风险。
-3. 命令存在时检查 `agent: <name>`、`$ARGUMENTS` 和描述是否仍匹配代理职责；命令不存在时只报告“未发现同级命令”。
+3. 命令存在时检查 `agent: <name>`、`$ARGUMENTS` 和描述是否仍匹配代理职责；如使用 `subtask` 或 `model`，确认它们仍符合命令目标；命令不存在时只报告“未发现同级命令”。
 4. 默认不创建或重写命令；只有用户明确要求同步时，才展示命令草案并确认写入。
 
 ### 校验与交付

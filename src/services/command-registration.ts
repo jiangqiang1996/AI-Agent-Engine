@@ -3,7 +3,7 @@ import { basename, join } from 'node:path'
 
 import type { Config } from '@opencode-ai/plugin'
 
-import { parseFrontmatter } from '../utils/frontmatter.js'
+import { getFrontmatterString, parseFrontmatter } from '../utils/frontmatter.js'
 import { getPhaseOneEntries, getPhaseOnePoEntries, getPhaseOnePaEntries } from './ae-catalog.js'
 import { COMMAND, AUTO_SUFFIX, PO_SUFFIX, PA_SUFFIX } from '../schemas/ae-asset-schema.js'
 import { getCommandModelScenario } from './asset-model-routing-catalog.js'
@@ -12,9 +12,10 @@ import { resolveModelReference, resolveModelScenario } from './model-scenario-ro
 
 interface LoadedCommand {
   template: string
-  description: string
+  description?: string
   model?: string
   modelReference?: string
+  [key: string]: unknown
 }
 
 export function loadCommandFiles(commandsDir: string): Map<string, LoadedCommand> {
@@ -33,11 +34,15 @@ export function loadCommandFiles(commandsDir: string): Map<string, LoadedCommand
     const parsed = parseFrontmatter(content)
 
     const command: LoadedCommand = {
+      ...parsed.data,
       template: parsed.body.trim() || `$ARGUMENTS`,
-      description: parsed.data.description || '',
     }
-    if (parsed.data.model) {
-      command.modelReference = parsed.data.model
+    if (typeof command.description !== 'string') {
+      delete command.description
+    }
+    const model = getFrontmatterString(parsed.data, 'model')
+    if (model) {
+      command.modelReference = model
     }
 
     result.set(name, command)

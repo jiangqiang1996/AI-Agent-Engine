@@ -41,8 +41,15 @@ description: <何时使用该技能>
 
 Skill frontmatter 可选包含：
 
-- `argument-hint`：说明用户调用技能时可传入的参数形式。
-- OpenCode 支持的其他元数据字段：用于技能运行或发现所需的结构化信息。
+- `license`：许可证声明。
+- `compatibility`：兼容性声明。
+- `metadata`：字符串到字符串的映射，用于补充结构化元数据。
+
+说明：
+
+- OpenCode 原生技能当前只识别 `name`、`description`、`license`、`compatibility`、`metadata`。
+- `argument-hint` 是 AE 内置技能 catalog 使用的提示字段，不属于 OpenCode 原生技能识别字段；仅在维护 AE 内置技能或明确需要 AE catalog 语义时使用。
+- 可选字段按需配置，不要求为了“完整”而同时写入所有字段。
 
 ### Skill 正文结构
 
@@ -96,10 +103,16 @@ Agent frontmatter 可选包含：
 - `model`：指定代理使用的模型。
 - `temperature`：指定生成随机性。
 - `top_p`：指定采样范围。
+- `steps`：限制最大代理迭代次数。
+- `disable`：禁用代理。
+- `prompt`：指定自定义系统提示词或提示词文件引用；Markdown 代理通常使用正文作为提示词。
 - `tools`：启用或禁用工具。
 - `permission`：配置工具或命令权限。
 - `hidden`：隐藏子代理入口，仅适用于 `mode: subagent`。
-- `steps`：限制最大执行步数。
+- `color`：配置 UI 显示颜色。
+- 其他模型或提供商选项：OpenCode 会直接传递给模型提供商。
+
+说明：可选字段按需配置，不要求为了“完整”而同时写入所有字段；`maxSteps` 已弃用，必须使用 `steps`。
 
 ### Agent 正文结构
 
@@ -139,6 +152,12 @@ agent: <agent-name>
 
 - `description`：命令用途说明。
 - `subtask`：是否作为子任务运行。
+- `model`：覆盖命令执行使用的模型。
+
+说明：
+
+- Markdown 命令文件的正文就是命令 `template`；通常不需要在 frontmatter 中写 `template`。
+- 可选字段按需配置，不要求为了“完整”而同时写入所有字段。
 
 命令正文必须保留 `$ARGUMENTS`，并说明如何把 `$ARGUMENTS` 传递给 agent。
 

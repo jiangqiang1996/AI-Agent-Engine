@@ -9,7 +9,7 @@ import { getAssetModelRoutingEntries, getCommandModelScenario } from '../../src/
 import { getAllAgentDefinitions, getPhaseOneEntries, getPhaseOnePaEntries, getPhaseOnePoEntries } from '../../src/services/ae-catalog.js'
 import { buildCommandConfig } from '../../src/services/command-registration.js'
 import { generateHelpText } from '../../src/services/help-catalog-service.js'
-import { parseFrontmatter } from '../../src/utils/frontmatter.js'
+import { getFrontmatterString, parseFrontmatter } from '../../src/utils/frontmatter.js'
 
 interface ArgumentHintException {
   commandName: string
@@ -29,7 +29,7 @@ const ARGUMENT_HINT_EXCEPTIONS: ArgumentHintException[] = [
 
 const VALID_AGENT_MODES = new Set(['primary', 'subagent', 'all'])
 
-function readSkillFrontmatter(path: string): Record<string, string> {
+function readSkillFrontmatter(path: string): ReturnType<typeof parseFrontmatter>['data'] {
   const content = readFileSync(path, 'utf8')
   return parseFrontmatter(content).data
 }
@@ -133,7 +133,8 @@ describe('资产健康巡检', () => {
       const frontmatter = parseFrontmatter(readFileSync(agentPath, 'utf8')).data
       expect(frontmatter.name, `asset-health/agent-frontmatter/name/agent/${agent.name}`).toBe(agent.name)
       expect(frontmatter.description, `asset-health/agent-frontmatter/description/agent/${agent.name}`).toBeTruthy()
-      expect(VALID_AGENT_MODES.has(frontmatter.mode), `asset-health/agent-frontmatter/mode/agent/${agent.name}`).toBe(true)
+      const mode = getFrontmatterString(frontmatter, 'mode')
+      expect(mode && VALID_AGENT_MODES.has(mode), `asset-health/agent-frontmatter/mode/agent/${agent.name}`).toBe(true)
     }
   })
 

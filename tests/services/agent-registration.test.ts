@@ -65,6 +65,67 @@ describe('agent-registration', () => {
     })
   })
 
+  it('应该保留 OpenCode 支持的 agent frontmatter 配置', () => {
+    const root = createTempRoot()
+    mkdirSync(join(root, 'src', 'assets', 'agents', 'review'), { recursive: true })
+    writeFileSync(
+      join(root, 'src', 'assets', 'agents', 'review', 'demo-reviewer.md'),
+      [
+        '---',
+        'description: markdown description',
+        'mode: subagent',
+        'temperature: 0.1',
+        'top_p: 0.8',
+        'steps: 5',
+        'disable: false',
+        'hidden: true',
+        'color: accent',
+        'tools:',
+        '  write: false',
+        'permission:',
+        '  bash:',
+        '    "*": ask',
+        '---',
+        'agent prompt body',
+      ].join('\n'),
+    )
+
+    const config = buildAgentConfig(createManifest(root))
+
+    expect(config['demo-reviewer']).toEqual({
+      description: 'markdown description',
+      prompt: 'agent prompt body',
+      mode: 'subagent',
+      temperature: 0.1,
+      top_p: 0.8,
+      steps: 5,
+      disable: false,
+      hidden: true,
+      color: 'accent',
+      tools: {
+        write: false,
+      },
+      permission: {
+        bash: {
+          '*': 'ask',
+        },
+      },
+    })
+  })
+
+  it('应该允许 agent frontmatter prompt 覆盖 Markdown 正文提示词', () => {
+    const root = createTempRoot()
+    mkdirSync(join(root, 'src', 'assets', 'agents', 'review'), { recursive: true })
+    writeFileSync(
+      join(root, 'src', 'assets', 'agents', 'review', 'demo-reviewer.md'),
+      ['---', 'description: markdown description', 'prompt: ./prompt.md', '---', 'agent prompt body'].join('\n'),
+    )
+
+    const config = buildAgentConfig(createManifest(root))
+
+    expect(config['demo-reviewer']?.prompt).toBe('./prompt.md')
+  })
+
   it('agent frontmatter 未声明 mode 时应该默认使用 subagent', () => {
     const root = createTempRoot()
     mkdirSync(join(root, 'src', 'assets', 'agents', 'review'), { recursive: true })

@@ -107,6 +107,36 @@ describe('skill-creator 脚本', () => {
     expect(validate.status, validate.stderr).toBe(0)
   })
 
+  it('quick_validate 应该允许 OpenCode 支持的 skill 和 command 可选 frontmatter', () => {
+    const projectRoot = createTempDir()
+    const skillDir = join(projectRoot, '.opencode/skills/test-skill')
+    const commandDir = join(projectRoot, '.opencode/commands')
+    mkdirSync(skillDir, { recursive: true })
+    mkdirSync(commandDir, { recursive: true })
+    writeFileSync(
+      join(skillDir, 'SKILL.md'),
+      [
+        '---',
+        'name: test-skill',
+        'description: 测试技能',
+        'license: MIT',
+        'compatibility: opencode',
+        'metadata:',
+        '  audience: maintainer',
+        '---',
+        '# 技能说明',
+      ].join('\n'),
+    )
+    writeFileSync(
+      join(commandDir, 'test-skill.md'),
+      ['---', 'description: 测试命令', 'agent: plan', 'subtask: true', 'model: provider/model', '---', '$ARGUMENTS'].join('\n'),
+    )
+
+    const validate = runNode([VALIDATE_SCRIPT, skillDir, '--with-command'])
+
+    expect(validate.status, validate.stderr).toBe(0)
+  })
+
   it('应该拒绝同时传入只创建技能和只创建命令', () => {
     const projectRoot = createTempDir()
 

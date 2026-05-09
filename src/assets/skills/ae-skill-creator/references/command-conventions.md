@@ -58,6 +58,8 @@ $ARGUMENTS
 
 - 命令文件存在于与技能同级的命令目录。
 - frontmatter 包含 `description`。
+- 可选 frontmatter 包括 `agent`、`subtask`、`model`；只有需要绑定指定代理、强制子任务运行或覆盖模型时才写入。
+- 命令正文是 `template`；Markdown 命令文件通常不需要在 frontmatter 中写 `template`。
 - 包装技能的命令正文明确要求加载同名技能；独立命令正文直接包含完整执行流程。
 - 正文保留 `$ARGUMENTS`，避免丢失用户请求。
 

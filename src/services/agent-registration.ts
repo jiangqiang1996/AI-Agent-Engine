@@ -5,7 +5,7 @@ import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
 import { getAllAgentDefinitions } from './ae-catalog.js'
 import type { ModelScenarioRoutingContext } from './model-scenario-routing-service.js'
 import { resolveModelReference } from './model-scenario-routing-service.js'
-import { parseFrontmatter } from '../utils/frontmatter.js'
+import { getFrontmatterString, parseFrontmatter } from '../utils/frontmatter.js'
 
 interface AgentConfigShape {
   agent?: Record<string, {
@@ -32,12 +32,13 @@ export function buildAgentConfig(
     const parsed = parseFrontmatter(content)
 
     const agentConfig: AgentConfigEntry = {
-      description: parsed.data.description || agent.description,
-      prompt: parsed.body.trim(),
-      mode: resolveAgentMode(parsed.data.mode, agent.name),
+      ...parsed.data,
+      description: getFrontmatterString(parsed.data, 'description') || agent.description,
+      prompt: getFrontmatterString(parsed.data, 'prompt') ?? parsed.body.trim(),
+      mode: resolveAgentMode(getFrontmatterString(parsed.data, 'mode'), agent.name),
     }
 
-    applyAgentModel(agentConfig, agent.name, parsed.data.model, routingContext)
+    applyAgentModel(agentConfig, getFrontmatterString(parsed.data, 'model'), routingContext)
 
     result[agent.name] = agentConfig
   }
@@ -59,7 +60,6 @@ function resolveAgentMode(frontmatterMode: string | undefined, agentName: string
 
 function applyAgentModel(
   agentConfig: AgentConfigEntry,
-  agentName: string,
   frontmatterModel?: string,
   routingContext?: ModelScenarioRoutingContext,
 ): void {

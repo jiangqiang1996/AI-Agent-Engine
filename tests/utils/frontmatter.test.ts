@@ -28,13 +28,16 @@ describe('frontmatter 工具', () => {
     expect(parsed.body).toBe('# 正文')
   })
 
-  it('应该保持 frontmatter 返回值为字符串契约', () => {
-    const parsed = parseFrontmatter('---\nsubtask: true\nsteps: 3\ndate: 2026-05-09\n---\n正文')
+  it('应该保留 YAML frontmatter 的原始值类型', () => {
+    const parsed = parseFrontmatter('---\nsubtask: true\nsteps: 3\ndate: 2026-05-09\nmetadata:\n  audience: maintainer\n---\n正文')
 
     expect(parsed.data).toEqual({
-      subtask: 'true',
-      steps: '3',
+      subtask: true,
+      steps: 3,
       date: '2026-05-09',
+      metadata: {
+        audience: 'maintainer',
+      },
     })
   })
 })

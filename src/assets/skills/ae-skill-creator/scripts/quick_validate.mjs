@@ -3,10 +3,10 @@
 import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
+import matter from 'gray-matter'
 
 const NAME_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/
 const AE_NAME_PATTERN = /^ae:[a-z0-9]+(-[a-z0-9]+)*$/
-const ALLOWED_FIELDS = new Set(['name', 'description', 'argument-hint', 'license', 'compatibility'])
 
 function usage() {
   return '用法: node scripts/quick_validate.mjs <skill-dir> [--with-command] 或 node scripts/quick_validate.mjs --command-file <path>'
@@ -54,30 +54,11 @@ function parseFrontmatter(content) {
     throw new Error('SKILL.md 必须以 frontmatter 开头')
   }
 
-  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/)
-  if (!match) {
+  try {
+    return matter(content).data
+  } catch {
     throw new Error('无法解析 frontmatter，请确认使用成对的 --- 分隔')
   }
-
-  const data = {}
-  for (const rawLine of match[1].split(/\r?\n/)) {
-    const line = rawLine.trim()
-    if (!line || line.startsWith('#')) {
-      continue
-    }
-    const separator = line.indexOf(':')
-    if (separator <= 0) {
-      throw new Error(`无法解析 frontmatter 行: ${rawLine}`)
-    }
-    const key = line.slice(0, separator).trim()
-    const value = line.slice(separator + 1).trim().replace(/^['"]|['"]$/g, '')
-    if (!ALLOWED_FIELDS.has(key)) {
-      throw new Error(`不支持的 frontmatter 字段: ${key}`)
-    }
-    data[key] = value
-  }
-
-  return data
 }
 
 function expectedFrontmatterNames(expectedName) {

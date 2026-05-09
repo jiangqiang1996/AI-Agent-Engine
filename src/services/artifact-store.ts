@@ -3,13 +3,13 @@ import { join } from 'node:path'
 import { Effect } from 'effect'
 
 import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
-import { parseFrontmatter } from '../utils/frontmatter.js'
+import { parseFrontmatter, type FrontmatterData } from '../utils/frontmatter.js'
 
 export interface ArtifactRecord {
   path: string
   body: string
   type: 'brainstorm' | 'plan' | 'work' | 'review'
-  frontmatter: Record<string, string>
+  frontmatter: FrontmatterData
 }
 
 function readMarkdownFiles(dir: string): string[] {

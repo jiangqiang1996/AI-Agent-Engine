@@ -200,6 +200,40 @@ describe('command-registration', () => {
     expect(config.custom?.model).toBe('provider/quick')
   })
 
+  it('应该保留磁盘命令支持的 frontmatter 配置', () => {
+    const root = createTempRoot()
+    const commandsDir = join(root, 'commands')
+    mkdirSync(commandsDir, { recursive: true })
+    writeFileSync(
+      join(commandsDir, 'custom.md'),
+      ['---', 'description: custom command', 'agent: plan', 'subtask: true', 'model: provider/custom', '---', 'custom template'].join('\n'),
+    )
+
+    const config = buildCommandConfig(commandsDir)
+
+    expect(config.custom).toEqual({
+      template: 'custom template',
+      description: 'custom command',
+      agent: 'plan',
+      subtask: true,
+      model: 'provider/custom',
+    })
+  })
+
+  it('缺少 description 的磁盘命令不应该写入空字符串字段', () => {
+    const root = createTempRoot()
+    const commandsDir = join(root, 'commands')
+    mkdirSync(commandsDir, { recursive: true })
+    writeFileSync(join(commandsDir, 'custom.md'), ['---', 'agent: plan', '---', 'custom template'].join('\n'))
+
+    const config = buildCommandConfig(commandsDir)
+
+    expect(config.custom).toEqual({
+      template: 'custom template',
+      agent: 'plan',
+    })
+  })
+
   it('磁盘命令 frontmatter 自定义模型变量未配置时应该原样透传', () => {
     const root = createTempRoot()
     const commandsDir = join(root, 'commands')

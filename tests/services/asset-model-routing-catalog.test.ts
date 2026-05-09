@@ -11,7 +11,7 @@ import {
   getCommandModelScenario,
 } from '../../src/services/asset-model-routing-catalog.js'
 import { createRuntimeAssetManifestFromRoot } from '../../src/services/runtime-asset-manifest.js'
-import { parseFrontmatter } from '../../src/utils/frontmatter.js'
+import { getFrontmatterString, parseFrontmatter } from '../../src/utils/frontmatter.js'
 
 describe('asset-model-routing-catalog', () => {
   it('应该为所有内置命令和派生命令提供路由状态', () => {
@@ -78,7 +78,11 @@ describe('asset-model-routing-catalog', () => {
         continue
       }
       const content = readFileSync(join(manifest.agentsDir, stage, `${entry.name}.md`), 'utf8')
-      const modelReference = parseFrontmatter(content).data.model
+      const modelReference = getFrontmatterString(parseFrontmatter(content).data, 'model')
+      expect(modelReference).toBeDefined()
+      if (!modelReference) {
+        throw new Error(`缺少 agent model frontmatter: ${entry.name}`)
+      }
       expect(entry.scenario).toBe(modelReference.startsWith('$') ? modelReference.slice(1) : modelReference)
     }
   })
