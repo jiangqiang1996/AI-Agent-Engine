@@ -1,6 +1,156 @@
-# AI Agent 与工具设计规范
+# OpenCode 原生资产规范
 
-## 工具设计原则
+## Skill 自身结构
+
+### Skill 目录结构
+
+OpenCode 原生 Skill 必须是一个独立目录，目录自身结构遵循：
+
+```text
+<skill-name>/
+├── SKILL.md                 必须
+├── references/              可选
+│   └── *.md                 可选
+├── scripts/                 可选
+│   └── *                    可选
+└── 其他同级资源              可选
+```
+
+### Skill 必须文件
+
+- `SKILL.md` 必须存在，作为技能入口文件。
+- `SKILL.md` 必须包含 YAML frontmatter。
+- `SKILL.md` 正文必须包含可执行的技能说明。
+
+### Skill 可选目录
+
+- `references/` 用于存放详细规范、速查表、示例、决策参考等辅助文档。
+- `scripts/` 用于存放技能执行过程中可调用的辅助脚本。
+- 其他同级资源目录必须由 `SKILL.md` 或引用文档明确说明用途。
+
+### Skill Frontmatter
+
+Skill frontmatter 必须包含：
+
+```yaml
+---
+name: <skill-name>
+description: <何时使用该技能>
+---
+```
+
+Skill frontmatter 可选包含：
+
+- `argument-hint`：说明用户调用技能时可传入的参数形式。
+- OpenCode 支持的其他元数据字段：用于技能运行或发现所需的结构化信息。
+
+### Skill 正文结构
+
+Skill 正文必须包含：
+
+- 技能角色或目标。
+- 适用场景。
+- 执行流程。
+- 输入处理方式。
+- 输出或交付要求。
+- 安全边界或确认条件。
+- 验证方式或完成标准。
+
+Skill 正文可选包含：
+
+- 不适用场景。
+- 初始化示例。
+- 更新既有资产的流程。
+- 故障排查。
+- 引用资料列表。
+- 脚本使用说明。
+
+## Agent 自身结构
+
+### Agent 文件结构
+
+OpenCode 原生 Agent 必须是一个 Markdown 文件，文件自身结构遵循：
+
+```text
+<agent-name>.md              必须
+```
+
+Agent 文件必须包含：
+
+- YAML frontmatter。
+- 代理正文提示词。
+
+### Agent Frontmatter
+
+Agent frontmatter 必须包含：
+
+```yaml
+---
+description: <代理用途和触发场景>
+mode: subagent | primary | all
+---
+```
+
+Agent frontmatter 可选包含：
+
+- `model`：指定代理使用的模型。
+- `temperature`：指定生成随机性。
+- `top_p`：指定采样范围。
+- `tools`：启用或禁用工具。
+- `permission`：配置工具或命令权限。
+- `hidden`：隐藏子代理入口，仅适用于 `mode: subagent`。
+- `steps`：限制最大执行步数。
+
+### Agent 正文结构
+
+Agent 正文必须包含：
+
+- `Role`：代理身份和目标。
+- `When To Use`：适用场景。
+- `Workflow`：执行步骤。
+- `Output`：输出格式和证据要求。
+- `Boundaries`：权限、确认、验证和安全边界。
+
+Agent 正文可选包含：
+
+- `When Not To Use`：不适用场景。
+- `Inputs`：输入契约。
+- `Examples`：示例任务或示例输出。
+- `Failure Handling`：失败、阻断或无法验证时的表达方式。
+- `Quality Bar`：质量标准。
+
+### Agent 绑定命令结构
+
+Agent 绑定命令可选存在，命令文件自身结构遵循：
+
+```text
+<command-name>.md            可选
+```
+
+命令 frontmatter 必须包含：
+
+```yaml
+---
+agent: <agent-name>
+---
+```
+
+命令 frontmatter 可选包含：
+
+- `description`：命令用途说明。
+- `subtask`：是否作为子任务运行。
+
+命令正文必须保留 `$ARGUMENTS`，并说明如何把 `$ARGUMENTS` 传递给 agent。
+
+### Agent 设计原则
+
+- 让代理专注于一个明确职责，而不是写成万能助手。
+- `description` 应说明何时使用、何时不使用，以及代理能交付什么结果。
+- 正文应给出可执行工作流和输出格式，而不是只写抽象人格。
+- 权限和工具按最小需要配置，默认不放宽。
+- 更新既有代理时采用最小编辑，避免整篇重写造成职责、边界或禁用项被意外覆盖。
+
+## Tool 设计规范
 
 ### 面向 LLM 设计
 
@@ -11,11 +161,7 @@
 3. **默认值友好** - 合理设置默认值，让 LLM 在简单场景下只需最少参数
 4. **错误可恢复** - 返回结构化错误信息，便于 LLM 理解原因并重试
 
-### 当前工具清单
-
-- 本项目自定义工具，代码文件存放在 `src/tools/` 目录
-
-### 工具定义模板
+### Tool 定义模板
 
 ```typescript
 import { tool } from '@opencode-ai/plugin/tool'
@@ -45,27 +191,25 @@ export const myTool = tool({
 })
 ```
 
-### 工具描述规范
+### Tool 描述规范
 
-- 第一行为工具的简短摘要（不超过 50 字）
-- 空行后列出功能说明和注意事项
-- 使用列表格式提高可读性
-- 必须说明工具的 **适用场景** 和 **不适用场景**
-- 包含使用示例（可选，对复杂工具有帮助）
+- 第一行为工具的简短摘要（不超过 50 字）。
+- 空行后列出功能说明和注意事项。
+- 使用列表格式提高可读性。
+- 必须说明工具的适用场景和不适用场景。
+- 复杂工具可以包含使用示例。
 
-## Agent 设计模式
+### Tool 组合
 
-### 工具组合
+- 将复杂任务拆分为多个独立工具。
+- 每个工具只做一件事，通过 LLM 编排多个工具完成任务。
+- 避免创建万能工具，保持工具职责单一。
 
-- 将复杂任务拆分为多个独立工具
-- 每个工具只做一件事，通过 LLM 编排多个工具完成任务
-- 避免创建"万能工具"，保持工具职责单一
+### Tool 上下文管理
 
-### 上下文管理
-
-- 通过 `ctx.metadata()` 实时反馈执行状态
-- 返回结果包含足够的上下文信息供 LLM 决策
-- 大量数据返回摘要，避免 Token 浪费
+- 通过 `ctx.metadata()` 实时反馈执行状态。
+- 返回结果包含足够的上下文信息供 LLM 决策。
+- 大量数据返回摘要，避免 Token 浪费。
 
 ```typescript
 execute: async (args, ctx) => {
@@ -79,11 +223,11 @@ execute: async (args, ctx) => {
 }
 ```
 
-### 错误策略
+### Tool 错误策略
 
-- 可恢复错误：返回中文提示，引导 LLM 重试或换方案
-- 不可恢复错误：返回明确的失败原因
-- 禁止在工具中抛出未捕获的异常
+- 可恢复错误返回中文提示，引导 LLM 重试或换方案。
+- 不可恢复错误返回明确的失败原因。
+- 禁止在工具中抛出未捕获的异常。
 
 ```typescript
 execute: async (args, ctx) => {
@@ -125,32 +269,42 @@ export function registerHooks(input: PluginInput): Partial<Hooks> {
 
 ### Hook 处理原则
 
-- Hook 函数必须快速返回，禁止长时间阻塞
-- 使用 `output` 对象修改输出，不修改 `input`
-- 异常必须被捕获，不能影响主流程
-- `experimental_*` 前缀的 Hook 为实验性 API，需做好降级处理
+- Hook 函数必须快速返回，禁止长时间阻塞。
+- 使用 `output` 对象修改输出，不修改 `input`。
+- 异常必须被捕获，不能影响主流程。
+- `experimental_*` 前缀的 Hook 为实验性 API，需做好降级处理。
 
 ## Prompt 工程规范
 
 ### System Prompt 设计
 
-- 使用中文编写系统提示词
-- 明确 Agent 的角色、能力边界和行为约束
-- 提供具体的行为示例而非抽象规则
-- 避免相互矛盾的指令
+- 使用中文编写系统提示词。
+- 明确 Agent 的角色、能力边界和行为约束。
+- 提供具体的行为示例而非抽象规则。
+- 避免相互矛盾的指令。
 
-### 工具描述与 Prompt 协同
+### Tool 描述与 Prompt 协同
 
-- 工具描述是 System Prompt 的延伸
-- Prompt 中引用工具名称时，必须与工具 ID 完全一致
-- 不要在 Prompt 中重复工具描述中已有的信息
+- Tool 描述是 System Prompt 的延伸。
+- Prompt 中引用工具名称时，必须与工具 ID 完全一致。
+- Prompt 不重复 Tool 描述中已有的信息。
 
 ## 安全规范
 
-- 工具执行前通过 `ctx.ask()` 请求权限确认
-- 敏感操作（文件删除、网络请求等）必须明确提示用户
-- 禁止在工具返回中泄露系统路径、环境变量等敏感信息
-- 使用 `ctx.abort` 响应取消操作，及时释放资源
+- 工具执行前通过 `ctx.ask()` 请求权限确认。
+- 敏感操作（文件删除、网络请求等）必须明确提示用户。
+- 禁止在工具返回中泄露系统路径、环境变量等敏感信息。
+- 使用 `ctx.abort` 响应取消操作，及时释放资源。
+
+## 更新既有 Skill 或 Agent
+
+- 更新既有 Skill 或 Agent 前必须先读取现有文件。
+- 更新草案必须列出 frontmatter 的变化。
+- 更新草案必须列出正文结构的变化。
+- 更新草案必须列出权限、工具、命令绑定等敏感结构变化。
+- 更新时必须保留仍有效的职责、流程、边界和验证要求。
+- 更新时必须做最小修改。
+- 更新完成后必须运行结构校验，或说明无法校验的原因。
 
 ## AE 技能列表编写顺序
 
@@ -191,7 +345,7 @@ export function registerHooks(input: PluginInput): Partial<Hooks> {
 - 面向用户的能力不得硬编码本仓库的 `src/assets/`、`.opencode/plugins/`、`npm run build` 等源码仓库结构或命令作为通用前提
 - 如需引用当前仓库结构、构建命令或内部维护流程，必须明确标注为插件源码仓库开发语境
 - 用户侧提示和错误信息应描述通用操作证据，而不是要求目标项目符合本仓库布局
-- 专项维护能力可以引用 `.opencode/plugins/`、`~/.config/opencode/ai-agent-engine`、`src/assets/`、`npm run build`、桥接文件等路径或命令，但必须满足三点：能力名称或开头说明明确这是 AE 插件安装/更新/源码维护/配置管理语境；不能把这些路径描述为普通下游项目必须具备的业务结构；涉及覆盖、删除、重置、拉取等写操作时必须遵守 Git 与文件写入授权边界。
+- 专项维护能力可以引用 `.opencode/plugins/`、`~/.config/opencode/ai-agent-engine`、`src/assets/`、`npm run build`、桥接文件等路径或命令，但必须满足三点：能力名称或开头说明明确这是 AE 插件安装、更新、源码维护或项目级配置管理语境；不能把这些路径描述为普通下游项目必须具备的业务结构；涉及覆盖、删除、重置、拉取等写操作时必须遵守 Git 与文件写入授权边界。
 
 ### 能力分类判定
 
