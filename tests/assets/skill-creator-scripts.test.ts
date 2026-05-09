@@ -82,6 +82,54 @@ describe('skill-creator 脚本', () => {
     expect(validate.status, validate.stderr).toBe(0)
   })
 
+  it('应该支持只创建命令并写入自包含流程', () => {
+    const projectRoot = createTempDir()
+
+    const init = runNode([
+      INIT_SCRIPT,
+      'test-command',
+      '--command-only',
+      '--description',
+      '测试命令',
+      '--project-root',
+      projectRoot,
+    ])
+    expect(init.status, init.stderr).toBe(0)
+
+    const commandFile = join(projectRoot, '.opencode/commands/test-command.md')
+    const commandContent = readFileSync(commandFile, 'utf8')
+    expect(commandContent).toContain('description: "测试命令"')
+    expect(commandContent).toContain('不要尝试加载同名技能')
+    expect(commandContent).toContain('$ARGUMENTS')
+    expect(existsSync(join(projectRoot, '.opencode/skills/test-command/SKILL.md'))).toBe(false)
+
+    const validate = runNode([VALIDATE_SCRIPT, '--command-file', commandFile])
+    expect(validate.status, validate.stderr).toBe(0)
+  })
+
+  it('应该拒绝同时传入只创建技能和只创建命令', () => {
+    const projectRoot = createTempDir()
+
+    const init = runNode([INIT_SCRIPT, 'test-skill', '--no-command', '--command-only', '--project-root', projectRoot])
+
+    expect(init.status).not.toBe(0)
+    expect(init.stderr).toContain('不能同时使用')
+  })
+
+  it('应该拒绝命令文件校验与技能目录校验参数混用', () => {
+    const projectRoot = createTempDir()
+
+    expect(runNode([INIT_SCRIPT, 'test-command', '--command-only', '--project-root', projectRoot]).status).toBe(0)
+    const commandFile = join(projectRoot, '.opencode/commands/test-command.md')
+    const mixedTarget = runNode([VALIDATE_SCRIPT, join(projectRoot, '.opencode/skills/test-command'), '--command-file', commandFile])
+    const mixedWithCommand = runNode([VALIDATE_SCRIPT, '--command-file', commandFile, '--with-command'])
+
+    expect(mixedTarget.status).not.toBe(0)
+    expect(mixedTarget.stderr).toContain('不能同时使用')
+    expect(mixedWithCommand.status).not.toBe(0)
+    expect(mixedWithCommand.stderr).toContain('只能与 skill-dir 一起使用')
+  })
+
   it('应该拒绝非法名称', () => {
     const projectRoot = createTempDir()
 

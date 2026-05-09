@@ -10,9 +10,9 @@ const NAME_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/
 
 function usage() {
   return [
-    '用法: node scripts/init_skill.mjs <skill-name> [--global] [--description "..."] [--no-command] [--project-root <path>] [--home <path>]',
+    '用法: node scripts/init_skill.mjs <skill-name> [--global] [--description "..."] [--no-command|--command-only] [--project-root <path>] [--home <path>]',
     '',
-    '默认创建项目级技能和项目级命令。只有传入 --global 时才创建全局级技能和命令。',
+    '默认创建项目级技能和项目级命令。传入 --no-command 只创建技能，传入 --command-only 只创建命令。只有传入 --global 时才创建全局级资产。',
   ].join('\n')
 }
 
@@ -21,6 +21,7 @@ function parseArgs(argv) {
     global: false,
     description: undefined,
     command: true,
+    commandOnly: false,
     projectRoot: process.cwd(),
     home: os.homedir(),
   }
@@ -32,6 +33,8 @@ function parseArgs(argv) {
       options.global = true
     } else if (arg === '--no-command') {
       options.command = false
+    } else if (arg === '--command-only') {
+      options.commandOnly = true
     } else if (arg === '--description') {
       index += 1
       if (!argv[index]) {
@@ -61,6 +64,9 @@ function parseArgs(argv) {
 
   if (!name) {
     throw new Error('缺少 skill-name')
+  }
+  if (!options.command && options.commandOnly) {
+    throw new Error('--no-command 与 --command-only 不能同时使用')
   }
 
   return { name, options }
@@ -96,6 +102,10 @@ function commandTemplate(name) {
   return `---\ndescription: 使用 ${name} 技能处理请求\n---\n\n请使用 \`skill\` 工具加载 \`${name}\` 技能，并严格按照该技能处理以下请求：\n\n$ARGUMENTS\n`
 }
 
+function commandOnlyTemplate(name, description) {
+  return `---\ndescription: ${JSON.stringify(description)}\n---\n\n# ${name}\n\n请直接按照以下流程处理用户请求，不要尝试加载同名技能：\n\n1. 理解用户目标和约束。\n2. 读取必要上下文。\n3. 执行任务并验证结果。\n4. 汇报完成项、验证结果和剩余风险。\n\n用户请求：\n\n$ARGUMENTS\n`
+}
+
 async function ensureDoesNotExist(file) {
   if (existsSync(file)) {
     throw new Error(`目标已存在，拒绝覆盖: ${file}\n请改名、手动合并，或删除后重试。`)
@@ -123,29 +133,46 @@ async function main() {
   const scriptDir = path.dirname(fileURLToPath(import.meta.url))
   const validateScript = path.join(scriptDir, 'quick_validate.mjs')
 
-  await ensureDoesNotExist(targets.skillFile)
+  if (!options.commandOnly) {
+    await ensureDoesNotExist(targets.skillFile)
+  }
   if (options.command) {
     await ensureDoesNotExist(targets.commandFile)
   }
 
-  await mkdir(targets.skillDir, { recursive: true })
-  await createNewFile(targets.skillFile, skillTemplate(name, description))
+  if (!options.commandOnly) {
+    await mkdir(targets.skillDir, { recursive: true })
+    await createNewFile(targets.skillFile, skillTemplate(name, description))
+  }
 
   if (options.command) {
     try {
       await mkdir(path.dirname(targets.commandFile), { recursive: true })
-      await createNewFile(targets.commandFile, commandTemplate(name))
+      await createNewFile(
+        targets.commandFile,
+        options.commandOnly ? commandOnlyTemplate(name, description) : commandTemplate(name),
+      )
     } catch (error) {
-      await rm(targets.skillFile, { force: true })
+      if (!options.commandOnly) {
+        await rm(targets.skillFile, { force: true })
+      }
       throw error
     }
   }
 
-  console.log(`已创建 ${targets.scope === 'global' ? '全局级' : '项目级'} OpenCode 技能`)
-  console.log(`技能: ${targets.skillFile}`)
+  console.log(`已创建 ${targets.scope === 'global' ? '全局级' : '项目级'} OpenCode ${options.commandOnly ? '命令' : '技能'}`)
+  if (options.commandOnly) {
+    console.log('技能: 未创建 (--command-only)')
+  } else {
+    console.log(`技能: ${targets.skillFile}`)
+  }
   if (options.command) {
     console.log(`命令: ${targets.commandFile}`)
-    console.log(`校验: node "${validateScript}" "${targets.skillDir}" --with-command`)
+    if (options.commandOnly) {
+      console.log(`校验: node "${validateScript}" --command-file "${targets.commandFile}"`)
+    } else {
+      console.log(`校验: node "${validateScript}" "${targets.skillDir}" --with-command`)
+    }
   } else {
     console.log('命令: 未创建 (--no-command)')
     console.log(`校验: node "${validateScript}" "${targets.skillDir}"`)

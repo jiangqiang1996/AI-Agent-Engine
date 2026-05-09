@@ -9,16 +9,24 @@ const AE_NAME_PATTERN = /^ae:[a-z0-9]+(-[a-z0-9]+)*$/
 const ALLOWED_FIELDS = new Set(['name', 'description', 'argument-hint', 'license', 'compatibility'])
 
 function usage() {
-  return '用法: node scripts/quick_validate.mjs <skill-dir> [--with-command]'
+  return '用法: node scripts/quick_validate.mjs <skill-dir> [--with-command] 或 node scripts/quick_validate.mjs --command-file <path>'
 }
 
 function parseArgs(argv) {
   let skillDir
+  let commandFile
   let withCommand = false
 
-  for (const arg of argv) {
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index]
     if (arg === '--with-command') {
       withCommand = true
+    } else if (arg === '--command-file') {
+      index += 1
+      if (!argv[index]) {
+        throw new Error('--command-file 需要提供路径')
+      }
+      commandFile = path.resolve(argv[index])
     } else if (arg.startsWith('--')) {
       throw new Error(`未知参数: ${arg}`)
     } else if (!skillDir) {
@@ -28,11 +36,17 @@ function parseArgs(argv) {
     }
   }
 
-  if (!skillDir) {
+  if (skillDir && commandFile) {
+    throw new Error('skill-dir 与 --command-file 不能同时使用')
+  }
+  if (!skillDir && !commandFile) {
     throw new Error('缺少 skill-dir')
   }
+  if (withCommand && commandFile) {
+    throw new Error('--with-command 只能与 skill-dir 一起使用')
+  }
 
-  return { skillDir, withCommand }
+  return { skillDir, commandFile, withCommand }
 }
 
 function parseFrontmatter(content) {
@@ -94,8 +108,29 @@ function findCommandPath(skillDir, name) {
   return path.join(opencodeDir, 'commands', `${name}.md`)
 }
 
+async function validateCommandFile(commandFile) {
+  if (!existsSync(commandFile)) {
+    throw new Error(`缺少命令文件: ${commandFile}`)
+  }
+
+  const content = await readFile(commandFile, 'utf8')
+  const data = parseFrontmatter(content)
+  if (!data.description) {
+    throw new Error('命令 frontmatter 缺少 description')
+  }
+  if (!content.includes('$ARGUMENTS')) {
+    throw new Error('命令正文必须保留 $ARGUMENTS')
+  }
+}
+
 async function main() {
-  const { skillDir, withCommand } = parseArgs(process.argv.slice(2))
+  const { skillDir, commandFile, withCommand } = parseArgs(process.argv.slice(2))
+  if (commandFile) {
+    await validateCommandFile(commandFile)
+    console.log(`校验通过: ${commandFile}`)
+    return
+  }
+
   const skillFile = path.join(skillDir, 'SKILL.md')
   if (!existsSync(skillFile)) {
     throw new Error(`缺少 SKILL.md: ${skillFile}`)
@@ -108,9 +143,7 @@ async function main() {
 
   if (withCommand) {
     const commandPath = findCommandPath(skillDir, expectedName)
-    if (!existsSync(commandPath)) {
-      throw new Error(`缺少同级命令: ${commandPath}`)
-    }
+    await validateCommandFile(commandPath)
   }
 
   console.log(`校验通过: ${skillFile}`)
