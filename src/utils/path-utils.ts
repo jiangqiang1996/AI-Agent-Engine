@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs'
+import { existsSync, lstatSync } from 'node:fs'
 import { basename, dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -58,4 +58,24 @@ export function toRepoRelativePath(root: string, filePath: string): string {
 
   const rel = relative(absRoot, absTarget)
   return toPosixPath(rel === '' ? '.' : rel)
+}
+
+export function pathContainsSymlink(root: string, filePath: string): boolean {
+  const absRoot = resolve(root)
+  const absTarget = resolve(filePath)
+  if (!isInsideRoot(absRoot, absTarget)) {
+    return false
+  }
+  const rel = relative(absRoot, absTarget)
+  if (!rel) {
+    return lstatSync(absRoot).isSymbolicLink()
+  }
+  let current = absRoot
+  for (const part of rel.split(/[\\/]+/)) {
+    current = join(current, part)
+    if (existsSync(current) && lstatSync(current).isSymbolicLink()) {
+      return true
+    }
+  }
+  return false
 }

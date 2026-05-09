@@ -22,6 +22,8 @@ export const SKILL = {
   TASK_LOOP: 'ae:task-loop',
   SQL: 'ae:sql',
   SWAGGER_PARSER: 'ae:swagger-parser',
+  GRAPH_BUILD: 'ae:graph-build',
+  GRAPH_QUERY: 'ae:graph-query',
   SAVE_EXPERIENCE: 'ae:save-experience',
   SKILL_FROM_SESSION: 'ae:skill-from-session',
   SKILL_CREATOR: 'ae:skill-creator',
@@ -103,6 +105,8 @@ export const TOOL = {
   AE_GATE: 'ae-gate',
   AE_SETUP_PROOF: 'ae-setup-proof',
   AE_SWAGGER_PARSER: 'ae-swagger-parser',
+  AE_GRAPH_BUILD: 'ae-graph-build',
+  AE_GRAPH_QUERY: 'ae-graph-query',
   AE_TASK_ANALYZER: 'ae-task-analyzer',
 } as const
 
@@ -133,6 +137,8 @@ export const AeSkillNameSchema = z
     SKILL.TASK_LOOP,
     SKILL.SQL,
     SKILL.SWAGGER_PARSER,
+    SKILL.GRAPH_BUILD,
+    SKILL.GRAPH_QUERY,
     SKILL.SAVE_EXPERIENCE,
     SKILL.SKILL_FROM_SESSION,
     SKILL.SKILL_CREATOR,
