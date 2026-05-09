@@ -1,4 +1,5 @@
 import { readdirSync, readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { basename, join } from 'node:path'
 
 import type { Config } from '@opencode-ai/plugin'
@@ -153,4 +154,38 @@ export function mergeBuiltinAndUserCommands(
     ...builtinCommands,
     ...(userCommands ?? {}),
   }
+}
+
+export function mergeDynamicCommands(
+  dynamicCommands: NonNullable<Config['command']>,
+  existingCommands: Config['command'] | undefined,
+  dynamicHasPriority: boolean,
+): NonNullable<Config['command']> {
+  return dynamicHasPriority
+    ? {
+      ...(existingCommands ?? {}),
+      ...dynamicCommands,
+    }
+    : mergeBuiltinAndUserCommands(dynamicCommands, existingCommands)
+}
+
+export function mergeProjectCommandOverrides(
+  commands: NonNullable<Config['command']>,
+  worktree: string,
+  routingContext?: ModelScenarioRoutingContext,
+): NonNullable<Config['command']> {
+  const result: NonNullable<Config['command']> = { ...commands }
+  const directCommandDirs = [
+    join(homedir(), '.config', 'opencode', 'commands'),
+    join(worktree, '.opencode', 'commands'),
+  ]
+
+  for (const commandsDir of directCommandDirs) {
+    const directCommands = loadCommandFiles(commandsDir)
+    for (const [name, command] of directCommands) {
+      result[name] = applyCommandModel(command, name, routingContext)
+    }
+  }
+
+  return result
 }

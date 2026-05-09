@@ -1,7 +1,12 @@
 import type { Config, PluginModule } from '@opencode-ai/plugin'
+import { join, relative, resolve } from 'node:path'
 
 import { registerAgents } from './services/agent-registration.js'
-import { buildCommandConfig, mergeBuiltinAndUserCommands } from './services/command-registration.js'
+import {
+  buildCommandConfig,
+  mergeDynamicCommands,
+  mergeProjectCommandOverrides,
+} from './services/command-registration.js'
 import { registerMcp } from './services/mcp-registration.js'
 import {
   collectModelScenarioSources,
@@ -44,6 +49,26 @@ function resolveHostWorktree(input: unknown): string {
   return typeof maybeInput.worktree === 'string' && maybeInput.worktree ? maybeInput.worktree : process.cwd()
 }
 
+function isProjectPluginInstall(manifest: ReturnType<typeof createRuntimeAssetManifest>, hostWorktree: string): boolean {
+  const pluginRoot = resolve(manifest.repoRoot)
+  const worktree = resolve(hostWorktree)
+
+  return isSamePath(pluginRoot, worktree) || isInsideRoot(join(worktree, '.opencode', 'plugins'), pluginRoot)
+}
+
+function isSamePath(left: string, right: string): boolean {
+  return normalizePath(left) === normalizePath(right)
+}
+
+function isInsideRoot(root: string, filePath: string): boolean {
+  const rel = relative(resolve(root), resolve(filePath))
+  return rel === '' || (!rel.startsWith('..') && !rel.includes(':'))
+}
+
+function normalizePath(value: string): string {
+  return resolve(value).replace(/\\/g, '/').toLowerCase()
+}
+
 function mergeCommandConfigWithRouting(
   config: RuntimeConfigShape,
   manifest: ReturnType<typeof createRuntimeAssetManifest>,
@@ -52,8 +77,13 @@ function mergeCommandConfigWithRouting(
   const routingContext = createModelScenarioRoutingContext(
     collectModelScenarioSources(resolveBuiltinOpencodeConfigPaths(manifest, hostWorktree)),
   )
-  config.command = mergeBuiltinAndUserCommands(buildCommandConfig(manifest.commandsDir, routingContext), config.command)
-  registerAgents(config, manifest, routingContext)
+  const dynamicHasPriority = isProjectPluginInstall(manifest, hostWorktree)
+  config.command = mergeProjectCommandOverrides(
+    mergeDynamicCommands(buildCommandConfig(manifest.commandsDir, routingContext), config.command, dynamicHasPriority),
+    hostWorktree,
+    routingContext,
+  )
+  registerAgents(config, manifest, hostWorktree, dynamicHasPriority, routingContext)
   resolveConfiguredModelReferences(config, routingContext)
 }
 
@@ -95,7 +125,7 @@ const plugin: PluginModule = {
 
     return {
       config: async (config) => {
-        await registerSkillsPath(config as RuntimeConfigShape, manifest)
+        await registerSkillsPath(config as RuntimeConfigShape, manifest, hostWorktree)
         mergeCommandConfigWithRouting(
           config as RuntimeConfigShape,
           manifest,

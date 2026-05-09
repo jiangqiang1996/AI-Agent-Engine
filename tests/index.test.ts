@@ -1,6 +1,6 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join, sep } from 'node:path'
 
 import type { Config } from '@opencode-ai/plugin'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -110,6 +110,142 @@ describe('插件入口', () => {
     expect(config.command?.['ae-lfg']?.template).toContain('ae:lfg')
     expect(config.command?.['ae-commit']?.template).toContain('智能提交当前变更文件')
     expect(config.command?.['ae-commit']?.subtask).toBe(false)
+  })
+
+  it('项目级磁盘命令应该在 server config 中最终覆盖同名已有命令', async () => {
+    const hostRoot = createTempRoot()
+    isolateHome(createTempRoot())
+    mkdirSync(join(hostRoot, '.opencode', 'commands'), { recursive: true })
+    writeFileSync(
+      join(hostRoot, '.opencode', 'commands', 'ae-commit.md'),
+      ['---', 'description: project commit', '---', 'project commit template'].join('\n'),
+    )
+    const server = await plugin.server({ worktree: hostRoot, client: {} } as never)
+    const config: RuntimeConfigShape = {
+      command: {
+        'ae-commit': {
+          template: 'global commit template',
+          description: 'global commit',
+        },
+      },
+    }
+
+    await server.config?.(config as never)
+
+    expect(config.command?.['ae-commit']).toEqual({
+      template: 'project commit template',
+      description: 'project commit',
+    })
+    expect(config.command?.['ae-lfg']?.template).toContain('ae:lfg')
+  })
+
+  it('项目级磁盘命令在 server config 中应该解析 frontmatter model 变量', async () => {
+    const hostRoot = createTempRoot()
+    isolateHome(createTempRoot())
+    writeModelScenariosConfig(hostRoot)
+    mkdirSync(join(hostRoot, '.opencode', 'commands'), { recursive: true })
+    writeFileSync(
+      join(hostRoot, '.opencode', 'commands', 'ae-commit.md'),
+      ['---', 'description: project commit', 'model: $quick', '---', 'project commit template'].join('\n'),
+    )
+    const server = await plugin.server({ worktree: hostRoot, client: {} } as never)
+    const config: RuntimeConfigShape = {}
+
+    await server.config?.(config as never)
+
+    expect(config.command?.['ae-commit']).toEqual({
+      template: 'project commit template',
+      description: 'project commit',
+      model: 'project/quick',
+    })
+  })
+
+  it('项目级安装的插件动态命令应该覆盖已有同名动态命令', async () => {
+    const hostRoot = `${process.cwd()}${sep}`
+    isolateHome(createTempRoot())
+    const server = await plugin.server({ worktree: hostRoot, client: {} } as never)
+    const config: RuntimeConfigShape = {
+      command: {
+        'ae-plan': {
+          template: 'global dynamic plan',
+          description: 'global dynamic plan',
+        },
+      },
+    }
+
+    await server.config?.(config as never)
+
+    expect(config.command?.['ae-plan']?.template).toContain('ae:plan')
+  })
+
+  it('插件位于 worktree 父目录下但不在项目插件目录时不应该被判定为项目级安装', async () => {
+    const hostRoot = dirname(process.cwd())
+    isolateHome(createTempRoot())
+    const server = await plugin.server({ worktree: hostRoot, client: {} } as never)
+    const config: RuntimeConfigShape = {
+      command: {
+        'ae-plan': {
+          template: 'global dynamic plan',
+          description: 'global dynamic plan',
+        },
+      },
+    }
+
+    await server.config?.(config as never)
+
+    expect(config.command?.['ae-plan']).toEqual({
+      template: 'global dynamic plan',
+      description: 'global dynamic plan',
+    })
+  })
+
+  it('项目级 agent 文件应该在 server config 中最终覆盖同名已有 agent', async () => {
+    const hostRoot = createTempRoot()
+    isolateHome(createTempRoot())
+    mkdirSync(join(hostRoot, '.opencode', 'agents'), { recursive: true })
+    writeFileSync(
+      join(hostRoot, '.opencode', 'agents', 'correctness-reviewer.md'),
+      ['---', 'description: project reviewer', 'mode: primary', '---', 'project reviewer prompt'].join('\n'),
+    )
+    const server = await plugin.server({ worktree: hostRoot, client: {} } as never)
+    const config: RuntimeConfigShape = {
+      agent: {
+        'correctness-reviewer': {
+          description: 'global reviewer',
+          prompt: 'global reviewer prompt',
+          mode: 'subagent',
+        },
+      },
+    }
+
+    await server.config?.(config as never)
+
+    expect(config.agent?.['correctness-reviewer']).toEqual({
+      description: 'project reviewer',
+      prompt: 'project reviewer prompt',
+      mode: 'primary',
+    })
+  })
+
+  it('项目级安装的插件动态 agent 应该覆盖已有同名动态 agent', async () => {
+    const hostRoot = `${process.cwd()}${sep}`
+    isolateHome(createTempRoot())
+    const server = await plugin.server({ worktree: hostRoot, client: {} } as never)
+    const config: RuntimeConfigShape = {
+      agent: {
+        'correctness-reviewer': {
+          description: 'global reviewer',
+          prompt: 'global reviewer prompt',
+          mode: 'subagent',
+        },
+      },
+    }
+
+    await server.config?.(config as never)
+
+    expect(config.agent?.['correctness-reviewer']?.prompt).not.toBe('global reviewer prompt')
+    expect(config.agent?.['correctness-reviewer']?.description).not.toBe('global reviewer')
+    expect(config.agent?.['correctness-reviewer']?.mode).toBe('subagent')
   })
 
   it('零配置时应该让内置命令和代理继承默认模型', async () => {

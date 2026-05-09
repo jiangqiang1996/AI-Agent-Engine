@@ -2,18 +2,21 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { COMMAND, PA_SUFFIX, PO_SUFFIX, PROMPT_OPTIMIZE_VARIANT_EXCLUDED_SKILLS, SKILL } from '../../src/schemas/ae-asset-schema.js'
 import { getPhaseOneEntries, getPhaseOnePaEntries, getPhaseOnePoEntries } from '../../src/services/ae-catalog.js'
 import {
   buildCommandConfig,
+  mergeDynamicCommands,
   mergeBuiltinAndUserCommands,
+  mergeProjectCommandOverrides,
 } from '../../src/services/command-registration.js'
 import { createModelScenarioRoutingContext } from '../../src/services/model-scenario-routing-service.js'
 import { parseFrontmatter } from '../../src/utils/frontmatter.js'
 
 const tempRoots: string[] = []
+const COMMIT_COMMAND = 'ae-commit'
 
 function createTempRoot(): string {
   const root = mkdtempSync(join(tmpdir(), 'ae-command-'))
@@ -22,10 +25,16 @@ function createTempRoot(): string {
 }
 
 afterEach(() => {
+  vi.unstubAllEnvs()
   for (const root of tempRoots.splice(0)) {
     rmSync(root, { recursive: true, force: true })
   }
 })
+
+function isolateHome(root: string): void {
+  vi.stubEnv('HOME', root)
+  vi.stubEnv('USERPROFILE', root)
+}
 
 describe('command-registration', () => {
   it('应该按排除列表跳过不适合提示词优化包装的命令变体', () => {
@@ -183,6 +192,33 @@ describe('command-registration', () => {
     expect(merged['ae-user-only']?.template).toBe('user only')
   })
 
+  it('项目级动态命令应该覆盖已有同名动态命令', () => {
+    const merged = mergeDynamicCommands(
+      {
+        'ae-demo': {
+          template: 'project dynamic template',
+          description: 'project dynamic description',
+        },
+      },
+      {
+        'ae-demo': {
+          template: 'global dynamic template',
+          description: 'global dynamic description',
+        },
+        'global-only': {
+          template: 'global only',
+        },
+      },
+      true,
+    )
+
+    expect(merged['ae-demo']).toEqual({
+      template: 'project dynamic template',
+      description: 'project dynamic description',
+    })
+    expect(merged['global-only']?.template).toBe('global only')
+  })
+
   it('应该根据模型场景为内置 command 注入 model', () => {
     const routingContext = createModelScenarioRoutingContext(new Map([
       ['deep', { scenario: 'deep', model: 'provider/deep', layer: '项目级', path: '/repo/.opencode/ae.jsonc' }],
@@ -321,5 +357,117 @@ describe('command-registration', () => {
     )
 
     expect(merged[COMMAND.PLAN]?.model).toBe('user/model')
+  })
+
+  it('项目级命令应该最终覆盖已有同名用户命令', () => {
+    const root = createTempRoot()
+    isolateHome(createTempRoot())
+    const commandsDir = join(root, '.opencode', 'commands')
+    mkdirSync(commandsDir, { recursive: true })
+    writeFileSync(
+      join(commandsDir, `${COMMIT_COMMAND}.md`),
+      ['---', 'description: project commit', '---', 'project commit template'].join('\n'),
+    )
+
+    const merged = mergeProjectCommandOverrides({
+      [COMMIT_COMMAND]: {
+        template: 'global commit template',
+        description: 'global commit',
+      },
+      'other-command': {
+        template: 'other template',
+        description: 'other description',
+      },
+    }, root)
+
+    expect(merged[COMMIT_COMMAND]).toEqual({
+      template: 'project commit template',
+      description: 'project commit',
+    })
+    expect(merged['other-command']).toEqual({
+      template: 'other template',
+      description: 'other description',
+    })
+  })
+
+  it('项目级命令最终覆盖时应该解析 frontmatter model 变量', () => {
+    const root = createTempRoot()
+    isolateHome(createTempRoot())
+    const commandsDir = join(root, '.opencode', 'commands')
+    mkdirSync(commandsDir, { recursive: true })
+    writeFileSync(
+      join(commandsDir, `${COMMIT_COMMAND}.md`),
+      ['---', 'description: project commit', 'model: $quick', '---', 'project commit template'].join('\n'),
+    )
+    const routingContext = createModelScenarioRoutingContext(new Map([
+      ['quick', { scenario: 'quick', model: 'provider/quick', layer: '项目级', path: '/repo/.opencode/ae.jsonc' }],
+    ]))
+
+    const merged = mergeProjectCommandOverrides({
+      [COMMIT_COMMAND]: {
+        template: 'global commit template',
+        description: 'global commit',
+      },
+    }, root, routingContext)
+
+    expect(merged[COMMIT_COMMAND]).toEqual({
+      template: 'project commit template',
+      description: 'project commit',
+      model: 'provider/quick',
+    })
+  })
+
+  it('全局直接命令应该覆盖项目级动态命令', () => {
+    const root = createTempRoot()
+    const home = createTempRoot()
+    isolateHome(home)
+    const globalCommandsDir = join(home, '.config', 'opencode', 'commands')
+    mkdirSync(globalCommandsDir, { recursive: true })
+    writeFileSync(
+      join(globalCommandsDir, `${COMMIT_COMMAND}.md`),
+      ['---', 'description: global direct commit', '---', 'global direct template'].join('\n'),
+    )
+
+    const merged = mergeProjectCommandOverrides({
+      [COMMIT_COMMAND]: {
+        template: 'project dynamic template',
+        description: 'project dynamic commit',
+      },
+    }, root)
+
+    expect(merged[COMMIT_COMMAND]).toEqual({
+      template: 'global direct template',
+      description: 'global direct commit',
+    })
+  })
+
+  it('项目级直接命令应该覆盖全局直接命令', () => {
+    const root = createTempRoot()
+    const home = createTempRoot()
+    isolateHome(home)
+    const globalCommandsDir = join(home, '.config', 'opencode', 'commands')
+    const projectCommandsDir = join(root, '.opencode', 'commands')
+    mkdirSync(globalCommandsDir, { recursive: true })
+    mkdirSync(projectCommandsDir, { recursive: true })
+    writeFileSync(
+      join(globalCommandsDir, `${COMMIT_COMMAND}.md`),
+      ['---', 'description: global direct commit', '---', 'global direct template'].join('\n'),
+    )
+    writeFileSync(
+      join(projectCommandsDir, `${COMMIT_COMMAND}.md`),
+      ['---', 'description: project direct commit', '---', 'project direct template'].join('\n'),
+    )
+
+    const merged = mergeProjectCommandOverrides({
+      [COMMIT_COMMAND]: {
+        template: 'project dynamic template',
+        description: 'project dynamic commit',
+      },
+    }, root)
+
+    expect(merged[COMMIT_COMMAND]).toEqual({
+      template: 'project direct template',
+      description: 'project direct commit',
+    })
   })
 })

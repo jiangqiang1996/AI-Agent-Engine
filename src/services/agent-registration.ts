@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { join } from 'node:path'
 
 import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
@@ -46,6 +47,37 @@ export function buildAgentConfig(
   return result
 }
 
+function loadAgentFiles(
+  agentsDir: string,
+  routingContext?: ModelScenarioRoutingContext,
+): NonNullable<AgentConfigShape['agent']> {
+  const result: NonNullable<AgentConfigShape['agent']> = {}
+  let files: string[]
+
+  try {
+    files = readdirSync(agentsDir).filter((file) => file.endsWith('.md'))
+  } catch {
+    return result
+  }
+
+  for (const file of files) {
+    const name = file.slice(0, -'.md'.length)
+    const content = readFileSync(join(agentsDir, file), 'utf8')
+    const parsed = parseFrontmatter(content)
+    const agentConfig: AgentConfigEntry = {
+      ...parsed.data,
+      description: getFrontmatterString(parsed.data, 'description'),
+      prompt: getFrontmatterString(parsed.data, 'prompt') ?? parsed.body.trim(),
+      mode: resolveAgentMode(getFrontmatterString(parsed.data, 'mode'), name),
+    }
+
+    applyAgentModel(agentConfig, getFrontmatterString(parsed.data, 'model'), routingContext)
+    result[name] = agentConfig
+  }
+
+  return result
+}
+
 function resolveAgentMode(frontmatterMode: string | undefined, agentName: string): AgentMode {
   if (!frontmatterMode) {
     return 'subagent'
@@ -76,10 +108,15 @@ function applyAgentModel(
 export function registerAgents(
   config: AgentConfigShape,
   manifest: RuntimeAssetManifest,
+  worktree: string,
+  dynamicHasPriority: boolean,
   routingContext?: ModelScenarioRoutingContext,
 ): void {
+  const dynamicAgents = buildAgentConfig(manifest, routingContext)
   config.agent = {
-    ...buildAgentConfig(manifest, routingContext),
-    ...(config.agent ?? {}),
+    ...(dynamicHasPriority ? config.agent : dynamicAgents),
+    ...(dynamicHasPriority ? dynamicAgents : config.agent),
+    ...loadAgentFiles(join(homedir(), '.config', 'opencode', 'agents'), routingContext),
+    ...loadAgentFiles(join(worktree, '.opencode', 'agents'), routingContext),
   }
 }
