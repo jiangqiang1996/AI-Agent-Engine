@@ -55,6 +55,23 @@ describe('help-catalog-service 集成', () => {
     expect(text).toContain('生成日报、周报或指定时间段工作总结')
   })
 
+  it('应该在真实帮助目录中暴露文档互转入口和提示词优化变体', () => {
+    const humanizeText = generateHelpText('doc-humanize')
+    const structureText = generateHelpText('doc-structure')
+
+    expect(humanizeText).toContain(SKILL.DOC_HUMANIZE)
+    expect(humanizeText).toContain(`/${COMMAND.DOC_HUMANIZE}`)
+    expect(humanizeText).toContain(`/${COMMAND.DOC_HUMANIZE}${PO_SUFFIX}`)
+    expect(humanizeText).toContain(`/${COMMAND.DOC_HUMANIZE}${PA_SUFFIX}`)
+    expect(humanizeText).toContain('[需求文档路径\\|计划文档路径\\|目录路径]')
+
+    expect(structureText).toContain(SKILL.DOC_STRUCTURE)
+    expect(structureText).toContain(`/${COMMAND.DOC_STRUCTURE}`)
+    expect(structureText).toContain(`/${COMMAND.DOC_STRUCTURE}${PO_SUFFIX}`)
+    expect(structureText).toContain(`/${COMMAND.DOC_STRUCTURE}${PA_SUFFIX}`)
+    expect(structureText).toContain('[需求文档路径\\|详细设计文档路径]')
+  })
+
   it('按旧入口查询时不应该暴露旧会话沉淀和资产纠偏入口', () => {
     for (const query of ['save-session-flow', 'asset-debug']) {
       const text = generateHelpText(query)

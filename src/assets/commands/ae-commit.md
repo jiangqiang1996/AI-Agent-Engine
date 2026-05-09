@@ -1,7 +1,7 @@
 ---
 description: 智能提交变更，遵循项目 Git 提交规范
 model: $standard
-subtask: true
+subtask: false
 ---
 
 智能提交当前变更文件，自动生成符合项目规范的提交信息。

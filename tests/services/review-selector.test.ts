@@ -118,6 +118,11 @@ describe('selectReviewers — 文档域', () => {
     expect(selected).toContain(AGENT.TEST_CASE_REVIEWER)
   })
 
+  it('文档域带 upstream 或转换产物应激活 doc-equivalence-reviewer', () => {
+    expect(selectReviewers({ kind: 'document', hasUpstream: true })).toContain(AGENT.DOC_EQUIVALENCE_REVIEWER)
+    expect(selectReviewers({ kind: 'document', isDocConversion: true })).toContain(AGENT.DOC_EQUIVALENCE_REVIEWER)
+  })
+
   it('文档域非 test 类型不应激活 test-case-reviewer', () => {
     for (const documentType of ['requirements', 'plan', 'general'] as const) {
       const selected = selectReviewers({ kind: 'document', documentType })

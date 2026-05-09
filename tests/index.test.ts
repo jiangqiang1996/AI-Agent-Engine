@@ -109,6 +109,7 @@ describe('插件入口', () => {
 
     expect(config.command?.['ae-lfg']?.template).toContain('ae:lfg')
     expect(config.command?.['ae-commit']?.template).toContain('智能提交当前变更文件')
+    expect(config.command?.['ae-commit']?.subtask).toBe(false)
   })
 
   it('零配置时应该让内置命令和代理继承默认模型', async () => {

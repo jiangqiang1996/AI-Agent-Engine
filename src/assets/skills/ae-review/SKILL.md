@@ -192,6 +192,7 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 - **architecture-strategist** — 文档类型为 plan 且包含重要架构决策
 - **adversarial** — 文档包含 >=5 个独立需求、重要架构决策、高风险领域或新抽象提议
 - **test-case** — 文档类型为 test
+- **doc-equivalence** — 文档是 `ae:doc-humanize` / `ae:doc-structure` 转换产物，或 frontmatter/正文记录了 `upstream`、`origin` 等上游转换来源
 
 **退出条件：** 审查团队已确定并公布。
 

@@ -171,4 +171,14 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
     conditionGroups: [[{ field: 'documentType', operator: 'eq', value: 'test' }]],
     description: '审查测试用例文档的结构完整性、覆盖完备性、步骤可执行性、结果可验证性和需求对齐程度',
   },
+  {
+    name: AGENT.DOC_EQUIVALENCE_REVIEWER,
+    domain: 'document',
+    alwaysOn: false,
+    conditionGroups: [
+      [{ field: 'hasUpstream', operator: 'truthy' }],
+      [{ field: 'isDocConversion', operator: 'truthy' }],
+    ],
+    description: '审查文档转换前后是否语义等价、结构兼容且未镀金',
+  },
 ]

@@ -87,4 +87,36 @@ describe('postbuild 构建脚本', () => {
     const tuiConfig = JSON.parse(readFileSync(join(root, '.opencode', 'tui.json'), 'utf8'))
     expect(tuiConfig.plugin).toEqual(['./tui-plugins/custom.js'])
   })
+
+  it('应该复制内置技能目录和 references 资产到 dist', () => {
+    const root = createTempRoot()
+    const distSrc = join(root, 'dist', 'src')
+    const skillDir = join(root, 'src', 'assets', 'skills', 'ae-doc-humanize')
+    mkdirSync(distSrc, { recursive: true })
+    mkdirSync(join(root, '.opencode', 'plugins'), { recursive: true })
+    mkdirSync(join(skillDir, 'references'), { recursive: true })
+    writeFileSync(join(root, 'package.json'), '{"type":"module"}\n', 'utf8')
+    writeFileSync(join(distSrc, 'index.js'), 'export default { id: "server", server: async () => ({}) }\n', 'utf8')
+    writeFileSync(join(skillDir, 'SKILL.md'), '---\nname: ae:doc-humanize\n---\n', 'utf8')
+    writeFileSync(join(skillDir, 'references', 'requirements-template.md'), '# template\n', 'utf8')
+
+    execFileSync(process.execPath, [
+      '--input-type=module',
+      '--eval',
+      [
+        `import { main } from ${JSON.stringify(pathToFileURL(join(process.cwd(), 'scripts', 'postbuild.mjs')).href)}`,
+        `await main(${JSON.stringify(root)})`,
+      ].join('\n'),
+    ], { stdio: 'pipe' })
+
+    expect(existsSync(join(distSrc, 'assets', 'skills', 'ae-doc-humanize', 'SKILL.md'))).toBe(true)
+    expect(existsSync(join(
+      distSrc,
+      'assets',
+      'skills',
+      'ae-doc-humanize',
+      'references',
+      'requirements-template.md',
+    ))).toBe(true)
+  })
 })

@@ -59,6 +59,25 @@ describe('command-registration', () => {
     expect(config[paCommand]?.template).toContain(`使用 \`${SKILL.REFACTOR}\` 技能处理这次请求`)
   })
 
+  it('应该为文档互转技能生成基础命令和提示词优化命令', () => {
+    const config = buildCommandConfig('__missing_commands_dir__')
+
+    for (const [skillName, commandName] of [
+      [SKILL.DOC_HUMANIZE, COMMAND.DOC_HUMANIZE],
+      [SKILL.DOC_STRUCTURE, COMMAND.DOC_STRUCTURE],
+    ] as const) {
+      const poCommand = `${commandName}${PO_SUFFIX}`
+      const paCommand = `${commandName}${PA_SUFFIX}`
+
+      expect(config[commandName]?.template).toContain(`使用 \`${skillName}\` 技能处理这次请求`)
+      expect(config[poCommand]?.template).toContain(`先使用 \`${SKILL.PROMPT_OPTIMIZE}\` 技能优化以下用户输入`)
+      expect(config[poCommand]?.template).toContain(`使用 \`${skillName}\` 技能处理这次请求`)
+      expect(config[paCommand]?.template).toContain(`先使用 \`${SKILL.PROMPT_OPTIMIZE}\` 技能以 auto 模式优化以下用户输入`)
+      expect(config[paCommand]?.template).toContain('跳过确认直接提交')
+      expect(config[paCommand]?.template).toContain(`使用 \`${skillName}\` 技能处理这次请求`)
+    }
+  })
+
   it('应该为 ae:swagger-parser 只生成基础命令', () => {
     const config = buildCommandConfig('__missing_commands_dir__')
     const poCommand = `${COMMAND.SWAGGER_PARSER}${PO_SUFFIX}`
@@ -218,6 +237,20 @@ describe('command-registration', () => {
       subtask: true,
       model: 'provider/custom',
     })
+  })
+
+  it('应该保留磁盘命令显式禁用子任务配置', () => {
+    const root = createTempRoot()
+    const commandsDir = join(root, 'commands')
+    mkdirSync(commandsDir, { recursive: true })
+    writeFileSync(
+      join(commandsDir, 'custom.md'),
+      ['---', 'description: custom command', 'subtask: false', '---', 'custom template'].join('\n'),
+    )
+
+    const config = buildCommandConfig(commandsDir)
+
+    expect(config.custom?.subtask).toBe(false)
   })
 
   it('缺少 description 的磁盘命令不应该写入空字符串字段', () => {

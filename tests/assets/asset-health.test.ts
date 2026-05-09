@@ -3,7 +3,7 @@ import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { COMMAND, SKILL } from '../../src/schemas/ae-asset-schema.js'
+import { AGENT, COMMAND, SKILL } from '../../src/schemas/ae-asset-schema.js'
 import { MODEL_SCENARIO } from '../../src/schemas/model-scenario-schema.js'
 import { getAssetModelRoutingEntries, getCommandModelScenario } from '../../src/services/asset-model-routing-catalog.js'
 import { getAllAgentDefinitions, getPhaseOneEntries, getPhaseOnePaEntries, getPhaseOnePoEntries } from '../../src/services/ae-catalog.js'
@@ -126,6 +126,16 @@ describe('资产健康巡检', () => {
   })
 
   it('应该保持代理定义与 src/assets/agents 文件一致', () => {
+    const definitions = getAllAgentDefinitions()
+    const definitionNames = new Set(definitions.map((agent) => agent.name))
+
+    for (const agentFile of listMarkdownFiles(join(process.cwd(), 'src/assets/agents'))) {
+      const frontmatter = parseFrontmatter(readFileSync(agentFile, 'utf8')).data
+      const name = getFrontmatterString(frontmatter, 'name')
+      expect(name, `asset-health/agent-frontmatter/name/file/${agentFile}`).toBeTruthy()
+      expect(definitionNames.has(name ?? ''), `asset-health/agent-registration/file/${agentFile}: 代理文件未注册`).toBe(true)
+    }
+
     for (const agent of getAllAgentDefinitions()) {
       const agentPath = join(process.cwd(), agent.path)
       expect(existsSync(agentPath), `asset-health/agent-file/agent/${agent.name}: 缺少 ${agent.path}`).toBe(true)
@@ -136,6 +146,22 @@ describe('资产健康巡检', () => {
       const mode = getFrontmatterString(frontmatter, 'mode')
       expect(mode && VALID_AGENT_MODES.has(mode), `asset-health/agent-frontmatter/mode/agent/${agent.name}`).toBe(true)
     }
+  })
+
+  it('文档互转资产引用的模板和代理应该存在并注册', () => {
+    const agent = getAllAgentDefinitions().find((entry) => entry.name === AGENT.DOC_EQUIVALENCE_REVIEWER)
+    const humanize = readFileSync('src/assets/skills/ae-doc-humanize/SKILL.md', 'utf8')
+    const structure = readFileSync('src/assets/skills/ae-doc-structure/SKILL.md', 'utf8')
+
+    expect(agent).toMatchObject({ stage: 'review', tier: 'required', path: 'src/assets/agents/review/doc-equivalence-reviewer.md' })
+    expect(existsSync('src/assets/skills/ae-doc-humanize/references/requirements-template.md')).toBe(true)
+    expect(existsSync('src/assets/skills/ae-doc-humanize/references/design-template.md')).toBe(true)
+    expect(existsSync('src/assets/skills/ae-doc-structure/references/structured-requirements-template.md')).toBe(true)
+    expect(existsSync('src/assets/skills/ae-doc-structure/references/structured-plan-template.md')).toBe(true)
+    expect(humanize).toContain('references/requirements-template.md')
+    expect(humanize).toContain('references/design-template.md')
+    expect(structure).toContain('references/structured-requirements-template.md')
+    expect(structure).toContain('references/structured-plan-template.md')
   })
 
   it('技能目录不应该使用单数 script 资源目录', () => {
