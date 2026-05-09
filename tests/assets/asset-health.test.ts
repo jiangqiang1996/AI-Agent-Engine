@@ -27,6 +27,8 @@ const ARGUMENT_HINT_EXCEPTIONS: ArgumentHintException[] = [
   },
 ]
 
+const VALID_AGENT_MODES = new Set(['primary', 'subagent', 'all'])
+
 function readSkillFrontmatter(path: string): Record<string, string> {
   const content = readFileSync(path, 'utf8')
   return parseFrontmatter(content).data
@@ -131,7 +133,42 @@ describe('资产健康巡检', () => {
       const frontmatter = parseFrontmatter(readFileSync(agentPath, 'utf8')).data
       expect(frontmatter.name, `asset-health/agent-frontmatter/name/agent/${agent.name}`).toBe(agent.name)
       expect(frontmatter.description, `asset-health/agent-frontmatter/description/agent/${agent.name}`).toBeTruthy()
+      expect(VALID_AGENT_MODES.has(frontmatter.mode), `asset-health/agent-frontmatter/mode/agent/${agent.name}`).toBe(true)
     }
+  })
+
+  it('技能目录不应该使用单数 script 资源目录', () => {
+    for (const skillDir of listSkillDirectories()) {
+      const fullDir = join(process.cwd(), 'src/assets/skills', skillDir)
+      const entries = readdirSync(fullDir, { withFileTypes: true })
+      for (const entry of entries) {
+        expect(
+          entry.isDirectory() && entry.name === 'script',
+          `asset-health/skill-dir-entry/${skillDir}/${entry.name}: 脚本资源目录应使用 scripts/`,
+        ).toBe(false)
+      }
+    }
+  })
+
+  it('ae-sql 资源引用应该同步到 scripts 目录', () => {
+    const skillPath = 'src/assets/skills/ae-sql/SKILL.md'
+    const skillText = readFileSync(skillPath, 'utf8')
+    const markdownFiles = listMarkdownFiles('src/assets/skills/ae-sql')
+    const gitignore = readFileSync('.gitignore', 'utf8')
+
+    for (const file of markdownFiles) {
+      const text = readFileSync(file, 'utf8')
+      expect(text, `asset-health/ae-sql-script-reference/${file}`).not.toContain('script/')
+      expect(text, `asset-health/ae-sql-script-reference/${file}`).not.toContain('script\\')
+    }
+    expect(gitignore).not.toContain('skills/ae-sql/script/')
+    expect(gitignore).not.toContain('skills\\ae-sql\\script\\')
+    expect(skillText).toContain('scripts/jre/')
+    expect(skillText).toContain('scripts/drivers/')
+    expect(gitignore).toContain('src/assets/skills/ae-sql/scripts/jre/')
+    expect(gitignore).toContain('src/assets/skills/ae-sql/scripts/drivers/*.jar')
+    expect(existsSync('src/assets/skills/ae-sql/scripts/sql-tool-1.0.0.jar')).toBe(true)
+    expect(existsSync('src/assets/skills/ae-sql/scripts/drivers/.gitkeep')).toBe(true)
   })
 
   it('应该只注册 ae:save-experience 经验沉淀入口', () => {

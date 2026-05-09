@@ -29,7 +29,7 @@ SQL 执行器。接收用户确认的 SQL 语句，通过 sql-tool（JDBC CLI �
 
 ## 第一步：环境准备（JRE 检查与下载）
 
-所有命令的 workdir 为 `script/`（本技能根目录下的 `script/` 子目录）。禁止使用 `cd ... &&` 串联命令。
+所有命令的 workdir 为 `scripts/`（本技能根目录下的 `scripts/` 子目录）。禁止使用 `cd ... &&` 串联命令。
 
 ### 1.1 平台检测
 
@@ -60,7 +60,7 @@ if ($ARCH -eq "arm64" -or $ARCH -eq "aarch64") {
 
 ### 1.2 JRE 检查
 
-检查 `script/jre/bin/java[.exe]` 是否存在：
+检查 `scripts/jre/bin/java[.exe]` 是否存在：
 
 - **存在** → 跳到第二步
 - **不存在** → 执行 1.3 下载
@@ -103,9 +103,9 @@ https://mirrors.aliyun.com/eclipse/temurin-compliance/temurin/17/
 阿里云版本目录名为 `jdk-17.0.XX+X` 格式（注意：虽然目录名含 jdk，但内部同时包含 jre 文件）。
 若顶层目录页未直接列出 JRE 文件，需进入最新版本目录查找。
 
-> **解压注意事项**：压缩包解压后的目录名格式为 `jdk-{版本}-jre`（如 `jdk-17.0.18+6-jre`），必须使用从目录页解析到的实际版本号拼接目录名，禁止使用 `jdk-*` 通配符。通配符在 `script/` 下存在多个 `jdk-*` 目录时会匹配错误。
+> **解压注意事项**：压缩包解压后的目录名格式为 `jdk-{版本}-jre`（如 `jdk-17.0.18+6-jre`），必须使用从目录页解析到的实际版本号拼接目录名，禁止使用 `jdk-*` 通配符。通配符在 `scripts/` 下存在多个 `jdk-*` 目录时会匹配错误。
 
-#### Windows 下载命令（workdir 为 `script/`）
+#### Windows 下载命令（workdir 为 `scripts/`）
 
 ```powershell
 # 镜像 1：清华 TUNA
@@ -137,7 +137,7 @@ Move-Item -Path ".\$EXTRACTED_DIR" -Destination "jre" -Force
 Remove-Item -Path "jre.zip"
 ```
 
-#### Linux / macOS 下载命令（workdir 为 `script/`）
+#### Linux / macOS 下载命令（workdir 为 `scripts/`）
 
 ```bash
 # 镜像 1：清华 TUNA
@@ -168,7 +168,7 @@ rm jre.tar.gz
 
 若所有镜像均下载失败（网络不可达），提示用户：
 
-"JRE 17 自动下载失败（已尝试清华 TUNA 和阿里云镜像）。请手动安装 JRE 17 并将运行时目录放置或链接到 `script/jre/`（确保 `script/jre/bin/java` 或 `script/jre/bin/java.exe` 存在）。也可手动访问以下地址下载：\n- 清华镜像：https://mirrors.tuna.tsinghua.edu.cn/Adoptium/17/jre/\n- 阿里云镜像：https://mirrors.aliyun.com/eclipse/temurin-compliance/temurin/17/"
+"JRE 17 自动下载失败（已尝试清华 TUNA 和阿里云镜像）。请手动安装 JRE 17 并将运行时目录放置或链接到 `scripts/jre/`（确保 `scripts/jre/bin/java` 或 `scripts/jre/bin/java.exe` 存在）。也可手动访问以下地址下载：\n- 清华镜像：https://mirrors.tuna.tsinghua.edu.cn/Adoptium/17/jre/\n- 阿里云镜像：https://mirrors.aliyun.com/eclipse/temurin-compliance/temurin/17/"
 
 ### 1.4 JRE 验证
 
@@ -246,13 +246,13 @@ jre\bin\java.exe -version
 
 对于 MySQL、PostgreSQL、SQLite、SQL Server、Oracle、MariaDB 等发布到 Maven Central 的驱动，自动下载到 `drivers/` 目录。下载 URL 见 `@./references/db-drivers.md`。
 
-**Windows 下载命令**（workdir 为 `script/`）：
+**Windows 下载命令**（workdir 为 `scripts/`）：
 
 ```powershell
 Invoke-WebRequest -Uri "{下载URL}" -OutFile "drivers\{文件名}"
 ```
 
-**Linux / macOS 下载命令**（workdir 为 `script/`）：
+**Linux / macOS 下载命令**（workdir 为 `scripts/`）：
 
 ```bash
 curl -L -o drivers/{文件名} "{下载URL}"
@@ -262,7 +262,7 @@ curl -L -o drivers/{文件名} "{下载URL}"
 
 对于达梦、人大金仓、openGauss 等国产数据库驱动，提示用户：
 
-"此数据库的 JDBC 驱动需要手动获取。请从官方渠道下载驱动 JAR 文件，放入 `script/drivers/` 目录后重新执行。数据库：{数据库名}，驱动文件名应包含：{关键字}。"
+"此数据库的 JDBC 驱动需要手动获取。请从官方渠道下载驱动 JAR 文件，放入 `scripts/drivers/` 目录后重新执行。数据库：{数据库名}，驱动文件名应包含：{关键字}。"
 
 ## 第四步：SQL 执行与安全规范
 
@@ -316,13 +316,13 @@ jre\bin\java.exe -jar sql-tool-1.0.0.jar -u "{jdbc_url}" -user "{username}" -p "
 
 确认安全后，执行 SQL：
 
-**Windows**（workdir 为 `script/`）：
+**Windows**（workdir 为 `scripts/`）：
 
 ```powershell
 jre\bin\java.exe -jar sql-tool-1.0.0.jar -u "{jdbc_url}" -user "{username}" -p "{password}" -d "drivers" -s "{sql}"
 ```
 
-**Linux / macOS**（workdir 为 `script/`）：
+**Linux / macOS**（workdir 为 `scripts/`）：
 
 ```bash
 ./jre/bin/java -jar sql-tool-1.0.0.jar -u "{jdbc_url}" -user "{username}" -p "{password}" -d "drivers" -s "{sql}"
