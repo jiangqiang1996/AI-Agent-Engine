@@ -102,6 +102,19 @@ describe('AE catalog 一致性', () => {
     expect(commandNames).not.toContain('ae-skill-updater')
   })
 
+  it('ae:work-report 应注册为内置日报周报入口', () => {
+    const entry = getPhaseOneEntries().find((item) => item.skillName === SKILL.WORK_REPORT)
+    const frontmatter = readFrontmatter('src/assets/skills/ae-work-report/SKILL.md')
+
+    expect(entry).toBeDefined()
+    expect(entry?.commandName).toBe('ae-work-report')
+    expect(entry?.skillSlug).toBe('ae-work-report')
+    expect(entry?.defaultEntry).toBe(false)
+    expect(entry?.skillFile).toBe('src/assets/skills/ae-work-report/SKILL.md')
+    expect(entry?.description).toBe(frontmatter.description)
+    expect(entry?.argumentHint).toBe(frontmatter['argument-hint'])
+  })
+
   it('ae:skill-from-session 应统一会话沉淀和资产纠偏入口', () => {
     const entries = getPhaseOneEntries()
     const entry = entries.find((item) => item.skillName === SKILL.SKILL_FROM_SESSION)

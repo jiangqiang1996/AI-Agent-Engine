@@ -21,7 +21,7 @@ AE 不试图替代项目自身的工程规范，也不要求用户项目采用�
 | 默认工程管道 | `/ae-lfg` | 从需求开始，按需恢复已有产物，依次推进需求、计划、实现、审查、验证和最终门禁 |
 | 想法与需求 | `/ae-ideate`、`/ae-brainstorm` | 生成可落地想法，或围绕目标、边界、约束和成功标准澄清需求 |
 | 计划与重构 | `/ae-plan`、`/ae-refactor` | 生成结构化计划；重构场景会强调保持外部行为、分阶段迁移和测试护栏 |
-| 执行与交付 | `/ae-work`、`/ae-task-loop` | 按计划工作，或在探索性修复中循环执行与验证 |
+| 执行与交付 | `/ae-work`、`/ae-work-report`、`/ae-task-loop` | 按计划工作，生成日报/周报，或在探索性修复中循环执行与验证 |
 | 代码与文档审查 | `/ae-review`、`/ae-document-review` | 支持 Git diff、全量扫描、会话变更和文档域审查，按范围选择审查代理 |
 | 前端与浏览器验收 | `/ae-frontend-design`、`/ae-test-browser`、`@figma-design-sync`、`@design-iterator` | 构建前端初版、执行浏览器验收、按设计稿修正视觉偏差或多轮打磨已有 UI |
 | 接口与数据辅助 | `/ae-swagger-parser`、`/ae-sql` | 解析 Swagger/OpenAPI 生成联调摘要；通过 JDBC 执行数据库查询或操作 |
@@ -94,14 +94,14 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 
 | 类型 | 数量 | 真源 | 说明 |
 | --- | ---: | --- | --- |
-| 技能 | 当前快照 23 | `src/assets/skills/`、`src/services/ae-catalog.ts` | 面向用户的工作流入口，可通过 `/ae-*` 命令触发 |
-| 命令 | 当前快照 43 | `src/services/command-registration.ts`、`src/assets/commands/` | 包含基础命令、`-po` 提示词优化变体、`-pa` 自动优化变体和 `/ae-commit` |
+| 技能 | 当前快照 24 | `src/assets/skills/`、`src/services/ae-catalog.ts` | 面向用户的工作流入口，可通过 `/ae-*` 命令触发 |
+| 命令 | 当前快照 46 | `src/services/command-registration.ts`、`src/assets/commands/` | 包含基础命令、`-po` 提示词优化变体、`-pa` 自动优化变体和 `/ae-commit` |
 | 代理 | 当前快照 26 | `src/assets/agents/`、`src/services/agent-registration.ts` | 按审查、研究、工作流分组，通过 `@<代理名>` 调用 |
 | 工具 | 当前快照 7 | `src/tools/` | 供技能和代理调用的结构化工具，如恢复、审查契约、门禁、帮助、交接和 Swagger 解析 |
 | 规则 | 当前快照 4 | `src/assets/rules/` | 注入到会话中的 AI 编码、执行护栏、全局开发和浏览器 setup 前置规则 |
 | 内置配置 | 当前快照 1 | `src/assets/config/ae.jsonc` | 默认 MCP 配置，项目级/全局 `ae.jsonc` 可按规则覆盖 |
 
-主要技能包括：`ae:ideate`、`ae:brainstorm`、`ae:plan`、`ae:refactor`、`ae:work`、`ae:review`、`ae:lfg`、`ae:setup`、`ae:test-browser`、`ae:frontend-design`、`ae:handoff`、`ae:prompt-optimize`、`ae:task-loop`、`ae:sql`、`ae:swagger-parser`、`ae:save-experience`、`ae:skill-from-session`、`ae:help`、`ae:update` 等。完整说明以 `/ae-help` 为准。
+主要技能包括：`ae:ideate`、`ae:brainstorm`、`ae:plan`、`ae:refactor`、`ae:work`、`ae:work-report`、`ae:review`、`ae:lfg`、`ae:setup`、`ae:test-browser`、`ae:frontend-design`、`ae:handoff`、`ae:prompt-optimize`、`ae:task-loop`、`ae:sql`、`ae:swagger-parser`、`ae:save-experience`、`ae:skill-from-session`、`ae:help`、`ae:update` 等。完整说明以 `/ae-help` 为准。
 
 ## 工作方式
 

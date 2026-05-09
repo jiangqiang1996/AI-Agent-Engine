@@ -44,6 +44,17 @@ describe('help-catalog-service 集成', () => {
     expect(text).not.toContain('/ae-asset-debug')
   })
 
+  it('应该在真实帮助目录中暴露 ae:work-report 入口', () => {
+    const text = generateHelpText('work-report')
+
+    expect(text).toContain(SKILL.WORK_REPORT)
+    expect(text).toContain(`/${COMMAND.WORK_REPORT}`)
+    expect(text).toContain(`/${COMMAND.WORK_REPORT}${PO_SUFFIX}`)
+    expect(text).toContain(`/${COMMAND.WORK_REPORT}${PA_SUFFIX}`)
+    expect(text).toContain('[日报\\|周报\\|时间段\\|提交范围]')
+    expect(text).toContain('生成日报、周报或指定时间段工作总结')
+  })
+
   it('按旧入口查询时不应该暴露旧会话沉淀和资产纠偏入口', () => {
     for (const query of ['save-session-flow', 'asset-debug']) {
       const text = generateHelpText(query)
