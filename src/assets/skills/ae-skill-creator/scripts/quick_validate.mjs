@@ -108,7 +108,7 @@ async function main() {
   const { skillDir, commandFile, withCommand } = parseArgs(process.argv.slice(2))
   if (commandFile) {
     await validateCommandFile(commandFile)
-    console.log(`校验通过: ${commandFile}`)
+    process.stdout.write(`校验通过: ${commandFile}\n`)
     return
   }
 
@@ -127,7 +127,7 @@ async function main() {
     await validateCommandFile(commandPath)
   }
 
-  console.log(`校验通过: ${skillFile}`)
+  process.stdout.write(`校验通过: ${skillFile}\n`)
 }
 
 main().catch((error) => {

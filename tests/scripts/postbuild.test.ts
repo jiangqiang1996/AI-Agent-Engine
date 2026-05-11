@@ -44,7 +44,7 @@ describe('postbuild 构建脚本', () => {
     const output = execFileSync(process.execPath, [
       '--input-type=module',
       '--eval',
-      `const plugin = await import(${JSON.stringify(pathToFileURL(entryPath).href)}); console.log(plugin.default)`,
+      `const plugin = await import(${JSON.stringify(pathToFileURL(entryPath).href)}); process.stdout.write(String(plugin.default))`,
     ], { cwd: root, encoding: 'utf8' })
 
     expect(output.trim()).toBe('ok')

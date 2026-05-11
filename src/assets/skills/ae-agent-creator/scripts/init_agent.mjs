@@ -186,6 +186,10 @@ function buildCommandContent(options) {
   return `---\ndescription: ${quoteYaml(description)}\nagent: ${options.name}\n---\n使用 ${options.name} 代理处理以下任务，并保留用户提供的约束：\n\n$ARGUMENTS\n`
 }
 
+function printLine(message) {
+  process.stdout.write(`${message}\n`)
+}
+
 async function assertAbsent(filePath) {
   try {
     await access(filePath, constants.F_OK)
@@ -311,10 +315,10 @@ async function main() {
   validateMode(options.mode)
 
   const targets = await resolveTargets(options)
-  console.log(`scope: ${targets.scope}`)
-  console.log(`agent: ${targets.agentPath}`)
+  printLine(`scope: ${targets.scope}`)
+  printLine(`agent: ${targets.agentPath}`)
   if (options.command) {
-    console.log(`command: ${targets.commandPath}`)
+    printLine(`command: ${targets.commandPath}`)
   }
 
   const writePlan = buildWritePlan(targets, options)
@@ -323,9 +327,9 @@ async function main() {
     await createFile(target)
   }
 
-  console.log('创建完成。建议运行校验脚本，并将校验目标作为独立参数传入。')
-  console.log(`校验脚本: ${path.join(path.dirname(fileURLToPath(import.meta.url)), 'quick_validate.mjs')}`)
-  console.log(`校验目标: ${targets.agentPath}`)
+  printLine('创建完成。建议运行校验脚本，并将校验目标作为独立参数传入。')
+  printLine(`校验脚本: ${path.join(path.dirname(fileURLToPath(import.meta.url)), 'quick_validate.mjs')}`)
+  printLine(`校验目标: ${targets.agentPath}`)
 }
 
 main().catch((error) => {

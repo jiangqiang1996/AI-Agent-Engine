@@ -106,6 +106,10 @@ function commandOnlyTemplate(name, description) {
   return `---\ndescription: ${JSON.stringify(description)}\n---\n\n# ${name}\n\n请直接按照以下流程处理用户请求，不要尝试加载同名技能：\n\n1. 理解用户目标和约束。\n2. 读取必要上下文。\n3. 执行任务并验证结果。\n4. 汇报完成项、验证结果和剩余风险。\n\n用户请求：\n\n$ARGUMENTS\n`
 }
 
+function printLine(message) {
+  process.stdout.write(`${message}\n`)
+}
+
 async function ensureDoesNotExist(file) {
   if (existsSync(file)) {
     throw new Error(`目标已存在，拒绝覆盖: ${file}\n请改名、手动合并，或删除后重试。`)
@@ -160,22 +164,22 @@ async function main() {
     }
   }
 
-  console.log(`已创建 ${targets.scope === 'global' ? '全局级' : '项目级'} OpenCode ${options.commandOnly ? '命令' : '技能'}`)
+  printLine(`已创建 ${targets.scope === 'global' ? '全局级' : '项目级'} OpenCode ${options.commandOnly ? '命令' : '技能'}`)
   if (options.commandOnly) {
-    console.log('技能: 未创建 (--command-only)')
+    printLine('技能: 未创建 (--command-only)')
   } else {
-    console.log(`技能: ${targets.skillFile}`)
+    printLine(`技能: ${targets.skillFile}`)
   }
   if (options.command) {
-    console.log(`命令: ${targets.commandFile}`)
+    printLine(`命令: ${targets.commandFile}`)
     if (options.commandOnly) {
-      console.log(`校验: node "${validateScript}" --command-file "${targets.commandFile}"`)
+      printLine(`校验: node "${validateScript}" --command-file "${targets.commandFile}"`)
     } else {
-      console.log(`校验: node "${validateScript}" "${targets.skillDir}" --with-command`)
+      printLine(`校验: node "${validateScript}" "${targets.skillDir}" --with-command`)
     }
   } else {
-    console.log('命令: 未创建 (--no-command)')
-    console.log(`校验: node "${validateScript}" "${targets.skillDir}"`)
+    printLine('命令: 未创建 (--no-command)')
+    printLine(`校验: node "${validateScript}" "${targets.skillDir}"`)
   }
 }
 

@@ -116,7 +116,7 @@ async function main() {
     return
   }
 
-  console.log(`校验通过: ${results.length} 个代理文件`)
+  process.stdout.write(`校验通过: ${results.length} 个代理文件\n`)
 }
 
 main().catch((error) => {
