@@ -26,12 +26,12 @@ argument-hint: "[mode:deps|impact|health|filter|path|core|stats|pattern] [file:<
 ## 输出要求
 
 - 返回 JSON 结构化结果，包含查询模式、图谱版本和查询结果。
-- 数据库不存在时提示先运行 `ae:graph-build`。
+- 图谱文件不存在时提示先运行 `ae:graph-build`。
 - 参数缺失或路径越界时返回中文可恢复提示。
 
 ## 安全边界
 
-- 只读取当前工作区 `.ae/graph.db` 的 active version。
+- 只读取当前工作区 `docs/ae/graphs/graph.json` 的 active version。
 - 所有路径参数必须位于当前工作区内。
 - 不构建或修改图谱数据。
 

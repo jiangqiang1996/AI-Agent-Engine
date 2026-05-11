@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -78,5 +78,51 @@ describe('graph-storage-service', () => {
     expect(rootActive?.files[0].relativePath).toBe('README.md')
     expect(srcActive?.scopeRoot).toBe('src')
     expect(srcActive?.files[0].relativePath).toBe('src/a.ts')
+  })
+
+  it('应该持久化到 JSON 文件并支持重新打开读取', () => {
+    const root = createTempRoot()
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    storage.insertFiles(versionId, [{ relativePath: 'src/a.ts', fileType: 'source' }])
+    storage.activateVersion(versionId)
+    storage.closeDatabase()
+
+    const reopened = createGraphStorage(root, { readonly: true })
+    const active = reopened.getActiveVersion(root, '.')
+    reopened.closeDatabase()
+
+    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json'))).toBe(true)
+    expect(active?.files[0].relativePath).toBe('src/a.ts')
+  })
+
+  it('应该拒绝在只读存储中创建新版本', () => {
+    const root = createTempRoot()
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    storage.activateVersion(versionId)
+    storage.closeDatabase()
+
+    const readonlyStorage = createGraphStorage(root, { readonly: true })
+
+    expect(() => readonlyStorage.createVersion(root, '.', [])).toThrow('只读模式不允许修改图谱存储')
+    readonlyStorage.closeDatabase()
+  })
+
+  it('应该在已有写入锁时返回可恢复错误', () => {
+    const root = createTempRoot()
+    mkdirSync(join(root, 'docs', 'ae', 'graphs'), { recursive: true })
+    writeFileSync(join(root, 'docs', 'ae', 'graphs', 'graph.json.lock'), 'other\n', 'utf8')
+
+    expect(() => createGraphStorage(root)).toThrow('图谱存储正在被其他进程写入')
+  })
+
+  it('应该在存储文件损坏时释放写入锁', () => {
+    const root = createTempRoot()
+    mkdirSync(join(root, 'docs', 'ae', 'graphs'), { recursive: true })
+    writeFileSync(join(root, 'docs', 'ae', 'graphs', 'graph.json'), '{broken', 'utf8')
+
+    expect(() => createGraphStorage(root)).toThrow()
+    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json.lock'))).toBe(false)
   })
 })

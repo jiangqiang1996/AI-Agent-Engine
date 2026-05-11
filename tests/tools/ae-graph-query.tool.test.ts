@@ -80,13 +80,23 @@ describe('ae-graph-query 工具', () => {
     expect(parsed.result.dependencies).toHaveLength(1)
   })
 
-  it('应该在数据库不存在时提示先构建', async () => {
+  it('应该在图谱文件不存在时提示先构建', async () => {
     const root = createTempRoot()
 
     const result = await aeGraphQueryTool.execute({ mode: 'stats' }, createMockContext(root))
 
     expect(result).toContain('请先执行 ae-graph-build')
     expect(result).toContain('未找到文件关系图谱')
+  })
+
+  it('应该在图谱文件损坏时返回可恢复提示', async () => {
+    const root = createTempRoot()
+    mkdirSync(join(root, 'docs', 'ae', 'graphs'), { recursive: true })
+    writeFileSync(join(root, 'docs', 'ae', 'graphs', 'graph.json'), '{broken', 'utf8')
+
+    const result = await aeGraphQueryTool.execute({ mode: 'stats' }, createMockContext(root))
+
+    expect(result).toContain('文件关系图谱查询失败')
   })
 
   it('应该拒绝越界路径参数', async () => {

@@ -1,6 +1,6 @@
 ---
 name: ae:graph-build
-description: 构建或增量维护项目文件关系图谱，写入当前工作区 .ae/graph.db
+description: 构建或增量维护项目文件关系图谱，写入当前工作区 docs/ae/graphs/graph.json
 argument-hint: "[target:<PATH>] [mode:auto|full|incremental] [depth:shallow]"
 ---
 
@@ -20,12 +20,12 @@ argument-hint: "[target:<PATH>] [mode:auto|full|incremental] [depth:shallow]"
 - `target` 必须位于当前工作区内；省略时使用当前工作区。
 - `mode` 可为 `auto`、`full` 或 `incremental`；非 Git 项目会降级为全量构建。
 - `depth` 首版仅支持 `shallow`，只做浅层正则解析，不执行 AST 深层解析。
-- 工具会读取 `.opencode/ae.jsonc` 的 `graph.exclude` 配置，并将图谱写入 `.ae/graph.db`。
+- 工具会读取 `.opencode/ae.jsonc` 的 `graph.exclude` 配置，并将图谱写入 `docs/ae/graphs/graph.json`。
 
 ## 输出要求
 
-- 返回构建模式、文件数、关系数、warning、数据库路径和耗时。
-- 若目标路径越界、配置解析失败或数据库写入失败，返回中文可恢复提示。
+- 返回构建模式、文件数、关系数、warning、图谱文件路径和耗时。
+- 若目标路径越界、配置解析失败或图谱文件写入失败，返回中文可恢复提示。
 
 ## 安全边界
 
@@ -35,5 +35,5 @@ argument-hint: "[target:<PATH>] [mode:auto|full|incremental] [depth:shallow]"
 
 ## 完成标准
 
-- `.ae/graph.db` 存在并包含 active version。
+- `docs/ae/graphs/graph.json` 存在并包含 active version。
 - 后续可使用 `ae:graph-query` 查询图谱。

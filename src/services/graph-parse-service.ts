@@ -28,6 +28,9 @@ export interface ParsedGraph {
 }
 
 function shouldExclude(relativePath: string, config: GraphConfig): boolean {
+  if (relativePath === 'docs/ae/graphs' || relativePath.startsWith('docs/ae/graphs/')) {
+    return true
+  }
   const parts = relativePath.split('/')
   if (parts.some((part) => DEFAULT_EXCLUDED_DIRS.has(part))) {
     return true

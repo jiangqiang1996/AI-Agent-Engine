@@ -96,7 +96,7 @@ describe('ae-graph-build 工具', () => {
     expect(parsed.files).toBeGreaterThan(0)
   })
 
-  it('应该在授权被拒绝时取消写入图谱数据库', async () => {
+  it('应该在授权被拒绝时取消写入图谱文件', async () => {
     const root = createTempRoot()
     write(root, 'src/a.ts', '')
     const ctx = {
@@ -109,7 +109,7 @@ describe('ae-graph-build 工具', () => {
     const result = await aeGraphBuildTool.execute({ mode: 'full' }, ctx)
 
     expect(result).toContain('未授权写入')
-    expect(existsSync(join(root, '.ae', 'graph.db'))).toBe(false)
+    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json'))).toBe(false)
   })
 
   it('应该在无法确认写入授权时取消构建', async () => {
@@ -121,17 +121,33 @@ describe('ae-graph-build 工具', () => {
     const result = await aeGraphBuildTool.execute({ mode: 'full' }, ctx as unknown as ToolContext)
 
     expect(result).toContain('未授权写入')
-    expect(existsSync(join(root, '.ae', 'graph.db'))).toBe(false)
+    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json'))).toBe(false)
   })
 
-  it('应该返回相对数据库路径', async () => {
+  it('应该返回相对图谱文件路径', async () => {
     const root = createTempRoot()
     write(root, 'src/a.ts', '')
 
     const result = await aeGraphBuildTool.execute({ mode: 'full' }, createMockContext(root))
     const parsed = JSON.parse(result as string) as { database: string }
 
-    expect(parsed.database).toBe('.ae/graph.db')
+    expect(parsed.database).toBe('docs/ae/graphs/graph.json')
+  })
+
+  it('Git diff 无变更时应该跳过增量构建并返回图谱文件路径', async () => {
+    const root = createTempRoot()
+    execFileSync('git', ['init'], { cwd: root, stdio: 'ignore' })
+    write(root, 'src/a.ts', 'export const a = 1')
+    execFileSync('git', ['add', 'src/a.ts'], { cwd: root, stdio: 'ignore' })
+    execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-m', 'test'], { cwd: root, stdio: 'ignore' })
+    await aeGraphBuildTool.execute({ mode: 'full' }, createMockContext(root))
+
+    const result = await aeGraphBuildTool.execute({ mode: 'auto' }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as { message: string; database: string }
+
+    expect(parsed.message).toContain('图谱无需更新')
+    expect(parsed.database).toBe('docs/ae/graphs/graph.json')
+    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json.lock'))).toBe(false)
   })
 
   it('新增被既有文件引用的目标文件时应该回退全量构建', async () => {

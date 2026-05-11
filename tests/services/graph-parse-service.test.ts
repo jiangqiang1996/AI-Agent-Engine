@@ -201,11 +201,12 @@ describe('graph-parse-service', () => {
     expect(parsed.relations.some((relation) => relation.relationType !== 'external' && relation.targetPath.includes('outside'))).toBe(false)
   })
 
-  it('应该默认跳过敏感文件和图谱数据库目录', () => {
+  it('应该默认跳过敏感文件和图谱运行时目录', () => {
     const root = createTempRoot()
     write(root, '.env', 'TOKEN=secret')
     write(root, 'src/private-key.json', '{}')
     write(root, '.ae/schema.sql', 'select 1')
+    write(root, 'docs/ae/graphs/graph.json', '{}')
     write(root, 'src/a.ts', '')
 
     const files = collectGraphFiles(root, root, { exclude: [] })

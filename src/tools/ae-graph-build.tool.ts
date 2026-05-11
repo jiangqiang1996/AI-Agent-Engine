@@ -15,7 +15,7 @@ import { isInsideRoot, pathContainsSymlink, toPosixPath } from '../utils/path-ut
 const COMMON_EXCLUDE_DIRS = ['node_modules', 'dist', 'build', 'coverage', '__pycache__', '.next', '.nuxt']
 
 function isGraphRuntimeFile(filePath: string): boolean {
-  return filePath === '.ae' || filePath.startsWith('.ae/')
+  return filePath === 'docs/ae/graphs' || filePath.startsWith('docs/ae/graphs/')
 }
 
 function hasOnlyModifiedFiles(diff: { files: string[]; hasStructuralChange?: boolean; warning?: string }): boolean {
@@ -78,9 +78,13 @@ async function confirmDatabaseWrite(worktree: string, ctx: { ask?: unknown }): P
   try {
     await Effect.runPromise(ctx.ask({
       permission: 'file',
-      patterns: [resolve(worktree, '.ae', 'graph.db*')],
+      patterns: [
+        resolve(worktree, 'docs', 'ae', 'graphs', 'graph.json'),
+        resolve(worktree, 'docs', 'ae', 'graphs', 'graph.json.tmp-*'),
+        resolve(worktree, 'docs', 'ae', 'graphs', 'graph.json.lock'),
+      ],
       always: [],
-      metadata: { action: '写入文件关系图谱数据库及 SQLite WAL sidecar 文件', target: '.ae/graph.db*' },
+      metadata: { action: '写入文件关系图谱 JSON 存储文件及临时文件', target: 'docs/ae/graphs/graph.json*' },
     }))
     return true
   } catch {
@@ -94,7 +98,7 @@ export const aeGraphBuildTool = tool({
     '',
     '功能说明：',
     '- 扫描工作区文件并解析浅层 import/require/include、Markdown 链接和 AE 资产引用',
-    '- 将图谱保存到项目 `.ae/graph.db`，使用 SQLite WAL 和版本化快照',
+    '- 将图谱保存到项目 `docs/ae/graphs/graph.json`，使用本地 JSON 版本化快照',
     '- 支持 full、incremental、auto 模式；非 Git 项目自动降级全量构建',
     '- 首版仅支持 depth=shallow，不执行深层 AST 解析',
     '',
@@ -128,7 +132,7 @@ export const aeGraphBuildTool = tool({
 
     const canWriteDatabase = await confirmDatabaseWrite(worktree, ctx)
     if (!canWriteDatabase) {
-      return '用户未授权写入 `.ae/graph.db`，已取消文件关系图谱构建。'
+      return '用户未授权写入 `docs/ae/graphs/graph.json`，已取消文件关系图谱构建。'
     }
 
     let storage: ReturnType<typeof createGraphStorage> | undefined
@@ -148,7 +152,9 @@ export const aeGraphBuildTool = tool({
       const active = storage.getActiveVersion(worktree, scopeRoot)
       const effectiveMode = requestedMode === 'full' || diff.warning || diff.hasStructuralChange || !active ? 'full' : 'incremental'
       if (effectiveMode === 'incremental' && diff.files.length === 0 && active) {
-        return JSON.stringify({ message: 'Git diff 无变更，图谱无需更新', mode: effectiveMode, database: '.ae/graph.db' }, null, 2)
+        storage.closeDatabase()
+        storage = undefined
+        return JSON.stringify({ message: 'Git diff 无变更，图谱无需更新', mode: effectiveMode, database: 'docs/ae/graphs/graph.json' }, null, 2)
       }
 
       const allFiles = collectGraphFiles(worktree, target, config)
@@ -181,7 +187,7 @@ export const aeGraphBuildTool = tool({
         relations: parsed.relations.length,
         warnings: [diff.warning, ...parsed.warnings].filter(Boolean),
         savedExcludes,
-        database: '.ae/graph.db',
+        database: 'docs/ae/graphs/graph.json',
         elapsedMs: Date.now() - startedAt,
         tool: TOOL.AE_GRAPH_BUILD,
       }, null, 2)
