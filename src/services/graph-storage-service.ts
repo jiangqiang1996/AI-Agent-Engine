@@ -1,5 +1,5 @@
-import { existsSync, lstatSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { dirname, join, relative, resolve } from 'node:path'
 
 export type GraphFileType = 'source' | 'document' | 'config' | 'directory' | 'asset'
 export type GraphRelationType = 'import' | 'require' | 'include' | 'link' | 'ae_ref' | 'directory' | 'external'
@@ -23,10 +23,27 @@ export interface ActiveGraph {
   scopeRoot: string
   files: GraphFileNode[]
   relations: GraphRelation[]
+  chunkIds?: string[]
+}
+
+export interface ActiveGraphSummary {
+  versionId: number
+  scopeRoot: string
+  chunkIds: string[]
+  fileCount: number
+  relationCount: number
 }
 
 interface GraphStorageOptions {
   readonly?: boolean
+}
+
+interface GraphChunkRecord {
+  id: string
+  fileCount: number
+  relationCount: number
+  files: GraphFileNode[]
+  relations: GraphRelation[]
 }
 
 interface GraphVersionRecord {
@@ -39,18 +56,22 @@ interface GraphVersionRecord {
   excludeRules: string[]
   gitRef?: string
   createdAt: string
-  files: GraphFileNode[]
-  relations: GraphRelation[]
+  chunkIds: string[]
+  files?: GraphFileNode[]
+  relations?: GraphRelation[]
 }
 
 interface GraphStore {
-  schemaVersion: 1
+  schemaVersion: 2
   nextVersionId: number
   versions: GraphVersionRecord[]
 }
 
+const CHUNK_SIZE_FILES = 250
+const CHUNK_SIZE_RELATIONS = 1000
+
 function createEmptyStore(): GraphStore {
-  return { schemaVersion: 1, nextVersionId: 1, versions: [] }
+  return { schemaVersion: 2, nextVersionId: 1, versions: [] }
 }
 
 function getWorkspaceKey(_workspaceRoot: string): string {
@@ -62,10 +83,7 @@ function cloneFiles(files: GraphFileNode[]): GraphFileNode[] {
 }
 
 function cloneRelations(relations: GraphRelation[]): GraphRelation[] {
-  return relations.map((relation) => ({
-    ...relation,
-    metadata: relation.metadata ? { ...relation.metadata } : undefined,
-  }))
+  return relations.map((relation) => ({ ...relation, metadata: relation.metadata ? { ...relation.metadata } : undefined }))
 }
 
 function isGraphStore(value: unknown): value is GraphStore {
@@ -73,7 +91,80 @@ function isGraphStore(value: unknown): value is GraphStore {
     return false
   }
   const candidate = value as { schemaVersion?: unknown; nextVersionId?: unknown; versions?: unknown }
-  return candidate.schemaVersion === 1 && typeof candidate.nextVersionId === 'number' && Array.isArray(candidate.versions)
+  return candidate.schemaVersion === 2 && typeof candidate.nextVersionId === 'number' && Array.isArray(candidate.versions)
+}
+
+function isChunkRecord(value: unknown): value is GraphChunkRecord {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false
+  }
+  const candidate = value as { id?: unknown; fileCount?: unknown; relationCount?: unknown; files?: unknown; relations?: unknown }
+  return typeof candidate.id === 'string'
+    && typeof candidate.fileCount === 'number'
+    && typeof candidate.relationCount === 'number'
+    && Array.isArray(candidate.files)
+    && Array.isArray(candidate.relations)
+}
+
+function chunkFileName(versionId: number, chunkIndex: number): string {
+  return `chunk-${String(versionId).padStart(6, '0')}-${String(chunkIndex).padStart(4, '0')}.json`
+}
+
+function versionChunkDir(storePath: string, versionId: number): string {
+  return join(dirname(storePath), `version-${versionId}`)
+}
+
+function versionChunkPath(storePath: string, versionId: number, chunkIndex: number): string {
+  return join(versionChunkDir(storePath, versionId), chunkFileName(versionId, chunkIndex))
+}
+
+function versionManifestPath(storePath: string, versionId: number): string {
+  return join(versionChunkDir(storePath, versionId), 'manifest.json')
+}
+
+function sanitizeChunkId(versionId: number, chunkIndex: number): string {
+  return `chunk-${String(versionId).padStart(6, '0')}-${String(chunkIndex).padStart(4, '0')}`
+}
+
+function chunkFiles(files: GraphFileNode[]): GraphFileNode[][] {
+  if (files.length <= CHUNK_SIZE_FILES) {
+    return [files]
+  }
+  const chunks: GraphFileNode[][] = []
+  for (let index = 0; index < files.length; index += CHUNK_SIZE_FILES) {
+    chunks.push(files.slice(index, index + CHUNK_SIZE_FILES))
+  }
+  return chunks
+}
+
+function chunkRelations(relations: GraphRelation[]): GraphRelation[][] {
+  if (relations.length <= CHUNK_SIZE_RELATIONS) {
+    return [relations]
+  }
+  const chunks: GraphRelation[][] = []
+  for (let index = 0; index < relations.length; index += CHUNK_SIZE_RELATIONS) {
+    chunks.push(relations.slice(index, index + CHUNK_SIZE_RELATIONS))
+  }
+  return chunks
+}
+
+function ensureDir(path: string): void {
+  mkdirSync(path, { recursive: true })
+}
+
+function writeJsonAtomic(path: string, value: unknown): void {
+  const tempPath = `${path}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  writeFileSync(tempPath, `${JSON.stringify(value, null, 2)}\n`, 'utf8')
+  try {
+    renameSync(tempPath, path)
+  } catch (error) {
+    rmSync(path, { force: true })
+    renameSync(tempPath, path)
+    if (error instanceof Error && 'code' in error && (error.code === 'EPERM' || error.code === 'EEXIST')) {
+      return
+    }
+    throw error
+  }
 }
 
 export class GraphStorage {
@@ -91,7 +182,7 @@ export class GraphStorage {
       throw new Error('图谱存储文件不能是符号链接')
     }
     if (!options.readonly) {
-      mkdirSync(storeDir, { recursive: true })
+      ensureDir(storeDir)
       this.acquireLock()
     }
     try {
@@ -116,6 +207,7 @@ export class GraphStorage {
       excludeRules: [...excludeRules],
       gitRef,
       createdAt: new Date().toISOString(),
+      chunkIds: [],
       files: [],
       relations: [],
     })
@@ -125,29 +217,24 @@ export class GraphStorage {
 
   insertFiles(versionId: number, files: GraphFileNode[]): void {
     const version = this.getWritableVersion(versionId)
-    const existing = new Set(version.files.map((file) => file.relativePath))
+    const existing = new Map((version.files ?? []).map((file) => [file.relativePath, file]))
     for (const file of files) {
-      if (!existing.has(file.relativePath)) {
-        version.files.push({ ...file })
-        existing.add(file.relativePath)
-      }
+      existing.set(file.relativePath, { ...file })
     }
+    version.files = [...existing.values()]
     this.saveStore()
   }
 
   insertRelations(versionId: number, relations: GraphRelation[]): void {
     const version = this.getWritableVersion(versionId)
-    const existing = new Set(version.relations.map((relation) => this.getRelationKey(relation)))
+    const existing = new Map((version.relations ?? []).map((relation) => [this.getRelationKey(relation), relation]))
     for (const relation of relations) {
-      const key = this.getRelationKey(relation)
-      if (!existing.has(key)) {
-        version.relations.push({
-          ...relation,
-          metadata: relation.metadata ? { ...relation.metadata } : undefined,
-        })
-        existing.add(key)
-      }
+      existing.set(this.getRelationKey(relation), {
+        ...relation,
+        metadata: relation.metadata ? { ...relation.metadata } : undefined,
+      })
     }
+    version.relations = [...existing.values()]
     this.saveStore()
   }
 
@@ -158,16 +245,16 @@ export class GraphStorage {
     if (!source || !target) {
       throw new Error('图谱版本不存在，无法复制')
     }
-    target.files = cloneFiles(source.files)
-    target.relations = cloneRelations(source.relations)
+    target.files = cloneFiles(source.files ?? this.loadVersionFiles(source))
+    target.relations = cloneRelations(source.relations ?? this.loadVersionRelations(source))
     this.saveStore()
   }
 
   deleteVersionData(versionId: number, filePaths: string[]): void {
     const version = this.getWritableVersion(versionId)
     const changed = new Set(filePaths)
-    version.files = version.files.filter((file) => !changed.has(file.relativePath))
-    version.relations = version.relations.filter((relation) => !changed.has(relation.sourcePath) && !changed.has(relation.targetPath))
+    version.files = (version.files ?? []).filter((file) => !changed.has(file.relativePath))
+    version.relations = (version.relations ?? []).filter((relation) => !changed.has(relation.sourcePath) && !changed.has(relation.targetPath))
     this.saveStore()
   }
 
@@ -177,14 +264,19 @@ export class GraphStorage {
     if (!version) {
       throw new Error(`图谱版本不存在：${versionId}`)
     }
+    const files = version.files ?? this.loadVersionFiles(version)
+    const relations = version.relations ?? this.loadVersionRelations(version)
+    version.chunkIds = this.writeChunks(version.id, files, relations)
+    version.fileCount = files.length
+    version.relationCount = relations.length
+    version.files = undefined
+    version.relations = undefined
     for (const item of this.store.versions) {
       if (item.workspaceRoot === version.workspaceRoot && item.scopeRoot === version.scopeRoot) {
         item.isActive = false
       }
     }
     version.isActive = true
-    version.fileCount = version.files.length
-    version.relationCount = version.relations.length
     this.saveStore()
   }
 
@@ -196,12 +288,57 @@ export class GraphStorage {
     if (!version) {
       return undefined
     }
+    const files = version.files ?? this.loadVersionFiles(version)
+    const relations = version.relations ?? this.loadVersionRelations(version)
     return {
       versionId: version.id,
       scopeRoot: version.scopeRoot,
-      files: cloneFiles(version.files),
-      relations: cloneRelations(version.relations),
+      files: cloneFiles(files),
+      relations: cloneRelations(relations),
+      chunkIds: version.chunkIds?.length ? [...version.chunkIds] : undefined,
     }
+  }
+
+  getActiveVersionSummary(workspaceRoot: string, scopeRoot: string): ActiveGraphSummary | undefined {
+    const workspaceKey = getWorkspaceKey(workspaceRoot)
+    const version = this.store.versions
+      .filter((item) => item.workspaceRoot === workspaceKey && item.scopeRoot === scopeRoot && item.isActive)
+      .sort((a, b) => b.id - a.id)[0]
+    if (!version) {
+      return undefined
+    }
+    return {
+      versionId: version.id,
+      scopeRoot: version.scopeRoot,
+      chunkIds: [...(version.chunkIds ?? [])],
+      fileCount: version.fileCount,
+      relationCount: version.relationCount,
+    }
+  }
+
+  loadActiveGraphChunks(workspaceRoot: string, scopeRoot: string): GraphChunkRecord[] {
+    const workspaceKey = getWorkspaceKey(workspaceRoot)
+    const version = this.store.versions
+      .filter((item) => item.workspaceRoot === workspaceKey && item.scopeRoot === scopeRoot && item.isActive)
+      .sort((a, b) => b.id - a.id)[0]
+    if (!version) {
+      return []
+    }
+    const chunkIds = version.chunkIds ?? []
+    if (chunkIds.length === 0) {
+      return [{ id: sanitizeChunkId(version.id, 0), fileCount: version.fileCount, relationCount: version.relationCount, files: version.files ?? this.loadVersionFiles(version), relations: version.relations ?? this.loadVersionRelations(version) }]
+    }
+    return chunkIds.flatMap((chunkId) => {
+      const chunkPath = join(versionChunkDir(this.storePath, version.id), `${chunkId}.json`)
+      if (!existsSync(chunkPath)) {
+        return []
+      }
+      const parsed = JSON.parse(readFileSync(chunkPath, 'utf8')) as unknown
+      if (!isChunkRecord(parsed)) {
+        return []
+      }
+      return [parsed]
+    })
   }
 
   cleanupIncompleteVersions(workspaceRoot: string, scopeRoot: string): void {
@@ -227,19 +364,66 @@ export class GraphStorage {
       return createEmptyStore()
     }
     const parsed = JSON.parse(readFileSync(this.storePath, 'utf8')) as unknown
-    if (!isGraphStore(parsed)) {
-      throw new Error('图谱存储文件格式不受支持')
+    if (isGraphStore(parsed)) {
+      return parsed
     }
-    return parsed
+    throw new Error('图谱存储文件格式不受支持')
+  }
+
+  private loadVersionFiles(version: GraphVersionRecord): GraphFileNode[] {
+    return this.loadVersionChunks(version).flatMap((chunk) => chunk.files)
+  }
+
+  private loadVersionRelations(version: GraphVersionRecord): GraphRelation[] {
+    return this.loadVersionChunks(version).flatMap((chunk) => chunk.relations)
+  }
+
+  private loadVersionChunks(version: GraphVersionRecord): GraphChunkRecord[] {
+    if (version.chunkIds.length === 0) {
+      return []
+    }
+    const dir = versionChunkDir(this.storePath, version.id)
+    return version.chunkIds.map((chunkId) => {
+      const parsed = JSON.parse(readFileSync(join(dir, `${chunkId}.json`), 'utf8')) as unknown
+      if (!isChunkRecord(parsed)) {
+        throw new Error(`图谱分片格式不受支持：${chunkId}`)
+      }
+      return parsed
+    })
+  }
+
+  private writeChunks(versionId: number, files: GraphFileNode[], relations: GraphRelation[]): string[] {
+    const dir = versionChunkDir(this.storePath, versionId)
+    ensureDir(dir)
+    for (const entry of readdirSync(dir)) {
+      rmSync(join(dir, entry), { force: true, recursive: true })
+    }
+    const fileChunks = chunkFiles(files)
+    const relationChunks = chunkRelations(relations)
+    const chunkCount = Math.max(fileChunks.length, relationChunks.length)
+    const chunkIds: string[] = []
+    for (let index = 0; index < chunkCount; index += 1) {
+      const chunkId = sanitizeChunkId(versionId, index)
+      const chunkPath = versionChunkPath(this.storePath, versionId, index)
+      const chunk: GraphChunkRecord = {
+        id: chunkId,
+        fileCount: fileChunks[index]?.length ?? 0,
+        relationCount: relationChunks[index]?.length ?? 0,
+        files: cloneFiles(fileChunks[index] ?? []),
+        relations: cloneRelations(relationChunks[index] ?? []),
+      }
+      writeJsonAtomic(chunkPath, chunk)
+      chunkIds.push(chunkId)
+    }
+    writeJsonAtomic(versionManifestPath(this.storePath, versionId), { versionId, chunkIds, fileCount: files.length, relationCount: relations.length })
+    return chunkIds
   }
 
   private saveStore(): void {
     if (this.options.readonly) {
       return
     }
-    const tempPath = `${this.storePath}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`
-    writeFileSync(tempPath, `${JSON.stringify(this.store, null, 2)}\n`, 'utf8')
-    renameSync(tempPath, this.storePath)
+    writeJsonAtomic(this.storePath, this.store)
   }
 
   private acquireLock(): void {
@@ -287,7 +471,11 @@ export class GraphStorage {
 }
 
 export function resolveGraphDatabasePath(worktree: string): string {
-  return join(worktree, 'docs', 'ae', 'graphs', 'graph.json')
+  return join(resolve(worktree), 'docs', 'ae', 'graphs', 'graph.json')
+}
+
+export function resolveGraphGraphDir(worktree: string): string {
+  return join(resolve(worktree), 'docs', 'ae', 'graphs')
 }
 
 export function graphDatabaseExists(worktree: string): boolean {

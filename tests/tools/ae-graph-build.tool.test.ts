@@ -134,6 +134,22 @@ describe('ae-graph-build 工具', () => {
     expect(parsed.database).toBe('docs/ae/graphs/graph.json')
   })
 
+  it('应该支持相对 target 与 exclude 参数', async () => {
+    const root = createTempRoot()
+    write(root, 'workspace/src/a.ts', "import b from './b'\nimport c from './c'")
+    write(root, 'workspace/src/b.ts', 'export const b = 1')
+    write(root, 'workspace/src/c.ts', 'export const c = 1')
+
+    const result = await aeGraphBuildTool.execute({ target: './workspace', mode: 'full', exclude: ['workspace/src/c.ts'] }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as { files: number; relations: number }
+    const queryResult = await aeGraphQueryTool.execute({ mode: 'deps', scope: 'workspace', file: 'workspace/src/a.ts' }, createMockContext(root))
+    const query = JSON.parse(queryResult as string) as { summary: { chunkIds: string[] }; result: { dependencies: Array<{ targetPath: string }> } }
+
+    expect(parsed.files).toBeGreaterThan(0)
+    expect(query.result.dependencies.some((relation) => relation.targetPath === 'workspace/src/c.ts')).toBe(false)
+    expect(query.summary.chunkIds.length).toBeGreaterThan(0)
+  })
+
   it('Git diff 无变更时应该跳过增量构建并返回图谱文件路径', async () => {
     const root = createTempRoot()
     execFileSync('git', ['init'], { cwd: root, stdio: 'ignore' })
@@ -148,6 +164,25 @@ describe('ae-graph-build 工具', () => {
     expect(parsed.message).toContain('图谱无需更新')
     expect(parsed.database).toBe('docs/ae/graphs/graph.json')
     expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json.lock'))).toBe(false)
+  })
+
+  it('大图谱应写入分片文件并在查询时返回 summary', async () => {
+    const root = createTempRoot()
+    execFileSync('git', ['init'], { cwd: root, stdio: 'ignore' })
+    for (let index = 0; index < 260; index += 1) {
+      write(root, `src/file-${index}.ts`, `export const value${index} = ${index}`)
+    }
+    execFileSync('git', ['add', 'src'], { cwd: root, stdio: 'ignore' })
+    execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-m', 'test'], { cwd: root, stdio: 'ignore' })
+
+    const result = await aeGraphBuildTool.execute({ mode: 'full' }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as { files: number }
+    const queryResult = await aeGraphQueryTool.execute({ mode: 'stats' }, createMockContext(root))
+    const query = JSON.parse(queryResult as string) as { summary: { chunkIds: string[] } }
+
+    expect(parsed.files).toBeGreaterThan(0)
+    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'version-1'))).toBe(true)
+    expect(query.summary.chunkIds.length).toBeGreaterThan(0)
   })
 
   it('新增被既有文件引用的目标文件时应该回退全量构建', async () => {

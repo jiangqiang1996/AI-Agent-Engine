@@ -22,10 +22,12 @@ argument-hint: "[mode:deps|impact|health|filter|path|core|stats|pattern] [file:<
 - `path` 需要 `file` 和 `target`。
 - `filter` 可使用 `relation_type`、`file_type` 或 `directory`。
 - `pattern` 可使用 `pattern_type=cycle|long|all`。
+- `scope`、`file`、`target`、`directory` 支持绝对路径与相对路径；未显式指定时按当前会话启动路径解析。
+- 可选 `exclude` 用于在查询侧进一步过滤结果，不会修改图谱产物。
 
 ## 输出要求
 
-- 返回 JSON 结构化结果，包含查询模式、图谱版本和查询结果。
+- 返回 JSON 结构化结果，包含查询模式、图谱版本、分片摘要和查询结果。
 - 图谱文件不存在时提示先运行 `ae:graph-build`。
 - 参数缺失或路径越界时返回中文可恢复提示。
 

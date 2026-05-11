@@ -96,6 +96,23 @@ describe('graph-storage-service', () => {
     expect(active?.files[0].relativePath).toBe('src/a.ts')
   })
 
+  it('应该在大图谱场景下写入分片并保留 active summary', () => {
+    const root = createTempRoot()
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    const files = Array.from({ length: 260 }, (_, index) => ({ relativePath: `src/file-${index}.ts`, fileType: 'source' as const }))
+    storage.insertFiles(versionId, files)
+    storage.insertRelations(versionId, Array.from({ length: 260 }, (_, index) => ({ sourcePath: `src/file-${index}.ts`, targetPath: `src/file-${(index + 1) % 260}.ts`, relationType: 'import' as const })))
+    storage.activateVersion(versionId)
+    const summary = storage.getActiveVersionSummary(root, '.')
+    const chunks = storage.loadActiveGraphChunks(root, '.')
+    storage.closeDatabase()
+
+    expect(summary?.chunkIds.length).toBeGreaterThan(1)
+    expect(chunks.length).toBeGreaterThan(1)
+    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'version-1'))).toBe(true)
+  })
+
   it('应该拒绝在只读存储中创建新版本', () => {
     const root = createTempRoot()
     const storage = createGraphStorage(root)

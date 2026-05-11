@@ -1,7 +1,7 @@
 ---
 name: ae:graph-build
 description: 构建或增量维护项目文件关系图谱，写入当前工作区 docs/ae/graphs/graph.json
-argument-hint: "[target:<PATH>] [mode:auto|full|incremental] [depth:shallow]"
+argument-hint: "[target:<PATH>] [mode:auto|full|incremental] [depth:shallow] [exclude:<PATH>...]"
 ---
 
 # Skill: ae:graph-build
@@ -17,14 +17,14 @@ argument-hint: "[target:<PATH>] [mode:auto|full|incremental] [depth:shallow]"
 ## 执行流程
 
 - 调用 `ae-graph-build` 工具，传入 `target`、`mode` 和 `depth` 参数。
-- `target` 必须位于当前工作区内；省略时使用当前工作区。
+- `target` 支持绝对路径和相对路径；省略时按当前会话启动路径解析。
 - `mode` 可为 `auto`、`full` 或 `incremental`；非 Git 项目会降级为全量构建。
 - `depth` 首版仅支持 `shallow`，只做浅层正则解析，不执行 AST 深层解析。
-- 工具会读取 `.opencode/ae.jsonc` 的 `graph.exclude` 配置，并将图谱写入 `docs/ae/graphs/graph.json`。
+- 工具会读取 `.opencode/ae.jsonc` 的 `graph.exclude` 配置，并可叠加 `exclude` 参数后将图谱写入 `docs/ae/graphs/graph.json` 与分片目录。
 
 ## 输出要求
 
-- 返回构建模式、文件数、关系数、warning、图谱文件路径和耗时。
+- 返回构建模式、文件数、关系数、warning、图谱文件路径、分片摘要和耗时。
 - 若目标路径越界、配置解析失败或图谱文件写入失败，返回中文可恢复提示。
 
 ## 安全边界

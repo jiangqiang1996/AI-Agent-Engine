@@ -5,6 +5,7 @@ import { basename, join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { collectGraphFiles, parseFileRelations } from '../../src/services/graph-parse-service.js'
+import { SKILL, TOOL, AGENT, COMMAND } from '../../src/schemas/ae-asset-schema.js'
 
 const tempRoots: string[] = []
 
@@ -53,6 +54,19 @@ describe('graph-parse-service', () => {
     const files = collectGraphFiles(root, root, { exclude: ['src'] })
 
     expect(files.map((file) => file.relativePath)).toEqual(['dist/a.ts'])
+  })
+
+  it('应该识别技能、工具、代理和命令引用关系', () => {
+    const root = createTempRoot()
+    write(root, 'docs/guide.md', `${SKILL.GRAPH_BUILD} ${TOOL.AE_GRAPH_QUERY} ${AGENT.ARCHITECTURE_STRATEGIST} ${COMMAND.GRAPH_QUERY}`)
+
+    const files = collectGraphFiles(root, root, { exclude: [] })
+    const parsed = parseFileRelations(root, files, { exclude: [] })
+
+    expect(parsed.relations.some((relation) => relation.targetPath === `skill:${SKILL.GRAPH_BUILD}`)).toBe(true)
+    expect(parsed.relations.some((relation) => relation.targetPath === `tool:${TOOL.AE_GRAPH_QUERY}`)).toBe(true)
+    expect(parsed.relations.some((relation) => relation.targetPath === `agent:${AGENT.ARCHITECTURE_STRATEGIST}`)).toBe(true)
+    expect(parsed.relations.some((relation) => relation.targetPath === `command:${COMMAND.GRAPH_QUERY}`)).toBe(true)
   })
 
   it('应该解析省略扩展名和 index 文件的相对引用', () => {

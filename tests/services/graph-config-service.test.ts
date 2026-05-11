@@ -46,4 +46,11 @@ describe('graph-config-service', () => {
 
     expect(() => loadGraphConfig(root)).toThrow(/项目级 ae\.jsonc 解析失败/)
   })
+
+  it('应该去重并保存 graph.exclude 规则', () => {
+    const root = createTempRoot()
+
+    expect(saveGraphExcludeRule(root, 'dist')).toEqual({ exclude: ['dist'] })
+    expect(saveGraphExcludeRule(root, 'dist')).toEqual({ exclude: ['dist'] })
+  })
 })

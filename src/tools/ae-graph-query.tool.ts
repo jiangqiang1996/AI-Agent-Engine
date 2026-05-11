@@ -5,8 +5,8 @@ import { z } from 'zod'
 
 import { TOOL } from '../schemas/ae-asset-schema.js'
 import { createGraphStorage, graphDatabaseExists } from '../services/graph-storage-service.js'
-import type { ActiveGraph, GraphRelation } from '../services/graph-storage-service.js'
-import { isInsideRoot, toRepoRelativePath } from '../utils/path-utils.js'
+import type { ActiveGraph, ActiveGraphSummary, GraphRelation } from '../services/graph-storage-service.js'
+import { isInsideRoot, resolvePathWithBase, toRepoRelativePath } from '../utils/path-utils.js'
 
 type QueryMode = 'deps' | 'impact' | 'health' | 'filter' | 'path' | 'core' | 'stats' | 'pattern'
 
@@ -14,7 +14,7 @@ function requireRelativePath(worktree: string, input: string | undefined, name: 
   if (!input) {
     return undefined
   }
-  const absolute = resolve(worktree, input)
+  const absolute = resolvePathWithBase(worktree, input)
   if (!isInsideRoot(worktree, absolute)) {
     throw new Error(`${name} 路径不在当前工作区内：${input}`)
   }
@@ -25,7 +25,7 @@ function normalizeScopeRoot(worktree: string, input: string | undefined): string
   if (!input) {
     return '.'
   }
-  const absolute = resolve(worktree, input)
+  const absolute = resolvePathWithBase(worktree, input)
   if (!isInsideRoot(worktree, absolute)) {
     throw new Error(`scope 路径不在当前工作区内：${input}`)
   }
@@ -40,7 +40,7 @@ function isInDirectory(filePath: string, directory: string | undefined): boolean
   return filePath === normalized || filePath.startsWith(`${normalized}/`)
 }
 
-function findCycles(graph: ActiveGraph, limit: number): string[][] {
+function findCycles(graph: { files: ActiveGraph['files']; relations: GraphRelation[] }, limit: number): string[][] {
   const adjacency = new Map<string, string[]>()
   for (const relation of graph.relations) {
     if (relation.relationType === 'external') {
@@ -162,7 +162,7 @@ export const aeGraphQueryTool = tool({
     '',
     '功能说明：',
     '- 查询单文件依赖、影响范围、健康检查、条件筛选、最短路径、核心模块和关系统计',
-    '- 只读取 `docs/ae/graphs/graph.json` 的 active version，不读取构建中的半成品',
+    '- 只读取 `docs/ae/graphs/graph.json` 的 active version 和已激活分片，不读取构建中的半成品',
     '- 所有路径参数必须位于当前 worktree 内',
     '',
     '适用场景：',
@@ -173,18 +173,20 @@ export const aeGraphQueryTool = tool({
   ].join('\n'),
   args: {
     mode: z.enum(['deps', 'impact', 'health', 'filter', 'path', 'core', 'stats', 'pattern']).describe('查询模式。'),
-    file: z.string().optional().describe('目标文件路径，deps/impact/path 模式使用。'),
-    target: z.string().optional().describe('目标文件路径，path 模式使用。'),
+    file: z.string().optional().describe('目标文件路径，deps/impact/path 模式使用，支持绝对路径或相对路径。'),
+    target: z.string().optional().describe('目标文件路径，path 模式使用，支持绝对路径或相对路径。'),
     relation_type: z.string().optional().describe('关系类型筛选。'),
     file_type: z.string().optional().describe('文件类型筛选。'),
-    directory: z.string().optional().describe('目录路径筛选。'),
-    scope: z.string().optional().describe('图谱范围，需与构建 target 对应。默认当前 worktree。'),
+    directory: z.string().optional().describe('目录路径筛选，支持绝对路径或相对路径。'),
+    scope: z.string().optional().describe('图谱范围，需与构建 target 对应；省略时按当前启动路径解析。'),
+    exclude: z.array(z.string()).optional().describe('查询时额外排除的路径集合，仅影响结果过滤，不修改图谱。'),
     limit: z.number().int().positive().optional().describe('结果数量上限，默认 50。'),
     top: z.number().int().positive().optional().describe('Top N，core 模式使用，默认 10。'),
     pattern_type: z.enum(['cycle', 'long', 'all']).optional().describe('pattern 模式：cycle/long/all。'),
   },
   execute: async (args, ctx) => {
     const worktree = resolve(ctx.worktree)
+    const baseDirectory = resolve(ctx.directory ?? ctx.worktree)
     const mode = args.mode as QueryMode
     const limit = args.limit ?? 50
     if (!graphDatabaseExists(worktree)) {
@@ -193,14 +195,23 @@ export const aeGraphQueryTool = tool({
     let storage: ReturnType<typeof createGraphStorage> | undefined
     try {
       storage = createGraphStorage(worktree, { readonly: true })
-      const scopeRoot = normalizeScopeRoot(worktree, args.scope)
+      const scopeRoot = args.scope ? normalizeScopeRoot(baseDirectory, args.scope) : toRepoRelativePath(worktree, baseDirectory)
       const graph = storage.getActiveVersion(worktree, scopeRoot)
+      const summary = storage.getActiveVersionSummary(worktree, scopeRoot)
+      const chunks = storage.loadActiveGraphChunks(worktree, scopeRoot)
       if (!graph) {
         return `未找到 scope=${scopeRoot} 的文件关系图谱，请先用对应 target 执行 ae-graph-build。`
       }
-      const file = requireRelativePath(worktree, args.file, 'file')
-      const target = requireRelativePath(worktree, args.target, 'target')
-      const directory = requireRelativePath(worktree, args.directory, 'directory')
+      const chunkRelations = chunks.flatMap((chunk) => chunk.relations)
+      const chunkFiles = chunks.flatMap((chunk) => chunk.files)
+      const mergedRelations = graph.relations.length > 0 ? graph.relations : chunkRelations
+      const mergedFiles = graph.files.length > 0 ? graph.files : chunkFiles
+      const file = requireRelativePath(baseDirectory, args.file, 'file')
+      const target = requireRelativePath(baseDirectory, args.target, 'target')
+      const directory = requireRelativePath(baseDirectory, args.directory, 'directory')
+      const excluded = new Set((args.exclude ?? []).map((item) => toRepoRelativePath(baseDirectory, resolvePathWithBase(baseDirectory, item))))
+      const filteredFiles = mergedFiles.filter((fileNode) => !excluded.has(fileNode.relativePath))
+      const filteredRelations = mergedRelations.filter((relation) => !excluded.has(relation.sourcePath) && !excluded.has(relation.targetPath))
 
       let result: unknown
       if (mode === 'deps') {
@@ -208,37 +219,37 @@ export const aeGraphQueryTool = tool({
           return 'deps 模式必须提供 file 参数。'
         }
         result = {
-          dependencies: graph.relations.filter((relation) => relation.sourcePath === file).slice(0, limit),
-          dependents: graph.relations.filter((relation) => relation.targetPath === file).slice(0, limit),
+          dependencies: filteredRelations.filter((relation) => relation.sourcePath === file).slice(0, limit),
+          dependents: filteredRelations.filter((relation) => relation.targetPath === file).slice(0, limit),
         }
       } else if (mode === 'impact') {
         if (!file) {
           return 'impact 模式必须提供 file 参数。'
         }
-        result = { file, impacted: impact(graph.relations, file, limit) }
+        result = { file, impacted: impact(filteredRelations, file, limit).filter((item) => !excluded.has(item)) }
       } else if (mode === 'health') {
-        const related = new Set(graph.relations.flatMap((relation) => [relation.sourcePath, relation.targetPath]))
+        const related = new Set(filteredRelations.flatMap((relation) => [relation.sourcePath, relation.targetPath]))
         result = {
-          cycles: findCycles(graph, limit),
-          isolatedFiles: graph.files.filter((fileNode) => !related.has(fileNode.relativePath)).map((fileNode) => fileNode.relativePath).slice(0, limit),
+          cycles: findCycles({ files: filteredFiles, relations: filteredRelations }, limit),
+          isolatedFiles: filteredFiles.filter((fileNode) => !related.has(fileNode.relativePath)).map((fileNode) => fileNode.relativePath).slice(0, limit),
         }
       } else if (mode === 'filter') {
         result = {
-          files: graph.files.filter((fileNode) => {
+          files: filteredFiles.filter((fileNode) => {
             return (!args.file_type || fileNode.fileType === args.file_type)
               && isInDirectory(fileNode.relativePath, directory)
           }).slice(0, limit),
-          relations: graph.relations.filter((relation) => !args.relation_type || relation.relationType === args.relation_type).slice(0, limit),
+          relations: filteredRelations.filter((relation) => !args.relation_type || relation.relationType === args.relation_type).slice(0, limit),
         }
       } else if (mode === 'path') {
         if (!file || !target) {
           return 'path 模式必须提供 file 和 target 参数。'
         }
-        result = { path: shortestPath(graph.relations, file, target) }
+        result = { path: shortestPath(filteredRelations, file, target) }
       } else if (mode === 'core') {
-        const fileNodes = new Set(graph.files.filter((fileNode) => fileNode.fileType !== 'directory').map((fileNode) => fileNode.relativePath))
+        const fileNodes = new Set(filteredFiles.filter((fileNode) => fileNode.fileType !== 'directory').map((fileNode) => fileNode.relativePath))
         const counts = new Map<string, number>()
-        for (const relation of graph.relations) {
+        for (const relation of filteredRelations) {
           if (!fileNodes.has(relation.targetPath)) {
             continue
           }
@@ -250,20 +261,20 @@ export const aeGraphQueryTool = tool({
           .map(([path, count]) => ({ path, count }))
       } else if (mode === 'stats') {
         const stats = new Map<string, number>()
-        for (const relation of graph.relations) {
+        for (const relation of filteredRelations) {
           stats.set(relation.relationType, (stats.get(relation.relationType) ?? 0) + 1)
         }
         result = Object.fromEntries([...stats.entries()].sort((a, b) => a[0].localeCompare(b[0])))
       } else {
         const patternType = args.pattern_type ?? 'all'
-        const cycles = patternType === 'long' ? [] : findCycles(graph, limit)
+        const cycles = patternType === 'long' ? [] : findCycles({ files: filteredFiles, relations: filteredRelations }, limit)
         const paths = patternType === 'cycle'
           ? []
-          : longPaths(graph.relations, 6, limit)
+          : longPaths(filteredRelations, 6, limit)
         result = { cycles, longPaths: paths }
       }
 
-      return JSON.stringify({ mode, scopeRoot, versionId: graph.versionId, result, tool: TOOL.AE_GRAPH_QUERY }, null, 2)
+      return JSON.stringify({ mode, scopeRoot, versionId: graph.versionId, summary, result, tool: TOOL.AE_GRAPH_QUERY }, null, 2)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
       return `文件关系图谱查询失败：${message}`

@@ -9,8 +9,8 @@ import { z } from 'zod'
 import { TOOL } from '../schemas/ae-asset-schema.js'
 import { loadGraphConfig, saveGraphExcludeRule } from '../services/graph-config-service.js'
 import { collectGraphFiles, parseFileRelations } from '../services/graph-parse-service.js'
-import { createGraphStorage } from '../services/graph-storage-service.js'
-import { isInsideRoot, pathContainsSymlink, toPosixPath } from '../utils/path-utils.js'
+import { createGraphStorage, resolveGraphDatabasePath } from '../services/graph-storage-service.js'
+import { isInsideRoot, pathContainsSymlink, resolvePathWithBase, toPosixPath } from '../utils/path-utils.js'
 
 const COMMON_EXCLUDE_DIRS = ['node_modules', 'dist', 'build', 'coverage', '__pycache__', '.next', '.nuxt']
 
@@ -79,12 +79,13 @@ async function confirmDatabaseWrite(worktree: string, ctx: { ask?: unknown }): P
     await Effect.runPromise(ctx.ask({
       permission: 'file',
       patterns: [
-        resolve(worktree, 'docs', 'ae', 'graphs', 'graph.json'),
+        resolveGraphDatabasePath(worktree),
+        resolve(worktree, 'docs', 'ae', 'graphs', 'version-*'),
         resolve(worktree, 'docs', 'ae', 'graphs', 'graph.json.tmp-*'),
         resolve(worktree, 'docs', 'ae', 'graphs', 'graph.json.lock'),
       ],
       always: [],
-      metadata: { action: '写入文件关系图谱 JSON 存储文件及临时文件', target: 'docs/ae/graphs/graph.json*' },
+      metadata: { action: '写入文件关系图谱 JSON 存储文件、分片及临时文件', target: 'docs/ae/graphs/**' },
     }))
     return true
   } catch {
@@ -98,7 +99,7 @@ export const aeGraphBuildTool = tool({
     '',
     '功能说明：',
     '- 扫描工作区文件并解析浅层 import/require/include、Markdown 链接和 AE 资产引用',
-    '- 将图谱保存到项目 `docs/ae/graphs/graph.json`，使用本地 JSON 版本化快照',
+     '- 将图谱保存到项目 `docs/ae/graphs/graph.json` 与分片目录，使用本地 JSON 版本化快照',
     '- 支持 full、incremental、auto 模式；非 Git 项目自动降级全量构建',
     '- 首版仅支持 depth=shallow，不执行深层 AST 解析',
     '',
@@ -109,14 +110,16 @@ export const aeGraphBuildTool = tool({
     '- 不生成可视化图，不分析运行时动态依赖，不提供符号级调用链。',
   ].join('\n'),
   args: {
-    target: z.string().optional().describe('目标目录，必须在当前 worktree 内。默认当前 worktree。'),
+    target: z.string().optional().describe('目标目录，支持绝对路径或相对路径；默认相对于 opencode 启动路径解析。'),
     mode: z.enum(['auto', 'full', 'incremental']).optional().describe('构建模式：auto/full/incremental。默认 auto。'),
     depth: z.enum(['shallow']).optional().describe('解析深度。首版仅支持 shallow。'),
+    exclude: z.array(z.string()).optional().describe('额外排除的子路径或路径集合，优先与现有排除规则合并。'),
   },
   execute: async (args, ctx) => {
     const startedAt = Date.now()
     const worktree = resolve(ctx.worktree)
-    const target = resolve(worktree, args.target ?? '.')
+    const baseDirectory = resolve(ctx.directory ?? ctx.worktree)
+    const target = resolvePathWithBase(baseDirectory, args.target ?? '.')
     ctx.metadata({ title: '构建文件关系图谱' })
 
     if (!isInsideRoot(worktree, target)) {
@@ -139,6 +142,8 @@ export const aeGraphBuildTool = tool({
     try {
       storage = createGraphStorage(worktree)
       let config = loadGraphConfig(worktree)
+      const mergedExclude = [...new Set([...(config.exclude ?? []), ...(args.exclude ?? [])])]
+      config = { exclude: mergedExclude }
       const savedExcludes = await confirmMissingExcludes(worktree, config.exclude, ctx)
       if (savedExcludes.length > 0) {
         config = loadGraphConfig(worktree)
@@ -163,7 +168,6 @@ export const aeGraphBuildTool = tool({
       if (effectiveMode === 'incremental' && active) {
         storage.copyVersion(active.versionId, versionId)
         storage.deleteVersionData(versionId, diff.files)
-        const changed = new Set(diff.files)
         const changedAndReferencing = new Set(diff.files)
         if (hasOnlyModifiedFiles(diff)) {
           for (const relation of active.relations) {

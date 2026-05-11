@@ -60,6 +60,16 @@ export function toRepoRelativePath(root: string, filePath: string): string {
   return toPosixPath(rel === '' ? '.' : rel)
 }
 
+/**
+ * 基于优先基准路径解析输入路径；相对路径默认相对于提供的 base。
+ */
+export function resolvePathWithBase(base: string, input?: string): string {
+  if (!input) {
+    return resolve(base)
+  }
+  return resolve(base, input)
+}
+
 export function pathContainsSymlink(root: string, filePath: string): boolean {
   const absRoot = resolve(root)
   const absTarget = resolve(filePath)
