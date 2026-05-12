@@ -17,11 +17,8 @@ export interface GraphConfig {
 }
 
 interface GraphExcludeRule {
-  pattern: string
   negated: boolean
   directoryOnly: boolean
-  anchored: boolean
-  hasSlash: boolean
   regex: RegExp
 }
 
@@ -169,7 +166,7 @@ function parseGraphExcludeRule(rawRule: string): GraphExcludeRule | undefined {
   const body = anchored || hasSlash ? pattern : `(?:^|.*/)${pattern}`
   const regex = new RegExp(`^${body}(?:/.*)?$`)
 
-  return { pattern: rawRule, negated, directoryOnly, anchored, hasSlash, regex }
+  return { negated, directoryOnly, regex }
 }
 
 export function matchGraphExcludePath(relativePath: string, rules: string[], isDirectory = false): GraphExcludeMatchResult {
