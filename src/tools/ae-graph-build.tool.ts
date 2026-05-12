@@ -1,7 +1,6 @@
 import { copyFileSync, existsSync, lstatSync, readdirSync, realpathSync, type Dirent } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
-import { fileURLToPath } from 'node:url'
 
 import { tool } from '@opencode-ai/plugin/tool'
 import { Effect } from 'effect'
@@ -9,8 +8,9 @@ import { z } from 'zod'
 
 import { TOOL } from '../schemas/ae-asset-schema.js'
 import { loadGraphConfig, matchGraphExcludePath, saveGraphExcludeRule } from '../services/graph-config-service.js'
-import { collectGraphFiles, parseFileRelations } from '../services/graph-parse-service.js'
 import { createGraphStorage, resolveGraphDatabasePath } from '../services/graph-storage-service.js'
+import { createRuntimeAssetManifest } from '../services/runtime-asset-manifest.js'
+import { collectGraphFiles, parseFileRelations } from '../services/graph-parse-service.js'
 import { isInsideRoot, pathContainsSymlink, resolvePathWithBase, toPosixPath } from '../utils/path-utils.js'
 
 interface ExcludeSuggestionCandidate {
@@ -68,7 +68,8 @@ const FILE_EXCLUDE_SUGGESTION_CANDIDATES: ExcludeSuggestionCandidate[] = [
 ]
 
 function copyGraphPreview(worktree: string): void {
-  const refDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets', 'skills', 'ae-graph-build', 'references')
+  const manifest = createRuntimeAssetManifest(import.meta.url)
+  const refDir = join(manifest.skillsDir, 'ae-graph-build', 'references')
   const targetDir = join(worktree, 'docs', 'ae', 'graphs')
   const pairs: Array<[string, string]> = [
     [join(refDir, 'graph-preview.html'), join(targetDir, 'index.html')],
