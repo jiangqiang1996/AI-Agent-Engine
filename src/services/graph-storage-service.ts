@@ -34,6 +34,42 @@ export interface ActiveGraphSummary {
   relationCount: number
 }
 
+export type GraphStorageDiagnosticCode =
+  | 'ok'
+  | 'missing_store'
+  | 'invalid_json'
+  | 'unsupported_schema'
+  | 'missing_active'
+  | 'missing_manifest'
+  | 'missing_chunk'
+  | 'invalid_chunk'
+  | 'count_mismatch'
+  | 'index_missing'
+
+export interface GraphStorageDiagnostic {
+  code: GraphStorageDiagnosticCode
+  message: string
+  scopeRoot: string
+  problemPath?: string
+  problemChunkId?: string
+  recoverBy: string
+  availableScopes: string[]
+  nearestScope?: string
+  canUsePartialData: boolean
+}
+
+export interface GraphScopeSummaryIndex {
+  scopeRoot: string
+  fileCount: number
+  relationCount: number
+  directoryCounts: Record<string, number>
+  fileTypeCounts: Record<string, number>
+  relationTypeCounts: Record<string, number>
+  topInDegree: Array<{ path: string; count: number }>
+  topOutDegree: Array<{ path: string; count: number }>
+  isolatedCount: number
+}
+
 interface GraphStorageOptions {
   readonly?: boolean
 }
@@ -44,6 +80,19 @@ interface GraphChunkRecord {
   relationCount: number
   files: GraphFileNode[]
   relations: GraphRelation[]
+}
+
+interface GraphVersionManifest {
+  schemaVersion: 2
+  indexVersion: 1
+  versionId: number
+  scopeRoot: string
+  createdAt: string
+  fileCount: number
+  relationCount: number
+  chunks: string[]
+  indexes: string[]
+  summary: GraphScopeSummaryIndex
 }
 
 interface GraphVersionRecord {
@@ -69,6 +118,14 @@ interface GraphStore {
 
 const CHUNK_SIZE_FILES = 250
 const CHUNK_SIZE_RELATIONS = 1000
+const INDEX_NAMES = [
+  'scope-summary',
+  'path-to-file-chunk',
+  'source-to-relation-chunks',
+  'target-to-relation-chunks',
+  'directory-to-file-chunks',
+  'relation-type-to-chunks',
+] as const
 
 function createEmptyStore(): GraphStore {
   return { schemaVersion: 2, nextVersionId: 1, versions: [] }
@@ -112,6 +169,19 @@ function isChunkRecord(value: unknown): value is GraphChunkRecord {
     && Array.isArray(candidate.relations)
 }
 
+function isManifest(value: unknown): value is GraphVersionManifest {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false
+  }
+  const candidate = value as { schemaVersion?: unknown; indexVersion?: unknown; versionId?: unknown; chunks?: unknown; indexes?: unknown; summary?: unknown }
+  return candidate.schemaVersion === 2
+    && candidate.indexVersion === 1
+    && typeof candidate.versionId === 'number'
+    && Array.isArray(candidate.chunks)
+    && Array.isArray(candidate.indexes)
+    && !!candidate.summary
+}
+
 function chunkFileName(versionId: number, chunkIndex: number): string {
   return `chunk-${String(versionId).padStart(6, '0')}-${String(chunkIndex).padStart(4, '0')}.json`
 }
@@ -126,6 +196,14 @@ function versionChunkPath(storePath: string, versionId: number, chunkIndex: numb
 
 function versionManifestPath(storePath: string, versionId: number): string {
   return join(versionChunkDir(storePath, versionId), 'manifest.json')
+}
+
+function versionIndexDir(storePath: string, versionId: number): string {
+  return join(versionChunkDir(storePath, versionId), 'indexes')
+}
+
+function versionIndexPath(storePath: string, versionId: number, indexName: string): string {
+  return join(versionIndexDir(storePath, versionId), `${indexName}.json`)
 }
 
 function sanitizeChunkId(versionId: number, chunkIndex: number): string {
@@ -175,6 +253,34 @@ function cleanGraphStoreDirectory(storeDir: string, lockPath: string): void {
   }
 }
 
+function topCounts(counts: Map<string, number>): Array<{ path: string; count: number }> {
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 80)
+    .map(([path, count]) => ({ path, count }))
+}
+
+function findNearestScope(scopeRoot: string, availableScopes: string[]): string | undefined {
+  return availableScopes
+    .filter((scope) => scope === '.' || scopeRoot === scope || scopeRoot.startsWith(`${scope}/`) || scope.startsWith(`${scopeRoot}/`))
+    .sort((a, b) => b.length - a.length || a.localeCompare(b))[0]
+}
+
+function formatDiagnosticMessage(code: Exclude<GraphStorageDiagnosticCode, 'ok'>, scopeRoot: string): string {
+  const messages: Record<Exclude<GraphStorageDiagnosticCode, 'ok'>, string> = {
+    missing_store: '未找到文件关系图谱存储。',
+    invalid_json: '图谱存储 JSON 无法解析。',
+    unsupported_schema: '图谱存储 schema 不受支持。',
+    missing_active: `未找到 scope=${scopeRoot} 的 active 图谱版本。`,
+    missing_manifest: '图谱 manifest 缺失或不可读。',
+    missing_chunk: '图谱分片缺失。',
+    invalid_chunk: '图谱分片格式错误。',
+    count_mismatch: '图谱 manifest 与分片计数不一致。',
+    index_missing: '图谱索引缺失。',
+  }
+  return messages[code]
+}
+
 function writeJsonAtomic(path: string, value: unknown): void {
   const tempPath = `${path}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`
   writeFileSync(tempPath, `${JSON.stringify(value, null, 2)}\n`, 'utf8')
@@ -211,7 +317,7 @@ export class GraphStorage {
     try {
       this.store = this.loadStore()
     } catch (error) {
-      if (error instanceof GraphStoreFormatError && !options.readonly) {
+      if ((error instanceof GraphStoreFormatError || error instanceof SyntaxError) && !options.readonly) {
         try {
           cleanGraphStoreDirectory(storeDir, this.lockPath)
         } catch (cleanupError) {
@@ -364,14 +470,95 @@ export class GraphStorage {
     return chunkIds.flatMap((chunkId) => {
       const chunkPath = join(versionChunkDir(this.storePath, version.id), `${chunkId}.json`)
       if (!existsSync(chunkPath)) {
-        return []
+        throw new Error(`图谱分片缺失：${chunkId}`)
       }
       const parsed = JSON.parse(readFileSync(chunkPath, 'utf8')) as unknown
       if (!isChunkRecord(parsed)) {
-        return []
+        throw new Error(`图谱分片格式不受支持：${chunkId}`)
       }
       return [parsed]
     })
+  }
+
+  listActiveScopes(workspaceRoot: string): string[] {
+    const workspaceKey = getWorkspaceKey(workspaceRoot)
+    return [...new Set(this.store.versions
+      .filter((version) => version.workspaceRoot === workspaceKey && version.isActive)
+      .map((version) => version.scopeRoot))].sort((a, b) => a.localeCompare(b))
+  }
+
+  diagnoseActiveVersion(workspaceRoot: string, scopeRoot: string): GraphStorageDiagnostic {
+    const availableScopes = this.listActiveScopes(workspaceRoot)
+    const version = this.findActiveVersion(workspaceRoot, scopeRoot)
+    if (!version) {
+      return this.createDiagnostic('missing_active', scopeRoot, availableScopes, '请使用对应 target 重新执行 ae-graph-build 构建该 scope 的图谱。')
+    }
+    const manifestPath = versionManifestPath(this.storePath, version.id)
+    if (!existsSync(manifestPath)) {
+      return this.createDiagnostic('missing_manifest', scopeRoot, availableScopes, '请重新执行 ae-graph-build 生成 manifest 和索引。', { problemPath: manifestPath })
+    }
+    let manifest: GraphVersionManifest
+    try {
+      const parsed = JSON.parse(readFileSync(manifestPath, 'utf8')) as unknown
+      if (!isManifest(parsed)) {
+        return this.createDiagnostic('missing_manifest', scopeRoot, availableScopes, 'manifest 格式不受支持，请重新执行 ae-graph-build。', { problemPath: manifestPath })
+      }
+      manifest = parsed
+    } catch {
+      return this.createDiagnostic('missing_manifest', scopeRoot, availableScopes, 'manifest 无法解析，请重新执行 ae-graph-build。', { problemPath: manifestPath })
+    }
+    for (const indexName of INDEX_NAMES) {
+      const indexPath = versionIndexPath(this.storePath, version.id, indexName)
+      if (!manifest.indexes.includes(indexName) || !existsSync(indexPath)) {
+        return this.createDiagnostic('index_missing', scopeRoot, availableScopes, '请重新执行 ae-graph-build 生成缺失索引。', { problemPath: indexPath })
+      }
+    }
+    let fileCount = 0
+    let relationCount = 0
+    for (const chunkId of manifest.chunks) {
+      const chunkPath = join(versionChunkDir(this.storePath, version.id), `${chunkId}.json`)
+      if (!existsSync(chunkPath)) {
+        return this.createDiagnostic('missing_chunk', scopeRoot, availableScopes, '请重新执行 ae-graph-build 重建缺失分片。', { problemPath: chunkPath, problemChunkId: chunkId })
+      }
+      try {
+        const parsed = JSON.parse(readFileSync(chunkPath, 'utf8')) as unknown
+        if (!isChunkRecord(parsed)) {
+          return this.createDiagnostic('invalid_chunk', scopeRoot, availableScopes, '请重新执行 ae-graph-build 重建异常分片。', { problemPath: chunkPath, problemChunkId: chunkId })
+        }
+        fileCount += parsed.fileCount
+        relationCount += parsed.relationCount
+      } catch {
+        return this.createDiagnostic('invalid_chunk', scopeRoot, availableScopes, '请重新执行 ae-graph-build 重建异常分片。', { problemPath: chunkPath, problemChunkId: chunkId })
+      }
+    }
+    if (fileCount !== manifest.fileCount || relationCount !== manifest.relationCount) {
+      return this.createDiagnostic('count_mismatch', scopeRoot, availableScopes, 'manifest 与分片计数不一致，请重新执行 ae-graph-build。', { problemPath: manifestPath })
+    }
+    return {
+      code: 'ok',
+      message: '图谱存储可用。',
+      scopeRoot,
+      recoverBy: '无需恢复。',
+      availableScopes,
+      nearestScope: findNearestScope(scopeRoot, availableScopes),
+      canUsePartialData: false,
+    }
+  }
+
+  readScopeSummary(workspaceRoot: string, scopeRoot: string): GraphScopeSummaryIndex | undefined {
+    const version = this.findActiveVersion(workspaceRoot, scopeRoot)
+    if (!version) {
+      return undefined
+    }
+    return this.readIndex(version.id, 'scope-summary') as GraphScopeSummaryIndex | undefined
+  }
+
+  loadRelationChunksBySource(workspaceRoot: string, scopeRoot: string, sourcePath: string): { chunks: GraphChunkRecord[]; chunkIds: string[] } {
+    return this.loadRelationChunksByIndex(workspaceRoot, scopeRoot, 'source-to-relation-chunks', sourcePath)
+  }
+
+  loadRelationChunksByTarget(workspaceRoot: string, scopeRoot: string, targetPath: string): { chunks: GraphChunkRecord[]; chunkIds: string[] } {
+    return this.loadRelationChunksByIndex(workspaceRoot, scopeRoot, 'target-to-relation-chunks', targetPath)
   }
 
   cleanupIncompleteVersions(workspaceRoot: string, scopeRoot: string): void {
@@ -396,11 +583,70 @@ export class GraphStorage {
     if (!existsSync(this.storePath)) {
       return createEmptyStore()
     }
-    const parsed = JSON.parse(readFileSync(this.storePath, 'utf8')) as unknown
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(readFileSync(this.storePath, 'utf8')) as unknown
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        throw error
+      }
+      throw error
+    }
     if (isGraphStore(parsed)) {
       return parsed
     }
     throw new GraphStoreFormatError()
+  }
+
+  private findActiveVersion(workspaceRoot: string, scopeRoot: string): GraphVersionRecord | undefined {
+    const workspaceKey = getWorkspaceKey(workspaceRoot)
+    return this.store.versions
+      .filter((item) => item.workspaceRoot === workspaceKey && item.scopeRoot === scopeRoot && item.isActive)
+      .sort((a, b) => b.id - a.id)[0]
+  }
+
+  private createDiagnostic(
+    code: Exclude<GraphStorageDiagnosticCode, 'ok'>,
+    scopeRoot: string,
+    availableScopes: string[],
+    recoverBy: string,
+    options: { problemPath?: string; problemChunkId?: string } = {},
+  ): GraphStorageDiagnostic {
+    return {
+      code,
+      message: formatDiagnosticMessage(code, scopeRoot),
+      scopeRoot,
+      recoverBy,
+      availableScopes,
+      nearestScope: findNearestScope(scopeRoot, availableScopes),
+      canUsePartialData: false,
+      ...options,
+    }
+  }
+
+  private readIndex(versionId: number, indexName: string): unknown | undefined {
+    const indexPath = versionIndexPath(this.storePath, versionId, indexName)
+    if (!existsSync(indexPath)) {
+      return undefined
+    }
+    return JSON.parse(readFileSync(indexPath, 'utf8')) as unknown
+  }
+
+  private loadRelationChunksByIndex(workspaceRoot: string, scopeRoot: string, indexName: string, path: string): { chunks: GraphChunkRecord[]; chunkIds: string[] } {
+    const version = this.findActiveVersion(workspaceRoot, scopeRoot)
+    if (!version) {
+      return { chunks: [], chunkIds: [] }
+    }
+    const index = this.readIndex(version.id, indexName) as Record<string, string[]> | undefined
+    const chunkIds = [...new Set(index?.[path] ?? [])]
+    const chunks = chunkIds.map((chunkId) => {
+      const parsed = JSON.parse(readFileSync(join(versionChunkDir(this.storePath, version.id), `${chunkId}.json`), 'utf8')) as unknown
+      if (!isChunkRecord(parsed)) {
+        throw new Error(`图谱分片格式不受支持：${chunkId}`)
+      }
+      return parsed
+    })
+    return { chunks, chunkIds }
   }
 
   private loadVersionFiles(version: GraphVersionRecord): GraphFileNode[] {
@@ -448,8 +694,90 @@ export class GraphStorage {
       writeJsonAtomic(chunkPath, chunk)
       chunkIds.push(chunkId)
     }
-    writeJsonAtomic(versionManifestPath(this.storePath, versionId), { versionId, chunkIds, fileCount: files.length, relationCount: relations.length })
+    this.writeIndexes(versionId, chunkIds, files, relations)
     return chunkIds
+  }
+
+  private writeIndexes(versionId: number, chunkIds: string[], files: GraphFileNode[], relations: GraphRelation[]): void {
+    const version = this.findVersion(versionId)
+    if (!version) {
+      throw new Error(`图谱版本不存在：${versionId}`)
+    }
+    const indexDir = versionIndexDir(this.storePath, versionId)
+    ensureDir(indexDir)
+    const fileChunks = chunkFiles(files)
+    const relationChunks = chunkRelations(relations)
+    const pathToFileChunk: Record<string, string> = {}
+    const sourceToRelationChunks: Record<string, string[]> = {}
+    const targetToRelationChunks: Record<string, string[]> = {}
+    const directoryToFileChunks: Record<string, string[]> = {}
+    const relationTypeToChunks: Record<string, string[]> = {}
+    const inDegree = new Map<string, number>()
+    const outDegree = new Map<string, number>()
+    const related = new Set<string>()
+    const fileTypeCounts: Record<string, number> = {}
+    const directoryCounts: Record<string, number> = {}
+
+    chunkIds.forEach((chunkId, index) => {
+      const fileChunk = fileChunks[index] ?? []
+      const relationChunk = relationChunks[index] ?? []
+      for (const file of fileChunk) {
+        pathToFileChunk[file.relativePath] = chunkId
+        fileTypeCounts[file.fileType] = (fileTypeCounts[file.fileType] ?? 0) + 1
+        const directory = dirname(file.relativePath).replaceAll('\\', '/')
+        const normalizedDirectory = directory === '.' ? '.' : directory
+        directoryCounts[normalizedDirectory] = (directoryCounts[normalizedDirectory] ?? 0) + 1
+        directoryToFileChunks[normalizedDirectory] = [...new Set([...(directoryToFileChunks[normalizedDirectory] ?? []), chunkId])]
+      }
+      for (const relation of relationChunk) {
+        sourceToRelationChunks[relation.sourcePath] = [...new Set([...(sourceToRelationChunks[relation.sourcePath] ?? []), chunkId])]
+        targetToRelationChunks[relation.targetPath] = [...new Set([...(targetToRelationChunks[relation.targetPath] ?? []), chunkId])]
+        relationTypeToChunks[relation.relationType] = [...new Set([...(relationTypeToChunks[relation.relationType] ?? []), chunkId])]
+        inDegree.set(relation.targetPath, (inDegree.get(relation.targetPath) ?? 0) + 1)
+        outDegree.set(relation.sourcePath, (outDegree.get(relation.sourcePath) ?? 0) + 1)
+        related.add(relation.sourcePath)
+        related.add(relation.targetPath)
+      }
+    })
+
+    const relationTypeCounts: Record<string, number> = {}
+    for (const relation of relations) {
+      relationTypeCounts[relation.relationType] = (relationTypeCounts[relation.relationType] ?? 0) + 1
+    }
+    const summary: GraphScopeSummaryIndex = {
+      scopeRoot: version.scopeRoot,
+      fileCount: files.length,
+      relationCount: relations.length,
+      directoryCounts,
+      fileTypeCounts,
+      relationTypeCounts,
+      topInDegree: topCounts(inDegree),
+      topOutDegree: topCounts(outDegree),
+      isolatedCount: files.filter((file) => file.fileType !== 'directory' && !related.has(file.relativePath)).length,
+    }
+    const indexes: Record<(typeof INDEX_NAMES)[number], unknown> = {
+      'scope-summary': summary,
+      'path-to-file-chunk': pathToFileChunk,
+      'source-to-relation-chunks': sourceToRelationChunks,
+      'target-to-relation-chunks': targetToRelationChunks,
+      'directory-to-file-chunks': directoryToFileChunks,
+      'relation-type-to-chunks': relationTypeToChunks,
+    }
+    for (const [name, value] of Object.entries(indexes)) {
+      writeJsonAtomic(versionIndexPath(this.storePath, versionId, name), value)
+    }
+    writeJsonAtomic(versionManifestPath(this.storePath, versionId), {
+      schemaVersion: 2,
+      indexVersion: 1,
+      versionId,
+      scopeRoot: version.scopeRoot,
+      createdAt: version.createdAt,
+      fileCount: files.length,
+      relationCount: relations.length,
+      chunks: chunkIds,
+      indexes: [...INDEX_NAMES],
+      summary,
+    } satisfies GraphVersionManifest)
   }
 
   private saveStore(): void {

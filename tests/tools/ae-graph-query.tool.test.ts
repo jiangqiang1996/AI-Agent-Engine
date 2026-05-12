@@ -16,10 +16,10 @@ function createTempRoot(): string {
   return root
 }
 
-function createMockContext(worktree: string) {
+function createMockContext(worktree: string, directory = worktree) {
   return {
     worktree,
-    directory: worktree,
+    directory,
     sessionID: 'test-session',
     messageID: 'test-message',
     agent: 'test-agent',
@@ -75,9 +75,10 @@ describe('ae-graph-query 工具', () => {
     seedGraph(root)
 
     const result = await aeGraphQueryTool.execute({ mode: 'deps', file: 'src/a.ts' }, createMockContext(root))
-    const parsed = JSON.parse(result as string) as { result: { dependencies: unknown[] } }
+    const parsed = JSON.parse(result as string) as { result: { dependencies: unknown[] }; queryCost: { indexesUsed: string[] } }
 
     expect(parsed.result.dependencies).toHaveLength(1)
+    expect(parsed.queryCost.indexesUsed).toContain('source-to-relation-chunks')
   })
 
   it('应该在图谱文件不存在时提示先构建', async () => {
@@ -96,7 +97,11 @@ describe('ae-graph-query 工具', () => {
 
     const result = await aeGraphQueryTool.execute({ mode: 'stats' }, createMockContext(root))
 
-    expect(result).toContain('文件关系图谱查询失败')
+    const parsed = JSON.parse(result as string) as { status: string; diagnostic: { code: string; recoverBy: string } }
+
+    expect(parsed.status).toBe('diagnostic')
+    expect(parsed.diagnostic.code).toBe('invalid_json')
+    expect(parsed.diagnostic.recoverBy).toContain('ae-graph-build')
   })
 
   it('应该拒绝越界路径参数', async () => {
@@ -113,8 +118,9 @@ describe('ae-graph-query 工具', () => {
     seedScopedGraph(root)
 
     const result = await aeGraphQueryTool.execute({ mode: 'stats', scope: 'src' }, createMockContext(root))
-    const parsed = JSON.parse(result as string) as { scopeRoot: string; versionId: number }
+    const parsed = JSON.parse(result as string) as { scopeRoot: string; versionId: number; status: string }
 
+    expect(parsed.status).toBe('ok')
     expect(parsed.scopeRoot).toBe('src')
     expect(parsed.versionId).toBeGreaterThan(0)
   })
@@ -135,6 +141,117 @@ describe('ae-graph-query 工具', () => {
     const parsed = JSON.parse(result as string) as { result: { files: Array<{ relativePath: string }> } }
 
     expect(parsed.result.files.map((file) => file.relativePath)).toEqual(['src/a.ts'])
+  })
+
+  it('应该按当前目录解析相对路径并返回 worktree 相对结果', async () => {
+    const root = createTempRoot()
+    seedGraph(root)
+    const context = createMockContext(root, join(root, 'src'))
+
+    const result = await aeGraphQueryTool.execute({ mode: 'deps', file: 'a.ts', exclude: ['c.ts'] }, context)
+    const pathResult = await aeGraphQueryTool.execute({ mode: 'path', file: 'a.ts', target: 'f.ts' }, context)
+    const filterResult = await aeGraphQueryTool.execute({ mode: 'filter', directory: '.' }, context)
+    const parsed = JSON.parse(result as string) as { status: string; result: { dependencies: Array<{ targetPath: string }> } }
+    const pathParsed = JSON.parse(pathResult as string) as { result: { path: string[] } }
+    const filterParsed = JSON.parse(filterResult as string) as { result: { files: Array<{ relativePath: string }> } }
+
+    expect(parsed.status).toBe('ok')
+    expect(parsed.result.dependencies).toEqual([
+      { sourcePath: 'src/a.ts', targetPath: 'src/b.ts', relationType: 'import' },
+    ])
+    expect(pathParsed.result.path).toEqual(['src/a.ts', 'src/b.ts', 'src/c.ts', 'src/d.ts', 'src/e.ts', 'src/f.ts'])
+    expect(filterParsed.result.files.map((file) => file.relativePath)).toEqual([
+      'src/a.ts',
+      'src/b.ts',
+      'src/c.ts',
+      'src/d.ts',
+      'src/e.ts',
+      'src/f.ts',
+    ])
+  })
+
+  it('应该让 exclude 影响 stats 和 core 结果', async () => {
+    const root = createTempRoot()
+    seedGraph(root)
+
+    const statsResult = await aeGraphQueryTool.execute({ mode: 'stats', exclude: ['src/b.ts'] }, createMockContext(root))
+    const coreResult = await aeGraphQueryTool.execute({ mode: 'core', exclude: ['src/b.ts'] }, createMockContext(root))
+    const statsParsed = JSON.parse(statsResult as string) as { result: Record<string, number>; queryCost: { indexesUsed: string[] } }
+    const coreParsed = JSON.parse(coreResult as string) as { result: Array<{ path: string; count: number }>; queryCost: { indexesUsed: string[] } }
+
+    expect(statsParsed.result).toEqual({ import: 3 })
+    expect(statsParsed.queryCost.indexesUsed).toEqual([])
+    expect(coreParsed.result).toEqual([
+      { path: 'src/d.ts', count: 1 },
+      { path: 'src/e.ts', count: 1 },
+      { path: 'src/f.ts', count: 1 },
+    ])
+    expect(coreParsed.queryCost.indexesUsed).toEqual([])
+  })
+
+  it('core 模式 top 超过索引覆盖时应该回退完整关系计算', async () => {
+    const root = createTempRoot()
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    storage.insertFiles(versionId, Array.from({ length: 25 }, (_, index) => ({
+      relativePath: `src/${String(index).padStart(2, '0')}.ts`,
+      fileType: 'source',
+    })))
+    storage.insertRelations(versionId, Array.from({ length: 24 }, (_, index) => ({
+      sourcePath: 'src/00.ts',
+      targetPath: `src/${String(index + 1).padStart(2, '0')}.ts`,
+      relationType: 'import',
+    })))
+    storage.activateVersion(versionId)
+    storage.closeDatabase()
+
+    const result = await aeGraphQueryTool.execute({ mode: 'core', top: 24 }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as { result: Array<{ path: string; count: number }> }
+
+    expect(parsed.result).toHaveLength(24)
+    expect(parsed.result[23]).toEqual({ path: 'src/24.ts', count: 1 })
+  })
+
+  it('应该在 deps 分片同时命中 source 和 target 时去重', async () => {
+    const root = createTempRoot()
+    mkdirSync(join(root, 'src'), { recursive: true })
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    storage.insertFiles(versionId, [
+      { relativePath: 'src/a.ts', fileType: 'source' },
+      { relativePath: 'src/b.ts', fileType: 'source' },
+    ])
+    storage.insertRelations(versionId, [
+      { sourcePath: 'src/a.ts', targetPath: 'src/a.ts', relationType: 'import' },
+      { sourcePath: 'src/a.ts', targetPath: 'src/b.ts', relationType: 'import' },
+    ])
+    storage.activateVersion(versionId)
+    storage.closeDatabase()
+
+    const result = await aeGraphQueryTool.execute({ mode: 'deps', file: 'src/a.ts' }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as {
+      result: { dependencies: Array<{ targetPath: string }>; dependents: Array<{ sourcePath: string }> }
+    }
+
+    expect(parsed.result.dependencies.filter((relation) => relation.targetPath === 'src/a.ts')).toHaveLength(1)
+    expect(parsed.result.dependents.filter((relation) => relation.sourcePath === 'src/a.ts')).toHaveLength(1)
+  })
+
+  it('应该在结果超过 limit 时返回真实截断状态', async () => {
+    const root = createTempRoot()
+    seedGraph(root)
+
+    const result = await aeGraphQueryTool.execute({ mode: 'filter', limit: 2 }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as {
+      result: { files: unknown[]; relations: unknown[] }
+      truncation: { truncated: boolean; returnedCount: number; limitApplied: number }
+    }
+
+    expect(parsed.result.files).toHaveLength(2)
+    expect(parsed.result.relations).toHaveLength(2)
+    expect(parsed.truncation.truncated).toBe(true)
+    expect(parsed.truncation.returnedCount).toBe(4)
+    expect(parsed.truncation.limitApplied).toBe(2)
   })
 
   it('core 模式不应该把目录节点识别为核心模块', async () => {
@@ -158,6 +275,38 @@ describe('ae-graph-query 工具', () => {
     const parsed = JSON.parse(result as string) as { result: Array<{ path: string; count: number }> }
 
     expect(parsed.result).toEqual([{ path: 'src/b.ts', count: 1 }])
+  })
+
+  it('应该限制极大 limit 并返回截断元数据', async () => {
+    const root = createTempRoot()
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    storage.insertFiles(versionId, Array.from({ length: 90 }, (_, index) => ({
+      relativePath: `src/${index}.ts`,
+      fileType: 'source',
+    })))
+    storage.activateVersion(versionId)
+    storage.closeDatabase()
+
+    const result = await aeGraphQueryTool.execute({ mode: 'filter', limit: 9999 }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as { result: { files: unknown[] }; truncation: { truncated: boolean; returnedCount: number; limitApplied: number; maxResultItems: number } }
+
+    expect(parsed.result.files).toHaveLength(80)
+    expect(parsed.truncation.truncated).toBe(true)
+    expect(parsed.truncation.returnedCount).toBe(80)
+    expect(parsed.truncation.limitApplied).toBe(80)
+    expect(parsed.truncation.maxResultItems).toBe(80)
+  })
+
+  it('pattern 模式不应该在结果恰好等于 limit 时误报截断', async () => {
+    const root = createTempRoot()
+    seedGraph(root)
+
+    const result = await aeGraphQueryTool.execute({ mode: 'pattern', pattern_type: 'long', limit: 1 }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as { truncation: { truncated: boolean }; result: { longPaths: string[][] } }
+
+    expect(parsed.result.longPaths).toHaveLength(1)
+    expect(parsed.truncation.truncated).toBe(false)
   })
 
   it('应该查询 impact、path、core 和 pattern 模式', async () => {

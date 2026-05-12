@@ -157,9 +157,10 @@ export const aeGraphBuildTool = tool({
       const active = storage.getActiveVersion(worktree, scopeRoot)
       const effectiveMode = requestedMode === 'full' || diff.warning || diff.hasStructuralChange || !active ? 'full' : 'incremental'
       if (effectiveMode === 'incremental' && diff.files.length === 0 && active) {
+        const summary = storage.getActiveVersionSummary(worktree, scopeRoot)
         storage.closeDatabase()
         storage = undefined
-        return JSON.stringify({ message: 'Git diff 无变更，图谱无需更新', mode: effectiveMode, database: 'docs/ae/graphs/graph.json' }, null, 2)
+        return JSON.stringify({ message: 'Git diff 无变更，图谱无需更新', mode: effectiveMode, scopeRoot, summary, database: 'docs/ae/graphs/graph.json' }, null, 2)
       }
 
       const allFiles = collectGraphFiles(worktree, target, config)
@@ -186,9 +187,14 @@ export const aeGraphBuildTool = tool({
 
       return JSON.stringify({
         mode: effectiveMode,
+        modeReason: effectiveMode === 'full' ? (diff.warning ?? (diff.hasStructuralChange ? '检测到新增、删除、重命名或未跟踪文件，已保守全量构建' : '未找到可复用 active version 或用户请求 full')) : '仅检测到可安全增量刷新的修改文件',
         depth: args.depth ?? 'shallow',
+        scopeRoot,
+        versionId,
         files: parsed.files.length,
         relations: parsed.relations.length,
+        chunkSummary: storage.getActiveVersionSummary(worktree, scopeRoot),
+        excludeRules: config.exclude,
         warnings: [diff.warning, ...parsed.warnings].filter(Boolean),
         savedExcludes,
         database: 'docs/ae/graphs/graph.json',
