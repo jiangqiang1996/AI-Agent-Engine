@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import {
+  collectEffectiveConfigObjectEntries,
   collectModelScenarioSources,
   loadBuiltinMcpConfigFromPaths,
   loadBuiltinOpencodeConfig,
@@ -245,6 +246,25 @@ describe('builtin-opencode-config-service', () => {
     expect(sources.get('quick')).toMatchObject({ model: 'project/quick', layer: '项目级' })
     expect(sources.get('standard')).toMatchObject({ model: 'global/standard', layer: '全局' })
     expect(sources.get('deep')).toMatchObject({ model: 'builtin/deep', layer: '插件内置' })
+  })
+
+  it('应该通过公共入口获取对象属性的最终生效值和来源', () => {
+    const root = createTempRoot()
+    const builtinConfigFile = join(root, 'ae.jsonc')
+    const globalConfigFile = join(root, 'global.jsonc')
+    const projectConfigFile = join(root, '.opencode', 'ae.jsonc')
+    writeConfig(builtinConfigFile, '{ "modelScenarios": { "quick": "builtin/quick", "deep": "builtin/deep" } }')
+    writeConfig(globalConfigFile, '{ "modelScenarios": { "quick": "global/quick", "standard": "global/standard" } }')
+    writeConfig(projectConfigFile, '{ "modelScenarios": { "quick": "project/quick" } }')
+
+    const entries = collectEffectiveConfigObjectEntries(
+      { builtinConfigFile, globalConfigFile, projectConfigFile },
+      'modelScenarios',
+    )
+
+    expect(entries.get('quick')).toMatchObject({ value: 'project/quick', layer: '项目级', path: projectConfigFile })
+    expect(entries.get('standard')).toMatchObject({ value: 'global/standard', layer: '全局', path: globalConfigFile })
+    expect(entries.get('deep')).toMatchObject({ value: 'builtin/deep', layer: '插件内置', path: builtinConfigFile })
   })
 
   it('应该校验 modelScenarios 必须是非空字符串映射', () => {

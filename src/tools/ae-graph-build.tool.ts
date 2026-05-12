@@ -18,6 +18,10 @@ function isGraphRuntimeFile(filePath: string): boolean {
   return filePath === 'docs/ae/graphs' || filePath.startsWith('docs/ae/graphs/')
 }
 
+function mergeGraphExcludeRules(configExclude: string[], argumentExclude: string[] | undefined): string[] {
+  return [...new Set([...configExclude, ...(argumentExclude ?? [])])]
+}
+
 function hasOnlyModifiedFiles(diff: { files: string[]; hasStructuralChange?: boolean; warning?: string }): boolean {
   return !diff.warning && !diff.hasStructuralChange && diff.files.length > 0
 }
@@ -49,7 +53,14 @@ function getChangedFiles(worktree: string): { files: string[]; hasStructuralChan
 }
 
 async function confirmMissingExcludes(worktree: string, configured: string[], ctx: { ask?: unknown }): Promise<string[]> {
-  const missing = COMMON_EXCLUDE_DIRS.filter((dir) => !configured.includes(dir) && existsSync(resolve(worktree, dir)))
+  const missing = COMMON_EXCLUDE_DIRS.filter((dir) => {
+    const normalizedDir = toPosixPath(dir).replace(/\/$/, '')
+    const hasRule = configured.some((rule) => {
+      const normalizedRule = toPosixPath(rule).replace(/\/$/, '')
+      return normalizedDir === normalizedRule || normalizedDir.startsWith(`${normalizedRule}/`)
+    })
+    return !hasRule && existsSync(resolve(worktree, dir))
+  })
   const confirmed: string[] = []
   for (const dir of missing) {
     if (typeof ctx.ask !== 'function') {
@@ -60,7 +71,7 @@ async function confirmMissingExcludes(worktree: string, configured: string[], ct
         permission: 'file',
         patterns: [resolve(worktree, '.opencode', 'ae.jsonc')],
         always: [],
-        metadata: { action: '保存图谱排除规则', rule: dir },
+        metadata: { action: '检测到常见依赖或构建产物目录，确认后保存为图谱排除规则', rule: dir },
       }))
       saveGraphExcludeRule(worktree, dir)
       confirmed.push(dir)
@@ -133,21 +144,21 @@ export const aeGraphBuildTool = tool({
       return `目标路径不存在或无法访问：${args.target ?? target}`
     }
 
-    const canWriteDatabase = await confirmDatabaseWrite(worktree, ctx)
-    if (!canWriteDatabase) {
-      return '用户未授权写入 `docs/ae/graphs/graph.json`，已取消文件关系图谱构建。'
-    }
-
     let storage: ReturnType<typeof createGraphStorage> | undefined
     try {
-      storage = createGraphStorage(worktree)
       let config = loadGraphConfig(worktree)
-      const mergedExclude = [...new Set([...(config.exclude ?? []), ...(args.exclude ?? [])])]
-      config = { exclude: mergedExclude }
+      config = { exclude: mergeGraphExcludeRules(config.exclude, args.exclude) }
       const savedExcludes = await confirmMissingExcludes(worktree, config.exclude, ctx)
       if (savedExcludes.length > 0) {
-        config = loadGraphConfig(worktree)
+        config = { exclude: mergeGraphExcludeRules(loadGraphConfig(worktree).exclude, args.exclude) }
       }
+
+      const canWriteDatabase = await confirmDatabaseWrite(worktree, ctx)
+      if (!canWriteDatabase) {
+        return '用户未授权写入 `docs/ae/graphs/graph.json`，已取消文件关系图谱构建。'
+      }
+
+      storage = createGraphStorage(worktree)
 
       const scopeRoot = toPosixPath(relative(worktree, target) || '.')
       storage.cleanupIncompleteVersions(worktree, scopeRoot)

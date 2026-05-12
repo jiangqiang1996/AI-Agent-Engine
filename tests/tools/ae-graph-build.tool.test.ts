@@ -150,6 +150,20 @@ describe('ae-graph-build 工具', () => {
     expect(query.summary.chunkIds.length).toBeGreaterThan(0)
   })
 
+  it('应该确认并保存明显需要排除的目录到项目级 ae.jsonc', async () => {
+    const root = createTempRoot()
+    write(root, 'src/a.ts', '')
+    write(root, 'node_modules/pkg/index.js', 'export const ignored = true')
+
+    const result = await aeGraphBuildTool.execute({ mode: 'full' }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as { savedExcludes: string[]; excludeRules: string[]; files: number }
+
+    expect(parsed.savedExcludes).toContain('node_modules')
+    expect(parsed.excludeRules).toContain('node_modules')
+    expect(existsSync(join(root, '.opencode', 'ae.jsonc'))).toBe(true)
+    expect(parsed.files).toBeGreaterThan(0)
+  })
+
   it('Git diff 无变更时应该跳过增量构建并返回图谱文件路径', async () => {
     const root = createTempRoot()
     execFileSync('git', ['init'], { cwd: root, stdio: 'ignore' })

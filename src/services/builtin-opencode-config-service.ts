@@ -31,11 +31,28 @@ export interface BuiltinOpencodeConfigPaths {
   builtinConfigFile: string
 }
 
-interface ConfigLayer {
+export interface ConfigLayer {
   label: BuiltinOpencodeConfigLayerName
   path: string
   required: boolean
   allowNewMcpEntries: boolean
+}
+
+interface LoadedConfigLayer extends ConfigLayer {
+  config: BuiltinOpencodeConfig
+}
+
+export interface EffectiveConfigValue {
+  key: string
+  value: unknown
+  layer: BuiltinOpencodeConfigLayerName
+  path: string
+}
+
+export interface EffectiveConfigPropertyValue {
+  value: unknown
+  layer: BuiltinOpencodeConfigLayerName
+  path: string
 }
 
 const MIN_MCP_TIMEOUT_MS = 1000
@@ -102,6 +119,32 @@ function readBuiltinOpencodeConfigLayer(layer: ConfigLayer): BuiltinOpencodeConf
   }
 
   return parsed as BuiltinOpencodeConfig
+}
+
+function getBuiltinOpencodeConfigLayers(paths: BuiltinOpencodeConfigPaths): ConfigLayer[] {
+  return [
+    { label: '插件内置', path: paths.builtinConfigFile, required: true, allowNewMcpEntries: true },
+    { label: '全局', path: paths.globalConfigFile, required: false, allowNewMcpEntries: true },
+    { label: '项目级', path: paths.projectConfigFile, required: false, allowNewMcpEntries: true },
+  ]
+}
+
+function readBuiltinOpencodeConfigLayers(paths: BuiltinOpencodeConfigPaths): LoadedConfigLayer[] {
+  return getBuiltinOpencodeConfigLayers(paths).flatMap((layer) => {
+    const config = readBuiltinOpencodeConfigLayer(layer)
+    return config ? [{ ...layer, config }] : []
+  })
+}
+
+function getConfigValueAtPath(config: BuiltinOpencodeConfig, propertyPath: string[]): unknown {
+  let value: unknown = config
+  for (const propertyName of propertyPath) {
+    if (!isRecord(value)) {
+      return undefined
+    }
+    value = value[propertyName]
+  }
+  return value
 }
 
 function mergeMcpEntry(lowPriority: unknown, highPriority: unknown): unknown {
@@ -261,40 +304,65 @@ export function resolveBuiltinOpencodeConfigPaths(
 }
 
 export function loadBuiltinOpencodeConfig(paths: BuiltinOpencodeConfigPaths): BuiltinOpencodeConfig {
-  const layers: ConfigLayer[] = [
-    { label: '插件内置', path: paths.builtinConfigFile, required: true, allowNewMcpEntries: true },
-    { label: '全局', path: paths.globalConfigFile, required: false, allowNewMcpEntries: true },
-    { label: '项目级', path: paths.projectConfigFile, required: false, allowNewMcpEntries: true },
-  ]
-
-  const config = layers.reduce<BuiltinOpencodeConfig>((merged, layer) => {
-    const config = readBuiltinOpencodeConfigLayer(layer)
-    return config ? mergeBuiltinOpencodeConfig(merged, config, {
+  const config = readBuiltinOpencodeConfigLayers(paths).reduce<BuiltinOpencodeConfig>((merged, layer) => {
+    return mergeBuiltinOpencodeConfig(merged, layer.config, {
       allowNewMcpEntries: layer.allowNewMcpEntries,
-    }) : merged
+    })
   }, {})
   validateMcpConfig(config)
   validateModelScenariosConfig(config)
   return config
 }
 
-export function collectModelScenarioSources(paths: BuiltinOpencodeConfigPaths): Map<string, ModelScenarioSource> {
-  const layers: ConfigLayer[] = [
-    { label: '插件内置', path: paths.builtinConfigFile, required: true, allowNewMcpEntries: true },
-    { label: '全局', path: paths.globalConfigFile, required: false, allowNewMcpEntries: true },
-    { label: '项目级', path: paths.projectConfigFile, required: false, allowNewMcpEntries: true },
-  ]
-  const sources = new Map<string, ModelScenarioSource>()
+export function collectEffectiveConfigObjectEntries(
+  paths: BuiltinOpencodeConfigPaths,
+  propertyName: string,
+  validateLayerConfig?: (config: BuiltinOpencodeConfig, layer: ConfigLayer) => void,
+): Map<string, EffectiveConfigValue> {
+  const entries = new Map<string, EffectiveConfigValue>()
 
-  for (const layer of layers) {
-    const config = readBuiltinOpencodeConfigLayer(layer)
-    if (!config) {
+  for (const layer of readBuiltinOpencodeConfigLayers(paths)) {
+    validateLayerConfig?.(layer.config, layer)
+    const propertyValue = layer.config[propertyName]
+    if (!isRecord(propertyValue)) {
       continue
     }
-    validateModelScenariosConfig(config, `${layer.label} builtin-opencode 配置`)
-    for (const [scenario, model] of Object.entries(config.modelScenarios ?? {})) {
-      sources.set(scenario, { scenario, model, layer: layer.label, path: layer.path })
+
+    for (const [key, value] of Object.entries(propertyValue)) {
+      entries.set(key, { key, value, layer: layer.label, path: layer.path })
     }
+  }
+
+  return entries
+}
+
+export function resolveEffectiveConfigProperty(
+  paths: BuiltinOpencodeConfigPaths,
+  propertyPath: string[],
+  validateLayerConfig?: (config: BuiltinOpencodeConfig, layer: ConfigLayer) => void,
+): EffectiveConfigPropertyValue | undefined {
+  let effective: EffectiveConfigPropertyValue | undefined
+
+  for (const layer of readBuiltinOpencodeConfigLayers(paths)) {
+    validateLayerConfig?.(layer.config, layer)
+    const value = getConfigValueAtPath(layer.config, propertyPath)
+    if (value !== undefined) {
+      effective = { value, layer: layer.label, path: layer.path }
+    }
+  }
+
+  return effective
+}
+
+export function collectModelScenarioSources(paths: BuiltinOpencodeConfigPaths): Map<string, ModelScenarioSource> {
+  const sources = new Map<string, ModelScenarioSource>()
+
+  for (const [scenario, entry] of collectEffectiveConfigObjectEntries(
+    paths,
+    'modelScenarios',
+    (config, layer) => validateModelScenariosConfig(config, `${layer.label} builtin-opencode 配置`),
+  )) {
+    sources.set(scenario, { scenario, model: entry.value as string, layer: entry.layer, path: entry.path })
   }
 
   return sources

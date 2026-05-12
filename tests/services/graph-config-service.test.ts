@@ -30,6 +30,15 @@ describe('graph-config-service', () => {
     expect(loadGraphConfig(root)).toEqual({ exclude: ['dist'] })
   })
 
+  it('应该通过 ae.jsonc 公共优先级读取内置 graph.exclude 配置', () => {
+    const root = createTempRoot()
+    const builtinConfigPath = join(root, 'src', 'assets', 'config', 'ae.jsonc')
+    mkdirSync(join(builtinConfigPath, '..'), { recursive: true })
+    writeFileSync(builtinConfigPath, '{ "graph": { "exclude": ["dist"] } }')
+
+    expect(loadGraphConfig(root, builtinConfigPath)).toEqual({ exclude: ['dist'] })
+  })
+
   it('应该在 ae.jsonc 不存在时返回空排除规则并可保存新规则', () => {
     const root = createTempRoot()
 
@@ -44,7 +53,7 @@ describe('graph-config-service', () => {
     mkdirSync(join(configPath, '..'), { recursive: true })
     writeFileSync(configPath, '{')
 
-    expect(() => loadGraphConfig(root)).toThrow(/项目级 ae\.jsonc 解析失败/)
+    expect(() => loadGraphConfig(root)).toThrow(/项目级 builtin-opencode 配置解析失败/)
   })
 
   it('应该去重并保存 graph.exclude 规则', () => {

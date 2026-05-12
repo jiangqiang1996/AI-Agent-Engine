@@ -3,6 +3,14 @@ import { dirname, join } from 'node:path'
 
 import stripJsonComments from 'strip-json-comments'
 
+import {
+  resolveBuiltinOpencodeConfigPaths,
+  resolveEffectiveConfigProperty,
+  type BuiltinOpencodeConfig,
+  type ConfigLayer,
+} from './builtin-opencode-config-service.js'
+import { createRuntimeAssetManifest } from './runtime-asset-manifest.js'
+
 export interface GraphConfig {
   exclude: string[]
 }
@@ -40,16 +48,22 @@ function readProjectConfig(configPath: string): AeProjectConfig {
   }
 }
 
-export function loadGraphConfig(worktree: string): GraphConfig {
-  const config = readProjectConfig(resolveGraphConfigPath(worktree))
-  const exclude = config.graph?.exclude
-  if (exclude === undefined) {
+function validateGraphExcludeConfig(config: BuiltinOpencodeConfig, layer: ConfigLayer): void {
+  if (!isRecord(config.graph) || config.graph.exclude === undefined) {
+    return
+  }
+  if (!Array.isArray(config.graph.exclude) || !config.graph.exclude.every((item) => typeof item === 'string')) {
+    throw new Error(`${layer.label} ae.jsonc graph.exclude 必须是字符串数组`)
+  }
+}
+
+export function loadGraphConfig(worktree: string, builtinConfigFile = createRuntimeAssetManifest(import.meta.url).builtinConfigFile): GraphConfig {
+  const paths = resolveBuiltinOpencodeConfigPaths({ ...createRuntimeAssetManifest(import.meta.url), builtinConfigFile }, worktree)
+  const effectiveExclude = resolveEffectiveConfigProperty(paths, ['graph', 'exclude'], validateGraphExcludeConfig)
+  if (effectiveExclude === undefined) {
     return { exclude: [] }
   }
-  if (!Array.isArray(exclude) || !exclude.every((item) => typeof item === 'string')) {
-    throw new Error('graph.exclude 必须是字符串数组')
-  }
-  return { exclude: [...new Set(exclude)] }
+  return { exclude: [...new Set(effectiveExclude.value as string[])] }
 }
 
 export function saveGraphExcludeRule(worktree: string, rule: string): GraphConfig {
