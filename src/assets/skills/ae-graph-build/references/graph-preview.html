@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>项目文件关系图谱预览</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;height:100vh;background:#fafbfc}
+.toolbar{display:flex;align-items:center;gap:12px;padding:8px 16px;background:#fff;border-bottom:1px solid #e1e4e8;flex-wrap:wrap}
+.toolbar input[type=text]{flex:1;min-width:200px;padding:6px 10px;border:1px solid #d1d5da;border-radius:6px;font-size:13px}
+.toolbar select,.toolbar button{padding:6px 10px;border:1px solid #d1d5da;border-radius:6px;font-size:13px;background:#fff;cursor:pointer}
+.toolbar button:hover{background:#f3f4f6}
+.toolbar label{font-size:13px;color:#57606a}
+#status{font-size:12px;color:#57606a}
+.main{display:flex;flex:1;overflow:hidden}
+#cy{flex:1}
+#panel{width:320px;border-left:1px solid #e1e4e8;background:#fff;overflow-y:auto;padding:16px;display:none}
+#panel.open{display:block}
+#panel h3{margin-bottom:12px;font-size:15px}
+#panel .close{float:right;cursor:pointer;font-size:18px;line-height:1;color:#57606a}
+#panel .close:hover{color:#24292e}
+#detail{font-size:13px;line-height:1.6;color:#24292e}
+#detail ul{margin:4px 0 8px 18px}
+#detail .badge{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;margin:2px}
+.badge-src{background:#ddf4ff;color:#0969da}
+.badge-doc{background:#dafbe1;color:#1a7f37}
+.badge-cfg{background:#fff8c5;color:#9a6700}
+.badge-dir{background:#e8e8e8;color:#57606a}
+.badge-asset{background:#fbefff;color:#8250df}
+.badge-rel{background:#f6f8fa;color:#57606a;border:1px solid #d1d5da}
+.hint{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:#24292e;color:#fff;padding:8px 16px;border-radius:8px;font-size:12px;pointer-events:none;opacity:0.85}
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <label>目录：</label>
+  <input type="text" id="dirFilter" placeholder="输入目录前缀筛选，如 src/services">
+  <label>类型：</label>
+  <select id="typeFilter">
+    <option value="">全部</option>
+    <option value="import">import</option>
+    <option value="require">require</option>
+    <option value="link">link</option>
+    <option value="ae_ref">ae_ref</option>
+    <option value="directory">directory</option>
+  </select>
+  <label>最大节点：</label>
+  <select id="nodeLimit">
+    <option value="100">100</option>
+    <option value="200" selected>200</option>
+    <option value="500">500</option>
+    <option value="0">全部</option>
+  </select>
+  <button id="btnRender">渲染</button>
+  <button id="btnFit">适应</button>
+  <span id="status">加载中...</span>
+</div>
+<div class="main">
+  <div id="cy"></div>
+  <div id="panel">
+    <span class="close" onclick="closePanel()">&times;</span>
+    <h3>节点详情</h3>
+    <div id="detail"></div>
+  </div>
+</div>
+<div class="hint" id="hint"></div>
+<script>
+var GRAPH_BASE = '.';
+var ALL_NODES = [];
+var ALL_EDGES = [];
+var CY = null;
+
+var TYPE_COLORS = {
+  import: '#0969da',
+  require: '#8250df',
+  link: '#1a7f37',
+  ae_ref: '#bf3989',
+  directory: '#6e7781',
+  external: '#d4a72c'
+};
+var FILE_COLORS = {source:'#0969da',document:'#1a7f37',config:'#9a6700',directory:'#6e7781',asset:'#8250df'};
+
+function badge(type, label) {
+  var cls = type === 'rel' ? 'badge badge-rel' : 'badge badge-' + type;
+  return '<span class="' + cls + '">' + label + '</span>';
+}
+
+async function loadJSON(path) {
+  var res = await fetch(path);
+  if (!res.ok) throw new Error('加载失败: ' + path + ' (' + res.status + ')');
+  return res.json();
+}
+
+async function loadGraphData() {
+  var store = await loadJSON(GRAPH_BASE + '/graph.json');
+  var active = null;
+  for (var i = 0; i < (store.versions || []).length; i++) {
+    if (store.versions[i].isActive) { active = store.versions[i]; break; }
+  }
+  if (!active) throw new Error('未找到 active version，请先执行 ae-graph-build');
+  var versionDir = GRAPH_BASE + '/version-' + active.id;
+  var manifest = await loadJSON(versionDir + '/manifest.json');
+  var chunkIds = manifest.chunks || [];
+  var files = [];
+  var relations = [];
+  for (var i = 0; i < chunkIds.length; i++) {
+    var chunk = await loadJSON(versionDir + '/' + chunkIds[i] + '.json');
+    if (chunk.files) files = files.concat(chunk.files);
+    if (chunk.relations) relations = relations.concat(chunk.relations);
+  }
+  return {files: files, relations: relations, manifest: manifest};
+}
+
+function buildCyData(files, relations, fileFilter, typeFilter, nodeLimit) {
+  var filteredFiles = fileFilter
+    ? files.filter(function(f) { return f.relativePath.indexOf(fileFilter) === 0; })
+    : files.filter(function(f) { return f.fileType !== 'directory'; });
+  var filteredRelations = relations.filter(function(r) {
+    if (typeFilter && r.relationType !== typeFilter) return false;
+    if (fileFilter && r.sourcePath.indexOf(fileFilter) !== 0 && r.targetPath.indexOf(fileFilter) !== 0) return false;
+    return true;
+  });
+  var connectedPaths = {};
+  filteredRelations.forEach(function(r) { connectedPaths[r.sourcePath] = 1; connectedPaths[r.targetPath] = 1; });
+  var nodes = filteredFiles.filter(function(f) { return connectedPaths[f.relativePath]; });
+  if (nodeLimit > 0 && nodes.length > nodeLimit) nodes = nodes.slice(0, nodeLimit);
+  var nodeSet = {};
+  nodes.forEach(function(n) { nodeSet[n.relativePath] = 1; });
+  var edges = filteredRelations.filter(function(r) { return nodeSet[r.sourcePath] && nodeSet[r.targetPath]; });
+  var cyNodes = nodes.map(function(f) {
+    return {data: {id: f.relativePath, label: f.relativePath.split('/').pop(), type: f.fileType, path: f.relativePath, language: f.language || ''}};
+  });
+  var seen = {};
+  var cyEdges = [];
+  edges.forEach(function(r, i) {
+    var key = r.sourcePath + '\0' + r.targetPath + '\0' + r.relationType;
+    if (seen[key]) return;
+    seen[key] = 1;
+    cyEdges.push({data: {id: 'e' + i, source: r.sourcePath, target: r.targetPath, relType: r.relationType}});
+  });
+  return {cyNodes: cyNodes, cyEdges: cyEdges, stats: {nodes: cyNodes.length, edges: cyEdges.length}};
+}
+
+function renderGraph(cyData) {
+  if (CY) CY.destroy();
+  document.getElementById('status').textContent = '渲染中: ' + cyData.stats.nodes + ' 节点 / ' + cyData.stats.edges + ' 边...';
+  CY = cytoscape({
+    container: document.getElementById('cy'),
+    elements: {nodes: cyData.cyNodes, edges: cyData.cyEdges},
+    style: [
+      {selector: 'node', style: {
+        'background-color': function(ele) { return FILE_COLORS[ele.data('type')] || '#6e7781'; },
+        'label': 'data(label)',
+        'font-size': '10px',
+        'width': 18, 'height': 18,
+        'text-valign': 'bottom', 'text-margin-y': 4,
+        'color': '#57606a', 'text-max-width': '120px',
+        'text-wrap': 'ellipsis', 'text-overflowy': 'ellipsis',
+        'border-width': 1, 'border-color': '#e1e4e8'
+      }},
+      {selector: 'node:selected', style: {'border-width': 3, 'border-color': '#0969da', 'background-color': '#0969da'}},
+      {selector: 'edge', style: {
+        'line-color': function(ele) { return TYPE_COLORS[ele.data('relType')] || '#d1d5da'; },
+        'target-arrow-color': function(ele) { return TYPE_COLORS[ele.data('relType')] || '#d1d5da'; },
+        'target-arrow-shape': 'triangle',
+        'curve-style': 'bezier',
+        'width': 1, 'opacity': 0.5,
+        'arrow-scale': 0.8
+      }},
+      {selector: 'edge:selected', style: {'width': 2, 'opacity': 1}}
+    ],
+    layout: {name: 'cose', animate: false, nodeRepulsion: function(){return 8000}, idealEdgeLength: function(){return 100}, numIter: 200, padding: 30, randomize: false},
+    wheelSensitivity: 0.3, minZoom: 0.05, maxZoom: 5
+  });
+  CY.on('tap', 'node', function(evt) { showDetail(evt.target.data()); });
+  CY.on('tap', function(evt) { if (evt.target === CY) closePanel(); });
+  document.getElementById('status').textContent = '已渲染: ' + cyData.stats.nodes + ' 节点 / ' + cyData.stats.edges + ' 边 | 文件: ' + ALL_NODES.length + ' | 关系: ' + ALL_EDGES.length;
+  setTimeout(function() { if (CY) CY.fit(undefined, 50); }, 100);
+}
+
+function showDetail(nodeData) {
+  var path = nodeData.path;
+  var outEdges = ALL_EDGES.filter(function(r) { return r.sourcePath === path; });
+  var inEdges = ALL_EDGES.filter(function(r) { return r.targetPath === path; });
+  var html = '<p><strong>' + path + '</strong></p>';
+  html += '<p>' + badge(nodeData.type, nodeData.type) + (nodeData.language ? ' ' + badge('asset', nodeData.language) : '') + '</p>';
+  if (outEdges.length > 0) {
+    html += '<p><strong>依赖 (' + outEdges.length + '):</strong></p><ul>';
+    outEdges.forEach(function(r) { html += '<li>' + badge('rel', r.relationType) + ' ' + r.targetPath + '</li>'; });
+    html += '</ul>';
+  }
+  if (inEdges.length > 0) {
+    html += '<p><strong>被依赖 (' + inEdges.length + '):</strong></p><ul>';
+    inEdges.forEach(function(r) { html += '<li>' + badge('rel', r.relationType) + ' ' + r.sourcePath + '</li>'; });
+    html += '</ul>';
+  }
+  document.getElementById('detail').innerHTML = html;
+  document.getElementById('panel').classList.add('open');
+}
+
+function closePanel() {
+  document.getElementById('panel').classList.remove('open');
+}
+
+function doRender() {
+  var dir = document.getElementById('dirFilter').value.trim().replace(/\/+$/, '');
+  var type = document.getElementById('typeFilter').value;
+  var limit = parseInt(document.getElementById('nodeLimit').value, 10);
+  var cyData = buildCyData(ALL_NODES, ALL_EDGES, dir, type, limit);
+  renderGraph(cyData);
+}
+
+document.getElementById('btnRender').addEventListener('click', doRender);
+document.getElementById('btnFit').addEventListener('click', function() { if (CY) CY.fit(undefined, 50); });
+document.getElementById('dirFilter').addEventListener('keydown', function(e) { if (e.key === 'Enter') doRender(); });
+
+function showHint(msg) {
+  var el = document.getElementById('hint');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(function() { el.style.display = 'none'; }, 3000);
+}
+
+async function init() {
+  try {
+    var data = await loadGraphData();
+    ALL_NODES = data.files;
+    ALL_EDGES = data.relations;
+    document.getElementById('status').textContent = '已加载: ' + ALL_NODES.length + ' 文件 / ' + ALL_EDGES.length + ' 关系 | 正在渲染...';
+    doRender();
+    showHint('已加载 ' + ALL_NODES.length + ' 个文件和 ' + ALL_EDGES.length + ' 条关系。使用顶部筛选缩小范围后点击"渲染"。');
+  } catch (err) {
+    document.getElementById('status').textContent = '加载失败: ' + err.message;
+    showHint('加载失败: ' + err.message);
+  }
+}
+</script>
+<script src="cytoscape.min.js"></script>
+<script>init()</script>
+</body>
+</html>

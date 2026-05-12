@@ -50,11 +50,14 @@ describe('ae-graph-build 工具', () => {
     write(root, 'src/b.ts', 'export const b = 1')
 
     const result = await aeGraphBuildTool.execute({ mode: 'full' }, createMockContext(root))
-    const parsed = JSON.parse(result as string) as { mode: string; files: number; relations: number }
+    const parsed = JSON.parse(result as string) as { mode: string; files: number; relations: number; preview: string }
 
     expect(parsed.mode).toBe('full')
     expect(parsed.files).toBeGreaterThan(0)
     expect(parsed.relations).toBeGreaterThan(0)
+    expect(parsed.preview).toBe('docs/ae/graphs/index.html')
+    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'index.html'))).toBe(true)
+    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'cytoscape.min.js'))).toBe(true)
   })
 
   it('应该拒绝越界 target', async () => {
@@ -124,14 +127,15 @@ describe('ae-graph-build 工具', () => {
     expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json'))).toBe(false)
   })
 
-  it('应该返回相对图谱文件路径', async () => {
+  it('应该返回相对图谱文件路径和预览文件路径', async () => {
     const root = createTempRoot()
     write(root, 'src/a.ts', '')
 
     const result = await aeGraphBuildTool.execute({ mode: 'full' }, createMockContext(root))
-    const parsed = JSON.parse(result as string) as { database: string }
+    const parsed = JSON.parse(result as string) as { database: string; preview: string }
 
     expect(parsed.database).toBe('docs/ae/graphs/graph.json')
+    expect(parsed.preview).toBe('docs/ae/graphs/index.html')
   })
 
   it('应该支持相对 target 与 exclude 参数', async () => {
@@ -173,10 +177,13 @@ describe('ae-graph-build 工具', () => {
     await aeGraphBuildTool.execute({ mode: 'full' }, createMockContext(root))
 
     const result = await aeGraphBuildTool.execute({ mode: 'auto' }, createMockContext(root))
-    const parsed = JSON.parse(result as string) as { message: string; database: string }
+    const parsed = JSON.parse(result as string) as { message: string; database: string; preview: string }
 
     expect(parsed.message).toContain('图谱无需更新')
     expect(parsed.database).toBe('docs/ae/graphs/graph.json')
+    expect(parsed.preview).toBe('docs/ae/graphs/index.html')
+    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'index.html'))).toBe(true)
+    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'cytoscape.min.js'))).toBe(true)
     expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json.lock'))).toBe(false)
   })
 

@@ -1,6 +1,7 @@
-import { existsSync, lstatSync, realpathSync } from 'node:fs'
-import { relative, resolve } from 'node:path'
+import { copyFileSync, existsSync, lstatSync, realpathSync } from 'node:fs'
+import { dirname, join, relative, resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 
 import { tool } from '@opencode-ai/plugin/tool'
 import { Effect } from 'effect'
@@ -13,6 +14,24 @@ import { createGraphStorage, resolveGraphDatabasePath } from '../services/graph-
 import { isInsideRoot, pathContainsSymlink, resolvePathWithBase, toPosixPath } from '../utils/path-utils.js'
 
 const COMMON_EXCLUDE_DIRS = ['node_modules', 'dist', 'build', 'coverage', '__pycache__', '.next', '.nuxt']
+
+function copyGraphPreview(worktree: string): void {
+  const refDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'assets', 'skills', 'ae-graph-build', 'references')
+  const targetDir = join(worktree, 'docs', 'ae', 'graphs')
+  const pairs: Array<[string, string]> = [
+    [join(refDir, 'graph-preview.html'), join(targetDir, 'index.html')],
+    [join(refDir, 'cytoscape.min.js'), join(targetDir, 'cytoscape.min.js')],
+  ]
+  for (const [source, target] of pairs) {
+    try {
+      if (existsSync(source)) {
+        copyFileSync(source, target)
+      }
+    } catch {
+      // 预览文件复制失败不阻断图谱构建
+    }
+  }
+}
 
 function isGraphRuntimeFile(filePath: string): boolean {
   return filePath === 'docs/ae/graphs' || filePath.startsWith('docs/ae/graphs/')
@@ -94,9 +113,11 @@ async function confirmDatabaseWrite(worktree: string, ctx: { ask?: unknown }): P
         resolve(worktree, 'docs', 'ae', 'graphs', 'version-*'),
         resolve(worktree, 'docs', 'ae', 'graphs', 'graph.json.tmp-*'),
         resolve(worktree, 'docs', 'ae', 'graphs', 'graph.json.lock'),
+        resolve(worktree, 'docs', 'ae', 'graphs', 'index.html'),
+        resolve(worktree, 'docs', 'ae', 'graphs', 'cytoscape.min.js'),
       ],
       always: [],
-      metadata: { action: '写入文件关系图谱 JSON 存储文件、分片及临时文件', target: 'docs/ae/graphs/**' },
+      metadata: { action: '写入文件关系图谱 JSON 存储文件、分片、预览页及临时文件', target: 'docs/ae/graphs/**' },
     }))
     return true
   } catch {
@@ -110,7 +131,8 @@ export const aeGraphBuildTool = tool({
     '',
     '功能说明：',
     '- 扫描工作区文件并解析浅层 import/require/include、Markdown 链接和 AE 资产引用',
-     '- 将图谱保存到项目 `docs/ae/graphs/graph.json` 与分片目录，使用本地 JSON 版本化快照',
+    '- 将图谱保存到项目 `docs/ae/graphs/graph.json` 与分片目录，使用本地 JSON 版本化快照',
+    '- 同步生成离线 HTML 预览页与本地 Cytoscape.js 资源，便于直接打开查看图谱',
     '- 支持 full、incremental、auto 模式；非 Git 项目自动降级全量构建',
     '- 首版仅支持 depth=shallow，不执行深层 AST 解析',
     '',
@@ -118,7 +140,7 @@ export const aeGraphBuildTool = tool({
     '- 项目分析、重构前影响范围查询、维护文件关系图谱',
     '',
     '不适用场景：',
-    '- 不生成可视化图，不分析运行时动态依赖，不提供符号级调用链。',
+    '- 不分析运行时动态依赖，不提供符号级调用链。',
   ].join('\n'),
   args: {
     target: z.string().optional().describe('目标目录，支持绝对路径或相对路径；默认相对于 opencode 启动路径解析。'),
@@ -169,9 +191,10 @@ export const aeGraphBuildTool = tool({
       const effectiveMode = requestedMode === 'full' || diff.warning || diff.hasStructuralChange || !active ? 'full' : 'incremental'
       if (effectiveMode === 'incremental' && diff.files.length === 0 && active) {
         const summary = storage.getActiveVersionSummary(worktree, scopeRoot)
+        copyGraphPreview(worktree)
         storage.closeDatabase()
         storage = undefined
-        return JSON.stringify({ message: 'Git diff 无变更，图谱无需更新', mode: effectiveMode, scopeRoot, summary, database: 'docs/ae/graphs/graph.json' }, null, 2)
+        return JSON.stringify({ message: 'Git diff 无变更，图谱无需更新', mode: effectiveMode, scopeRoot, summary, database: 'docs/ae/graphs/graph.json', preview: 'docs/ae/graphs/index.html' }, null, 2)
       }
 
       const allFiles = collectGraphFiles(worktree, target, config)
@@ -195,6 +218,7 @@ export const aeGraphBuildTool = tool({
       storage.insertFiles(versionId, parsed.files)
       storage.insertRelations(versionId, parsed.relations)
       storage.activateVersion(versionId)
+      copyGraphPreview(worktree)
 
       return JSON.stringify({
         mode: effectiveMode,
@@ -209,6 +233,7 @@ export const aeGraphBuildTool = tool({
         warnings: [diff.warning, ...parsed.warnings].filter(Boolean),
         savedExcludes,
         database: 'docs/ae/graphs/graph.json',
+        preview: 'docs/ae/graphs/index.html',
         elapsedMs: Date.now() - startedAt,
         tool: TOOL.AE_GRAPH_BUILD,
       }, null, 2)

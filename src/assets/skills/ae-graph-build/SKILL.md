@@ -1,6 +1,6 @@
 ---
 name: ae:graph-build
-description: 构建或增量维护项目文件关系图谱，写入当前工作区 docs/ae/graphs/graph.json
+description: 构建或增量维护项目文件关系图谱，写入当前工作区 docs/ae/graphs/graph.json 并生成离线预览页
 argument-hint: "[target:<PATH>] [mode:auto|full|incremental] [depth:shallow] [exclude:<PATH>...]"
 ---
 
@@ -20,11 +20,11 @@ argument-hint: "[target:<PATH>] [mode:auto|full|incremental] [depth:shallow] [ex
 - `target` 支持绝对路径和相对路径；省略时按当前会话启动路径解析。
 - `mode` 可为 `auto`、`full` 或 `incremental`；非 Git 项目会降级为全量构建。
 - `depth` 首版仅支持 `shallow`，只做浅层正则解析，不执行 AST 深层解析。
-- 工具会读取可选图谱排除配置，并可叠加 `exclude` 参数后将图谱写入当前工作区的 `docs/ae/graphs/graph.json`、manifest、索引与分片目录。
+- 工具会读取可选图谱排除配置，并可叠加 `exclude` 参数后将图谱写入当前工作区的 `docs/ae/graphs/graph.json`、manifest、索引、分片目录、离线预览页与本地 JS 资源。
 
 ## 输出要求
 
-- 返回构建模式、模式原因、scope、version、文件数、关系数、warning、排除规则、图谱文件路径、分片摘要和耗时。
+- 返回构建模式、模式原因、scope、version、文件数、关系数、warning、排除规则、图谱文件路径、预览页路径、分片摘要和耗时。
 - Git diff 无变更时返回当前 active summary，而不是只返回空更新提示。
 - 若目标路径越界、配置解析失败或图谱文件写入失败，返回中文可恢复提示。
 
@@ -38,4 +38,5 @@ argument-hint: "[target:<PATH>] [mode:auto|full|incremental] [depth:shallow] [ex
 ## 完成标准
 
 - `docs/ae/graphs/graph.json` 存在并包含 active version、manifest、索引和分片。
+- `docs/ae/graphs/index.html` 和 `docs/ae/graphs/cytoscape.min.js` 存在，可在本地离线打开预览图谱。
 - 后续可使用 `ae:graph-query` 查询图谱。
