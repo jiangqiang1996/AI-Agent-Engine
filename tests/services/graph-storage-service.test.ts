@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -111,6 +111,54 @@ describe('graph-storage-service', () => {
     expect(summary?.chunkIds.length).toBeGreaterThan(1)
     expect(chunks.length).toBeGreaterThan(1)
     expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'version-1'))).toBe(true)
+    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'version-1', 'manifest.json'))).toBe(true)
+    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'version-1', 'indexes', 'scope-summary.json'))).toBe(true)
+  })
+
+  it('应该返回 active version 的 manifest 和索引诊断', () => {
+    const root = createTempRoot()
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    storage.insertFiles(versionId, [{ relativePath: 'src/a.ts', fileType: 'source' }])
+    storage.activateVersion(versionId)
+
+    const diagnostic = storage.diagnoseActiveVersion(root, '.')
+    const summary = storage.readScopeSummary(root, '.')
+    storage.closeDatabase()
+
+    expect(diagnostic.code).toBe('ok')
+    expect(summary?.fileCount).toBe(1)
+    expect(summary?.fileTypeCounts.source).toBe(1)
+  })
+
+  it('应该在 manifest 缺失时返回可恢复诊断', () => {
+    const root = createTempRoot()
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    storage.insertFiles(versionId, [{ relativePath: 'src/a.ts', fileType: 'source' }])
+    storage.activateVersion(versionId)
+    unlinkSync(join(root, 'docs', 'ae', 'graphs', 'version-1', 'manifest.json'))
+
+    const diagnostic = storage.diagnoseActiveVersion(root, '.')
+    storage.closeDatabase()
+
+    expect(diagnostic.code).toBe('missing_manifest')
+    expect(diagnostic.recoverBy).toContain('ae-graph-build')
+  })
+
+  it('应该在 chunk 缺失时返回可恢复诊断', () => {
+    const root = createTempRoot()
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    storage.insertFiles(versionId, [{ relativePath: 'src/a.ts', fileType: 'source' }])
+    storage.activateVersion(versionId)
+    unlinkSync(join(root, 'docs', 'ae', 'graphs', 'version-1', 'chunk-000001-0000.json'))
+
+    const diagnostic = storage.diagnoseActiveVersion(root, '.')
+    storage.closeDatabase()
+
+    expect(diagnostic.code).toBe('missing_chunk')
+    expect(diagnostic.problemChunkId).toBe('chunk-000001-0000')
   })
 
   it('应该拒绝在只读存储中创建新版本', () => {
@@ -139,7 +187,9 @@ describe('graph-storage-service', () => {
     mkdirSync(join(root, 'docs', 'ae', 'graphs'), { recursive: true })
     writeFileSync(join(root, 'docs', 'ae', 'graphs', 'graph.json'), '{broken', 'utf8')
 
-    expect(() => createGraphStorage(root)).toThrow()
+    const storage = createGraphStorage(root)
+    storage.closeDatabase()
+
     expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json.lock'))).toBe(false)
   })
 
