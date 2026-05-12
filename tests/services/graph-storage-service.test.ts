@@ -142,4 +142,25 @@ describe('graph-storage-service', () => {
     expect(() => createGraphStorage(root)).toThrow()
     expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json.lock'))).toBe(false)
   })
+
+  it('应该在图谱 schema 不兼容时清理旧图谱并重建空存储', () => {
+    const root = createTempRoot()
+    mkdirSync(join(root, 'docs', 'ae', 'graphs', 'version-1'), { recursive: true })
+    writeFileSync(join(root, 'docs', 'ae', 'graphs', 'graph.json'), JSON.stringify({ schemaVersion: 1, nextVersionId: 2, versions: [] }), 'utf8')
+    writeFileSync(join(root, 'docs', 'ae', 'graphs', 'version-1', 'chunk.json'), '{}', 'utf8')
+    writeFileSync(join(root, 'docs', 'ae', 'graphs', 'README.md'), 'keep', 'utf8')
+
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    storage.insertFiles(versionId, [{ relativePath: 'src/a.ts', fileType: 'source' }])
+    storage.activateVersion(versionId)
+    const active = storage.getActiveVersion(root, '.')
+    storage.closeDatabase()
+
+    expect(active?.versionId).toBe(1)
+    expect(active?.files[0].relativePath).toBe('src/a.ts')
+    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'version-1', 'chunk.json'))).toBe(false)
+    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'README.md'))).toBe(true)
+    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json.lock'))).toBe(false)
+  })
 })

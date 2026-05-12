@@ -74,6 +74,12 @@ function createEmptyStore(): GraphStore {
   return { schemaVersion: 2, nextVersionId: 1, versions: [] }
 }
 
+class GraphStoreFormatError extends Error {
+  constructor() {
+    super('图谱存储文件格式不受支持')
+  }
+}
+
 function getWorkspaceKey(_workspaceRoot: string): string {
   return '.'
 }
@@ -152,6 +158,23 @@ function ensureDir(path: string): void {
   mkdirSync(path, { recursive: true })
 }
 
+function cleanGraphStoreDirectory(storeDir: string, lockPath: string): void {
+  if (!existsSync(storeDir)) {
+    return
+  }
+  const resolvedLockPath = resolve(lockPath)
+  for (const entry of readdirSync(storeDir)) {
+    const entryPath = join(storeDir, entry)
+    if (resolve(entryPath) === resolvedLockPath) {
+      continue
+    }
+    if (entry !== 'graph.json' && !entry.startsWith('graph.json.tmp-') && !entry.startsWith('version-')) {
+      continue
+    }
+    rmSync(entryPath, { force: true, recursive: true })
+  }
+}
+
 function writeJsonAtomic(path: string, value: unknown): void {
   const tempPath = `${path}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`
   writeFileSync(tempPath, `${JSON.stringify(value, null, 2)}\n`, 'utf8')
@@ -188,6 +211,16 @@ export class GraphStorage {
     try {
       this.store = this.loadStore()
     } catch (error) {
+      if (error instanceof GraphStoreFormatError && !options.readonly) {
+        try {
+          cleanGraphStoreDirectory(storeDir, this.lockPath)
+        } catch (cleanupError) {
+          this.releaseLock()
+          throw cleanupError
+        }
+        this.store = createEmptyStore()
+        return
+      }
       this.releaseLock()
       throw error
     }
@@ -367,7 +400,7 @@ export class GraphStorage {
     if (isGraphStore(parsed)) {
       return parsed
     }
-    throw new Error('图谱存储文件格式不受支持')
+    throw new GraphStoreFormatError()
   }
 
   private loadVersionFiles(version: GraphVersionRecord): GraphFileNode[] {
