@@ -86,7 +86,6 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 查看当前能力 | `/ae-help` |
 | 想法生成 | `/ae-ideate` |
 | 需求澄清 | `/ae-brainstorm` |
-| 默认全流程 | `/ae-lfg` |
 | 计划生成 | `/ae-plan` |
 | 计划执行 | `/ae-work` |
 | 重构计划 | `/ae-refactor` |
@@ -94,8 +93,9 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 文档人读化/结构化 | `/ae-doc-humanize`、`/ae-doc-structure` |
 | 前端初版 | `/ae-frontend-design` |
 | 浏览器验收 | `/ae-test-browser` |
-| 数据库操作 | `/ae-sql` |
 | Swagger/OpenAPI 摘要 | `/ae-swagger-parser` |
+| 探索性修复 | `/ae-task-loop` |
+| 数据库操作 | `/ae-sql` |
 | 会话交接 | `/ae-handoff` |
 | 提示词优化 | `/ae-prompt-optimize` |
 | 经验沉淀 | `/ae-save-experience` |
@@ -120,7 +120,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 类型 | 当前快照 | 真源 |
 | --- | ---: | --- |
 | 技能 | 26 | `src/assets/skills/`、`src/services/ae-catalog.ts` |
-| 命令 | 52 | `src/services/command-registration.ts`、`src/assets/commands/` |
+| 命令 | 当前快照 58 | `src/services/command-registration.ts`、`src/assets/commands/` |
 | 代理 | 27 | `src/assets/agents/`、`src/services/agent-registration.ts` |
 | 工具 | 9 | `src/tools/` |
 | 规则 | 4 | `src/assets/rules/` |
