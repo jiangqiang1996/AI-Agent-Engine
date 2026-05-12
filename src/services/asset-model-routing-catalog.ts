@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { AUTO_SUFFIX, COMMAND } from '../schemas/ae-asset-schema.js'
+import { COMMAND } from '../schemas/ae-asset-schema.js'
 import { MODEL_SCENARIO, type ModelScenario } from '../schemas/model-scenario-schema.js'
 import { getAllAgentDefinitions, getPhaseOneEntries, getPhaseOnePaEntries, getPhaseOnePoEntries } from './ae-catalog.js'
 import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
@@ -25,6 +25,7 @@ const COMMAND_SCENARIOS: Record<string, ModelScenario> = {
   [COMMAND.DOCUMENT_REVIEW]: MODEL_SCENARIO.DEEP,
   [COMMAND.PLAN]: MODEL_SCENARIO.DEEP,
   [COMMAND.REFACTOR]: MODEL_SCENARIO.DEEP,
+  [COMMAND.AGENT_CREATOR]: MODEL_SCENARIO.STANDARD,
   [COMMAND.DOC_HUMANIZE]: MODEL_SCENARIO.DEEP,
   [COMMAND.DOC_STRUCTURE]: MODEL_SCENARIO.DEEP,
   [COMMAND.WORK]: MODEL_SCENARIO.DEEP,
@@ -37,12 +38,14 @@ const COMMAND_SCENARIOS: Record<string, ModelScenario> = {
   [COMMAND.FRONTEND_DESIGN]: MODEL_SCENARIO.VISION,
   [COMMAND.HANDOFF]: MODEL_SCENARIO.STANDARD,
   [COMMAND.PROMPT_OPTIMIZE]: MODEL_SCENARIO.QUICK,
-  [`${COMMAND.PROMPT_OPTIMIZE}${AUTO_SUFFIX}`]: MODEL_SCENARIO.QUICK,
   [COMMAND.TASK_LOOP]: MODEL_SCENARIO.DEEP,
   [COMMAND.SQL]: MODEL_SCENARIO.STANDARD,
   [COMMAND.SWAGGER_PARSER]: MODEL_SCENARIO.STANDARD,
+  [COMMAND.GRAPH_BUILD]: MODEL_SCENARIO.STANDARD,
+  [COMMAND.GRAPH_QUERY]: MODEL_SCENARIO.QUICK,
   [COMMAND.SAVE_EXPERIENCE]: MODEL_SCENARIO.STANDARD,
   [COMMAND.SKILL_FROM_SESSION]: MODEL_SCENARIO.STANDARD,
+  [COMMAND.SKILL_CREATOR]: MODEL_SCENARIO.STANDARD,
   [COMMAND.HELP]: MODEL_SCENARIO.QUICK,
   [COMMAND.UPDATE]: MODEL_SCENARIO.STANDARD,
 }
@@ -50,6 +53,9 @@ const COMMAND_SCENARIOS: Record<string, ModelScenario> = {
 export function getCommandModelScenario(commandName: string): ModelScenario | undefined {
   if (commandName.endsWith('-po') || commandName.endsWith('-pa')) {
     return COMMAND_SCENARIOS[commandName.slice(0, -3)]
+  }
+  if (commandName.endsWith('-auto')) {
+    return COMMAND_SCENARIOS[commandName.slice(0, -5)]
   }
   return COMMAND_SCENARIOS[commandName]
 }
