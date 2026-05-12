@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -33,7 +33,29 @@ function createMockContext(worktree: string) {
     agent: 'test-agent',
     abort: new AbortController().signal,
     metadata: () => undefined,
+    ask: (input: { patterns?: string[] }) => {
+      if (input.patterns?.some((pattern) => pattern.endsWith(join('.opencode', 'ae.jsonc')))) {
+        throw new Error('denied')
+      }
+      return Effect.succeed(undefined)
+    },
+  } as unknown as ToolContext
+}
+
+function createAllowExcludeContext(worktree: string) {
+  return {
+    ...createMockContext(worktree),
     ask: () => Effect.succeed(undefined),
+  } as unknown as ToolContext
+}
+
+function createCaptureAskContext(worktree: string, asked: unknown[]) {
+  return {
+    ...createMockContext(worktree),
+    ask: (input: unknown) => {
+      asked.push(input)
+      return Effect.succeed(undefined)
+    },
   } as unknown as ToolContext
 }
 
@@ -154,7 +176,7 @@ describe('ae-graph-build 工具', () => {
     expect(query.summary.chunkIds.length).toBeGreaterThan(0)
   })
 
-  it('应该确认并保存明显需要排除的目录到项目级 ae.jsonc', async () => {
+  it('未授权时不应该保存明显需要排除的目录到项目级 ae.jsonc', async () => {
     const root = createTempRoot()
     write(root, 'src/a.ts', '')
     write(root, 'node_modules/pkg/index.js', 'export const ignored = true')
@@ -162,10 +184,56 @@ describe('ae-graph-build 工具', () => {
     const result = await aeGraphBuildTool.execute({ mode: 'full' }, createMockContext(root))
     const parsed = JSON.parse(result as string) as { savedExcludes: string[]; excludeRules: string[]; files: number }
 
-    expect(parsed.savedExcludes).toContain('node_modules')
-    expect(parsed.excludeRules).toContain('node_modules')
-    expect(existsSync(join(root, '.opencode', 'ae.jsonc'))).toBe(true)
+    expect(parsed.savedExcludes).toEqual([])
+    expect(parsed.excludeRules).not.toContain('**/node_modules')
+    expect(existsSync(join(root, '.opencode', 'ae.jsonc'))).toBe(false)
     expect(parsed.files).toBeGreaterThan(0)
+  })
+
+  it('应该在用户确认后保存未覆盖的明显排除规则', async () => {
+    const root = createTempRoot()
+    write(root, 'src/a.ts', '')
+    write(root, 'node_modules/pkg/index.js', 'export const ignored = true')
+
+    const result = await aeGraphBuildTool.execute({ mode: 'full' }, createAllowExcludeContext(root))
+    const parsed = JSON.parse(result as string) as { savedExcludes: string[]; excludeRules: string[]; files: number }
+    const config = readFileSync(join(root, '.opencode', 'ae.jsonc'), 'utf8')
+
+    expect(parsed.savedExcludes).toContain('**/node_modules')
+    expect(parsed.excludeRules).toContain('**/node_modules')
+    expect(config).toContain('**/node_modules')
+    expect(parsed.files).toBeGreaterThan(0)
+  })
+
+  it('已有规则覆盖实际目录时不应该再次询问或重复保存', async () => {
+    const root = createTempRoot()
+    write(root, 'src/a.ts', '')
+    write(root, 'dist/a.ts', '')
+    write(root, '.opencode/ae.jsonc', '{ "graph": { "exclude": ["**/dist"] } }')
+    const asked: unknown[] = []
+    const ctx = createCaptureAskContext(root, asked)
+
+    const result = await aeGraphBuildTool.execute({ mode: 'full' }, ctx)
+    const parsed = JSON.parse(result as string) as { savedExcludes: string[]; excludeRules: string[] }
+
+    expect(asked.some((item) => JSON.stringify(item).includes('"suggestedRule":"**/dist"'))).toBe(false)
+    expect(parsed.savedExcludes).not.toContain('**/dist')
+    expect(parsed.excludeRules.filter((rule) => rule === '**/dist')).toHaveLength(1)
+  })
+
+  it('否定规则重新纳入路径时应该按最终结果询问保存', async () => {
+    const root = createTempRoot()
+    write(root, 'src/a.ts', '')
+    write(root, 'dist/a.ts', '')
+    write(root, '.opencode/ae.jsonc', '{ "graph": { "exclude": ["**/dist", "!dist/a.ts"] } }')
+    const asked: unknown[] = []
+    const ctx = createCaptureAskContext(root, asked)
+
+    const result = await aeGraphBuildTool.execute({ mode: 'full' }, ctx)
+    const parsed = JSON.parse(result as string) as { savedExcludes: string[] }
+
+    expect(parsed.savedExcludes).toContain('**/dist')
+    expect(asked.some((item) => JSON.stringify(item).includes('否定规则 !dist/a.ts 重新纳入图谱'))).toBe(true)
   })
 
   it('Git diff 无变更时应该跳过增量构建并返回图谱文件路径', async () => {

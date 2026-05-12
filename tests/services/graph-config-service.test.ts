@@ -4,7 +4,12 @@ import { join } from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { loadGraphConfig, resolveGraphConfigPath, saveGraphExcludeRule } from '../../src/services/graph-config-service.js'
+import {
+  loadGraphConfig,
+  matchGraphExcludePath,
+  resolveGraphConfigPath,
+  saveGraphExcludeRule,
+} from '../../src/services/graph-config-service.js'
 
 const tempRoots: string[] = []
 
@@ -39,6 +44,20 @@ describe('graph-config-service', () => {
     expect(loadGraphConfig(root, builtinConfigPath)).toEqual({ exclude: ['dist'] })
   })
 
+  it('应该合并内置和项目级 graph.exclude 配置', () => {
+    const root = createTempRoot()
+    const builtinConfigPath = join(root, 'src', 'assets', 'config', 'ae.jsonc')
+    const projectConfigPath = resolveGraphConfigPath(root)
+    mkdirSync(join(builtinConfigPath, '..'), { recursive: true })
+    mkdirSync(join(projectConfigPath, '..'), { recursive: true })
+    writeFileSync(builtinConfigPath, '{ "graph": { "exclude": ["**/dist", "**/node_modules"] } }')
+    writeFileSync(projectConfigPath, '{ "graph": { "exclude": ["docs/ae/graphs", "**/dist"] } }')
+
+    expect(loadGraphConfig(root, builtinConfigPath)).toEqual({
+      exclude: ['**/dist', '**/node_modules', 'docs/ae/graphs'],
+    })
+  })
+
   it('应该在 ae.jsonc 不存在时返回空排除规则并可保存新规则', () => {
     const root = createTempRoot()
 
@@ -53,7 +72,7 @@ describe('graph-config-service', () => {
     mkdirSync(join(configPath, '..'), { recursive: true })
     writeFileSync(configPath, '{')
 
-    expect(() => loadGraphConfig(root)).toThrow(/项目级 builtin-opencode 配置解析失败/)
+    expect(() => loadGraphConfig(root)).toThrow(/项目级 ae.jsonc 解析失败/)
   })
 
   it('应该去重并保存 graph.exclude 规则', () => {
@@ -61,5 +80,15 @@ describe('graph-config-service', () => {
 
     expect(saveGraphExcludeRule(root, 'dist')).toEqual({ exclude: ['dist'] })
     expect(saveGraphExcludeRule(root, 'dist')).toEqual({ exclude: ['dist'] })
+  })
+
+  it('应该按类似 .gitignore 的语义匹配星号、路径、目录和否定规则', () => {
+    const rules = ['**/dist', '**/*.log', 'docs/ae/graphs', '!packages/app/dist/keep.ts']
+
+    expect(matchGraphExcludePath('dist', rules, true)).toEqual({ excluded: true, matchedRule: '**/dist' })
+    expect(matchGraphExcludePath('packages/app/dist/index.js', rules)).toEqual({ excluded: true, matchedRule: '**/dist' })
+    expect(matchGraphExcludePath('logs/app.log', rules)).toEqual({ excluded: true, matchedRule: '**/*.log' })
+    expect(matchGraphExcludePath('docs/ae/graphs/graph.json', rules)).toEqual({ excluded: true, matchedRule: 'docs/ae/graphs' })
+    expect(matchGraphExcludePath('packages/app/dist/keep.ts', rules)).toEqual({ excluded: false, matchedRule: '!packages/app/dist/keep.ts' })
   })
 })

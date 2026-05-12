@@ -2,7 +2,7 @@ import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, statSyn
 import { dirname, extname, join, relative, resolve } from 'node:path'
 
 import { AGENT, COMMAND, SKILL, TOOL } from '../schemas/ae-asset-schema.js'
-import type { GraphConfig } from './graph-config-service.js'
+import { matchGraphExcludePath, type GraphConfig } from './graph-config-service.js'
 import type { GraphFileNode, GraphRelation, GraphRelationType } from './graph-storage-service.js'
 import { isInsideRoot, pathContainsSymlink, toPosixPath } from '../utils/path-utils.js'
 
@@ -33,7 +33,7 @@ export interface ParsedGraph {
   warnings: string[]
 }
 
-function shouldExclude(relativePath: string, config: GraphConfig): boolean {
+function shouldExclude(relativePath: string, config: GraphConfig, isDirectory = false): boolean {
   if (relativePath === 'docs/ae/graphs' || relativePath.startsWith('docs/ae/graphs/')) {
     return true
   }
@@ -44,7 +44,18 @@ function shouldExclude(relativePath: string, config: GraphConfig): boolean {
   if (SENSITIVE_FILENAMES.some((pattern) => pattern.test(parts.at(-1) ?? ''))) {
     return true
   }
-  return config.exclude.some((rule) => relativePath === rule || relativePath.startsWith(`${rule.replace(/\/$/, '')}/`))
+  return matchGraphExcludePath(relativePath, config.exclude, isDirectory).excluded
+}
+
+function hasNegatedDescendantRule(relativePath: string, config: GraphConfig): boolean {
+  return config.exclude.some((rule) => {
+    const normalizedRule = toPosixPath(rule.trim())
+    if (!normalizedRule.startsWith('!')) {
+      return false
+    }
+    const pattern = normalizedRule.slice(1).replace(/^\/+/, '').replace(/\/+$/, '')
+    return pattern.startsWith('**/') || pattern === relativePath || pattern.startsWith(`${relativePath}/`)
+  })
 }
 
 function addAssetReference(
@@ -118,7 +129,10 @@ export function collectGraphFiles(worktree: string, target: string, config: Grap
         continue
       }
       const relativePath = toPosixPath(relative(root, absolutePath))
-      if (shouldExclude(relativePath, config)) {
+      if (shouldExclude(relativePath, config, entry.isDirectory())) {
+        if (entry.isDirectory() && hasNegatedDescendantRule(relativePath, config)) {
+          visit(absolutePath)
+        }
         continue
       }
       if (entry.isDirectory()) {

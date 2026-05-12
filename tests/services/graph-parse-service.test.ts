@@ -56,6 +56,28 @@ describe('graph-parse-service', () => {
     expect(files.map((file) => file.relativePath)).toEqual(['dist/a.ts'])
   })
 
+  it('应该按类似 .gitignore 的通配规则跳过根目录和子目录构建产物', () => {
+    const root = createTempRoot()
+    write(root, 'dist/a.ts', '')
+    write(root, 'packages/app/dist/b.ts', '')
+    write(root, 'src/a.ts', '')
+
+    const files = collectGraphFiles(root, root, { exclude: ['**/dist'] })
+
+    expect(files.map((file) => file.relativePath)).toEqual(['src/a.ts'])
+  })
+
+  it('应该让否定规则按最终匹配结果重新纳入文件', () => {
+    const root = createTempRoot()
+    write(root, 'dist/a.ts', '')
+    write(root, 'dist/keep.ts', '')
+    write(root, 'src/a.ts', '')
+
+    const files = collectGraphFiles(root, root, { exclude: ['**/dist', '!dist/keep.ts'] })
+
+    expect(files.map((file) => file.relativePath)).toEqual(['dist/keep.ts', 'src/a.ts'])
+  })
+
   it('应该识别技能、工具、代理和命令引用关系', () => {
     const root = createTempRoot()
     write(root, 'docs/guide.md', `${SKILL.GRAPH_BUILD} ${TOOL.AE_GRAPH_QUERY} ${AGENT.ARCHITECTURE_STRATEGIST} ${COMMAND.GRAPH_QUERY}`)
