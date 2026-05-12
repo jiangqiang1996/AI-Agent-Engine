@@ -6,30 +6,33 @@ const shippingText = readFileSync('src/assets/skills/ae-work/references/shipping
 
 describe('ae:work 产物与交付文本契约', () => {
   it('应该把产物迁移边界落在技能文本而非仅靠 rules', () => {
-    expect(skillText).toContain('自动迁移当前任务已确定的 AE 需求/计划产物到 B')
-    expect(skillText).toContain('即使这些文件在 A 中仍未跟踪')
-    expect(skillText).toContain('迁移时保留仓库相对路径并创建缺失目录')
-    expect(skillText).toContain('不迁移 `docs/ae/gates/*`')
-    expect(skillText).toContain('`docs/ae/reviews/*`')
-    expect(skillText).toContain('不得靠最近修改时间或相近 topic 批量复制 `docs/ae/*`')
-    expect(skillText).toContain('若无法唯一确定当前任务关联需求/计划，必须询问用户')
+    expect(skillText).toContain('worktree_decision')
+    expect(skillText).toContain('A→B 启动证明必须包含')
+    expect(skillText).toContain('不得调用最终交付门禁')
+    expect(skillText).toContain('不得进入普通交付模板')
+    expect(shippingText).toContain('A→B 产物迁移')
+    expect(shippingText).toContain('不迁移 gate/review 运行时产物')
+    expect(shippingText).toContain('不修改 B 中代码、配置、测试或其他项目文件')
+    expect(shippingText).toContain('当前任务已确定的需求/计划产物迁移到 B')
   })
 
   it('应该要求创建 worktree 后输出交接文件和继续提示词', () => {
-    expect(skillText).toContain('当前会话核心交接 Markdown')
-    expect(skillText).toContain('docs/ae/handoffs/<timestamp>-worktree-handoff.md')
-    expect(skillText).toContain('用户目标、已确定决策、已迁移产物、待办事项、验证要求、Git/worktree 状态和继续执行约束')
-    expect(skillText).toContain('可直接复制的继续提示词')
-    expect(skillText).toContain('先读取指定交接文件、需求文档和计划文档')
+    expect(skillText).toContain('A 会话只允许在 B 写入当前任务已确定的需求/计划产物')
+    expect(skillText).toContain('交接文件必须包含 `## Continue Prompt` 章节')
+    expect(skillText).toContain('A→B 启动证明必须包含')
+    expect(shippingText).toContain('A→B 交接文件')
+    expect(shippingText).toContain('docs/ae/handoffs/<timestamp>-worktree-handoff.md')
+    expect(shippingText).toContain('A 的结束提示必须包含在 B 新会话读取该文件继续的提示词')
     expect(shippingText).toContain('A→B 交接文件')
     expect(shippingText).toContain('交接 Markdown 路径')
     expect(shippingText).toContain('目标 B 路径')
   })
 
   it('应该把 A 会话写入 B 的范围限定为启动交接产物', () => {
-    expect(skillText).toContain('A 会话只允许执行窄范围启动交接操作')
-    expect(skillText).toContain('A 会话只允许在 B 写入当前会话核心交接 Markdown')
-    expect(skillText).toContain('不得在 A 会话通过 shell 工作目录修改 B 中代码、配置、测试或其他项目文件')
+    expect(skillText).toContain('创建 B 后，A 会话不得再写入 A worktree 的任何文件')
+    expect(skillText).toContain('只允许在 B 写入当前任务已确定的需求/计划产物')
+    expect(skillText).toContain('A→B 启动证明必须包含')
+    expect(shippingText).toContain('A 会话不得再写入 A worktree 的任何文件')
     expect(shippingText).toContain('不修改 B 中代码、配置、测试或其他项目文件')
   })
 

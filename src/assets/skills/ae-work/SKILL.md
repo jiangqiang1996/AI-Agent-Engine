@@ -101,10 +101,13 @@ argument-hint: "[计划路径|工作描述]"
    - 创建 worktree 前必须获得用户对具体 `git worktree add` 命令参数的明确授权
    - 本地目录固定为 `../worktrees/<name>`，`<name>` 使用分支名或任务名净化后的短名
    - 创建 B 后，A 会话不得再写入 A worktree 的任何文件，也不得在 B 中修改代码、配置、测试或其他项目文件
-    - A 会话只允许在 B 写入当前任务已确定的需求/计划产物，以及唯一规范交接文件 `docs/ae/handoffs/<timestamp>-worktree-handoff.md`
-    - 交接文件路径不得使用 `docs/ae/handoff-*.md`、A worktree 路径或其他等价路径；写错位置时必须停止并报告流程失败，不得继续实现
-    - 创建 B worktree、迁移产物并写入规范交接 Markdown 后，立即停止 `ae:work` 阶段 2-4，只返回/报告 `worktree_decision: transferred`、B worktree 路径、已迁移产物、交接 Markdown 路径和继续提示词
-    - A→B 启动证明必须包含 `source_session_id`、A 的 `ctx.worktree`、`target_worktree`、branch、HEAD、授权来源、授权覆盖范围、`covered_command_args`、`final_command_args`、创建结果、已迁移产物清单和继续提示词
+   - A 会话只允许在 B 写入当前任务已确定的需求/计划产物，以及唯一规范交接文件 `docs/ae/handoffs/<timestamp>-worktree-handoff.md`
+   - 交接文件路径不得使用 `docs/ae/handoff-*.md`、A worktree 路径或其他等价路径；写错位置时必须停止并报告流程失败，不得继续实现
+   - 交接文件必须包含 `## Continue Prompt` 章节，章节内容必须是一段可直接复制到新会话执行的完整提示词，而不是摘要、清单或让用户自行拼装的说明
+   - `## Continue Prompt` 必须明确写出：切换到 B worktree 后继续执行 `ae:work`、B worktree 绝对路径、需求/计划/交接文件路径、禁止回到 A worktree 写文件、继续执行阶段、验证要求、审查要求和最终门禁要求
+   - 创建 B worktree、迁移产物并写入规范交接 Markdown 后，立即停止 `ae:work` 阶段 2-4；不得调用最终交付门禁，不得进入普通交付模板
+   - A 会话最后回复只能输出 B worktree 路径、交接 Markdown 路径和与交接文件 `## Continue Prompt` 完全一致的继续提示词；不得输出“已完成/已验证/未验证/Git 操作状态/门禁结果/剩余风险”等普通交付分区
+   - A→B 启动证明必须包含 `source_session_id`、A 的 `ctx.worktree`、`target_worktree`、branch、HEAD、授权来源、授权覆盖范围、`covered_command_args`、`final_command_args`、创建结果、已迁移产物清单和完整继续提示词
 
 3. **分析任务结构**
    - 调用 `ae-task-analyzer` 工具：
@@ -214,6 +217,8 @@ argument-hint: "[计划路径|工作描述]"
 如果 `ae-gate` 返回 `status: block`，先补齐阻断项，不得宣称交付完成。
 
 最终回复必须包含以下分区：已完成、已验证、未验证/无法验证、Git 操作状态、门禁结果、剩余风险。
+
+例外：如果本轮创建了新 worktree 并已转移到 B worktree，A 会话不是功能交付会话，必须遵循阶段 1 步骤 2e 的 worktree 转移停点：不调用最终交付门禁，不输出普通交付分区，只输出继续提示词。
 
 ## 核心原则
 
