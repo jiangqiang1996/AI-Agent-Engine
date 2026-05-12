@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -307,6 +307,79 @@ describe('ae-graph-query 工具', () => {
 
     expect(parsed.result.longPaths).toHaveLength(1)
     expect(parsed.truncation.truncated).toBe(false)
+  })
+
+  it('health 模式应该快速返回未被使用的孤立文件', async () => {
+    const root = createTempRoot()
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    const files = Array.from({ length: 18 }, (_, index) => ({
+      relativePath: `src/${index}.ts`,
+      fileType: 'source' as const,
+    }))
+    storage.insertFiles(versionId, files)
+    storage.insertRelations(versionId, files.flatMap((source, sourceIndex) => files
+      .slice(sourceIndex + 1)
+      .map((target) => ({
+        sourcePath: source.relativePath,
+        targetPath: target.relativePath,
+        relationType: 'import' as const,
+      }))))
+    storage.activateVersion(versionId)
+    storage.closeDatabase()
+
+    const result = await aeGraphQueryTool.execute({ mode: 'health', limit: 5 }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as {
+      status: string
+      queryCost: { indexesUsed: string[] }
+      result: { cycles: string[][]; isolatedFiles: string[]; note: string }
+    }
+
+    expect(parsed.status).toBe('ok')
+    expect(parsed.queryCost.indexesUsed).toEqual(['source-to-relation-chunks', 'target-to-relation-chunks'])
+    expect(parsed.result.cycles).toEqual([])
+    expect(parsed.result.isolatedFiles).toEqual([])
+    expect(parsed.result.note).toContain('pattern 模式')
+  })
+
+  it('pattern cycle 模式应该保留循环依赖检测能力', async () => {
+    const root = createTempRoot()
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    storage.insertFiles(versionId, [
+      { relativePath: 'src/a.ts', fileType: 'source' },
+      { relativePath: 'src/b.ts', fileType: 'source' },
+      { relativePath: 'src/c.ts', fileType: 'source' },
+    ])
+    storage.insertRelations(versionId, [
+      { sourcePath: 'src/a.ts', targetPath: 'src/b.ts', relationType: 'import' },
+      { sourcePath: 'src/b.ts', targetPath: 'src/c.ts', relationType: 'import' },
+      { sourcePath: 'src/c.ts', targetPath: 'src/a.ts', relationType: 'import' },
+    ])
+    storage.activateVersion(versionId)
+    storage.closeDatabase()
+
+    const result = await aeGraphQueryTool.execute({ mode: 'pattern', pattern_type: 'cycle' }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as { result: { cycles: string[][] } }
+
+    expect(parsed.result.cycles).toEqual([['src/a.ts', 'src/b.ts', 'src/c.ts', 'src/a.ts']])
+  })
+
+  it('stats 快路径在分片缺失时仍应该返回诊断', async () => {
+    const root = createTempRoot()
+    seedGraph(root)
+    const versionDir = join(root, 'docs', 'ae', 'graphs', 'version-1')
+    const chunkFile = readdirSync(versionDir).find((entry) => entry.startsWith('chunk-') && entry.endsWith('.json'))
+    if (!chunkFile) {
+      throw new Error('测试图谱缺少分片文件')
+    }
+    rmSync(join(versionDir, chunkFile), { force: true })
+
+    const result = await aeGraphQueryTool.execute({ mode: 'stats' }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as { status: string; diagnostic: { code: string } }
+
+    expect(parsed.status).toBe('diagnostic')
+    expect(parsed.diagnostic.code).toBe('missing_chunk')
   })
 
   it('应该查询 impact、path、core 和 pattern 模式', async () => {

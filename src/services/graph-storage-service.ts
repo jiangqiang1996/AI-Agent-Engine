@@ -74,6 +74,10 @@ interface GraphStorageOptions {
   readonly?: boolean
 }
 
+interface GraphStorageDiagnosticOptions {
+  verifyChunks?: boolean
+}
+
 interface GraphChunkRecord {
   id: string
   fileCount: number
@@ -480,6 +484,27 @@ export class GraphStorage {
     })
   }
 
+  loadFileChunks(workspaceRoot: string, scopeRoot: string): { chunks: GraphChunkRecord[]; chunkIds: string[] } {
+    const version = this.findActiveVersion(workspaceRoot, scopeRoot)
+    if (!version) {
+      return { chunks: [], chunkIds: [] }
+    }
+    const chunks = (version.chunkIds ?? [])
+      .map((chunkId) => this.readChunk(version.id, chunkId))
+      .filter((chunk) => chunk.fileCount > 0)
+    return { chunks, chunkIds: chunks.map((chunk) => chunk.id) }
+  }
+
+  readRelationEndpointPaths(workspaceRoot: string, scopeRoot: string): Set<string> {
+    const version = this.findActiveVersion(workspaceRoot, scopeRoot)
+    if (!version) {
+      return new Set()
+    }
+    const sourceIndex = this.readIndex(version.id, 'source-to-relation-chunks') as Record<string, string[]> | undefined
+    const targetIndex = this.readIndex(version.id, 'target-to-relation-chunks') as Record<string, string[]> | undefined
+    return new Set([...Object.keys(sourceIndex ?? {}), ...Object.keys(targetIndex ?? {})])
+  }
+
   listActiveScopes(workspaceRoot: string): string[] {
     const workspaceKey = getWorkspaceKey(workspaceRoot)
     return [...new Set(this.store.versions
@@ -487,7 +512,7 @@ export class GraphStorage {
       .map((version) => version.scopeRoot))].sort((a, b) => a.localeCompare(b))
   }
 
-  diagnoseActiveVersion(workspaceRoot: string, scopeRoot: string): GraphStorageDiagnostic {
+  diagnoseActiveVersion(workspaceRoot: string, scopeRoot: string, options: GraphStorageDiagnosticOptions = {}): GraphStorageDiagnostic {
     const availableScopes = this.listActiveScopes(workspaceRoot)
     const version = this.findActiveVersion(workspaceRoot, scopeRoot)
     if (!version) {
@@ -513,26 +538,28 @@ export class GraphStorage {
         return this.createDiagnostic('index_missing', scopeRoot, availableScopes, '请重新执行 ae-graph-build 生成缺失索引。', { problemPath: indexPath })
       }
     }
-    let fileCount = 0
-    let relationCount = 0
-    for (const chunkId of manifest.chunks) {
-      const chunkPath = join(versionChunkDir(this.storePath, version.id), `${chunkId}.json`)
-      if (!existsSync(chunkPath)) {
-        return this.createDiagnostic('missing_chunk', scopeRoot, availableScopes, '请重新执行 ae-graph-build 重建缺失分片。', { problemPath: chunkPath, problemChunkId: chunkId })
-      }
-      try {
-        const parsed = JSON.parse(readFileSync(chunkPath, 'utf8')) as unknown
-        if (!isChunkRecord(parsed)) {
+    if (options.verifyChunks !== false) {
+      let fileCount = 0
+      let relationCount = 0
+      for (const chunkId of manifest.chunks) {
+        const chunkPath = join(versionChunkDir(this.storePath, version.id), `${chunkId}.json`)
+        if (!existsSync(chunkPath)) {
+          return this.createDiagnostic('missing_chunk', scopeRoot, availableScopes, '请重新执行 ae-graph-build 重建缺失分片。', { problemPath: chunkPath, problemChunkId: chunkId })
+        }
+        try {
+          const parsed = JSON.parse(readFileSync(chunkPath, 'utf8')) as unknown
+          if (!isChunkRecord(parsed)) {
+            return this.createDiagnostic('invalid_chunk', scopeRoot, availableScopes, '请重新执行 ae-graph-build 重建异常分片。', { problemPath: chunkPath, problemChunkId: chunkId })
+          }
+          fileCount += parsed.fileCount
+          relationCount += parsed.relationCount
+        } catch {
           return this.createDiagnostic('invalid_chunk', scopeRoot, availableScopes, '请重新执行 ae-graph-build 重建异常分片。', { problemPath: chunkPath, problemChunkId: chunkId })
         }
-        fileCount += parsed.fileCount
-        relationCount += parsed.relationCount
-      } catch {
-        return this.createDiagnostic('invalid_chunk', scopeRoot, availableScopes, '请重新执行 ae-graph-build 重建异常分片。', { problemPath: chunkPath, problemChunkId: chunkId })
       }
-    }
-    if (fileCount !== manifest.fileCount || relationCount !== manifest.relationCount) {
-      return this.createDiagnostic('count_mismatch', scopeRoot, availableScopes, 'manifest 与分片计数不一致，请重新执行 ae-graph-build。', { problemPath: manifestPath })
+      if (fileCount !== manifest.fileCount || relationCount !== manifest.relationCount) {
+        return this.createDiagnostic('count_mismatch', scopeRoot, availableScopes, 'manifest 与分片计数不一致，请重新执行 ae-graph-build。', { problemPath: manifestPath })
+      }
     }
     return {
       code: 'ok',
@@ -639,14 +666,20 @@ export class GraphStorage {
     }
     const index = this.readIndex(version.id, indexName) as Record<string, string[]> | undefined
     const chunkIds = [...new Set(index?.[path] ?? [])]
-    const chunks = chunkIds.map((chunkId) => {
-      const parsed = JSON.parse(readFileSync(join(versionChunkDir(this.storePath, version.id), `${chunkId}.json`), 'utf8')) as unknown
-      if (!isChunkRecord(parsed)) {
-        throw new Error(`图谱分片格式不受支持：${chunkId}`)
-      }
-      return parsed
-    })
+    const chunks = chunkIds.map((chunkId) => this.readChunk(version.id, chunkId))
     return { chunks, chunkIds }
+  }
+
+  private readChunk(versionId: number, chunkId: string): GraphChunkRecord {
+    const chunkPath = join(versionChunkDir(this.storePath, versionId), `${chunkId}.json`)
+    if (!existsSync(chunkPath)) {
+      throw new Error(`图谱分片缺失：${chunkId}`)
+    }
+    const parsed = JSON.parse(readFileSync(chunkPath, 'utf8')) as unknown
+    if (!isChunkRecord(parsed)) {
+      throw new Error(`图谱分片格式不受支持：${chunkId}`)
+    }
+    return parsed
   }
 
   private loadVersionFiles(version: GraphVersionRecord): GraphFileNode[] {

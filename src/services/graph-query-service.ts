@@ -22,6 +22,15 @@ const DEFAULT_LIMIT = 50
 const MAX_RESULT_ITEMS = 80
 const MAX_CHUNKS = 3
 
+function appendMapValue(map: Map<string, string[]>, key: string, value: string): void {
+  const values = map.get(key)
+  if (values) {
+    values.push(value)
+    return
+  }
+  map.set(key, [value])
+}
+
 function clampLimit(value: number | undefined): number {
   return Math.min(Math.max(value ?? DEFAULT_LIMIT, 1), MAX_RESULT_ITEMS)
 }
@@ -40,10 +49,13 @@ function findCycles(relations: GraphRelation[], files: string[], limit: number):
     if (relation.relationType === 'external') {
       continue
     }
-    adjacency.set(relation.sourcePath, [...(adjacency.get(relation.sourcePath) ?? []), relation.targetPath])
+    appendMapValue(adjacency, relation.sourcePath, relation.targetPath)
   }
   const cycles: string[][] = []
-  const visit = (node: string, stack: string[]): void => {
+  const visiting = new Set<string>()
+  const visited = new Set<string>()
+  const stack: string[] = []
+  const visit = (node: string): void => {
     if (cycles.length >= limit) {
       return
     }
@@ -52,12 +64,26 @@ function findCycles(relations: GraphRelation[], files: string[], limit: number):
       cycles.push([...stack.slice(existingIndex), node])
       return
     }
-    for (const next of adjacency.get(node) ?? []) {
-      visit(next, [...stack, node])
+    if (visited.has(node) || visiting.has(node)) {
+      return
     }
+    visiting.add(node)
+    stack.push(node)
+    for (const next of adjacency.get(node) ?? []) {
+      visit(next)
+      if (cycles.length >= limit) {
+        break
+      }
+    }
+    stack.pop()
+    visiting.delete(node)
+    visited.add(node)
   }
   for (const file of files) {
-    visit(file, [])
+    visit(file)
+    if (cycles.length >= limit) {
+      break
+    }
   }
   return cycles
 }
@@ -69,7 +95,7 @@ function hasMoreCycles(relations: GraphRelation[], files: string[], limit: numbe
 function shortestPath(relations: GraphRelation[], source: string, target: string): string[] {
   const adjacency = new Map<string, string[]>()
   for (const relation of relations) {
-    adjacency.set(relation.sourcePath, [...(adjacency.get(relation.sourcePath) ?? []), relation.targetPath])
+    appendMapValue(adjacency, relation.sourcePath, relation.targetPath)
   }
   const queue: string[][] = [[source]]
   const visited = new Set<string>([source])
@@ -98,7 +124,7 @@ function longPaths(relations: GraphRelation[], minLength: number, limit: number)
     if (relation.relationType === 'external') {
       continue
     }
-    adjacency.set(relation.sourcePath, [...(adjacency.get(relation.sourcePath) ?? []), relation.targetPath])
+    appendMapValue(adjacency, relation.sourcePath, relation.targetPath)
   }
   const result: string[][] = []
   for (const source of adjacency.keys()) {
@@ -140,7 +166,7 @@ function filePaths(files: { relativePath: string }[]): string[] {
 function impact(relations: GraphRelation[], file: string, limit: number): string[] {
   const reverse = new Map<string, string[]>()
   for (const relation of relations) {
-    reverse.set(relation.targetPath, [...(reverse.get(relation.targetPath) ?? []), relation.sourcePath])
+    appendMapValue(reverse, relation.targetPath, relation.sourcePath)
   }
   const result: string[] = []
   const queue = [file]
@@ -216,11 +242,94 @@ export function executeGraphQuery(request: GraphQueryRequest): unknown {
     const limit = clampLimit(request.limit)
     const excluded = new Set(request.exclude ?? [])
     const summary = storage.getActiveVersionSummary(request.worktree, request.scopeRoot)
+    const indexedSummary = storage.readScopeSummary(request.worktree, request.scopeRoot)
+    if (!summary) {
+      return { status: 'diagnostic', diagnostic: storage.diagnoseActiveVersion(request.worktree, request.scopeRoot) }
+    }
+    if (request.mode === 'stats' && excluded.size === 0) {
+      const result = indexedSummary?.relationTypeCounts ?? {}
+      return {
+        status: 'ok',
+        mode: request.mode,
+        scopeRoot: request.scopeRoot,
+        versionId: summary.versionId,
+        summary,
+        queryCost: { chunksRead: 0, indexesUsed: indexedSummary ? ['scope-summary'] : [], chunkBudget: MAX_CHUNKS },
+        truncation: { truncated: false, returnedCount: countResultItems(result), limitApplied: limit, maxResultItems: MAX_RESULT_ITEMS },
+        result,
+      }
+    }
+    if (request.mode === 'deps') {
+      if (!request.file) {
+        return { status: 'error', message: 'deps 模式必须提供 file 参数。' }
+      }
+      const sourceChunks = storage.loadRelationChunksBySource(request.worktree, request.scopeRoot, request.file)
+      const targetChunks = storage.loadRelationChunksByTarget(request.worktree, request.scopeRoot, request.file)
+      const chunkIds = [...new Set([...sourceChunks.chunkIds, ...targetChunks.chunkIds])]
+      if (chunkIds.length > 0 && chunkIds.length <= MAX_CHUNKS) {
+        const relations = uniqueRelations(
+          [...sourceChunks.chunks, ...targetChunks.chunks]
+            .flatMap((chunk) => chunk.relations)
+            .filter((relation) => !excluded.has(relation.sourcePath) && !excluded.has(relation.targetPath)),
+        )
+        const dependencies = relations.filter((relation) => relation.sourcePath === request.file)
+        const dependents = relations.filter((relation) => relation.targetPath === request.file)
+        const limitedDependencies = takeLimited(dependencies, limit)
+        const limitedDependents = takeLimited(dependents, limit)
+        const result = {
+          dependencies: limitedDependencies.items,
+          dependents: limitedDependents.items,
+        }
+        return {
+          status: 'ok',
+          mode: request.mode,
+          scopeRoot: request.scopeRoot,
+          versionId: summary.versionId,
+          summary,
+          queryCost: { chunksRead: chunkIds.length, indexesUsed: ['source-to-relation-chunks', 'target-to-relation-chunks'], chunkBudget: MAX_CHUNKS },
+          truncation: {
+            truncated: limitedDependencies.truncated || limitedDependents.truncated,
+            returnedCount: countResultItems(result),
+            limitApplied: limit,
+            maxResultItems: MAX_RESULT_ITEMS,
+          },
+          result,
+        }
+      }
+    }
+    if (request.mode === 'health' && excluded.size === 0) {
+      const fileChunks = storage.loadFileChunks(request.worktree, request.scopeRoot)
+      const files = fileChunks.chunks.flatMap((chunk) => chunk.files)
+      const related = storage.readRelationEndpointPaths(request.worktree, request.scopeRoot)
+      const isolatedFiles = files
+        .filter((file) => file.fileType !== 'directory' && !related.has(file.relativePath))
+        .map((file) => file.relativePath)
+      const limitedIsolatedFiles = takeLimited(isolatedFiles, limit)
+      const result = {
+        cycles: [],
+        isolatedFiles: limitedIsolatedFiles.items,
+        note: 'health 模式默认返回未被关系引用的孤立文件；循环依赖请使用 pattern 模式查询。',
+      }
+      return {
+        status: 'ok',
+        mode: request.mode,
+        scopeRoot: request.scopeRoot,
+        versionId: summary.versionId,
+        summary,
+        queryCost: { chunksRead: fileChunks.chunkIds.length, indexesUsed: ['source-to-relation-chunks', 'target-to-relation-chunks'], chunkBudget: MAX_CHUNKS },
+        truncation: {
+          truncated: limitedIsolatedFiles.truncated,
+          returnedCount: countResultItems(result),
+          limitApplied: limit,
+          maxResultItems: MAX_RESULT_ITEMS,
+        },
+        result,
+      }
+    }
     const graph = storage.getActiveVersion(request.worktree, request.scopeRoot)
     if (!graph) {
       return { status: 'diagnostic', diagnostic: storage.diagnoseActiveVersion(request.worktree, request.scopeRoot) }
     }
-    const indexedSummary = storage.readScopeSummary(request.worktree, request.scopeRoot)
     let chunksRead = 0
     let indexesUsed: string[] = []
     let result: unknown
