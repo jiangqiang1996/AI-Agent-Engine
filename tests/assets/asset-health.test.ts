@@ -74,12 +74,15 @@ function extractMarkdownCommandList(content: string, scenario: string, expectedC
 }
 
 function extractMarkdownSkillList(content: string): string[] {
-  const row = content.split('\n').find((line) => line.startsWith('主要技能包括：'))
-  if (!row) {
-    throw new Error('asset-health/readme-skill-list: 找不到主要技能清单')
+  const lines = content.split('\n')
+  const startIndex = lines.findIndex((line) => line.trim() === '## 常用入口')
+  const endIndex = lines.findIndex((line, index) => index > startIndex && line.startsWith('## '))
+
+  if (startIndex === -1 || endIndex === -1) {
+    throw new Error('asset-health/readme-skill-list: 找不到常用入口区块')
   }
 
-  return Array.from(row.matchAll(/`(ae:[^`]+)`/g)).map((match) => match[1])
+  return Array.from(lines.slice(startIndex, endIndex).join('\n').matchAll(/`\/(ae-[^`]+)`/g)).map((match) => match[1])
 }
 
 describe('资产健康巡检', () => {
@@ -152,6 +155,10 @@ describe('资产健康巡检', () => {
     const agent = getAllAgentDefinitions().find((entry) => entry.name === AGENT.DOC_EQUIVALENCE_REVIEWER)
     const humanize = readFileSync('src/assets/skills/ae-doc-humanize/SKILL.md', 'utf8')
     const structure = readFileSync('src/assets/skills/ae-doc-structure/SKILL.md', 'utf8')
+    const requirementsTemplate = readFileSync('src/assets/skills/ae-doc-humanize/references/requirements-template.md', 'utf8')
+    const designTemplate = readFileSync('src/assets/skills/ae-doc-humanize/references/design-template.md', 'utf8')
+    const structuredRequirements = readFileSync('src/assets/skills/ae-doc-structure/references/structured-requirements-template.md', 'utf8')
+    const structuredPlan = readFileSync('src/assets/skills/ae-doc-structure/references/structured-plan-template.md', 'utf8')
 
     expect(agent).toMatchObject({ stage: 'review', tier: 'required', path: 'src/assets/agents/review/doc-equivalence-reviewer.md' })
     expect(existsSync('src/assets/skills/ae-doc-humanize/references/requirements-template.md')).toBe(true)
@@ -162,6 +169,14 @@ describe('资产健康巡检', () => {
     expect(humanize).toContain('references/design-template.md')
     expect(structure).toContain('references/structured-requirements-template.md')
     expect(structure).toContain('references/structured-plan-template.md')
+    expect(requirementsTemplate).not.toContain('## 用户与场景')
+    expect(requirementsTemplate).not.toContain('## 术语表')
+    expect(requirementsTemplate).not.toContain('视觉沟通')
+    expect(designTemplate).not.toContain('## 影响面 [可选]')
+    expect(structuredRequirements).not.toContain('## 用户与场景')
+    expect(structuredRequirements).not.toContain('## 术语表')
+    expect(structuredRequirements).toContain('## 等价性检查')
+    expect(structuredPlan).not.toContain('## 影响面 [可选]')
   })
 
   it('技能目录不应该使用单数 script 资源目录', () => {
@@ -267,21 +282,34 @@ describe('资产健康巡检', () => {
     const readme = readFileSync('README.md', 'utf8')
     const commandConfig = buildCommandConfig(join(process.cwd(), 'src/assets/commands'))
     const documentedSkills = extractMarkdownSkillList(readme)
-    const documentedSkillOmissions = new Set<string>([
-      SKILL.DOCUMENT_REVIEW,
-      SKILL.MERGE_BRANCH,
-      SKILL.AGENT_CREATOR,
-      SKILL.SKILL_CREATOR,
-    ])
-    const expectedSkills = Array.from(new Set(getPhaseOneEntries().map((entry) => entry.skillName)))
-      .filter((skillName) => !documentedSkillOmissions.has(skillName))
+    const expectedCommands = [
+      COMMAND.HELP,
+      COMMAND.IDEATE,
+      COMMAND.BRAINSTORM,
+      COMMAND.PLAN,
+      COMMAND.WORK,
+      COMMAND.REFACTOR,
+      COMMAND.REVIEW,
+      COMMAND.DOC_HUMANIZE,
+      COMMAND.DOC_STRUCTURE,
+      COMMAND.FRONTEND_DESIGN,
+      COMMAND.TEST_BROWSER,
+      COMMAND.SWAGGER_PARSER,
+      COMMAND.TASK_LOOP,
+      COMMAND.SQL,
+      COMMAND.HANDOFF,
+      COMMAND.PROMPT_OPTIMIZE,
+      COMMAND.SAVE_EXPERIENCE,
+      COMMAND.SKILL_CREATOR,
+      COMMAND.AGENT_CREATOR,
+      COMMAND.UPDATE,
+    ]
 
-    expect(readme).toContain(`| 技能 | 当前快照 ${listSkillDirectories().length} |`)
     expect(readme).toContain(`| 命令 | 当前快照 ${Object.keys(commandConfig).length} |`)
-    expect(documentedSkills).toEqual(expectedSkills)
-    expect(documentedSkills).toContain(SKILL.SKILL_FROM_SESSION)
-    expect(documentedSkills).not.toContain('ae:save-session-flow')
-    expect(documentedSkills).not.toContain('ae:asset-debug')
+    expect(documentedSkills).toEqual(expectedCommands)
+    for (const commandName of documentedSkills) {
+      expect(commandConfig[commandName], `asset-health/readme-command/${commandName}: README 文档入口未注册`).toBeDefined()
+    }
   })
 
   it('builtin-config 命令场景文档应该与模型路由 catalog 一致', () => {

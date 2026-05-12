@@ -45,9 +45,6 @@ originFingerprint: <上游指纹，若无则删除此行>
 ## 问题框架
 [当前问题、目标变化、成功判断和必要范围背景；不写干系人、用户画像、业务价值或汇报型背景，除非它们直接决定需求范围或验收条件]
 
-## 用户与场景
-- [仅当源讨论中存在直接影响需求行为、触发条件或验收条件的用户、角色或场景时包含；不得为了完整性补用户画像或干系人介绍]
-
 ## 需求
 
 **[分组标题]**
@@ -93,20 +90,12 @@ originFingerprint: <上游指纹，若无则删除此行>
 ### 推迟到规划
 - [影响 R2][技术] [应在规划期间回答的问题]
 
-## 术语表
-| 术语 | 定义 |
-|------|------|
-| [仅当存在领域术语时填写] | [定义] |
-
 ## 等价性检查
 - requirementsCount: [R* 数量]
 - nonFunctionalRequirementsCount: [NFR* 数量]
 - decisionsCount: [D* 数量]
 - openQuestionsCount: [Q/待定问题数量]
 
-## 下一步
-[如果规划前需解决为空：-> /ae-plan]
-[如果规划前需解决不为空：-> 恢复 /ae-brainstorm]
 ```
 
 **Frontmatter 字段填写指引：**
@@ -120,8 +109,6 @@ originFingerprint: <上游指纹，若无则删除此行>
 | `origin` | 上游产物路径 | 仅在有上游产物时填写，否则删除此行。必须使用仓库相对路径 |
 | `originFingerprint` | 上游指纹 | 仅在有上游产物时填写，否则删除此行。值为上游产物 `date` + `-` + `topic` 的 kebab-case 拼接；若上游没有 `topic`，则使用 `date` + `-` + `title`（如 `2026-04-27-artifact-template-restructure`） |
 | `supersededBy` | — | 不由 brainstorm 技能填写，由后续技能在替代旧文档时写入 |
-
-**视觉沟通** — 当需求加上视觉辅助后会显著更容易理解时，包含一个。阅读 `references/visual-communication.md` 获取决策标准和放置规则。
 
 对于**标准**和**深入**头脑风暴，通常需要一份需求数据文档。
 
