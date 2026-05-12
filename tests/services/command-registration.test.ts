@@ -68,7 +68,7 @@ describe('command-registration', () => {
     expect(config[paCommand]?.template).toContain(`使用 \`${SKILL.REFACTOR}\` 技能处理这次请求`)
   })
 
-  it('应该为文档互转技能生成基础命令和提示词优化命令', () => {
+  it('应该为文档互转技能只生成基础命令', () => {
     const config = buildCommandConfig('__missing_commands_dir__')
 
     for (const [skillName, commandName] of [
@@ -79,11 +79,24 @@ describe('command-registration', () => {
       const paCommand = `${commandName}${PA_SUFFIX}`
 
       expect(config[commandName]?.template).toContain(`使用 \`${skillName}\` 技能处理这次请求`)
-      expect(config[poCommand]?.template).toContain(`先使用 \`${SKILL.PROMPT_OPTIMIZE}\` 技能优化以下用户输入`)
-      expect(config[poCommand]?.template).toContain(`使用 \`${skillName}\` 技能处理这次请求`)
-      expect(config[paCommand]?.template).toContain(`先使用 \`${SKILL.PROMPT_OPTIMIZE}\` 技能以 auto 模式优化以下用户输入`)
-      expect(config[paCommand]?.template).toContain('跳过确认直接提交')
-      expect(config[paCommand]?.template).toContain(`使用 \`${skillName}\` 技能处理这次请求`)
+      expect(config[poCommand]).toBeUndefined()
+      expect(config[paCommand]).toBeUndefined()
+    }
+  })
+
+  it('应该为工具型和结构化输入命令只生成基础命令', () => {
+    const config = buildCommandConfig('__missing_commands_dir__')
+
+    for (const [skillName, commandName] of [
+      [SKILL.AGENT_CREATOR, COMMAND.AGENT_CREATOR],
+      [SKILL.WORK_REPORT, COMMAND.WORK_REPORT],
+      [SKILL.TASK_LOOP, COMMAND.TASK_LOOP],
+      [SKILL.GRAPH_BUILD, COMMAND.GRAPH_BUILD],
+      [SKILL.GRAPH_QUERY, COMMAND.GRAPH_QUERY],
+    ] as const) {
+      expect(config[commandName]?.template).toContain(`使用 \`${skillName}\` 技能处理这次请求`)
+      expect(config[`${commandName}${PO_SUFFIX}`]).toBeUndefined()
+      expect(config[`${commandName}${PA_SUFFIX}`]).toBeUndefined()
     }
   })
 

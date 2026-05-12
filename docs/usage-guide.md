@@ -136,14 +136,9 @@
 | `/ae-brainstorm` | `/ae-brainstorm-po` | `/ae-brainstorm-pa` |
 | `/ae-plan` | `/ae-plan-po` | `/ae-plan-pa` |
 | `/ae-refactor` | `/ae-refactor-po` | `/ae-refactor-pa` |
-| `/ae-agent-creator` | `/ae-agent-creator-po` | `/ae-agent-creator-pa` |
 | `/ae-work` | `/ae-work-po` | `/ae-work-pa` |
-| `/ae-work-report` | `/ae-work-report-po` | `/ae-work-report-pa` |
 | `/ae-lfg` | `/ae-lfg-po` | `/ae-lfg-pa` |
-| `/ae-doc-humanize` | `/ae-doc-humanize-po` | `/ae-doc-humanize-pa` |
-| `/ae-doc-structure` | `/ae-doc-structure-po` | `/ae-doc-structure-pa` |
 | `/ae-frontend-design` | `/ae-frontend-design-po` | `/ae-frontend-design-pa` |
-| `/ae-task-loop` | `/ae-task-loop-po` | `/ae-task-loop-pa` |
 
 没有列出的命令不提供 `-po` 或 `-pa` 变体。
 

@@ -25,11 +25,7 @@ describe('asset-model-routing-catalog', () => {
 
   it('应该让提示词优化派生命令继承基础命令场景', () => {
     expect(getCommandModelScenario(`${COMMAND.PLAN}${PO_SUFFIX}`)).toBe(getCommandModelScenario(COMMAND.PLAN))
-    expect(getCommandModelScenario(`${COMMAND.DOC_HUMANIZE}${PO_SUFFIX}`)).toBe(getCommandModelScenario(COMMAND.DOC_HUMANIZE))
-    expect(getCommandModelScenario(`${COMMAND.DOC_STRUCTURE}${PA_SUFFIX}`)).toBe(getCommandModelScenario(COMMAND.DOC_STRUCTURE))
     expect(getCommandModelScenario(`${COMMAND.WORK}${PA_SUFFIX}`)).toBe(getCommandModelScenario(COMMAND.WORK))
-    expect(getCommandModelScenario(`${COMMAND.WORK_REPORT}${PO_SUFFIX}`)).toBe(getCommandModelScenario(COMMAND.WORK_REPORT))
-    expect(getCommandModelScenario(`${COMMAND.WORK_REPORT}${PA_SUFFIX}`)).toBe(getCommandModelScenario(COMMAND.WORK_REPORT))
   })
 
   it('复杂规划和审查命令不应该落到 quick', () => {

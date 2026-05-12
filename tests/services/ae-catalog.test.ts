@@ -78,9 +78,9 @@ describe('AE catalog 一致性', () => {
     expect(text).toContain('init_agent.mjs` 拒绝覆盖既有目标是预期安全语义')
   })
 
-  it('ae:agent-creator 应生成提示词优化命令变体', () => {
-    expect(getPhaseOnePoEntries().some((item) => item.commandName === 'ae-agent-creator-po')).toBe(true)
-    expect(getPhaseOnePaEntries().some((item) => item.commandName === 'ae-agent-creator-pa')).toBe(true)
+  it('ae:agent-creator 不应生成提示词优化命令变体', () => {
+    expect(getPhaseOnePoEntries().some((item) => item.commandName === 'ae-agent-creator-po')).toBe(false)
+    expect(getPhaseOnePaEntries().some((item) => item.commandName === 'ae-agent-creator-pa')).toBe(false)
   })
 
   it('ae:skill-creator 应保持单一入口并描述创建与更新能力', () => {

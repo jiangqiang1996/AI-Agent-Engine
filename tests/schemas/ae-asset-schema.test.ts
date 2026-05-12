@@ -41,18 +41,18 @@ describe('ae-asset-schema', () => {
     expect(AeCommandNameSchema.safeParse(`${COMMAND.MERGE_BRANCH}${PA_SUFFIX}`).success).toBe(false)
   })
 
-  it('应该接受 work-report 技能和命令，并生成提示词优化变体', () => {
+  it('应该接受 work-report 技能和命令，并拒绝提示词优化变体', () => {
     expect(AeSkillNameSchema.parse(SKILL.WORK_REPORT)).toBe('ae:work-report')
     expect(AeCommandNameSchema.parse(COMMAND.WORK_REPORT)).toBe('ae-work-report')
-    expect(AeCommandNameSchema.parse(`${COMMAND.WORK_REPORT}${PO_SUFFIX}`)).toBe('ae-work-report-po')
-    expect(AeCommandNameSchema.parse(`${COMMAND.WORK_REPORT}${PA_SUFFIX}`)).toBe('ae-work-report-pa')
+    expect(AeCommandNameSchema.safeParse(`${COMMAND.WORK_REPORT}${PO_SUFFIX}`).success).toBe(false)
+    expect(AeCommandNameSchema.safeParse(`${COMMAND.WORK_REPORT}${PA_SUFFIX}`).success).toBe(false)
   })
 
-  it('应该接受 agent-creator 技能和命令，并生成提示词优化变体', () => {
+  it('应该接受 agent-creator 技能和命令，并拒绝提示词优化变体', () => {
     expect(AeSkillNameSchema.parse(SKILL.AGENT_CREATOR)).toBe('ae:agent-creator')
     expect(AeCommandNameSchema.parse(COMMAND.AGENT_CREATOR)).toBe('ae-agent-creator')
-    expect(AeCommandNameSchema.parse(`${COMMAND.AGENT_CREATOR}${PO_SUFFIX}`)).toBe('ae-agent-creator-po')
-    expect(AeCommandNameSchema.parse(`${COMMAND.AGENT_CREATOR}${PA_SUFFIX}`)).toBe('ae-agent-creator-pa')
+    expect(AeCommandNameSchema.safeParse(`${COMMAND.AGENT_CREATOR}${PO_SUFFIX}`).success).toBe(false)
+    expect(AeCommandNameSchema.safeParse(`${COMMAND.AGENT_CREATOR}${PA_SUFFIX}`).success).toBe(false)
     expect(AeSkillNameSchema.safeParse('ae:agent-updater').success).toBe(false)
     expect(AeCommandNameSchema.safeParse('ae-agent-updater').success).toBe(false)
   })

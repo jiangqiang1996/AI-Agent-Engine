@@ -202,11 +202,11 @@ model: $deep
 
 | 资产 | 场景 |
 | --- | --- |
-| `/ae-ideate`、`/ae-brainstorm`、`/ae-work-report`、`/ae-setup`、`/ae-handoff`、`/ae-sql`、`/ae-swagger-parser`、`/ae-save-experience`、`/ae-skill-from-session`、`/ae-update`、`/ae-ideate-po`、`/ae-brainstorm-po`、`/ae-work-report-po`、`/ae-ideate-pa`、`/ae-brainstorm-pa`、`/ae-work-report-pa` | `standard` |
-| `/ae-document-review`、`/ae-plan`、`/ae-refactor`、`/ae-work`、`/ae-merge-branch`、`/ae-review`、`/ae-lfg`、`/ae-doc-humanize`、`/ae-doc-structure`、`/ae-task-loop`、`/ae-plan-po`、`/ae-refactor-po`、`/ae-work-po`、`/ae-lfg-po`、`/ae-doc-humanize-po`、`/ae-doc-structure-po`、`/ae-task-loop-po`、`/ae-plan-pa`、`/ae-refactor-pa`、`/ae-work-pa`、`/ae-lfg-pa`、`/ae-doc-humanize-pa`、`/ae-doc-structure-pa`、`/ae-task-loop-pa` | `deep` |
+| `/ae-ideate`、`/ae-brainstorm`、`/ae-work-report`、`/ae-setup`、`/ae-handoff`、`/ae-sql`、`/ae-swagger-parser`、`/ae-save-experience`、`/ae-skill-from-session`、`/ae-update`、`/ae-ideate-po`、`/ae-brainstorm-po`、`/ae-ideate-pa`、`/ae-brainstorm-pa` | `standard` |
+| `/ae-document-review`、`/ae-plan`、`/ae-refactor`、`/ae-work`、`/ae-merge-branch`、`/ae-review`、`/ae-lfg`、`/ae-doc-humanize`、`/ae-doc-structure`、`/ae-task-loop`、`/ae-plan-po`、`/ae-refactor-po`、`/ae-work-po`、`/ae-lfg-po`、`/ae-plan-pa`、`/ae-refactor-pa`、`/ae-work-pa`、`/ae-lfg-pa` | `deep` |
 | `/ae-prompt-optimize`、`/ae-prompt-optimize-auto`、`/ae-help` | `quick` |
 | `/ae-test-browser`、`/ae-frontend-design`、`/ae-frontend-design-po`、`/ae-frontend-design-pa` | `vision` |
-| `/ae-agent-creator`、`/ae-skill-creator`、`/ae-agent-creator-po`、`/ae-agent-creator-pa` | 继承 opencode 当前默认模型 |
+| `/ae-agent-creator`、`/ae-skill-creator` | 继承 opencode 当前默认模型 |
 | `@repo-research-analyst`、`@web-researcher` | `standard` |
 | `@design-iterator`、`@figma-design-sync` | `vision` |
 | 其他内置代理 | `deep`（默认） |

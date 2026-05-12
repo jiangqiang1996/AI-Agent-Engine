@@ -49,8 +49,8 @@ describe('help-catalog-service 集成', () => {
 
     expect(text).toContain(SKILL.WORK_REPORT)
     expect(text).toContain(`/${COMMAND.WORK_REPORT}`)
-    expect(text).toContain(`/${COMMAND.WORK_REPORT}${PO_SUFFIX}`)
-    expect(text).toContain(`/${COMMAND.WORK_REPORT}${PA_SUFFIX}`)
+    expect(text).not.toContain(`/${COMMAND.WORK_REPORT}${PO_SUFFIX}`)
+    expect(text).not.toContain(`/${COMMAND.WORK_REPORT}${PA_SUFFIX}`)
     expect(text).toContain('[日报\\|周报\\|时间段\\|提交范围]')
     expect(text).toContain('生成日报、周报或指定时间段工作总结')
   })
@@ -61,14 +61,14 @@ describe('help-catalog-service 集成', () => {
 
     expect(humanizeText).toContain(SKILL.DOC_HUMANIZE)
     expect(humanizeText).toContain(`/${COMMAND.DOC_HUMANIZE}`)
-    expect(humanizeText).toContain(`/${COMMAND.DOC_HUMANIZE}${PO_SUFFIX}`)
-    expect(humanizeText).toContain(`/${COMMAND.DOC_HUMANIZE}${PA_SUFFIX}`)
+    expect(humanizeText).not.toContain(`/${COMMAND.DOC_HUMANIZE}${PO_SUFFIX}`)
+    expect(humanizeText).not.toContain(`/${COMMAND.DOC_HUMANIZE}${PA_SUFFIX}`)
     expect(humanizeText).toContain('[需求文档路径\\|计划文档路径\\|目录路径]')
 
     expect(structureText).toContain(SKILL.DOC_STRUCTURE)
     expect(structureText).toContain(`/${COMMAND.DOC_STRUCTURE}`)
-    expect(structureText).toContain(`/${COMMAND.DOC_STRUCTURE}${PO_SUFFIX}`)
-    expect(structureText).toContain(`/${COMMAND.DOC_STRUCTURE}${PA_SUFFIX}`)
+    expect(structureText).not.toContain(`/${COMMAND.DOC_STRUCTURE}${PO_SUFFIX}`)
+    expect(structureText).not.toContain(`/${COMMAND.DOC_STRUCTURE}${PA_SUFFIX}`)
     expect(structureText).toContain('[需求文档路径\\|详细设计文档路径]')
   })
 
