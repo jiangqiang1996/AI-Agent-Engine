@@ -13,7 +13,7 @@ import {
   hasPromptOptimizeVariant,
 } from '../schemas/ae-asset-schema.js'
 
-const PHASE_ONE_ENTRIES = [
+const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   {
     skillName: SKILL.IDEATE,
     skillSlug: skillDir(SKILL.IDEATE),
@@ -281,10 +281,10 @@ const PHASE_ONE_ENTRIES = [
     defaultEntry: false,
     skillFile: `src/assets/skills/${skillDir(SKILL.UPDATE)}/SKILL.md`,
   },
-] satisfies AeAssetEntry[]
+]
 
 const PHASE_ONE_PO_ENTRIES: AeAssetEntry[] = PHASE_ONE_ENTRIES
-  .filter((e) => hasPromptOptimizeVariant(e.skillName))
+  .filter((e) => e.allowPromptOptimizeVariant !== false && hasPromptOptimizeVariant(e.skillName))
   .map((e) => ({
     skillName: SKILL.PROMPT_OPTIMIZE,
     skillSlug: skillDir(SKILL.PROMPT_OPTIMIZE),
@@ -296,7 +296,7 @@ const PHASE_ONE_PO_ENTRIES: AeAssetEntry[] = PHASE_ONE_ENTRIES
   } satisfies AeAssetEntry))
 
 const PHASE_ONE_PA_ENTRIES: AeAssetEntry[] = PHASE_ONE_ENTRIES
-  .filter((e) => hasPromptOptimizeVariant(e.skillName))
+  .filter((e) => e.allowPromptOptimizeVariant !== false && hasPromptOptimizeVariant(e.skillName))
   .map((e) => ({
     skillName: SKILL.PROMPT_OPTIMIZE,
     skillSlug: skillDir(SKILL.PROMPT_OPTIMIZE),

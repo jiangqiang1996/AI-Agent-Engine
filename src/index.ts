@@ -22,6 +22,7 @@ import { createRuntimeAssetManifest } from './services/runtime-asset-manifest.js
 import { registerSkillsPath } from './services/skills-path-service.js'
 import { createToolRegistry } from './tools/index.js'
 import { setGlobalClient } from './services/client-holder.js'
+import { dedupeCommandFileArgumentParts } from './services/command-file-argument-dedupe-service.js'
 
 interface RuntimeConfigShape {
   command?: Record<string, {
@@ -136,6 +137,9 @@ const plugin: PluginModule = {
       },
       'experimental.chat.system.transform': async (_input, output) => {
         await injectBuiltinRulesIntoSystem(manifest, output)
+      },
+'command.execute.before': async (_input, output) => {
+        dedupeCommandFileArgumentParts(output.parts)
       },
       tool: createToolRegistry(),
     }

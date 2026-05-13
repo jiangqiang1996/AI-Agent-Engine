@@ -64,9 +64,13 @@ export function hasPromptOptimizeVariant(skillName: string): boolean {
 
 type SkillToCommand<S extends string> = S extends `ae:${infer R}` ? `ae-${R}` : S
 
-export const COMMAND = Object.fromEntries(
+const SKILL_COMMANDS = Object.fromEntries(
   Object.entries(SKILL).map(([k, v]) => [k, v.replace(/^ae:/, 'ae-')]),
 ) as { readonly [K in keyof typeof SKILL]: SkillToCommand<(typeof SKILL)[K]> }
+
+export const COMMAND = {
+  ...SKILL_COMMANDS,
+} as const
 
 export const AGENT = {
   CORRECTNESS_REVIEWER: 'correctness-reviewer',
@@ -154,11 +158,11 @@ export const AeSkillNameSchema = z
   ])
   .describe('AE 技能名')
 
-const PO_COMMAND_NAMES = Object.values(COMMAND)
+const PO_COMMAND_NAMES = Object.values(SKILL_COMMANDS)
   .filter((v) => hasPromptOptimizeVariant(v.replace(/^ae-/, 'ae:')))
   .map((v) => `${v}${PO_SUFFIX}`)
 
-const PA_COMMAND_NAMES = Object.values(COMMAND)
+const PA_COMMAND_NAMES = Object.values(SKILL_COMMANDS)
   .filter((v) => hasPromptOptimizeVariant(v.replace(/^ae-/, 'ae:')))
   .map((v) => `${v}${PA_SUFFIX}`)
 
@@ -182,6 +186,7 @@ export const AeAssetEntrySchema = z.object({
   defaultEntry: z.boolean().default(false).describe('是否默认入口'),
   skillFile: z.string().describe('技能文件路径，无关联技能时为空字符串'),
   customTemplate: z.string().optional().describe('自定义命令模板，command-registration.ts 优先于默认模板使用'),
+  allowPromptOptimizeVariant: z.boolean().optional().describe('是否生成 -po/-pa 命令变体'),
 })
 
 export const AgentStageSchema = z
