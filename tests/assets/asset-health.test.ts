@@ -134,12 +134,16 @@ describe('资产健康巡检', () => {
     expect(commandConfig[`${COMMAND.DOC_HUMANIZE}-pa`], 'asset-health/prompt-variant/command/ae-doc-humanize-pa').toBeUndefined()
     expect(commandConfig[`${COMMAND.DOC_STRUCTURE}-po`], 'asset-health/prompt-variant/command/ae-doc-structure-po').toBeUndefined()
     expect(commandConfig[`${COMMAND.DOC_STRUCTURE}-pa`], 'asset-health/prompt-variant/command/ae-doc-structure-pa').toBeUndefined()
-    expect(commandConfig[`${COMMAND.TASK_LOOP}-po`], 'asset-health/prompt-variant/command/ae-task-loop-po').toBeUndefined()
-    expect(commandConfig[`${COMMAND.TASK_LOOP}-pa`], 'asset-health/prompt-variant/command/ae-task-loop-pa').toBeUndefined()
+    expect(commandConfig[`${COMMAND.TASK_LOOP}-po`], 'asset-health/prompt-variant/command/ae-task-loop-po').toBeDefined()
+    expect(commandConfig[`${COMMAND.TASK_LOOP}-pa`], 'asset-health/prompt-variant/command/ae-task-loop-pa').toBeDefined()
     expect(commandConfig[`${COMMAND.GRAPH_BUILD}-po`], 'asset-health/prompt-variant/command/ae-graph-build-po').toBeUndefined()
     expect(commandConfig[`${COMMAND.GRAPH_BUILD}-pa`], 'asset-health/prompt-variant/command/ae-graph-build-pa').toBeUndefined()
     expect(commandConfig[`${COMMAND.GRAPH_QUERY}-po`], 'asset-health/prompt-variant/command/ae-graph-query-po').toBeUndefined()
     expect(commandConfig[`${COMMAND.GRAPH_QUERY}-pa`], 'asset-health/prompt-variant/command/ae-graph-query-pa').toBeUndefined()
+    expect(buildCommandConfig(join(process.cwd(), 'src/assets/commands'))['ae-work-continue'], 'asset-health/disk-command/command/ae-work-continue').toBeDefined()
+    expect(commandConfig['ae-work-continue'], 'asset-health/catalog-command/command/ae-work-continue').toBeUndefined()
+    expect(commandConfig['ae-work-continue-po'], 'asset-health/prompt-variant/command/ae-work-continue-po').toBeUndefined()
+    expect(commandConfig['ae-work-continue-pa'], 'asset-health/prompt-variant/command/ae-work-continue-pa').toBeUndefined()
   })
 
   it('应该保持代理定义与 src/assets/agents 文件一致', () => {
@@ -302,6 +306,7 @@ describe('资产健康巡检', () => {
       COMMAND.BRAINSTORM,
       COMMAND.PLAN,
       COMMAND.WORK,
+      'ae-work-continue',
       COMMAND.REFACTOR,
       COMMAND.REVIEW,
       COMMAND.DOC_HUMANIZE,

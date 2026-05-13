@@ -65,6 +65,7 @@ describe('worktree-handoff-generator', () => {
       expect(canonicalContinuePrompt).toContain('请打开目标 B worktree 对应的工作空间')
       expect(canonicalContinuePrompt).toContain('在该工作空间中启动 opencode')
       expect(canonicalContinuePrompt).toContain('ae:work')
+      expect(canonicalContinuePrompt).toContain('\n')
     })
 
     it('Continue Prompt 只出现一次', () => {
@@ -190,6 +191,9 @@ describe('worktree-handoff-generator', () => {
       expect(result.filePath).toMatch(/worktree-handoff\.md$/)
       expect(result.canonicalContinuePrompt).toContain('请打开目标 B worktree 对应的工作空间')
       expect(result.canonicalContinuePrompt).toContain('在该工作空间中启动 opencode')
+      expect(result.userInstruction).toContain('执行已转移到新的 B worktree')
+      expect(result.userInstruction).toContain('/ae-work-continue')
+      expect(result.userInstruction).not.toContain('验证要求：')
 
       const content = readFileSync(result.filePath, 'utf-8')
       expect(content).toContain('type: worktree-handoff')

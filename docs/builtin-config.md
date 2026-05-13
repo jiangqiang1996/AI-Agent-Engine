@@ -133,7 +133,7 @@ remote MCP 的最终 URL 当前允许 `http` / `https`，建议优先使用 `htt
 | --- | --- | --- |
 | `quick` | 快速响应（`/ae-help`、`/ae-prompt-optimize`） | 低延迟、低成本 |
 | `standard` | 常规任务（`/ae-ideate`、`/ae-brainstorm`、`/ae-sql`） | 平衡性能与质量 |
-| `deep` | 深度推理（`/ae-plan`、`/ae-work`、`/ae-review`、`/ae-lfg`） | 强推理、长上下文 |
+| `deep` | 深度推理（`/ae-plan`、`/ae-work`、`/ae-review`、`/ae-lfg`，以及声明 `model: $deep` 的 Markdown 命令） | 强推理、长上下文 |
 | `vision` | 视觉任务（`/ae-test-browser`、`/ae-frontend-design`） | 支持图片输入 |
 
 允许使用自定义场景键，但 AE 内置资产首版只依赖上述四个稳定场景。
@@ -203,7 +203,7 @@ model: $deep
 | 资产 | 场景 |
 | --- | --- |
 | `/ae-ideate`、`/ae-brainstorm`、`/ae-agent-creator`、`/ae-work-report`、`/ae-setup`、`/ae-handoff`、`/ae-sql`、`/ae-swagger-parser`、`/ae-graph-build`、`/ae-save-experience`、`/ae-skill-from-session`、`/ae-skill-creator`、`/ae-update`、`/ae-ideate-po`、`/ae-brainstorm-po`、`/ae-ideate-pa`、`/ae-brainstorm-pa` | `standard` |
-| `/ae-document-review`、`/ae-plan`、`/ae-refactor`、`/ae-work`、`/ae-merge-branch`、`/ae-review`、`/ae-lfg`、`/ae-doc-humanize`、`/ae-doc-structure`、`/ae-task-loop`、`/ae-plan-po`、`/ae-refactor-po`、`/ae-work-po`、`/ae-lfg-po`、`/ae-plan-pa`、`/ae-refactor-pa`、`/ae-work-pa`、`/ae-lfg-pa` | `deep` |
+| `/ae-document-review`、`/ae-plan`、`/ae-refactor`、`/ae-work`、`/ae-merge-branch`、`/ae-review`、`/ae-lfg`、`/ae-doc-humanize`、`/ae-doc-structure`、`/ae-task-loop`、`/ae-plan-po`、`/ae-refactor-po`、`/ae-work-po`、`/ae-lfg-po`、`/ae-task-loop-po`、`/ae-plan-pa`、`/ae-refactor-pa`、`/ae-work-pa`、`/ae-lfg-pa`、`/ae-task-loop-pa` | `deep` |
 | `/ae-prompt-optimize`、`/ae-prompt-optimize-auto`、`/ae-graph-query`、`/ae-help` | `quick` |
 | `/ae-test-browser`、`/ae-frontend-design`、`/ae-frontend-design-po`、`/ae-frontend-design-pa` | `vision` |
 | `@repo-research-analyst`、`@web-researcher` | `standard` |

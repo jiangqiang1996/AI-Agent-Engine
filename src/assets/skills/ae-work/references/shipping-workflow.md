@@ -88,7 +88,7 @@
 - 仅来自用户口头确认、工具参数或代理自述的内容，必须放入"未验证 / 无法验证"或"Git 操作状态"。
 - 当前 worktree 已完成执行后，不输出独立的"下一步"或"后续操作"章节；若需要用户动作，只能在对应分区用一句话说明必要动作。
 - A 会话执行 `git worktree add`、迁移当前任务需求/计划/设计执行基线文件，并调用 `ae-worktree-handoff` 工具生成交接 Markdown 成功后，终止状态是"执行已转移 / 等待用户在 B 重启"，不是“功能交付完成”；A 不运行最终门禁来宣称功能交付。
-- A 的终止提示必须包含目标 B 路径、交接 Markdown 路径，并逐字使用 `ae-worktree-handoff` 工具返回的 `canonical_continue_prompt`；不得自行改写或重组该提示词。
+- A 的终止提示必须包含目标 B 路径、交接 Markdown 路径，并逐字使用 `ae-worktree-handoff` 工具返回的简短交接提示；不得把完整 `canonical_continue_prompt` 直接贴到最终回复中。完整 Continue Prompt 只保留在交接文件中，B worktree 通过 `/ae-work-continue` 读取并继续。
 - 问答和只读审查可使用更轻量的对应输出，不强制套用整份模板。
 
 ## 阶段 4：交付

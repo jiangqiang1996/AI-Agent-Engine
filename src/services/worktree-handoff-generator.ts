@@ -26,6 +26,7 @@ export interface WorktreeHandoffInput {
 export interface WorktreeHandoffOutput {
   filePath: string
   canonicalContinuePrompt: string
+  userInstruction: string
 }
 
 function validateInput(input: WorktreeHandoffInput): string | null {
@@ -93,7 +94,22 @@ function buildCanonicalContinuePrompt(
   parts.push(`${input.execution_baseline}`)
   parts.push(`验证要求：${input.verification_requirements}`)
   parts.push('实现完成后进行代码审查或记录无法审查原因，并调用 ae-gate workflow:work checkpoint:final。')
-  return parts.join('')
+  return parts.join('\n')
+}
+
+function buildUserInstruction(input: WorktreeHandoffInput, handoffRelPath: string): string {
+  return [
+    '执行已转移到新的 B worktree。',
+    '',
+    `目标工作空间：${input.target_worktree}`,
+    `交接文件：${handoffRelPath}`,
+    '',
+    '请在目标工作空间中启动 opencode，然后执行：',
+    '',
+    '```text',
+    '/ae-work-continue',
+    '```',
+  ].join('\n')
 }
 
 function buildFrontmatter(input: WorktreeHandoffInput): string {
@@ -223,6 +239,7 @@ export async function writeHandoffFile(
     return {
       filePath: absPath,
       canonicalContinuePrompt: result.canonicalContinuePrompt,
+      userInstruction: buildUserInstruction(input, result.handoffRelPath),
     }
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)

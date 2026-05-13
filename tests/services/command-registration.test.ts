@@ -17,6 +17,7 @@ import { parseFrontmatter } from '../../src/utils/frontmatter.js'
 
 const tempRoots: string[] = []
 const COMMIT_COMMAND = 'ae-commit'
+const WORK_CONTINUE_COMMAND = 'ae-work-continue'
 
 function createTempRoot(): string {
   const root = mkdtempSync(join(tmpdir(), 'ae-command-'))
@@ -68,6 +69,18 @@ describe('command-registration', () => {
     expect(config[paCommand]?.template).toContain(`使用 \`${SKILL.REFACTOR}\` 技能处理这次请求`)
   })
 
+  it('应该从磁盘命令注册 worktree 续执行命令且不生成提示词优化变体', () => {
+    const config = buildCommandConfig(join(process.cwd(), 'src/assets/commands'))
+
+    expect(getPhaseOneEntries().map((entry) => entry.commandName)).not.toContain(WORK_CONTINUE_COMMAND)
+    expect(config[WORK_CONTINUE_COMMAND]).toBeDefined()
+    expect(config[WORK_CONTINUE_COMMAND]?.template).toContain('docs/ae/handoffs/*-worktree-handoff.md')
+    expect(config[WORK_CONTINUE_COMMAND]?.template).toContain('如果找到多个交接文件')
+    expect(config[WORK_CONTINUE_COMMAND]?.template).toContain('不得按裸提示词处理')
+    expect(config[`${WORK_CONTINUE_COMMAND}${PO_SUFFIX}`]).toBeUndefined()
+    expect(config[`${WORK_CONTINUE_COMMAND}${PA_SUFFIX}`]).toBeUndefined()
+  })
+
   it('应该为文档互转技能只生成基础命令', () => {
     const config = buildCommandConfig('__missing_commands_dir__')
 
@@ -90,7 +103,6 @@ describe('command-registration', () => {
     for (const [skillName, commandName] of [
       [SKILL.AGENT_CREATOR, COMMAND.AGENT_CREATOR],
       [SKILL.WORK_REPORT, COMMAND.WORK_REPORT],
-      [SKILL.TASK_LOOP, COMMAND.TASK_LOOP],
       [SKILL.GRAPH_BUILD, COMMAND.GRAPH_BUILD],
       [SKILL.GRAPH_QUERY, COMMAND.GRAPH_QUERY],
     ] as const) {
@@ -98,6 +110,16 @@ describe('command-registration', () => {
       expect(config[`${commandName}${PO_SUFFIX}`]).toBeUndefined()
       expect(config[`${commandName}${PA_SUFFIX}`]).toBeUndefined()
     }
+  })
+
+  it('应该为 ae:task-loop 生成提示词优化命令', () => {
+    const config = buildCommandConfig('__missing_commands_dir__')
+
+    expect(config[COMMAND.TASK_LOOP]).toBeDefined()
+    expect(config[`${COMMAND.TASK_LOOP}${PO_SUFFIX}`]).toBeDefined()
+    expect(config[`${COMMAND.TASK_LOOP}${PA_SUFFIX}`]).toBeDefined()
+    expect(config[`${COMMAND.TASK_LOOP}${PO_SUFFIX}`]?.template).toContain(`使用 \`${SKILL.TASK_LOOP}\` 技能处理这次请求`)
+    expect(config[`${COMMAND.TASK_LOOP}${PA_SUFFIX}`]?.template).toContain('auto 模式')
   })
 
   it('应该为 ae:swagger-parser 只生成基础命令', () => {

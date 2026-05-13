@@ -4,6 +4,12 @@ import { AeCommandNameSchema, AeSkillNameSchema, COMMAND, PA_SUFFIX, PO_SUFFIX, 
 import { createToolRegistry } from '../../src/tools/index.js'
 
 describe('ae-asset-schema', () => {
+  it('worktree 续执行命令应该作为磁盘命令而不是技能 catalog 命令注册', () => {
+    expect(AeCommandNameSchema.safeParse('ae-work-continue').success).toBe(false)
+    expect(AeCommandNameSchema.safeParse(`ae-work-continue${PO_SUFFIX}`).success).toBe(false)
+    expect(AeCommandNameSchema.safeParse(`ae-work-continue${PA_SUFFIX}`).success).toBe(false)
+  })
+
   it('应该接受 skill-from-session 技能和命令', () => {
     expect(AeSkillNameSchema.parse(SKILL.SKILL_FROM_SESSION)).toBe('ae:skill-from-session')
     expect(AeCommandNameSchema.parse(COMMAND.SKILL_FROM_SESSION)).toBe('ae-skill-from-session')

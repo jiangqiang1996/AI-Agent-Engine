@@ -41,7 +41,7 @@ argument-hint: "[计划路径|工作描述]"
 - 如果调用方是 `ae:lfg` 或 `ae:task-loop`，固定按 `current-worktree` 执行，记录 `worktree_decision: rejected`，不得询问 worktree 模式、不得创建 worktree、不得把未传值补齐为 `auto`。
 - `/ae-lfg ae:work`、`ae:lfg ae:work`、`ae:task-loop ae:work`、`/ae-task-loop ae:work` 都必须归一化为上游编排器委派，按当前工作区执行。
 - A 会话创建 B worktree 后，不得继续实现；只能迁移当前任务已确定的需求/计划/设计产物，并调用 `ae-worktree-handoff` 工具生成交接文件；禁止自行拼接交接 Markdown。
-- `ae-worktree-handoff` 工具会按固定模板生成交接文件并返回 `canonical_continue_prompt`，A→B 启动证明的结构由工具保证，AI 只需填值。
+- `ae-worktree-handoff` 工具会按固定模板生成交接文件并返回 A 会话最终回复使用的简短交接提示；完整 `canonical_continue_prompt` 只保存在交接文件中，供 B worktree 的 `/ae-work-continue` 读取。A→B 启动证明的结构由工具保证，AI 只需填值。
 - A 会话转移完成后必须记录 `worktree_decision: transferred`，不得调用最终交付门禁，不得进入普通交付模板。
 - 执行后必须由主代理独立运行 Git diff/status 核验真实修改文件，不得只依赖子代理自报。
 - 正式交付前必须运行相关验证、完成代码审查或明确无法审查原因，并调用 `ae-gate workflow:work checkpoint:final`。

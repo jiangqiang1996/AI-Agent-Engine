@@ -69,7 +69,8 @@ export const aeWorktreeHandoffTool: ToolDefinition = tool({
     '',
     '功能说明：',
     '- 按规范模板生成交接 Markdown，结构由代码保证，AI 只需填值',
-    '- Continue Prompt 只出现一次（单一真源），通过返回值供 A 会话最后回复使用',
+    '- Continue Prompt 只出现一次（单一真源），保存在交接文件中供 B worktree 读取',
+    '- 返回简短交接提示，供 A 会话最后回复使用',
     '- A→B Startup Proof 按固定 schema 逐字段输出，不允许遗漏',
     '- source_session_id=unavailable 时强制要求 session_evidence',
     '- 自动创建目标目录并写入文件',
@@ -115,16 +116,17 @@ export const aeWorktreeHandoffTool: ToolDefinition = tool({
     lines.push('')
     lines.push('---')
     lines.push('')
-    lines.push('**A 会话最后回复必须逐字使用以下 canonical_continue_prompt：**')
+    lines.push('**A 会话最后回复必须逐字使用以下简短交接提示：**')
     lines.push('')
-    lines.push(result.canonicalContinuePrompt)
+    lines.push(result.userInstruction)
     lines.push('')
     lines.push('---')
     lines.push('')
     lines.push('交接后确认清单：')
     lines.push('1. 工具返回成功（本消息无错误提示）')
-    lines.push('2. A 会话最后回复逐字使用了上方 canonical_continue_prompt')
+    lines.push('2. A 会话最后回复逐字使用了上方简短交接提示')
     lines.push('3. 交接文件路径符合 docs/ae/handoffs/<timestamp>-worktree-handoff.md 格式')
+    lines.push('4. 完整 Continue Prompt 仅保留在交接文件中，供 B worktree 的 /ae-work-continue 读取')
 
     return lines.join('\n')
   },

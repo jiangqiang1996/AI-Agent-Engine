@@ -3,7 +3,6 @@
 .idea
 dist
 .opencode/package-lock.json
-.opencode/commands/
 .opencode/agents/ae/
 .opencode/plugins/*.js
 .opencode/tui-plugins/*.js

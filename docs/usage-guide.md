@@ -124,6 +124,7 @@
 
 | 命令 | 用途 | 边界 |
 | --- | --- | --- |
+| `/ae-work-continue` | 在 B worktree 查找交接文件并继续执行 `ae:work` | 仅用于 A→B worktree 转移后的目标工作空间；多个交接文件时先让用户选择 |
 | `/ae-commit` | 智能提交当前变更 | 只做本地提交；不等同于 push、PR、跳过 hooks 或改 Git 配置 |
 
 ## 命令变体
@@ -138,6 +139,7 @@
 | `/ae-refactor` | `/ae-refactor-po` | `/ae-refactor-pa` |
 | `/ae-work` | `/ae-work-po` | `/ae-work-pa` |
 | `/ae-lfg` | `/ae-lfg-po` | `/ae-lfg-pa` |
+| `/ae-task-loop` | `/ae-task-loop-po` | `/ae-task-loop-pa` |
 | `/ae-frontend-design` | `/ae-frontend-design-po` | `/ae-frontend-design-pa` |
 
 没有列出的命令不提供 `-po` 或 `-pa` 变体。
