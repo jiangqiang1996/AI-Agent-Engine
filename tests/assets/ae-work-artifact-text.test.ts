@@ -3,23 +3,26 @@ import { describe, expect, it } from 'vitest'
 
 const skillText = readFileSync('src/assets/skills/ae-work/SKILL.md', 'utf8')
 const shippingText = readFileSync('src/assets/skills/ae-work/references/shipping-workflow.md', 'utf8')
+const startupText = readFileSync('src/assets/skills/ae-work/references/startup-and-worktree-workflow.md', 'utf8')
 
 describe('ae:work 产物与交付文本契约', () => {
   it('应该把产物迁移边界落在技能文本而非仅靠 rules', () => {
     expect(skillText).toContain('worktree_decision')
-    expect(skillText).toContain('A→B 启动证明必须包含')
+    expect(startupText).toContain('A→B 启动证明必须包含')
     expect(skillText).toContain('不得调用最终交付门禁')
     expect(skillText).toContain('不得进入普通交付模板')
     expect(shippingText).toContain('A→B 产物迁移')
     expect(shippingText).toContain('不迁移 gate/review 运行时产物')
     expect(shippingText).toContain('不修改 B 中代码、配置、测试或其他项目文件')
-    expect(shippingText).toContain('当前任务已确定的需求/计划产物迁移到 B')
+    expect(shippingText).toContain('当前任务已确定执行基线中的具体需求/计划/设计文件迁移到 B')
+    expect(shippingText).toContain('在交接文件中逐一显式引用这些文件')
+    expect(shippingText).toContain('迁移当前任务需求/计划/设计执行基线文件')
   })
 
   it('应该要求创建 worktree 后输出交接文件和继续提示词', () => {
-    expect(skillText).toContain('A 会话只允许在 B 写入当前任务已确定的需求/计划产物')
-    expect(skillText).toContain('交接文件必须包含 `## Continue Prompt` 章节')
-    expect(skillText).toContain('A→B 启动证明必须包含')
+    expect(startupText).toContain('A 会话只允许在 B 写入当前任务已确定的需求/计划/设计产物')
+    expect(startupText).toContain('交接文件必须包含 `## Continue Prompt` 章节')
+    expect(startupText).toContain('A→B 启动证明必须包含')
     expect(shippingText).toContain('A→B 交接文件')
     expect(shippingText).toContain('docs/ae/handoffs/<timestamp>-worktree-handoff.md')
     expect(shippingText).toContain('A 的结束提示必须包含在 B 新会话读取该文件继续的提示词')
@@ -29,9 +32,9 @@ describe('ae:work 产物与交付文本契约', () => {
   })
 
   it('应该把 A 会话写入 B 的范围限定为启动交接产物', () => {
-    expect(skillText).toContain('创建 B 后，A 会话不得再写入 A worktree 的任何文件')
-    expect(skillText).toContain('只允许在 B 写入当前任务已确定的需求/计划产物')
-    expect(skillText).toContain('A→B 启动证明必须包含')
+    expect(startupText).toContain('创建 B 后，A 会话不得再写入 A worktree 的任何文件')
+    expect(startupText).toContain('只允许在 B 写入当前任务已确定的需求/计划/设计产物')
+    expect(startupText).toContain('A→B 启动证明必须包含')
     expect(shippingText).toContain('A 会话不得再写入 A worktree 的任何文件')
     expect(shippingText).toContain('不修改 B 中代码、配置、测试或其他项目文件')
   })
@@ -65,7 +68,7 @@ describe('ae:work 产物与交付文本契约', () => {
     expect(shippingText).toContain('执行已转移 / 等待用户在 B 重启')
     expect(shippingText).toContain('不是“功能交付完成”')
     expect(shippingText).toContain('A 会话的 `worktree_decision: transferred` 只表示执行已转移')
-    expect(shippingText).toContain('若当前 `ctx.worktree` 匹配 A→B 交接文件或启动证明中的目标 B worktree')
+    expect(shippingText).toContain('若当前可观察 worktree 匹配 A→B 交接文件或启动证明中的目标 B worktree')
     expect(shippingText).toContain('B 会话最终功能交付使用 `worktree_decision: created`')
     expect(shippingText).toContain('覆盖普通当前工作区场景的 `rejected`')
     expect(shippingText).toContain('`transferred` 和 `cancelled` 不得通过最终功能交付 gate')
@@ -73,13 +76,13 @@ describe('ae:work 产物与交付文本契约', () => {
 
   it('应该说明单独使用 ae:work 不默认 auto', () => {
     expect(shippingText).toContain('单独使用 `ae:work` 且未显式传入 `worktree`、`current-worktree`、`auto`')
-    expect(shippingText).toContain('必须明确询问是否创建新的 worktree')
+    expect(shippingText).toContain('必须按任务大小给出推荐并询问是否创建新的 worktree')
     expect(shippingText).toContain('不得默认采用 `auto`')
   })
 
   it('应该说明调用方默认透传 auto 而不是默认创建 worktree', () => {
     expect(shippingText).toContain('`ae:lfg` 或 `ae:task-loop` 调用 `ae:work`')
-    expect(shippingText).toContain('调用方未显式传入 `worktree`、`current-worktree`、`auto` 的情况下必须补齐并透传 `auto`')
+    expect(shippingText).toContain('禁止把未显式传入的模式补齐或透传为 `auto`')
     expect(shippingText).toContain('`--no-worktree` 仅作为兼容输入映射到 `current-worktree`')
     expect(shippingText).toContain('不再作为默认策略中心')
   })
@@ -90,5 +93,11 @@ describe('ae:work 产物与交付文本契约', () => {
     expect(shippingText).not.toContain('默认创建独立 worktree')
     expect(shippingText).not.toContain('显式声明不使用 worktree')
     expect(shippingText).not.toContain('未显式禁用 worktree')
+  })
+
+  it('应该保留部署后监控与验证交付分区', () => {
+    expect(shippingText).toContain('## 部署后监控与验证')
+    expect(shippingText).toContain('若任务涉及部署、运行时行为或上线后观察')
+    expect(shippingText).toContain('若本次不涉及部署或运行时监控，明确写“不适用”')
   })
 })

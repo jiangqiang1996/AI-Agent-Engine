@@ -1,0 +1,47 @@
+# 验证工作流
+
+本文件定义 `ae:work` 阶段 3 的真实变更核验和统一验证。
+
+## 真实变更核验
+
+执行完成后，主代理必须独立运行 Git diff/status 检查真实修改文件，不只依赖子代理自报。
+
+必须核验：
+
+- 真实修改文件是否都在任务允许文件、计划范围或用户明确授权范围内。
+- 是否存在跨任务文件冲突。
+- 是否存在共享配置、锁文件、迁移文件、测试夹具或公共契约的未授权修改。
+- 是否存在子代理声明未修改但 Git diff/status 显示已修改的文件。
+- 是否存在 A→B 转移语义下 A 会话继续写入 A worktree 或 B 中代码/配置/测试的违规行为。
+
+发现越权、污染修改或范围不明时，停止并请求用户决策，不得自动覆盖或回滚。
+
+## 统一验证
+
+根据计划、任务分析输出和实际变更选择验证命令。验证结果只能基于可观察命令输出、工具输出或文件状态。
+
+优先运行：
+
+- 计划中声明的验证命令。
+- 受影响模块的测试。
+- 与 Markdown 资产相关的资产健康测试。
+- TypeScript 改动对应的 typecheck 或构建。
+
+无安全子代理验证命令时，由主代理执行统一验证。无法运行某项验证时，必须记录具体原因和风险，不得把未运行项写入已验证。
+
+## 输出契约
+
+本阶段必须输出 `verification_result`：
+
+```json
+{
+  "changed_files_verified": true,
+  "unauthorized_changes": [],
+  "validation_commands": ["实际运行的命令"],
+  "validation_summary": "命令结果摘要",
+  "blocked": false,
+  "blockers": []
+}
+```
+
+`verification_result` 和实际 `validation_commands` 必须传递给 `references/shipping-workflow.md`，也可供上游 `ae:lfg` before_review/final gate 消费。

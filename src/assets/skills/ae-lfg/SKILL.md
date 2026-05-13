@@ -12,7 +12,7 @@ disable-model-invocation: true
 
 ## 静默执行原则
 
-`ae:lfg` 的默认体验是：除了一开始为澄清目标、确认关键约束、确认 worktree 模式和 Git 写操作授权范围进行少量询问之外，后续尽可能静默执行到结束。不得在每个阶段重复询问“是否继续”。只有以下情况才允许中途停下询问：需求或验收标准仍不明确、用户授权范围不足以覆盖即将执行的 Git 写操作、发现安全/数据/破坏性风险、计划或审查出现必须由用户决策的 P0/P1 分歧、验证环境需要用户提供外部信息。
+`ae:lfg` 的默认体验是：除了一开始为澄清目标、确认关键约束和 Git 写操作授权范围进行少量询问之外，后续尽可能静默执行到结束。不得在每个阶段重复询问“是否继续”。`ae:lfg` 调用 `ae:work` 时固定当前工作区执行，不询问 worktree 模式、不创建 worktree。只有以下情况才允许中途停下询问：需求或验收标准仍不明确、用户授权范围不足以覆盖即将执行的 Git 写操作、发现安全/数据/破坏性风险、计划或审查出现必须由用户决策的 P0/P1 分歧、验证环境需要用户提供外部信息。
 
 ## 输入
 
@@ -62,7 +62,7 @@ disable-model-invocation: true
 
 运行 `ae:brainstorm $ARGUMENTS`
 
-在需求探索阶段一次性收集后续静默执行所需的关键决策：目标、范围边界、验收标准、可接受的验证方式，以及 worktree 模式和 Git 写操作授权边界。仅从 `$ARGUMENTS` 或用户主动提出的约束中识别显式 worktree 模式：`worktree`、`current-worktree`、`auto`；未识别到三值时默认补齐为 `auto`。兼容输入 `--no-worktree` 或明确写明“不使用 worktree”映射为 `current-worktree`。
+在需求探索阶段一次性收集后续静默执行所需的关键决策：目标、范围边界、验收标准、可接受的验证方式，以及 Git 写操作授权边界。`ae:lfg` 不收集、不询问、不透传 worktree 模式；调用 `ae:work` 时固定当前工作区执行。兼容输入 `--no-worktree` 或明确写明“不使用 worktree”时，也只作为当前工作区执行的同义约束记录。
 
 **门控：** 验证 `ae:brainstorm` 产出了需求文档（`docs/ae/brainstorms/*-requirements.md`）。如果未产出且需求已经足够清晰，继续。如果需求模糊且未产出文档，重新运行 `ae:brainstorm $ARGUMENTS`。在继续步骤 3 之前，**必须**有足够的产物流入计划阶段。
 
@@ -94,15 +94,15 @@ disable-model-invocation: true
 
 先运行 `ae-gate workflow:lfg checkpoint:before_work plan_path:<plan-path-from-step-4>`。门禁通过后再继续。
 
-在调用 `ae:work` 前应用 `ae:lfg` worktree 模式透传策略：显式 `worktree`、`current-worktree`、`auto` 原样传递；未显式时传递 `auto`；兼容输入 `--no-worktree` 或“不使用 worktree”映射为 `current-worktree`。`ae:lfg` 不维护独立 worktree 推荐逻辑，由 `ae:work` 统一解释模式、推荐依据和安全降级。Git 写操作授权应尽量在前置澄清阶段一次性取得，执行前只校验实际命令仍落在已授权范围内，避免中途重复询问。
+在调用 `ae:work` 前应用 `ae:lfg` 固定当前工作区策略：不透传 `worktree` 或 `auto`，不询问 worktree 模式，不创建 worktree；若用户输入包含 `--no-worktree` 或“不使用 worktree”，按当前工作区执行记录。Git 写操作授权应尽量在前置澄清阶段一次性取得，执行前只校验实际命令仍落在已授权范围内，避免中途重复询问。
 
-运行 `ae:work`，并明确传递本次来自 `ae:lfg` 的 worktree 模式：`worktree`、`current-worktree` 或 `auto`。未显式指定时必须写明“worktree 模式：auto”。
+运行 `ae:work`，并明确写明“来自 `ae:lfg`，固定当前工作区执行；不得询问 worktree 模式，不得创建 worktree”。
 
-如果 `ae:work` 创建了 B worktree 并返回 `worktree_decision: transferred`，当前 A 会话必须停止主管道：只输出 B worktree 路径、已迁移产物、交接 Markdown 路径和在 B 目录新开 opencode 的继续提示词。不得继续步骤 7、步骤 8 或最终功能交付 gate；后续代码审查、浏览器测试和最终交付必须在 B 会话中完成。
+如果 `ae:work` 在 `ae:lfg` 固定当前工作区策略下仍返回 `worktree_decision: transferred`，视为协议异常并立即停止主管道：报告 `ae:lfg` 不允许本次 `ae:work` 创建或转移 worktree，不得继续步骤 7、步骤 8 或最终功能交付 gate。
 
 如果 `ae:work` 返回 `worktree_decision: cancelled`，当前主管道立即停止：只输出取消状态、已完成/未完成项和不运行后续步骤或最终功能交付 gate 的说明。
 
-**门控：** 验证实现工作已执行——超出计划范围的文件被创建或修改。**如果没有代码变更，不得继续步骤 7。**
+**门控：** 验证实现工作已执行——存在与计划执行范围一致的文件创建或修改，并确认没有未授权的范围外变更。**如果没有代码变更，不得继续步骤 7；如果存在范围外变更，必须先说明、修复或取得用户确认。**
 
 ### 步骤 7：代码审查
 

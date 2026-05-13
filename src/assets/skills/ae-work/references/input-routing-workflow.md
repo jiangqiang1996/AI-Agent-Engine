@@ -1,0 +1,68 @@
+# 输入分流工作流
+
+本文件定义 `ae:work` 阶段 0。执行前必须先读取 `SKILL.md` 中的硬性门禁。
+
+## 输入类型
+
+### worktree 交接输入
+
+输入为 `docs/ae/handoffs/*-worktree-handoff.md`，或 Continue Prompt 明确当前目录是目标 B worktree 并引用规范交接文件时，进入 B worktree 续执行路径。
+
+只读取交接文件及其引用的需求/计划/设计产物作为已确定执行基线，不重新审查、深化或转换需求、设计或计划，不触发 `ae:brainstorm`、`ae:plan`、`ae:review domain:document`、`ae:doc-structure` 或 `ae:doc-humanize`。
+
+除非交接文件缺失、引用路径不存在、可观察的当前目录或 `git rev-parse --show-toplevel` 输出与目标 B worktree 不一致，或用户明确要求重新审查，否则直接进入任务分析和阶段 2 执行。
+
+### 计划文档
+
+输入为路径时，视为计划文档。进入阶段 1，并先分析计划中的工作单元、依赖关系、文件范围和验证要求，识别可并行执行的单元。
+
+### 裸提示词
+
+输入为工作描述时，先只读定位：识别可能变更的文件、查找测试文件、记录本地模式。此阶段只允许读取和搜索，不允许先改文件。
+
+裸提示词不默认调用重型扫描工具；先用只读定位结果列出最小任务、预估影响文件数、验证命令和是否存在共享文件。只有当文件范围无法判断、任务边界明显跨模块，或需要并行安全矩阵时，才升级到任务分析工具。
+
+任务大小路由：
+
+| 任务大小 | 信号 | 操作 |
+|----------|------|------|
+| 小任务 | 明确 bug、单点故障、范围可控、预估影响文件不超过 2 个 | 记录定位证据、升级判断和无需计划原因后进入阶段 1；询问 worktree 时推荐当前工作区执行 |
+| 大任务 | 需要多个步骤协作、跨模块、架构决策、需求模糊，或预估影响 3 个及以上文件 | 构建任务列表，标注依赖、文件范围和验证要求后进入阶段 1；询问 worktree 时推荐创建新 worktree 执行 |
+
+出现以下任一信号时，不再继续轻路径，转入计划流程：
+
+- 无法稳定列出影响文件范围
+- 涉及认证、授权、数据迁移、外部 API 或 API 契约
+- 引入新抽象或修改公共配置
+- 需要新增流程或用户可见行为决策
+- 需求在定位后仍不清晰，无法给出稳定验收标准
+
+### 上游编排器委派
+
+以下输入必须归一化为上游编排器委派，并固定当前工作区执行：
+
+- `/ae-lfg ae:work`
+- `ae:lfg ae:work`
+- `ae:task-loop ae:work`
+- `/ae-task-loop ae:work`
+
+来源为 `ae:lfg` 或 `ae:task-loop` 时，`worktree_policy` 必须为 `current-worktree`，`interaction_policy` 必须禁止 worktree 询问，后续不得创建 worktree，不得把未传值补齐为 `auto`。
+
+## 输出契约
+
+阶段 0 必须输出 `work_intent`：
+
+```json
+{
+  "origin": "standalone|ae:lfg|ae:task-loop|worktree-handoff",
+  "input_type": "plan_path|prompt|worktree_handoff|delegated_skill",
+  "delegated_skill": "ae:work|null",
+  "worktree_policy": "ask|current-worktree|worktree|auto|handoff-created",
+  "interaction_policy": "interactive|non_interactive_current_worktree|handoff_resume",
+  "routing_decision": "plan|light_prompt|upgrade_to_plan|resume_handoff",
+  "task_size": "small|large|unknown",
+  "routing_evidence": ["只读定位或上游委派证据"]
+}
+```
+
+若无法确定输入类型，停止并询问最小澄清问题，不得开始修改文件。

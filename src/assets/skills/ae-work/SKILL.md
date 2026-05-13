@@ -16,209 +16,75 @@ argument-hint: "[计划路径|工作描述]"
 
 <input_document> #$ARGUMENTS </input_document>
 
+## 编排原则
+
+`ae:work` 是唯一公开工作执行入口。`references/` 下的子流程文件只是内部执行说明，不是独立技能，不提供命令，也不能绕过本入口、worktree 决策、验证、审查或最终门禁。
+
+执行时必须按顺序读取并执行以下子流程：
+
+1. `references/input-routing-workflow.md`：识别输入类型、委派来源和任务大小。
+2. `references/startup-and-worktree-workflow.md`：完成 Git 状态检查、worktree 决策和 A→B 交接处理。
+3. `references/task-analysis-workflow.md`：分析任务、构建待办和选择执行策略。
+4. `references/execution-workflow.md`：执行实现、串行/并行调度、失败处理和进度跟踪。
+5. `references/verification-workflow.md`：核验真实变更范围、越权修改和统一验证结果。
+6. `references/shipping-workflow.md`：完成代码审查、最终 gate 和交付模板。
+
+并行执行子代理只能通过 `references/execution-workflow.md` 引用 `references/work-subagent-template.md` 构建提示。
+
+## 硬性门禁
+
+以下规则不得只依赖 reference 文件记忆，执行中必须持续满足：
+
+- 修改任何项目文件之前，必须完成输入分流、Git 状态检查和 worktree 决策。
+- 必须实际运行并记录 `git status --short`、`git branch --show-current`、`git log --oneline -1`。
+- 单独使用 `ae:work` 且未显式传入 `worktree`、`current-worktree`、`auto` 时，必须按任务大小向用户询问执行位置，不得自行默认 `auto`。
+- 如果调用方是 `ae:lfg` 或 `ae:task-loop`，固定按 `current-worktree` 执行，记录 `worktree_decision: rejected`，不得询问 worktree 模式、不得创建 worktree、不得把未传值补齐为 `auto`。
+- `/ae-lfg ae:work`、`ae:lfg ae:work`、`ae:task-loop ae:work`、`/ae-task-loop ae:work` 都必须归一化为上游编排器委派，按当前工作区执行。
+- A 会话创建 B worktree 后，不得继续实现；只能迁移当前任务已确定的需求/计划/设计产物并写入 `docs/ae/handoffs/<timestamp>-worktree-handoff.md`。
+- A→B 启动证明必须包含 `source_session_id`、A 的可观察 worktree 路径、`target_worktree`、branch、HEAD、授权来源、授权覆盖范围、`covered_command_args`、`final_command_args`、创建结果、已迁移产物清单、需求/计划/设计执行基线声明和完整继续提示词。
+- A 会话转移完成后必须记录 `worktree_decision: transferred`，不得调用最终交付门禁，不得进入普通交付模板。
+- 执行后必须由主代理独立运行 Git diff/status 核验真实修改文件，不得只依赖子代理自报。
+- 正式交付前必须运行相关验证、完成代码审查或明确无法审查原因，并调用 `ae-gate workflow:work checkpoint:final`。
+- `ae-gate` 阻断时必须先补齐阻断项，不得宣称交付完成。
+
 ## 执行工作流
 
 ### 阶段 0：输入分流
 
-**计划文档**（输入为路径）→ 跳至阶段 1，并先分析计划中的工作单元、依赖关系、文件范围和验证要求，识别可并行执行的单元。
-
-**裸提示词**（输入为工作描述）：
-
-1. **只读定位** — 识别可能变更的文件、查找测试文件、记录本地模式；此阶段只允许读取和搜索，不允许先改文件
-2. **评估复杂度并路由：**
-
-| 复杂度 | 信号 | 操作 |
-|--------|------|------|
-| **S3 轻量修复** | 明确 bug、单点故障、预估不超过 2 个生产文件 | 记录定位证据、升级判断和无需计划原因后，进入阶段 1；完成准备环境 / worktree 决策后再实现 |
-| **S3 扩展任务** | 范围明确，但需要多个步骤协作 | 构建任务列表，标注依赖、文件范围和验证要求，进入阶段 1 |
-| **S4 多步骤实现** | 跨模块、架构决策、需求模糊、10+ 文件 | 停止实现并建议先运行 `/ae-plan`；纯重构或架构债治理先运行 `/ae-refactor` |
-
-3. **强制升级停点** — 出现以下任一信号时，不再继续轻路径，转入计划流程：
-
-- 预估会影响超过 2 个生产文件
-- 涉及认证、授权、数据迁移、外部 API 或 API 契约
-- 引入新抽象或修改公共配置
-- 需要新增流程或用户可见行为决策
-- 需求在定位后仍不清晰，无法给出稳定验收标准
-
----
+读取 `references/input-routing-workflow.md`，输出 `work_intent`。若输入为计划路径、worktree 交接文件、裸提示词或上游编排器委派，都必须先完成该阶段。
 
 ### 阶段 1：快速启动
 
-1. **阅读计划并澄清**（若从裸提示词进入则跳过）
-   - 完整阅读工作文档，视为决策产物
-   - 检查每个单元的 `Execution note`、`Deferred to Implementation`、`Scope Boundaries`
-   - 阅读计划中引用的文件
-   - 若用户明确要求 TDD，即使计划无 Execution note 也要遵循
-   - 若有不明之处立即提问
+读取 `references/startup-and-worktree-workflow.md`，输出 `work_context`。该阶段是修改文件前的硬性阻断门禁。
 
-2. **准备环境（硬性门禁 — 不得跳过）**
-
-   > ⛔ **执行阻断规则**：以下所有子步骤必须在修改任何项目文件之前完成。未完成时，不得进入阶段 2、不得执行实现、不得修改任何 `.ts`、`.js`、`.md`、`.json` 或其他项目文件。违反此规则等同于流程失败。
-
-   **2a. 解析 worktree 模式**
-
-   - 检查调用方是否显式传入了 worktree 模式：`worktree`、`current-worktree`、`auto`
-   - 兼容输入 `--no-worktree` 映射为 `current-worktree`
-   - 如果调用方是 `ae:lfg` 或 `ae:task-loop`，只接收其透传的模式；调用方未显式传入时由调用方补齐并传入 `auto`
-   - 单独使用 `ae:work` 且未显式传入三值中的任何一个时，**必须向用户询问**，不得自行推断或默认采用 `auto`
-
-   **2b. 执行 Git 状态检查（必须实际运行命令）**
-
-   必须实际运行以下命令并获取输出，不得凭假设跳过：
-
-   ```bash
-   git status --short
-   git branch --show-current
-   git log --oneline -1
-   ```
-
-   记录：当前分支、工作区脏状态（有/无）、最近提交。
-
-   **2c. 风险评估与用户确认**
-
-   根据 Git 状态和 worktree 模式，向用户展示风险评估并等待确认：
-
-   | 场景 | 必须向用户说明的风险 | 必须提供的选项 |
-   |------|---------------------|---------------|
-   | 默认分支 + 脏工作区 | "当前在默认分支 `{branch}` 上，工作区有未提交变更。在默认分支做功能开发会污染历史。" | 创建 worktree / 创建功能分支 / 继续当前工作区（需二次确认风险） / 取消 |
-   | 默认分支 + 干净工作区 | "当前在默认分支 `{branch}` 上。" | 创建 worktree / 创建功能分支 / 继续当前工作区（需二次确认风险） / 取消 |
-   | 功能分支 + 脏工作区 | "当前在功能分支 `{branch}` 上，工作区有未提交变更。" | 创建 worktree / 继续当前工作区 / 取消 |
-   | 功能分支 + 干净工作区 | "当前在功能分支 `{branch}` 上。" | 创建 worktree / 继续当前工作区 / 取消 |
-
-   用户选择取消时：立即终止 `ae:work`，只输出取消状态和 `worktree_decision: cancelled`，不得修改任何文件。
-
-   **2d. 记录决策**
-
-   无论用户选择什么，必须在后续所有输出中记录：
-   - `worktree_mode`：`worktree` / `current-worktree` / `auto`
-   - `worktree_decision`：`created` / `rejected` / `transferred` / `cancelled` / `not_applicable`
-   - `branch`：实际执行的分支名
-   - `recommendation_basis`：推荐依据（auto 模式必须记录）
-
-   **2e. worktree 创建流程**（仅当用户选择创建时）
-
-   - 创建 worktree 前必须获得用户对具体 `git worktree add` 命令参数的明确授权
-   - 本地目录固定为 `../worktrees/<name>`，`<name>` 使用分支名或任务名净化后的短名
-   - 创建 B 后，A 会话不得再写入 A worktree 的任何文件，也不得在 B 中修改代码、配置、测试或其他项目文件
-   - A 会话只允许在 B 写入当前任务已确定的需求/计划产物，以及唯一规范交接文件 `docs/ae/handoffs/<timestamp>-worktree-handoff.md`
-   - 交接文件路径不得使用 `docs/ae/handoff-*.md`、A worktree 路径或其他等价路径；写错位置时必须停止并报告流程失败，不得继续实现
-   - 交接文件必须包含 `## Continue Prompt` 章节，章节内容必须是一段可直接复制到新会话执行的完整提示词，而不是摘要、清单或让用户自行拼装的说明
-   - `## Continue Prompt` 必须明确写出：切换到 B worktree 后继续执行 `ae:work`、B worktree 绝对路径、需求/计划/交接文件路径、禁止回到 A worktree 写文件、继续执行阶段、验证要求、审查要求和最终门禁要求
-   - 创建 B worktree、迁移产物并写入规范交接 Markdown 后，立即停止 `ae:work` 阶段 2-4；不得调用最终交付门禁，不得进入普通交付模板
-   - A 会话最后回复只能输出 B worktree 路径、交接 Markdown 路径和与交接文件 `## Continue Prompt` 完全一致的继续提示词；不得输出“已完成/已验证/未验证/Git 操作状态/门禁结果/剩余风险”等普通交付分区
-   - A→B 启动证明必须包含 `source_session_id`、A 的 `ctx.worktree`、`target_worktree`、branch、HEAD、授权来源、授权覆盖范围、`covered_command_args`、`final_command_args`、创建结果、已迁移产物清单和完整继续提示词
-
-3. **分析任务结构**
-   - 调用 `ae-task-analyzer` 工具：
-     - 计划文档输入 → `mode:plan`，传入计划路径
-     - 裸提示词输入 → `mode:scan`，传入任务描述
-   - 工具输出结构化任务列表（`units`）、文件冲突矩阵（`conflict_matrix`）和并行组（`parallel_groups`）
-   - 如果工具返回警告（如无法识别文件），降级为手动任务拆分
-
-4. **创建待办列表**（若已构建或路由为简单则跳过）
-   - 从计划推导任务，包含依赖关系、文件范围、共享产物、验证要求和优先级排序
-   - 从裸提示词进入时，若定位后发现明显可拆分且文件范围互不重叠的子任务，也必须构建任务列表
-   - 将每个单元的 Verification 作为完成信号
-
-5. **选择执行策略**
-
-| 策略 | 适用场景 |
-|------|----------|
-| **内联** | 1-2 个小任务，或并行组内没有可并发的多个任务 |
-| **串行子代理** | 3+ 有依赖的任务，或所有安全组都只有 1 个任务，无法获得并行收益 |
-| **并行子代理** | 任一 `is_parallel_safe=true` 的并行组包含 2 个及以上任务；同组任务可同轮派发，不同组按 `execution_order` 串行推进 |
-
-**并行安全检查：** 由 `ae-task-analyzer` 工具自动完成。工具输出的 `conflict_matrix` 列出了所有文件冲突，`parallel_groups` 标注了每个组是否 `is_parallel_safe`。若工具未被调用，必须手动构建"文件到任务单元"映射：若文件范围、状态、迁移、配置、公共契约、测试夹具或共享中间产物存在冲突，或任一任务依赖另一任务的未完成输出，则降级为串行。
-
-**并行子代理约束：** 读取 `references/work-subagent-template.md` 构建每个子代理的提示。每个子代理只处理分配给自己的文件和任务；不得暂存、提交、运行全量测试套件；不得修改共享配置、锁文件、迁移文件或未分配文件；不得启动服务、浏览器测试、E2E、集成测试，或任何会占用端口、数据库、缓存、固定临时目录等共享资源的命令；遇到跨任务依赖、文件冲突、共享资源需求或需要共享中间产物时，必须停止并报告主代理。
+随后读取 `references/task-analysis-workflow.md`，输出 `todo_units`、`conflict_matrix`、`parallel_groups` 和执行策略。
 
 ### 阶段 2：执行
 
-> ⛔ **执行前验证**：在修改任何项目文件之前，必须确认以下清单全部满足。任一项未满足时，停止执行并返回阶段 1 补齐。
->
-> - [ ] 阶段 1 步骤 2 的 worktree 决策已完成（用户已确认 worktree 模式和分支策略）
-> - [ ] 已实际运行 `git status --short`、`git branch --show-current` 并记录输出
-> - [ ] 用户已确认在当前分支/工作区执行（或已创建新 worktree）
-> - [ ] `worktree_decision` 值已确定（`created` / `rejected` / `transferred` / `cancelled` / `not_applicable`）
->
-> 如果以上清单有任何一项未满足，不得开始修改文件。先返回阶段 1 步骤 2 完成 worktree 决策。
+读取 `references/execution-workflow.md`。执行前必须确认 `work_context.worktree_decision` 已确定，且用户或上游编排器已确认当前工作区策略。
 
-1. **任务执行循环或并行执行**
+### 阶段 3：验证
 
-   按阶段 1 选定的策略和 `ae-task-analyzer` 输出执行任务：
+读取 `references/verification-workflow.md`，输出 `verification_result` 和实际 `validation_commands`。发现越权或污染修改时停止并请求用户决策，不得自动覆盖或回滚。
 
-   **串行执行** — 按优先级处理每个任务。
+### 阶段 4：质量检查与交付
 
-   **并行执行** — 按 `ae-task-analyzer` 输出的 `parallel_groups` 执行：
-   - 读取 `references/work-subagent-template.md` 构建每个子代理的提示
-   - 同一并行组（`is_parallel_safe=true`）的任务在同一轮消息中并发派发（使用 Task 工具）
-   - 不同并行组按 `execution_order` 顺序依次执行
-   - 每个子代理的提示词必须包含：任务 ID、允许文件、禁止文件、禁止命令、验证命令、冲突上报要求
-
-   **部分失败处理** — 并行组内任一子代理失败时：
-   - 已完成的子代理结果保留
-   - 失败的任务标记为需要串行重试
-   - 在下一轮中单独执行失败任务
-   - 如果重试仍失败，报告失败原因并询问用户
-
-   所有执行都必须遵循 Execution note 指引。
-
-   **测试发现** — 变更前查找已有测试文件。新行为添加新测试、变更行为修改测试、删除行为移除测试。
-
-   **测试场景完整性** — 编写测试前检查计划的测试场景是否覆盖所有适用类别：
-
-| 类别 | 适用时机 |
-|------|----------|
-| 正常路径 | 始终 |
-| 边界情况 | 有意义的边界 |
-| 错误/失败路径 | 有失败模式 |
-| 集成 | 跨层 |
-
-   **系统级测试检查** — 任务完成前检查：回调/中间件、集成测试覆盖、失败时的孤立状态、跨接口一致性、错误策略。
-
-   **并行汇总职责** — 并行子代理完成后，主代理必须：
-   1. 收集所有子代理返回的 JSON 结果
-   2. 检查 `conflicts_found` 字段，处理越权文件修改
-   3. 独立运行 Git diff/status 检查真实修改文件，不只依赖子代理自报的 `files_modified`
-   4. 将真实修改文件与每个任务的允许文件比对，确保无跨任务文件冲突或越权修改
-   5. 修复集成问题
-   6. 运行统一验证命令
-   7. 更新最终任务状态
-   8. 在阶段 3-4 执行 `ae-gate`
-
-2. **增量提交**
-
-   仅当用户已明确要求提交时，逻辑单元完成且测试通过后创建提交。不使用"WIP"消息。使用约定式格式。未获授权时只保留工作区变更并汇报建议提交点。
-
-3. **遵循已有模式** — 优先阅读计划引用的文件，精确匹配命名约定。
-
-4. **持续测试** — 每次重要变更后运行测试。
-
-5. **持续简化** — 每 2-3 个单元后审查简化机会。
-
-6. **Figma 设计同步**（如适用）— 按照设计规范实现，迭代对比直到匹配。
-
-7. **跟踪进度** — 保持任务列表更新，记录阻碍和发现。
-
-### 阶段 3-4：质量检查与交付
-
-当所有阶段 2 任务完成时，阅读 `references/shipping-workflow.md` 获取完整交付工作流。
+当所有阶段 2 任务完成且阶段 3 验证结果可用时，读取 `references/shipping-workflow.md` 获取完整交付工作流。
 
 在最终交付前必须调用 `ae-gate workflow:work checkpoint:final`，传入：
+
 - `plan_path`（如果本次从计划文档执行）
+- `notes`（如果本次没有计划路径，必须说明任务为何无需计划，并记录定位证据和升级判断）
 - `validation_commands`（本次实际运行的测试、构建、类型检查、lint 等命令）
 - `review_status`（代码审查状态；未运行时说明原因）
 - `git_operations`（本次会话执行过的 Git 写操作；没有则传空数组）
-- `worktree_decision`（创建、拒绝、转移、取消或不适用）
+- `worktree_decision`（创建、拒绝或不适用；`transferred`/`cancelled` 只能作为终止状态记录，不得作为最终功能交付 gate 的通过状态）
 - 如执行 Git 写操作，传入 `git_operation_args` 和 `git_authorization_evidence`；不能只依赖 `user_authorized_git_write`
 - 如 `review_status` 为 `passed` 或 `failed`，传入绑定当前 worktree、branch、HEAD 和状态摘要的 `review_evidence`
 
-如果 `ae-gate` 返回 `status: block`，先补齐阻断项，不得宣称交付完成。
-
 最终回复必须包含以下分区：已完成、已验证、未验证/无法验证、Git 操作状态、门禁结果、剩余风险。
 
-例外：如果本轮创建了新 worktree 并已转移到 B worktree，A 会话不是功能交付会话，必须遵循阶段 1 步骤 2e 的 worktree 转移停点：不调用最终交付门禁，不输出普通交付分区，只输出继续提示词。
+例外：如果本轮创建了新 worktree 并已转移到 B worktree，A 会话不是功能交付会话，必须遵循 A→B 转移停点：不调用最终交付门禁，不输出普通交付分区，只输出继续提示词。
 
 ## 核心原则
 
