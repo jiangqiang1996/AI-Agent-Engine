@@ -3,8 +3,6 @@ type: plan
 status: drafted
 date: 2026-05-13
 title: refactor-graph-symbol-callchain
-origin: docs/ae/brainstorms/2026-05-12-graph-maintenance-usage-requirements.md
-originFingerprint: 2026-05-12-graph-maintenance-usage
 depth: deep
 ---
 
