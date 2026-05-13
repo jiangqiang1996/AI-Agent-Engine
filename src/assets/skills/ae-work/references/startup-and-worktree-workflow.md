@@ -52,14 +52,28 @@ git log --oneline -1
 - 本地目录固定为 `../worktrees/<name>`，`<name>` 使用分支名或任务名净化后的短名。
 - 创建 B 后，A 会话不得再写入 A worktree 的任何文件，也不得在 B 中修改代码、配置、测试或其他项目文件。
 - A 会话只允许在 B 写入当前任务已确定的需求/计划/设计产物，以及唯一规范交接文件 `docs/ae/handoffs/<timestamp>-worktree-handoff.md`。
-- 交接文件路径不得使用 `docs/ae/handoff-*.md`、A worktree 路径或其他等价路径；写错位置时必须停止并报告流程失败，不得继续实现。
-- 交接文件必须包含 `## Continue Prompt` 章节，章节内容必须是一段可直接复制到新会话执行的完整提示词，而不是摘要、清单或让用户自行拼装的说明。
-- 先生成唯一规范产物 `canonical_continue_prompt`；`## Continue Prompt`、交接文件最后一句、A 会话最后回复和 A→B 启动证明都必须逐字复制该字符串，不得分别改写。
-- `## Continue Prompt` 和交接文件最后一句话必须使用固定调用形态：`你现在已经位于目标 B worktree：<B绝对路径>。请调用 ae:work，并把 <交接文件路径> 作为唯一任务输入；不得按裸提示词处理。...`
-- 继续提示词必须明确交接文件路径、需求/计划/设计文件路径（或说明设计由计划承载）、禁止回到 A worktree 写文件、进入 `ae:work` 后必须把需求/计划/设计视为已确定执行基线、不得审查或深化本次任务的需求文档/设计文档/计划文档、不得调用需求/设计/计划相关审查或转换技能、直接从阶段 1 的任务分析继续到阶段 2 执行、验证要求、实现后的代码审查要求和最终门禁要求。
-- 创建 B worktree、迁移产物并写入规范交接 Markdown 后，立即停止 `ae:work` 阶段 2-4；终止状态必须记录并返回 `worktree_decision: transferred`，供 `ae:lfg` 等调用方识别停点；不得调用最终交付门禁，不得进入普通交付模板。
-- A 会话最后回复只能输出 B worktree 路径、交接 Markdown 路径和与交接文件 `## Continue Prompt` 完全一致的继续提示词；不得输出“已完成/已验证/未验证/Git 操作状态/门禁结果/剩余风险”等普通交付分区。
-- A→B 启动证明必须包含 `source_session_id`（运行时可见时记录；不可见时写 `unavailable` 并记录可引用的消息或会话证据）、A 的可观察 worktree 路径、`target_worktree`、branch、HEAD、授权来源、授权覆盖范围、`covered_command_args`、`final_command_args`、创建结果、已迁移产物清单、需求/计划/设计执行基线声明和完整继续提示词。
+
+### 交接文件生成（必须调用工具）
+
+- **禁止自行拼接交接 Markdown**，必须调用 `ae-worktree-handoff` 工具生成交接文件。
+- 调用工具时传入所有必填参数；工具会按固定模板生成 Markdown、写入目标 B worktree 并返回 `canonical_continue_prompt`。
+- `source_session_id`：运行时可见时记录；不可见时传 `unavailable`，并**同时**传入 `session_evidence`（可引用的消息或会话证据），否则工具会返回错误。
+- `execution_baseline`：描述进入 B 后必须遵守的基线约束，例如"必须从 ae:work 阶段 1 的任务分析继续执行，优先执行计划的 U0 决策门"。
+- `verification_requirements`：描述交付前必须运行的验证命令和标准，例如"交付前至少运行相关 Vitest、npm run typecheck 和必要的 npm run build"。
+
+### A 会话终止行为
+
+- A 会话最后回复**必须逐字使用**工具返回的 `canonical_continue_prompt`；不得改写、缩写或重组。
+- A 会话最后回复只能输出 B worktree 路径、交接 Markdown 路径和 `canonical_continue_prompt`；不得输出"已完成/已验证/未验证/Git 操作状态/门禁结果/剩余风险"等普通交付分区。
+- 创建 B worktree、迁移产物并调用工具写入规范交接 Markdown 后，立即停止 `ae:work` 阶段 2-4；终止状态必须记录并返回 `worktree_decision: transferred`，供 `ae:lfg` 等调用方识别停点；不得调用最终交付门禁，不得进入普通交付模板。
+
+### 交接后确认清单
+
+工具调用成功后，A 会话确认以下 3 点即可终止：
+
+1. 工具返回成功（无错误提示）
+2. A 会话最后回复逐字使用了工具返回的 `canonical_continue_prompt`
+3. 交接文件路径符合 `docs/ae/handoffs/<timestamp>-worktree-handoff.md` 格式
 
 ## 输出契约
 

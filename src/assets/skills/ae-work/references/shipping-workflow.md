@@ -51,7 +51,7 @@
 - 普通 Git 写操作：同时记录 `git_operation_args` 和覆盖相同参数数组的 `git_authorization_evidence`
 - A→B 启动证明：授权证据区分 `operation_worktree` 与 `target_worktree`，`target_worktree` 必须是 A 项目根目录同级的 `../worktrees/<name>` 直接子目录，B 中最终 gate 的当前 worktree 必须匹配 `target_worktree`
 - A→B 产物迁移：创建 B 后，A 会话只允许把当前任务已确定执行基线中的具体需求/计划/设计文件迁移到 B，并在交接文件中逐一显式引用这些文件；禁止按 glob 批量复制未进入执行基线的需求/计划/设计文件；若存在多个候选文件，必须先选择唯一基线文件集；若设计已由计划承载，交接文件必须明确说明；不迁移 gate/review 运行时产物，不修改 B 中代码、配置、测试或其他项目文件
-- A→B 交接文件：创建 B 后，A 会话不得再写入 A worktree 的任何文件；只允许在 B 写入 `docs/ae/handoffs/<timestamp>-worktree-handoff.md`，不得使用 `docs/ae/handoff-*.md`、A worktree 路径或其他等价路径；A 的结束提示必须包含在 B 新会话读取该文件继续的提示词
+- A→B 交接文件：创建 B 后，A 会话不得再写入 A worktree 的任何文件；交接文件必须通过 `ae-worktree-handoff` 工具生成，写入 `docs/ae/handoffs/<timestamp>-worktree-handoff.md`；禁止自行拼接交接 Markdown
 - A→B 最终交付：A 会话的 `worktree_decision: transferred` 只表示执行已转移；若当前可观察 worktree 匹配 A→B 交接文件或启动证明中的目标 B worktree，B 会话最终功能交付使用 `worktree_decision: created` 表示已在独立 worktree 中执行并交付，并覆盖普通当前工作区场景的 `rejected`；`transferred` 和 `cancelled` 不得通过最终功能交付 gate
 - 未运行审查：`review_status: not_run` 搭配 `review_evidence.type: not_run_reason`，仅用于无代码变更、审查工具不可用或非正式交付说明；正式代码交付不得用该状态放行
 - 已通过审查：`review_status: passed` 搭配已存在的 `report_path` 证据及当前工作区指纹；`tool_output` 只能作为声明记录，不能独立放行最终门禁
@@ -74,7 +74,7 @@
 
 ## Git 操作状态
 - 本次是否执行 Git 写操作
-- 若无，明确写“无”
+- 若无，明确写"无"
 - 若有，说明用户授权范围、可引用证据、结构化命令参数与结果
 - 当前可观察 worktree、`git rev-parse --show-toplevel`、当前分支、HEAD、worktree decision，以及是否与目标执行 worktree 一致
 
@@ -87,15 +87,15 @@
 
 ## 部署后监控与验证
 - 若任务涉及部署、运行时行为或上线后观察，列出需要后续监控的指标、日志、告警或人工复核项
-- 若本次不涉及部署或运行时监控，明确写“不适用”
+- 若本次不涉及部署或运行时监控，明确写"不适用"
 ```
 
 使用规则：
 
-- “已验证”只能写入可观察工作区状态、工具输出或可引用执行结果支撑的事实。
-- 仅来自用户口头确认、工具参数或代理自述的内容，必须放入“未验证 / 无法验证”或“Git 操作状态”。
-- A 会话执行 `git worktree add`、迁移当前任务需求/计划/设计执行基线文件并写入交接 Markdown 成功后，终止状态是“执行已转移 / 等待用户在 B 重启”，不是“功能交付完成”；A 不运行最终门禁来宣称功能交付。
-- A 的终止提示必须包含目标 B 路径、交接 Markdown 路径，并逐字复制交接文件中的 `canonical_continue_prompt`；该提示词必须能在 B worktree 新会话中单句复制执行，且必须断言“你现在已经位于目标 B worktree”，要求调用 `ae:work` 并把交接 Markdown 路径作为唯一任务输入，不得按裸提示词处理；进入 `ae:work` 后把需求/计划/设计视为已确定执行基线，不审查或深化本次任务的需求文档、设计文档或计划文档，直接从待办事项继续执行。
+- "已验证"只能写入可观察工作区状态、工具输出或可引用执行结果支撑的事实。
+- 仅来自用户口头确认、工具参数或代理自述的内容，必须放入"未验证 / 无法验证"或"Git 操作状态"。
+- A 会话执行 `git worktree add`、迁移当前任务需求/计划/设计执行基线文件，并调用 `ae-worktree-handoff` 工具生成交接 Markdown 成功后，终止状态是"执行已转移 / 等待用户在 B 重启"，不是"功能交付完成"；A 不运行最终门禁来宣称功能交付。
+- A 的终止提示必须包含目标 B 路径、交接 Markdown 路径，并逐字使用 `ae-worktree-handoff` 工具返回的 `canonical_continue_prompt`；不得自行改写或重组该提示词。
 - 问答和只读审查可使用更轻量的对应输出，不强制套用整份模板。
 
 ## 阶段 4：交付
