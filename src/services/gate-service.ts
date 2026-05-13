@@ -205,20 +205,59 @@ function isRuntimeEvidencePath(filePath: string): boolean {
 
 const GIT_EXEC_TIMEOUT = 30_000
 const GIT_STATUS_TIMEOUT = 5_000
+const GIT_TIMEOUT_RETRIES = 1
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+function isTimeoutError(error: unknown): boolean {
+  const candidate = error as { code?: unknown; message?: unknown }
+  const message = typeof candidate.message === 'string' ? candidate.message : ''
+  return candidate.code === 'ETIMEDOUT' || message.includes('ETIMEDOUT') || message.includes('timed out')
+}
+
+class GitCommandError extends Error {
+  readonly isTimeout: boolean
+
+  constructor(args: string[], attempts: number, cause: unknown) {
+    super(`git ${args.join(' ')} failed after ${attempts} attempt(s): ${getErrorMessage(cause)}`)
+    this.name = 'GitCommandError'
+    this.isTimeout = isTimeoutError(cause)
+  }
+}
 
 function runGit(repoRoot: string, args: string[], timeout = GIT_EXEC_TIMEOUT): string {
-  return execFileSync('git', args, {
-    cwd: repoRoot,
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'ignore'],
-    timeout,
-  }).trim()
+  let lastError: unknown
+  let attempts = 0
+
+  for (let attempt = 0; attempt <= GIT_TIMEOUT_RETRIES; attempt += 1) {
+    attempts = attempt + 1
+    try {
+      return execFileSync('git', args, {
+        cwd: repoRoot,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'ignore'],
+        timeout,
+      }).trim()
+    } catch (error) {
+      lastError = error
+      if (!isTimeoutError(error)) {
+        break
+      }
+    }
+  }
+
+  throw new GitCommandError(args, attempts, lastError)
 }
 
 function runGitStatus(repoRoot: string): { output: string; degraded: boolean } {
   try {
     return { output: runGit(repoRoot, ['status', '--porcelain', '--branch'], GIT_STATUS_TIMEOUT), degraded: false }
-  } catch {
+  } catch (error) {
+    if (!(error instanceof GitCommandError) || !error.isTimeout) {
+      throw error
+    }
     return {
       output: runGit(repoRoot, ['status', '--porcelain', '--branch', '--untracked-files=no'], GIT_EXEC_TIMEOUT),
       degraded: true,

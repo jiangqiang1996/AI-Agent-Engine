@@ -1157,7 +1157,9 @@ describe('门禁服务', () => {
             return '## main\nM src/a.ts\n'
           }
           if (args?.[0] === 'status') {
-            throw new Error('git status timeout')
+            const error = new Error('spawnSync git ETIMEDOUT') as Error & { code: string }
+            error.code = 'ETIMEDOUT'
+            throw error
           }
           throw new Error(`unexpected git command: ${args?.join(' ') ?? ''}`)
         },
@@ -1191,6 +1193,123 @@ describe('门禁服务', () => {
       expect(fingerprint.statusSummary).toBe('M src/a.ts')
       expect(result.status).toBe('block')
       expect(result.blockers).toContain('当前工作区指纹省略了未跟踪文件，不能作为可验证审查来源证据。')
+    } finally {
+      vi.doUnmock('node:child_process')
+      vi.resetModules()
+    }
+  })
+
+  it('应该在 git 指纹采集遇到一次超时后重试成功', async () => {
+    const root = createRepoRoot()
+    let statusAttempts = 0
+    vi.resetModules()
+    vi.doMock('node:child_process', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('node:child_process')>()
+      return {
+        ...actual,
+        execFileSync: (command: string, args?: readonly string[]) => {
+          if (command !== 'git') {
+            return actual.execFileSync(command, args)
+          }
+          if (args?.[0] === 'rev-parse' && args[1] === 'HEAD') {
+            return 'head123\n'
+          }
+          if (args?.[0] === 'status' && args.includes('--branch') && !args.includes('--untracked-files=no')) {
+            statusAttempts += 1
+            if (statusAttempts === 1) {
+              const error = new Error('spawnSync git ETIMEDOUT') as Error & { code: string }
+              error.code = 'ETIMEDOUT'
+              throw error
+            }
+            return '## main\nM src/a.ts\n'
+          }
+          throw new Error(`unexpected git command: ${args?.join(' ') ?? ''}`)
+        },
+      }
+    })
+
+    try {
+      const gateService = await import('../../src/services/gate-service.js')
+      const fingerprint = gateService.collectCurrentWorktreeFingerprint(root)
+
+      expect(fingerprint.available).toBe(true)
+      expect(fingerprint.degraded).toBe(false)
+      expect(fingerprint.branch).toBe('main')
+      expect(fingerprint.head).toBe('head123')
+      expect(fingerprint.statusSummary).toBe('M src/a.ts')
+      expect(statusAttempts).toBe(2)
+    } finally {
+      vi.doUnmock('node:child_process')
+      vi.resetModules()
+    }
+  })
+
+  it('应该在 git 指纹采集最终失败时返回包含子命令的错误', async () => {
+    const root = createRepoRoot()
+    vi.resetModules()
+    vi.doMock('node:child_process', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('node:child_process')>()
+      return {
+        ...actual,
+        execFileSync: (command: string, args?: readonly string[]) => {
+          if (command !== 'git') {
+            return actual.execFileSync(command, args)
+          }
+          const error = new Error('spawnSync git ETIMEDOUT') as Error & { code: string }
+          error.code = 'ETIMEDOUT'
+          throw error
+        },
+      }
+    })
+
+    try {
+      const gateService = await import('../../src/services/gate-service.js')
+      const fingerprint = gateService.collectCurrentWorktreeFingerprint(root)
+
+      expect(fingerprint.available).toBe(false)
+      expect(fingerprint.error).toContain('git rev-parse HEAD failed after 2 attempt(s)')
+      expect(fingerprint.error).toContain('ETIMEDOUT')
+    } finally {
+      vi.doUnmock('node:child_process')
+      vi.resetModules()
+    }
+  })
+
+  it('应该在 git status 非超时失败时不降级省略未跟踪文件', async () => {
+    const root = createRepoRoot()
+    let statusAttempts = 0
+    vi.resetModules()
+    vi.doMock('node:child_process', async (importOriginal) => {
+      const actual = await importOriginal<typeof import('node:child_process')>()
+      return {
+        ...actual,
+        execFileSync: (command: string, args?: readonly string[]) => {
+          if (command !== 'git') {
+            return actual.execFileSync(command, args)
+          }
+          if (args?.[0] === 'rev-parse' && args[1] === 'HEAD') {
+            return 'head123\n'
+          }
+          if (args?.[0] === 'status' && args.includes('--untracked-files=no')) {
+            throw new Error('status should not degrade after non-timeout failure')
+          }
+          if (args?.[0] === 'status') {
+            statusAttempts += 1
+            throw new Error('fatal: not a git repository')
+          }
+          throw new Error(`unexpected git command: ${args?.join(' ') ?? ''}`)
+        },
+      }
+    })
+
+    try {
+      const gateService = await import('../../src/services/gate-service.js')
+      const fingerprint = gateService.collectCurrentWorktreeFingerprint(root)
+
+      expect(fingerprint.available).toBe(false)
+      expect(fingerprint.error).toContain('git status --porcelain --branch failed after 1 attempt(s)')
+      expect(fingerprint.error).toContain('fatal: not a git repository')
+      expect(statusAttempts).toBe(1)
     } finally {
       vi.doUnmock('node:child_process')
       vi.resetModules()
