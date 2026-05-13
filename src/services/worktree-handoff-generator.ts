@@ -15,7 +15,7 @@ export interface WorktreeHandoffInput {
   covered_command_args: string
   final_command_args: string
   creation_result: string
-  plan_path: string
+  plan_path?: string
   requirements_path?: string
   design_path?: string
   design_borne_by_plan: boolean
@@ -44,7 +44,6 @@ function validateInput(input: WorktreeHandoffInput): string | null {
   if (!input.covered_command_args.trim()) return 'covered_command_args 不能为空。'
   if (!input.final_command_args.trim()) return 'final_command_args 不能为空。'
   if (!input.creation_result.trim()) return 'creation_result 不能为空。'
-  if (!input.plan_path.trim()) return 'plan_path 不能为空。'
   if (!input.execution_baseline.trim()) return 'execution_baseline 不能为空。'
   if (!input.verification_requirements.trim()) return 'verification_requirements 不能为空。'
   return null
@@ -59,12 +58,14 @@ function generateTimestamp(): string {
 
 function buildMigratedArtifacts(input: WorktreeHandoffInput): string {
   const lines: string[] = []
-  lines.push(`- plan: \`${input.plan_path}\``)
+  if (input.plan_path?.trim()) {
+    lines.push(`- plan: \`${input.plan_path}\``)
+  }
   if (input.requirements_path?.trim()) {
     lines.push(`- requirements: \`${input.requirements_path}\``)
   }
-  if (input.design_borne_by_plan) {
-    lines.push('- design: 由计划文档承载，未提供独立设计文档。')
+  if (input.design_borne_by_plan && input.plan_path?.trim()) {
+    lines.push('- design: 由计划文档承载')
   } else if (input.design_path?.trim()) {
     lines.push(`- design: \`${input.design_path}\``)
   }
@@ -83,13 +84,15 @@ function buildCanonicalContinuePrompt(
   if (input.requirements_path?.trim()) {
     parts.push(`需求文档路径为 ${input.requirements_path}，`)
   }
-  parts.push(`计划文档路径为 ${input.plan_path}，`)
-  if (input.design_borne_by_plan) {
+  if (input.plan_path?.trim()) {
+    parts.push(`计划文档路径为 ${input.plan_path}，`)
+  }
+  if (input.design_borne_by_plan && input.plan_path?.trim()) {
     parts.push('设计由计划承载。')
   } else if (input.design_path?.trim()) {
     parts.push(`设计文档路径为 ${input.design_path}。`)
   }
-  parts.push('进入 ae:work 后必须把需求、计划和本交接文件视为已确定执行基线，不得审查或深化本次需求文档、设计文档或计划文档，不得调用需求、设计、计划相关审查或转换技能；直接从阶段 1 的任务分析继续到阶段 2 执行。')
+  parts.push('进入 ae:work 后必须把本交接文件视为唯一必需输入；需求、设计和计划文档只在交接文件明确引用且当前 B worktree 中真实存在时作为可选上下文。不得审查或深化本次需求文档、设计文档或计划文档，不得调用需求、设计、计划相关审查或转换技能；直接从阶段 1 的任务分析继续到阶段 2 执行。')
   parts.push(`禁止回到 A worktree ${input.source_worktree} 写文件。`)
   parts.push(`${input.execution_baseline}`)
   parts.push(`验证要求：${input.verification_requirements}`)
@@ -107,7 +110,7 @@ function buildUserInstruction(input: WorktreeHandoffInput, handoffRelPath: strin
     '请在目标工作空间中启动 opencode，然后执行：',
     '',
     '```text',
-    '/ae-work-continue',
+    `/ae-work-continue ${handoffRelPath}`,
     '```',
   ].join('\n')
 }
@@ -144,12 +147,14 @@ function buildStartupProof(input: WorktreeHandoffInput, handoffRelPath: string):
   lines.push(`- covered_command_args: \`${input.covered_command_args}\``)
   lines.push(`- final_command_args: \`${input.final_command_args}\``)
   lines.push(`- creation_result: ${input.creation_result}`)
-  lines.push(`- migrated_artifacts:`)
+lines.push(`- migrated_artifacts:`)
   if (input.requirements_path?.trim()) {
     lines.push(`  - requirements: \`${input.requirements_path}\``)
   }
-  lines.push(`  - plan: \`${input.plan_path}\``)
-  if (input.design_borne_by_plan) {
+  if (input.plan_path?.trim()) {
+    lines.push(`  - plan: \`${input.plan_path}\``)
+  }
+  if (input.design_borne_by_plan && input.plan_path?.trim()) {
     lines.push('  - design: 由计划文档承载')
   } else if (input.design_path?.trim()) {
     lines.push(`  - design: \`${input.design_path}\``)
@@ -173,7 +178,11 @@ function buildExecutionBaselineSection(input: WorktreeHandoffInput): string {
   const lines: string[] = []
   lines.push('## Execution Baseline')
   lines.push('')
-  lines.push(`- 计划文档是本次执行的唯一实现基线，进入 B worktree 后不得重新审查、深化或转换本次需求、设计或计划。`)
+  if (input.plan_path?.trim()) {
+    lines.push(`- 计划文档是本次执行的可选实现基线；进入 B worktree 后不得重新审查、深化或转换本次需求、设计或计划。`)
+  } else {
+    lines.push('- 本交接文件是本次续执行的唯一必需输入；未提供计划文档时，以执行基线和 Continue Prompt 构建待办。')
+  }
   lines.push(`- ${input.execution_baseline}`)
   lines.push(`- 验证命令：${input.verification_requirements}`)
   lines.push(`- 实现完成后必须进行代码审查或记录无法审查原因，并调用 ae-gate workflow:work checkpoint:final。`)

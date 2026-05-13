@@ -10,11 +10,11 @@
 
 调用规则：
 
-- worktree 交接输入：按 B worktree 续执行路径提取计划路径；有计划路径时使用 `mode:plan`，无计划但交接文件包含明确任务列表时手动构建待办。
+- worktree 交接输入：按 B worktree 续执行路径提取可选计划路径；有计划路径且文件存在时使用 `mode:plan`，无计划、计划路径不存在，或工具无法从计划提取单元时，必须从交接文件的 `## Execution Baseline`、`## Continue Prompt` 和验证要求手动构建待办。
 - 计划文档输入：使用 `mode:plan`，传入计划路径。
 - 裸提示词输入：优先使用轻量任务分解；需要升级时才使用 `mode:scan`，传入任务描述。
 
-工具输出结构化任务列表 `units`、文件冲突矩阵 `conflict_matrix` 和并行组 `parallel_groups`。如果工具返回警告（如无法识别文件），降级为手动任务拆分。
+工具输出结构化任务列表 `units`、文件冲突矩阵 `conflict_matrix` 和并行组 `parallel_groups`。如果工具返回警告（如无法识别文件）或 `units` 为空，降级为手动任务拆分；不得因为任务分析工具未识别计划格式而停止续执行。
 
 ## 待办构建
 

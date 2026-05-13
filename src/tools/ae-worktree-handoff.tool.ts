@@ -2,6 +2,7 @@ import { tool, type ToolDefinition } from '@opencode-ai/plugin/tool'
 import { z } from 'zod'
 
 import { writeHandoffFile } from '../services/worktree-handoff-generator.js'
+import type { WorktreeHandoffInput } from '../services/worktree-handoff-generator.js'
 
 const WorktreeHandoffInputSchema = z.object({
   source_session_id: z
@@ -43,15 +44,16 @@ const WorktreeHandoffInputSchema = z.object({
     .describe('worktree 创建结果描述'),
   plan_path: z
     .string()
-    .describe('计划文档相对路径，例如 docs/ae/plans/xxx-plan.md'),
+    .optional()
+    .describe('可选计划文档相对路径，例如 docs/ae/plans/xxx-plan.md；未迁移或不存在时不传'),
   requirements_path: z
     .string()
     .optional()
-    .describe('需求文档相对路径，例如 docs/ae/brainstorms/xxx.md'),
+    .describe('可选需求文档相对路径，例如 docs/ae/brainstorms/xxx.md；未迁移或不存在时不传'),
   design_path: z
     .string()
     .optional()
-    .describe('设计文档相对路径；设计由计划承载时无需传值'),
+    .describe('可选设计文档相对路径；设计由计划承载、未迁移或不存在时无需传值'),
   design_borne_by_plan: z
     .boolean()
     .describe('设计是否由计划文档承载'),
@@ -72,6 +74,7 @@ export const aeWorktreeHandoffTool: ToolDefinition = tool({
     '- Continue Prompt 只出现一次（单一真源），保存在交接文件中供 B worktree 读取',
     '- 返回简短交接提示，供 A 会话最后回复使用',
     '- A→B Startup Proof 按固定 schema 逐字段输出，不允许遗漏',
+    '- 需求、计划和设计路径都是可选上下文；只在文件真实存在且已迁移时传入，工具不会假定它们必然存在',
     '- source_session_id=unavailable 时强制要求 session_evidence',
     '- 自动创建目标目录并写入文件',
     '',
@@ -103,7 +106,36 @@ export const aeWorktreeHandoffTool: ToolDefinition = tool({
     verification_requirements: WorktreeHandoffInputSchema.shape.verification_requirements,
   },
   async execute(args) {
-    const result = await writeHandoffFile(args)
+    const input: WorktreeHandoffInput = {
+      source_session_id: args.source_session_id,
+      source_worktree: args.source_worktree,
+      target_worktree: args.target_worktree,
+      branch: args.branch,
+      head: args.head,
+      head_message: args.head_message,
+      authorization_source: args.authorization_source,
+      authorization_scope: args.authorization_scope,
+      covered_command_args: args.covered_command_args,
+      final_command_args: args.final_command_args,
+      creation_result: args.creation_result,
+      design_borne_by_plan: args.design_borne_by_plan,
+      execution_baseline: args.execution_baseline,
+      verification_requirements: args.verification_requirements,
+    }
+    if (args.session_evidence !== undefined) {
+      input.session_evidence = args.session_evidence
+    }
+    if (args.plan_path !== undefined) {
+      input.plan_path = args.plan_path
+    }
+    if (args.requirements_path !== undefined) {
+      input.requirements_path = args.requirements_path
+    }
+    if (args.design_path !== undefined) {
+      input.design_path = args.design_path
+    }
+
+    const result = await writeHandoffFile(input)
 
     if ('error' in result) {
       return `❌ 交接文件生成失败：${result.error}`

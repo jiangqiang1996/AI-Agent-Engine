@@ -50,7 +50,7 @@
 - `ae:lfg` 或 `ae:task-loop` 调用 `ae:work` 时，必须固定当前工作区执行，禁止询问 worktree 模式，禁止创建 worktree，禁止把未显式传入的模式补齐或透传为 `auto`；`--no-worktree` 仅作为兼容输入映射到 `current-worktree`，不再作为默认策略中心
 - 普通 Git 写操作：同时记录 `git_operation_args` 和覆盖相同参数数组的 `git_authorization_evidence`
 - A→B 启动证明：授权证据区分 `operation_worktree` 与 `target_worktree`，`target_worktree` 必须是 A 项目根目录同级的 `../worktrees/<name>` 直接子目录，B 中最终 gate 的当前 worktree 必须匹配 `target_worktree`
-- A→B 产物迁移：创建 B 后，A 会话只允许把当前任务已确定执行基线中的具体需求/计划/设计文件迁移到 B，并在交接文件中逐一显式引用这些文件；禁止按 glob 批量复制未进入执行基线的需求/计划/设计文件；若存在多个候选文件，必须先选择唯一基线文件集；若设计已由计划承载，交接文件必须明确说明；不迁移 gate/review 运行时产物，不修改 B 中代码、配置、测试或其他项目文件
+- A→B 产物迁移：创建 B 后，A 会话只允许把当前任务已确定执行基线中真实存在的具体需求/计划/设计文件迁移到 B，并在交接文件中逐一显式引用实际迁移的文件；禁止按 glob 批量复制未进入执行基线的需求/计划/设计文件；若存在多个候选文件，必须先选择唯一基线文件集；未迁移的需求/计划/设计文件不在交接文件中出现，不得声称已复制；若设计已由计划承载，交接文件必须明确说明；不迁移 gate/review 运行时产物，不修改 B 中代码、配置、测试或其他项目文件
 - A→B 交接文件：创建 B 后，A 会话不得再写入 A worktree 的任何文件；交接文件必须通过 `ae-worktree-handoff` 工具生成，写入 `docs/ae/handoffs/<timestamp>-worktree-handoff.md`；禁止自行拼接交接 Markdown
 - A→B 最终交付：A 会话的 `worktree_decision: transferred` 只表示执行已转移；若当前可观察 worktree 匹配 A→B 交接文件或启动证明中的目标 B worktree，B 会话最终功能交付使用 `worktree_decision: created` 表示已在独立 worktree 中执行并交付，并覆盖普通当前工作区场景的 `rejected`；`transferred` 和 `cancelled` 不得通过最终功能交付 gate
 - 未运行审查：`review_status: not_run` 搭配 `review_evidence.type: not_run_reason`，仅用于无代码变更、审查工具不可用或非正式交付说明；正式代码交付不得用该状态放行
@@ -87,8 +87,8 @@
 - "已验证"只能写入可观察工作区状态、工具输出或可引用执行结果支撑的事实。
 - 仅来自用户口头确认、工具参数或代理自述的内容，必须放入"未验证 / 无法验证"或"Git 操作状态"。
 - 当前 worktree 已完成执行后，不输出独立的"下一步"或"后续操作"章节；若需要用户动作，只能在对应分区用一句话说明必要动作。
-- A 会话执行 `git worktree add`、迁移当前任务需求/计划/设计执行基线文件，并调用 `ae-worktree-handoff` 工具生成交接 Markdown 成功后，终止状态是"执行已转移 / 等待用户在 B 重启"，不是“功能交付完成”；A 不运行最终门禁来宣称功能交付。
-- A 的终止提示必须包含目标 B 路径、交接 Markdown 路径，并逐字使用 `ae-worktree-handoff` 工具返回的简短交接提示；不得把完整 `canonical_continue_prompt` 直接贴到最终回复中。完整 Continue Prompt 只保留在交接文件中，B worktree 通过 `/ae-work-continue` 读取并继续。
+- A 会话执行 `git worktree add`、按需迁移真实存在且已确定的需求/计划/设计可选上下文，并调用 `ae-worktree-handoff` 工具生成交接 Markdown 成功后，终止状态是"执行已转移 / 等待用户在 B 重启"，不是"功能交付完成"；A 不运行最终门禁来宣称功能交付。
+- A 的终止提示必须包含目标 B 路径、交接 Markdown 路径，并逐字使用 `ae-worktree-handoff` 工具返回的简短交接提示；不得把完整 `canonical_continue_prompt` 直接贴到最终回复中。完整 Continue Prompt 只保留在交接文件中，B worktree 通过 `/ae-work-continue` 读取并继续；对 B 续执行来说只有交接文件是必需输入，需求/计划/设计文档只是可选上下文。
 - 问答和只读审查可使用更轻量的对应输出，不强制套用整份模板。
 
 ## 阶段 4：交付

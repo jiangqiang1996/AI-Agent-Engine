@@ -111,9 +111,40 @@ describe('worktree-handoff-generator', () => {
       expect('error' in result).toBe(true)
     })
 
-    it('plan_path 为空时应报错', () => {
-      const result = generateHandoffMarkdown(validInput({ plan_path: '' }))
-      expect('error' in result).toBe(true)
+    it('无计划和需求文档时不应在交接文件中提及这些文件', () => {
+      const result = generateHandoffMarkdown(validInput({
+        plan_path: undefined,
+        requirements_path: undefined,
+        design_borne_by_plan: false,
+      }))
+      expect('error' in result).toBe(false)
+      if ('error' in result) return
+
+      expect(result.markdown).not.toContain('- plan:')
+      expect(result.markdown).not.toContain('- requirements:')
+      expect(result.markdown).not.toContain('- design:')
+      expect(result.markdown).not.toContain('  - plan:')
+      expect(result.markdown).not.toContain('  - requirements:')
+      expect(result.markdown).not.toContain('  - design:')
+      expect(result.markdown).toContain('本交接文件是本次续执行的唯一必需输入')
+      expect(result.canonicalContinuePrompt).toContain('本交接文件视为唯一必需输入')
+      expect(result.canonicalContinuePrompt).not.toContain('计划文档路径为')
+      expect(result.canonicalContinuePrompt).not.toContain('需求文档路径为')
+    })
+
+    it('design_borne_by_plan=true 且无 plan_path 时不应提及设计由计划承载', () => {
+      const result = generateHandoffMarkdown(validInput({
+        plan_path: undefined,
+        requirements_path: undefined,
+        design_borne_by_plan: true,
+      }))
+      expect('error' in result).toBe(false)
+      if ('error' in result) return
+
+      expect(result.markdown).not.toContain('由计划文档承载')
+      expect(result.markdown).not.toContain('- plan:')
+      expect(result.markdown).toContain('本交接文件是本次续执行的唯一必需输入')
+      expect(result.canonicalContinuePrompt).not.toContain('设计由计划承载')
     })
 
     it('source_worktree 为空时应报错', () => {
@@ -192,7 +223,8 @@ describe('worktree-handoff-generator', () => {
       expect(result.canonicalContinuePrompt).toContain('请打开目标 B worktree 对应的工作空间')
       expect(result.canonicalContinuePrompt).toContain('在该工作空间中启动 opencode')
       expect(result.userInstruction).toContain('执行已转移到新的 B worktree')
-      expect(result.userInstruction).toContain('/ae-work-continue')
+      const handoffRelPath = result.filePath.replace(`${targetDir}\\`, '').replace(/\\/g, '/')
+      expect(result.userInstruction).toContain(`/ae-work-continue ${handoffRelPath}`)
       expect(result.userInstruction).not.toContain('验证要求：')
 
       const content = readFileSync(result.filePath, 'utf-8')

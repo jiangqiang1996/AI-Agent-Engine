@@ -2,8 +2,11 @@ import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
 const skillText = readFileSync('src/assets/skills/ae-work/SKILL.md', 'utf8')
+const continueCommandText = readFileSync('src/assets/commands/ae-work-continue.md', 'utf8')
 const shippingText = readFileSync('src/assets/skills/ae-work/references/shipping-workflow.md', 'utf8')
 const startupText = readFileSync('src/assets/skills/ae-work/references/startup-and-worktree-workflow.md', 'utf8')
+const inputRoutingText = readFileSync('src/assets/skills/ae-work/references/input-routing-workflow.md', 'utf8')
+const taskAnalysisText = readFileSync('src/assets/skills/ae-work/references/task-analysis-workflow.md', 'utf8')
 
 describe('ae:work 产物与交付文本契约', () => {
   it('应该把产物迁移边界落在技能文本而非仅靠 rules', () => {
@@ -14,13 +17,14 @@ describe('ae:work 产物与交付文本契约', () => {
     expect(shippingText).toContain('A→B 产物迁移')
     expect(shippingText).toContain('不迁移 gate/review 运行时产物')
     expect(shippingText).toContain('不修改 B 中代码、配置、测试或其他项目文件')
-    expect(shippingText).toContain('当前任务已确定执行基线中的具体需求/计划/设计文件迁移到 B')
-    expect(shippingText).toContain('在交接文件中逐一显式引用这些文件')
-    expect(shippingText).toContain('迁移当前任务需求/计划/设计执行基线文件')
+    expect(shippingText).toContain('真实存在的具体需求/计划/设计文件迁移到 B')
+    expect(shippingText).toContain('在交接文件中逐一显式引用实际迁移的文件')
+    expect(shippingText).toContain('真实存在的具体需求/计划/设计文件迁移到 B')
+    expect(shippingText).toContain('不得声称已复制')
   })
 
   it('应该要求创建 worktree 后输出交接文件和继续提示词', () => {
-    expect(startupText).toContain('A 会话只允许在 B 写入当前任务已确定的需求/计划/设计产物')
+    expect(startupText).toContain('A 会话只允许在 B 写入真实存在且已确定为执行基线的需求/计划/设计产物')
     expect(startupText).toContain('交接文件必须包含 `## Continue Prompt` 章节')
     expect(startupText).toContain('A→B 启动证明必须包含')
     expect(shippingText).toContain('A→B 交接文件')
@@ -35,7 +39,7 @@ describe('ae:work 产物与交付文本契约', () => {
 
   it('应该把 A 会话写入 B 的范围限定为启动交接产物', () => {
     expect(startupText).toContain('创建 B 后，A 会话不得再写入 A worktree 的任何文件')
-    expect(startupText).toContain('只允许在 B 写入当前任务已确定的需求/计划/设计产物')
+    expect(startupText).toContain('只允许在 B 写入真实存在且已确定为执行基线的需求/计划/设计产物')
     expect(startupText).toContain('A→B 启动证明必须包含')
     expect(shippingText).toContain('A 会话不得再写入 A worktree 的任何文件')
     expect(shippingText).toContain('不修改 B 中代码、配置、测试或其他项目文件')
@@ -68,7 +72,7 @@ describe('ae:work 产物与交付文本契约', () => {
 
   it('应该把 A 到 B 转移状态与功能交付完成区分开', () => {
     expect(shippingText).toContain('执行已转移 / 等待用户在 B 重启')
-    expect(shippingText).toContain('不是“功能交付完成”')
+    expect(shippingText).toContain('不是"功能交付完成"')
     expect(shippingText).toContain('A 会话的 `worktree_decision: transferred` 只表示执行已转移')
     expect(shippingText).toContain('若当前可观察 worktree 匹配 A→B 交接文件或启动证明中的目标 B worktree')
     expect(shippingText).toContain('B 会话最终功能交付使用 `worktree_decision: created`')
@@ -102,5 +106,17 @@ describe('ae:work 产物与交付文本契约', () => {
     expect(shippingText).toContain('不要追加“下一步”“后续操作”')
     expect(shippingText).toContain('不输出独立的"下一步"或"后续操作"章节')
     expect(shippingText).not.toContain('## 部署后监控与验证')
+  })
+
+  it('应该声明 ae-work-continue 只有交接文件是必需输入', () => {
+    expect(continueCommandText).toContain('交接文件是唯一必需文件')
+    expect(continueCommandText).toContain('需求文档、计划文档和设计文档只在交接文件明确引用且当前 B worktree 中真实存在时作为可选上下文')
+    expect(continueCommandText).toContain('如果交接文件引用的需求/计划/设计路径不存在，不得把续执行判定为失败')
+    expect(inputRoutingText).toContain('交接文件是 B worktree 续执行路径的唯一必需输入')
+    expect(inputRoutingText).toContain('optional_context_missing')
+    expect(startupText).toContain('交接文件是唯一必需文件')
+    expect(taskAnalysisText).toContain('无计划、计划路径不存在，或工具无法从计划提取单元时')
+    expect(taskAnalysisText).toContain('不得因为任务分析工具未识别计划格式而停止续执行')
+    expect(shippingText).toContain('对 B 续执行来说只有交接文件是必需输入')
   })
 })
