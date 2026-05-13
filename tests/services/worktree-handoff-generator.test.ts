@@ -55,7 +55,7 @@ describe('worktree-handoff-generator', () => {
 
       const { markdown, canonicalContinuePrompt, handoffRelPath } = result
 
-      expect(handoffRelPath).toMatch(/^docs\/ae\/handoffs\/\d{4}-\d{2}-\d{2}-\d{6}-worktree-handoff\.md$/)
+      expect(handoffRelPath).toMatch(/^docs\/ae\/handoffs\/\d{4}-\d{2}-\d{2}-\d{9}-worktree-handoff\.md$/)
       expect(markdown).toContain('type: worktree-handoff')
       expect(markdown).toContain('status: transferred')
       expect(markdown).toContain('## A→B Startup Proof')
@@ -114,6 +114,26 @@ describe('worktree-handoff-generator', () => {
       expect('error' in result).toBe(true)
     })
 
+    it('source_worktree 为空时应报错', () => {
+      const result = generateHandoffMarkdown(validInput({ source_worktree: '' }))
+      expect('error' in result).toBe(true)
+    })
+
+    it('authorization_scope 为空白时应报错', () => {
+      const result = generateHandoffMarkdown(validInput({ authorization_scope: '   ' }))
+      expect('error' in result).toBe(true)
+    })
+
+    it('final_command_args 为空白时应报错', () => {
+      const result = generateHandoffMarkdown(validInput({ final_command_args: '  ' }))
+      expect('error' in result).toBe(true)
+    })
+
+    it('verification_requirements 为空白时应报错', () => {
+      const result = generateHandoffMarkdown(validInput({ verification_requirements: ' ' }))
+      expect('error' in result).toBe(true)
+    })
+
     it('design_borne_by_plan=true 时应在 Migrated Artifacts 中体现', () => {
       const result = generateHandoffMarkdown(validInput({ design_borne_by_plan: true }))
       if ('error' in result) return
@@ -160,7 +180,6 @@ describe('worktree-handoff-generator', () => {
       const targetDir = createTempDir()
       const result = await writeHandoffFile(
         validInput({ target_worktree: targetDir }),
-        targetDir,
       )
 
       expect('error' in result).toBe(false)
@@ -177,8 +196,7 @@ describe('worktree-handoff-generator', () => {
     it('校验失败时应返回错误而不写文件', async () => {
       const targetDir = createTempDir()
       const result = await writeHandoffFile(
-        validInput({ source_session_id: 'unavailable', session_evidence: undefined }),
-        targetDir,
+        validInput({ source_session_id: 'unavailable', session_evidence: undefined, target_worktree: targetDir }),
       )
 
       expect('error' in result).toBe(true)

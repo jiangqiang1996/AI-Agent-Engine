@@ -29,24 +29,31 @@ export interface WorktreeHandoffOutput {
 }
 
 function validateInput(input: WorktreeHandoffInput): string | null {
-  if (input.source_session_id === 'unavailable' && !input.session_evidence?.trim()) {
+  if (!input.source_session_id.trim()) return 'source_session_id 不能为空。'
+  if (input.source_session_id.trim() === 'unavailable' && !input.session_evidence?.trim()) {
     return 'source_session_id 为 unavailable 时，session_evidence 必须提供可引用的消息或会话证据。'
   }
+  if (!input.source_worktree.trim()) return 'source_worktree 不能为空。'
   if (!input.target_worktree.trim()) return 'target_worktree 不能为空。'
   if (!input.branch.trim()) return 'branch 不能为空。'
   if (!input.head.trim()) return 'head 不能为空。'
-  if (!input.plan_path.trim()) return 'plan_path 不能为空。'
+  if (!input.head_message.trim()) return 'head_message 不能为空。'
   if (!input.authorization_source.trim()) return 'authorization_source 不能为空。'
+  if (!input.authorization_scope.trim()) return 'authorization_scope 不能为空。'
   if (!input.covered_command_args.trim()) return 'covered_command_args 不能为空。'
+  if (!input.final_command_args.trim()) return 'final_command_args 不能为空。'
   if (!input.creation_result.trim()) return 'creation_result 不能为空。'
+  if (!input.plan_path.trim()) return 'plan_path 不能为空。'
   if (!input.execution_baseline.trim()) return 'execution_baseline 不能为空。'
+  if (!input.verification_requirements.trim()) return 'verification_requirements 不能为空。'
   return null
 }
 
 function generateTimestamp(): string {
   const now = new Date()
   const pad = (n: number) => n.toString().padStart(2, '0')
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
+  const ms = now.getMilliseconds().toString().padStart(3, '0')
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}${ms}`
 }
 
 function buildMigratedArtifacts(input: WorktreeHandoffInput): string {
@@ -107,7 +114,7 @@ function buildStartupProof(input: WorktreeHandoffInput, handoffRelPath: string):
   lines.push('## A→B Startup Proof')
   lines.push('')
   lines.push(`- source_session_id: ${input.source_session_id}`)
-  if (input.source_session_id === 'unavailable' && input.session_evidence) {
+  if (input.source_session_id.trim() === 'unavailable' && input.session_evidence) {
     lines.push(`- session_evidence: ${input.session_evidence}`)
   }
   lines.push(`- source_worktree: \`${input.source_worktree}\``)
@@ -197,14 +204,13 @@ export function generateHandoffMarkdown(input: WorktreeHandoffInput): { markdown
 
 export async function writeHandoffFile(
   input: WorktreeHandoffInput,
-  targetWorktree: string,
 ): Promise<WorktreeHandoffOutput | { error: string }> {
   const result = generateHandoffMarkdown(input)
   if ('error' in result) {
     return { error: result.error }
   }
 
-  const absPath = join(targetWorktree, result.handoffRelPath)
+  const absPath = join(input.target_worktree, result.handoffRelPath)
   const dir = dirname(absPath)
 
   try {

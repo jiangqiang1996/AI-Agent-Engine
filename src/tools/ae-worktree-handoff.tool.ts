@@ -65,7 +65,7 @@ const WorktreeHandoffInputSchema = z.object({
 
 export const aeWorktreeHandoffTool: ToolDefinition = tool({
   description: [
-    '按固定模板生成 worktree 交接文件并写入目标 B worktree。',
+    '仅用于 ae:work 中 A→B worktree 转移时生成交接文件；不创建新会话，会话级交接请用 ae-handoff。',
     '',
     '功能说明：',
     '- 按规范模板生成交接 Markdown，结构由代码保证，AI 只需填值',
@@ -102,7 +102,7 @@ export const aeWorktreeHandoffTool: ToolDefinition = tool({
     verification_requirements: WorktreeHandoffInputSchema.shape.verification_requirements,
   },
   async execute(args) {
-    const result = await writeHandoffFile(args, args.target_worktree)
+    const result = await writeHandoffFile(args)
 
     if ('error' in result) {
       return `❌ 交接文件生成失败：${result.error}`
