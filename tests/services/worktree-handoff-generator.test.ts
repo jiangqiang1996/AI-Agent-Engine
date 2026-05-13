@@ -62,7 +62,8 @@ describe('worktree-handoff-generator', () => {
       expect(markdown).toContain('## Migrated Artifacts')
       expect(markdown).toContain('## Execution Baseline')
       expect(markdown).toContain('## Continue Prompt')
-      expect(canonicalContinuePrompt).toContain('你现在已经位于目标 B worktree')
+      expect(canonicalContinuePrompt).toContain('请打开目标 B worktree 对应的工作空间')
+      expect(canonicalContinuePrompt).toContain('在该工作空间中启动 opencode')
       expect(canonicalContinuePrompt).toContain('ae:work')
     })
 
@@ -187,7 +188,8 @@ describe('worktree-handoff-generator', () => {
 
       expect(existsSync(result.filePath)).toBe(true)
       expect(result.filePath).toMatch(/worktree-handoff\.md$/)
-      expect(result.canonicalContinuePrompt).toContain('你现在已经位于目标 B worktree')
+      expect(result.canonicalContinuePrompt).toContain('请打开目标 B worktree 对应的工作空间')
+      expect(result.canonicalContinuePrompt).toContain('在该工作空间中启动 opencode')
 
       const content = readFileSync(result.filePath, 'utf-8')
       expect(content).toContain('type: worktree-handoff')

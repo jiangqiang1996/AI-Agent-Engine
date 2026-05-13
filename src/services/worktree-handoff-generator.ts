@@ -74,9 +74,11 @@ function buildCanonicalContinuePrompt(
   input: WorktreeHandoffInput,
   handoffRelPath: string,
 ): string {
+  const handoffAbsPath = `${input.target_worktree}/${handoffRelPath}`
   const parts: string[] = []
-  parts.push(`你现在已经位于目标 B worktree：${input.target_worktree}。`)
-  parts.push(`请调用 ae:work，并把 ${input.target_worktree}/${handoffRelPath} 作为唯一任务输入；不得按裸提示词处理。`)
+  parts.push(`请打开目标 B worktree 对应的工作空间：${input.target_worktree}。`)
+  parts.push('在该工作空间中启动 opencode，然后粘贴并执行以下提示词继续：')
+  parts.push(`调用 ae:work，并把 ${handoffAbsPath} 作为唯一任务输入；不得按裸提示词处理。`)
   if (input.requirements_path?.trim()) {
     parts.push(`需求文档路径为 ${input.requirements_path}，`)
   }
