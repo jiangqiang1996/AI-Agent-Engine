@@ -56,6 +56,8 @@ git log --oneline -1
 ### 交接文件生成（必须调用工具）
 
 - **禁止自行拼接交接 Markdown**，必须调用 `ae-worktree-handoff` 工具生成交接文件。
+- 交接文件必须包含 `## Continue Prompt` 章节。
+- A→B 启动证明必须包含 source_session_id、source_worktree、target_worktree、branch、head、授权来源、命令参数、创建结果、迁移产物和执行基线。
 - 调用工具时传入所有必填参数；工具会按固定模板生成 Markdown、写入目标 B worktree 并返回 `canonical_continue_prompt`。
 - `source_session_id`：运行时可见时记录；不可见时传 `unavailable`，并**同时**传入 `session_evidence`（可引用的消息或会话证据），否则工具会返回错误。
 - `execution_baseline`：描述进入 B 后必须遵守的基线约束，例如"必须从 ae:work 阶段 1 的任务分析继续执行，优先执行计划的 U0 决策门"。

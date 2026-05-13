@@ -25,7 +25,7 @@ describe('ae:work 产物与交付文本契约', () => {
     expect(startupText).toContain('A→B 启动证明必须包含')
     expect(shippingText).toContain('A→B 交接文件')
     expect(shippingText).toContain('docs/ae/handoffs/<timestamp>-worktree-handoff.md')
-    expect(shippingText).toContain('A 的结束提示必须包含在 B 新会话读取该文件继续的提示词')
+    expect(shippingText).toContain('逐字使用 `ae-worktree-handoff` 工具返回的 `canonical_continue_prompt`')
     expect(shippingText).toContain('A→B 交接文件')
     expect(shippingText).toContain('交接 Markdown 路径')
     expect(shippingText).toContain('目标 B 路径')
@@ -95,9 +95,10 @@ describe('ae:work 产物与交付文本契约', () => {
     expect(shippingText).not.toContain('未显式禁用 worktree')
   })
 
-  it('应该保留部署后监控与验证交付分区', () => {
-    expect(shippingText).toContain('## 部署后监控与验证')
-    expect(shippingText).toContain('若任务涉及部署、运行时行为或上线后观察')
-    expect(shippingText).toContain('若本次不涉及部署或运行时监控，明确写“不适用”')
+  it('应该要求当前 worktree 交付提示词保持简洁', () => {
+    expect(shippingText).toContain('提示词必须尽可能简洁')
+    expect(shippingText).toContain('不要追加“下一步”“后续操作”')
+    expect(shippingText).toContain('不输出独立的"下一步"或"后续操作"章节')
+    expect(shippingText).not.toContain('## 部署后监控与验证')
   })
 })
