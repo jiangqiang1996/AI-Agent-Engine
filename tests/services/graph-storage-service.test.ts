@@ -202,6 +202,51 @@ describe('graph-storage-service', () => {
     expect(active?.relations.map((relation) => relation.type).sort()).toEqual(['call', 'type_reference'])
   })
 
+  it('应该支持 contains 关系用于文件和内部元素关联', () => {
+    const root = createTempRoot()
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    storage.insertFiles(versionId, [
+      { id: 'file:src/a.ts', kind: 'file', relativePath: 'src/a.ts', fileType: 'source' },
+      { id: 'symbol:src/a.ts#function:run:1', kind: 'symbol', relativePath: 'src/a.ts', fileType: 'source', label: 'run', parentId: 'file:src/a.ts', symbolKind: 'function' },
+    ])
+    storage.insertRelations(versionId, [{ sourceId: 'file:src/a.ts', targetId: 'symbol:src/a.ts#function:run:1', sourcePath: 'src/a.ts', targetPath: 'src/a.ts', relationType: 'contains', type: 'contains' }])
+    storage.activateVersion(versionId)
+    const active = storage.getActiveVersion(root, '.')
+    const summary = storage.readScopeSummary(root, '.')
+    storage.closeDatabase()
+
+    expect(active?.relations[0].relationType).toBe('contains')
+    expect(summary?.fileCount).toBe(1)
+    expect(summary?.fileTypeCounts.source).toBe(1)
+    expect(summary?.relationTypeCounts.contains).toBe(1)
+    expect(summary?.nodeKindCounts.symbol).toBe(1)
+    expect(summary?.isolatedCount).toBe(1)
+  })
+
+  it('不应该让同路径 symbol 节点覆盖文件路径索引', () => {
+    const root = createTempRoot()
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    storage.insertFiles(versionId, [
+      { id: 'file:src/a.ts', kind: 'file', relativePath: 'src/a.ts', fileType: 'source' },
+      ...Array.from({ length: 260 }, (_, index) => ({
+        id: `symbol:src/a.ts#function:item${index}:1`,
+        kind: 'symbol' as const,
+        relativePath: 'src/a.ts',
+        fileType: 'source' as const,
+        label: `item${index}`,
+        parentId: 'file:src/a.ts',
+        symbolKind: 'function' as const,
+      })),
+    ])
+    storage.activateVersion(versionId)
+    const active = storage.getActiveVersion(root, '.')
+    storage.closeDatabase()
+
+    expect(active?.files.some((file) => file.id === 'file:src/a.ts' && file.kind === 'file')).toBe(true)
+  })
+
   it('应该在 manifest 缺失时返回可恢复诊断', () => {
     const root = createTempRoot()
     const storage = createGraphStorage(root)

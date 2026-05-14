@@ -8,7 +8,7 @@
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;height:100vh;background:#f6f8fa;color:#24292f}
 .toolbar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:#fff;border-bottom:1px solid #d0d7de;flex-wrap:wrap;box-shadow:0 1px 0 rgba(27,31,36,0.04)}
-.toolbar input[type=text]{flex:1;min-width:220px;padding:7px 10px;border:1px solid #d0d7de;border-radius:6px;font-size:13px}
+.toolbar input[type=text]{flex:1;min-width:180px;padding:7px 10px;border:1px solid #d0d7de;border-radius:6px;font-size:13px}
 .toolbar select,.toolbar button{padding:7px 10px;border:1px solid #d0d7de;border-radius:6px;font-size:13px;background:#fff;cursor:pointer}
 .toolbar button:hover{background:#f3f4f6}
 .toolbar label{font-size:13px;color:#57606a}
@@ -28,7 +28,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;d
 .badge-doc{background:#dafbe1;color:#1a7f37}
 .badge-cfg{background:#fff8c5;color:#9a6700}
 .badge-dir{background:#e8e8e8;color:#57606a}
-.badge-asset{background:#fbefff;color:#8250df}
+.badge-asset,.badge-symbol{background:#fbefff;color:#8250df}
 .badge-rel{background:#f6f8fa;color:#57606a;border:1px solid #d1d5da}
 .legend{display:flex;align-items:center;gap:8px;font-size:12px;color:#57606a;flex-wrap:wrap}
 .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
@@ -39,9 +39,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;d
 <div class="toolbar">
   <label>目录：</label>
   <input type="text" id="dirFilter" placeholder="输入目录前缀筛选，如 src/services">
+  <label>关系：</label>
+  <input type="text" id="relationSearch" placeholder="搜索关系、证据或路径">
+  <label>粒度：</label>
+  <select id="granularityMode">
+    <option value="file" selected>文件级</option>
+    <option value="symbol">内部元素</option>
+    <option value="mixed">文件+元素</option>
+  </select>
   <label>类型：</label>
   <select id="typeFilter">
     <option value="">全部</option>
+    <option value="contains">contains</option>
     <option value="import">import</option>
     <option value="require">require</option>
     <option value="include">include</option>
@@ -65,7 +74,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;d
   <button id="btnRender">渲染</button>
   <button id="btnFit">适应</button>
   <span id="status">加载中...</span>
-  <span class="legend"><span class="dot" style="background:#0969da"></span>源码 <span class="dot" style="background:#1a7f37"></span>文档 <span class="dot" style="background:#9a6700"></span>配置 <span class="dot" style="background:#6e7781"></span>目录</span>
+   <span class="legend"><span class="dot" style="background:#0969da"></span>源码 <span class="dot" style="background:#1a7f37"></span>文档 <span class="dot" style="background:#9a6700"></span>配置 <span class="dot" style="background:#8250df"></span>元素 <span class="dot" style="background:#6e7781"></span>目录</span>
 </div>
 <div class="main">
   <div id="cy"></div>
@@ -88,10 +97,11 @@ var TYPE_COLORS = {
   link: '#1a7f37',
   include: '#bf3989',
   directory: '#6e7781',
+  contains: '#8250df',
   external: '#d4a72c'
 };
 var FILE_COLORS = {source:'#0969da',document:'#1a7f37',config:'#9a6700',directory:'#6e7781',asset:'#8250df'};
-var FILE_BADGES = {source:'src',document:'doc',config:'cfg',directory:'dir',asset:'asset',external:'ext'};
+var FILE_BADGES = {source:'src',document:'doc',config:'cfg',directory:'dir',asset:'asset',external:'ext',symbol:'sym'};
 
 function badge(type, label) {
   var cls = type === 'rel' ? 'badge badge-rel' : 'badge badge-' + type;
@@ -106,6 +116,21 @@ function escapeHtml(value) {
 
 function nodeId(file) {
   return file.id || (file.fileType === 'directory' ? 'directory:' + file.relativePath : 'file:' + file.relativePath);
+}
+
+function nodeType(file) {
+  return file.kind === 'symbol' ? 'symbol' : file.fileType;
+}
+
+function findNodeById(id) {
+  for (var i = 0; i < ALL_NODES.length; i += 1) {
+    if (nodeId(ALL_NODES[i]) === id) return ALL_NODES[i];
+  }
+  return null;
+}
+
+function makeCyNode(file) {
+  return {data: {id: nodeId(file), label: file.kind === 'symbol' ? file.label : fileName(file.relativePath), fullLabel: file.kind === 'symbol' ? file.relativePath + '#' + (file.label || file.nodePath || '') : file.relativePath, type: nodeType(file), path: file.relativePath, parentId: file.parentId || '', symbolKind: file.symbolKind || '', range: file.range || null, language: file.language || ''}};
 }
 
 function relationSourceId(relation) {
@@ -160,34 +185,46 @@ async function loadGraphData() {
   return {files: files, relations: relations, manifest: manifest};
 }
 
-function buildCyData(files, relations, fileFilter, typeFilter, nodeLimit) {
-  var filteredFiles = fileFilter
-    ? files.filter(function(f) { return f.relativePath.indexOf(fileFilter) === 0; })
-    : files.filter(function(f) { return f.fileType !== 'directory'; });
+function relationMatchesSearch(relation, search) {
+  if (!search) return true;
+  var text = [relation.relationType, relation.type, relation.sourcePath, relation.targetPath, relation.evidence, relation.reason].join(' ').toLowerCase();
+  return text.indexOf(search.toLowerCase()) >= 0;
+}
+
+function buildCyData(files, relations, fileFilter, typeFilter, nodeLimit, granularity, relationSearch) {
+  var filteredFiles = files.filter(function(f) {
+    if (fileFilter && f.relativePath.indexOf(fileFilter) !== 0) return false;
+    if (granularity === 'file') return f.kind !== 'symbol' && f.fileType !== 'directory';
+    if (granularity === 'symbol') return f.kind === 'symbol';
+    return f.fileType !== 'directory';
+  });
   var filteredRelations = relations.filter(function(r) {
     if (typeFilter && r.relationType !== typeFilter) return false;
+    if (!relationMatchesSearch(r, relationSearch)) return false;
     if (!fileFilter && r.relationType === 'directory') return false;
+    if (granularity === 'file' && r.relationType === 'contains') return false;
+    if (granularity === 'symbol' && r.relationType !== 'contains' && relationSourceId(r).indexOf('symbol:') !== 0 && relationTargetId(r).indexOf('symbol:') !== 0) return false;
     if (fileFilter && r.sourcePath.indexOf(fileFilter) !== 0 && r.targetPath.indexOf(fileFilter) !== 0) return false;
     return true;
   });
-  var degreeByPath = {};
+  var degreeById = {};
   filteredRelations.forEach(function(r) {
-    degreeByPath[r.sourcePath] = (degreeByPath[r.sourcePath] || 0) + 1;
-    degreeByPath[r.targetPath] = (degreeByPath[r.targetPath] || 0) + 1;
+    var source = relationSourceId(r);
+    var target = relationTargetId(r);
+    degreeById[source] = (degreeById[source] || 0) + 1;
+    degreeById[target] = (degreeById[target] || 0) + 1;
   });
-  var nodes = filteredFiles.filter(function(f) { return degreeByPath[f.relativePath]; });
+  var nodes = filteredFiles.filter(function(f) { return degreeById[nodeId(f)]; });
   nodes.sort(function(a, b) {
-    var aDegree = (degreeByPath[a.relativePath] || 0);
-    var bDegree = (degreeByPath[b.relativePath] || 0);
+    var aDegree = (degreeById[nodeId(a)] || 0);
+    var bDegree = (degreeById[nodeId(b)] || 0);
     return bDegree - aDegree || a.relativePath.localeCompare(b.relativePath);
   });
   if (nodeLimit > 0 && nodes.length > nodeLimit) nodes = nodes.slice(0, nodeLimit);
   var nodeSet = {};
   nodes.forEach(function(n) { nodeSet[nodeId(n)] = 1; });
   var edges = filteredRelations.filter(function(r) { return nodeSet[relationSourceId(r)] || nodeSet[relationTargetId(r)]; });
-  var cyNodes = nodes.map(function(f) {
-    return {data: {id: nodeId(f), label: fileName(f.relativePath), fullLabel: f.relativePath, type: f.fileType, path: f.relativePath, language: f.language || ''}};
-  });
+  var cyNodes = nodes.map(makeCyNode);
   var virtualNodes = {};
   var seen = {};
   var cyEdges = [];
@@ -195,19 +232,19 @@ function buildCyData(files, relations, fileFilter, typeFilter, nodeLimit) {
     var source = relationSourceId(r);
     var target = relationTargetId(r);
     if (!nodeSet[source] && !virtualNodes[source]) {
-      virtualNodes[source] = {id: source, path: relationPathForId(r, source, true), type: virtualNodeType(source)};
+      virtualNodes[source] = findNodeById(source) || {id: source, path: relationPathForId(r, source, true), type: virtualNodeType(source)};
     }
     if (!nodeSet[target] && !virtualNodes[target]) {
-      virtualNodes[target] = {id: target, path: relationPathForId(r, target, false), type: virtualNodeType(target)};
+      virtualNodes[target] = findNodeById(target) || {id: target, path: relationPathForId(r, target, false), type: virtualNodeType(target)};
     }
     var key = source + '\0' + target + '\0' + r.relationType;
     if (seen[key]) return;
     seen[key] = 1;
-    cyEdges.push({data: {id: 'e' + i, source: source, target: target, relType: r.relationType, label: r.relationType, evidence: r.evidence || (r.metadata && r.metadata.raw) || ''}});
+    cyEdges.push({data: {id: 'e' + i, source: source, target: target, relType: r.relationType, label: r.relationType, evidence: r.evidence || (r.metadata && r.metadata.raw) || '', searchMatch: relationSearch ? 'true' : 'false'}});
   });
   Object.keys(virtualNodes).forEach(function(id) {
     var node = virtualNodes[id];
-    cyNodes.push({data: {id: id, label: fileName(node.path), fullLabel: node.path, type: node.type, path: node.path, language: ''}});
+    cyNodes.push(node.relativePath ? makeCyNode(node) : {data: {id: id, label: fileName(node.path), fullLabel: node.path, type: node.type, path: node.path, language: ''}});
   });
   return {cyNodes: cyNodes, cyEdges: cyEdges, stats: {nodes: cyNodes.length, edges: cyEdges.length}};
 }
@@ -241,6 +278,7 @@ function renderGraph(cyData) {
         'text-max-width': '150px', 'text-wrap': 'ellipsis', 'text-overflow-wrap': 'anywhere',
         'border-width': 2, 'border-color': '#fff', 'overlay-opacity': 0
       }},
+      {selector: 'node[type = "symbol"]', style: {'shape': 'round-rectangle', 'background-color': '#8250df', 'width': 30, 'height': 20}},
       {selector: 'node:selected', style: {'border-width': 3, 'border-color': '#0969da', 'background-color': '#0969da'}},
       {selector: 'edge', style: {
         'line-color': function(ele) { return TYPE_COLORS[ele.data('relType')] || '#d1d5da'; },
@@ -253,6 +291,7 @@ function renderGraph(cyData) {
         'font-size': '8px', 'color': '#57606a', 'text-rotation': 'autorotate', 'text-margin-y': -8,
         'text-background-color': '#fff', 'text-background-opacity': 0.75, 'text-background-padding': 1
       }},
+      {selector: 'edge[searchMatch = "true"]', style: {'width': 3, 'opacity': 1, 'z-index': 999}},
       {selector: 'edge:selected', style: {'width': 3, 'opacity': 1, 'z-index': 999}},
       {selector: '.faded', style: {'opacity': 0.12, 'text-opacity': 0.08}},
       {selector: '.highlighted', style: {'opacity': 1, 'text-opacity': 1, 'z-index': 999}}
@@ -276,10 +315,16 @@ function focusNode(node) {
 
 function showDetail(nodeData) {
   var path = nodeData.path;
-  var outEdges = ALL_EDGES.filter(function(r) { return r.sourcePath === path; });
-  var inEdges = ALL_EDGES.filter(function(r) { return r.targetPath === path; });
+  var isSymbol = nodeData.type === 'symbol';
+  var outEdges = ALL_EDGES.filter(function(r) { return relationSourceId(r) === nodeData.id || (!isSymbol && r.sourcePath === path); });
+  var inEdges = ALL_EDGES.filter(function(r) { return relationTargetId(r) === nodeData.id || (!isSymbol && r.targetPath === path); });
   var html = '<p><strong>' + escapeHtml(path) + '</strong></p>';
-  html += '<p>' + badge(nodeData.type, nodeData.type) + (nodeData.language ? ' ' + badge('asset', escapeHtml(nodeData.language)) : '') + '</p>';
+  if (isSymbol) {
+    html += '<p><strong>元素：</strong>' + escapeHtml(nodeData.label) + '</p>';
+    html += '<p>' + badge('symbol', escapeHtml(nodeData.symbolKind || 'symbol')) + (nodeData.range ? ' ' + badge('asset', 'L' + nodeData.range.startLine) : '') + '</p>';
+  } else {
+    html += '<p>' + badge(nodeData.type, nodeData.type) + (nodeData.language ? ' ' + badge('asset', escapeHtml(nodeData.language)) : '') + '</p>';
+  }
   if (outEdges.length > 0) {
     html += '<p><strong>依赖 (' + outEdges.length + '):</strong></p><ul>';
     outEdges.forEach(function(r) { html += '<li>' + badge('rel', r.relationType) + ' → ' + escapeHtml(r.targetPath) + (r.evidence ? '<br><small>证据: ' + escapeHtml(r.evidence) + '</small>' : '') + '</li>'; });
@@ -301,15 +346,19 @@ function closePanel() {
 
 function doRender() {
   var dir = document.getElementById('dirFilter').value.trim().replace(/\/+$/, '');
+  var relationSearch = document.getElementById('relationSearch').value.trim();
+  var granularity = document.getElementById('granularityMode').value;
   var type = document.getElementById('typeFilter').value;
   var limit = parseInt(document.getElementById('nodeLimit').value, 10);
-  var cyData = buildCyData(ALL_NODES, ALL_EDGES, dir, type, limit);
+  var cyData = buildCyData(ALL_NODES, ALL_EDGES, dir, type, limit, granularity, relationSearch);
   renderGraph(cyData);
 }
 
 document.getElementById('btnRender').addEventListener('click', doRender);
 document.getElementById('btnFit').addEventListener('click', function() { if (CY) CY.fit(undefined, 50); });
 document.getElementById('dirFilter').addEventListener('keydown', function(e) { if (e.key === 'Enter') doRender(); });
+document.getElementById('relationSearch').addEventListener('keydown', function(e) { if (e.key === 'Enter') doRender(); });
+document.getElementById('granularityMode').addEventListener('change', doRender);
 document.getElementById('layoutMode').addEventListener('change', doRender);
 
 function showHint(msg) {
