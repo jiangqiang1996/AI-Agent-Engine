@@ -100,7 +100,7 @@ function hasOnlyModifiedFiles(diff: { files: string[]; hasStructuralChange?: boo
 
 function getChangedFiles(worktree: string): { files: string[]; hasStructuralChange?: boolean; warning?: string } {
   try {
-    const options = { cwd: worktree, encoding: 'utf8', timeout: 10000 } as const
+    const options = { cwd: worktree, encoding: 'utf8', timeout: 10000, stdio: ['ignore', 'pipe', 'pipe'] as ['ignore', 'pipe', 'pipe'] } as const
     const changedOutput = execFileSync('git', ['diff', '--name-status', 'HEAD'], options)
     const untrackedOutput = execFileSync('git', ['ls-files', '--others', '--exclude-standard'], options)
     let hasStructuralChange = false

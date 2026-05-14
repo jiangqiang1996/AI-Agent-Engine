@@ -1,6 +1,7 @@
 import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs'
 import { dirname, extname, join, relative, resolve } from 'node:path'
 
+import { makeExternalNodeId, makeFileNodeId, makeUnresolvedNodeId } from './graph/graph-schema.js'
 import { matchGraphExcludePath, type GraphConfig } from './graph-config-service.js'
 import type { GraphFileNode, GraphRelation, GraphRelationType } from './graph-storage-service.js'
 import { isInsideRoot, pathContainsSymlink, toPosixPath } from '../utils/path-utils.js'
@@ -171,9 +172,6 @@ function resolveReferenceCandidate(worktree: string, base: string, target: strin
   if (pathContainsSymlink(worktree, absoluteTarget)) {
     return undefined
   }
-  if (extname(absoluteTarget)) {
-    return toPosixPath(relative(worktree, absoluteTarget))
-  }
   for (const ext of RESOLVABLE_EXTENSIONS) {
     const candidate = `${absoluteTarget}${ext}`
     if (existsSync(candidate) && !pathContainsSymlink(worktree, candidate) && isInsideRoot(realpathSync(worktree), realpathSync(candidate))) {
@@ -189,6 +187,15 @@ function resolveReferenceCandidate(worktree: string, base: string, target: strin
   return undefined
 }
 
+function stableReferenceIndex(sourcePath: string, rawTarget: string, relationType: GraphRelationType, line: number): number {
+  const key = `${sourcePath}\0${rawTarget}\0${relationType}\0${line}`
+  let hash = 0
+  for (let index = 0; index < key.length; index += 1) {
+    hash = ((hash * 31) + key.charCodeAt(index)) >>> 0
+  }
+  return hash
+}
+
 function pushReference(
   relations: GraphRelation[],
   worktree: string,
@@ -199,20 +206,43 @@ function pushReference(
   config: GraphConfig,
 ): void {
   const targetPath = resolveRelativeReference(worktree, sourcePath, rawTarget, relationType === 'link')
+  const sourceId = makeFileNodeId(sourcePath)
   if (targetPath && shouldExclude(targetPath, config)) {
+    const targetId = makeUnresolvedNodeId(sourceId, relationType, stableReferenceIndex(sourcePath, rawTarget, relationType, line))
     relations.push({
+      id: `${sourceId}->${targetId}:${relationType}:${line}`,
+      sourceId,
+      targetId,
+      type: 'external_reference',
+      confidence: 'unresolved',
       sourcePath,
       targetPath: rawTarget,
       relationType: 'external',
-      metadata: { line, raw: rawTarget, confidence: 'regex' },
+      range: { startLine: line },
+      parser: 'regex-shallow',
+      evidence: rawTarget,
+      reason: '目标被图谱排除规则过滤',
+      metadata: { line, raw: rawTarget, confidence: 'unresolved' },
     })
     return
   }
+  const resolved = !!targetPath
+  const targetId = resolved ? makeFileNodeId(targetPath) : makeExternalNodeId('unknown', rawTarget)
+  const type = resolved && relationType !== 'external' ? relationType : 'external_reference'
   relations.push({
+    id: `${sourceId}->${targetId}:${type}:${line}`,
+    sourceId,
+    targetId,
+    type,
+    confidence: resolved ? 'resolved' : 'unresolved',
     sourcePath,
     targetPath: targetPath ?? rawTarget,
-    relationType: targetPath ? relationType : 'external',
-    metadata: { line, raw: rawTarget, confidence: 'regex' },
+    relationType: resolved ? relationType : 'external',
+    range: { startLine: line },
+    parser: 'regex-shallow',
+    evidence: rawTarget,
+    reason: resolved ? undefined : '无法解析为工作区内文件',
+    metadata: { line, raw: rawTarget, confidence: resolved ? 'resolved' : 'unresolved' },
   })
 }
 
@@ -226,15 +256,37 @@ export function parseFileRelations(worktree: string, files: CollectedGraphFile[]
       continue
     }
     fileNodes.push({
+      id: makeFileNodeId(file.relativePath),
+      kind: 'file',
       relativePath: file.relativePath,
+      label: file.relativePath.split('/').pop(),
       fileType: file.fileType,
       language: file.language,
       sizeBytes: file.sizeBytes,
+      parser: 'filesystem',
     })
     const parent = toPosixPath(dirname(file.relativePath))
     if (parent && parent !== '.') {
-      fileNodes.push({ relativePath: parent, fileType: 'directory' })
-      relations.push({ sourcePath: file.relativePath, targetPath: parent, relationType: 'directory' })
+      fileNodes.push({
+        id: `directory:${parent}`,
+        kind: 'directory',
+        label: parent.split('/').pop(),
+        relativePath: parent,
+        fileType: 'directory',
+        parser: 'filesystem',
+      })
+      relations.push({
+        id: `${makeFileNodeId(file.relativePath)}->directory:${parent}:directory`,
+        sourceId: makeFileNodeId(file.relativePath),
+        targetId: `directory:${parent}`,
+        type: 'directory',
+        confidence: 'resolved',
+        sourcePath: file.relativePath,
+        targetPath: parent,
+        relationType: 'directory',
+        parser: 'filesystem',
+        evidence: parent,
+      })
     }
     if ((file.sizeBytes ?? 0) > MAX_FILE_BYTES) {
       warnings.push(`已跳过超大文件：${file.relativePath}`)

@@ -36,10 +36,32 @@ describe('graph-parse-service', () => {
     const files = collectGraphFiles(root, root, { exclude: [] })
     const parsed = parseFileRelations(root, files, { exclude: [] })
 
-    expect(parsed.files.some((file) => file.relativePath === 'src/a.ts')).toBe(true)
-    expect(parsed.relations.some((relation) => relation.relationType === 'import' && relation.targetPath === 'src/b.ts')).toBe(true)
-    expect(parsed.relations.some((relation) => relation.relationType === 'external' && relation.targetPath === 'pkg')).toBe(true)
+    expect(parsed.files.some((file) => file.relativePath === 'src/a.ts' && file.id === 'file:src/a.ts' && file.kind === 'file')).toBe(true)
+    expect(parsed.relations.some((relation) => relation.relationType === 'import' && relation.targetPath === 'src/b.ts' && relation.sourceId === 'file:src/a.ts' && relation.targetId === 'file:src/b.ts' && relation.confidence === 'resolved')).toBe(true)
+    expect(parsed.relations.some((relation) => relation.relationType === 'external' && relation.targetPath === 'pkg' && relation.type === 'external_reference' && relation.confidence === 'unresolved')).toBe(true)
     expect(parsed.relations.some((relation) => relation.relationType === 'link' && relation.targetPath === 'src/a.ts')).toBe(true)
+  })
+
+  it('应该为目录关系写入明确的节点 ID 和证据', () => {
+    const root = createTempRoot()
+    write(root, 'src/a.ts', '')
+
+    const files = collectGraphFiles(root, root, { exclude: [] })
+    const parsed = parseFileRelations(root, files, { exclude: [] })
+
+    expect(parsed.files.some((file) => file.id === 'directory:src' && file.kind === 'directory')).toBe(true)
+    expect(parsed.relations.some((relation) => relation.id === 'file:src/a.ts->directory:src:directory' && relation.type === 'directory' && relation.relationType === 'directory' && relation.sourceId === 'file:src/a.ts' && relation.targetId === 'directory:src' && relation.confidence === 'resolved' && relation.parser === 'filesystem' && relation.evidence === 'src')).toBe(true)
+  })
+
+  it('应该把被排除规则过滤的目标记录为未解析外部关系', () => {
+    const root = createTempRoot()
+    write(root, 'src/a.ts', "import b from './b'")
+    write(root, 'src/b.ts', 'export const b = 1')
+
+    const files = collectGraphFiles(root, root, { exclude: [] })
+    const parsed = parseFileRelations(root, files, { exclude: ['src/b.ts'] })
+
+    expect(parsed.relations.some((relation) => relation.sourcePath === 'src/a.ts' && relation.targetPath === './b' && relation.relationType === 'external' && relation.type === 'external_reference' && relation.confidence === 'unresolved' && relation.reason === '目标被图谱排除规则过滤')).toBe(true)
   })
 
   it('应该按排除规则跳过文件', () => {
@@ -85,6 +107,17 @@ describe('graph-parse-service', () => {
 
     expect(parsed.relations.some((relation) => relation.targetPath === 'src/b.ts')).toBe(true)
     expect(parsed.relations.some((relation) => relation.targetPath === 'src/feature/index.ts')).toBe(true)
+  })
+
+  it('不应该把带扩展名但不存在的相对引用标记为已解析', () => {
+    const root = createTempRoot()
+    write(root, 'src/a.ts', "import missing from './missing.ts'")
+
+    const files = collectGraphFiles(root, root, { exclude: [] })
+    const parsed = parseFileRelations(root, files, { exclude: [] })
+
+    expect(parsed.relations.some((relation) => relation.sourcePath === 'src/a.ts' && relation.targetPath === './missing.ts' && relation.relationType === 'external' && relation.type === 'external_reference' && relation.confidence === 'unresolved')).toBe(true)
+    expect(parsed.relations.some((relation) => relation.sourcePath === 'src/a.ts' && relation.targetPath === 'src/missing.ts' && relation.confidence === 'resolved')).toBe(false)
   })
 
   it('应该按当前文档目录解析 Markdown 相对链接并支持根路径链接', () => {
