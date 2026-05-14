@@ -53,6 +53,39 @@ describe('graph-parse-service', () => {
     expect(parsed.relations.some((relation) => relation.id === 'file:src/a.ts->directory:src:directory' && relation.type === 'directory' && relation.relationType === 'directory' && relation.sourceId === 'file:src/a.ts' && relation.targetId === 'directory:src' && relation.confidence === 'resolved' && relation.parser === 'filesystem' && relation.evidence === 'src')).toBe(true)
   })
 
+  it('应该解析文件内部浅层元素并关联到所属文件', () => {
+    const root = createTempRoot()
+    write(root, 'src/a.ts', [
+      'export class Runner {}',
+      'export enum Mode { Fast }',
+      'export type Result = string',
+      'export function run() { return 1 }',
+      'export const handle = () => 1',
+      'const value = 1',
+      'export interface Options {}',
+    ].join('\n'))
+    write(root, 'docs/guide.md', '# Guide: API #1')
+
+    const files = collectGraphFiles(root, root, { exclude: [] })
+    const parsed = parseFileRelations(root, files, { exclude: [] })
+
+    const expectedSymbols = [
+      ['symbol:src/a.ts#class:Runner:1', 'class'],
+      ['symbol:src/a.ts#enum:Mode:2', 'enum'],
+      ['symbol:src/a.ts#type:Result:3', 'type'],
+      ['symbol:src/a.ts#function:run:4', 'function'],
+      ['symbol:src/a.ts#function:handle:5', 'function'],
+      ['symbol:src/a.ts#variable:value:6', 'variable'],
+      ['symbol:src/a.ts#interface:Options:7', 'interface'],
+      ['symbol:docs/guide.md#section:Guide-API-1:1', 'section'],
+    ] as const
+    for (const [id, symbolKind] of expectedSymbols) {
+      expect(parsed.files.some((file) => file.id === id && file.kind === 'symbol' && file.symbolKind === symbolKind)).toBe(true)
+      expect(parsed.relations.some((relation) => relation.targetId === id && relation.type === 'contains' && relation.relationType === 'contains')).toBe(true)
+    }
+    expect(parsed.files.some((file) => file.id === 'symbol:src/a.ts#function:run:4' && file.parentId === 'file:src/a.ts')).toBe(true)
+  })
+
   it('应该把被排除规则过滤的目标记录为未解析外部关系', () => {
     const root = createTempRoot()
     write(root, 'src/a.ts', "import b from './b'")

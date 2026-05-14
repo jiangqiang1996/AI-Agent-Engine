@@ -46,7 +46,7 @@ function isInDirectory(filePath: string, directory: string | undefined): boolean
 function findCycles(relations: GraphRelation[], files: string[], limit: number): string[][] {
   const adjacency = new Map<string, string[]>()
   for (const relation of relations) {
-    if (relation.relationType === 'external') {
+    if (!isFileLevelRelation(relation) || relation.relationType === 'external') {
       continue
     }
     appendMapValue(adjacency, relation.sourcePath, relation.targetPath)
@@ -94,7 +94,7 @@ function hasMoreCycles(relations: GraphRelation[], files: string[], limit: numbe
 
 function shortestPath(relations: GraphRelation[], source: string, target: string): string[] {
   const adjacency = new Map<string, string[]>()
-  for (const relation of relations) {
+  for (const relation of relations.filter(isFileLevelRelation)) {
     appendMapValue(adjacency, relation.sourcePath, relation.targetPath)
   }
   const queue: string[][] = [[source]]
@@ -121,7 +121,7 @@ function shortestPath(relations: GraphRelation[], source: string, target: string
 function longPaths(relations: GraphRelation[], minLength: number, limit: number): string[][] {
   const adjacency = new Map<string, string[]>()
   for (const relation of relations) {
-    if (relation.relationType === 'external') {
+    if (!isFileLevelRelation(relation) || relation.relationType === 'external') {
       continue
     }
     appendMapValue(adjacency, relation.sourcePath, relation.targetPath)
@@ -165,7 +165,7 @@ function filePaths(files: { relativePath: string }[]): string[] {
 
 function impact(relations: GraphRelation[], file: string, limit: number): string[] {
   const reverse = new Map<string, string[]>()
-  for (const relation of relations) {
+  for (const relation of relations.filter(isFileLevelRelation)) {
     appendMapValue(reverse, relation.targetPath, relation.sourcePath)
   }
   const result: string[] = []
@@ -219,6 +219,10 @@ function getRelationType(relation: GraphRelation): string {
   return relation.type ?? (relation.relationType === 'external' ? 'external_reference' : relation.relationType)
 }
 
+function isFileLevelRelation(relation: GraphRelation): boolean {
+  return getRelationType(relation) !== 'contains'
+}
+
 function topInDegreeFromRelations(
   relations: GraphRelation[],
   files: { relativePath: string; fileType: string }[],
@@ -226,7 +230,7 @@ function topInDegreeFromRelations(
 ): Array<{ path: string; count: number }> {
   const sourceFiles = new Set(files.filter((file) => file.fileType !== 'directory').map((file) => file.relativePath))
   const counts = new Map<string, number>()
-  for (const relation of relations) {
+  for (const relation of relations.filter(isFileLevelRelation)) {
     if (sourceFiles.has(relation.targetPath)) {
       counts.set(relation.targetPath, (counts.get(relation.targetPath) ?? 0) + 1)
     }
@@ -275,7 +279,7 @@ export function executeGraphQuery(request: GraphQueryRequest): unknown {
         const relations = uniqueRelations(
           [...sourceChunks.chunks, ...targetChunks.chunks]
             .flatMap((chunk) => chunk.relations)
-            .filter((relation) => !excluded.has(relation.sourcePath) && !excluded.has(relation.targetPath)),
+            .filter((relation) => isFileLevelRelation(relation) && !excluded.has(relation.sourcePath) && !excluded.has(relation.targetPath)),
         )
         const dependencies = relations.filter((relation) => relation.sourcePath === request.file)
         const dependents = relations.filter((relation) => relation.targetPath === request.file)
@@ -302,7 +306,7 @@ export function executeGraphQuery(request: GraphQueryRequest): unknown {
         }
       }
     }
-    if (request.mode === 'health' && excluded.size === 0) {
+    if (request.mode === 'health' && excluded.size === 0 && !indexedSummary?.relationTypeCounts.contains) {
       const fileChunks = storage.loadFileChunks(request.worktree, request.scopeRoot)
       const files = fileChunks.chunks.flatMap((chunk) => chunk.files)
       const related = storage.readRelationEndpointPaths(request.worktree, request.scopeRoot)
@@ -354,13 +358,13 @@ export function executeGraphQuery(request: GraphQueryRequest): unknown {
         relations = uniqueRelations(
           [...sourceChunks.chunks, ...targetChunks.chunks]
             .flatMap((chunk) => chunk.relations)
-            .filter((relation) => !excluded.has(relation.sourcePath) && !excluded.has(relation.targetPath)),
+            .filter((relation) => isFileLevelRelation(relation) && !excluded.has(relation.sourcePath) && !excluded.has(relation.targetPath)),
         )
         chunksRead = chunkIds.length
         indexesUsed = ['source-to-relation-chunks', 'target-to-relation-chunks']
       }
-      const dependencies = relations.filter((relation) => relation.sourcePath === request.file)
-      const dependents = relations.filter((relation) => relation.targetPath === request.file)
+      const dependencies = relations.filter((relation) => isFileLevelRelation(relation) && relation.sourcePath === request.file)
+      const dependents = relations.filter((relation) => isFileLevelRelation(relation) && relation.targetPath === request.file)
       const limitedDependencies = takeLimited(dependencies, limit)
       const limitedDependents = takeLimited(dependents, limit)
       truncated = limitedDependencies.truncated || limitedDependents.truncated
@@ -377,10 +381,11 @@ export function executeGraphQuery(request: GraphQueryRequest): unknown {
       truncated = limitedImpacted.truncated
       result = { file: request.file, impacted: limitedImpacted.items }
     } else if (request.mode === 'health') {
-      const related = new Set(relations.flatMap((relation) => [relation.sourcePath, relation.targetPath]))
-      const isolatedFiles = files.filter((file) => !related.has(file.relativePath)).map((file) => file.relativePath)
+      const related = new Set(relations.filter(isFileLevelRelation).flatMap((relation) => [relation.sourcePath, relation.targetPath]))
+      const fileLevelFiles = files.filter((file) => file.kind !== 'symbol' && file.fileType !== 'directory')
+      const isolatedFiles = fileLevelFiles.filter((file) => !related.has(file.relativePath)).map((file) => file.relativePath)
       const limitedIsolatedFiles = takeLimited(isolatedFiles, limit)
-      const paths = filePaths(files)
+      const paths = filePaths(fileLevelFiles)
       const cycles = findCycles(relations, paths, limit)
       truncated = limitedIsolatedFiles.truncated || hasMoreCycles(relations, paths, limit)
       result = {
@@ -407,7 +412,7 @@ export function executeGraphQuery(request: GraphQueryRequest): unknown {
     } else if (request.mode === 'core') {
       const top = Math.min(request.top ?? 10, MAX_RESULT_ITEMS)
       const indexedCore = (indexedSummary?.topInDegree ?? [])
-        .filter((item) => files.some((file) => file.fileType !== 'directory' && file.relativePath === item.path))
+        .filter((item) => files.some((file) => file.kind !== 'symbol' && file.fileType !== 'directory' && file.relativePath === item.path))
       const useIndexedCore = excluded.size === 0 && indexedSummary && indexedCore.length >= top
       result = useIndexedCore ? indexedCore.slice(0, top) : topInDegreeFromRelations(relations, files, top)
       indexesUsed = useIndexedCore ? ['scope-summary'] : []
@@ -416,7 +421,7 @@ export function executeGraphQuery(request: GraphQueryRequest): unknown {
       indexesUsed = indexedSummary && excluded.size === 0 ? ['scope-summary'] : []
     } else {
       const patternType = request.patternType ?? 'all'
-      const graphFilePaths = filePaths(files)
+      const graphFilePaths = filePaths(files.filter((file) => file.kind !== 'symbol' && file.fileType !== 'directory'))
       const cycles = patternType === 'long' ? [] : findCycles(relations, graphFilePaths, limit)
       const paths = patternType === 'cycle' ? [] : longPaths(relations, 6, limit)
       truncated = (patternType !== 'long' && hasMoreCycles(relations, graphFilePaths, limit))

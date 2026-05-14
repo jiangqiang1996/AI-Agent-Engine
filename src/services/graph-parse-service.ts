@@ -1,7 +1,8 @@
 import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs'
 import { dirname, extname, join, relative, resolve } from 'node:path'
 
-import { makeExternalNodeId, makeFileNodeId, makeUnresolvedNodeId } from './graph/graph-schema.js'
+import { makeExternalNodeId, makeFileNodeId, makeSymbolNodeId, makeUnresolvedNodeId } from './graph/graph-schema.js'
+import type { GraphSymbolKind } from './graph/graph-schema.js'
 import { matchGraphExcludePath, type GraphConfig } from './graph-config-service.js'
 import type { GraphFileNode, GraphRelation, GraphRelationType } from './graph-storage-service.js'
 import { isInsideRoot, pathContainsSymlink, toPosixPath } from '../utils/path-utils.js'
@@ -196,6 +197,82 @@ function stableReferenceIndex(sourcePath: string, rawTarget: string, relationTyp
   return hash
 }
 
+function stableSymbolPath(kind: GraphSymbolKind, name: string, line: number): string {
+  const stableName = name.replace(/[^A-Za-z0-9_$.-]+/g, '-').replace(/^-+|-+$/g, '') || 'anonymous'
+  return `${kind}:${stableName}:${line}`
+}
+
+function getSortNodeId(file: GraphFileNode): string {
+  return file.id ?? file.relativePath
+}
+
+function pushSymbol(
+  nodes: GraphFileNode[],
+  relations: GraphRelation[],
+  sourcePath: string,
+  symbolKind: GraphSymbolKind,
+  label: string,
+  line: number,
+): void {
+  const symbolPath = stableSymbolPath(symbolKind, label, line)
+  const fileId = makeFileNodeId(sourcePath)
+  const symbolId = makeSymbolNodeId(sourcePath, symbolPath)
+  nodes.push({
+    id: symbolId,
+    kind: 'symbol',
+    relativePath: sourcePath,
+    label,
+    fileType: 'source',
+    nodePath: symbolPath,
+    range: { startLine: line },
+    parentId: fileId,
+    parser: 'regex-shallow',
+    symbolKind,
+  })
+  relations.push({
+    id: `${fileId}->${symbolId}:contains:${line}`,
+    sourceId: fileId,
+    targetId: symbolId,
+    type: 'contains',
+    confidence: 'candidate',
+    sourcePath,
+    targetPath: sourcePath,
+    relationType: 'contains',
+    range: { startLine: line },
+    parser: 'regex-shallow',
+    evidence: label,
+  })
+}
+
+function pushShallowSymbols(nodes: GraphFileNode[], relations: GraphRelation[], sourcePath: string, language: string | undefined, lines: string[]): void {
+  lines.forEach((lineContent, index) => {
+    const line = index + 1
+    if (language === 'markdown') {
+      const heading = lineContent.match(/^(#{1,6})\s+(.+)$/)
+      if (heading) {
+        pushSymbol(nodes, relations, sourcePath, 'section', heading[2].trim(), line)
+      }
+      return
+    }
+    const patterns: Array<[RegExp, GraphSymbolKind]> = [
+      [/\b(?:export\s+)?(?:abstract\s+)?class\s+([A-Za-z_$][\w$]*)/, 'class'],
+      [/\b(?:export\s+)?interface\s+([A-Za-z_$][\w$]*)/, 'interface'],
+      [/\b(?:export\s+)?enum\s+([A-Za-z_$][\w$]*)/, 'enum'],
+      [/\b(?:export\s+)?type\s+([A-Za-z_$][\w$]*)\s*=/, 'type'],
+      [/\b(?:export\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/, 'function'],
+      [/\b(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?(?:\([^)]*\)|[A-Za-z_$][\w$]*)\s*=>/, 'function'],
+      [/\b(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)/, 'variable'],
+    ]
+    for (const [pattern, symbolKind] of patterns) {
+      const match = lineContent.match(pattern)
+      if (match) {
+        pushSymbol(nodes, relations, sourcePath, symbolKind, match[1], line)
+        break
+      }
+    }
+  })
+}
+
 function pushReference(
   relations: GraphRelation[],
   worktree: string,
@@ -311,6 +388,7 @@ export function parseFileRelations(worktree: string, files: CollectedGraphFile[]
         }
       }
     }
+    pushShallowSymbols(fileNodes, relations, file.relativePath, file.language, lines)
     lines.forEach((lineContent, index) => {
       const line = index + 1
       for (const match of lineContent.matchAll(/import\s+(?:[^'\"]+?\s+from\s+)?['\"]([^'\"]+)['\"]/g)) {
@@ -344,6 +422,6 @@ export function parseFileRelations(worktree: string, files: CollectedGraphFile[]
     })
   }
 
-  const uniqueFiles = new Map(fileNodes.map((file) => [file.relativePath, file]))
-  return { files: [...uniqueFiles.values()].sort((a, b) => a.relativePath.localeCompare(b.relativePath)), relations, warnings }
+  const uniqueFiles = new Map(fileNodes.map((file) => [file.id ?? file.relativePath, file]))
+  return { files: [...uniqueFiles.values()].sort((a, b) => a.relativePath.localeCompare(b.relativePath) || getSortNodeId(a).localeCompare(getSortNodeId(b))), relations, warnings }
 }

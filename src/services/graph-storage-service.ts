@@ -5,11 +5,12 @@ import type {
   GraphConfidence,
   GraphNodeKind,
   GraphRelationType as GraphSchemaRelationType,
+  GraphSymbolKind,
   SourceRange,
 } from './graph/graph-schema.js'
 
 export type GraphFileType = 'source' | 'document' | 'config' | 'directory'
-export type GraphRelationType = Extract<GraphSchemaRelationType, 'import' | 'require' | 'include' | 'link' | 'directory'> | 'external'
+export type GraphRelationType = Extract<GraphSchemaRelationType, 'contains' | 'import' | 'require' | 'include' | 'link' | 'directory'> | 'external'
 
 export interface GraphFileNode {
   id?: string
@@ -24,6 +25,7 @@ export interface GraphFileNode {
   parentId?: string
   parser?: string
   status?: string
+  symbolKind?: GraphSymbolKind
 }
 
 export interface GraphRelation {
@@ -212,6 +214,10 @@ function getRelationTargetId(relation: GraphRelation): string {
 
 function getRelationType(relation: GraphRelation): GraphSchemaRelationType {
   return relation.type ?? (relation.relationType === 'external' ? 'external_reference' : relation.relationType)
+}
+
+function isFileLevelRelation(relation: GraphRelation): boolean {
+  return getRelationType(relation) !== 'contains'
 }
 
 function isGraphStore(value: unknown): value is GraphStore {
@@ -833,15 +839,17 @@ export class GraphStorage {
       for (const file of fileChunk) {
         const nodeId = getNodeId(file)
         const nodeKind = getNodeKind(file)
-        pathToFileChunk[file.relativePath] = chunkId
+        if (nodeKind !== 'symbol') {
+          pathToFileChunk[file.relativePath] = chunkId
+          fileTypeCounts[file.fileType] = (fileTypeCounts[file.fileType] ?? 0) + 1
+          const directory = dirname(file.relativePath).replaceAll('\\', '/')
+          const normalizedDirectory = directory === '.' ? '.' : directory
+          directoryCounts[normalizedDirectory] = (directoryCounts[normalizedDirectory] ?? 0) + 1
+          directoryToFileChunks[normalizedDirectory] = [...new Set([...(directoryToFileChunks[normalizedDirectory] ?? []), chunkId])]
+        }
         nodeIdToChunk[nodeId] = chunkId
         fileToNodeChunks[file.relativePath] = [...new Set([...(fileToNodeChunks[file.relativePath] ?? []), chunkId])]
-        fileTypeCounts[file.fileType] = (fileTypeCounts[file.fileType] ?? 0) + 1
         nodeKindCounts[nodeKind] = (nodeKindCounts[nodeKind] ?? 0) + 1
-        const directory = dirname(file.relativePath).replaceAll('\\', '/')
-        const normalizedDirectory = directory === '.' ? '.' : directory
-        directoryCounts[normalizedDirectory] = (directoryCounts[normalizedDirectory] ?? 0) + 1
-        directoryToFileChunks[normalizedDirectory] = [...new Set([...(directoryToFileChunks[normalizedDirectory] ?? []), chunkId])]
       }
       for (const relation of relationChunk) {
         const sourceId = getRelationSourceId(relation)
@@ -852,10 +860,12 @@ export class GraphStorage {
         sourceNodeToRelationChunks[sourceId] = [...new Set([...(sourceNodeToRelationChunks[sourceId] ?? []), chunkId])]
         targetNodeToRelationChunks[targetId] = [...new Set([...(targetNodeToRelationChunks[targetId] ?? []), chunkId])]
         relationTypeToChunks[relationType] = [...new Set([...(relationTypeToChunks[relationType] ?? []), chunkId])]
-        inDegree.set(relation.targetPath, (inDegree.get(relation.targetPath) ?? 0) + 1)
-        outDegree.set(relation.sourcePath, (outDegree.get(relation.sourcePath) ?? 0) + 1)
-        related.add(relation.sourcePath)
-        related.add(relation.targetPath)
+        if (isFileLevelRelation(relation)) {
+          inDegree.set(relation.targetPath, (inDegree.get(relation.targetPath) ?? 0) + 1)
+          outDegree.set(relation.sourcePath, (outDegree.get(relation.sourcePath) ?? 0) + 1)
+          related.add(relation.sourcePath)
+          related.add(relation.targetPath)
+        }
       }
     })
 
@@ -864,9 +874,10 @@ export class GraphStorage {
       const relationType = getRelationType(relation)
       relationTypeCounts[relationType] = (relationTypeCounts[relationType] ?? 0) + 1
     }
+    const fileLevelNodes = files.filter((file) => getNodeKind(file) !== 'symbol')
     const summary: GraphScopeSummaryIndex = {
       scopeRoot: version.scopeRoot,
-      fileCount: files.length,
+      fileCount: fileLevelNodes.length,
       nodeCount: files.length,
       relationCount: relations.length,
       directoryCounts,
@@ -875,7 +886,7 @@ export class GraphStorage {
       relationTypeCounts,
       topInDegree: topCounts(inDegree),
       topOutDegree: topCounts(outDegree),
-      isolatedCount: files.filter((file) => file.fileType !== 'directory' && !related.has(file.relativePath)).length,
+      isolatedCount: fileLevelNodes.filter((file) => file.fileType !== 'directory' && !related.has(file.relativePath)).length,
     }
     const indexes: Record<(typeof INDEX_NAMES)[number], unknown> = {
       'scope-summary': summary,

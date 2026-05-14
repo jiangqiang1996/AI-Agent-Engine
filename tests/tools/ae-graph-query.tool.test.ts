@@ -264,6 +264,70 @@ describe('ae-graph-query 工具', () => {
     expect(parsed.result.dependents.filter((relation) => relation.sourcePath === 'src/a.ts')).toHaveLength(1)
   })
 
+  it('文件级查询不应该把 contains 当作文件依赖或循环', async () => {
+    const root = createTempRoot()
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    storage.insertFiles(versionId, [
+      { id: 'file:src/a.ts', kind: 'file', relativePath: 'src/a.ts', fileType: 'source' },
+      { id: 'symbol:src/a.ts#function:run:1', kind: 'symbol', relativePath: 'src/a.ts', fileType: 'source', parentId: 'file:src/a.ts', symbolKind: 'function' },
+    ])
+    storage.insertRelations(versionId, [
+      { sourceId: 'file:src/a.ts', targetId: 'symbol:src/a.ts#function:run:1', sourcePath: 'src/a.ts', targetPath: 'src/a.ts', relationType: 'contains', type: 'contains' },
+    ])
+    storage.activateVersion(versionId)
+    storage.closeDatabase()
+
+    const depsResult = await aeGraphQueryTool.execute({ mode: 'deps', file: 'src/a.ts' }, createMockContext(root))
+    const patternResult = await aeGraphQueryTool.execute({ mode: 'pattern', pattern_type: 'cycle' }, createMockContext(root))
+    const healthResult = await aeGraphQueryTool.execute({ mode: 'health' }, createMockContext(root))
+    const depsParsed = JSON.parse(depsResult as string) as { result: { dependencies: unknown[]; dependents: unknown[] } }
+    const patternParsed = JSON.parse(patternResult as string) as { result: { cycles: string[][] } }
+    const healthParsed = JSON.parse(healthResult as string) as { result: { cycles: string[][]; isolatedFiles: string[] } }
+
+    expect(depsParsed.result.dependencies).toEqual([])
+    expect(depsParsed.result.dependents).toEqual([])
+    expect(patternParsed.result.cycles).toEqual([])
+    expect(healthParsed.result.cycles).toEqual([])
+    expect(healthParsed.result.isolatedFiles).toEqual(['src/a.ts'])
+  })
+
+  it('core 模式不应该把 contains 计数当作文件入度', async () => {
+    const root = createTempRoot()
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    storage.insertFiles(versionId, [
+      { id: 'file:src/a.ts', kind: 'file', relativePath: 'src/a.ts', fileType: 'source' },
+      { id: 'file:src/b.ts', kind: 'file', relativePath: 'src/b.ts', fileType: 'source' },
+      ...Array.from({ length: 5 }, (_, index) => ({
+        id: `symbol:src/a.ts#function:item${index}:1`,
+        kind: 'symbol' as const,
+        relativePath: 'src/a.ts',
+        fileType: 'source' as const,
+        parentId: 'file:src/a.ts',
+        symbolKind: 'function' as const,
+      })),
+    ])
+    storage.insertRelations(versionId, [
+      ...Array.from({ length: 5 }, (_, index) => ({
+        sourceId: 'file:src/a.ts',
+        targetId: `symbol:src/a.ts#function:item${index}:1`,
+        sourcePath: 'src/a.ts',
+        targetPath: 'src/a.ts',
+        relationType: 'contains' as const,
+        type: 'contains' as const,
+      })),
+      { sourcePath: 'src/a.ts', targetPath: 'src/b.ts', relationType: 'import' as const },
+    ])
+    storage.activateVersion(versionId)
+    storage.closeDatabase()
+
+    const result = await aeGraphQueryTool.execute({ mode: 'core', top: 1 }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as { result: Array<{ path: string; count: number }> }
+
+    expect(parsed.result).toEqual([{ path: 'src/b.ts', count: 1 }])
+  })
+
   it('应该在结果超过 limit 时返回真实截断状态', async () => {
     const root = createTempRoot()
     seedGraph(root)
