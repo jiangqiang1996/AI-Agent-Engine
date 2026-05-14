@@ -254,6 +254,10 @@ export const aeGateTool: ToolDefinition = tool({
       .describe('门禁检查点'),
     requirements_path: tool.schema.string().optional().describe('需求文档路径，使用仓库相对路径'),
     plan_path: tool.schema.string().optional().describe('计划文档路径，使用仓库相对路径'),
+    handoff_path: tool.schema
+      .string()
+      .optional()
+      .describe('B worktree 续执行交接文件路径，使用仓库相对路径，仅用于证明无 plan_path 时的执行基线'),
     validation_commands: tool.schema.array(tool.schema.string()).optional().describe('已实际运行的验证命令列表'),
     review_status: tool.schema
       .enum(['passed', 'failed', 'not_run', 'not_applicable'])
@@ -339,6 +343,7 @@ export const aeGateTool: ToolDefinition = tool({
         checkpoint: args.checkpoint,
         requirementsPath: args.requirements_path,
         planPath: args.plan_path,
+        handoffPath: args.handoff_path,
         validationCommands: args.validation_commands,
         reviewStatus: args.review_status,
         browserTestStatus: args.browser_test_status,

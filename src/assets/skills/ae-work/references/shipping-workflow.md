@@ -39,6 +39,7 @@
     - `review_status: passed` 或 `failed` 必须附带可验证 `review_evidence`，绑定当前可观察 worktree、branch、HEAD 和状态摘要
     - 传入 `git_operations`，没有 Git 写操作时传空数组
     - 传入 `worktree_decision`，正式功能交付 gate 仅允许记录创建、未创建新 worktree 并留在当前工作区或不适用；`transferred` / `cancelled` 只作为提前终止状态，不进入最终功能交付 gate
+    - B worktree 续执行且无 `plan_path` 时，必须传入 `handoff_path` 指向交接文件；`notes` 只能补充执行基线说明，不得把 A→B 续执行写成"任务无需计划"
     - 若有 Git 写操作，优先传入 `git_operation_args` 和 `git_authorization_evidence`；`user_authorized_git_write` 只是声明证据，不能放行 Git 写操作
     - 若门禁阻断，先补齐阻断项再进入交付
 
@@ -52,6 +53,7 @@
 - A→B 启动证明：授权证据区分 `operation_worktree` 与 `target_worktree`，`target_worktree` 必须是 A 项目根目录同级的 `../worktrees/<name>` 直接子目录，B 中最终 gate 的当前 worktree 必须匹配 `target_worktree`
 - A→B 产物迁移：创建 B 后，A 会话只允许把当前任务已确定执行基线中真实存在的具体需求/计划/设计文件迁移到 B，并在交接文件中逐一显式引用实际迁移的文件；禁止按 glob 批量复制未进入执行基线的需求/计划/设计文件；若存在多个候选文件，必须先选择唯一基线文件集；未迁移的需求/计划/设计文件不在交接文件中出现，不得声称已复制；若设计已由计划承载，交接文件必须明确说明；不迁移 gate/review 运行时产物，不修改 B 中代码、配置、测试或其他项目文件
 - A→B 交接文件：创建 B 后，A 会话不得再写入 A worktree 的任何文件；交接文件必须通过 `ae-worktree-handoff` 工具生成，写入 `docs/ae/handoffs/<timestamp>-worktree-handoff.md`；禁止自行拼接交接 Markdown
+- B 续执行门禁基线：对 B 续执行来说只有交接文件是必需输入；若最终 gate 无 `plan_path`，应传入 `handoff_path`，并把交接文件作为 B worktree 续执行基线；不得写成无需计划。`notes` 只能作为执行基线的声明型补充，不能替代可观察的交接文件证据
 - A→B 最终交付：A 会话的 `worktree_decision: transferred` 只表示执行已转移；若当前可观察 worktree 匹配 A→B 交接文件或启动证明中的目标 B worktree，B 会话最终功能交付使用 `worktree_decision: created` 表示已在独立 worktree 中执行并交付，并覆盖普通当前工作区场景的 `rejected`；`transferred` 和 `cancelled` 不得通过最终功能交付 gate
 - 未运行审查：`review_status: not_run` 搭配 `review_evidence.type: not_run_reason`，仅用于无代码变更、审查工具不可用或非正式交付说明；正式代码交付不得用该状态放行
 - 已通过审查：`review_status: passed` 搭配已存在的 `report_path` 证据及当前工作区指纹；`tool_output` 只能作为声明记录，不能独立放行最终门禁

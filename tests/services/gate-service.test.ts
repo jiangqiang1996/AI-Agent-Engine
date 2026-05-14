@@ -44,6 +44,21 @@ function writePlan(root: string): void {
   writeFileSync(join(root, 'docs', 'ae', 'plans', 'test-plan.md'), '# 测试计划\n', 'utf8')
 }
 
+function writeHandoff(root: string): void {
+  mkdirSync(join(root, 'docs', 'ae', 'handoffs'), { recursive: true })
+  writeFileSync(join(root, 'docs', 'ae', 'handoffs', 'test-worktree-handoff.md'), [
+    '---',
+    'type: worktree-handoff',
+    'status: transferred',
+    '---',
+    '# 测试交接',
+    '## A→B Startup Proof',
+    '## Execution Baseline',
+    '## Continue Prompt',
+    '',
+  ].join('\n'), 'utf8')
+}
+
 function initGitRepo(root: string): { branch: string; head: string; statusSummary: string } {
   execFileSync('git', ['init'], { cwd: root, stdio: 'ignore' })
   execFileSync('git', ['config', 'user.email', 'test@example.com'], { cwd: root, stdio: 'ignore' })
@@ -189,10 +204,140 @@ describe('门禁服务', () => {
     })
 
     expect(result.status).toBe('pass')
-    expect(result.warnings).toContain('本次 ae:work 未提供计划路径；仅适用于简单裸提示词或已在 notes 中说明的任务。')
+    expect(result.warnings).toContain('本次 ae:work 未提供计划或交接基线路径；仅适用于简单裸提示词或 notes 已说明执行基线。')
     expect(result.warnings).toContain('validation_commands 当前只记录代理声明的命令列表；除非附带可引用执行结果，否则不能单独证明验证已成功执行。')
     expect(result.evidenceSources.validation).toBe('tool_input_declared')
     expect(result.evidenceSources.workExecution).toBe('tool_input_declared')
+  })
+
+  it('应该允许 ae:work 使用交接文件作为无计划路径的执行基线', () => {
+    const root = createRepoRoot()
+    writeHandoff(root)
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      handoffPath: 'docs/ae/handoffs/test-worktree-handoff.md',
+      validationCommands: ['npm run typecheck'],
+      reviewStatus: 'not_run',
+      reviewEvidence: { type: 'not_run_reason', reason: '测试无代码变更路径' },
+      gitOperations: [],
+      worktreeDecision: 'created',
+      noCodeChangeReason: 'B worktree 续执行交接基线测试',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('pass')
+    expect(result.evidence.handoffPath).toBe('docs/ae/handoffs/test-worktree-handoff.md')
+    expect(result.evidence.handoffExists).toBe(true)
+    expect(result.evidenceSources.handoff).toBe('observable_workspace')
+    expect(result.warnings).toContain('本次 ae:work 未提供计划路径；已使用交接文件作为 B worktree 续执行基线。')
+    expect(result.warnings.join('\n')).not.toContain('无需计划')
+  })
+
+  it('应该阻断 ae:work 无计划且交接文件不存在的最终门禁', () => {
+    const root = createRepoRoot()
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      handoffPath: 'docs/ae/handoffs/missing-worktree-handoff.md',
+      validationCommands: ['npm run typecheck'],
+      reviewStatus: 'not_run',
+      reviewEvidence: { type: 'not_run_reason', reason: '测试无代码变更路径' },
+      gitOperations: [],
+      worktreeDecision: 'created',
+      noCodeChangeReason: 'B worktree 续执行交接基线测试',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('交接文件无效或不存在：docs/ae/handoffs/missing-worktree-handoff.md')
+    expect(result.missingEvidence).toContain('存在的规范 A→B worktree 交接文件')
+  })
+
+  it('应该阻断 handoffPath 指向仓库内非交接文件', () => {
+    const root = createRepoRoot()
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      handoffPath: 'docs/ae/plans/test-plan.md',
+      validationCommands: ['npm run typecheck'],
+      reviewStatus: 'not_run',
+      reviewEvidence: { type: 'not_run_reason', reason: '测试无代码变更路径' },
+      gitOperations: [],
+      worktreeDecision: 'created',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('交接文件无效或不存在：docs/ae/plans/test-plan.md')
+  })
+
+  it('应该阻断 handoffPath 指向缺少规范标记的交接文件', () => {
+    const root = createRepoRoot()
+    mkdirSync(join(root, 'docs', 'ae', 'handoffs'), { recursive: true })
+    writeFileSync(join(root, 'docs', 'ae', 'handoffs', 'invalid-worktree-handoff.md'), '# 非规范交接\n', 'utf8')
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      handoffPath: 'docs/ae/handoffs/invalid-worktree-handoff.md',
+      validationCommands: ['npm run typecheck'],
+      reviewStatus: 'not_run',
+      reviewEvidence: { type: 'not_run_reason', reason: '测试无代码变更路径' },
+      gitOperations: [],
+      worktreeDecision: 'created',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('交接文件无效或不存在：docs/ae/handoffs/invalid-worktree-handoff.md')
+  })
+
+  it('应该在计划路径存在输入时优先阻断不存在的计划文件', () => {
+    const root = createRepoRoot()
+    writeHandoff(root)
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'docs/ae/plans/missing-plan.md',
+      handoffPath: 'docs/ae/handoffs/test-worktree-handoff.md',
+      validationCommands: ['npm run typecheck'],
+      reviewStatus: 'not_run',
+      reviewEvidence: { type: 'not_run_reason', reason: '测试无代码变更路径' },
+      gitOperations: [],
+      worktreeDecision: 'created',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('计划文件不存在：docs/ae/plans/missing-plan.md')
+    expect(result.warnings).not.toContain('本次 ae:work 未提供计划路径；已使用交接文件作为 B worktree 续执行基线。')
+  })
+
+  it('应该阻断 ae:work 无计划、无交接文件且无执行基线说明', () => {
+    const root = createRepoRoot()
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      validationCommands: ['npm run typecheck'],
+      reviewStatus: 'not_applicable',
+      gitOperations: [],
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('ae:work 未提供计划路径时必须提供交接文件路径或说明执行基线。')
+    expect(result.missingEvidence).toContain('计划路径、交接文件路径或执行基线说明')
   })
 
   it('应该为通过的最终门禁写入证明文件', () => {
@@ -274,6 +419,28 @@ describe('门禁服务', () => {
     expect(result.blockers.join('\n')).toContain('路径必须是仓库相对路径且位于当前工作区内')
     expect(result.blockers.join('\n')).not.toContain(root)
     expect(result.missingEvidence).toContain('有效的计划文档路径')
+  })
+
+  it('应该阻断仓库外交接文件路径', () => {
+    const root = createRepoRoot()
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      handoffPath: '../outside-handoff.md',
+      validationCommands: ['npm run typecheck'],
+      reviewStatus: 'not_run',
+      reviewEvidence: { type: 'not_run_reason', reason: '测试无代码变更路径' },
+      gitOperations: [],
+      worktreeDecision: 'created',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers.join('\n')).toContain('交接文件路径必须是仓库相对路径且位于当前工作区内')
+    expect(result.blockers.join('\n')).not.toContain(root)
+    expect(result.missingEvidence).toContain('有效的交接文件路径')
   })
 
   it('应该阻断空验证命令', () => {

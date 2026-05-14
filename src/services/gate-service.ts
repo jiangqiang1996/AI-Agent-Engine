@@ -73,6 +73,7 @@ export interface GateInput {
   checkpoint: GateCheckpoint
   requirementsPath?: string
   planPath?: string
+  handoffPath?: string
   validationCommands?: string[]
   reviewStatus?: GateReviewStatus
   browserTestStatus?: GateReviewStatus
@@ -102,6 +103,7 @@ export interface GateResult {
   evidenceSources: {
     requirements: GateEvidenceSource
     plan: GateEvidenceSource
+    handoff: GateEvidenceSource
     workExecution: GateEvidenceSource
     validation: GateEvidenceSource
     review: GateEvidenceSource
@@ -114,6 +116,8 @@ export interface GateResult {
     requirementsExists?: boolean
     planPath?: string
     planExists?: boolean
+    handoffPath?: string
+    handoffExists?: boolean
     changedFiles: string[]
     validationCommands: string[]
     reviewStatus: GateReviewStatus
@@ -1086,7 +1090,56 @@ function addNextStep(nextSteps: string[], step: string): void {
   }
 }
 
+function addWorkFinalBaselineWarnings(
+  repoRoot: string,
+  input: GateInput,
+  blockers: string[],
+  missingEvidence: string[],
+  nextSteps: string[],
+  warnings: string[],
+  result: GateResult,
+): void {
+  if (input.workflow !== 'work' || input.checkpoint !== 'final' || input.planPath) {
+    return
+  }
+
+  if (result.evidence.handoffPath) {
+    if (result.evidence.handoffExists && isWorktreeHandoffFile(repoRoot, result.evidence.handoffPath)) {
+      warnings.push('本次 ae:work 未提供计划路径；已使用交接文件作为 B worktree 续执行基线。')
+    } else {
+      blockers.push(`交接文件无效或不存在：${result.evidence.handoffPath}`)
+      addMissingEvidence(missingEvidence, '存在的规范 A→B worktree 交接文件')
+      addNextStep(nextSteps, '修正 handoff_path，指向 docs/ae/handoffs/*-worktree-handoff.md 且包含规范交接标记的文件。')
+    }
+    return
+  }
+
+  warnings.push('本次 ae:work 未提供计划或交接基线路径；仅适用于简单裸提示词或 notes 已说明执行基线。')
+  if (!input.notes) {
+    blockers.push('ae:work 未提供计划路径时必须提供交接文件路径或说明执行基线。')
+    addMissingEvidence(missingEvidence, '计划路径、交接文件路径或执行基线说明')
+    addNextStep(nextSteps, '补充 plan_path、handoff_path，或在 notes 中说明为何该任务属于无需计划的轻量工作及其执行基线。')
+  }
+}
+
+function isWorktreeHandoffFile(repoRoot: string, normalizedPath: string): boolean {
+  if (!/^docs\/ae\/handoffs\/[^/]+-worktree-handoff\.md$/.test(toPosixPath(normalizedPath))) {
+    return false
+  }
+
+  try {
+    const content = readFileSync(resolve(repoRoot, normalizedPath), 'utf8')
+    return content.includes('type: worktree-handoff')
+      && content.includes('## A→B Startup Proof')
+      && content.includes('## Execution Baseline')
+      && content.includes('## Continue Prompt')
+  } catch {
+    return false
+  }
+}
+
 function addArtifactBlockers(
+  repoRoot: string,
   input: GateInput,
   blockers: string[],
   missingEvidence: string[],
@@ -1126,14 +1179,7 @@ function addArtifactBlockers(
     addNextStep(nextSteps, '先生成或修正计划文档，再重新执行门禁。')
   }
 
-  if (input.workflow === 'work' && input.checkpoint === 'final' && !input.planPath) {
-    warnings.push('本次 ae:work 未提供计划路径；仅适用于简单裸提示词或已在 notes 中说明的任务。')
-    if (!input.notes) {
-      blockers.push('ae:work 未提供计划路径时必须在 notes 中说明任务为何无需计划。')
-      addMissingEvidence(missingEvidence, '无需计划的说明')
-      addNextStep(nextSteps, '在 notes 中说明为何该任务属于无需计划的轻量工作。')
-    }
-  }
+  addWorkFinalBaselineWarnings(repoRoot, input, blockers, missingEvidence, nextSteps, warnings, result)
 }
 
 function addCheckpointBlockers(
@@ -1294,6 +1340,7 @@ function runGateSync(repoRoot: string, input: GateInput): GateResult {
   const warnings: string[] = []
   const requirementsPath = validateArtifactPath(repoRoot, input.requirementsPath)
   const planPath = validateArtifactPath(repoRoot, input.planPath)
+  const handoffPath = validateArtifactPath(repoRoot, input.handoffPath)
   const currentWorktreeFingerprint = collectCurrentWorktreeFingerprint(repoRoot)
   const gitOperations = normalizeCommands(input.gitOperations)
   const parsedGitOperations = getGitOperations(input, gitOperations)
@@ -1304,6 +1351,11 @@ function runGateSync(repoRoot: string, input: GateInput): GateResult {
 
   if (planPath.error) {
     blockers.push(`计划文档${planPath.error}`)
+  }
+
+  if (handoffPath.error) {
+    blockers.push(`交接文件${handoffPath.error}`)
+    addMissingEvidence(missingEvidence, '有效的交接文件路径')
   }
 
   const result: GateResult = {
@@ -1317,6 +1369,7 @@ function runGateSync(repoRoot: string, input: GateInput): GateResult {
     evidenceSources: {
       requirements: getArtifactSource(requirementsPath.normalizedPath, requirementsPath.exists),
       plan: getArtifactSource(planPath.normalizedPath, planPath.exists),
+      handoff: getArtifactSource(handoffPath.normalizedPath, handoffPath.exists),
       workExecution: 'not_provided',
       validation: 'not_provided',
       review: 'not_provided',
@@ -1334,6 +1387,8 @@ function runGateSync(repoRoot: string, input: GateInput): GateResult {
       requirementsExists: requirementsPath.exists,
       planPath: planPath.normalizedPath,
       planExists: planPath.exists,
+      handoffPath: handoffPath.normalizedPath,
+      handoffExists: handoffPath.exists,
       changedFiles: currentWorktreeFingerprint.available
         ? parseChangedFiles(currentWorktreeFingerprint.statusSummary ?? '')
         : collectChangedFiles(repoRoot),
@@ -1364,7 +1419,7 @@ function runGateSync(repoRoot: string, input: GateInput): GateResult {
   result.evidenceSources.review = getReviewSource(result.evidence.reviewStatus)
   result.evidenceSources.browserTest = getOptionalStatusSource(input.browserTestStatus)
 
-  addArtifactBlockers(input, blockers, missingEvidence, nextSteps, warnings, result)
+  addArtifactBlockers(repoRoot, input, blockers, missingEvidence, nextSteps, warnings, result)
   addCheckpointBlockers(input, blockers, missingEvidence, nextSteps, result)
   addFinalBlockers(repoRoot, input, parsedGitOperations, blockers, missingEvidence, nextSteps, warnings, result)
 

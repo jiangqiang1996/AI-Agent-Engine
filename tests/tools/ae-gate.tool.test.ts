@@ -27,7 +27,19 @@ function createRepoRoot(): string {
   const root = mkdtempSync(join(tmpdir(), 'ae-gate-tool-'))
   tempRoots.push(root)
   mkdirSync(join(root, 'docs', 'ae', 'plans'), { recursive: true })
+  mkdirSync(join(root, 'docs', 'ae', 'handoffs'), { recursive: true })
   writeFileSync(join(root, 'docs', 'ae', 'plans', 'test-plan.md'), '# 测试计划\n', 'utf8')
+  writeFileSync(join(root, 'docs', 'ae', 'handoffs', 'test-worktree-handoff.md'), [
+    '---',
+    'type: worktree-handoff',
+    'status: transferred',
+    '---',
+    '# 测试交接',
+    '## A→B Startup Proof',
+    '## Execution Baseline',
+    '## Continue Prompt',
+    '',
+  ].join('\n'), 'utf8')
   return root
 }
 
@@ -104,6 +116,7 @@ describe('ae-gate 工具', () => {
     expect(tool.args).toHaveProperty('git_authorization_evidence')
     expect(tool.args).toHaveProperty('review_evidence')
     expect(tool.args).toHaveProperty('worktree_decision')
+    expect(tool.args).toHaveProperty('handoff_path')
   })
 
   it('应该把 snake_case 参数映射到服务层 evidence 输出', async () => {
@@ -112,12 +125,13 @@ describe('ae-gate 工具', () => {
     const output = await tool.execute({
       workflow: 'work',
       checkpoint: 'final',
-      plan_path: 'docs/ae/plans/test-plan.md',
+      handoff_path: 'docs/ae/handoffs/test-worktree-handoff.md',
       validation_commands: ['npm run test'],
-      review_status: 'not_applicable',
+      review_status: 'not_run',
+      review_evidence: { type: 'not_run_reason', reason: '测试工具映射' },
       git_operations: [],
       git_operation_args: [],
-      worktree_decision: 'rejected',
+      worktree_decision: 'created',
       no_code_change_reason: '测试工具映射',
       write_proof: false,
     }, {
@@ -131,11 +145,15 @@ describe('ae-gate 工具', () => {
       evidence: {
         gitOperationArgs: string[][]
         worktreeDecision: string
+        handoffPath?: string
+        handoffExists?: boolean
       }
     }
 
     expect(result.evidence.gitOperationArgs).toEqual([])
-    expect(result.evidence.worktreeDecision).toBe('rejected')
+    expect(result.evidence.worktreeDecision).toBe('created')
+    expect(result.evidence.handoffPath).toBe('docs/ae/handoffs/test-worktree-handoff.md')
+    expect(result.evidence.handoffExists).toBe(true)
   })
 
   it('应该映射结构化授权和审查证据字段', async () => {
