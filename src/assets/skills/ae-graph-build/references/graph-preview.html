@@ -23,6 +23,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;d
 #detail{font-size:13px;line-height:1.6;color:#24292e}
 #detail ul{margin:4px 0 8px 18px}
 #detail li{word-break:break-all}
+#detail table{width:100%;border-collapse:collapse;margin:8px 0 12px;font-size:12px}
+#detail th,#detail td{border:1px solid #d0d7de;padding:5px 6px;text-align:left;vertical-align:top;word-break:break-all}
+#detail th{width:92px;background:#f6f8fa;color:#57606a;font-weight:600}
+#detail small{color:#57606a}
 #detail .badge{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;margin:2px}
 .badge-src{background:#ddf4ff;color:#0969da}
 .badge-doc{background:#dafbe1;color:#1a7f37}
@@ -33,6 +37,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;d
 .legend{display:flex;align-items:center;gap:8px;font-size:12px;color:#57606a;flex-wrap:wrap}
 .dot{width:9px;height:9px;border-radius:50%;display:inline-block}
 .hint{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:#24292e;color:#fff;padding:8px 16px;border-radius:8px;font-size:12px;pointer-events:none;opacity:0.88}
+.node-tip{position:absolute;display:none;max-width:520px;padding:7px 10px;border-radius:6px;background:#24292e;color:#fff;font-size:12px;line-height:1.45;word-break:break-all;pointer-events:none;z-index:20;box-shadow:0 8px 24px rgba(27,31,36,0.18)}
 </style>
 </head>
 <body>
@@ -85,6 +90,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;d
   </div>
 </div>
 <div class="hint" id="hint"></div>
+<div class="node-tip" id="nodeTip"></div>
 <script>
 var GRAPH_BASE = '.';
 var ALL_NODES = [];
@@ -104,14 +110,31 @@ var FILE_COLORS = {source:'#0969da',document:'#1a7f37',config:'#9a6700',director
 var FILE_BADGES = {source:'src',document:'doc',config:'cfg',directory:'dir',asset:'asset',external:'ext',symbol:'sym'};
 
 function badge(type, label) {
-  var cls = type === 'rel' ? 'badge badge-rel' : 'badge badge-' + type;
-  return '<span class="' + cls + '">' + label + '</span>';
+  var map = {source:'src',document:'doc',config:'cfg',directory:'dir',external:'asset',symbol:'symbol',rel:'rel',asset:'asset',src:'src',doc:'doc',cfg:'cfg',dir:'dir'};
+  var safeType = map[type] || 'asset';
+  var cls = safeType === 'rel' ? 'badge badge-rel' : 'badge badge-' + safeType;
+  return '<span class="' + cls + '">' + escapeHtml(label) + '</span>';
 }
 
 function escapeHtml(value) {
   return String(value).replace(/[&<>"]/g, function(ch) {
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch];
   });
+}
+
+function formatValue(value) {
+  if (value === undefined || value === null || value === '') return '';
+  if (typeof value === 'object') return escapeHtml(JSON.stringify(value));
+  return escapeHtml(value);
+}
+
+function detailRows(rows) {
+  var html = '<table>';
+  rows.forEach(function(row) {
+    if (row[1] === undefined || row[1] === null || row[1] === '') return;
+    html += '<tr><th>' + escapeHtml(row[0]) + '</th><td>' + formatValue(row[1]) + '</td></tr>';
+  });
+  return html + '</table>';
 }
 
 function nodeId(file) {
@@ -146,6 +169,12 @@ function relationTargetId(relation) {
 function relationPathForId(relation, id, isSource) {
   if (id.indexOf('file:') === 0 || id.indexOf('directory:') === 0) return id.split(':').slice(1).join(':');
   return isSource ? relation.sourcePath : relation.targetPath;
+}
+
+function relationEndpointLabel(relation, id, isSource) {
+  var node = findNodeById(id);
+  if (node && node.kind === 'symbol') return node.relativePath + '#' + (node.label || node.nodePath || id);
+  return relationPathForId(relation, id, isSource);
 }
 
 function virtualNodeType(id) {
@@ -240,7 +269,7 @@ function buildCyData(files, relations, fileFilter, typeFilter, nodeLimit, granul
     var key = source + '\0' + target + '\0' + r.relationType;
     if (seen[key]) return;
     seen[key] = 1;
-    cyEdges.push({data: {id: 'e' + i, source: source, target: target, relType: r.relationType, label: r.relationType, evidence: r.evidence || (r.metadata && r.metadata.raw) || '', searchMatch: relationSearch ? 'true' : 'false'}});
+    cyEdges.push({data: {id: 'e' + i, source: source, target: target, relType: r.relationType, label: r.relationType, evidence: r.evidence || (r.metadata && r.metadata.raw) || '', reason: r.reason || '', range: r.range || null, confidence: r.confidence || '', parser: r.parser || '', searchMatch: relationSearch ? 'true' : 'false'}});
   });
   Object.keys(virtualNodes).forEach(function(id) {
     var node = virtualNodes[id];
@@ -300,9 +329,34 @@ function renderGraph(cyData) {
     wheelSensitivity: 0.3, minZoom: 0.05, maxZoom: 5
   });
   CY.on('tap', 'node', function(evt) { focusNode(evt.target); showDetail(evt.target.data()); });
+  CY.on('mouseover', 'node', function(evt) { showNodeTip(evt.target, evt.originalEvent); });
+  CY.on('mousemove', 'node', function(evt) { moveNodeTip(evt.originalEvent); });
+  CY.on('mouseout', 'node', hideNodeTip);
   CY.on('tap', function(evt) { if (evt.target === CY) closePanel(); });
   document.getElementById('status').textContent = '已渲染: ' + cyData.stats.nodes + ' 节点 / ' + cyData.stats.edges + ' 边 | 文件: ' + ALL_NODES.length + ' | 关系: ' + ALL_EDGES.length;
   setTimeout(function() { if (CY) CY.fit(undefined, 50); }, 100);
+}
+
+function showNodeTip(node, event) {
+  var tip = document.getElementById('nodeTip');
+  tip.textContent = node.data('fullLabel') || node.data('label') || node.data('path') || node.data('id');
+  tip.style.display = 'block';
+  moveNodeTip(event);
+}
+
+function moveNodeTip(event) {
+  var tip = document.getElementById('nodeTip');
+  if (!event || tip.style.display !== 'block') return;
+  var x = event.clientX + 12;
+  var y = event.clientY + 12;
+  var maxX = window.innerWidth - tip.offsetWidth - 8;
+  var maxY = window.innerHeight - tip.offsetHeight - 8;
+  tip.style.left = Math.max(8, Math.min(x, maxX)) + 'px';
+  tip.style.top = Math.max(8, Math.min(y, maxY)) + 'px';
+}
+
+function hideNodeTip() {
+  document.getElementById('nodeTip').style.display = 'none';
 }
 
 function focusNode(node) {
@@ -316,23 +370,35 @@ function focusNode(node) {
 function showDetail(nodeData) {
   var path = nodeData.path;
   var isSymbol = nodeData.type === 'symbol';
+  var originalNode = findNodeById(nodeData.id) || {};
   var outEdges = ALL_EDGES.filter(function(r) { return relationSourceId(r) === nodeData.id || (!isSymbol && r.sourcePath === path); });
   var inEdges = ALL_EDGES.filter(function(r) { return relationTargetId(r) === nodeData.id || (!isSymbol && r.targetPath === path); });
   var html = '<p><strong>' + escapeHtml(path) + '</strong></p>';
   if (isSymbol) {
     html += '<p><strong>元素：</strong>' + escapeHtml(nodeData.label) + '</p>';
-    html += '<p>' + badge('symbol', escapeHtml(nodeData.symbolKind || 'symbol')) + (nodeData.range ? ' ' + badge('asset', 'L' + nodeData.range.startLine) : '') + '</p>';
+    html += '<p>' + badge('symbol', nodeData.symbolKind || 'symbol') + (nodeData.range ? ' ' + badge('asset', 'L' + nodeData.range.startLine) : '') + '</p>';
   } else {
-    html += '<p>' + badge(nodeData.type, nodeData.type) + (nodeData.language ? ' ' + badge('asset', escapeHtml(nodeData.language)) : '') + '</p>';
+    html += '<p>' + badge(nodeData.type, nodeData.type) + (nodeData.language ? ' ' + badge('asset', nodeData.language) : '') + '</p>';
   }
+  html += detailRows([
+    ['节点 ID', nodeData.id],
+    ['类型', nodeData.type],
+    ['文件类型', originalNode.fileType],
+    ['语言', originalNode.language || nodeData.language],
+    ['大小', originalNode.sizeBytes ? originalNode.sizeBytes + ' bytes' : ''],
+    ['解析器', originalNode.parser],
+    ['父节点', originalNode.parentId],
+    ['节点路径', originalNode.nodePath],
+    ['范围', originalNode.range]
+  ]);
   if (outEdges.length > 0) {
     html += '<p><strong>依赖 (' + outEdges.length + '):</strong></p><ul>';
-    outEdges.forEach(function(r) { html += '<li>' + badge('rel', r.relationType) + ' → ' + escapeHtml(r.targetPath) + (r.evidence ? '<br><small>证据: ' + escapeHtml(r.evidence) + '</small>' : '') + '</li>'; });
+    outEdges.forEach(function(r) { html += '<li>' + badge('rel', r.relationType) + ' → ' + escapeHtml(relationEndpointLabel(r, relationTargetId(r), false)) + '<br><small>' + escapeHtml([r.confidence, r.parser, r.range ? 'L' + r.range.startLine : '', r.reason].filter(Boolean).join(' | ')) + '</small>' + (r.evidence ? '<br><small>证据: ' + escapeHtml(r.evidence) + '</small>' : '') + '</li>'; });
     html += '</ul>';
   }
   if (inEdges.length > 0) {
     html += '<p><strong>被依赖 (' + inEdges.length + '):</strong></p><ul>';
-    inEdges.forEach(function(r) { html += '<li>' + badge('rel', r.relationType) + ' ← ' + escapeHtml(r.sourcePath) + '</li>'; });
+    inEdges.forEach(function(r) { html += '<li>' + badge('rel', r.relationType) + ' ← ' + escapeHtml(relationEndpointLabel(r, relationSourceId(r), true)) + '<br><small>' + escapeHtml([r.confidence, r.parser, r.range ? 'L' + r.range.startLine : '', r.reason].filter(Boolean).join(' | ')) + '</small>' + (r.evidence ? '<br><small>证据: ' + escapeHtml(r.evidence) + '</small>' : '') + '</li>'; });
     html += '</ul>';
   }
   document.getElementById('detail').innerHTML = html;

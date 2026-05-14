@@ -1,6 +1,8 @@
 import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs'
 import { dirname, extname, join, relative, resolve } from 'node:path'
 
+import ts from 'typescript'
+
 import { makeExternalNodeId, makeFileNodeId, makeSymbolNodeId, makeUnresolvedNodeId } from './graph/graph-schema.js'
 import type { GraphSymbolKind } from './graph/graph-schema.js'
 import { matchGraphExcludePath, type GraphConfig } from './graph-config-service.js'
@@ -72,6 +74,8 @@ function getLanguage(filePath: string): string | undefined {
     '.tsx': 'typescript',
     '.js': 'javascript',
     '.jsx': 'javascript',
+    '.mjs': 'javascript',
+    '.cjs': 'javascript',
     '.py': 'python',
     '.java': 'java',
     '.go': 'go',
@@ -202,6 +206,231 @@ function stableSymbolPath(kind: GraphSymbolKind, name: string, line: number): st
   return `${kind}:${stableName}:${line}`
 }
 
+function isLineComment(lineContent: string, language: string | undefined): boolean {
+  const trimmed = lineContent.trimStart()
+  if (!trimmed) {
+    return true
+  }
+  if (language === 'markdown') {
+    return trimmed.startsWith('<!--')
+  }
+  if (language === 'python') {
+    return trimmed.startsWith('#')
+  }
+  return trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('/*') || trimmed.startsWith('<!--')
+}
+
+function commentStateBeforeLine(lines: string[], lineIndex: number, language: string | undefined): { block: boolean; html: boolean } {
+  let block = false
+  let html = false
+  for (let index = 0; index < lineIndex; index += 1) {
+    const line = lines[index]
+    if (language !== 'python') {
+      const blockOpen = line.indexOf('/*')
+      const blockClose = line.indexOf('*/')
+      if (!block && blockOpen >= 0 && (blockClose < 0 || blockOpen < blockClose)) {
+        block = true
+      }
+      if (block && blockClose >= 0) {
+        block = false
+      }
+    }
+    const htmlOpen = line.indexOf('<!--')
+    const htmlClose = line.indexOf('-->')
+    if (!html && htmlOpen >= 0 && (htmlClose < 0 || htmlOpen < htmlClose)) {
+      html = true
+    }
+    if (html && htmlClose >= 0) {
+      html = false
+    }
+  }
+  return { block, html }
+}
+
+function isCommentOnlyLine(lines: string[], lineIndex: number, language: string | undefined): boolean {
+  const state = commentStateBeforeLine(lines, lineIndex, language)
+  if (state.block || state.html) {
+    return true
+  }
+  return isLineComment(lines[lineIndex], language)
+}
+
+function stripTrailingComment(lineContent: string, language: string | undefined): string {
+  if (language === 'typescript' || language === 'javascript') {
+    return lineContent.split('//')[0].split('/*')[0]
+  }
+  if (language === 'markdown') {
+    return lineContent.split('<!--')[0]
+  }
+  return lineContent
+}
+
+function getScriptKind(filePath: string): ts.ScriptKind {
+  const ext = extname(filePath).toLowerCase()
+  if (ext === '.tsx') {
+    return ts.ScriptKind.TSX
+  }
+  if (ext === '.jsx') {
+    return ts.ScriptKind.JSX
+  }
+  if (ext === '.js' || ext === '.mjs' || ext === '.cjs') {
+    return ts.ScriptKind.JS
+  }
+  return ts.ScriptKind.TS
+}
+
+function getNodeStartLine(sourceFile: ts.SourceFile, node: ts.Node): number {
+  return sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1
+}
+
+function pushTypeScriptAst(
+  nodes: GraphFileNode[],
+  relations: GraphRelation[],
+  worktree: string,
+  sourcePath: string,
+  content: string,
+  config: GraphConfig,
+): void {
+  const sourceFile = ts.createSourceFile(sourcePath, content, ts.ScriptTarget.Latest, true, getScriptKind(sourcePath))
+
+  function pushModuleReference(node: ts.Node): void {
+    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier && ts.isStringLiteralLike(node.moduleSpecifier)) {
+      pushReference(relations, worktree, sourcePath, node.moduleSpecifier.text, 'import', getNodeStartLine(sourceFile, node), config, 'typescript-compiler')
+    }
+  }
+
+  function pushCallReferences(node: ts.Node): void {
+    if (ts.isCallExpression(node)) {
+      const firstArg = node.arguments[0]
+      if (firstArg && ts.isStringLiteralLike(firstArg)) {
+        if (ts.isIdentifier(node.expression) && node.expression.text === 'require') {
+          pushReference(relations, worktree, sourcePath, firstArg.text, 'require', getNodeStartLine(sourceFile, node), config, 'typescript-compiler')
+        } else if (node.expression.kind === ts.SyntaxKind.ImportKeyword) {
+          pushReference(relations, worktree, sourcePath, firstArg.text, 'import', getNodeStartLine(sourceFile, node), config, 'typescript-compiler')
+        }
+      }
+    }
+    ts.forEachChild(node, pushCallReferences)
+  }
+
+  for (const statement of sourceFile.statements) {
+    pushModuleReference(statement)
+    pushCallReferences(statement)
+
+    const node = statement
+    if (ts.isClassDeclaration(node)) {
+      const name = node.name?.text
+      if (name) {
+        pushSymbol(nodes, relations, sourcePath, 'class', name, getNodeStartLine(sourceFile, node), 'typescript-compiler')
+      }
+    } else if (ts.isInterfaceDeclaration(node)) {
+      pushSymbol(nodes, relations, sourcePath, 'interface', node.name.text, getNodeStartLine(sourceFile, node), 'typescript-compiler')
+    } else if (ts.isEnumDeclaration(node)) {
+      pushSymbol(nodes, relations, sourcePath, 'enum', node.name.text, getNodeStartLine(sourceFile, node), 'typescript-compiler')
+    } else if (ts.isTypeAliasDeclaration(node)) {
+      pushSymbol(nodes, relations, sourcePath, 'type', node.name.text, getNodeStartLine(sourceFile, node), 'typescript-compiler')
+    } else if (ts.isFunctionDeclaration(node)) {
+      const name = node.name?.text
+      if (name) {
+        pushSymbol(nodes, relations, sourcePath, 'function', name, getNodeStartLine(sourceFile, node), 'typescript-compiler')
+      }
+    } else if (ts.isVariableStatement(node)) {
+      for (const declaration of node.declarationList.declarations) {
+        if (ts.isIdentifier(declaration.name)) {
+          const initializer = declaration.initializer
+          const symbolKind = initializer && (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer)) ? 'function' : 'variable'
+          pushSymbol(nodes, relations, sourcePath, symbolKind, declaration.name.text, getNodeStartLine(sourceFile, declaration), 'typescript-compiler')
+        }
+      }
+    }
+  }
+}
+
+function parseByLanguage(
+  nodes: GraphFileNode[],
+  relations: GraphRelation[],
+  worktree: string,
+  file: CollectedGraphFile,
+  content: string,
+  lines: string[],
+  markdownReferences: Map<string, string>,
+  config: GraphConfig,
+): void {
+  if (file.language === 'typescript' || file.language === 'javascript') {
+    pushTypeScriptAst(nodes, relations, worktree, file.relativePath, content, config)
+    pushMarkdownLinkReferences(relations, worktree, file, lines, markdownReferences, config)
+    return
+  }
+  pushShallowSymbols(nodes, relations, file.relativePath, file.language, lines)
+  pushFallbackReferences(relations, worktree, file, lines, markdownReferences, config)
+}
+
+function pushMarkdownLinkReferences(
+  relations: GraphRelation[],
+  worktree: string,
+  file: CollectedGraphFile,
+  lines: string[],
+  markdownReferences: Map<string, string>,
+  config: GraphConfig,
+): void {
+  lines.forEach((lineContent, index) => {
+    const line = index + 1
+    if (isCommentOnlyLine(lines, index, file.language)) {
+      return
+    }
+    const content = stripTrailingComment(lineContent, file.language)
+    for (const match of content.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)) {
+      if (!/^https?:\/\//i.test(match[1])) {
+        pushReference(relations, worktree, file.relativePath, match[1], 'link', line, config)
+      }
+    }
+    for (const match of content.matchAll(/\[[^\]]+\]\[([^\]]+)\]/g)) {
+      const target = markdownReferences.get(match[1].toLowerCase())
+      if (target && !/^https?:\/\//i.test(target)) {
+        pushReference(relations, worktree, file.relativePath, target, 'link', line, config)
+      }
+    }
+  })
+}
+
+function pushFallbackReferences(
+  relations: GraphRelation[],
+  worktree: string,
+  file: CollectedGraphFile,
+  lines: string[],
+  markdownReferences: Map<string, string>,
+  config: GraphConfig,
+): void {
+  lines.forEach((lineContent, index) => {
+    const line = index + 1
+    if (isLineComment(lineContent, file.language)) {
+      return
+    }
+    for (const match of lineContent.matchAll(/import\s+(?:[^'\"]+?\s+from\s+)?['\"]([^'\"]+)['\"]/g)) {
+      pushReference(relations, worktree, file.relativePath, match[1], 'import', line, config)
+    }
+    for (const match of lineContent.matchAll(/require\(\s*['\"]([^'\"]+)['\"]\s*\)/g)) {
+      pushReference(relations, worktree, file.relativePath, match[1], 'require', line, config)
+    }
+    for (const match of lineContent.matchAll(/include\s+["'<]?([^"'>\s]+)["'>]?/g)) {
+      pushReference(relations, worktree, file.relativePath, match[1], 'include', line, config)
+    }
+    if (file.language === 'python' || file.language === 'java') {
+      for (const match of lineContent.matchAll(/^\s*(?:from\s+([.\w]+)\s+import\s+\w+|import\s+([.\w]+))/g)) {
+        const rawImport = match[1] ?? match[2]
+        const normalizedImport = rawImport.startsWith('.') ? rawImport.replaceAll('.', '/') : rawImport
+        pushReference(relations, worktree, file.relativePath, normalizedImport, 'import', line, config)
+      }
+    }
+    if (file.language === 'go') {
+      for (const match of lineContent.matchAll(/^\s*import\s+(?:\(\s*)?["']([^"']+)["']\s*\)?\s*;?$/g)) {
+        pushReference(relations, worktree, file.relativePath, match[1], 'import', line, config)
+      }
+    }
+  })
+  pushMarkdownLinkReferences(relations, worktree, file, lines, markdownReferences, config)
+}
+
 function getSortNodeId(file: GraphFileNode): string {
   return file.id ?? file.relativePath
 }
@@ -213,6 +442,7 @@ function pushSymbol(
   symbolKind: GraphSymbolKind,
   label: string,
   line: number,
+  parser = 'regex-shallow',
 ): void {
   const symbolPath = stableSymbolPath(symbolKind, label, line)
   const fileId = makeFileNodeId(sourcePath)
@@ -226,7 +456,7 @@ function pushSymbol(
     nodePath: symbolPath,
     range: { startLine: line },
     parentId: fileId,
-    parser: 'regex-shallow',
+    parser,
     symbolKind,
   })
   relations.push({
@@ -239,7 +469,7 @@ function pushSymbol(
     targetPath: sourcePath,
     relationType: 'contains',
     range: { startLine: line },
-    parser: 'regex-shallow',
+    parser,
     evidence: label,
   })
 }
@@ -281,6 +511,7 @@ function pushReference(
   relationType: GraphRelationType,
   line: number,
   config: GraphConfig,
+  parser = 'regex-shallow',
 ): void {
   const targetPath = resolveRelativeReference(worktree, sourcePath, rawTarget, relationType === 'link')
   const sourceId = makeFileNodeId(sourcePath)
@@ -296,7 +527,7 @@ function pushReference(
       targetPath: rawTarget,
       relationType: 'external',
       range: { startLine: line },
-      parser: 'regex-shallow',
+      parser,
       evidence: rawTarget,
       reason: '目标被图谱排除规则过滤',
       metadata: { line, raw: rawTarget, confidence: 'unresolved' },
@@ -316,7 +547,7 @@ function pushReference(
     targetPath: targetPath ?? rawTarget,
     relationType: resolved ? relationType : 'external',
     range: { startLine: line },
-    parser: 'regex-shallow',
+    parser,
     evidence: rawTarget,
     reason: resolved ? undefined : '无法解析为工作区内文件',
     metadata: { line, raw: rawTarget, confidence: resolved ? 'resolved' : 'unresolved' },
@@ -388,42 +619,7 @@ export function parseFileRelations(worktree: string, files: CollectedGraphFile[]
         }
       }
     }
-    pushShallowSymbols(fileNodes, relations, file.relativePath, file.language, lines)
-    lines.forEach((lineContent, index) => {
-      const line = index + 1
-      for (const match of lineContent.matchAll(/import\s+(?:[^'\"]+?\s+from\s+)?['\"]([^'\"]+)['\"]/g)) {
-        pushReference(relations, worktree, file.relativePath, match[1], 'import', line, config)
-      }
-      for (const match of lineContent.matchAll(/require\(\s*['\"]([^'\"]+)['\"]\s*\)/g)) {
-        pushReference(relations, worktree, file.relativePath, match[1], 'require', line, config)
-      }
-      for (const match of lineContent.matchAll(/include\s+["'<]?([^"'>\s]+)["'>]?/g)) {
-        pushReference(relations, worktree, file.relativePath, match[1], 'include', line, config)
-      }
-      if (file.language === 'python' || file.language === 'java') {
-        for (const match of lineContent.matchAll(/^\s*(?:from\s+([.\w]+)\s+import\s+\w+|import\s+([.\w]+))/g)) {
-          const rawImport = match[1] ?? match[2]
-          const normalizedImport = rawImport.startsWith('.') ? rawImport.replaceAll('.', '/') : rawImport
-          pushReference(relations, worktree, file.relativePath, normalizedImport, 'import', line, config)
-        }
-      }
-      if (file.language === 'go') {
-        for (const match of lineContent.matchAll(/^\s*import\s+(?:\(\s*)?["']([^"']+)["']\s*\)?\s*;?$/g)) {
-          pushReference(relations, worktree, file.relativePath, match[1], 'import', line, config)
-        }
-      }
-      for (const match of lineContent.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)) {
-        if (!/^https?:\/\//i.test(match[1])) {
-          pushReference(relations, worktree, file.relativePath, match[1], 'link', line, config)
-        }
-      }
-      for (const match of lineContent.matchAll(/\[[^\]]+\]\[([^\]]+)\]/g)) {
-        const target = markdownReferences.get(match[1].toLowerCase())
-        if (target && !/^https?:\/\//i.test(target)) {
-          pushReference(relations, worktree, file.relativePath, target, 'link', line, config)
-        }
-      }
-    })
+    parseByLanguage(fileNodes, relations, worktree, file, content, lines, markdownReferences, config)
   }
 
   const uniqueFiles = new Map(fileNodes.map((file) => [file.id ?? file.relativePath, file]))

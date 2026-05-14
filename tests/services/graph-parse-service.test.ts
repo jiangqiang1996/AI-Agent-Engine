@@ -57,6 +57,117 @@ describe('graph-parse-service', () => {
     expect(parsed.relations.some((relation) => relation.targetPath === 'src/types.ts')).toBe(true)
   })
 
+  it('不应该从注释行提取关系', () => {
+    const root = createTempRoot()
+    write(root, 'src/a.ts', [
+      "// import ghost from './ghost'",
+      "/* const ghost = require('./ghost') */",
+      "import real from './real'",
+    ].join('\n'))
+    write(root, 'src/real.ts', 'export const real = 1')
+    write(root, 'docs/guide.md', '<!-- [Ghost](ghost.md) -->\n[Real](real.md)')
+    write(root, 'docs/real.md', '# real')
+
+    const files = collectGraphFiles(root, root, { exclude: [] })
+    const parsed = parseFileRelations(root, files, { exclude: [] })
+
+    expect(parsed.relations.some((relation) => relation.targetPath.includes('ghost'))).toBe(false)
+    expect(parsed.relations.some((relation) => relation.sourcePath === 'src/a.ts' && relation.targetPath === 'src/real.ts')).toBe(true)
+    expect(parsed.relations.some((relation) => relation.sourcePath === 'docs/guide.md' && relation.targetPath === 'docs/real.md')).toBe(true)
+  })
+
+  it('应该使用 TypeScript 编译器解析 TS/JS 节点和关系', () => {
+    const root = createTempRoot()
+    write(root, 'src/a.ts', [
+      "// import ghost from './ghost'",
+      "export { real } from './real'",
+      "const lazy = import('./lazy')",
+      "const cjs = require('./cjs')",
+      'export class Runner {}',
+      'export const handle = () => 1',
+      '// [Ghost](ghost.md)',
+      '// [Ref][ghost]',
+      'const marker = 1 // [Ghost](ghost.md)',
+      'const marker2 = 2 /* [Ghost](ghost.md) */',
+      '[Doc](../docs/doc.md)',
+      '[Ref][doc]',
+      '[ghost]: ghost.md',
+      '[doc]: ../docs/doc.md',
+    ].join('\n'))
+    write(root, 'src/real.ts', 'export const real = 1')
+    write(root, 'src/lazy.ts', 'export const lazy = 1')
+    write(root, 'src/cjs.ts', 'export const cjs = 1')
+    write(root, 'docs/doc.md', '# doc')
+
+    const files = collectGraphFiles(root, root, { exclude: [] })
+    const parsed = parseFileRelations(root, files, { exclude: [] })
+
+    expect(parsed.relations.some((relation) => relation.targetPath.includes('ghost'))).toBe(false)
+    expect(parsed.relations.some((relation) => relation.targetPath === 'src/real.ts' && relation.parser === 'typescript-compiler')).toBe(true)
+    expect(parsed.relations.some((relation) => relation.targetPath === 'src/lazy.ts' && relation.parser === 'typescript-compiler')).toBe(true)
+    expect(parsed.relations.some((relation) => relation.targetPath === 'src/cjs.ts' && relation.parser === 'typescript-compiler')).toBe(true)
+    expect(parsed.relations.some((relation) => relation.sourcePath === 'src/a.ts' && relation.targetPath === 'docs/doc.md' && relation.relationType === 'link')).toBe(true)
+    expect(parsed.files.some((file) => file.id === 'symbol:src/a.ts#class:Runner:5' && file.parser === 'typescript-compiler')).toBe(true)
+    expect(parsed.files.some((file) => file.id === 'symbol:src/a.ts#function:handle:6' && file.parser === 'typescript-compiler')).toBe(true)
+  })
+
+  it('不应该从多行注释块正文提取 Markdown 链接关系', () => {
+    const root = createTempRoot()
+    write(root, 'src/a.ts', [
+      '/*',
+      '[Ghost](../docs/ghost.md)',
+      '*/',
+      '[Real](../docs/real.md)',
+    ].join('\n'))
+    write(root, 'docs/guide.md', [
+      '<!--',
+      '[Ghost](ghost.md)',
+      '-->',
+      '[Real](real.md)',
+    ].join('\n'))
+    write(root, 'docs/ghost.md', '# ghost')
+    write(root, 'docs/real.md', '# real')
+
+    const files = collectGraphFiles(root, root, { exclude: [] })
+    const parsed = parseFileRelations(root, files, { exclude: [] })
+
+    expect(parsed.relations.some((relation) => relation.sourcePath === 'src/a.ts' && relation.targetPath === 'docs/ghost.md')).toBe(false)
+    expect(parsed.relations.some((relation) => relation.sourcePath === 'docs/guide.md' && relation.targetPath === 'docs/ghost.md')).toBe(false)
+    expect(parsed.relations.some((relation) => relation.sourcePath === 'src/a.ts' && relation.targetPath === 'docs/real.md')).toBe(true)
+    expect(parsed.relations.some((relation) => relation.sourcePath === 'docs/guide.md' && relation.targetPath === 'docs/real.md')).toBe(true)
+  })
+
+  it('TypeScript AST 浅层解析不应该把局部变量提升为文件级节点', () => {
+    const root = createTempRoot()
+    write(root, 'src/a.ts', [
+      'export function run() {',
+      '  const local = 1',
+      '  return local',
+      '}',
+    ].join('\n'))
+
+    const files = collectGraphFiles(root, root, { exclude: [] })
+    const parsed = parseFileRelations(root, files, { exclude: [] })
+
+    expect(parsed.files.some((file) => file.id === 'symbol:src/a.ts#function:run:1')).toBe(true)
+    expect(parsed.files.some((file) => file.id === 'symbol:src/a.ts#variable:local:2')).toBe(false)
+  })
+
+  it('应该对 mjs 和 cjs 使用 JavaScript AST 解析', () => {
+    const root = createTempRoot()
+    write(root, 'src/a.mjs', "export { value } from './value'\nconst lazy = import('./lazy')")
+    write(root, 'src/b.cjs', "const value = require('./value')")
+    write(root, 'src/value.js', 'export const value = 1')
+    write(root, 'src/lazy.js', 'export const lazy = 1')
+
+    const files = collectGraphFiles(root, root, { exclude: [] })
+    const parsed = parseFileRelations(root, files, { exclude: [] })
+
+    expect(parsed.relations.some((relation) => relation.sourcePath === 'src/a.mjs' && relation.targetPath === 'src/value.js' && relation.parser === 'typescript-compiler')).toBe(true)
+    expect(parsed.relations.some((relation) => relation.sourcePath === 'src/a.mjs' && relation.targetPath === 'src/lazy.js' && relation.parser === 'typescript-compiler')).toBe(true)
+    expect(parsed.relations.some((relation) => relation.sourcePath === 'src/b.cjs' && relation.targetPath === 'src/value.js' && relation.parser === 'typescript-compiler')).toBe(true)
+  })
+
   it('应该为目录关系写入明确的节点 ID 和证据', () => {
     const root = createTempRoot()
     write(root, 'src/a.ts', '')
