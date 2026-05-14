@@ -1,6 +1,6 @@
 import { mkdtempSync, rmSync, existsSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join, basename } from 'node:path'
+import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import {
@@ -53,7 +53,7 @@ describe('worktree-handoff-generator', () => {
       expect('error' in result).toBe(false)
       if ('error' in result) return
 
-      const { markdown, canonicalContinuePrompt, handoffRelPath } = result
+      const { markdown, handoffRelPath } = result
 
       expect(handoffRelPath).toMatch(/^docs\/ae\/handoffs\/\d{4}-\d{2}-\d{2}-\d{9}-worktree-handoff\.md$/)
       expect(markdown).toContain('type: worktree-handoff')
@@ -61,28 +61,23 @@ describe('worktree-handoff-generator', () => {
       expect(markdown).toContain('## A→B Startup Proof')
       expect(markdown).toContain('## Migrated Artifacts')
       expect(markdown).toContain('## Execution Baseline')
-      expect(markdown).toContain('## Continue Prompt')
-      expect(canonicalContinuePrompt).toContain('请打开目标 B worktree 对应的工作空间')
-      expect(canonicalContinuePrompt).toContain('在该工作空间中启动 opencode')
-      expect(canonicalContinuePrompt).toContain('ae:work')
-      expect(canonicalContinuePrompt).toContain('\n')
+      expect(markdown).toContain('resume_entrypoint: ae:work')
     })
 
-    it('Continue Prompt 只出现一次', () => {
-      const result = generateHandoffMarkdown(validInput())
-      if ('error' in result) return
-      const { markdown, canonicalContinuePrompt } = result
-
-      const promptCount = markdown.split(canonicalContinuePrompt).length - 1
-      expect(promptCount).toBe(1)
-    })
-
-    it('A→B Startup Proof 包含 continue_prompt_ref 而非重复提示词', () => {
+    it('应生成唯一续执行入口字段', () => {
       const result = generateHandoffMarkdown(validInput())
       if ('error' in result) return
       const { markdown } = result
 
-      expect(markdown).toContain('continue_prompt_ref: 见 ## Continue Prompt 章节')
+      expect(markdown.match(/resume_entrypoint: ae:work/g)).toHaveLength(1)
+    })
+
+    it('A→B Startup Proof 包含 resume_entrypoint', () => {
+      const result = generateHandoffMarkdown(validInput())
+      if ('error' in result) return
+      const { markdown } = result
+
+      expect(markdown).toContain('resume_entrypoint: ae:work docs/ae/handoffs/')
     })
 
     it('source_session_id=unavailable 且无 session_evidence 时应报错', () => {
@@ -127,9 +122,9 @@ describe('worktree-handoff-generator', () => {
       expect(result.markdown).not.toContain('  - requirements:')
       expect(result.markdown).not.toContain('  - design:')
       expect(result.markdown).toContain('本交接文件是本次续执行的唯一必需输入')
-      expect(result.canonicalContinuePrompt).toContain('本交接文件视为唯一必需输入')
-      expect(result.canonicalContinuePrompt).not.toContain('计划文档路径为')
-      expect(result.canonicalContinuePrompt).not.toContain('需求文档路径为')
+      expect(result.markdown).toContain('以执行基线、启动证明和验证要求构建待办')
+      expect(result.markdown).not.toContain('计划文档路径为')
+      expect(result.markdown).not.toContain('需求文档路径为')
     })
 
     it('design_borne_by_plan=true 且无 plan_path 时不应提及设计由计划承载', () => {
@@ -144,7 +139,7 @@ describe('worktree-handoff-generator', () => {
       expect(result.markdown).not.toContain('由计划文档承载')
       expect(result.markdown).not.toContain('- plan:')
       expect(result.markdown).toContain('本交接文件是本次续执行的唯一必需输入')
-      expect(result.canonicalContinuePrompt).not.toContain('设计由计划承载')
+      expect(result.markdown).not.toContain('设计由计划承载')
     })
 
     it('source_worktree 为空时应报错', () => {
@@ -199,6 +194,7 @@ describe('worktree-handoff-generator', () => {
       expect(markdown).toContain('creation_result')
       expect(markdown).toContain('migrated_artifacts')
       expect(markdown).toContain('execution_baseline')
+      expect(markdown).toContain('resume_entrypoint')
     })
 
     it('分支名前缀应被净化为 worktree 标题', () => {
@@ -220,10 +216,9 @@ describe('worktree-handoff-generator', () => {
 
       expect(existsSync(result.filePath)).toBe(true)
       expect(result.filePath).toMatch(/worktree-handoff\.md$/)
-      expect(result.canonicalContinuePrompt).toContain('请打开目标 B worktree 对应的工作空间')
-      expect(result.canonicalContinuePrompt).toContain('在该工作空间中启动 opencode')
       expect(result.userInstruction).toContain('执行已转移到新的 B worktree')
       const handoffRelPath = result.filePath.replace(`${targetDir}\\`, '').replace(/\\/g, '/')
+      expect(result.userInstruction).toContain('调用 ae:work，并把交接文件作为唯一任务输入')
       expect(result.userInstruction).toContain(`/ae-work-continue ${handoffRelPath}`)
       expect(result.userInstruction).not.toContain('验证要求：')
 

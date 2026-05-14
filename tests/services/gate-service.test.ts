@@ -53,8 +53,8 @@ function writeHandoff(root: string): void {
     '---',
     '# 测试交接',
     '## A→B Startup Proof',
+    'resume_entrypoint: ae:work docs/ae/handoffs/test-worktree-handoff.md',
     '## Execution Baseline',
-    '## Continue Prompt',
     '',
   ].join('\n'), 'utf8')
 }
@@ -296,6 +296,37 @@ describe('门禁服务', () => {
 
     expect(result.status).toBe('block')
     expect(result.blockers).toContain('交接文件无效或不存在：docs/ae/handoffs/invalid-worktree-handoff.md')
+  })
+
+  it('应该阻断缺少 resume_entrypoint 的旧格式交接文件', () => {
+    const root = createRepoRoot()
+    mkdirSync(join(root, 'docs', 'ae', 'handoffs'), { recursive: true })
+    writeFileSync(join(root, 'docs', 'ae', 'handoffs', 'legacy-worktree-handoff.md'), [
+      '---',
+      'type: worktree-handoff',
+      'status: transferred',
+      '---',
+      '# 旧格式交接',
+      '## A→B Startup Proof',
+      '## Execution Baseline',
+      '',
+    ].join('\n'), 'utf8')
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      handoffPath: 'docs/ae/handoffs/legacy-worktree-handoff.md',
+      validationCommands: ['npm run typecheck'],
+      reviewStatus: 'not_run',
+      reviewEvidence: { type: 'not_run_reason', reason: '测试旧格式交接文件阻断' },
+      gitOperations: [],
+      worktreeDecision: 'created',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('交接文件无效或不存在：docs/ae/handoffs/legacy-worktree-handoff.md')
   })
 
   it('应该在计划路径存在输入时优先阻断不存在的计划文件', () => {

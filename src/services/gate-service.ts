@@ -1132,7 +1132,7 @@ function isWorktreeHandoffFile(repoRoot: string, normalizedPath: string): boolea
     return content.includes('type: worktree-handoff')
       && content.includes('## A→B Startup Proof')
       && content.includes('## Execution Baseline')
-      && content.includes('## Continue Prompt')
+      && content.includes('resume_entrypoint: ae:work ')
   } catch {
     return false
   }

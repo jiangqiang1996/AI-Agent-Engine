@@ -25,7 +25,6 @@ export interface WorktreeHandoffInput {
 
 export interface WorktreeHandoffOutput {
   filePath: string
-  canonicalContinuePrompt: string
   userInstruction: string
 }
 
@@ -72,34 +71,6 @@ function buildMigratedArtifacts(input: WorktreeHandoffInput): string {
   return lines.join('\n')
 }
 
-function buildCanonicalContinuePrompt(
-  input: WorktreeHandoffInput,
-  handoffRelPath: string,
-): string {
-  const handoffAbsPath = `${input.target_worktree}/${handoffRelPath}`
-  const parts: string[] = []
-  parts.push(`请打开目标 B worktree 对应的工作空间：${input.target_worktree}。`)
-  parts.push('在该工作空间中启动 opencode，然后粘贴并执行以下提示词继续：')
-  parts.push(`调用 ae:work，并把 ${handoffAbsPath} 作为唯一任务输入；不得按裸提示词处理。`)
-  if (input.requirements_path?.trim()) {
-    parts.push(`需求文档路径为 ${input.requirements_path}，`)
-  }
-  if (input.plan_path?.trim()) {
-    parts.push(`计划文档路径为 ${input.plan_path}，`)
-  }
-  if (input.design_borne_by_plan && input.plan_path?.trim()) {
-    parts.push('设计由计划承载。')
-  } else if (input.design_path?.trim()) {
-    parts.push(`设计文档路径为 ${input.design_path}。`)
-  }
-  parts.push('进入 ae:work 后必须把本交接文件视为唯一必需输入；需求、设计和计划文档只在交接文件明确引用且当前 B worktree 中真实存在时作为可选上下文。不得审查或深化本次需求文档、设计文档或计划文档，不得调用需求、设计、计划相关审查或转换技能；直接从阶段 1 的任务分析继续到阶段 2 执行。')
-  parts.push(`禁止回到 A worktree ${input.source_worktree} 写文件。`)
-  parts.push(`${input.execution_baseline}`)
-  parts.push(`验证要求：${input.verification_requirements}`)
-  parts.push('实现完成后进行代码审查或记录无法审查原因，并调用 ae-gate workflow:work checkpoint:final。')
-  return parts.join('\n')
-}
-
 function buildUserInstruction(input: WorktreeHandoffInput, handoffRelPath: string): string {
   return [
     '执行已转移到新的 B worktree。',
@@ -107,7 +78,8 @@ function buildUserInstruction(input: WorktreeHandoffInput, handoffRelPath: strin
     `目标工作空间：${input.target_worktree}`,
     `交接文件：${handoffRelPath}`,
     '',
-    '请在目标工作空间中启动 opencode，然后执行：',
+    '请在目标工作空间中启动 opencode，然后调用 ae:work，并把交接文件作为唯一任务输入。',
+    '可使用便捷命令：',
     '',
     '```text',
     `/ae-work-continue ${handoffRelPath}`,
@@ -147,7 +119,7 @@ function buildStartupProof(input: WorktreeHandoffInput, handoffRelPath: string):
   lines.push(`- covered_command_args: \`${input.covered_command_args}\``)
   lines.push(`- final_command_args: \`${input.final_command_args}\``)
   lines.push(`- creation_result: ${input.creation_result}`)
-lines.push(`- migrated_artifacts:`)
+  lines.push(`- migrated_artifacts:`)
   if (input.requirements_path?.trim()) {
     lines.push(`  - requirements: \`${input.requirements_path}\``)
   }
@@ -160,7 +132,7 @@ lines.push(`- migrated_artifacts:`)
     lines.push(`  - design: \`${input.design_path}\``)
   }
   lines.push(`- execution_baseline: ${input.execution_baseline}`)
-  lines.push(`- continue_prompt_ref: 见 ## Continue Prompt 章节`)
+  lines.push(`- resume_entrypoint: ae:work ${handoffRelPath}`)
   lines.push('')
   return lines.join('\n')
 }
@@ -174,33 +146,25 @@ function buildMigratedArtifactsSection(input: WorktreeHandoffInput): string {
   return lines.join('\n')
 }
 
-function buildExecutionBaselineSection(input: WorktreeHandoffInput): string {
+function buildExecutionBaselineSection(input: WorktreeHandoffInput, handoffRelPath: string): string {
   const lines: string[] = []
   lines.push('## Execution Baseline')
   lines.push('')
   if (input.plan_path?.trim()) {
     lines.push(`- 计划文档是本次执行的可选实现基线；进入 B worktree 后不得重新审查、深化或转换本次需求、设计或计划。`)
   } else {
-    lines.push('- 本交接文件是本次续执行的唯一必需输入；未提供计划文档时，以执行基线和 Continue Prompt 构建待办。')
+    lines.push('- 本交接文件是本次续执行的唯一必需输入；未提供计划文档时，以执行基线、启动证明和验证要求构建待办。')
   }
   lines.push(`- ${input.execution_baseline}`)
   lines.push(`- 验证命令：${input.verification_requirements}`)
+  lines.push(`- 续执行入口：在目标 B worktree 中调用 ae:work，并把 ${handoffRelPath} 作为唯一任务输入。`)
   lines.push(`- 实现完成后必须进行代码审查或记录无法审查原因，并调用 ae-gate workflow:work checkpoint:final。`)
   lines.push(`- 禁止回到 A worktree ${input.source_worktree} 写代码、配置、测试或文档；后续所有实现只在目标 B worktree 中进行。`)
   lines.push('')
   return lines.join('\n')
 }
 
-function buildContinuePromptSection(canonicalContinuePrompt: string): string {
-  const lines: string[] = []
-  lines.push('## Continue Prompt')
-  lines.push('')
-  lines.push(canonicalContinuePrompt)
-  lines.push('')
-  return lines.join('\n')
-}
-
-export function generateHandoffMarkdown(input: WorktreeHandoffInput): { markdown: string; canonicalContinuePrompt: string; handoffRelPath: string } | { error: string } {
+export function generateHandoffMarkdown(input: WorktreeHandoffInput): { markdown: string; handoffRelPath: string } | { error: string } {
   const validationError = validateInput(input)
   if (validationError) {
     return { error: validationError }
@@ -210,8 +174,6 @@ export function generateHandoffMarkdown(input: WorktreeHandoffInput): { markdown
   const worktreeName = input.branch.replace(/^feat\/|^fix\/|^refactor\/|^docs\/|^test\/|^chore\//, '')
   const handoffRelPath = `docs/ae/handoffs/${timestamp}-worktree-handoff.md`
 
-  const canonicalContinuePrompt = buildCanonicalContinuePrompt(input, handoffRelPath)
-
   const sections: string[] = []
   sections.push(buildFrontmatter(input))
   sections.push('')
@@ -219,12 +181,10 @@ export function generateHandoffMarkdown(input: WorktreeHandoffInput): { markdown
   sections.push('')
   sections.push(buildStartupProof(input, handoffRelPath))
   sections.push(buildMigratedArtifactsSection(input))
-  sections.push(buildExecutionBaselineSection(input))
-  sections.push(buildContinuePromptSection(canonicalContinuePrompt))
+  sections.push(buildExecutionBaselineSection(input, handoffRelPath))
 
   return {
     markdown: sections.join('\n'),
-    canonicalContinuePrompt,
     handoffRelPath,
   }
 }
@@ -247,7 +207,6 @@ export async function writeHandoffFile(
     await writeFile(absPath, result.markdown, 'utf-8')
     return {
       filePath: absPath,
-      canonicalContinuePrompt: result.canonicalContinuePrompt,
       userInstruction: buildUserInstruction(input, result.handoffRelPath),
     }
   } catch (e) {

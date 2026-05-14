@@ -11,6 +11,8 @@
 | 想从需求一路做到交付 | `/ae-lfg` |
 | 已有需求，需要方案 | `/ae-plan` |
 | 已有计划，需要执行 | `/ae-work` |
+| 合并分支或 worktree | `/ae-merge-branch` |
+| 生成工作总结 | `/ae-work-report` |
 | 只看风险，不改文件 | `/ae-review mode:report-only` |
 | 审查文档 | `/ae-review domain:document <文档路径>` |
 | 重构或技术债治理 | `/ae-refactor` |
@@ -18,6 +20,7 @@
 | 浏览器验收 | `/ae-test-browser` |
 | 数据库查询或操作 | `/ae-sql` |
 | Swagger/OpenAPI 联调摘要 | `/ae-swagger-parser` |
+| 构建或查询项目关系图谱 | `/ae-graph-build`、`/ae-graph-query` |
 | 提示词太散 | `/ae-prompt-optimize` |
 | 保存经验 | `/ae-save-experience` |
 | 交接到新会话 | `/ae-handoff` |
@@ -113,6 +116,8 @@
 | `/ae-task-loop` | `[一句话目标描述]` | 循环执行和验证直到目标达成 | 不适合需求不清的大型功能 |
 | `/ae-sql` | `[SQL 语句]` | 通过 JDBC 连接数据库并执行 SQL | 执行前应确认目标库和语句风险 |
 | `/ae-swagger-parser` | `[source] [method:<HTTP_METHOD>] [path:<PATH>] [tag:<TAG>] [keyword:<TEXT>] [mode:overview\|detail]` | 解析 Swagger/OpenAPI 并输出联调摘要 | 不请求业务接口 |
+| `/ae-graph-build` | `[target:<PATH>] [mode:auto\|full\|incremental] [depth:shallow] [exclude:<PATH>...]` | 构建或增量维护项目文件关系图谱 | 不分析运行时动态依赖 |
+| `/ae-graph-query` | `[mode:deps\|impact\|health\|filter\|path\|core\|stats\|pattern] [file:<PATH>] [target:<PATH>]` | 查询依赖、影响范围、核心模块和健康状态 | 图谱缺失时先构建 |
 | `/ae-save-experience` | `[经验摘要\|保存目标]` | 保存 solution，并按需提炼 rules | 不把临时结论直接当长期规则 |
 | `/ae-agent-creator` | `[代理用途\|代理名称] [--global] [--command]` | 创建或更新 OpenCode 原生代理 | 默认项目级；全局级需显式指定 |
 | `/ae-skill-from-session` | `[目标技能名\|流程关注点\|资产名\|纠偏摘要] [--global] [--no-command]` | 从当前会话沉淀技能 | 写入前确认范围和资产路径 |
@@ -126,6 +131,7 @@
 | --- | --- | --- |
 | `/ae-work-continue` | 在 B worktree 查找交接文件并继续执行 `ae:work` | 仅用于 A→B worktree 转移后的目标工作空间；多个交接文件时先让用户选择 |
 | `/ae-commit` | 智能提交当前变更 | 只做本地提交；不等同于 push、PR、跳过 hooks 或改 Git 配置 |
+| `/remove-local-branch-worktree` | 安全清理本地分支、worktree 和对应本地目录 | 删除分支、worktree 或目录前必须确认目标和风险 |
 
 ## 命令变体
 
@@ -197,7 +203,10 @@
 | `ae-handoff` | 创建独立新会话并注入上下文 | 不做普通提示词优化 |
 | `ae-prompt-optimize` | 把优化后的提示词提交到新会话执行 | 不注入系统级历史上下文 |
 | `ae-swagger-parser` | 解析 Swagger/OpenAPI 规格 | 不请求业务接口 |
+| `ae-graph-build` | 构建或增量维护项目文件关系图谱 | 不分析运行时动态依赖或符号级调用链 |
+| `ae-graph-query` | 查询图谱中的依赖、影响范围、核心模块和健康状态 | 不构建图谱 |
 | `ae-task-analyzer` | 分析任务单元、文件范围和并行组 | 不修改项目文件 |
+| `ae-worktree-handoff` | 生成 A→B worktree 转移交接文件 | 不创建新会话 |
 
 ## 前端能力怎么选
 

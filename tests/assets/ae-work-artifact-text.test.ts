@@ -23,14 +23,15 @@ describe('ae:work 产物与交付文本契约', () => {
     expect(shippingText).toContain('不得声称已复制')
   })
 
-  it('应该要求创建 worktree 后输出交接文件和继续提示词', () => {
+  it('应该要求创建 worktree 后输出结构化交接文件和续执行入口', () => {
     expect(startupText).toContain('A 会话只允许在 B 写入真实存在且已确定为执行基线的需求/计划/设计产物')
-    expect(startupText).toContain('交接文件必须包含 `## Continue Prompt` 章节')
+    expect(startupText).toContain('续执行以结构化章节和 `resume_entrypoint` 为真源')
     expect(startupText).toContain('A→B 启动证明必须包含')
+    expect(startupText).toContain('resume_entrypoint')
     expect(shippingText).toContain('A→B 交接文件')
     expect(shippingText).toContain('docs/ae/handoffs/<timestamp>-worktree-handoff.md')
     expect(shippingText).toContain('逐字使用 `ae-worktree-handoff` 工具返回的简短交接提示')
-    expect(shippingText).toContain('不得把完整 `canonical_continue_prompt` 直接贴到最终回复中')
+    expect(shippingText).toContain('B worktree 通过 `ae:work <交接文件>` 读取结构化交接文件并继续')
     expect(shippingText).toContain('/ae-work-continue')
     expect(shippingText).toContain('A→B 交接文件')
     expect(shippingText).toContain('交接 Markdown 路径')

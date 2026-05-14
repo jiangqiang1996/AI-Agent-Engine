@@ -71,7 +71,7 @@ export const aeWorktreeHandoffTool: ToolDefinition = tool({
     '',
     '功能说明：',
     '- 按规范模板生成交接 Markdown，结构由代码保证，AI 只需填值',
-    '- Continue Prompt 只出现一次（单一真源），保存在交接文件中供 B worktree 读取',
+    '- 交接文件采用结构化章节和 resume_entrypoint 作为真源',
     '- 返回简短交接提示，供 A 会话最后回复使用',
     '- A→B Startup Proof 按固定 schema 逐字段输出，不允许遗漏',
     '- 需求、计划和设计路径都是可选上下文；只在文件真实存在且已迁移时传入，工具不会假定它们必然存在',
@@ -158,7 +158,7 @@ export const aeWorktreeHandoffTool: ToolDefinition = tool({
     lines.push('1. 工具返回成功（本消息无错误提示）')
     lines.push('2. A 会话最后回复逐字使用了上方简短交接提示')
     lines.push('3. 交接文件路径符合 docs/ae/handoffs/<timestamp>-worktree-handoff.md 格式')
-    lines.push('4. 完整 Continue Prompt 仅保留在交接文件中，供 B worktree 的 /ae-work-continue 读取')
+    lines.push('4. B worktree 通过 ae:work 读取结构化交接文件继续')
 
     return lines.join('\n')
   },

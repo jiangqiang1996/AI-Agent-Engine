@@ -36,8 +36,8 @@ function createRepoRoot(): string {
     '---',
     '# 测试交接',
     '## A→B Startup Proof',
+    'resume_entrypoint: ae:work docs/ae/handoffs/test-worktree-handoff.md',
     '## Execution Baseline',
-    '## Continue Prompt',
     '',
   ].join('\n'), 'utf8')
   return root
