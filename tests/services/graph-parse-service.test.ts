@@ -5,7 +5,6 @@ import { basename, join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { collectGraphFiles, parseFileRelations } from '../../src/services/graph-parse-service.js'
-import { SKILL, TOOL, AGENT, COMMAND } from '../../src/schemas/ae-asset-schema.js'
 
 const tempRoots: string[] = []
 
@@ -28,11 +27,11 @@ afterEach(() => {
 })
 
 describe('graph-parse-service', () => {
-  it('应该解析 TS import、require、Markdown 链接和 AE 引用', () => {
+  it('应该解析 TS import、require 和 Markdown 链接', () => {
     const root = createTempRoot()
-    write(root, 'src/a.ts', "import x from './b'\nconst y = require('pkg')\n// ae:work")
+    write(root, 'src/a.ts', "import x from './b'\nconst y = require('pkg')")
     write(root, 'src/b.ts', 'export const b = 1')
-    write(root, 'README.md', '[A](src/a.ts) /ae-work')
+    write(root, 'README.md', '[A](src/a.ts)')
 
     const files = collectGraphFiles(root, root, { exclude: [] })
     const parsed = parseFileRelations(root, files, { exclude: [] })
@@ -41,9 +40,6 @@ describe('graph-parse-service', () => {
     expect(parsed.relations.some((relation) => relation.relationType === 'import' && relation.targetPath === 'src/b.ts')).toBe(true)
     expect(parsed.relations.some((relation) => relation.relationType === 'external' && relation.targetPath === 'pkg')).toBe(true)
     expect(parsed.relations.some((relation) => relation.relationType === 'link' && relation.targetPath === 'src/a.ts')).toBe(true)
-    expect(parsed.relations.some((relation) => relation.relationType === 'ae_ref' && relation.targetPath === 'skill:ae:work')).toBe(true)
-    expect(parsed.relations.some((relation) => relation.relationType === 'ae_ref' && relation.targetPath === 'command:/ae-work')).toBe(true)
-    expect(parsed.files.some((file) => file.relativePath === 'skill:ae:work' && file.fileType === 'asset')).toBe(true)
   })
 
   it('应该按排除规则跳过文件', () => {
@@ -76,19 +72,6 @@ describe('graph-parse-service', () => {
     const files = collectGraphFiles(root, root, { exclude: ['**/dist', '!dist/keep.ts'] })
 
     expect(files.map((file) => file.relativePath)).toEqual(['dist/keep.ts', 'src/a.ts'])
-  })
-
-  it('应该识别技能、工具、代理和命令引用关系', () => {
-    const root = createTempRoot()
-    write(root, 'docs/guide.md', `${SKILL.GRAPH_BUILD} ${TOOL.AE_GRAPH_QUERY} ${AGENT.ARCHITECTURE_STRATEGIST} ${COMMAND.GRAPH_QUERY}`)
-
-    const files = collectGraphFiles(root, root, { exclude: [] })
-    const parsed = parseFileRelations(root, files, { exclude: [] })
-
-    expect(parsed.relations.some((relation) => relation.targetPath === `skill:${SKILL.GRAPH_BUILD}`)).toBe(true)
-    expect(parsed.relations.some((relation) => relation.targetPath === `tool:${TOOL.AE_GRAPH_QUERY}`)).toBe(true)
-    expect(parsed.relations.some((relation) => relation.targetPath === `agent:${AGENT.ARCHITECTURE_STRATEGIST}`)).toBe(true)
-    expect(parsed.relations.some((relation) => relation.targetPath === `command:${COMMAND.GRAPH_QUERY}`)).toBe(true)
   })
 
   it('应该解析省略扩展名和 index 文件的相对引用', () => {

@@ -128,7 +128,78 @@ describe('graph-storage-service', () => {
 
     expect(diagnostic.code).toBe('ok')
     expect(summary?.fileCount).toBe(1)
+    expect(summary?.nodeCount).toBe(1)
     expect(summary?.fileTypeCounts.source).toBe(1)
+    expect(summary?.nodeKindCounts.file).toBe(1)
+  })
+
+  it('应该写入 schema v3 节点索引和节点关系索引', () => {
+    const root = createTempRoot()
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    storage.insertFiles(versionId, [
+      { id: 'file:src/a.ts', kind: 'file', relativePath: 'src/a.ts', fileType: 'source', parser: 'regex' },
+      { id: 'symbol:src/a.ts#fn:main', kind: 'symbol', relativePath: 'src/a.ts', label: 'main', fileType: 'source', parser: 'typescript' },
+    ])
+    storage.insertRelations(versionId, [
+      {
+        id: 'rel:main-call',
+        sourceId: 'symbol:src/a.ts#fn:main',
+        targetId: 'external:npm:pkg',
+        sourcePath: 'src/a.ts',
+        targetPath: 'pkg',
+        relationType: 'external',
+        type: 'call',
+        confidence: 'candidate',
+        parser: 'typescript',
+      },
+    ])
+    storage.activateVersion(versionId)
+    const active = storage.getActiveVersion(root, '.')
+    const summary = storage.readScopeSummary(root, '.')
+    storage.closeDatabase()
+
+    expect(active?.files.map((file) => file.id).sort()).toEqual(['file:src/a.ts', 'symbol:src/a.ts#fn:main'])
+    expect(active?.relations[0]).toMatchObject({ sourceId: 'symbol:src/a.ts#fn:main', type: 'call', confidence: 'candidate' })
+    expect(summary?.nodeCount).toBe(2)
+    expect(summary?.nodeKindCounts.symbol).toBe(1)
+    expect(summary?.relationTypeCounts.call).toBe(1)
+    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'version-1', 'indexes', 'node-id-to-chunk.json'))).toBe(true)
+    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'version-1', 'indexes', 'source-node-to-relation-chunks.json'))).toBe(true)
+  })
+
+  it('不应该用旧路径关系键覆盖同文件内不同节点关系', () => {
+    const root = createTempRoot()
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    storage.insertFiles(versionId, [
+      { id: 'symbol:src/a.ts#fn:one', kind: 'symbol', relativePath: 'src/a.ts', fileType: 'source' },
+      { id: 'symbol:src/a.ts#fn:two', kind: 'symbol', relativePath: 'src/a.ts', fileType: 'source' },
+    ])
+    storage.insertRelations(versionId, [
+      {
+        sourceId: 'symbol:src/a.ts#fn:one',
+        targetId: 'external:npm:pkg',
+        sourcePath: 'src/a.ts',
+        targetPath: 'pkg',
+        relationType: 'external',
+        type: 'call',
+      },
+      {
+        sourceId: 'symbol:src/a.ts#fn:two',
+        targetId: 'external:npm:pkg',
+        sourcePath: 'src/a.ts',
+        targetPath: 'pkg',
+        relationType: 'external',
+        type: 'type_reference',
+      },
+    ])
+    storage.activateVersion(versionId)
+    const active = storage.getActiveVersion(root, '.')
+    storage.closeDatabase()
+
+    expect(active?.relations).toHaveLength(2)
+    expect(active?.relations.map((relation) => relation.type).sort()).toEqual(['call', 'type_reference'])
   })
 
   it('应该在 manifest 缺失时返回可恢复诊断', () => {
@@ -196,7 +267,7 @@ describe('graph-storage-service', () => {
   it('应该在图谱 schema 不兼容时清理旧图谱并重建空存储', () => {
     const root = createTempRoot()
     mkdirSync(join(root, 'docs', 'ae', 'graphs', 'version-1'), { recursive: true })
-    writeFileSync(join(root, 'docs', 'ae', 'graphs', 'graph.json'), JSON.stringify({ schemaVersion: 1, nextVersionId: 2, versions: [] }), 'utf8')
+    writeFileSync(join(root, 'docs', 'ae', 'graphs', 'graph.json'), JSON.stringify({ schemaVersion: 2, nextVersionId: 2, versions: [] }), 'utf8')
     writeFileSync(join(root, 'docs', 'ae', 'graphs', 'version-1', 'chunk.json'), '{}', 'utf8')
     writeFileSync(join(root, 'docs', 'ae', 'graphs', 'README.md'), 'keep', 'utf8')
 

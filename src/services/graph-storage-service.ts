@@ -1,20 +1,44 @@
 import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 
-export type GraphFileType = 'source' | 'document' | 'config' | 'directory' | 'asset'
-export type GraphRelationType = 'import' | 'require' | 'include' | 'link' | 'ae_ref' | 'directory' | 'external'
+import type {
+  GraphConfidence,
+  GraphNodeKind,
+  GraphRelationType as GraphSchemaRelationType,
+  SourceRange,
+} from './graph/graph-schema.js'
+
+export type GraphFileType = 'source' | 'document' | 'config' | 'directory'
+export type GraphRelationType = Extract<GraphSchemaRelationType, 'import' | 'require' | 'include' | 'link' | 'directory'> | 'external'
 
 export interface GraphFileNode {
+  id?: string
+  kind?: GraphNodeKind
   relativePath: string
+  label?: string
   fileType: GraphFileType
   language?: string
   sizeBytes?: number
+  nodePath?: string
+  range?: SourceRange
+  parentId?: string
+  parser?: string
+  status?: string
 }
 
 export interface GraphRelation {
+  id?: string
+  sourceId?: string
+  targetId?: string
+  type?: GraphSchemaRelationType
+  confidence?: GraphConfidence
   sourcePath: string
   targetPath: string
   relationType: GraphRelationType
+  range?: SourceRange
+  parser?: string
+  evidence?: string
+  reason?: string
   metadata?: Record<string, unknown>
 }
 
@@ -61,9 +85,11 @@ export interface GraphStorageDiagnostic {
 export interface GraphScopeSummaryIndex {
   scopeRoot: string
   fileCount: number
+  nodeCount: number
   relationCount: number
   directoryCounts: Record<string, number>
   fileTypeCounts: Record<string, number>
+  nodeKindCounts: Record<string, number>
   relationTypeCounts: Record<string, number>
   topInDegree: Array<{ path: string; count: number }>
   topOutDegree: Array<{ path: string; count: number }>
@@ -87,12 +113,13 @@ interface GraphChunkRecord {
 }
 
 interface GraphVersionManifest {
-  schemaVersion: 2
+  schemaVersion: 3
   indexVersion: 1
   versionId: number
   scopeRoot: string
   createdAt: string
   fileCount: number
+  nodeCount: number
   relationCount: number
   chunks: string[]
   indexes: string[]
@@ -115,24 +142,29 @@ interface GraphVersionRecord {
 }
 
 interface GraphStore {
-  schemaVersion: 2
+  schemaVersion: 3
   nextVersionId: number
   versions: GraphVersionRecord[]
 }
 
+const GRAPH_SCHEMA_VERSION = 3
 const CHUNK_SIZE_FILES = 250
 const CHUNK_SIZE_RELATIONS = 1000
 const INDEX_NAMES = [
   'scope-summary',
   'path-to-file-chunk',
+  'node-id-to-chunk',
+  'file-to-node-chunks',
   'source-to-relation-chunks',
   'target-to-relation-chunks',
+  'source-node-to-relation-chunks',
+  'target-node-to-relation-chunks',
   'directory-to-file-chunks',
   'relation-type-to-chunks',
 ] as const
 
 function createEmptyStore(): GraphStore {
-  return { schemaVersion: 2, nextVersionId: 1, versions: [] }
+  return { schemaVersion: GRAPH_SCHEMA_VERSION, nextVersionId: 1, versions: [] }
 }
 
 class GraphStoreFormatError extends Error {
@@ -153,12 +185,41 @@ function cloneRelations(relations: GraphRelation[]): GraphRelation[] {
   return relations.map((relation) => ({ ...relation, metadata: relation.metadata ? { ...relation.metadata } : undefined }))
 }
 
+function getNodeId(file: GraphFileNode): string {
+  return file.id ?? (file.fileType === 'directory' ? `directory:${file.relativePath}` : `file:${file.relativePath}`)
+}
+
+function getNodeKind(file: GraphFileNode): GraphNodeKind {
+  return file.kind ?? (file.fileType === 'directory' ? 'directory' : 'file')
+}
+
+function getRelationSourceId(relation: GraphRelation): string {
+  return relation.sourceId ?? `file:${relation.sourcePath}`
+}
+
+function getRelationTargetId(relation: GraphRelation): string {
+  if (relation.targetId) {
+    return relation.targetId
+  }
+  if (relation.relationType === 'external') {
+    return `external:unknown:${relation.targetPath}`
+  }
+  if (relation.relationType === 'directory') {
+    return `directory:${relation.targetPath}`
+  }
+  return `file:${relation.targetPath}`
+}
+
+function getRelationType(relation: GraphRelation): GraphSchemaRelationType {
+  return relation.type ?? (relation.relationType === 'external' ? 'external_reference' : relation.relationType)
+}
+
 function isGraphStore(value: unknown): value is GraphStore {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return false
   }
   const candidate = value as { schemaVersion?: unknown; nextVersionId?: unknown; versions?: unknown }
-  return candidate.schemaVersion === 2 && typeof candidate.nextVersionId === 'number' && Array.isArray(candidate.versions)
+  return candidate.schemaVersion === GRAPH_SCHEMA_VERSION && typeof candidate.nextVersionId === 'number' && Array.isArray(candidate.versions)
 }
 
 function isChunkRecord(value: unknown): value is GraphChunkRecord {
@@ -178,7 +239,7 @@ function isManifest(value: unknown): value is GraphVersionManifest {
     return false
   }
   const candidate = value as { schemaVersion?: unknown; indexVersion?: unknown; versionId?: unknown; chunks?: unknown; indexes?: unknown; summary?: unknown }
-  return candidate.schemaVersion === 2
+  return candidate.schemaVersion === GRAPH_SCHEMA_VERSION
     && candidate.indexVersion === 1
     && typeof candidate.versionId === 'number'
     && Array.isArray(candidate.chunks)
@@ -360,9 +421,9 @@ export class GraphStorage {
 
   insertFiles(versionId: number, files: GraphFileNode[]): void {
     const version = this.getWritableVersion(versionId)
-    const existing = new Map((version.files ?? []).map((file) => [file.relativePath, file]))
+    const existing = new Map((version.files ?? []).map((file) => [getNodeId(file), file]))
     for (const file of files) {
-      existing.set(file.relativePath, { ...file })
+      existing.set(getNodeId(file), { ...file })
     }
     version.files = [...existing.values()]
     this.saveStore()
@@ -396,8 +457,18 @@ export class GraphStorage {
   deleteVersionData(versionId: number, filePaths: string[]): void {
     const version = this.getWritableVersion(versionId)
     const changed = new Set(filePaths)
-    version.files = (version.files ?? []).filter((file) => !changed.has(file.relativePath))
-    version.relations = (version.relations ?? []).filter((relation) => !changed.has(relation.sourcePath) && !changed.has(relation.targetPath))
+    const changedNodePrefixes = [...changed].map((path) => `symbol:${path}#`)
+    version.files = (version.files ?? []).filter((file) => {
+      const nodeId = getNodeId(file)
+      return !changed.has(file.relativePath) && !changedNodePrefixes.some((prefix) => nodeId.startsWith(prefix))
+    })
+    version.relations = (version.relations ?? []).filter((relation) => {
+      const sourceId = getRelationSourceId(relation)
+      const targetId = getRelationTargetId(relation)
+      return !changed.has(relation.sourcePath)
+        && !changed.has(relation.targetPath)
+        && !changedNodePrefixes.some((prefix) => sourceId.startsWith(prefix) || targetId.startsWith(prefix))
+    })
     this.saveStore()
   }
 
@@ -741,31 +812,46 @@ export class GraphStorage {
     const fileChunks = chunkFiles(files)
     const relationChunks = chunkRelations(relations)
     const pathToFileChunk: Record<string, string> = {}
+    const nodeIdToChunk: Record<string, string> = {}
+    const fileToNodeChunks: Record<string, string[]> = {}
     const sourceToRelationChunks: Record<string, string[]> = {}
     const targetToRelationChunks: Record<string, string[]> = {}
+    const sourceNodeToRelationChunks: Record<string, string[]> = {}
+    const targetNodeToRelationChunks: Record<string, string[]> = {}
     const directoryToFileChunks: Record<string, string[]> = {}
     const relationTypeToChunks: Record<string, string[]> = {}
     const inDegree = new Map<string, number>()
     const outDegree = new Map<string, number>()
     const related = new Set<string>()
     const fileTypeCounts: Record<string, number> = {}
+    const nodeKindCounts: Record<string, number> = {}
     const directoryCounts: Record<string, number> = {}
 
     chunkIds.forEach((chunkId, index) => {
       const fileChunk = fileChunks[index] ?? []
       const relationChunk = relationChunks[index] ?? []
       for (const file of fileChunk) {
+        const nodeId = getNodeId(file)
+        const nodeKind = getNodeKind(file)
         pathToFileChunk[file.relativePath] = chunkId
+        nodeIdToChunk[nodeId] = chunkId
+        fileToNodeChunks[file.relativePath] = [...new Set([...(fileToNodeChunks[file.relativePath] ?? []), chunkId])]
         fileTypeCounts[file.fileType] = (fileTypeCounts[file.fileType] ?? 0) + 1
+        nodeKindCounts[nodeKind] = (nodeKindCounts[nodeKind] ?? 0) + 1
         const directory = dirname(file.relativePath).replaceAll('\\', '/')
         const normalizedDirectory = directory === '.' ? '.' : directory
         directoryCounts[normalizedDirectory] = (directoryCounts[normalizedDirectory] ?? 0) + 1
         directoryToFileChunks[normalizedDirectory] = [...new Set([...(directoryToFileChunks[normalizedDirectory] ?? []), chunkId])]
       }
       for (const relation of relationChunk) {
+        const sourceId = getRelationSourceId(relation)
+        const targetId = getRelationTargetId(relation)
+        const relationType = getRelationType(relation)
         sourceToRelationChunks[relation.sourcePath] = [...new Set([...(sourceToRelationChunks[relation.sourcePath] ?? []), chunkId])]
         targetToRelationChunks[relation.targetPath] = [...new Set([...(targetToRelationChunks[relation.targetPath] ?? []), chunkId])]
-        relationTypeToChunks[relation.relationType] = [...new Set([...(relationTypeToChunks[relation.relationType] ?? []), chunkId])]
+        sourceNodeToRelationChunks[sourceId] = [...new Set([...(sourceNodeToRelationChunks[sourceId] ?? []), chunkId])]
+        targetNodeToRelationChunks[targetId] = [...new Set([...(targetNodeToRelationChunks[targetId] ?? []), chunkId])]
+        relationTypeToChunks[relationType] = [...new Set([...(relationTypeToChunks[relationType] ?? []), chunkId])]
         inDegree.set(relation.targetPath, (inDegree.get(relation.targetPath) ?? 0) + 1)
         outDegree.set(relation.sourcePath, (outDegree.get(relation.sourcePath) ?? 0) + 1)
         related.add(relation.sourcePath)
@@ -775,14 +861,17 @@ export class GraphStorage {
 
     const relationTypeCounts: Record<string, number> = {}
     for (const relation of relations) {
-      relationTypeCounts[relation.relationType] = (relationTypeCounts[relation.relationType] ?? 0) + 1
+      const relationType = getRelationType(relation)
+      relationTypeCounts[relationType] = (relationTypeCounts[relationType] ?? 0) + 1
     }
     const summary: GraphScopeSummaryIndex = {
       scopeRoot: version.scopeRoot,
       fileCount: files.length,
+      nodeCount: files.length,
       relationCount: relations.length,
       directoryCounts,
       fileTypeCounts,
+      nodeKindCounts,
       relationTypeCounts,
       topInDegree: topCounts(inDegree),
       topOutDegree: topCounts(outDegree),
@@ -791,8 +880,12 @@ export class GraphStorage {
     const indexes: Record<(typeof INDEX_NAMES)[number], unknown> = {
       'scope-summary': summary,
       'path-to-file-chunk': pathToFileChunk,
+      'node-id-to-chunk': nodeIdToChunk,
+      'file-to-node-chunks': fileToNodeChunks,
       'source-to-relation-chunks': sourceToRelationChunks,
       'target-to-relation-chunks': targetToRelationChunks,
+      'source-node-to-relation-chunks': sourceNodeToRelationChunks,
+      'target-node-to-relation-chunks': targetNodeToRelationChunks,
       'directory-to-file-chunks': directoryToFileChunks,
       'relation-type-to-chunks': relationTypeToChunks,
     }
@@ -800,12 +893,13 @@ export class GraphStorage {
       writeJsonAtomic(versionIndexPath(this.storePath, versionId, name), value)
     }
     writeJsonAtomic(versionManifestPath(this.storePath, versionId), {
-      schemaVersion: 2,
+      schemaVersion: GRAPH_SCHEMA_VERSION,
       indexVersion: 1,
       versionId,
       scopeRoot: version.scopeRoot,
       createdAt: version.createdAt,
       fileCount: files.length,
+      nodeCount: files.length,
       relationCount: relations.length,
       chunks: chunkIds,
       indexes: [...INDEX_NAMES],
@@ -860,7 +954,13 @@ export class GraphStorage {
   }
 
   private getRelationKey(relation: GraphRelation): string {
-    return [relation.sourcePath, relation.targetPath, relation.relationType].join('\u0000')
+    return relation.id ?? [
+      getRelationSourceId(relation),
+      getRelationTargetId(relation),
+      getRelationType(relation),
+      relation.sourcePath,
+      relation.targetPath,
+    ].join('\u0000')
   }
 }
 

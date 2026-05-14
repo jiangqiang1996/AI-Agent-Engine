@@ -189,6 +189,33 @@ describe('ae-graph-query 工具', () => {
     expect(coreParsed.queryCost.indexesUsed).toEqual([])
   })
 
+  it('应该让 v3 relation.type 在 stats 和 filter 中保持一致', async () => {
+    const root = createTempRoot()
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    storage.insertFiles(versionId, [{ id: 'symbol:src/a.ts#fn:main', kind: 'symbol', relativePath: 'src/a.ts', fileType: 'source' }])
+    storage.insertRelations(versionId, [
+      {
+        sourceId: 'symbol:src/a.ts#fn:main',
+        targetId: 'external:npm:pkg',
+        sourcePath: 'src/a.ts',
+        targetPath: 'pkg',
+        relationType: 'external',
+        type: 'call',
+      },
+    ])
+    storage.activateVersion(versionId)
+    storage.closeDatabase()
+
+    const statsResult = await aeGraphQueryTool.execute({ mode: 'stats' }, createMockContext(root))
+    const filterResult = await aeGraphQueryTool.execute({ mode: 'filter', relation_type: 'call' }, createMockContext(root))
+    const statsParsed = JSON.parse(statsResult as string) as { result: Record<string, number> }
+    const filterParsed = JSON.parse(filterResult as string) as { result: { relations: Array<{ type?: string; relationType: string }> } }
+
+    expect(statsParsed.result).toEqual({ call: 1 })
+    expect(filterParsed.result.relations).toEqual([{ sourceId: 'symbol:src/a.ts#fn:main', targetId: 'external:npm:pkg', sourcePath: 'src/a.ts', targetPath: 'pkg', relationType: 'external', type: 'call' }])
+  })
+
   it('core 模式 top 超过索引覆盖时应该回退完整关系计算', async () => {
     const root = createTempRoot()
     const storage = createGraphStorage(root)

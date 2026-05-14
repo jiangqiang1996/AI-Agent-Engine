@@ -1,7 +1,6 @@
 import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs'
 import { dirname, extname, join, relative, resolve } from 'node:path'
 
-import { AGENT, COMMAND, SKILL, TOOL } from '../schemas/ae-asset-schema.js'
 import { matchGraphExcludePath, type GraphConfig } from './graph-config-service.js'
 import type { GraphFileNode, GraphRelation, GraphRelationType } from './graph-storage-service.js'
 import { isInsideRoot, pathContainsSymlink, toPosixPath } from '../utils/path-utils.js'
@@ -17,11 +16,6 @@ const SOURCE_EXTENSIONS = new Set([
 const DOCUMENT_EXTENSIONS = new Set(['.md', '.txt', '.rst', '.adoc'])
 const CONFIG_EXTENSIONS = new Set(['.json', '.jsonc', '.yaml', '.yml', '.toml', '.xml'])
 const RESOLVABLE_EXTENSIONS = [...SOURCE_EXTENSIONS, ...DOCUMENT_EXTENSIONS, ...CONFIG_EXTENSIONS]
-
-const KNOWN_SKILLS = new Set<string>(Object.values(SKILL))
-const KNOWN_COMMANDS = new Set<string>(Object.values(COMMAND))
-const KNOWN_TOOLS = new Set<string>(Object.values(TOOL))
-const KNOWN_AGENTS = new Set<string>(Object.values(AGENT))
 
 export interface CollectedGraphFile extends GraphFileNode {
   absolutePath: string
@@ -55,24 +49,6 @@ function hasNegatedDescendantRule(relativePath: string, config: GraphConfig): bo
     }
     const pattern = normalizedRule.slice(1).replace(/^\/+/, '').replace(/\/+$/, '')
     return pattern.startsWith('**/') || pattern === relativePath || pattern.startsWith(`${relativePath}/`)
-  })
-}
-
-function addAssetReference(
-  relations: GraphRelation[],
-  fileNodes: GraphFileNode[],
-  sourcePath: string,
-  assetType: 'skill' | 'command' | 'tool' | 'agent',
-  assetName: string,
-  line: number,
-): void {
-  const targetPath = `${assetType}:${assetName}`
-  fileNodes.push({ relativePath: targetPath, fileType: 'asset' })
-  relations.push({
-    sourcePath,
-    targetPath,
-    relationType: 'ae_ref',
-    metadata: { line, assetType, assetName, confidence: 'regex' },
   })
 }
 
@@ -240,37 +216,6 @@ function pushReference(
   })
 }
 
-function matchKnownAsset(token: string): { assetType: 'skill' | 'command' | 'tool' | 'agent'; assetName: string }[] {
-  const matches: { assetType: 'skill' | 'command' | 'tool' | 'agent'; assetName: string }[] = []
-  if (token.startsWith('ae:')) {
-    matches.push({ assetType: 'skill', assetName: token })
-  }
-  if (token.startsWith('ae-')) {
-    if (KNOWN_COMMANDS.has(token)) {
-      matches.push({ assetType: 'command', assetName: token })
-    }
-    if (KNOWN_TOOLS.has(token)) {
-      matches.push({ assetType: 'tool', assetName: token })
-    }
-  }
-  if (KNOWN_SKILLS.has(token)) {
-    matches.push({ assetType: 'skill', assetName: token })
-  }
-  if (KNOWN_COMMANDS.has(token)) {
-    matches.push({ assetType: 'command', assetName: token })
-  }
-  if (KNOWN_TOOLS.has(token)) {
-    matches.push({ assetType: 'tool', assetName: token })
-  }
-  if (KNOWN_AGENTS.has(token)) {
-    matches.push({ assetType: 'agent', assetName: token })
-  }
-  if (token.includes(':')) {
-    return matches
-  }
-  return matches
-}
-
 export function parseFileRelations(worktree: string, files: CollectedGraphFile[], config: GraphConfig): ParsedGraph {
   const warnings: string[] = []
   const relations: GraphRelation[] = []
@@ -342,40 +287,6 @@ export function parseFileRelations(worktree: string, files: CollectedGraphFile[]
         const target = markdownReferences.get(match[1].toLowerCase())
         if (target && !/^https?:\/\//i.test(target)) {
           pushReference(relations, worktree, file.relativePath, target, 'link', line, config)
-        }
-      }
-      for (const match of lineContent.matchAll(/\b(ae:[a-z0-9-]+|ae-[a-z0-9-]+|\/[a-z0-9-]+)\b/gi)) {
-        const raw = match[1]
-        if (raw.startsWith('ae:')) {
-          fileNodes.push({ relativePath: `skill:${raw}`, fileType: 'asset' })
-          relations.push({ sourcePath: file.relativePath, targetPath: `skill:${raw}`, relationType: 'ae_ref', metadata: { line } })
-          continue
-        }
-        if (raw.startsWith('ae-')) {
-          const assets = matchKnownAsset(raw)
-          for (const asset of assets) {
-            addAssetReference(relations, fileNodes, file.relativePath, asset.assetType, asset.assetName, line)
-          }
-          continue
-        }
-      }
-      for (const match of lineContent.matchAll(/(?<![\w.])\/(ae-[a-z0-9-]+)\b/gi)) {
-        const commandName = match[1]
-        if (KNOWN_COMMANDS.has(commandName)) {
-          fileNodes.push({ relativePath: `command:${commandName}`, fileType: 'asset' })
-          relations.push({
-            sourcePath: file.relativePath,
-            targetPath: `command:/${commandName}`,
-            relationType: 'ae_ref',
-            metadata: { line, assetType: 'command', assetName: commandName, confidence: 'regex' },
-          })
-        }
-      }
-      for (const match of lineContent.matchAll(/(?<![\w/-])([a-z][a-z0-9-]*(?:-[a-z0-9-]+)?)\b/gi)) {
-        const token = match[1]
-        const assets = matchKnownAsset(token)
-        for (const asset of assets) {
-          addAssetReference(relations, fileNodes, file.relativePath, asset.assetType, asset.assetName, line)
         }
       }
     })

@@ -72,11 +72,13 @@ describe('ae-graph-build 工具', () => {
     write(root, 'src/b.ts', 'export const b = 1')
 
     const result = await aeGraphBuildTool.execute({ mode: 'full' }, createMockContext(root))
-    const parsed = JSON.parse(result as string) as { mode: string; files: number; relations: number; preview: string }
+    const parsed = JSON.parse(result as string) as { mode: string; files: number; nodes: number; relations: number; parserStats: unknown[]; preview: string }
 
     expect(parsed.mode).toBe('full')
     expect(parsed.files).toBeGreaterThan(0)
+    expect(parsed.nodes).toBe(parsed.files)
     expect(parsed.relations).toBeGreaterThan(0)
+    expect(parsed.parserStats).toEqual([])
     expect(parsed.preview).toBe('docs/ae/graphs/index.html')
     expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'index.html'))).toBe(true)
     expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'cytoscape.min.js'))).toBe(true)

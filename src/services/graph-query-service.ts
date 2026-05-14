@@ -188,7 +188,7 @@ function impact(relations: GraphRelation[], file: string, limit: number): string
 }
 
 function relationKey(relation: GraphRelation): string {
-  return `${relation.sourcePath}\u0000${relation.targetPath}\u0000${relation.relationType}`
+  return `${relation.sourceId ?? relation.sourcePath}\u0000${relation.targetId ?? relation.targetPath}\u0000${getRelationType(relation)}\u0000${relation.id ?? ''}`
 }
 
 function uniqueRelations(relations: GraphRelation[]): GraphRelation[] {
@@ -209,9 +209,14 @@ function takeLimited<T>(items: T[], limit: number): { items: T[]; truncated: boo
 
 function countRelationsByType(relations: GraphRelation[]): Record<string, number> {
   return relations.reduce<Record<string, number>>((counts, relation) => {
-    counts[relation.relationType] = (counts[relation.relationType] ?? 0) + 1
+    const relationType = getRelationType(relation)
+    counts[relationType] = (counts[relationType] ?? 0) + 1
     return counts
   }, {})
+}
+
+function getRelationType(relation: GraphRelation): string {
+  return relation.type ?? (relation.relationType === 'external' ? 'external_reference' : relation.relationType)
 }
 
 function topInDegreeFromRelations(
@@ -386,7 +391,7 @@ export function executeGraphQuery(request: GraphQueryRequest): unknown {
       const filteredFiles = files.filter(
         (file) => (!request.fileType || file.fileType === request.fileType) && isInDirectory(file.relativePath, request.directory),
       )
-      const filteredRelations = relations.filter((relation) => !request.relationType || relation.relationType === request.relationType)
+      const filteredRelations = relations.filter((relation) => !request.relationType || getRelationType(relation) === request.relationType)
       const limitedFiles = takeLimited(filteredFiles, limit)
       const limitedRelations = takeLimited(filteredRelations, limit)
       truncated = limitedFiles.truncated || limitedRelations.truncated
