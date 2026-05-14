@@ -400,13 +400,17 @@ export function parseFileRelations(worktree: string, files: CollectedGraphFile[]
       for (const match of lineContent.matchAll(/include\s+["'<]?([^"'>\s]+)["'>]?/g)) {
         pushReference(relations, worktree, file.relativePath, match[1], 'include', line, config)
       }
-      for (const match of lineContent.matchAll(/^\s*(?:from\s+([.\w]+)\s+import\s+\w+|import\s+([.\w]+))/g)) {
-        const rawImport = match[1] ?? match[2]
-        const normalizedImport = rawImport.startsWith('.') ? rawImport.replaceAll('.', '/') : rawImport
-        pushReference(relations, worktree, file.relativePath, normalizedImport, 'import', line, config)
+      if (file.language === 'python' || file.language === 'java') {
+        for (const match of lineContent.matchAll(/^\s*(?:from\s+([.\w]+)\s+import\s+\w+|import\s+([.\w]+))/g)) {
+          const rawImport = match[1] ?? match[2]
+          const normalizedImport = rawImport.startsWith('.') ? rawImport.replaceAll('.', '/') : rawImport
+          pushReference(relations, worktree, file.relativePath, normalizedImport, 'import', line, config)
+        }
       }
-      for (const match of lineContent.matchAll(/^\s*import\s+(?:\(\s*)?["']?([^"'();\s]+)["']?\s*;?/g)) {
-        pushReference(relations, worktree, file.relativePath, match[1], 'import', line, config)
+      if (file.language === 'go') {
+        for (const match of lineContent.matchAll(/^\s*import\s+(?:\(\s*)?["']([^"']+)["']\s*\)?\s*;?$/g)) {
+          pushReference(relations, worktree, file.relativePath, match[1], 'import', line, config)
+        }
       }
       for (const match of lineContent.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)) {
         if (!/^https?:\/\//i.test(match[1])) {

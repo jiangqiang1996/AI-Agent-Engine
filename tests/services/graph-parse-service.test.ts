@@ -42,6 +42,21 @@ describe('graph-parse-service', () => {
     expect(parsed.relations.some((relation) => relation.relationType === 'link' && relation.targetPath === 'src/a.ts')).toBe(true)
   })
 
+  it('不应该把 TS 命名导入误识别为外部花括号节点', () => {
+    const root = createTempRoot()
+    write(root, 'src/a.ts', "import { join } from 'node:path'\nimport type { Options } from './types'")
+    write(root, 'src/types.ts', 'export interface Options {}')
+
+    const files = collectGraphFiles(root, root, { exclude: [] })
+    const parsed = parseFileRelations(root, files, { exclude: [] })
+
+    expect(parsed.relations.some((relation) => relation.targetPath === '{')).toBe(false)
+    expect(parsed.relations.some((relation) => relation.targetId === 'external:unknown:{')).toBe(false)
+    expect(parsed.relations.some((relation) => relation.targetPath === 'type')).toBe(false)
+    expect(parsed.relations.some((relation) => relation.targetPath === 'node:path')).toBe(true)
+    expect(parsed.relations.some((relation) => relation.targetPath === 'src/types.ts')).toBe(true)
+  })
+
   it('应该为目录关系写入明确的节点 ID 和证据', () => {
     const root = createTempRoot()
     write(root, 'src/a.ts', '')
