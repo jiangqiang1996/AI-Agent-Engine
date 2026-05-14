@@ -55,7 +55,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillName: SKILL.REFACTOR,
     skillSlug: skillDir(SKILL.REFACTOR),
     commandName: COMMAND.REFACTOR,
-    description: '重构专项计划入口：识别原计划的非技术需求后，以尽可能消除技术债务的方式调用 ae:plan',
+    description: '重构专项计划入口：识别原计划的非技术需求后，以彻底消除技术债务且不因成本保守降级的方式调用 ae:plan',
     argumentHint: '[重构目标|计划路径|需求文档路径|代码异味描述]',
     defaultEntry: false,
     skillFile: `src/assets/skills/${skillDir(SKILL.REFACTOR)}/SKILL.md`,
