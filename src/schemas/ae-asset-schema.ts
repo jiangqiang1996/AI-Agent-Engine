@@ -28,6 +28,7 @@ export const SKILL = {
   SAVE_EXPERIENCE: 'ae:save-experience',
   SKILL_FROM_SESSION: 'ae:skill-from-session',
   SKILL_CREATOR: 'ae:skill-creator',
+  STATIC_SERVER: 'ae:static-server',
   HELP: 'ae:help',
   UPDATE: 'ae:update',
 } as const
@@ -56,6 +57,7 @@ export const PROMPT_OPTIMIZE_VARIANT_EXCLUDED_SKILLS = [
   SKILL.SAVE_EXPERIENCE,
   SKILL.SKILL_FROM_SESSION,
   SKILL.SKILL_CREATOR,
+  SKILL.STATIC_SERVER,
   SKILL.HELP,
   SKILL.UPDATE,
 ] as const
@@ -157,6 +159,7 @@ export const AeSkillNameSchema = z
     SKILL.SAVE_EXPERIENCE,
     SKILL.SKILL_FROM_SESSION,
     SKILL.SKILL_CREATOR,
+    SKILL.STATIC_SERVER,
     SKILL.HELP,
     SKILL.UPDATE,
   ])

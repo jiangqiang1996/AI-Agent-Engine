@@ -273,6 +273,15 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillFile: `src/assets/skills/${skillDir(SKILL.SKILL_CREATOR)}/SKILL.md`,
   },
   {
+    skillName: SKILL.STATIC_SERVER,
+    skillSlug: skillDir(SKILL.STATIC_SERVER),
+    commandName: COMMAND.STATIC_SERVER,
+    description: '使用 JavaScript 创建静态服务器，用于预览指定静态页面，支持传入文件路径/目录路径，并返回访问 URL',
+    argumentHint: '<路径> [端口] [-o <文件>] [-k]',
+    defaultEntry: false,
+    skillFile: `src/assets/skills/${skillDir(SKILL.STATIC_SERVER)}/SKILL.md`,
+  },
+  {
     skillName: SKILL.HELP,
     skillSlug: skillDir(SKILL.HELP),
     commandName: COMMAND.HELP,
