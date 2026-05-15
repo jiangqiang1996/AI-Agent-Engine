@@ -55,19 +55,19 @@ function hasSetupInvocation(context: unknown): boolean {
 }
 
 /**
- * 记录 ae:setup 当前会话证明，供浏览器能力消费方做机器校验。
+ * 记录 ae:setup 完成证明，供浏览器能力消费方做机器校验。
  */
 export const aeSetupProofTool = tool({
   description: [
-    '写入或检查 ae:setup 的当前会话完成证明。',
+    '写入或检查 ae:setup 的完成证明。',
     '',
     '功能说明：',
-    '- complete：在当前工作区写入 `.opencode/ae/setup-proof.json`，绑定当前会话 ID 和 agent-browser 版本',
-    '- check：检查当前工作区证明是否属于当前会话',
+    '- complete：在当前工作区写入 `.opencode/ae/setup-proof.json`，记录 agent-browser 版本和完成时间',
+    '- check：检查当前工作区是否存在可跨会话复用的合法证明',
     '',
     '适用场景：',
     '- ae:setup 完成 agent-browser 验证后记录机器可校验证明',
-    '- 浏览器能力消费方在执行 agent-browser 前确认本会话已完成 setup',
+    '- 浏览器能力消费方在执行 agent-browser 前确认当前工作区已完成 setup',
     '',
     '注意事项：',
     '- complete 只能在 ae:setup 已真实完成安装和版本验证后调用',
@@ -83,22 +83,22 @@ export const aeSetupProofTool = tool({
   execute: async (args, ctx) => {
     ctx.metadata({ title: args.action === 'complete' ? '写入 ae:setup 完成证明...' : '检查 ae:setup 完成证明...' })
 
-    const sessionId = resolveSessionId(ctx)
-    if (!sessionId) {
-      return '无法获取当前会话 ID，不能写入或校验 ae:setup 会话级证明。请在支持 sessionID 的 opencode 运行时中重试。'
-    }
-
     const worktree = resolveWorktree(ctx)
     if (args.action === 'check') {
-      const completed = isSetupCompleted(worktree, sessionId)
+      const completed = isSetupCompleted(worktree)
       return {
-        output: completed ? '当前会话已完成 ae:setup。' : '当前会话尚未完成 ae:setup。请先运行 ae:setup / /ae-setup。',
+        output: completed ? '当前工作区已完成 ae:setup。' : '当前工作区尚未完成 ae:setup。请先运行 ae:setup / /ae-setup。',
         metadata: { completed },
       }
     }
 
     if (!args.version || args.version.trim().length === 0) {
       return '写入 ae:setup 完成证明需要提供 agent-browser 版本号。请先运行 `agent-browser --version` 并传入实际输出。'
+    }
+
+    const sessionId = resolveSessionId(ctx)
+    if (!sessionId) {
+      return '无法获取当前会话 ID，不能写入 ae:setup 完成证明。请在支持 sessionID 的 opencode 运行时中重试。'
     }
 
     if (!hasSetupInvocation(ctx)) {
@@ -111,7 +111,7 @@ export const aeSetupProofTool = tool({
         patterns: ['.opencode/ae/setup-proof.json'],
         always: [],
         metadata: {
-          action: '写入 ae:setup 当前会话完成证明',
+          action: '写入 ae:setup 完成证明',
           target: '.opencode/ae/setup-proof.json',
         },
       }))
@@ -126,7 +126,7 @@ export const aeSetupProofTool = tool({
     }
 
     return {
-      output: '已写入当前会话的 ae:setup 完成证明。',
+      output: '已写入 ae:setup 完成证明。',
       metadata: { completed: true },
     }
   },

@@ -29,10 +29,7 @@ export function readSetupProof(worktree: string): SetupProof | null {
   }
 }
 
-export function isSetupCompleted(worktree: string, sessionId: string): boolean {
+export function isSetupCompleted(worktree: string): boolean {
   const proof = readSetupProof(worktree)
-  if (!proof) {
-    return false
-  }
-  return proof.sessionId === sessionId
+  return Boolean(proof)
 }

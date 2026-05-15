@@ -43,7 +43,7 @@ afterEach(() => {
 })
 
 describe('ae-setup-proof 工具', () => {
-  it('应该写入绑定当前会话 ID 的 setup 证明', async () => {
+  it('应该写入可跨会话复用的 setup 证明', async () => {
     const root = createTempRoot()
     const ask = createAskSpy()
 
@@ -53,12 +53,12 @@ describe('ae-setup-proof 工具', () => {
       sessionID: 'session-1',
     }))
 
-    expect(JSON.stringify(result)).toContain('已写入当前会话')
+    expect(JSON.stringify(result)).toContain('已写入 ae:setup 完成证明')
     expect(ask).toHaveBeenCalledWith(expect.objectContaining({ permission: 'file' }))
     expect(readSetupProof(root)).toMatchObject({ sessionId: 'session-1', version: 'agent-browser 1.2.3' })
   })
 
-  it('应该检查证明是否属于当前会话', async () => {
+  it('应该跨会话检查当前工作区是否存在合法证明', async () => {
     const root = createTempRoot()
     await callTool({ action: 'complete', version: 'agent-browser 1.2.3' }, setupContext({
       worktree: root,
@@ -68,8 +68,8 @@ describe('ae-setup-proof 工具', () => {
     const matched = await callTool({ action: 'check' }, { worktree: root, sessionID: 'session-1' })
     const mismatched = await callTool({ action: 'check' }, { worktree: root, sessionID: 'session-2' })
 
-    expect(JSON.stringify(matched)).toContain('当前会话已完成')
-    expect(JSON.stringify(mismatched)).toContain('当前会话尚未完成')
+    expect(JSON.stringify(matched)).toContain('当前工作区已完成')
+    expect(JSON.stringify(mismatched)).toContain('当前工作区已完成')
   })
 
   it('应该识别带普通标点的 ae:setup 触发记录', async () => {
@@ -82,7 +82,7 @@ describe('ae-setup-proof 工具', () => {
       history: [{ role: 'user', content: '请执行 ae:setup。' }],
     })
 
-    expect(JSON.stringify(result)).toContain('已写入当前会话')
+    expect(JSON.stringify(result)).toContain('已写入 ae:setup 完成证明')
   })
 
   it('运行时未提供历史记录时不应该误拦截 ae:setup 证明写入', async () => {
@@ -94,11 +94,24 @@ describe('ae-setup-proof 工具', () => {
       sessionID: 'session-1',
     })
 
-    expect(JSON.stringify(result)).toContain('已写入当前会话')
+    expect(JSON.stringify(result)).toContain('已写入 ae:setup 完成证明')
     expect(readSetupProof(root)).toMatchObject({ sessionId: 'session-1', version: 'agent-browser 1.2.3' })
   })
 
-  it('缺少会话 ID 时应该返回可恢复提示', async () => {
+  it('检查证明时不需要会话 ID', async () => {
+    const root = createTempRoot()
+
+    await callTool({ action: 'complete', version: 'agent-browser 1.2.3' }, setupContext({
+      worktree: root,
+      sessionID: 'session-1',
+    }))
+
+    const result = await callTool({ action: 'check' }, { worktree: root })
+
+    expect(JSON.stringify(result)).toContain('当前工作区已完成')
+  })
+
+  it('写入证明缺少会话 ID 时应该返回可恢复提示', async () => {
     const result = await callTool({ action: 'complete', version: 'agent-browser 1.2.3' }, {
       worktree: createTempRoot(),
     })
@@ -136,7 +149,7 @@ describe('ae-setup-proof 工具', () => {
 
     const result = await callTool({ action: 'check' }, { worktree: root, sessionId: 'session-1' })
 
-    expect(JSON.stringify(result)).toContain('当前会话已完成')
+    expect(JSON.stringify(result)).toContain('当前工作区已完成')
   })
 
   it('写入失败时应该返回可恢复提示', async () => {

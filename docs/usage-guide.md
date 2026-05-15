@@ -73,7 +73,7 @@
 /ae-test-browser http://localhost:3000/login
 ```
 
-当前会话只要实际执行 `agent-browser`，必须先完成 `/ae-setup`。`/ae-frontend-design` 负责初版界面，`/ae-test-browser` 负责真实浏览器验收；需要贴合 Figma 时使用 `@figma-design-sync`，需要多轮审美打磨时使用 `@design-iterator`。
+只要实际执行 `agent-browser`，必须先通过 `ae-setup-proof action=check` 校验当前工作区的 setup proof；证明缺失或无效时先完成 `/ae-setup`。`/ae-frontend-design` 负责初版界面，`/ae-test-browser` 负责真实浏览器验收；需要贴合 Figma 时使用 `@figma-design-sync`，需要多轮审美打磨时使用 `@design-iterator`。
 
 ### Swagger/OpenAPI
 
@@ -109,8 +109,8 @@
 | `/ae-lfg` | `[需求描述\|已有产物路径]` | 默认全流程入口 | 优先恢复已有产物；缺上游时回退到更早阶段 |
 | `/ae-doc-humanize` | `[需求文档路径\|计划文档路径\|目录路径]` | 把结构化需求或计划转换成人读文档 | 只做等价转换，不镀金 |
 | `/ae-doc-structure` | `[需求文档路径\|详细设计文档路径]` | 把人读文档恢复成 AI 易执行的结构化文档 | 无法等价转换时停止确认 |
-| `/ae-setup` | `—` | 准备浏览器能力依赖 | 当前会话证明不能跨会话复用 |
-| `/ae-test-browser` | `[URL\|路由]` | 浏览器端到端验收 | 先 `/ae-setup`；不做审美设计 |
+| `/ae-setup` | `—` | 准备浏览器能力依赖 | 写入可跨会话复用的工作区证明 |
+| `/ae-test-browser` | `[URL\|路由]` | 浏览器端到端验收 | 先校验 setup proof；不做审美设计 |
 | `/ae-frontend-design` | `[描述\|路径]` | 构建前端初版界面 | 不替代完整 E2E 或 Figma 对齐 |
 | `/ae-handoff` | `—` | 提取上下文并创建独立新会话 | 用于交接，不用于提示词优化 |
 | `/ae-prompt-optimize` | `[auto] [提示词内容]` | 优化提示词并可在新会话执行 | 需要注入历史上下文时用 `/ae-handoff` |
@@ -188,8 +188,8 @@
 | `@repo-research-analyst` | 研究仓库结构、文档、约定和实现模式 | 只做仓库研究，不替代实现 |
 | `@web-researcher` | 做外部网络研究、竞品扫描和跨领域类比 | 用于外部上下文，不读取本地私有代码 |
 | `@spec-flow-analyzer` | 分析规格、计划或功能描述中的用户流程缺口 | 不直接写代码 |
-| `@design-iterator` | 对已有可运行 UI 做多轮截图、分析和审美优化 | 先 `/ae-setup`；不从零创建完整页面 |
-| `@figma-design-sync` | 按 Figma 或设计图片修复 Web 实现视觉偏差 | 先 `/ae-setup`；不自由发挥设计方向 |
+| `@design-iterator` | 对已有可运行 UI 做多轮截图、分析和审美优化 | 先校验 setup proof；不从零创建完整页面 |
+| `@figma-design-sync` | 按 Figma 或设计图片修复 Web 实现视觉偏差 | 先校验 setup proof；不自由发挥设计方向 |
 
 ## 工具层能力
 
@@ -200,7 +200,7 @@
 | `ae-recovery` | 根据 AE 产物判断恢复阶段、后续技能和回退技能 | 不修改产物 |
 | `ae-review-contract` | 根据审查类型、范围特征和模式生成审查团队 | 不执行审查代理 |
 | `ae-gate` | 检查计划、验证、审查、浏览器状态和 Git 授权证据 | 不替代测试、构建或审查 |
-| `ae-setup-proof` | 写入或检查当前会话 setup 证明 | 不安装 agent-browser |
+| `ae-setup-proof` | 写入或检查当前工作区 setup 证明 | 不安装 agent-browser |
 | `ae-help` | 生成当前运行时帮助 | 不修改配置 |
 | `ae-handoff` | 创建独立新会话并注入上下文 | 不做普通提示词优化 |
 | `ae-prompt-optimize` | 把优化后的提示词提交到新会话执行 | 不注入系统级历史上下文 |
@@ -220,7 +220,7 @@
 | 没有设计稿，但要提升视觉质量 | `/ae-frontend-design` → `@design-iterator` → `/ae-test-browser` |
 | 只验证功能流程 | `/ae-test-browser` |
 
-浏览器相关路径都必须先完成当前会话的 `/ae-setup`。
+浏览器相关路径都必须先校验当前工作区 setup proof；证明缺失或无效时先完成 `/ae-setup`。
 
 ## 产物路径
 
@@ -261,7 +261,7 @@ AE 默认提供 `context7` 和 `gh_grep` 两个远程 MCP。项目级 `.opencode
 | --- | --- |
 | Git 写操作 | 提交、拉取、重置、清理、变基、推送都需要明确授权；`/ae-commit` 只代表本地提交 |
 | 远程协作 | 用户侧流程不提供 push、创建 PR、创建 Issue 或 Release 的远程写流程 |
-| 浏览器操作 | 当前会话实际执行任何 `agent-browser` 命令前必须先完成 `/ae-setup` |
+| 浏览器操作 | 实际执行任何 `agent-browser` 命令前必须先校验 setup proof；证明缺失或无效时先完成 `/ae-setup` |
 | 门禁 | `ae-gate` 只检查证据完整性，不替代真实测试、构建、浏览器验收或审查 |
 | 插件维护 | `/ae-update` 面向 AE 插件安装或源码维护，不是普通业务项目更新流程 |
 

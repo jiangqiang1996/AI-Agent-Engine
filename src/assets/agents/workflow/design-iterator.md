@@ -49,7 +49,7 @@ New-Item -ItemType Directory -Path .opencode/ae/screenshot -Force | Out-Null
 
 ### 准备：设置合适的窗口尺寸
 
-在执行任何 `agent-browser` 命令前，当前会话必须已实际完成 `ae:setup` / `/ae-setup` 并得到环境就绪结果。CLI 已安装、用户声称已安装或本地可用性检查成功都不能替代 setup。未完成 setup 前不得执行任何 `agent-browser` 命令；若 setup 失败、用户拒绝安装或当前环境无法安装，必须停止浏览器流程并记录无法验证原因。
+在执行任何 `agent-browser` 命令前，必须先调用 `ae-setup-proof action=check` 确认当前工作区已有合法证明。CLI 已安装、用户声称已安装或本地可用性检查成功都不能替代 setup proof。未通过 proof 校验前不得执行任何 `agent-browser` 命令；证明缺失或无效时先执行 `/ae-setup`，若 setup 失败、用户拒绝安装或当前环境无法安装，必须停止浏览器流程并记录无法验证原因。
 
 开始迭代前，以有头模式打开浏览器以便查看和调整大小：
 
@@ -208,7 +208,7 @@ agent-browser --headed open [url]
 
 **首先执行 setup 前置门禁：**
 
-如果当前会话尚未实际完成 `ae:setup` / `/ae-setup`，先执行 `/ae-setup`。环境就绪后，再执行任何 `agent-browser` 命令。若 setup 安装失败、用户拒绝安装或当前环境无法安装，停止截图迭代并报告无法验证原因。
+如果当前工作区尚未通过 `ae-setup-proof action=check`，先执行 `/ae-setup`。环境就绪并写入证明后，再执行任何 `agent-browser` 命令。若 setup 安装失败、用户拒绝安装或当前环境无法安装，停止截图迭代并报告无法验证原因。
 
 **登录状态检测：**
 

@@ -8,7 +8,7 @@ argument-hint: ""
 
 交互式环境诊断与依赖安装，为 AE 前端设计、浏览器验收、设计迭代、Figma 同步等浏览器能力准备统一运行时环境。
 
-`ae:setup` 是所有 AE 浏览器能力使用 `agent-browser` 前的统一前置入口。其他技能或代理在当前会话尚未实际完成 `ae:setup` / `/ae-setup` 时，必须先调用本技能；如果已经安装，本技能应快速报告环境就绪，不重复安装。
+`ae:setup` 是所有 AE 浏览器能力使用 `agent-browser` 前的统一前置入口。其他技能或代理在当前工作区缺少合法 setup proof 时，必须先调用本技能；如果已经安装，本技能应快速报告环境就绪，不重复安装。
 
 ## 第一步：检查 agent-browser
 
@@ -94,12 +94,12 @@ agent-browser install
 
 ## 第四步：完成
 
-调用 `ae-setup-proof` 工具写入会话级安装证明：
+调用 `ae-setup-proof` 工具写入可跨会话复用的安装证明：
 
 - `action`: `complete`
 - `version`: 第二步中 `agent-browser --version` 的实际输出
 
-此证明文件供其他技能在当前会话中机器校验 setup 完成状态。
+此证明文件供其他技能通过 `ae-setup-proof action=check` 机器校验当前工作区的 setup 完成状态。
 
 展示环境检查结果：
 

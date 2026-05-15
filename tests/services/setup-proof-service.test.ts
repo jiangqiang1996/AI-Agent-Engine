@@ -53,7 +53,7 @@ describe('setup-proof-service', () => {
     expect(result).toBeNull()
   })
 
-  it('当前会话 ID 匹配时返回 true', () => {
+  it('存在合法证明时返回 true', () => {
     const proof: SetupProof = {
       sessionId: 'session-1',
       completedAt: '2026-04-29T00:00:00Z',
@@ -61,10 +61,10 @@ describe('setup-proof-service', () => {
     }
     writeSetupProof(testDir, proof)
 
-    expect(isSetupCompleted(testDir, 'session-1')).toBe(true)
+    expect(isSetupCompleted(testDir)).toBe(true)
   })
 
-  it('当前会话 ID 不匹配时返回 false', () => {
+  it('不同会话也可以复用合法证明', () => {
     const proof: SetupProof = {
       sessionId: 'session-1',
       completedAt: '2026-04-29T00:00:00Z',
@@ -72,11 +72,11 @@ describe('setup-proof-service', () => {
     }
     writeSetupProof(testDir, proof)
 
-    expect(isSetupCompleted(testDir, 'session-2')).toBe(false)
+    expect(isSetupCompleted(testDir)).toBe(true)
   })
 
   it('证明文件缺失时返回 false', () => {
-    expect(isSetupCompleted(testDir, 'session-1')).toBe(false)
+    expect(isSetupCompleted(testDir)).toBe(false)
   })
 
   it('证明文件损坏时返回 null', () => {

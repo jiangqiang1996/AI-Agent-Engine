@@ -81,7 +81,7 @@ describe('ensureBrowserSetupGate', () => {
   it('多个触发词同时出现时门禁只注入一次', () => {
     const prompt = '使用 agent-browser 和 @design-iterator'
     const result = ensureBrowserSetupGate(prompt)
-    const gateCount = (result.match(/当前会话必须先调用/g) ?? []).length
+    const gateCount = (result.match(/必须先调用/g) ?? []).length
     expect(gateCount).toBe(1)
   })
 
@@ -107,7 +107,7 @@ describe('prompt optimize SKILL.md 浏览器能力 setup 门禁', () => {
     expect(content).toContain('目标新会话先调用 `ae-setup-proof action=check`')
     expect(content).toContain('若未完成，则先执行 `ae:setup` / `/ae-setup`')
     expect(content).toContain('写入证明后再执行浏览器流程')
-    expect(content).toContain('源会话已经执行过 setup 不能迁移到目标新会话')
+    expect(content).toContain('同一工作区的合法 setup proof 可以跨会话复用')
   })
 
   it('应该保留首 token 引用约束', () => {

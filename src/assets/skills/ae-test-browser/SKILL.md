@@ -11,7 +11,7 @@ argument-hint: "[URL|路由]"
 ## 前提条件
 
 - 本地开发服务器已启动（如 `npm run dev`）
-- 当前会话已实际完成 `ae:setup` / `/ae-setup`，并得到环境就绪结果
+- 当前工作区已有合法 `ae:setup` 完成证明，或已实际完成 `ae:setup` / `/ae-setup` 并得到环境就绪结果
 - 项目为 Git 仓库
 
 ## 截图保存路径
@@ -45,15 +45,15 @@ New-Item -ItemType Directory -Path .opencode/ae/screenshot -Force | Out-Null
 
 ## setup 前置门禁
 
-在执行任何 `agent-browser` 命令前，先确认当前会话已实际完成 `ae:setup` / `/ae-setup` 并得到环境就绪结果。若未完成，必须先执行 `ae:setup`；完成后再继续本技能流程。
+在执行任何 `agent-browser` 命令前，先调用 `ae-setup-proof action=check` 确认当前工作区已有合法证明。若未完成，必须先执行 `ae:setup`；完成后再继续本技能流程。
 
-`agent-browser` 已安装、用户声称已安装、或本地 CLI 可用性检查成功，都不能替代本轮 setup。只有当 `ae:setup` 安装失败、用户拒绝安装或当前环境无法安装时，才记录“无法验证”并停止浏览器验收，不得继续执行 `agent-browser` 命令。
+`agent-browser` 已安装、用户声称已安装、或本地 CLI 可用性检查成功，都不能替代 setup proof 校验。只有当 `ae:setup` 安装失败、用户拒绝安装或当前环境无法安装时，才记录“无法验证”并停止浏览器验收，不得继续执行 `agent-browser` 命令。
 
 ## 工作流程
 
 ### 1. 执行 setup 前置门禁
 
-若当前会话尚未实际完成 `ae:setup` / `/ae-setup`，先执行 `ae:setup`。环境就绪后，才能进入后续步骤。
+若当前工作区尚未通过 `ae-setup-proof action=check`，先执行 `ae:setup`。环境就绪并写入证明后，才能进入后续步骤。
 
 ### 2. 选择浏览器模式
 
@@ -310,7 +310,7 @@ agent-browser screenshot --full .opencode/ae/screenshot/页面名称-完整.png
 
 ## agent-browser CLI 参考
 
-未在当前会话实际完成 `ae:setup` / `/ae-setup` 并得到环境就绪结果前，不得执行下列任何命令。
+未通过 `ae-setup-proof action=check` 或实际完成 `ae:setup` / `/ae-setup` 并得到环境就绪结果前，不得执行下列任何命令。
 
 ```bash
 # 导航

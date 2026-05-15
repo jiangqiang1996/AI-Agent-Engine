@@ -67,7 +67,7 @@ const COPYABLE_COMMAND_PATTERN =
 
 const SETUP_GATE_PATTERN = /ae:setup|\/ae-setup|setup 前置|SKILL\.SETUP/
 const EXECUTION_BAN_PATTERN =
-  /未.*setup.*不得执行|未在当前会话实际完成.*不得执行|执行任何 `agent-browser` 命令前/
+  /未.*setup.*不得执行|未通过 proof 校验前不得执行|执行任何 `agent-browser` 命令前/
 
 const FILE_LEVEL_GATE_FILES = new Set([
   'src/assets/skills/ae-test-browser/SKILL.md',
@@ -170,7 +170,7 @@ describe('agent-browser setup 前置门禁', () => {
 
     for (const row of rows) {
       if (row.includes('@figma-design-sync') || row.includes('@design-iterator')) {
-        expect(row).toContain('/ae-setup')
+        expect(row).toContain('setup proof')
       }
     }
   })
@@ -201,9 +201,9 @@ describe('agent-browser setup 前置门禁', () => {
 
     expect(content).toContain('全局硬约束')
     expect(content).toContain('ae:setup 是唯一前置入口')
-    expect(content).toContain('已有安装不能替代 setup')
-    expect(content).toContain('setup 不可跨会话迁移')
-    expect(content).toContain('未完成 setup 前禁止执行')
+    expect(content).toContain('已有安装不能替代 proof')
+    expect(content).toContain('setup 可跨会话复用')
+    expect(content).toContain('未完成 proof 校验前禁止执行')
     expect(content).toContain('setup 失败时的降级路径')
     expect(content).toContain('bash')
     expect(content).toContain('子代理')
