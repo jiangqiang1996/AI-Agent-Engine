@@ -1,0 +1,15 @@
+html, body, #app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Segoe UI", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f4f6f8;
+  color: #18212f;
+}
+
+* {
+  box-sizing: border-box;
+}
