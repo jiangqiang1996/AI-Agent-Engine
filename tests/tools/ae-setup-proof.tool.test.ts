@@ -85,6 +85,19 @@ describe('ae-setup-proof 工具', () => {
     expect(JSON.stringify(result)).toContain('已写入当前会话')
   })
 
+  it('运行时未提供历史记录时不应该误拦截 ae:setup 证明写入', async () => {
+    const root = createTempRoot()
+
+    const result = await callTool({ action: 'complete', version: 'agent-browser 1.2.3' }, {
+      ask: createAskSpy(),
+      worktree: root,
+      sessionID: 'session-1',
+    })
+
+    expect(JSON.stringify(result)).toContain('已写入当前会话')
+    expect(readSetupProof(root)).toMatchObject({ sessionId: 'session-1', version: 'agent-browser 1.2.3' })
+  })
+
   it('缺少会话 ID 时应该返回可恢复提示', async () => {
     const result = await callTool({ action: 'complete', version: 'agent-browser 1.2.3' }, {
       worktree: createTempRoot(),

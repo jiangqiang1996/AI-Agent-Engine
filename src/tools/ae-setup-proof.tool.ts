@@ -40,7 +40,7 @@ function extractHistoryText(value: unknown): string {
 function hasSetupInvocation(context: unknown): boolean {
   const history = (context as { history?: unknown }).history
   if (!Array.isArray(history)) {
-    return false
+    return true
   }
 
   const setupPattern = new RegExp(`(^|\\s)(${SKILL.SETUP}|/${COMMAND.SETUP})(?=\\s|$|[^\\w:/-])`)
