@@ -22,7 +22,10 @@
     .toolbar input[type=text]{flex:1;min-width:100px;max-width:160px;height:30px;padding:0 8px;border:1px solid #d0d7de;border-radius:6px;background:#f6f8fa;color:var(--ink);font-size:12px}
     .toolbar input[type=text]::placeholder{color:#8c959f}
     .toolbar input[type=text]:focus{border-color:#0969da;box-shadow:0 0 0 3px rgba(9,105,218,.12);outline:none;background:#fff}
-    .toolbar select,.toolbar button{height:30px;padding:0 8px;border:1px solid #d0d7de;border-radius:6px;font-size:12px;background:#f6f8fa;color:var(--ink);cursor:pointer}
+    .toolbar select,.toolbar button{height:30px;padding:0 10px;border:1px solid #d0d7de;border-radius:8px;font-size:12px;background:#f6f8fa;color:var(--ink);cursor:pointer}
+    .toolbar select{appearance:none;-webkit-appearance:none;padding-right:26px;background:#f6f8fa url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23656d76' d='M6 8L1 3h10z'/%3E%3C/svg%3E") no-repeat right 8px center;background-size:12px}
+    .toolbar select:hover{border-color:#0969da;background-color:#fff}
+    .toolbar select:focus{border-color:#0969da;box-shadow:0 0 0 3px rgba(9,105,218,.12);outline:none;background-color:#fff}
     .toolbar button{font-weight:600;background:#f6f8fa}
     .toolbar button:hover{border-color:#0969da;background:#fff}
     #btnRender{background:#0969da;color:#fff;border-color:#0969da;padding:0 12px;font-weight:600}
@@ -31,17 +34,18 @@
     .legend{display:flex;align-items:center;gap:6px;font-size:11px;color:#656d76;flex-wrap:wrap;padding:3px 8px;border-radius:6px;background:#f6f8fa;border:1px solid #e1e4e8;white-space:nowrap}
     .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
     .main{display:grid;grid-template-columns:minmax(260px,18vw) minmax(0,1fr) auto;flex:1;overflow:hidden;padding:12px;gap:12px}
-    #sidebar,#panel{background:#fff;border:1px solid #d0d7de;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.04);overflow:hidden}
-    #sidebar{display:flex;flex-direction:column;min-height:0}
+    #sidebar{background:#fafbfc;border:1px solid #d0d7de;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.04);overflow:hidden;display:flex;flex-direction:column;min-height:0}
+    #panel{background:#fff;border:1px solid #d0d7de;border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.04);overflow:hidden}
     .side-head{padding:12px 14px 8px;border-bottom:1px solid #e1e4e8;background:#fff}
     #sidebar h2{font-size:14px;margin-bottom:3px;color:var(--navy);font-weight:700;letter-spacing:-.01em}
     .side-help{font-size:11px;line-height:1.45;color:#656d76}
-    #sidebar .side-actions{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:8px 12px;border-bottom:1px solid #e1e4e8}
-    #sidebar button{padding:5px 8px;border:1px solid #d0d7de;border-radius:6px;font-size:12px;background:#f6f8fa;color:var(--ink);cursor:pointer;font-weight:600}
-    #sidebar button:hover{border-color:#0969da;background:#fff}
-    .side-actions button{box-shadow:none}
-    #btnShowHidden{background:#fff8c5;border-color:#d4a72c;color:#7d4e00}
-    #btnShowHidden:hover{background:#fff5b3;border-color:#bf8f0f}
+    #sidebar .side-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 12px;border-bottom:1px solid #e1e4e8}
+    #sidebar .side-actions button{padding:6px 10px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #d0d7de;background:#f6f8fa;color:var(--ink);transition:border-color .12s ease,background .12s ease,color .12s ease}
+    #sidebar .side-actions button:hover{border-color:#0969da;background:#fff}
+    #btnUnselectAllDirs{background:#fff;border-color:#d0d7de;color:#656d76}
+    #btnUnselectAllDirs:hover{border-color:#cf222e;color:#cf222e;background:#fff5f5}
+    #btnSelectAllDirs{background:#0969da;border-color:#0969da;color:#fff}
+    #btnSelectAllDirs:hover{background:#0550ae;border-color:#0550ae}
     .dir-list{display:flex;flex-direction:column;font-size:13px;padding:4px 0;overflow:auto}
     .dir-row{position:relative;display:block;padding:5px 12px 5px 0;border-bottom:1px solid transparent;border-left:3px solid transparent;transition:background .12s ease,border-color .12s ease,opacity .12s ease}
     .dir-row:last-child{border-bottom:none}
@@ -66,13 +70,13 @@
     .dir-name:focus{outline:none;color:#0969da}
     .dir-path{display:none}
     .dir-meta{display:block;color:#656d76;white-space:nowrap;font-size:10px;margin-top:0;padding-left:35px}
-    #cyWrap{position:relative;display:flex;min-width:0;border-radius:12px;overflow:hidden;border:1px solid #d0d7de;box-shadow:0 1px 3px rgba(0,0,0,.04);background:#fff}
+    #cyWrap{position:relative;display:flex;min-width:0;border-radius:12px;overflow:hidden;border:1px solid #d0d7de;box-shadow:0 2px 8px rgba(31,35,40,.06);background:#fff}
     #cy{flex:1;background:#fff}
     #cyWrap:after{content:"GRAPH";position:absolute;right:14px;bottom:12px;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#b0b8c4;pointer-events:none;font-weight:700}
     .metric-strip{position:absolute;left:12px;top:12px;display:flex;gap:6px;flex-wrap:wrap;z-index:4;pointer-events:none}
-    .metric{min-width:68px;padding:5px 10px;border:1px solid #d0d7de;border-radius:6px;background:#fff}
-    .metric b{display:block;font-size:16px;line-height:1;color:var(--navy);letter-spacing:-.02em;font-weight:700}
-    .metric span{display:block;margin-top:2px;font-size:10px;font-weight:600;color:#656d76;letter-spacing:.02em;text-transform:uppercase}
+    .metric{min-width:76px;padding:8px 12px;border:1px solid #d0d7de;border-radius:10px;background:linear-gradient(180deg,#fff 0%,#f6f8fa 100%);box-shadow:0 1px 2px rgba(31,35,40,.04),0 0 0 1px rgba(255,255,255,.6) inset}
+    .metric b{display:block;font-size:18px;line-height:1.15;color:var(--navy);letter-spacing:-.02em;font-weight:800}
+    .metric span{display:block;margin-top:3px;font-size:10px;font-weight:600;color:#656d76;letter-spacing:.04em;text-transform:uppercase}
     .empty-state{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:400px;padding:20px 24px;border:1px solid #d0d7de;border-radius:12px;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.08);font-size:13px;line-height:1.6;color:#656d76;display:none;text-align:center}
     .empty-state strong{display:block;font-size:15px;color:var(--navy);margin-bottom:6px;font-weight:600}
     #panel{width:360px;display:none;flex-direction:column;min-height:0}
@@ -131,8 +135,8 @@
       <div class="side-help">默认全选。点击目录名切换当前目录及下级显示；点击箭头展开或折叠。</div>
     </div>
     <div class="side-actions">
-      <button id="btnClearDir">清除筛选</button>
-      <button id="btnShowHidden">全选目录</button>
+      <button id="btnSelectAllDirs">全选目录</button>
+      <button id="btnUnselectAllDirs">全不选目录</button>
     </div>
     <div id="directoryList" class="dir-list"></div>
   </aside>
@@ -327,8 +331,9 @@
       var name = dir.path.split('/').pop() || dir.path;
       var hasChildren = dirs.some(function(child) { return child.path.indexOf(dir.path + '/') === 0; });
       var collapsed = COLLAPSED_DIRS[dir.path];
-      var lineLeft = 14 + depth * 16 - 8;
-      return '<div class="dir-row' + (directUnselected ? ' unselected' : '') + (inheritedUnselected ? ' inherited-unselected' : '') + '" data-depth="' + depth + '" style="padding-left:' + (14 + depth * 16) + 'px;--tree-line-left:' + lineLeft + 'px">'
+      var indent = 14 + depth * 24;
+      var lineLeft = indent - 10;
+      return '<div class="dir-row' + (directUnselected ? ' unselected' : '') + (inheritedUnselected ? ' inherited-unselected' : '') + '" data-depth="' + depth + '" style="padding-left:' + indent + 'px;--tree-line-left:' + lineLeft + 'px">'
               + '<span class="dir-main">'
               + '<button class="dir-caret" data-dir-collapse="' + escapeHtml(dir.path) + '" title="展开或折叠目录"' + (hasChildren ? '' : ' disabled') + '>' + (hasChildren ? (collapsed ? '▸' : '▾') : '•') + '</button>'
               + '<span class="dir-check">' + (selected ? '✓' : '○') + '</span>'
@@ -588,8 +593,13 @@
 
   document.getElementById('btnRender').addEventListener('click', doRender);
   document.getElementById('btnFit').addEventListener('click', function() { if (CY) CY.fit(undefined, 50); });
-  document.getElementById('btnClearDir').addEventListener('click', function() { document.getElementById('dirFilter').value = ''; doRender(); });
-  document.getElementById('btnShowHidden').addEventListener('click', function() { UNSELECTED_DIRS = {}; doRender(); showHint('已全选所有目录'); });
+  document.getElementById('btnSelectAllDirs').addEventListener('click', function() { UNSELECTED_DIRS = {}; doRender(); showHint('已全选所有目录'); });
+  document.getElementById('btnUnselectAllDirs').addEventListener('click', function() {
+    UNSELECTED_DIRS = {};
+    buildDirectoryStats(ALL_NODES).forEach(function(dir) { UNSELECTED_DIRS[dir.path] = true; });
+    doRender();
+    showHint('已取消所有目录');
+  });
   document.getElementById('directoryList').addEventListener('click', function(e) {
     var target = e.target;
     if (!target || !target.getAttribute) return;
