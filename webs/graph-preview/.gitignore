@@ -1,0 +1,6 @@
+# Local graph data for development testing
+public/graph.json
+public/version-1/
+
+# TypeScript build cache
+tsconfig.tsbuildinfo
