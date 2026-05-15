@@ -37,7 +37,6 @@ const EXCLUDE_SUGGESTION_CANDIDATES: ExcludeSuggestionCandidate[] = [
   { path: 'tmp', rule: '**/tmp', reason: '临时运行产物不具备稳定关系语义' },
   { path: 'temp', rule: '**/temp', reason: '临时运行产物不具备稳定关系语义' },
   { path: 'runs', rule: '**/runs', reason: '本地运行记录和调试输出不属于源码依赖图' },
-  { path: 'figma-exports', rule: '**/figma-exports', reason: '设计导出图片或素材通常是二进制输入/输出，不适合源码关系解析' },
   { path: '.next', rule: '**/.next', reason: 'Next.js 缓存和构建输出由源码生成' },
   { path: '.nuxt', rule: '**/.nuxt', reason: 'Nuxt 缓存和构建输出由源码生成' },
   { path: '.turbo', rule: '**/.turbo', reason: '构建缓存目录不表达源码依赖关系' },
