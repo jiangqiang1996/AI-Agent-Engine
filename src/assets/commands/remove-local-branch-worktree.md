@@ -97,7 +97,7 @@ git branch -D <候选分支名>
 Remove-Item -LiteralPath <候选本地文件或目录路径> -Recurse -Force
 ```
 
-禁止默认执行 `git reset --hard`、`git clean -fd`、覆盖 checkout、rebase、push、force push 或修改 Git 配置。
+禁止默认执行 `git reset --hard`、`git clean -fd`、覆盖 checkout、rebase、push、force push 或修改 Git 配置；“不跳过 hooks”仅表示保留验证步骤，不代表允许跳过任何检查。
 
 ### 6. 验证结果
 

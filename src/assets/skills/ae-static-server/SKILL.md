@@ -1,6 +1,7 @@
 ---
 name: ae:static-server
 description: "使用 JavaScript 后台创建静态服务器，用于预览指定静态页面，支持传入文件路径/目录路径，并返回访问 URL"
+argument-hint: "<路径> [端口] [-k]"
 ---
 
 # ae:static-server

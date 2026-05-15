@@ -57,5 +57,5 @@ npm run build:copy
 ## 完成标准
 
 - `docs/ae/graphs/graph.json` 存在并包含 active version、manifest、索引和分片。
-- `docs/ae/graphs/index.html` 及 `assets/` 目录存在，可在本地离线打开预览图谱。
+- `docs/ae/graphs/index.html` 及 `assets/` 目录存在，可在本地离线打开预览图谱；当前预览资源以已构建 bundle 为准，不要求额外单独的 `cytoscape.min.js` 文件。
 - 后续可使用 `ae:graph-query` 查询图谱，并在项目理解、审查、计划、调试和重构任务中优先引用图谱结果。
