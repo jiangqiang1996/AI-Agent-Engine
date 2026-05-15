@@ -138,6 +138,8 @@ describe('资产健康巡检', () => {
     expect(commandConfig[`${COMMAND.TASK_LOOP}-pa`], 'asset-health/prompt-variant/command/ae-task-loop-pa').toBeDefined()
     expect(commandConfig[`${COMMAND.GRAPH_BUILD}-po`], 'asset-health/prompt-variant/command/ae-graph-build-po').toBeUndefined()
     expect(commandConfig[`${COMMAND.GRAPH_BUILD}-pa`], 'asset-health/prompt-variant/command/ae-graph-build-pa').toBeUndefined()
+    expect(commandConfig[`${COMMAND.HTML_BUNDLE}-po`], 'asset-health/prompt-variant/command/ae-html-bundle-po').toBeUndefined()
+    expect(commandConfig[`${COMMAND.HTML_BUNDLE}-pa`], 'asset-health/prompt-variant/command/ae-html-bundle-pa').toBeUndefined()
     expect(commandConfig[`${COMMAND.GRAPH_QUERY}-po`], 'asset-health/prompt-variant/command/ae-graph-query-po').toBeUndefined()
     expect(commandConfig[`${COMMAND.GRAPH_QUERY}-pa`], 'asset-health/prompt-variant/command/ae-graph-query-pa').toBeUndefined()
     expect(buildCommandConfig(join(process.cwd(), 'src/assets/commands'))['ae-work-continue'], 'asset-health/disk-command/command/ae-work-continue').toBeDefined()
@@ -244,6 +246,18 @@ describe('资产健康巡检', () => {
     expect(routingEntry).toMatchObject({ type: 'command', name: COMMAND.SAVE_EXPERIENCE, scenario: 'standard' })
   })
 
+  it('应该注册 ae:html-bundle 技术栈无关 bundle 入口', () => {
+    const entries = getPhaseOneEntries()
+    const htmlBundle = entries.find((entry) => entry.skillName === SKILL.HTML_BUNDLE)
+    const skillText = readFileSync('src/assets/skills/ae-html-bundle/SKILL.md', 'utf8')
+
+    expect(htmlBundle?.commandName).toBe(COMMAND.HTML_BUNDLE)
+    expect(getCommandModelScenario(COMMAND.HTML_BUNDLE)).toBe(MODEL_SCENARIO.STANDARD)
+    expect(skillText).toContain('不推断 React、Vite、Webpack、Parcel')
+    expect(skillText).toContain('不联网抓取外部 URL')
+    expect(skillText).toContain('ae-html-bundle')
+  })
+
   it('应该拒绝残留的 ae:save-rules 技能和磁盘命令', () => {
     const skillFiles = listMarkdownFiles(join(process.cwd(), 'src/assets/skills'))
     const skillNames = skillFiles.map((file) => parseFrontmatter(readFileSync(file, 'utf8')).data.name)
@@ -307,6 +321,8 @@ describe('资产健康巡检', () => {
       COMMAND.PLAN,
       COMMAND.WORK,
       'ae-work-continue',
+      COMMAND.MERGE_BRANCH,
+      COMMAND.WORK_REPORT,
       COMMAND.REFACTOR,
       COMMAND.REVIEW,
       COMMAND.DOC_HUMANIZE,
@@ -314,6 +330,9 @@ describe('资产健康巡检', () => {
       COMMAND.FRONTEND_DESIGN,
       COMMAND.TEST_BROWSER,
       COMMAND.SWAGGER_PARSER,
+      COMMAND.HTML_BUNDLE,
+      COMMAND.GRAPH_BUILD,
+      COMMAND.GRAPH_QUERY,
       COMMAND.TASK_LOOP,
       COMMAND.SQL,
       COMMAND.HANDOFF,
@@ -324,7 +343,7 @@ describe('资产健康巡检', () => {
       COMMAND.UPDATE,
     ]
 
-    expect(readme).toContain(`| 命令 | 当前快照 ${Object.keys(commandConfig).length} |`)
+    expect(readme).toContain(`| 命令 | ${Object.keys(commandConfig).length} |`)
     expect(documentedSkills).toEqual(expectedCommands)
     for (const commandName of documentedSkills) {
       expect(commandConfig[commandName], `asset-health/readme-command/${commandName}: README 文档入口未注册`).toBeDefined()

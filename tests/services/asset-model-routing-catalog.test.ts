@@ -44,6 +44,10 @@ describe('asset-model-routing-catalog', () => {
     expect(getCommandModelScenario(COMMAND.WORK_REPORT)).toBe(MODEL_SCENARIO.STANDARD)
   })
 
+  it('html-bundle 命令应该引用 standard 场景', () => {
+    expect(getCommandModelScenario(COMMAND.HTML_BUNDLE)).toBe(MODEL_SCENARIO.STANDARD)
+  })
+
   it('视觉相关命令应该引用 vision 场景', () => {
     expect(getCommandModelScenario(COMMAND.TEST_BROWSER)).toBe(MODEL_SCENARIO.VISION)
     expect(getCommandModelScenario(COMMAND.FRONTEND_DESIGN)).toBe(MODEL_SCENARIO.VISION)

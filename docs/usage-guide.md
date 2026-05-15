@@ -20,6 +20,7 @@
 | 浏览器验收 | `/ae-test-browser` |
 | 数据库查询或操作 | `/ae-sql` |
 | Swagger/OpenAPI 联调摘要 | `/ae-swagger-parser` |
+| HTML 单文件打包 | `/ae-html-bundle` |
 | 构建或查询项目关系图谱 | `/ae-graph-build`、`/ae-graph-query` |
 | 提示词太散 | `/ae-prompt-optimize` |
 | 保存经验 | `/ae-save-experience` |
@@ -101,7 +102,7 @@
 | `/ae-document-review` | `[mode:*] [文档路径]` | 兼容的文档审查入口 | 实际通过 `ae:review` 文档域执行 |
 | `/ae-plan` | `[计划路径\|需求文档路径\|需求描述]` | 把需求拆成技术计划 | 复杂实现前优先使用 |
 | `/ae-refactor` | `[重构目标\|计划路径\|需求文档路径\|代码异味描述]` | 以消除技术债为优先约束生成重构计划 | 强调保持外部行为和测试护栏 |
-| `/ae-work` | `[计划路径\|工作描述]` | 按计划执行变更并验证 | 交付前检查验证、审查和 Git 授权证据 |
+| `/ae-work` | `[计划路径\|交接文件路径\|工作描述]` | 按计划执行变更并验证 | 交付前检查验证、审查和 Git 授权证据 |
 | `/ae-work-report` | `[日报\|周报\|时间段\|提交范围]` | 基于提交和未提交变更生成工作报告 | 不执行 Git 写操作 |
 | `/ae-merge-branch` | `[来源分支名\|本地 worktree 路径]` | 合并来源分支或 worktree 变更 | 本地 Git 写操作需明确授权 |
 | `/ae-review` | `[mode:*] [domain:code\|domain:document] [from:<ref>] [full] [full:<path>] [session] [plan:<path>] [文档路径]` | 审查代码、文档、计划、全量路径或会话变更 | 代码域和文档域分开处理 |
@@ -116,6 +117,7 @@
 | `/ae-task-loop` | `[一句话目标描述]` | 循环执行和验证直到目标达成 | 不适合需求不清的大型功能 |
 | `/ae-sql` | `[SQL 语句]` | 通过 JDBC 连接数据库并执行 SQL | 执行前应确认目标库和语句风险 |
 | `/ae-swagger-parser` | `[source] [method:<HTTP_METHOD>] [path:<PATH>] [tag:<TAG>] [keyword:<TEXT>] [mode:overview\|detail]` | 解析 Swagger/OpenAPI 并输出联调摘要 | 不请求业务接口 |
+| `/ae-html-bundle` | `[entry:<HTML_PATH>] [output:<HTML_PATH>] [external:keep\|fail]` | 将显式入口 HTML 和本地静态资源打包为自包含 HTML | 不执行项目构建，不联网抓取外链 |
 | `/ae-graph-build` | `[target:<PATH>] [mode:auto\|full\|incremental] [depth:shallow] [exclude:<PATH>...]` | 构建或增量维护项目文件关系图谱 | 不分析运行时动态依赖 |
 | `/ae-graph-query` | `[mode:deps\|impact\|health\|filter\|path\|core\|stats\|pattern] [file:<PATH>] [target:<PATH>]` | 查询依赖、影响范围、核心模块和健康状态 | 图谱缺失时先构建 |
 | `/ae-save-experience` | `[经验摘要\|保存目标]` | 保存 solution，并按需提炼 rules | 不把临时结论直接当长期规则 |
@@ -203,6 +205,7 @@
 | `ae-handoff` | 创建独立新会话并注入上下文 | 不做普通提示词优化 |
 | `ae-prompt-optimize` | 把优化后的提示词提交到新会话执行 | 不注入系统级历史上下文 |
 | `ae-swagger-parser` | 解析 Swagger/OpenAPI 规格 | 不请求业务接口 |
+| `ae-html-bundle` | 打包显式入口 HTML 和本地静态资源 | 不执行项目构建或联网抓取外链 |
 | `ae-graph-build` | 构建或增量维护项目文件关系图谱 | 不分析运行时动态依赖或符号级调用链 |
 | `ae-graph-query` | 查询图谱中的依赖、影响范围、核心模块和健康状态 | 不构建图谱 |
 | `ae-task-analyzer` | 分析任务单元、文件范围和并行组 | 不修改项目文件 |

@@ -10,6 +10,7 @@ import { aeHelpTool } from './ae-help.tool.js'
 import { aeGateTool } from './ae-gate.tool.js'
 import { aeSetupProofTool } from './ae-setup-proof.tool.js'
 import { aeSwaggerParserTool } from './ae-swagger-parser.tool.js'
+import { aeHtmlBundleTool } from './ae-html-bundle.tool.js'
 import { aeGraphBuildTool } from './ae-graph-build.tool.js'
 import { aeGraphQueryTool } from './ae-graph-query.tool.js'
 import { aeTaskAnalyzerTool } from './ae-task-analyzer.tool.js'
@@ -25,6 +26,7 @@ export function createToolRegistry(): Record<string, ToolDefinition> {
     [TOOL.AE_GATE]: aeGateTool,
     [TOOL.AE_SETUP_PROOF]: aeSetupProofTool,
     [TOOL.AE_SWAGGER_PARSER]: aeSwaggerParserTool,
+    [TOOL.AE_HTML_BUNDLE]: aeHtmlBundleTool,
     [TOOL.AE_GRAPH_BUILD]: aeGraphBuildTool,
     [TOOL.AE_GRAPH_QUERY]: aeGraphQueryTool,
     [TOOL.AE_TASK_ANALYZER]: aeTaskAnalyzerTool,

@@ -83,6 +83,21 @@ describe('AE catalog 一致性', () => {
     expect(getPhaseOnePaEntries().some((item) => item.commandName === 'ae-agent-creator-pa')).toBe(false)
   })
 
+  it('ae:html-bundle 应注册为技术栈无关的 bundle 入口', () => {
+    const entry = getPhaseOneEntries().find((item) => item.skillName === SKILL.HTML_BUNDLE)
+    const frontmatter = readFrontmatter('src/assets/skills/ae-html-bundle/SKILL.md')
+
+    expect(entry).toBeDefined()
+    expect(entry?.commandName).toBe('ae-html-bundle')
+    expect(entry?.skillSlug).toBe('ae-html-bundle')
+    expect(entry?.defaultEntry).toBe(false)
+    expect(entry?.skillFile).toBe('src/assets/skills/ae-html-bundle/SKILL.md')
+    expect(entry?.description).toBe(frontmatter.description)
+    expect(entry?.argumentHint).toBe(frontmatter['argument-hint'])
+    expect(getPhaseOnePoEntries().some((item) => item.commandName === 'ae-html-bundle-po')).toBe(false)
+    expect(getPhaseOnePaEntries().some((item) => item.commandName === 'ae-html-bundle-pa')).toBe(false)
+  })
+
   it('ae:skill-creator 应保持单一入口并描述创建与更新能力', () => {
     const entries = getPhaseOneEntries()
     const entry = entries.find((item) => item.skillName === SKILL.SKILL_CREATOR)

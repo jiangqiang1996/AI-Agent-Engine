@@ -97,6 +97,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 前端初版 | `/ae-frontend-design` |
 | 浏览器验收 | `/ae-test-browser` |
 | Swagger/OpenAPI 摘要 | `/ae-swagger-parser` |
+| HTML 单文件打包 | `/ae-html-bundle` |
 | 项目关系图谱 | `/ae-graph-build`、`/ae-graph-query` |
 | 探索性修复 | `/ae-task-loop` |
 | 数据库操作 | `/ae-sql` |
@@ -123,10 +124,10 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 
 | 类型 | 当前快照 | 真源 |
 | --- | ---: | --- |
-| 技能 | 28 | `src/assets/skills/`、`src/services/ae-catalog.ts` |
-| 命令 | 48 | `src/services/command-registration.ts`、`src/assets/commands/` |
+| 技能 | 29 | `src/assets/skills/`、`src/services/ae-catalog.ts` |
+| 命令 | 49 | `src/services/command-registration.ts`、`src/assets/commands/` |
 | 代理 | 27 | `src/assets/agents/`、`src/services/agent-registration.ts` |
-| 工具 | 12 | `src/tools/` |
+| 工具 | 13 | `src/tools/` |
 | 规则 | 4 | `src/assets/rules/` |
 | 内置配置 | 1 | `src/assets/config/ae.jsonc` |
 

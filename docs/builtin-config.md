@@ -202,7 +202,7 @@ model: $deep
 
 | 资产 | 场景 |
 | --- | --- |
-| `/ae-ideate`、`/ae-brainstorm`、`/ae-agent-creator`、`/ae-work-report`、`/ae-setup`、`/ae-handoff`、`/ae-sql`、`/ae-swagger-parser`、`/ae-graph-build`、`/ae-save-experience`、`/ae-skill-from-session`、`/ae-skill-creator`、`/ae-update`、`/ae-ideate-po`、`/ae-brainstorm-po`、`/ae-ideate-pa`、`/ae-brainstorm-pa` | `standard` |
+| `/ae-ideate`、`/ae-brainstorm`、`/ae-agent-creator`、`/ae-work-report`、`/ae-setup`、`/ae-handoff`、`/ae-sql`、`/ae-swagger-parser`、`/ae-html-bundle`、`/ae-graph-build`、`/ae-save-experience`、`/ae-skill-from-session`、`/ae-skill-creator`、`/ae-update`、`/ae-ideate-po`、`/ae-brainstorm-po`、`/ae-ideate-pa`、`/ae-brainstorm-pa` | `standard` |
 | `/ae-document-review`、`/ae-plan`、`/ae-refactor`、`/ae-work`、`/ae-merge-branch`、`/ae-review`、`/ae-lfg`、`/ae-doc-humanize`、`/ae-doc-structure`、`/ae-task-loop`、`/ae-plan-po`、`/ae-refactor-po`、`/ae-work-po`、`/ae-lfg-po`、`/ae-task-loop-po`、`/ae-plan-pa`、`/ae-refactor-pa`、`/ae-work-pa`、`/ae-lfg-pa`、`/ae-task-loop-pa` | `deep` |
 | `/ae-prompt-optimize`、`/ae-prompt-optimize-auto`、`/ae-graph-query`、`/ae-help` | `quick` |
 | `/ae-test-browser`、`/ae-frontend-design`、`/ae-frontend-design-po`、`/ae-frontend-design-pa` | `vision` |

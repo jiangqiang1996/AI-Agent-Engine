@@ -103,6 +103,7 @@ describe('command-registration', () => {
     for (const [skillName, commandName] of [
       [SKILL.AGENT_CREATOR, COMMAND.AGENT_CREATOR],
       [SKILL.WORK_REPORT, COMMAND.WORK_REPORT],
+      [SKILL.HTML_BUNDLE, COMMAND.HTML_BUNDLE],
       [SKILL.GRAPH_BUILD, COMMAND.GRAPH_BUILD],
       [SKILL.GRAPH_QUERY, COMMAND.GRAPH_QUERY],
     ] as const) {

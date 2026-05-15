@@ -24,6 +24,15 @@ describe('ae-asset-schema', () => {
     expect(AeCommandNameSchema.safeParse(`${COMMAND.SWAGGER_PARSER}${PA_SUFFIX}`).success).toBe(false)
   })
 
+  it('应该接受 html-bundle 技能、命令和工具', () => {
+    expect(AeSkillNameSchema.parse(SKILL.HTML_BUNDLE)).toBe('ae:html-bundle')
+    expect(AeCommandNameSchema.parse(COMMAND.HTML_BUNDLE)).toBe('ae-html-bundle')
+    expect(AeCommandNameSchema.safeParse(`${COMMAND.HTML_BUNDLE}${PO_SUFFIX}`).success).toBe(false)
+    expect(AeCommandNameSchema.safeParse(`${COMMAND.HTML_BUNDLE}${PA_SUFFIX}`).success).toBe(false)
+    expect(TOOL.AE_HTML_BUNDLE).toBe('ae-html-bundle')
+    expect(createToolRegistry()[TOOL.AE_HTML_BUNDLE]).toBeDefined()
+  })
+
   it('应该拒绝旧会话沉淀和资产纠偏入口', () => {
     expect(AeSkillNameSchema.safeParse('ae:save-session-flow').success).toBe(false)
     expect(AeCommandNameSchema.safeParse('ae-save-session-flow').success).toBe(false)
