@@ -395,7 +395,7 @@ export const aeGraphBuildTool = tool({
         parseFiles = allFiles.filter((file) => changedAndReferencing.has(file.relativePath))
       }
 
-      const parsed = parseFileRelations(worktree, parseFiles, config)
+      const parsed = await parseFileRelations(worktree, parseFiles, config)
       storage.insertFiles(versionId, parsed.files)
       storage.insertRelations(versionId, parsed.relations)
       storage.activateVersion(versionId)

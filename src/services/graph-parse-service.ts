@@ -1,12 +1,12 @@
 import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs'
 import { dirname, extname, join, relative, resolve } from 'node:path'
 
-import ts from 'typescript'
-
 import { makeExternalNodeId, makeFileNodeId, makeSymbolNodeId, makeUnresolvedNodeId } from './graph/graph-schema.js'
 import type { GraphSymbolKind } from './graph/graph-schema.js'
 import { matchGraphExcludePath, type GraphConfig } from './graph-config-service.js'
 import type { GraphFileNode, GraphRelation, GraphRelationType } from './graph-storage-service.js'
+import { loadTreeSitterLanguage } from './graph/tree-sitter-loader.js'
+import type { TreeSitterLanguageHandle, TreeSitterNode, TreeSitterTreeResult } from './graph/tree-sitter-loader.js'
 import { isInsideRoot, pathContainsSymlink, toPosixPath } from '../utils/path-utils.js'
 
 const DEFAULT_EXCLUDED_DIRS = new Set(['.git', '.ae'])
@@ -83,6 +83,23 @@ function getLanguage(filePath: string): string | undefined {
     '.txt': 'text',
   }
   return map[ext]
+}
+
+function getTreeSitterGrammarName(filePath: string, language: string | undefined): string | undefined {
+  const ext = extname(filePath).toLowerCase()
+  if (ext === '.tsx') {
+    return 'tsx'
+  }
+  if (ext === '.ts') {
+    return 'typescript'
+  }
+  if (ext === '.js' || ext === '.jsx' || ext === '.mjs' || ext === '.cjs') {
+    return 'javascript'
+  }
+  if (language === 'python' || language === 'java' || language === 'go') {
+    return language
+  }
+  return undefined
 }
 
 function isSupportedFile(fileName: string): boolean {
@@ -265,88 +282,132 @@ function stripTrailingComment(lineContent: string, language: string | undefined)
   return lineContent
 }
 
-function getScriptKind(filePath: string): ts.ScriptKind {
-  const ext = extname(filePath).toLowerCase()
-  if (ext === '.tsx') {
-    return ts.ScriptKind.TSX
-  }
-  if (ext === '.jsx') {
-    return ts.ScriptKind.JSX
-  }
-  if (ext === '.js' || ext === '.mjs' || ext === '.cjs') {
-    return ts.ScriptKind.JS
-  }
-  return ts.ScriptKind.TS
-}
-
-function getNodeStartLine(sourceFile: ts.SourceFile, node: ts.Node): number {
-  return sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1
-}
-
-function pushTypeScriptAst(
+async function pushTreeSitterAst(
   nodes: GraphFileNode[],
   relations: GraphRelation[],
   worktree: string,
   sourcePath: string,
   content: string,
+  language: string,
   config: GraphConfig,
-): void {
-  const sourceFile = ts.createSourceFile(sourcePath, content, ts.ScriptTarget.Latest, true, getScriptKind(sourcePath))
+  warnings: string[],
+): Promise<boolean> {
+  const grammar = getTreeSitterGrammarName(sourcePath, language)
+  if (!grammar) {
+    return false
+  }
+  let handle: TreeSitterLanguageHandle | null = null
+  let tree: TreeSitterTreeResult | null = null
 
-  function pushModuleReference(node: ts.Node): void {
-    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier && ts.isStringLiteralLike(node.moduleSpecifier)) {
-      pushReference(relations, worktree, sourcePath, node.moduleSpecifier.text, 'import', getNodeStartLine(sourceFile, node), config, 'typescript-compiler')
-    }
+  function lineOf(node: { startPosition: { row: number } }): number {
+    return node.startPosition.row + 1
   }
 
-  function pushCallReferences(node: ts.Node): void {
-    if (ts.isCallExpression(node)) {
-      const firstArg = node.arguments[0]
-      if (firstArg && ts.isStringLiteralLike(firstArg)) {
-        if (ts.isIdentifier(node.expression) && node.expression.text === 'require') {
-          pushReference(relations, worktree, sourcePath, firstArg.text, 'require', getNodeStartLine(sourceFile, node), config, 'typescript-compiler')
-        } else if (node.expression.kind === ts.SyntaxKind.ImportKeyword) {
-          pushReference(relations, worktree, sourcePath, firstArg.text, 'import', getNodeStartLine(sourceFile, node), config, 'typescript-compiler')
-        }
-      }
-    }
-    ts.forEachChild(node, pushCallReferences)
+  function textOf(node: { text: string }): string {
+    return node.text.trim()
   }
 
-  for (const statement of sourceFile.statements) {
-    pushModuleReference(statement)
-    pushCallReferences(statement)
+  function pushNameNode(symbolKind: GraphSymbolKind, name: string, line: number): void {
+    if (!name) {
+      return
+    }
+    pushSymbol(nodes, relations, sourcePath, symbolKind, name, line, 'tree-sitter')
+  }
 
-    const node = statement
-    if (ts.isClassDeclaration(node)) {
-      const name = node.name?.text
-      if (name) {
-        pushSymbol(nodes, relations, sourcePath, 'class', name, getNodeStartLine(sourceFile, node), 'typescript-compiler')
-      }
-    } else if (ts.isInterfaceDeclaration(node)) {
-      pushSymbol(nodes, relations, sourcePath, 'interface', node.name.text, getNodeStartLine(sourceFile, node), 'typescript-compiler')
-    } else if (ts.isEnumDeclaration(node)) {
-      pushSymbol(nodes, relations, sourcePath, 'enum', node.name.text, getNodeStartLine(sourceFile, node), 'typescript-compiler')
-    } else if (ts.isTypeAliasDeclaration(node)) {
-      pushSymbol(nodes, relations, sourcePath, 'type', node.name.text, getNodeStartLine(sourceFile, node), 'typescript-compiler')
-    } else if (ts.isFunctionDeclaration(node)) {
-      const name = node.name?.text
-      if (name) {
-        pushSymbol(nodes, relations, sourcePath, 'function', name, getNodeStartLine(sourceFile, node), 'typescript-compiler')
-      }
-    } else if (ts.isVariableStatement(node)) {
-      for (const declaration of node.declarationList.declarations) {
-        if (ts.isIdentifier(declaration.name)) {
-          const initializer = declaration.initializer
-          const symbolKind = initializer && (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer)) ? 'function' : 'variable'
-          pushSymbol(nodes, relations, sourcePath, symbolKind, declaration.name.text, getNodeStartLine(sourceFile, declaration), 'typescript-compiler')
+  try {
+    handle = await loadTreeSitterLanguage(grammar)
+    tree = handle.parse(content)
+    const sourceFile = tree.rootNode
+
+    function walk(node: TreeSitterNode): void {
+      switch (node.type) {
+        case 'import_statement': {
+          const source = node.children.find((child) => child.type === 'string')
+          if (source) {
+            pushReference(relations, worktree, sourcePath, textOf(source).slice(1, -1), 'import', lineOf(node), config, 'tree-sitter')
+          }
+          break
         }
+        case 'export_statement': {
+          const source = node.children.find((child) => child.type === 'string')
+          if (source) {
+            pushReference(relations, worktree, sourcePath, textOf(source).slice(1, -1), 'import', lineOf(node), config, 'tree-sitter')
+          }
+          break
+        }
+        case 'call_expression': {
+          const expression = node.childForFieldName('function') ?? node.children[0]
+          const args = node.childForFieldName('arguments')?.children ?? []
+          const firstArg = args.find((child) => child.type === 'string')
+          if (firstArg && expression?.type === 'identifier' && expression.text === 'require') {
+            pushReference(relations, worktree, sourcePath, textOf(firstArg).slice(1, -1), 'require', lineOf(node), config, 'tree-sitter')
+          }
+          if (firstArg && expression?.type === 'import') {
+            pushReference(relations, worktree, sourcePath, textOf(firstArg).slice(1, -1), 'import', lineOf(node), config, 'tree-sitter')
+          }
+          break
+        }
+        case 'class_declaration':
+          pushNameNode('class', node.childForFieldName('name')?.text ?? '', lineOf(node))
+          break
+        case 'interface_declaration':
+          pushNameNode('interface', node.childForFieldName('name')?.text ?? '', lineOf(node))
+          break
+        case 'enum_declaration':
+          pushNameNode('enum', node.childForFieldName('name')?.text ?? '', lineOf(node))
+          break
+        case 'type_alias_declaration':
+          pushNameNode('type', node.childForFieldName('name')?.text ?? '', lineOf(node))
+          break
+        case 'function_declaration':
+          pushNameNode('function', node.childForFieldName('name')?.text ?? '', lineOf(node))
+          break
+        case 'lexical_declaration': {
+          for (const declaration of node.children.filter((child) => child.type === 'variable_declarator')) {
+            const name = declaration.childForFieldName('name')?.text ?? ''
+            const valueType = declaration.childForFieldName('value')?.type
+            const symbolKind: GraphSymbolKind = valueType === 'arrow_function' || valueType === 'function_expression' ? 'function' : 'variable'
+            pushNameNode(symbolKind, name, lineOf(declaration))
+          }
+          break
+        }
+        default:
+          break
+      }
+      for (const child of node.children) {
+        if (node.type === 'function_declaration' || node.type === 'class_declaration') {
+          continue
+        }
+        walk(child)
       }
     }
+
+    walk(sourceFile)
+    return true
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    warnings.push(`tree-sitter 解析失败：${sourcePath} - ${message}`)
+    return false
+  } finally {
+    tree?.delete()
+    handle?.dispose()
   }
 }
 
-function parseByLanguage(
+function pushLegacyLanguageParse(
+  nodes: GraphFileNode[],
+  relations: GraphRelation[],
+  worktree: string,
+  file: CollectedGraphFile,
+  lines: string[],
+  markdownReferences: Map<string, string>,
+  config: GraphConfig,
+): void {
+  pushShallowSymbols(nodes, relations, file.relativePath, file.language, lines)
+  pushFallbackReferences(relations, worktree, file, lines, markdownReferences, config)
+}
+
+async function parseByLanguage(
   nodes: GraphFileNode[],
   relations: GraphRelation[],
   worktree: string,
@@ -355,9 +416,19 @@ function parseByLanguage(
   lines: string[],
   markdownReferences: Map<string, string>,
   config: GraphConfig,
-): void {
-  if (file.language === 'typescript' || file.language === 'javascript') {
-    pushTypeScriptAst(nodes, relations, worktree, file.relativePath, content, config)
+  warnings: string[],
+): Promise<void> {
+  if (file.language === 'typescript' || file.language === 'javascript' || file.language === 'python' || file.language === 'java' || file.language === 'go') {
+    const parsed = await pushTreeSitterAst(nodes, relations, worktree, file.relativePath, content, file.language, config, warnings)
+    if (!parsed) {
+      pushLegacyLanguageParse(nodes, relations, worktree, file, lines, markdownReferences, config)
+      return
+    }
+    if (file.language === 'python' || file.language === 'java' || file.language === 'go') {
+      pushShallowSymbols(nodes, relations, file.relativePath, file.language, lines)
+      pushFallbackReferences(relations, worktree, file, lines, markdownReferences, config)
+      return
+    }
     pushMarkdownLinkReferences(relations, worktree, file, lines, markdownReferences, config)
     return
   }
@@ -554,7 +625,7 @@ function pushReference(
   })
 }
 
-export function parseFileRelations(worktree: string, files: CollectedGraphFile[], config: GraphConfig): ParsedGraph {
+export async function parseFileRelations(worktree: string, files: CollectedGraphFile[], config: GraphConfig): Promise<ParsedGraph> {
   const warnings: string[] = []
   const relations: GraphRelation[] = []
   const fileNodes: GraphFileNode[] = []
@@ -619,7 +690,7 @@ export function parseFileRelations(worktree: string, files: CollectedGraphFile[]
         }
       }
     }
-    parseByLanguage(fileNodes, relations, worktree, file, content, lines, markdownReferences, config)
+    await parseByLanguage(fileNodes, relations, worktree, file, content, lines, markdownReferences, config, warnings)
   }
 
   const uniqueFiles = new Map(fileNodes.map((file) => [file.id ?? file.relativePath, file]))

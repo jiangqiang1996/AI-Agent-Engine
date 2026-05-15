@@ -9,6 +9,17 @@ interface WasmParserModule {
   Language: { load(path: string): Promise<Language> }
 }
 
+type GrammarPackage = 'tree-sitter-go' | 'tree-sitter-java' | 'tree-sitter-python' | 'tree-sitter-javascript' | 'tree-sitter-typescript'
+
+const GRAMMAR_WASM_MAP: Record<string, { packageName: GrammarPackage; wasmFileName: string }> = {
+  go: { packageName: 'tree-sitter-go', wasmFileName: 'tree-sitter-go.wasm' },
+  java: { packageName: 'tree-sitter-java', wasmFileName: 'tree-sitter-java.wasm' },
+  python: { packageName: 'tree-sitter-python', wasmFileName: 'tree-sitter-python.wasm' },
+  javascript: { packageName: 'tree-sitter-javascript', wasmFileName: 'tree-sitter-javascript.wasm' },
+  typescript: { packageName: 'tree-sitter-typescript', wasmFileName: 'tree-sitter-typescript.wasm' },
+  tsx: { packageName: 'tree-sitter-typescript', wasmFileName: 'tree-sitter-tsx.wasm' },
+}
+
 function isWasmParserModule(value: unknown): value is WasmParserModule {
   return !!value
     && typeof value === 'object'
@@ -44,11 +55,28 @@ function tryFromDist(scriptName: string): string | null {
 
 function tryFromNodeModules(scriptName: string): string | null {
   try {
+    const cwdCandidates = [
+      join(process.cwd(), 'node_modules', 'web-tree-sitter', scriptName),
+      join(process.cwd(), 'node_modules', 'web-tree-sitter', 'debug', scriptName),
+    ]
+    for (const candidate of cwdCandidates) {
+      if (existsSync(candidate)) {
+        return candidate
+      }
+    }
+
     const moduleDir = findModuleDir()
     if (moduleDir) {
-      const wasmPath = join(moduleDir, 'web-tree-sitter', scriptName)
-      if (existsSync(wasmPath)) {
-        return wasmPath
+      const parserWasmPath = join(moduleDir, 'web-tree-sitter', scriptName)
+      if (existsSync(parserWasmPath)) {
+        return parserWasmPath
+      }
+
+      for (const packageName of new Set(Object.values(GRAMMAR_WASM_MAP).map((item) => item.packageName))) {
+        const wasmPath = join(moduleDir, packageName, scriptName)
+        if (existsSync(wasmPath)) {
+          return wasmPath
+        }
       }
     }
   } catch {
@@ -81,6 +109,7 @@ function findModuleDir(): string | null {
   try {
     const callerDir = findCallerDir()
     const candidates = [
+      join(process.cwd(), 'node_modules'),
       join(callerDir, '..', '..', 'node_modules'),
       join(callerDir, '..', '..', '..', 'node_modules'),
     ]
@@ -108,6 +137,28 @@ function findCallerDir(): string {
   return process.cwd()
 }
 
+function resolveGrammarWasmPath(grammarName: string): string {
+  const mapping = GRAMMAR_WASM_MAP[grammarName]
+  if (!mapping) {
+    return grammarName
+  }
+  const distAssetsDir = findDistAssetsDir()
+  if (distAssetsDir) {
+    const candidate = join(distAssetsDir, 'wasm', mapping.wasmFileName)
+    if (existsSync(candidate)) {
+      return candidate
+    }
+  }
+  const moduleDir = findModuleDir()
+  if (moduleDir) {
+    const candidate = join(moduleDir, mapping.packageName, mapping.wasmFileName)
+    if (existsSync(candidate)) {
+      return candidate
+    }
+  }
+  return grammarName
+}
+
 async function ensureParser(): Promise<WasmParserModule> {
   if (parserModule) {
     return parserModule
@@ -133,20 +184,12 @@ export interface TreeSitterLanguageHandle {
   dispose(): void
 }
 
-interface TreeSitterTreeResult {
-  rootNode: {
-    type: string
-    childCount: number
-    children: TreeSitterNode[]
-    text: string
-    startIndex: number
-    endIndex: number
-    childForFieldName(name: string): TreeSitterNode | null
-    childrenByFieldName(name: string): TreeSitterNode[]
-  }
+export interface TreeSitterTreeResult {
+  rootNode: TreeSitterNode
+  delete(): void
 }
 
-interface TreeSitterNode {
+export interface TreeSitterNode {
   type: string
   text: string
   startIndex: number
@@ -162,34 +205,19 @@ interface TreeSitterNode {
 
 export async function loadTreeSitterLanguage(wasmFileName: string): Promise<TreeSitterLanguageHandle> {
   const mod = await ensureParser()
-  let wasmPath: string | null = null
-
-  const distAssetsDir = findDistAssetsDir()
-  if (distAssetsDir) {
-    const candidate = join(distAssetsDir, 'wasm', wasmFileName)
-    if (existsSync(candidate)) {
-      wasmPath = candidate
-    }
-  }
-
-  if (!wasmPath) {
-    const moduleDir = findModuleDir()
-    if (moduleDir) {
-      const langPkg = wasmFileName.replace('.wasm', '')
-      const candidate = join(moduleDir, langPkg, wasmFileName)
-      if (existsSync(candidate)) {
-        wasmPath = candidate
-      }
-    }
-  }
-
-  if (!wasmPath) {
+  const wasmPath = resolveGrammarWasmPath(wasmFileName)
+  if (wasmPath === wasmFileName) {
     throw new Error(`无法定位 tree-sitter 语法 WASM 文件: ${wasmFileName}`)
   }
 
   const language = await mod.Language.load(wasmPath)
   const parser = new mod.Parser()
-  parser.setLanguage(language)
+  try {
+    parser.setLanguage(language)
+  } catch (error) {
+    parser.delete()
+    throw error
+  }
 
   return {
     parse(content: string) {
