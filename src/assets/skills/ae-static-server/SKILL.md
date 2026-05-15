@@ -1,13 +1,13 @@
 ---
-name: ae-static-server
-description: "使用 JavaScript 创建静态服务器，用于预览指定静态页面，支持传入文件路径/目录路径，并返回访问 URL"
+name: ae:static-server
+description: "使用 JavaScript 后台创建静态服务器，用于预览指定静态页面，支持传入文件路径/目录路径，并返回访问 URL"
 ---
 
-# ae-static-server
+# ae:static-server
 
 ## 角色
 
-静态文件服务器创建器，用于快速启动一个本地 HTTP 服务器来预览静态页面或文件。
+静态文件服务器创建器，用于快速在后台启动一个本地 HTTP 服务器来预览静态页面或文件。
 
 ## 适用场景
 
@@ -25,7 +25,6 @@ description: "使用 JavaScript 创建静态服务器，用于预览指定静态
 ### 可选参数
 
 - `port`：服务器端口号，默认 3000
-- `-o, --output <文件>`：将端口和 URL 保存到指定文件（JSON 格式）
 - `-k, --kill-port`：如果端口被占用，自动关闭占用进程
 
 ### 参数格式
@@ -33,9 +32,7 @@ description: "使用 JavaScript 创建静态服务器，用于预览指定静态
 支持以下调用方式：
 - 直接指定路径：`./dist`、`./index.html`、`/path/to/static/files`
 - 指定路径和端口：`./dist 8080`
-- 保存服务器信息：`./dist 3000 -o .server-info`
 - 自动关闭占用进程：`./dist 3000 -k`
-- 组合使用：`./dist 3000 -k -o .server-info`
 
 ## 执行流程
 
@@ -45,30 +42,33 @@ description: "使用 JavaScript 创建静态服务器，用于预览指定静态
    - 验证端口号是否有效（1-65535）
 
 2. **检查端口占用**
-   - 如果启用了 `-k/--kill-port` 选项，检查指定端口是否被占用
-   - 如果端口被占用，自动关闭占用进程
-   - 如果未启用 `-k` 选项且端口被占用，显示错误信息并退出
+   - 读取 `.opencode/ae/static-server/.static-server-info.json` 中已登记的端口，避免复用
+   - 检查系统端口占用情况
+   - 如果启用了 `-k/--kill-port` 选项且端口被占用，自动关闭占用进程
+   - 如果端口不可用，自动递增寻找下一个可用端口
 
-3. **准备服务器脚本**
-   - 使用内置的 `scripts/serve.mjs` 脚本
-   - 该脚本使用 Node.js 原生模块，无需额外安装依赖
+3. **后台启动服务器**
+   - 以 detached 子进程启动 HTTP 服务器
+   - 父进程等待服务器信息写入产物后输出 URL 并退出
+   - 服务器在后台持续运行
 
-4. **启动服务器**
-   - 运行命令：`node <skill目录>/scripts/serve.mjs <路径> [端口] [选项]`
-   - 服务器将在指定端口启动
+4. **追加服务器信息到集中产物**
+   - 服务器信息追加写入 `.opencode/ae/static-server/.static-server-info.json`
+   - 多次启动会在同一文件中追加，不会覆盖已有记录
+   - 每条记录包含：端口、URL、进程 PID、启动时间、根路径
+   - 后台日志写入 `.opencode/ae/static-server/static-server.log`
 
-5. **保存服务器信息**
-   - 如果指定了 `-o/--output` 选项，将服务器信息保存到指定文件
-   - 保存的信息包括：端口、URL、进程 PID、启动时间、根路径
-
-6. **返回访问 URL**
+5. **返回访问 URL**
    - 服务器启动后输出访问地址：`http://localhost:<端口>`
    - 如果是单个文件，直接访问该文件
    - 如果是目录，自动提供目录列表或 index.html
 
-7. **保持服务器运行**
-   - 服务器将持续运行直到用户按 Ctrl+C
-   - 显示访问地址和根路径信息
+## 产物
+
+| 文件 | 说明 |
+| --- | --- |
+| `.opencode/ae/static-server/.static-server-info.json` | 所有服务器实例的集中登记，多次启动追加写入 |
+| `.opencode/ae/static-server/static-server.log` | 后台服务器日志 |
 
 ## 边界
 
@@ -77,7 +77,8 @@ description: "使用 JavaScript 创建静态服务器，用于预览指定静态
 - 自动识别 MIME 类型
 - 目录浏览（当没有 index.html 时）
 - 路径安全检查（防止目录遍历攻击）
-- 保存服务器信息（端口、URL）到文件
+- 多次启动追加写入集中产物
+- 启动时避开已登记端口
 - 检查端口占用并自动关闭占用进程
 
 ### 不支持的功能
@@ -96,17 +97,17 @@ description: "使用 JavaScript 创建静态服务器，用于预览指定静态
 ## 验证方式
 
 1. **服务器启动验证**
-   - 检查控制台是否输出"静态服务器已启动"
+   - 检查控制台是否输出"静态服务器已在后台启动"
    - 检查是否显示正确的访问地址
+   - 检查 `.opencode/ae/static-server/.static-server-info.json` 是否包含本次服务器信息
 
 2. **访问验证**
    - 使用 curl 或浏览器访问返回的 URL
    - 检查是否能正确获取文件内容
 
-3. **功能验证**
-   - 验证 HTML 页面是否能正确显示
-   - 验证 CSS、JS 等资源是否能正确加载
-   - 验证目录列表是否正常工作（如果是目录）
+3. **多次启动验证**
+   - 多次启动不同目录，检查 `.opencode/ae/static-server/.static-server-info.json` 是否追加记录
+   - 检查后续启动是否避开已登记端口
 
 ## 使用示例
 

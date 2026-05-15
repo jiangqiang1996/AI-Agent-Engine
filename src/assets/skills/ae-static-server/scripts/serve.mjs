@@ -4,13 +4,15 @@ import http from 'node:http'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { execSync } from 'node:child_process'
+import { execSync, spawn } from 'node:child_process'
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const SERVER_INFO_FILE = '.static-server-info.json'
+const ARTIFACT_DIR = path.join('.opencode', 'ae', 'static-server')
+const SERVER_LOG_FILE = 'static-server.log'
 
 function showHelp() {
   console.log(`
-静态文件服务器
+静态文件服务器（后台运行）
 
 用法:
   node serve.mjs <路径> [端口] [选项]
@@ -20,16 +22,17 @@ function showHelp() {
   [端口]    可选，服务器端口号，默认 3000
 
 选项:
-  -o, --output <文件>    将端口和 URL 保存到指定文件
   -k, --kill-port        如果端口被占用，自动关闭占用进程
   -h, --help             显示帮助信息
+
+产物:
+  .opencode/ae/static-server/.static-server-info.json  所有服务器实例的集中登记（JSON 数组）
+  .opencode/ae/static-server/static-server.log         后台日志
 
 示例:
   node serve.mjs ./dist
   node serve.mjs ./index.html 8080
-  node serve.mjs ./dist 3000 -o .server-info
   node serve.mjs ./dist 3000 -k
-  node serve.mjs ./dist 3000 -k -o .server-info
 `)
 }
 
@@ -60,10 +63,8 @@ function getMimeType(filePath) {
 function checkPortInUse(port) {
   try {
     if (process.platform === 'win32') {
-      // Windows: 使用 netstat 检查端口
       const result = execSync(`netstat -ano | findstr :${port} | findstr LISTENING`, { encoding: 'utf-8' })
       if (result.trim()) {
-        // 提取 PID
         const lines = result.trim().split('\n')
         for (const line of lines) {
           const parts = line.trim().split(/\s+/)
@@ -74,19 +75,16 @@ function checkPortInUse(port) {
         }
       }
       return null
-    } else {
-      // Unix/macOS: 使用 lsof 检查端口
-      const result = execSync(`lsof -i :${port} -t`, { encoding: 'utf-8' })
-      if (result.trim()) {
-        const pids = result.trim().split('\n').map(Number).filter(n => !isNaN(n))
-        if (pids.length > 0) {
-          return { pid: pids[0], line: `PID: ${pids[0]}` }
-        }
-      }
-      return null
     }
-  } catch (e) {
-    // 命令执行失败或没有找到进程
+    const result = execSync(`lsof -i :${port} -t`, { encoding: 'utf-8' })
+    if (result.trim()) {
+      const pids = result.trim().split('\n').map(Number).filter(n => !isNaN(n))
+      if (pids.length > 0) {
+        return { pid: pids[0], line: `PID: ${pids[0]}` }
+      }
+    }
+    return null
+  } catch {
     return null
   }
 }
@@ -99,26 +97,102 @@ function killProcess(pid) {
       execSync(`kill -9 ${pid}`, { encoding: 'utf-8' })
     }
     return true
-  } catch (e) {
+  } catch {
     return false
   }
 }
 
-function saveServerInfo(port, url, outputPath) {
-  const info = {
+function getServerInfoPath() {
+  return path.resolve(process.cwd(), ARTIFACT_DIR, SERVER_INFO_FILE)
+}
+
+function getServerLogPath() {
+  return path.resolve(process.cwd(), ARTIFACT_DIR, SERVER_LOG_FILE)
+}
+
+function ensureArtifactDir() {
+  fs.mkdirSync(path.resolve(process.cwd(), ARTIFACT_DIR), { recursive: true })
+}
+
+function readServerInfo() {
+  const infoPath = getServerInfoPath()
+  if (!fs.existsSync(infoPath)) {
+    return { servers: [] }
+  }
+
+  try {
+    const parsed = JSON.parse(fs.readFileSync(infoPath, 'utf-8'))
+    if (Array.isArray(parsed.servers)) {
+      return { servers: parsed.servers }
+    }
+  } catch {
+    console.warn(`警告: 无法读取现有 ${SERVER_INFO_FILE}，将忽略其中端口记录`)
+  }
+
+  return { servers: [] }
+}
+
+function getRegisteredPorts() {
+  return new Set(
+    readServerInfo()
+      .servers.map(server => server.port)
+      .filter(port => Number.isInteger(port) && port > 0 && port <= 65535),
+  )
+}
+
+function findAvailablePort(startPort, killPort) {
+  const registeredPorts = getRegisteredPorts()
+  let port = startPort
+
+  while (port <= 65535) {
+    if (registeredPorts.has(port)) {
+      port++
+      continue
+    }
+
+    const portInfo = checkPortInUse(port)
+    if (!portInfo) {
+      return port
+    }
+
+    if (port === startPort && killPort) {
+      console.log(`端口 ${port} 被进程 ${portInfo.pid} 占用，正在关闭...`)
+      if (killProcess(portInfo.pid)) {
+        console.log(`进程 ${portInfo.pid} 已关闭`)
+        Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1000)
+        return port
+      }
+
+      console.error(`无法关闭进程 ${portInfo.pid}`)
+      console.error('请手动关闭进程或使用其他端口')
+      process.exit(1)
+    }
+
+    port++
+  }
+
+  console.error(`错误: 从端口 ${startPort} 开始未找到可用端口`)
+  process.exit(1)
+}
+
+function appendServerInfo(port, url, rootPath) {
+  ensureArtifactDir()
+  const infoPath = getServerInfoPath()
+  const registry = readServerInfo()
+  const entry = {
     port,
     url,
     pid: process.pid,
     startedAt: new Date().toISOString(),
-    rootPath: process.argv[2] || '.',
+    rootPath,
   }
-  
-  const content = JSON.stringify(info, null, 2)
-  const resolvedPath = path.resolve(outputPath)
-  
+  const servers = registry.servers.filter(server => server.pid !== process.pid && server.port !== port)
+  servers.push(entry)
+  const content = JSON.stringify({ updatedAt: new Date().toISOString(), servers }, null, 2)
+
   try {
-    fs.writeFileSync(resolvedPath, content, 'utf-8')
-    console.log(`服务器信息已保存到: ${resolvedPath}`)
+    fs.writeFileSync(infoPath, content, 'utf-8')
+    console.log(`服务器信息已保存到: ${infoPath}`)
     return true
   } catch (e) {
     console.error(`保存服务器信息失败: ${e.message}`)
@@ -126,61 +200,40 @@ function saveServerInfo(port, url, outputPath) {
   }
 }
 
-function startServer(rootPath, port = 3000, options = {}) {
+function startServer(rootPath, port, skipPortScan, killPort) {
   const resolvedRoot = path.resolve(rootPath)
-  
+
   if (!fs.existsSync(resolvedRoot)) {
     console.error(`错误: 路径 "${resolvedRoot}" 不存在`)
     process.exit(1)
   }
 
   const isFile = fs.statSync(resolvedRoot).isFile()
-  
-  // 检查端口是否被占用
-  const portInfo = checkPortInUse(port)
-  if (portInfo) {
-    if (options.killPort) {
-      console.log(`端口 ${port} 被进程 ${portInfo.pid} 占用，正在关闭...`)
-      if (killProcess(portInfo.pid)) {
-        console.log(`进程 ${portInfo.pid} 已关闭`)
-        // 等待一下让端口释放
-        execSync('sleep 1')
-      } else {
-        console.error(`无法关闭进程 ${portInfo.pid}`)
-        console.error('请手动关闭进程或使用其他端口')
-        process.exit(1)
-      }
-    } else {
-      console.error(`错误: 端口 ${port} 已被占用`)
-      console.error(`占用进程信息: ${portInfo.line}`)
-      console.error('使用 -k 选项自动关闭占用进程，或选择其他端口')
-      process.exit(1)
-    }
+
+  const selectedPort = skipPortScan ? port : findAvailablePort(port, killPort)
+  if (selectedPort !== port) {
+    console.log(`端口 ${port} 不可用或已登记，改用端口 ${selectedPort}`)
   }
-  
+
   const server = http.createServer((req, res) => {
     let filePath
-    
+
     if (isFile) {
-      // 如果是单个文件，直接提供该文件
       filePath = resolvedRoot
     } else {
-      // 如果是目录，根据请求路径拼接
       const urlPath = req.url === '/' ? '/index.html' : req.url
       filePath = path.join(resolvedRoot, urlPath)
     }
-    
-    // 安全检查：防止路径遍历
+
     if (!filePath.startsWith(resolvedRoot)) {
       res.writeHead(403)
       res.end('禁止访问')
       return
     }
-    
+
     fs.readFile(filePath, (err, data) => {
       if (err) {
         if (err.code === 'ENOENT') {
-          // 文件不存在，尝试提供目录列表（如果是目录）
           if (!isFile && fs.existsSync(resolvedRoot) && fs.statSync(resolvedRoot).isDirectory()) {
             const files = fs.readdirSync(resolvedRoot)
             const html = `<!DOCTYPE html>
@@ -210,32 +263,21 @@ function startServer(rootPath, port = 3000, options = {}) {
         }
         return
       }
-      
+
       const mimeType = getMimeType(filePath)
       res.writeHead(200, { 'Content-Type': mimeType })
       res.end(data)
     })
   })
-  
-  server.listen(port, () => {
-    const url = `http://localhost:${port}`
+
+  server.listen(selectedPort, () => {
+    const url = `http://localhost:${selectedPort}`
     console.log(`静态服务器已启动`)
     console.log(`根路径: ${resolvedRoot}`)
     console.log(`访问地址: ${url}`)
-    console.log(`按 Ctrl+C 停止服务器`)
-    
-    // 保存服务器信息到文件
-    if (options.output) {
-      saveServerInfo(port, url, options.output)
-    }
-    
-    // 输出 URL 供调用方使用（兼容旧版本）
-    if (process.env.OUTPUT_URL) {
-      fs.writeFileSync(process.env.OUTPUT_URL, url)
-    }
+    appendServerInfo(selectedPort, url, resolvedRoot)
   })
-  
-  // 优雅关闭
+
   process.on('SIGINT', () => {
     console.log('\n正在关闭服务器...')
     server.close(() => {
@@ -243,7 +285,7 @@ function startServer(rootPath, port = 3000, options = {}) {
       process.exit(0)
     })
   })
-  
+
   process.on('SIGTERM', () => {
     server.close(() => {
       process.exit(0)
@@ -251,30 +293,88 @@ function startServer(rootPath, port = 3000, options = {}) {
   })
 }
 
-// 解析参数
+function waitForServerInfo(pid, timeoutMs = 5000) {
+  const startedAt = Date.now()
+
+  while (Date.now() - startedAt < timeoutMs) {
+    const server = readServerInfo().servers.find(item => item.pid === pid)
+    if (server) {
+      return server
+    }
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100)
+  }
+
+  return null
+}
+
+function startBackgroundServer(config) {
+  const resolvedRoot = path.resolve(config.path)
+  if (!fs.existsSync(resolvedRoot)) {
+    console.error(`错误: 路径 "${resolvedRoot}" 不存在`)
+    process.exit(1)
+  }
+
+  ensureArtifactDir()
+  const selectedPort = findAvailablePort(config.port, config.killPort)
+  const logPath = getServerLogPath()
+  const logFd = fs.openSync(logPath, 'a')
+  const childArgs = [
+    fileURLToPath(import.meta.url),
+    config.path,
+    String(selectedPort),
+    '--foreground',
+    '--skip-port-scan',
+  ]
+  if (config.killPort) {
+    childArgs.push('--kill-port')
+  }
+
+  const child = spawn(process.execPath, childArgs, {
+    cwd: process.cwd(),
+    detached: true,
+    env: { ...process.env, AE_STATIC_SERVER_CHILD: '1' },
+    stdio: ['ignore', logFd, logFd],
+  })
+  child.unref()
+  fs.closeSync(logFd)
+
+  const serverInfo = waitForServerInfo(child.pid)
+  if (!serverInfo) {
+    console.error(`错误: 静态服务器后台启动超时，详情请查看 ${logPath}`)
+    process.exit(1)
+  }
+
+  if (selectedPort !== config.port) {
+    console.log(`端口 ${config.port} 不可用或已登记，改用端口 ${selectedPort}`)
+  }
+  console.log('静态服务器已在后台启动')
+  console.log(`访问地址: ${serverInfo.url}`)
+  console.log(`服务器信息: ${getServerInfoPath()}`)
+  console.log(`后台日志: ${logPath}`)
+}
+
 function parseArgs(args) {
   const result = {
     path: null,
     port: 3000,
-    output: null,
     killPort: false,
+    foreground: false,
+    skipPortScan: false,
   }
-  
+
   let i = 0
   while (i < args.length) {
     const arg = args[i]
-    
+
     if (arg === '-h' || arg === '--help') {
       showHelp()
       process.exit(0)
-    } else if (arg === '-o' || arg === '--output') {
-      if (i + 1 >= args.length) {
-        console.error('错误: -o/--output 选项需要指定文件路径')
-        process.exit(1)
-      }
-      result.output = args[++i]
     } else if (arg === '-k' || arg === '--kill-port') {
       result.killPort = true
+    } else if (arg === '--foreground') {
+      result.foreground = true
+    } else if (arg === '--skip-port-scan') {
+      result.skipPortScan = true
     } else if (!result.path) {
       result.path = arg
     } else if (!isNaN(parseInt(arg, 10))) {
@@ -284,14 +384,13 @@ function parseArgs(args) {
       showHelp()
       process.exit(1)
     }
-    
+
     i++
   }
-  
+
   return result
 }
 
-// 主程序
 const args = process.argv.slice(2)
 
 if (args.length === 0) {
@@ -312,7 +411,8 @@ if (isNaN(config.port) || config.port < 1 || config.port > 65535) {
   process.exit(1)
 }
 
-startServer(config.path, config.port, {
-  output: config.output,
-  killPort: config.killPort,
-})
+if (config.foreground || process.env.AE_STATIC_SERVER_CHILD === '1') {
+  startServer(config.path, config.port, config.skipPortScan, config.killPort)
+} else {
+  startBackgroundServer(config)
+}
