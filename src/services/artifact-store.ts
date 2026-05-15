@@ -3,12 +3,15 @@ import { join } from 'node:path'
 import { Effect } from 'effect'
 
 import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
+import { ARTIFACT_KIND, type ArtifactKind } from '../schemas/artifact-schema.js'
+import { DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
 import { parseFrontmatter, type FrontmatterData } from '../utils/frontmatter.js'
 
+/** 产物目录中单个 Markdown 文件的解析结果。 */
 export interface ArtifactRecord {
   path: string
   body: string
-  type: 'brainstorm' | 'plan' | 'work' | 'review'
+  type: ArtifactKind
   frontmatter: FrontmatterData
 }
 
@@ -38,27 +41,29 @@ function readMarkdownFiles(dir: string): string[] {
   }
 }
 
-const CONTEXT_DIR_TYPE_MAP: Record<'work' | 'review', string> = {
-  work: 'work',
-  review: 'review',
+/** 产物类型到 `docs/ae/` 子目录名的映射，用于定位产物存储位置。 */
+const CONTEXT_DIR_TYPE_MAP: Record<ArtifactKind, string> = {
+  [ARTIFACT_KIND.BRAINSTORM]: DOCS_AE_SUBDIRS.BRAINSTORMS,
+  [ARTIFACT_KIND.PLAN]: DOCS_AE_SUBDIRS.PLANS,
+  [ARTIFACT_KIND.WORK]: DOCS_AE_SUBDIRS.WORK,
+  [ARTIFACT_KIND.REVIEW]: DOCS_AE_SUBDIRS.REVIEW,
 }
 
+/** 返回指定产物类型在仓库中的绝对目录路径。 */
 function getArtifactDirectory(
   manifest: RuntimeAssetManifest,
-  type: 'brainstorm' | 'plan' | 'work' | 'review',
+  type: ArtifactKind,
 ): string {
-  if (type === 'brainstorm') {
-    return join(manifest.repoRoot, 'docs', 'ae', 'brainstorms')
-  }
-  if (type === 'plan') {
-    return join(manifest.repoRoot, 'docs', 'ae', 'plans')
-  }
   return join(manifest.repoRoot, 'docs', 'ae', CONTEXT_DIR_TYPE_MAP[type])
 }
 
+/**
+ * 列出指定类型的所有产物记录。
+ * 目录不存在时返回空数组，不会抛出异常。
+ */
 export function listArtifacts(
   manifest: RuntimeAssetManifest,
-  type: 'brainstorm' | 'plan' | 'work' | 'review',
+  type: ArtifactKind,
 ): ArtifactRecord[] {
   const dir = getArtifactDirectory(manifest, type)
   const files = readMarkdownFiles(dir)

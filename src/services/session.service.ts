@@ -2,6 +2,9 @@ import { Effect } from 'effect'
 import type { OpencodeClient } from '@opencode-ai/sdk'
 import type { SessionExtractResult } from './session-extract.service.js'
 
+const HANDOFF_CONTEXT_HEADER = 'HANDOFF CONTEXT'
+const HANDOFF_CONTEXT_UNDERLINE = '==============='
+
 export interface CreateSessionOptions {
   title: string
   systemPrompt?: string
@@ -27,10 +30,11 @@ function pushSection(
   }
 }
 
+/** 将会话提取结果格式化为系统提示词，用于注入新会话的 system prompt。 */
 export function formatSystemPrompt(extractResult: SessionExtractResult): string {
   const sections: string[] = []
-  sections.push('HANDOFF CONTEXT')
-  sections.push('===============')
+  sections.push(HANDOFF_CONTEXT_HEADER)
+  sections.push(HANDOFF_CONTEXT_UNDERLINE)
   sections.push('')
 
   pushSection(sections, 'USER REQUESTS (AS-IS)', '---------------------', extractResult.userRequests)
@@ -53,14 +57,15 @@ export function formatSystemPrompt(extractResult: SessionExtractResult): string 
   return sections.join('\n').trim()
 }
 
+/** 将会话提取结果格式化为上下文消息，用于降级注入到会话历史中。 */
 export function formatContextMessage(extractResult: SessionExtractResult): string {
   const sections: string[] = []
   // 降级注入会作为普通消息出现在会话中，因此需要显式标记来源和不可删除提示。
   sections.push('## 🔍 会话交接上下文（系统消息，请勿删除）')
   sections.push('本会话由原会话交接生成，以下是原会话的核心信息：')
   sections.push('')
-  sections.push('HANDOFF CONTEXT')
-  sections.push('===============')
+  sections.push(HANDOFF_CONTEXT_HEADER)
+  sections.push(HANDOFF_CONTEXT_UNDERLINE)
   sections.push('')
 
   pushSection(sections, 'USER REQUESTS (AS-IS)', '---------------------', extractResult.userRequests)
@@ -83,6 +88,7 @@ export function formatContextMessage(extractResult: SessionExtractResult): strin
   return sections.join('\n').trim()
 }
 
+/** 通过 OpencodeClient 创建新会话，返回会话 ID、标题和路径。 */
 export function createNewSession(
   client: OpencodeClient,
   options: CreateSessionOptions,
@@ -122,6 +128,7 @@ interface TuiPublishClient {
   }
 }
 
+/** 将交接上下文以普通消息形式注入到指定会话（降级路径，不需要 system prompt 支持）。 */
 export function injectContextAsMessage(
   client: unknown,
   sessionId: string,
@@ -141,6 +148,7 @@ export function injectContextAsMessage(
   })
 }
 
+/** 通过 TUI 发布事件导航到指定会话。 */
 export function navigateToSession(
   client: unknown,
   sessionId: string,

@@ -5,11 +5,9 @@ import { Effect } from 'effect'
 import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
 import { listArtifacts } from './artifact-store.js'
 import type { RecoveryResult } from '../schemas/recovery-schema.js'
-import { ArtifactFrontmatterSchema } from '../schemas/artifact-schema.js'
+import { ArtifactFrontmatterSchema, type ArtifactKind } from '../schemas/artifact-schema.js'
 import { SKILL } from '../schemas/ae-asset-schema.js'
 import { getFrontmatterString, parseFrontmatter, type FrontmatterData } from '../utils/frontmatter.js'
-
-type ArtifactKind = 'brainstorm' | 'plan' | 'work' | 'review'
 
 function invalidResult(phase: RecoveryResult['phase'], reason: string): RecoveryResult {
   return {

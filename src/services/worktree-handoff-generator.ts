@@ -2,6 +2,11 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 
+import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
+
+const BRANCH_PREFIX_PATTERN = /^(feat|fix|refactor|docs|test|chore)\//
+
+/** A→B worktree 交接输入参数，包含来源/目标 worktree 信息、Git 授权证据和执行基线。 */
 export interface WorktreeHandoffInput {
   source_session_id: string
   session_evidence?: string
@@ -23,6 +28,7 @@ export interface WorktreeHandoffInput {
   verification_requirements: string
 }
 
+/** 交接文件写入结果，包含文件绝对路径和用户续执行指令。 */
 export interface WorktreeHandoffOutput {
   filePath: string
   userInstruction: string
@@ -164,6 +170,10 @@ function buildExecutionBaselineSection(input: WorktreeHandoffInput, handoffRelPa
   return lines.join('\n')
 }
 
+/**
+ * 生成 A→B worktree 交接 Markdown 内容和相对路径。
+ * 输入校验失败时返回 `{ error }`。
+ */
 export function generateHandoffMarkdown(input: WorktreeHandoffInput): { markdown: string; handoffRelPath: string } | { error: string } {
   const validationError = validateInput(input)
   if (validationError) {
@@ -171,8 +181,9 @@ export function generateHandoffMarkdown(input: WorktreeHandoffInput): { markdown
   }
 
   const timestamp = generateTimestamp()
-  const worktreeName = input.branch.replace(/^feat\/|^fix\/|^refactor\/|^docs\/|^test\/|^chore\//, '')
-  const handoffRelPath = `docs/ae/handoffs/${timestamp}-worktree-handoff.md`
+  const worktreeName = input.branch.replace(BRANCH_PREFIX_PATTERN, '')
+  const handoffDir = docsAePath(DOCS_AE_SUBDIRS.HANDOFFS)
+  const handoffRelPath = `${handoffDir}/${timestamp}-worktree-handoff.md`
 
   const sections: string[] = []
   sections.push(buildFrontmatter(input))
@@ -189,6 +200,10 @@ export function generateHandoffMarkdown(input: WorktreeHandoffInput): { markdown
   }
 }
 
+/**
+ * 生成交接 Markdown 并写入目标 worktree 的 `docs/ae/handoffs/` 目录。
+ * 目录不存在时自动递归创建。
+ */
 export async function writeHandoffFile(
   input: WorktreeHandoffInput,
 ): Promise<WorktreeHandoffOutput | { error: string }> {

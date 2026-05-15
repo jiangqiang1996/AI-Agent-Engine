@@ -11,6 +11,8 @@ import { getCommandModelScenario } from './asset-model-routing-catalog.js'
 import type { ModelScenarioRoutingContext } from './model-scenario-routing-service.js'
 import { resolveModelReference, resolveModelScenario } from './model-scenario-routing-service.js'
 
+const ARGUMENTS_PLACEHOLDER = '$ARGUMENTS'
+
 interface LoadedCommand {
   template: string
   description?: string
@@ -19,6 +21,10 @@ interface LoadedCommand {
   [key: string]: unknown
 }
 
+/**
+ * 从磁盘命令目录加载 `.md` 命令文件，解析 frontmatter 和模板。
+ * 目录不存在或不可读时返回空 Map。
+ */
 export function loadCommandFiles(commandsDir: string): Map<string, LoadedCommand> {
   const result = new Map<string, LoadedCommand>()
   let files: string[]
@@ -36,7 +42,7 @@ export function loadCommandFiles(commandsDir: string): Map<string, LoadedCommand
 
     const command: LoadedCommand = {
       ...parsed.data,
-      template: parsed.body.trim() || `$ARGUMENTS`,
+      template: parsed.body.trim() || ARGUMENTS_PLACEHOLDER,
     }
     if (typeof command.description !== 'string') {
       delete command.description
@@ -76,6 +82,10 @@ function applyCommandModel(
   return { ...command, model: resolved.model }
 }
 
+/**
+ * 构建完整命令配置，合并内置 catalog 命令、-po/-pa 变体和磁盘命令文件。
+ * 磁盘命令最后合并，允许本地调试覆盖内置定义。
+ */
 export function buildCommandConfig(
   commandsDir: string,
   routingContext?: ModelScenarioRoutingContext,
@@ -91,8 +101,8 @@ export function buildCommandConfig(
     // catalog 是默认命令真源；仅当条目显式提供模板时才覆盖统一的技能调用包装。
     const template = entry.customTemplate
       ?? (isAutoPo
-        ? `使用 \`${entry.skillName}\` 技能以 auto 模式处理这次请求（跳过确认直接提交），并沿用参数：\`auto $ARGUMENTS\`。`
-        : `使用 \`${entry.skillName}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`)
+        ? `使用 \`${entry.skillName}\` 技能以 auto 模式处理这次请求（跳过确认直接提交），并沿用参数：\`auto ${ARGUMENTS_PLACEHOLDER}\`。`
+        : `使用 \`${entry.skillName}\` 技能处理这次请求，并沿用参数：\`${ARGUMENTS_PLACEHOLDER}\`。`)
     result[entry.commandName] = applyCommandModel({
       template,
       description: entry.description,
@@ -105,7 +115,7 @@ export function buildCommandConfig(
     const baseEntry = phaseOne.find((e) => e.commandName === baseCommandName)
     // -po 命令必须先优化用户输入，再把优化后的提示词交回原始命令模板执行。
     const baseTemplate = baseEntry?.customTemplate
-      ?? `使用 \`${baseSkillName}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`
+      ?? `使用 \`${baseSkillName}\` 技能处理这次请求，并沿用参数：\`${ARGUMENTS_PLACEHOLDER}\`。`
     result[entry.commandName] = applyCommandModel({
       template: [
         `先使用 \`${entry.skillName}\` 技能优化以下用户输入，将优化结果作为最终提示词：`,
@@ -124,7 +134,7 @@ export function buildCommandConfig(
     const baseEntry = phaseOne.find((e) => e.commandName === baseCommandName)
     // -pa 与 -po 使用同一条基础命令链路，只是固定启用 prompt-optimize 的 auto 模式。
     const baseTemplate = baseEntry?.customTemplate
-      ?? `使用 \`${baseSkillName}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`
+      ?? `使用 \`${baseSkillName}\` 技能处理这次请求，并沿用参数：\`${ARGUMENTS_PLACEHOLDER}\`。`
     result[entry.commandName] = applyCommandModel({
       template: [
         `先使用 \`${entry.skillName}\` 技能以 auto 模式优化以下用户输入（跳过确认直接提交），将优化结果作为最终提示词：`,
@@ -146,6 +156,7 @@ export function buildCommandConfig(
   return result
 }
 
+/** 合并内置命令与用户命令，用户命令优先。 */
 export function mergeBuiltinAndUserCommands(
   builtinCommands: NonNullable<Config['command']>,
   userCommands: Config['command'] | undefined,
@@ -156,6 +167,7 @@ export function mergeBuiltinAndUserCommands(
   }
 }
 
+/** 合并动态命令与已有命令，根据优先级决定谁覆盖谁。 */
 export function mergeDynamicCommands(
   dynamicCommands: NonNullable<Config['command']>,
   existingCommands: Config['command'] | undefined,
@@ -169,6 +181,10 @@ export function mergeDynamicCommands(
     : mergeBuiltinAndUserCommands(dynamicCommands, existingCommands)
 }
 
+/**
+ * 合并项目级和全局命令目录中的命令文件覆盖。
+ * 扫描 `~/.opencode/commands/` 和 `.opencode/commands/` 两个目录。
+ */
 export function mergeProjectCommandOverrides(
   commands: NonNullable<Config['command']>,
   worktree: string,

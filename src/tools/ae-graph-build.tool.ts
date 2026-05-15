@@ -12,6 +12,7 @@ import { createGraphStorage, resolveGraphDatabasePath } from '../services/graph-
 import { createRuntimeAssetManifest } from '../services/runtime-asset-manifest.js'
 import { collectGraphFiles, parseFileRelations } from '../services/graph-parse-service.js'
 import { isInsideRoot, pathContainsSymlink, resolvePathWithBase, toPosixPath } from '../utils/path-utils.js'
+import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
 
 interface ExcludeSuggestionCandidate {
   path: string
@@ -28,7 +29,7 @@ interface ExcludeSuggestion extends ExcludeSuggestionCandidate {
 const EXCLUDE_SUGGESTION_CANDIDATES: ExcludeSuggestionCandidate[] = [
   { path: '.idea', rule: '**/.idea', reason: 'IDE 项目配置和索引状态不表达源码依赖关系' },
   { path: '.opencode', rule: '**/.opencode', reason: 'OpenCode 本地配置、桥接插件和依赖缓存属于工具运行产物' },
-  { path: 'docs/ae/graphs', rule: 'docs/ae/graphs', reason: '图谱自身输出目录会造成派生产物回流' },
+  { path: docsAePath(DOCS_AE_SUBDIRS.GRAPHS), rule: docsAePath(DOCS_AE_SUBDIRS.GRAPHS), reason: '图谱自身输出目录会造成派生产物回流' },
   { path: 'node_modules', rule: '**/node_modules', reason: '包管理器依赖目录体积大且不属于项目源码真源' },
   { path: 'dist', rule: '**/dist', reason: '编译输出目录通常由源码生成，关系会重复且噪声较大' },
   { path: 'build', rule: '**/build', reason: '构建产物目录通常由源码生成，关系会重复且噪声较大' },
@@ -100,7 +101,8 @@ function copyGraphPreview(worktree: string): void {
 }
 
 function isGraphRuntimeFile(filePath: string): boolean {
-  return filePath === 'docs/ae/graphs' || filePath.startsWith('docs/ae/graphs/')
+  const graphsDir = docsAePath(DOCS_AE_SUBDIRS.GRAPHS)
+  return filePath === graphsDir || filePath.startsWith(`${graphsDir}/`)
 }
 
 function mergeGraphExcludeRules(configExclude: string[], argumentExclude: string[] | undefined): string[] {
@@ -219,7 +221,7 @@ function findExistingFileMatch(worktree: string, rule: string): string | undefin
     for (const entry of entries) {
       const absolutePath = resolve(dir, entry.name)
       const relativePath = toPosixPath(relative(worktree, absolutePath))
-      if (matchGraphExcludePath(relativePath, ['**/.git', '**/node_modules', 'docs/ae/graphs'], entry.isDirectory()).excluded) {
+      if (matchGraphExcludePath(relativePath, ['**/.git', '**/node_modules', docsAePath(DOCS_AE_SUBDIRS.GRAPHS)], entry.isDirectory()).excluded) {
         continue
       }
       if (entry.isDirectory()) {
@@ -304,14 +306,14 @@ async function confirmDatabaseWrite(worktree: string, ctx: { ask?: unknown }): P
       permission: 'file',
       patterns: [
         resolveGraphDatabasePath(worktree),
-        resolve(worktree, 'docs', 'ae', 'graphs', 'version-*'),
-        resolve(worktree, 'docs', 'ae', 'graphs', 'graph.json.tmp-*'),
-        resolve(worktree, 'docs', 'ae', 'graphs', 'graph.json.lock'),
-        resolve(worktree, 'docs', 'ae', 'graphs', 'index.html'),
-        resolve(worktree, 'docs', 'ae', 'graphs', 'assets', '**'),
+        resolve(worktree, docsAePath(DOCS_AE_SUBDIRS.GRAPHS), 'version-*'),
+        resolve(worktree, docsAePath(DOCS_AE_SUBDIRS.GRAPHS), 'graph.json.tmp-*'),
+        resolve(worktree, docsAePath(DOCS_AE_SUBDIRS.GRAPHS), 'graph.json.lock'),
+        resolve(worktree, docsAePath(DOCS_AE_SUBDIRS.GRAPHS), 'index.html'),
+        resolve(worktree, docsAePath(DOCS_AE_SUBDIRS.GRAPHS), 'assets', '**'),
       ],
       always: [],
-      metadata: { action: '写入文件关系图谱 JSON 存储文件、分片、预览页及临时文件', target: 'docs/ae/graphs/**' },
+      metadata: { action: '写入文件关系图谱 JSON 存储文件、分片、预览页及临时文件', target: `${docsAePath(DOCS_AE_SUBDIRS.GRAPHS)}/**` },
     }))
     return true
   } catch {
@@ -391,7 +393,7 @@ export const aeGraphBuildTool = tool({
 
       const canWriteDatabase = await confirmDatabaseWrite(worktree, ctx)
       if (!canWriteDatabase) {
-        return '用户未授权写入 `docs/ae/graphs/graph.json`，已取消文件关系图谱构建。'
+        return `用户未授权写入 \`${docsAePath(DOCS_AE_SUBDIRS.GRAPHS)}/graph.json\`，已取消文件关系图谱构建。`
       }
 
       try {
@@ -421,7 +423,7 @@ export const aeGraphBuildTool = tool({
         copyGraphPreview(worktree)
         storage.closeDatabase()
         storage = undefined
-        return JSON.stringify({ message: 'Git diff 无变更，图谱无需更新', mode: effectiveMode, scopeRoot, summary, database: 'docs/ae/graphs/graph.json', preview: 'docs/ae/graphs/index.html' }, null, 2)
+        return JSON.stringify({ message: 'Git diff 无变更，图谱无需更新', mode: effectiveMode, scopeRoot, summary, database: `${docsAePath(DOCS_AE_SUBDIRS.GRAPHS)}/graph.json`, preview: `${docsAePath(DOCS_AE_SUBDIRS.GRAPHS)}/index.html` }, null, 2)
       }
 
       const allFiles = collectGraphFiles(worktree, target, config)
@@ -463,8 +465,8 @@ export const aeGraphBuildTool = tool({
         excludeRules: config.exclude,
         warnings: [diff.warning, ...parsed.warnings].filter(Boolean),
         savedExcludes,
-        database: 'docs/ae/graphs/graph.json',
-        preview: 'docs/ae/graphs/index.html',
+        database: `${docsAePath(DOCS_AE_SUBDIRS.GRAPHS)}/graph.json`,
+        preview: `${docsAePath(DOCS_AE_SUBDIRS.GRAPHS)}/index.html`,
         elapsedMs: Date.now() - startedAt,
         tool: TOOL.AE_GRAPH_BUILD,
       }, null, 2)

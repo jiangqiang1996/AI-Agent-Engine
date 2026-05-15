@@ -24,6 +24,9 @@ import { createToolRegistry } from './tools/index.js'
 import { setGlobalClient } from './services/client-holder.js'
 import { dedupeCommandFileArgumentParts } from './services/command-file-argument-dedupe-service.js'
 
+/** 插件注册 ID，对应 opencode 配置中的插件标识。 */
+const PLUGIN_ID = 'ae-server'
+
 interface RuntimeConfigShape {
   command?: Record<string, {
     template: string
@@ -118,7 +121,7 @@ function resolveConfiguredModelReferences(
 }
 
 const plugin: PluginModule = {
-  id: 'ae-server',
+  id: PLUGIN_ID,
   server: async (input) => {
     const manifest = createRuntimeAssetManifest(import.meta.url)
     const hostWorktree = resolveHostWorktree(input)

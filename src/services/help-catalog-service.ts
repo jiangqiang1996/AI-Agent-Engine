@@ -12,6 +12,7 @@ import { createRuntimeAssetManifestFromRoot } from './runtime-asset-manifest.js'
 import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
 import { resolvePluginRootFromModuleUrl } from '../utils/path-utils.js'
 
+/** 技能条目，包含名称、描述、参数提示和关联命令。 */
 export interface SkillEntry {
   name: string
   description: string
@@ -20,6 +21,7 @@ export interface SkillEntry {
   defaultEntry: boolean
 }
 
+/** 命令条目，包含名称、描述、分类和可选的基础命令名。 */
 export interface CommandEntry {
   name: string
   description: string
@@ -27,6 +29,7 @@ export interface CommandEntry {
   baseCommand?: string
 }
 
+/** 代理条目，包含名称、阶段和描述。 */
 export interface AgentEntry {
   name: string
   stage: string
@@ -110,16 +113,19 @@ function buildAgentEntries(manifest: RuntimeAssetManifest): AgentEntry[] {
   }))
 }
 
+/** 将技能名转换为命令名（`ae:` 前缀替换为 `ae-`）。 */
 export function skillToCommand(skillName: string): string {
   return skillName.replace(/^ae:/, 'ae-')
 }
 
+/** 简单的子串匹配，用于帮助信息过滤。 */
 export function matchesQuery(text: string, query: string): boolean {
   const lowerText = text.toLowerCase()
   const lowerQuery = query.toLowerCase()
   return lowerText.includes(lowerQuery)
 }
 
+/** 帮助目录，包含技能、命令、代理和模型路由条目。 */
 export interface HelpCatalog {
   skills: SkillEntry[]
   commands: CommandEntry[]
@@ -127,6 +133,10 @@ export interface HelpCatalog {
   modelRoutes?: AssetModelRoutingEntry[]
 }
 
+/**
+ * 构建完整帮助目录，扫描技能 catalog、命令文件和代理定义。
+ * 传入 `repoRoot` 时从指定仓库根目录定位资产，否则从模块 URL 推断。
+ */
 export function buildHelpCatalog(repoRoot?: string): HelpCatalog {
   const manifest = repoRoot ? createRuntimeAssetManifestFromRoot(repoRoot) : createRuntimeAssetManifest(import.meta.url)
 
@@ -138,6 +148,7 @@ export function buildHelpCatalog(repoRoot?: string): HelpCatalog {
   }
 }
 
+/** 按查询字符串过滤帮助目录，匹配名称、描述、命令名或分类。 */
 export function filterCatalog(catalog: HelpCatalog, query?: string): HelpCatalog {
   if (!query || query.trim() === '') {
     return catalog
@@ -173,6 +184,7 @@ export function filterCatalog(catalog: HelpCatalog, query?: string): HelpCatalog
   return { skills, commands, agents, modelRoutes }
 }
 
+/** 将帮助目录格式化为 Markdown 表格，按技能、命令、代理和模型路由分组。 */
 export function formatHelpCatalog(catalog: HelpCatalog, query?: string): string {
   const lines: string[] = []
 
@@ -287,6 +299,7 @@ function escapeMarkdownTableCell(value: string): string {
   return value.replace(/\|/g, '\\|')
 }
 
+/** 构建帮助目录、过滤并格式化为 Markdown 文本的便捷入口。 */
 export function generateHelpText(query?: string, repoRoot?: string): string {
   const catalog = buildHelpCatalog(repoRoot)
   const filtered = filterCatalog(catalog, query)

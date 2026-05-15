@@ -6,12 +6,22 @@ import { Effect } from 'effect'
 
 import { isInsideRoot, toPosixPath, toRepoRelativePath } from '../utils/path-utils.js'
 import { SKILL } from '../schemas/ae-asset-schema.js'
+import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
 
+const HASH_ALGORITHM = 'sha256'
+const BLOCKING_SEVERITY_PATTERN = /^(p0|p1|p2|critical|high|medium)$/i
+
+/** 门禁工作流类型：`lfg` 对应 `/ae-lfg`，`work` 对应 `ae:work`。 */
 export type GateWorkflow = 'lfg' | 'work'
+/** 门禁检查点，对应工作流中的关键阶段。 */
 export type GateCheckpoint = 'start' | 'before_plan' | 'before_work' | 'before_review' | 'final'
+/** 审查状态：已通过、失败、未运行或不适用。 */
 export type GateReviewStatus = 'passed' | 'failed' | 'not_run' | 'not_applicable'
+/** 证据可信度：`verified` 经工具或文件系统验证，`declaration_only` 仅为声明。 */
 export type EvidenceTrust = 'verified' | 'declaration_only'
+/** worktree 决策结果。 */
 export type WorktreeDecision = 'created' | 'rejected' | 'cancelled' | 'transferred' | 'not_applicable'
+/** 证据来源类型，用于区分可观察的工作区状态、工具输入声明和未提供。 */
 export type GateEvidenceSource =
   | 'observable_workspace'
   | 'tool_output'
@@ -19,6 +29,7 @@ export type GateEvidenceSource =
   | 'user_confirmation'
   | 'not_provided'
 
+/** Git 写操作授权证据，用于门禁验证用户是否明确授权了特定 Git 命令。 */
 export interface GitAuthorizationEvidence {
   authorizationSource: string
   authorizationSummary: string
@@ -33,6 +44,7 @@ export interface GitAuthorizationEvidence {
   finalCommandArgs: string[]
 }
 
+/** 审查来源证据的联合类型，支持工具输出、报告路径、未运行原因和声明四种形态。 */
 export type ReviewEvidence =
   | {
       type: 'tool_output'
@@ -57,6 +69,7 @@ export type ReviewEvidence =
   | { type: 'not_run_reason'; reason: string }
   | { type: 'declared'; summary: string; reviewTrust: 'declaration_only' }
 
+/** worktree 指纹，包含路径、分支、HEAD 和状态摘要，用于防止跨 worktree 或过期证据复用。 */
 export interface WorktreeFingerprint {
   worktreePath: string
   branch?: string
@@ -68,6 +81,7 @@ export interface WorktreeFingerprint {
   error?: string
 }
 
+/** 门禁输入参数，包含工作流、检查点、产物路径、验证命令、审查状态和 Git 授权证据等。 */
 export interface GateInput {
   workflow: GateWorkflow
   checkpoint: GateCheckpoint
@@ -92,6 +106,7 @@ export interface GateInput {
   writeProof?: boolean
 }
 
+/** 门禁执行结果，包含通过/阻断状态、阻断项、缺失证据、下一步建议和完整证据集。 */
 export interface GateResult {
   status: 'pass' | 'block'
   workflow: GateWorkflow
@@ -203,8 +218,8 @@ function normalizePathForEvidence(path: string): string {
 
 function isRuntimeEvidencePath(filePath: string): boolean {
   const normalized = toPosixPath(filePath)
-  return normalized.startsWith('docs/ae/gates/')
-    || normalized.startsWith('docs/ae/reviews/')
+  return normalized.startsWith(`${docsAePath(DOCS_AE_SUBDIRS.GATES)}/`)
+    || normalized.startsWith(`${docsAePath(DOCS_AE_SUBDIRS.REVIEWS)}/`)
 }
 
 const GIT_EXEC_TIMEOUT = 30_000
@@ -906,12 +921,12 @@ function addReviewEvidenceBlockers(
     if (reportPath.error || !reportPath.exists) {
       blockers.push('审查报告路径无效或不存在，不能作为可验证审查来源证据。')
       addMissingEvidence(missingEvidence, '存在的审查报告路径')
-      addNextStep(nextSteps, '补充 docs/ae/reviews/<run-id>/metadata.json 形式的审查元数据路径。')
+      addNextStep(nextSteps, `补充 ${docsAePath(DOCS_AE_SUBDIRS.REVIEWS)}/<run-id>/metadata.json 形式的审查元数据路径。`)
       return
     }
 
     if (!isReviewMetadataPath(reviewEvidence.path)) {
-      blockers.push('审查报告路径必须指向 docs/ae/reviews/<run-id>/metadata.json。')
+      blockers.push(`审查报告路径必须指向 ${docsAePath(DOCS_AE_SUBDIRS.REVIEWS)}/<run-id>/metadata.json。`)
       addMissingEvidence(missingEvidence, '结构化审查元数据路径')
       addNextStep(nextSteps, '使用 ae:review 生成结构化审查元数据，再将 metadata.json 作为 review_evidence.path。')
       return
@@ -1010,8 +1025,9 @@ function reviewOutputMatchesEvidence(
   return true
 }
 
+/** 对审查输出内容计算 SHA-256 哈希，用于门禁中比对审查结果是否被篡改。 */
 export function hashReviewOutput(content: string): string {
-  return createHash('sha256').update(content, 'utf8').digest('hex')
+  return createHash(HASH_ALGORITHM).update(content, 'utf8').digest('hex')
 }
 
 function parseStructuredReviewOutput(output: string): {
@@ -1070,12 +1086,13 @@ function hasBlockingFinding(findings: unknown): boolean {
       return false
     }
     const severity = (finding as { severity?: unknown }).severity
-    return typeof severity === 'string' && /^(p0|p1|p2|critical|high|medium)$/i.test(severity)
+    return typeof severity === 'string' && BLOCKING_SEVERITY_PATTERN.test(severity)
   })
 }
 
 function isReviewMetadataPath(path: string): boolean {
-  return /^docs\/ae\/reviews\/[^/]+\/metadata\.json$/.test(toPosixPath(path))
+  const prefix = docsAePath(DOCS_AE_SUBDIRS.REVIEWS)
+  return new RegExp(`^${prefix}/[^/]+/metadata\\.json$`).test(toPosixPath(path))
 }
 
 function addMissingEvidence(missingEvidence: string[], item: string): void {
@@ -1109,7 +1126,7 @@ function addWorkFinalBaselineWarnings(
     } else {
       blockers.push(`交接文件无效或不存在：${result.evidence.handoffPath}`)
       addMissingEvidence(missingEvidence, '存在的规范 A→B worktree 交接文件')
-      addNextStep(nextSteps, '修正 handoff_path，指向 docs/ae/handoffs/*-worktree-handoff.md 且包含规范交接标记的文件。')
+      addNextStep(nextSteps, `修正 handoff_path，指向 ${docsAePath(DOCS_AE_SUBDIRS.HANDOFFS)}/*-worktree-handoff.md 且包含规范交接标记的文件。`)
     }
     return
   }
@@ -1123,7 +1140,8 @@ function addWorkFinalBaselineWarnings(
 }
 
 function isWorktreeHandoffFile(repoRoot: string, normalizedPath: string): boolean {
-  if (!/^docs\/ae\/handoffs\/[^/]+-worktree-handoff\.md$/.test(toPosixPath(normalizedPath))) {
+  const handoffDir = docsAePath(DOCS_AE_SUBDIRS.HANDOFFS)
+  if (!new RegExp(`^${handoffDir}/[^/]+-worktree-handoff\\.md$`).test(toPosixPath(normalizedPath))) {
     return false
   }
 
@@ -1323,7 +1341,7 @@ function buildSummary(result: GateResult): string {
 }
 
 function writeProof(repoRoot: string, result: GateResult, notes?: string): string {
-  const dir = join(repoRoot, 'docs', 'ae', 'gates')
+  const dir = join(repoRoot, docsAePath(DOCS_AE_SUBDIRS.GATES))
   mkdirSync(dir, { recursive: true })
 
   const timestamp = new Date().toISOString().replaceAll(':', '-').replaceAll('.', '-')
@@ -1404,8 +1422,8 @@ function runGateSync(repoRoot: string, input: GateInput): GateResult {
       userAuthorizedGitWrite: input.userAuthorizedGitWrite ?? false,
       noCodeChangeReason: input.noCodeChangeReason,
       latestArtifacts: {
-        requirements: listLatestMarkdown(repoRoot, 'docs/ae/brainstorms'),
-        plan: listLatestMarkdown(repoRoot, 'docs/ae/plans'),
+        requirements: listLatestMarkdown(repoRoot, docsAePath(DOCS_AE_SUBDIRS.BRAINSTORMS)),
+        plan: listLatestMarkdown(repoRoot, docsAePath(DOCS_AE_SUBDIRS.PLANS)),
       },
     },
     summary: '',
@@ -1433,6 +1451,10 @@ function runGateSync(repoRoot: string, input: GateInput): GateResult {
   return result
 }
 
+/**
+ * 以 Effect 包装执行门禁检查。
+ * 内部调用 `runGateSync`，将同步异常转换为 Effect 失败。
+ */
 export function runGate(repoRoot: string, input: GateInput): Effect.Effect<GateResult, Error> {
   return Effect.try({
     try: () => runGateSync(repoRoot, input),

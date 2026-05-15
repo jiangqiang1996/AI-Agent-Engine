@@ -8,6 +8,7 @@ import type { GraphFileNode, GraphRelation, GraphRelationType } from './graph-st
 import { loadTreeSitterLanguage } from './graph/tree-sitter-loader.js'
 import type { TreeSitterLanguageHandle, TreeSitterNode, TreeSitterTreeResult } from './graph/tree-sitter-loader.js'
 import { isInsideRoot, pathContainsSymlink, toPosixPath } from '../utils/path-utils.js'
+import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
 
 const DEFAULT_EXCLUDED_DIRS = new Set(['.git', '.ae'])
 const SENSITIVE_FILENAMES = [/^\.env/, /credential/i, /secret/i, /password/i, /token/i, /private[-_]?key/i]
@@ -21,10 +22,12 @@ const DOCUMENT_EXTENSIONS = new Set(['.md', '.txt', '.rst', '.adoc'])
 const CONFIG_EXTENSIONS = new Set(['.json', '.jsonc', '.yaml', '.yml', '.toml', '.xml'])
 const RESOLVABLE_EXTENSIONS = [...SOURCE_EXTENSIONS, ...DOCUMENT_EXTENSIONS, ...CONFIG_EXTENSIONS]
 
+/** 采集的图谱文件，在 `GraphFileNode` 基础上增加绝对路径用于后续读取。 */
 export interface CollectedGraphFile extends GraphFileNode {
   absolutePath: string
 }
 
+/** 文件关系解析结果，包含文件节点、关系和解析警告。 */
 export interface ParsedGraph {
   files: GraphFileNode[]
   relations: GraphRelation[]
@@ -32,7 +35,8 @@ export interface ParsedGraph {
 }
 
 function shouldExclude(relativePath: string, config: GraphConfig, isDirectory = false): boolean {
-  if (relativePath === 'docs/ae/graphs' || relativePath.startsWith('docs/ae/graphs/')) {
+  const graphsDir = docsAePath(DOCS_AE_SUBDIRS.GRAPHS)
+  if (relativePath === graphsDir || relativePath.startsWith(`${graphsDir}/`)) {
     return true
   }
   const parts = relativePath.split('/')
@@ -107,6 +111,10 @@ function isSupportedFile(fileName: string): boolean {
   return SOURCE_EXTENSIONS.has(ext) || DOCUMENT_EXTENSIONS.has(ext) || CONFIG_EXTENSIONS.has(ext)
 }
 
+/**
+ * 递归采集工作区内所有可解析文件。
+ * 排除 `.git`、敏感文件、图谱输出目录和用户配置的排除规则匹配路径。
+ */
 export function collectGraphFiles(worktree: string, target: string, config: GraphConfig): CollectedGraphFile[] {
   const root = resolve(worktree)
   const start = resolve(target)
@@ -625,6 +633,10 @@ function pushReference(
   })
 }
 
+/**
+ * 解析文件列表的依赖关系和符号定义。
+ * 优先使用 tree-sitter 解析（TS/JS/Python/Java/Go），回退到正则浅层解析。
+ */
 export async function parseFileRelations(worktree: string, files: CollectedGraphFile[], config: GraphConfig): Promise<ParsedGraph> {
   const warnings: string[] = []
   const relations: GraphRelation[] = []

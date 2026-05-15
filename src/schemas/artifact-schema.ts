@@ -1,10 +1,21 @@
 import { z } from 'zod'
 
 /**
- * AE 持久产物类型。
+ * AE 持久产物类型常量。
+ * 供 recovery-service、artifact-store 等模块引用，避免硬编码字符串。
  */
+export const ARTIFACT_KIND = {
+  BRAINSTORM: 'brainstorm',
+  PLAN: 'plan',
+  WORK: 'work',
+  REVIEW: 'review',
+} as const
+
+/** AE 产物类型的联合类型，值来自 `ARTIFACT_KIND` 常量。 */
+export type ArtifactKind = typeof ARTIFACT_KIND[keyof typeof ARTIFACT_KIND]
+
 export const ArtifactTypeSchema = z
-  .enum(['brainstorm', 'plan', 'work', 'review'])
+  .enum([ARTIFACT_KIND.BRAINSTORM, ARTIFACT_KIND.PLAN, ARTIFACT_KIND.WORK, ARTIFACT_KIND.REVIEW])
   .describe('产物类型')
 
 /**
