@@ -81,7 +81,7 @@ describe('ae-graph-build 工具', () => {
     expect(parsed.parserStats).toEqual([])
     expect(parsed.preview).toBe('docs/ae/graphs/index.html')
     expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'index.html'))).toBe(true)
-    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'cytoscape.min.js'))).toBe(true)
+    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'assets', 'index-RbR8_brQ.js'))).toBe(true)
   })
 
   it('应该拒绝越界 target', async () => {
@@ -253,7 +253,7 @@ describe('ae-graph-build 工具', () => {
     expect(parsed.database).toBe('docs/ae/graphs/graph.json')
     expect(parsed.preview).toBe('docs/ae/graphs/index.html')
     expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'index.html'))).toBe(true)
-    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'cytoscape.min.js'))).toBe(true)
+    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'assets', 'index-RbR8_brQ.js'))).toBe(true)
     expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json.lock'))).toBe(false)
   })
 
