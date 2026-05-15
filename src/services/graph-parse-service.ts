@@ -11,7 +11,7 @@ import { isInsideRoot, pathContainsSymlink, toPosixPath } from '../utils/path-ut
 
 const DEFAULT_EXCLUDED_DIRS = new Set(['.git', '.ae'])
 const SENSITIVE_FILENAMES = [/^\.env/, /credential/i, /secret/i, /password/i, /token/i, /private[-_]?key/i]
-const MAX_FILE_BYTES = 1024 * 1024
+const MAX_FILE_BYTES = 10 * 1024 * 1024
 
 const SOURCE_EXTENSIONS = new Set([
   '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.py', '.java', '.go', '.rs', '.c', '.cpp', '.h', '.rb', '.php',

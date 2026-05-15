@@ -100,6 +100,7 @@ export interface GraphScopeSummaryIndex {
 
 interface GraphStorageOptions {
   readonly?: boolean
+  force?: boolean
 }
 
 interface GraphStorageDiagnosticOptions {
@@ -931,6 +932,12 @@ export class GraphStorage {
       this.lockAcquired = true
     } catch (error) {
       if (error instanceof Error && 'code' in error && error.code === 'EEXIST') {
+        if (this.options.force) {
+          rmSync(this.lockPath, { force: true })
+          writeFileSync(this.lockPath, `${process.pid}\n`, { encoding: 'utf8', flag: 'wx' })
+          this.lockAcquired = true
+          return
+        }
         throw new Error('图谱存储正在被其他进程写入，请稍后重试')
       }
       throw error

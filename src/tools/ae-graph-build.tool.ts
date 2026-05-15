@@ -319,6 +319,26 @@ async function confirmDatabaseWrite(worktree: string, ctx: { ask?: unknown }): P
   }
 }
 
+async function confirmForceOverwrite(ctx: { ask?: unknown }): Promise<boolean> {
+  if (typeof ctx.ask !== 'function') {
+    return false
+  }
+  try {
+    await Effect.runPromise(ctx.ask({
+      permission: 'file',
+      patterns: [],
+      always: [],
+      metadata: {
+        action: '检测到图谱锁文件存在（可能是上次构建意外终止残留），确认后将强制覆盖锁文件并重新构建',
+        suggestion: '选择「确认」强制覆盖锁文件重新构建，或选择「取消」等待其他进程完成',
+      },
+    }))
+    return true
+  } catch {
+    return false
+  }
+}
+
 export const aeGraphBuildTool = tool({
   description: [
     '构建或增量维护项目文件关系图谱。',
@@ -374,7 +394,20 @@ export const aeGraphBuildTool = tool({
         return '用户未授权写入 `docs/ae/graphs/graph.json`，已取消文件关系图谱构建。'
       }
 
-      storage = createGraphStorage(worktree)
+      try {
+        storage = createGraphStorage(worktree)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error)
+        if (message.includes('正在被其他进程写入') && typeof ctx.ask === 'function') {
+          const forceOverwrite = await confirmForceOverwrite(ctx)
+          if (!forceOverwrite) {
+            return '图谱存储正在被其他进程写入，用户选择等待，已取消。'
+          }
+          storage = createGraphStorage(worktree, { force: true })
+        } else {
+          throw error
+        }
+      }
 
       const scopeRoot = toPosixPath(relative(worktree, target) || '.')
       storage.cleanupIncompleteVersions(worktree, scopeRoot)

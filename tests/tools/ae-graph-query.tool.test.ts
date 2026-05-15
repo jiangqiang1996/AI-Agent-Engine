@@ -400,7 +400,7 @@ describe('ae-graph-query 工具', () => {
     expect(parsed.truncation.truncated).toBe(false)
   })
 
-  it('health 模式应该快速返回未被使用的孤立文件', async () => {
+  it('health 模式应该返回孤立文件和循环依赖', async () => {
     const root = createTempRoot()
     const storage = createGraphStorage(root)
     const versionId = storage.createVersion(root, '.', [])
@@ -422,15 +422,12 @@ describe('ae-graph-query 工具', () => {
     const result = await aeGraphQueryTool.execute({ mode: 'health', limit: 5 }, createMockContext(root))
     const parsed = JSON.parse(result as string) as {
       status: string
-      queryCost: { indexesUsed: string[] }
-      result: { cycles: string[][]; isolatedFiles: string[]; note: string }
+      result: { cycles: string[][]; isolatedFiles: string[] }
     }
 
     expect(parsed.status).toBe('ok')
-    expect(parsed.queryCost.indexesUsed).toEqual(['source-to-relation-chunks', 'target-to-relation-chunks'])
     expect(parsed.result.cycles).toEqual([])
     expect(parsed.result.isolatedFiles).toEqual([])
-    expect(parsed.result.note).toContain('pattern 模式')
   })
 
   it('pattern cycle 模式应该保留循环依赖检测能力', async () => {
@@ -491,5 +488,127 @@ describe('ae-graph-query 工具', () => {
     expect(pathParsed.result.path).toEqual(['src/a.ts', 'src/b.ts', 'src/c.ts', 'src/d.ts', 'src/e.ts', 'src/f.ts'])
     expect(coreParsed.result[0].count).toBe(1)
     expect(patternParsed.result.longPaths[0]).toEqual(['src/a.ts', 'src/b.ts', 'src/c.ts', 'src/d.ts', 'src/e.ts', 'src/f.ts'])
+  })
+
+  it('filter 模式应该按目录过滤关系', async () => {
+    const root = createTempRoot()
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    storage.insertFiles(versionId, [
+      { relativePath: 'src/a.ts', fileType: 'source' },
+      { relativePath: 'src/b.ts', fileType: 'source' },
+      { relativePath: 'lib/c.ts', fileType: 'source' },
+    ])
+    storage.insertRelations(versionId, [
+      { sourcePath: 'src/a.ts', targetPath: 'src/b.ts', relationType: 'import' },
+      { sourcePath: 'src/a.ts', targetPath: 'lib/c.ts', relationType: 'import' },
+      { sourcePath: 'lib/c.ts', targetPath: 'src/b.ts', relationType: 'import' },
+    ])
+    storage.activateVersion(versionId)
+    storage.closeDatabase()
+
+    const result = await aeGraphQueryTool.execute({ mode: 'filter', directory: 'src' }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as { result: { files: Array<{ relativePath: string }>; relations: Array<{ sourcePath: string; targetPath: string }> } }
+
+    expect(parsed.result.files.map((file) => file.relativePath).sort()).toEqual(['src/a.ts', 'src/b.ts'])
+    expect(parsed.result.relations).toHaveLength(3)
+  })
+
+  it('filter 模式关系应与返回的文件一致', async () => {
+    const root = createTempRoot()
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    storage.insertFiles(versionId, Array.from({ length: 10 }, (_, index) => ({
+      relativePath: `src/${index}.ts`,
+      fileType: 'source',
+    })))
+    storage.insertRelations(versionId, Array.from({ length: 9 }, (_, index) => ({
+      sourcePath: `src/${index}.ts`,
+      targetPath: `src/${index + 1}.ts`,
+      relationType: 'import' as const,
+    })))
+    storage.activateVersion(versionId)
+    storage.closeDatabase()
+
+    const result = await aeGraphQueryTool.execute({ mode: 'filter', limit: 3 }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as { result: { files: Array<{ relativePath: string }>; relations: Array<{ sourcePath: string; targetPath: string }> } }
+
+    const filePaths = new Set(parsed.result.files.map((file) => file.relativePath))
+    for (const relation of parsed.result.relations) {
+      expect(filePaths.has(relation.sourcePath) || filePaths.has(relation.targetPath)).toBe(true)
+    }
+  })
+
+  it('impact 模式排除路径不应消耗 limit 预算', async () => {
+    const root = createTempRoot()
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    storage.insertFiles(versionId, [
+      { relativePath: 'src/a.ts', fileType: 'source' },
+      { relativePath: 'src/b.ts', fileType: 'source' },
+      { relativePath: 'src/c.ts', fileType: 'source' },
+      { relativePath: 'src/d.ts', fileType: 'source' },
+    ])
+    storage.insertRelations(versionId, [
+      { sourcePath: 'src/a.ts', targetPath: 'src/d.ts', relationType: 'import' },
+      { sourcePath: 'src/b.ts', targetPath: 'src/a.ts', relationType: 'import' },
+      { sourcePath: 'src/b.ts', targetPath: 'src/d.ts', relationType: 'import' },
+      { sourcePath: 'src/c.ts', targetPath: 'src/a.ts', relationType: 'import' },
+      { sourcePath: 'src/c.ts', targetPath: 'src/b.ts', relationType: 'import' },
+    ])
+    storage.activateVersion(versionId)
+    storage.closeDatabase()
+
+    const result = await aeGraphQueryTool.execute({ mode: 'impact', file: 'src/d.ts', exclude: ['src/b.ts'], limit: 10 }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as { result: { impacted: string[] } }
+
+    expect(parsed.result.impacted).not.toContain('src/b.ts')
+    expect(parsed.result.impacted).toContain('src/a.ts')
+    expect(parsed.result.impacted).toContain('src/c.ts')
+  })
+
+  it('deps 模式索引未命中时应回退加载全图而不重复索引查询', async () => {
+    const root = createTempRoot()
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    const files = Array.from({ length: 300 }, (_, index) => ({
+      relativePath: `src/${String(index).padStart(3, '0')}.ts`,
+      fileType: 'source' as const,
+    }))
+    storage.insertFiles(versionId, files)
+    storage.insertRelations(versionId, [
+      { sourcePath: 'src/000.ts', targetPath: 'src/001.ts', relationType: 'import' },
+    ])
+    storage.activateVersion(versionId)
+    storage.closeDatabase()
+
+    const result = await aeGraphQueryTool.execute({ mode: 'deps', file: 'src/000.ts' }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as { status: string; result: { dependencies: unknown[]; dependents: unknown[] } }
+
+    expect(parsed.status).toBe('ok')
+    expect(parsed.result.dependencies).toHaveLength(1)
+  })
+
+  it('health 模式应始终同时返回循环和孤立文件', async () => {
+    const root = createTempRoot()
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    storage.insertFiles(versionId, [
+      { relativePath: 'src/a.ts', fileType: 'source' },
+      { relativePath: 'src/b.ts', fileType: 'source' },
+      { relativePath: 'src/orphan.ts', fileType: 'source' },
+    ])
+    storage.insertRelations(versionId, [
+      { sourcePath: 'src/a.ts', targetPath: 'src/b.ts', relationType: 'import' },
+      { sourcePath: 'src/b.ts', targetPath: 'src/a.ts', relationType: 'import' },
+    ])
+    storage.activateVersion(versionId)
+    storage.closeDatabase()
+
+    const result = await aeGraphQueryTool.execute({ mode: 'health' }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as { result: { cycles: string[][]; isolatedFiles: string[] } }
+
+    expect(parsed.result.cycles.length).toBeGreaterThan(0)
+    expect(parsed.result.isolatedFiles).toContain('src/orphan.ts')
   })
 })

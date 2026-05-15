@@ -85,6 +85,9 @@ export async function main(root = repoRoot) {
     ['tree-sitter-java', 'tree-sitter-java.wasm'],
     ['tree-sitter-python', 'tree-sitter-python.wasm'],
     ['tree-sitter-go', 'tree-sitter-go.wasm'],
+    ['tree-sitter-javascript', 'tree-sitter-javascript.wasm'],
+    ['tree-sitter-typescript', 'tree-sitter-typescript.wasm'],
+    ['tree-sitter-typescript', 'tree-sitter-tsx.wasm'],
   ]
   await mkdir(wasmDestDir, { recursive: true })
   for (const [pkg, file] of wasmSources) {
