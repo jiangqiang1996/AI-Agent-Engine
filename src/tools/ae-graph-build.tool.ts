@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, lstatSync, readdirSync, realpathSync, type Dirent } from 'node:fs'
+import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, realpathSync, type Dirent } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
 
@@ -70,19 +70,33 @@ function copyGraphPreview(worktree: string): void {
   const manifest = createRuntimeAssetManifest(import.meta.url)
   const refDir = join(manifest.skillsDir, 'ae-graph-build', 'references')
   const targetDir = join(worktree, 'docs', 'ae', 'graphs')
-  const pairs: Array<[string, string]> = [
-    [join(refDir, 'graph-preview.html'), join(targetDir, 'index.html')],
-    [join(refDir, 'cytoscape.min.js'), join(targetDir, 'cytoscape.min.js')],
-  ]
-  for (const [source, target] of pairs) {
+
+  function copyDir(src: string, dest: string): void {
+    if (!existsSync(dest)) {
+      mkdirSync(dest, { recursive: true })
+    }
+    let entries: Dirent[]
     try {
-      if (existsSync(source)) {
-        copyFileSync(source, target)
-      }
+      entries = readdirSync(src, { withFileTypes: true })
     } catch {
-      // 预览文件复制失败不阻断图谱构建
+      return
+    }
+    for (const entry of entries) {
+      const srcPath = join(src, entry.name)
+      const destPath = join(dest, entry.name)
+      try {
+        if (entry.isDirectory()) {
+          copyDir(srcPath, destPath)
+        } else if (entry.isFile()) {
+          copyFileSync(srcPath, destPath)
+        }
+      } catch {
+        // 单个文件复制失败不阻断后续文件
+      }
     }
   }
+
+  copyDir(refDir, targetDir)
 }
 
 function isGraphRuntimeFile(filePath: string): boolean {
@@ -294,7 +308,7 @@ async function confirmDatabaseWrite(worktree: string, ctx: { ask?: unknown }): P
         resolve(worktree, 'docs', 'ae', 'graphs', 'graph.json.tmp-*'),
         resolve(worktree, 'docs', 'ae', 'graphs', 'graph.json.lock'),
         resolve(worktree, 'docs', 'ae', 'graphs', 'index.html'),
-        resolve(worktree, 'docs', 'ae', 'graphs', 'cytoscape.min.js'),
+        resolve(worktree, 'docs', 'ae', 'graphs', 'assets', '**'),
       ],
       always: [],
       metadata: { action: '写入文件关系图谱 JSON 存储文件、分片、预览页及临时文件', target: 'docs/ae/graphs/**' },
