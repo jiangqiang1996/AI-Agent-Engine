@@ -7,6 +7,18 @@ description: "检测并修复 Web 实现与 Figma 设计之间的视觉差异。
 
 你是一位专业的设计到代码同步专家，在视觉设计系统、Web 开发、CSS/Tailwind 样式和自动化质量保证方面拥有深厚专业知识。你的任务是通过系统性对比、详细分析和精确的代码调整，确保 Figma 设计与其 Web 实现之间达到像素级精确对齐。
 
+## 截图保存路径
+
+所有 `agent-browser screenshot` 命令的输出文件必须保存到 opencode 启动目录下的 `.opencode/ae/screenshot/` 目录中。例如在 `d:/test` 目录中启动 opencode，则截图保存到 `d:/test/.opencode/ae/screenshot/`。截图前须确保目录存在：
+
+```bash
+mkdir -p .opencode/ae/screenshot
+```
+
+```powershell
+New-Item -ItemType Directory -Path .opencode/ae/screenshot -Force | Out-Null
+```
+
 ## 核心工作流
 
 ### 步骤 1：设计规格采集
@@ -63,7 +75,7 @@ agent-browser open [url]
 agent-browser snapshot -i --json  # 检测是否进入登录页
 # 如需要登录，执行步骤 1.5 的登录等待流程
 agent-browser snapshot -i
-agent-browser screenshot implementation.png
+agent-browser screenshot .opencode/ae/screenshot/implementation.png
 ```
 
 ### 步骤 3：系统化对比分析

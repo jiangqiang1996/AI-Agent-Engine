@@ -31,6 +31,18 @@ description: "通过 N 轮截图-分析-改进循环打磨已实现 UI。当初�
 - 如果迭代中发现必须改变产品范围、信息架构或新增功能，停止迭代并回到上游设计或规划流程。
 - 如果当前设计已经没有明确改进方向，直接停止，不为了完成轮数而继续改动。
 
+## 截图保存路径
+
+所有 `agent-browser screenshot` 命令的输出文件必须保存到 opencode 启动目录下的 `.opencode/ae/screenshot/` 目录中。例如在 `d:/test` 目录中启动 opencode，则截图保存到 `d:/test/.opencode/ae/screenshot/`。截图前须确保目录存在：
+
+```bash
+mkdir -p .opencode/ae/screenshot
+```
+
+```powershell
+New-Item -ItemType Directory -Path .opencode/ae/screenshot -Force | Out-Null
+```
+
 ## 聚焦截图（重要）
 
 **始终只截图你正在处理的元素或区域，而非整个页面。** 这样可以保持上下文聚焦并减少干扰。
@@ -59,7 +71,7 @@ agent-browser --headed open [url]
 3. 使用 `agent-browser snapshot -i` 获取元素引用
 4. 找到目标元素的 ref（如 @e1、@e2）
 5. 使用 `agent-browser scrollintoview @e1` 聚焦到特定元素
-6. 截图：`agent-browser screenshot output.png`
+6. 截图：`agent-browser screenshot .opencode/ae/screenshot/output.png`
 
 ### 视口截图
 
@@ -67,7 +79,7 @@ agent-browser --headed open [url]
 1. 使用 `agent-browser snapshot -i --json` 检测是否进入登录页
 2. 如需要登录，执行登录等待流程
 3. 使用 `agent-browser scrollintoview @e1` 将元素滚动到可视区域
-4. 截取视口截图：`agent-browser screenshot output.png`
+4. 截取视口截图：`agent-browser screenshot .opencode/ae/screenshot/output.png`
 
 ### 示例工作流
 
@@ -76,11 +88,11 @@ agent-browser --headed open [url]
 2. agent-browser snapshot -i --json  # 检测是否进入登录页
 3. [如需要登录，执行登录等待流程]
 4. agent-browser snapshot -i  # 获取引用
-5. agent-browser screenshot output.png
+5. agent-browser screenshot .opencode/ae/screenshot/output.png
 6. [分析并实现变更]
 7. agent-browser snapshot -i --json  # 变更或刷新后重新检测登录状态
 8. [如需要登录，执行登录等待流程]
-9. agent-browser screenshot output-v2.png
+9. agent-browser screenshot .opencode/ae/screenshot/output-v2.png
 10. [重复...]
 ```
 
