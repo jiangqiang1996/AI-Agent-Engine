@@ -6,7 +6,7 @@ argument-hint: "[mode:deps|impact|health|filter|path|core|stats|pattern] [file:<
 
 # Skill: ae:graph-query
 
-查询由 `ae:graph-build` 构建的文件关系图谱，辅助项目理解、影响范围分析和重构决策。
+查询由 `ae:graph-build` 构建的文件关系图谱，作为项目理解、影响范围分析、审查、计划、调试和重构任务的默认第一步定位入口。
 
 ## 使用场景
 
@@ -14,10 +14,13 @@ argument-hint: "[mode:deps|impact|health|filter|path|core|stats|pattern] [file:<
 - 修改文件前评估影响范围。
 - 检测循环依赖、孤立文件、核心模块和关系统计。
 - 查找两个文件之间的最短依赖路径。
+- 开始阅读陌生项目、模块或目录前，先获取候选文件和关系分布。
+- 代码审查、计划拆解、调试定位和重构设计前，先用图谱收窄真实文件阅读范围。
 
 ## 执行流程
 
 - 调用 `ae-graph-query` 工具并指定 `mode`。
+- 不确定从哪里开始时，先用 `stats` 或 `core` 了解整体结构，再用 `filter` 收窄目录、文件类型或关系类型。
 - `deps` 和 `impact` 需要 `file`。
 - `path` 需要 `file` 和 `target`。
 - `filter` 可使用 `relation_type`、`file_type` 或 `directory`。
@@ -25,6 +28,8 @@ argument-hint: "[mode:deps|impact|health|filter|path|core|stats|pattern] [file:<
 - `scope`、`file`、`target`、`directory` 支持绝对路径与相对路径；未显式指定时按当前会话启动路径解析。
 - 可选 `exclude` 用于在查询侧进一步过滤结果，不会修改图谱产物。
 - 小范围查询会优先使用 manifest、scope summary 和 source/target 等索引；必要时才读取相关分片。
+- 修改代码前优先查询目标文件的 `deps` 和 `impact`；涉及架构、重构或风险评估时补充 `core`、`pattern` 或 `path`。
+- 查询结果过宽或被截断时，不要直接改用全局搜索；应先收窄 `scope`、`directory`、`file_type`、`relation_type` 或 `limit` 后再次查询。
 
 ## 输出要求
 
@@ -32,6 +37,7 @@ argument-hint: "[mode:deps|impact|health|filter|path|core|stats|pattern] [file:<
 - 图谱损坏、scope 不匹配、manifest/chunk/index 缺失时返回 `status=diagnostic`、问题位置、可用 scope 和 `recoverBy`，不得把空结果解释为无依赖。
 - 图谱文件不存在时提示先运行 `ae:graph-build`。
 - 参数缺失或路径越界时返回中文可恢复提示。
+- 向用户总结时说明结论来自图谱快照，并标注后续已读取源码或已运行验证的部分。
 
 ## 安全边界
 
@@ -39,6 +45,7 @@ argument-hint: "[mode:deps|impact|health|filter|path|core|stats|pattern] [file:<
 - 所有路径参数必须位于当前工作区内。
 - 不构建或修改图谱数据。
 - 图谱结果是结构快照，不能替代读取真实源码、Git diff、测试、类型检查、构建或安全审查。
+- 图谱空结果、过期结果或范围外结果不能证明文件不存在、无引用或无风险；必须用文件系统、源码搜索或验证命令复核关键结论。
 
 ## 完成标准
 

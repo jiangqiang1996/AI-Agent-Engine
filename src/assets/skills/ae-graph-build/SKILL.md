@@ -6,21 +6,25 @@ argument-hint: "[target:<PATH>] [mode:auto|full|incremental] [depth:shallow] [ex
 
 # Skill: ae:graph-build
 
-构建当前工作区的文件关系图谱，用于后续依赖查询、影响范围分析和项目健康检查。
+构建或更新当前工作区的文件关系图谱，让后续任务尽可能先用图谱了解项目结构、依赖关系、影响范围和项目健康状态。
 
 ## 使用场景
 
 - 接手项目时需要建立文件依赖图谱。
 - 重构前需要维护最新关系数据。
 - Git diff 后希望只增量更新变更文件关系。
+- 图谱缺失、scope 不匹配、分片损坏、查询诊断提示需要 `recoverBy` 修复。
+- 在审查、计划、调试、重构或多文件改动前，需要为后续 `ae:graph-query` 提供最新结构快照。
 
 ## 执行流程
 
 - 调用 `ae-graph-build` 工具，传入 `target`、`mode` 和 `depth` 参数。
 - `target` 支持绝对路径和相对路径；省略时按当前会话启动路径解析。
 - `mode` 可为 `auto`、`full` 或 `incremental`；非 Git 项目会降级为全量构建。
+- 优先使用 `mode=auto`；当图谱缺失、结构损坏或 scope 变化时使用全量构建，当 Git diff 后只需刷新变更文件时使用增量构建。
 - `depth` 首版仅支持 `shallow`，只做浅层正则解析，不执行 AST 深层解析。
 - 工具会读取可选图谱排除配置，并可叠加 `exclude` 参数后将图谱写入当前工作区的 `docs/ae/graphs/graph.json`、manifest、索引、分片目录、离线预览页与本地 JS 资源。
+- 构建完成后，优先调用 `ae:graph-query` 的 `stats` 或 `health` 验证图谱可查询，再按任务需要查询 `filter`、`deps`、`impact`、`core`、`path` 或 `pattern`。
 
 ## 输出要求
 
@@ -54,4 +58,4 @@ npm run build:copy
 
 - `docs/ae/graphs/graph.json` 存在并包含 active version、manifest、索引和分片。
 - `docs/ae/graphs/index.html` 及 `assets/` 目录存在，可在本地离线打开预览图谱。
-- 后续可使用 `ae:graph-query` 查询图谱。
+- 后续可使用 `ae:graph-query` 查询图谱，并在项目理解、审查、计划、调试和重构任务中优先引用图谱结果。
