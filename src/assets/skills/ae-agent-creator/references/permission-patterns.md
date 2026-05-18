@@ -5,7 +5,7 @@
 - 默认不放宽权限。
 - 只为代理职责需要的工具开放能力。
 - 敏感操作、Git 写操作、网络写操作应保留用户确认。
-- 浏览器能力必须先通过 `ae-setup-proof action=check` 校验当前工作区的 setup proof；证明缺失或无效时执行 `ae:setup`，setup 失败时停止浏览器流程并记录无法验证，不提供绕过方式。
+- 浏览器能力必须先通过 `ae-agent-browser-proof action=check` 校验当前工作区的 agent-browser 环境证明；证明缺失或无效时执行 `ae:agent-browser` / `/ae-agent-browser` 环境验证流程，验证失败时停止浏览器流程并记录无法验证，不提供绕过方式。
 
 ## 更新敏感变化确认
 
@@ -25,7 +25,7 @@
 - `mode` 从 `subagent` 扩大为 `primary` 或 `all`。
 - 新增工具、移除工具禁用项，或把 `tools` / `permission` 从拒绝、询问改为允许。
 - 新增或放宽 destructive Git、删除文件、覆盖文件、绕过提交钩子、远程写操作、网络写操作或外部副作用指令。
-- 新增浏览器命令或 `agent-browser` 能力；浏览器流程仍必须先完成 setup proof 校验。
+- 新增浏览器命令或 `agent-browser` 能力；浏览器流程仍必须先完成 agent-browser 环境证明校验。
 - 删除旧正文中的安全边界、确认要求或禁止事项。
 
 敏感变化不只看 frontmatter；正文新增、删除或重写 destructive Git、远程写操作、浏览器命令、权限放宽和外部副作用指令时，也必须列入敏感变化并单独确认。
@@ -72,7 +72,7 @@ permission:
 
 ## 浏览器验证代理
 
-浏览器代理或命令的提示词必须先要求调用 `ae-setup-proof action=check`。未通过 proof 校验前，不得执行任何 `agent-browser` 命令。
+浏览器代理或命令的提示词必须先要求调用 `ae-agent-browser-proof action=check`。未通过 proof 校验前，不得执行任何 `agent-browser` 命令。
 
 ```yaml
 permission:

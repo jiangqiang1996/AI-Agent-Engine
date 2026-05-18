@@ -62,7 +62,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 前端和浏览器验收：
 
 ```text
-/ae-setup
+/ae-agent-browser
 /ae-frontend-design 实现登录页
 /ae-test-browser http://localhost:3000/login
 ```
@@ -95,6 +95,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 代码或文档审查 | `/ae-review` |
 | 文档人读化/结构化 | `/ae-doc-humanize`、`/ae-doc-structure` |
 | 前端初版 | `/ae-frontend-design` |
+| agent-browser 使用指导 | `/ae-agent-browser` |
 | 浏览器验收 | `/ae-test-browser` |
 | Swagger/OpenAPI 摘要 | `/ae-swagger-parser` |
 | HTML 单文件打包 | `/ae-html-bundle` |
@@ -116,7 +117,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 需求不清先澄清 | 复杂实现前先产出需求或计划，避免直接编码 |
 | 审查先定范围 | 代码域和文档域分开处理，按范围选择审查代理 |
 | 交付必须验证 | `/ae-work` 和 `/ae-lfg` 交付前检查验证、审查和 Git 授权证据 |
-| 浏览器先 setup | 当前会话实际调用 `agent-browser` 前必须先完成 `/ae-setup` |
+| 浏览器先验证环境 | 当前会话实际调用 `agent-browser` 前必须先完成 `/ae-agent-browser` 环境验证或通过 agent-browser 环境证明校验 |
 | Git 写操作需授权 | 提交、拉取、重置、清理、变基、推送等都需要明确授权；`/ae-commit` 不等同于 push |
 | 远程写操作不默认提供 | 用户侧流程不提供 push、创建 PR、创建 Issue 或 Release 的可复制流程 |
 
@@ -124,8 +125,8 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 
 | 类型 | 当前快照 | 真源 |
 | --- | ---: | --- |
-| 技能 | 29 | `src/assets/skills/`、`src/services/ae-catalog.ts` |
-| 命令 | 49 | `src/services/command-registration.ts`、`src/assets/commands/` |
+| 技能 | 30 | `src/assets/skills/`、`src/services/ae-catalog.ts` |
+| 命令 | 50 | `src/services/command-registration.ts`、`src/assets/commands/` |
 | 代理 | 27 | `src/assets/agents/`、`src/services/agent-registration.ts` |
 | 工具 | 13 | `src/tools/` |
 | 规则 | 4 | `src/assets/rules/` |

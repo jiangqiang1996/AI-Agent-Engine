@@ -33,6 +33,13 @@ describe('ae-asset-schema', () => {
     expect(createToolRegistry()[TOOL.AE_HTML_BUNDLE]).toBeDefined()
   })
 
+  it('应该接受 agent-browser 指导技能和命令，并拒绝提示词优化变体', () => {
+    expect(AeSkillNameSchema.parse(SKILL.AGENT_BROWSER)).toBe('ae:agent-browser')
+    expect(AeCommandNameSchema.parse(COMMAND.AGENT_BROWSER)).toBe('ae-agent-browser')
+    expect(AeCommandNameSchema.safeParse(`${COMMAND.AGENT_BROWSER}${PO_SUFFIX}`).success).toBe(false)
+    expect(AeCommandNameSchema.safeParse(`${COMMAND.AGENT_BROWSER}${PA_SUFFIX}`).success).toBe(false)
+  })
+
   it('应该拒绝旧会话沉淀和资产纠偏入口', () => {
     expect(AeSkillNameSchema.safeParse('ae:save-session-flow').success).toBe(false)
     expect(AeCommandNameSchema.safeParse('ae-save-session-flow').success).toBe(false)
@@ -79,14 +86,20 @@ describe('ae-asset-schema', () => {
     expect(AeCommandNameSchema.safeParse('ae-skill-updater').success).toBe(false)
   })
 
-  it('应该声明 setup 证明工具名', () => {
-    expect(TOOL.AE_SETUP_PROOF).toBe('ae-setup-proof')
+  it('应该拒绝旧 setup 技能和命令入口', () => {
+    expect(AeSkillNameSchema.safeParse('ae:setup').success).toBe(false)
+    expect(AeCommandNameSchema.safeParse('ae-setup').success).toBe(false)
   })
 
-  it('工具注册表应该暴露 setup 证明工具', () => {
+  it('应该声明 agent-browser 环境证明工具名', () => {
+    expect(TOOL.AE_AGENT_BROWSER_PROOF).toBe('ae-agent-browser-proof')
+  })
+
+  it('工具注册表应该暴露 agent-browser 环境证明工具', () => {
     const registry = createToolRegistry()
 
-    expect(registry[TOOL.AE_SETUP_PROOF]).toBeDefined()
-    expect(registry[TOOL.AE_SETUP_PROOF]).toHaveProperty('execute')
+    expect(registry[TOOL.AE_AGENT_BROWSER_PROOF]).toBeDefined()
+    expect(registry[TOOL.AE_AGENT_BROWSER_PROOF]).toHaveProperty('execute')
+    expect(registry['ae-setup-proof']).toBeUndefined()
   })
 })

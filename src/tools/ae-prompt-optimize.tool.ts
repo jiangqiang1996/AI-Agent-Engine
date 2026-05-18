@@ -4,7 +4,7 @@ import { Effect } from 'effect'
 
 import { getGlobalClient } from '../services/client-holder.js'
 import { executePromptSubmit } from '../services/prompt-optimize.service.js'
-import { ensureBrowserSetupGate } from '../services/browser-setup-gate.js'
+import { ensureBrowserEnvironmentGate } from '../services/browser-environment-gate.js'
 
 export const aePromptOptimizeTool: ToolDefinition = tool({
   description: [
@@ -46,7 +46,7 @@ export const aePromptOptimizeTool: ToolDefinition = tool({
       ].join('\n')
     }
 
-    const safePrompt = ensureBrowserSetupGate(args.optimized_prompt)
+    const safePrompt = ensureBrowserEnvironmentGate(args.optimized_prompt)
 
     context.metadata({ title: '正在创建新会话...' })
 

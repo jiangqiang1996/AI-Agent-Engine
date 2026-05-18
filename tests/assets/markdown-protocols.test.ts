@@ -37,7 +37,7 @@ function stripNegativeContext(content: string): string {
     .split(/\r?\n/)
     .filter(
       (line) =>
-        !/(不得|禁止|不要|不能|不提供|不等同|不负责|不构成|未完成|除非|只有当|仅当|必须先|需要先|要求先|必须阻断|用于限制)/.test(
+        !/(不得|禁止|不要|不能|不提供|不等同|不负责|不构成|不执行|不修改|不跳过|未完成|除非|只有当|仅当|必须先|需要先|要求先|必须阻断|用于限制)/.test(
           line,
         ),
     )
@@ -45,20 +45,17 @@ function stripNegativeContext(content: string): string {
 }
 
 describe('Markdown 协议测试', () => {
-  it('浏览器消费方必须在命令前声明 setup 前置门禁和失败降级', () => {
+  it('浏览器消费方必须在命令前声明 agent-browser 环境门禁和失败降级', () => {
     const browserAssets = ASSETS.filter((asset) => AGENT_BROWSER_COMMAND.test(asset.content))
-    const required = ['ae:setup', '未完成', '不得执行', '安装', '不能替代']
+    const required = ['ae:agent-browser', '不得执行', '环境证明', '不能替代']
 
     for (const asset of browserAssets) {
-      if (asset.path.includes('ae-setup/SKILL.md')) {
-        continue
-      }
       const firstCommandIndex = asset.content.search(AGENT_BROWSER_COMMAND)
-      const setupIndex = asset.content.indexOf('ae:setup')
+      const gateIndex = asset.content.indexOf('ae:agent-browser')
 
       expect(
-        setupIndex >= 0 && setupIndex < firstCommandIndex && hasAll(asset.content, required) && /(失败|无法验证|停止)/.test(asset.content),
-        `protocol/setup-gate/${relative(process.cwd(), asset.path)}: 缺少命令前 setup、未完成停止、安装状态不能替代或失败降级语义`,
+        gateIndex >= 0 && gateIndex < firstCommandIndex && hasAll(asset.content, required) && /(失败|无法验证|停止)/.test(asset.content),
+        `protocol/browser-environment-gate/${relative(process.cwd(), asset.path)}: 缺少命令前 agent-browser 环境门禁、未完成停止、安装状态不能替代或失败降级语义`,
       ).toBe(true)
     }
   })

@@ -2,7 +2,7 @@
 
 本文档定义统一的登录检测流程，供所有浏览器截图能力复用。
 
-在执行本文档中的任何 `agent-browser` 命令前，必须先调用 `ae-setup-proof action=check` 确认当前工作区已有合法证明。CLI 已安装、用户声称已安装或本地可用性检查成功都不能替代 setup proof。未通过 proof 校验前不得执行任何 `agent-browser` 命令；证明缺失或无效时先执行 `ae:setup` / `/ae-setup`，若 setup 失败、用户拒绝安装或当前环境无法安装，必须停止浏览器流程并记录无法验证原因。
+在执行本文档中的任何 `agent-browser` 命令前，必须先调用 `ae-agent-browser-proof action=check` 确认当前工作区已有合法环境证明。CLI 已安装、用户声称已安装或本地可用性检查成功都不能替代环境证明。未通过 proof 校验前不得执行任何 `agent-browser` 命令；证明缺失或无效时先执行 `ae:agent-browser` / `/ae-agent-browser` 环境验证流程，若验证失败、用户拒绝安装或当前环境无法安装，必须停止浏览器流程并记录无法验证原因。
 
 
 ## 检测机制
@@ -188,7 +188,7 @@ question({
 
 ### 在技能中集成
 
-未通过 `ae-setup-proof action=check` 或实际完成 `ae:setup` / `/ae-setup` 前，不得执行下列示例中的 `agent-browser` 命令。
+未通过 `ae-agent-browser-proof action=check` 或实际完成 `ae:agent-browser` / `/ae-agent-browser` 环境验证流程前，不得执行下列示例中的 `agent-browser` 命令。
 
 ```markdown
 ### 前置检查：登录状态检测
@@ -206,7 +206,7 @@ question({
 
 ### 在代理中集成
 
-未通过 `ae-setup-proof action=check` 或实际完成 `ae:setup` / `/ae-setup` 前，不得执行下列示例中的 `agent-browser` 命令。
+未通过 `ae-agent-browser-proof action=check` 或实际完成 `ae:agent-browser` / `/ae-agent-browser` 环境验证流程前，不得执行下列示例中的 `agent-browser` 命令。
 
 ```markdown
 ## 步骤 0：前置检查

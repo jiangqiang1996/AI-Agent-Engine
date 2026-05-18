@@ -49,6 +49,7 @@ describe('asset-model-routing-catalog', () => {
   })
 
   it('视觉相关命令应该引用 vision 场景', () => {
+    expect(getCommandModelScenario(COMMAND.AGENT_BROWSER)).toBe(MODEL_SCENARIO.VISION)
     expect(getCommandModelScenario(COMMAND.TEST_BROWSER)).toBe(MODEL_SCENARIO.VISION)
     expect(getCommandModelScenario(COMMAND.FRONTEND_DESIGN)).toBe(MODEL_SCENARIO.VISION)
   })

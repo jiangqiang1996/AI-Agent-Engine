@@ -142,6 +142,8 @@ describe('资产健康巡检', () => {
     expect(commandConfig[`${COMMAND.HTML_BUNDLE}-pa`], 'asset-health/prompt-variant/command/ae-html-bundle-pa').toBeUndefined()
     expect(commandConfig[`${COMMAND.GRAPH_QUERY}-po`], 'asset-health/prompt-variant/command/ae-graph-query-po').toBeUndefined()
     expect(commandConfig[`${COMMAND.GRAPH_QUERY}-pa`], 'asset-health/prompt-variant/command/ae-graph-query-pa').toBeUndefined()
+    expect(commandConfig[`${COMMAND.AGENT_BROWSER}-po`], 'asset-health/prompt-variant/command/ae-agent-browser-po').toBeUndefined()
+    expect(commandConfig[`${COMMAND.AGENT_BROWSER}-pa`], 'asset-health/prompt-variant/command/ae-agent-browser-pa').toBeUndefined()
     expect(buildCommandConfig(join(process.cwd(), 'src/assets/commands'))['ae-work-continue'], 'asset-health/disk-command/command/ae-work-continue').toBeDefined()
     expect(commandConfig['ae-work-continue'], 'asset-health/catalog-command/command/ae-work-continue').toBeUndefined()
     expect(commandConfig['ae-work-continue-po'], 'asset-health/prompt-variant/command/ae-work-continue-po').toBeUndefined()
@@ -328,6 +330,7 @@ describe('资产健康巡检', () => {
       COMMAND.DOC_HUMANIZE,
       COMMAND.DOC_STRUCTURE,
       COMMAND.FRONTEND_DESIGN,
+      COMMAND.AGENT_BROWSER,
       COMMAND.TEST_BROWSER,
       COMMAND.SWAGGER_PARSER,
       COMMAND.HTML_BUNDLE,
@@ -369,6 +372,7 @@ describe('资产健康巡检', () => {
     }
 
     expect(extractMarkdownCommandList(content, MODEL_SCENARIO.STANDARD, COMMAND.IDEATE)).toContain(COMMAND.SKILL_FROM_SESSION)
+    expect(extractMarkdownCommandList(content, MODEL_SCENARIO.VISION, COMMAND.TEST_BROWSER)).toContain(COMMAND.AGENT_BROWSER)
     expect(content).not.toContain('/ae-save-session-flow')
     expect(content).not.toContain('/ae-asset-debug')
   })

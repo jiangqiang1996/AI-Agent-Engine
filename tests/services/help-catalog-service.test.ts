@@ -409,14 +409,14 @@ describe('help-catalog-service', () => {
 
     it('应该为空参数技能显示占位符', () => {
       const catalog = {
-        skills: [{ name: 'ae:setup', description: '安装依赖', argumentHint: '', commandName: 'ae-setup', defaultEntry: false }],
+        skills: [{ name: 'ae:help', description: '查看帮助', argumentHint: '', commandName: 'ae-help', defaultEntry: false }],
         commands: [],
         agents: [],
       }
 
       const text = formatHelpCatalog(catalog)
 
-      expect(text).toContain('| `ae:setup` | `/ae-setup` | `—` | 安装依赖 |')
+      expect(text).toContain('| `ae:help` | `/ae-help` | `—` | 查看帮助 |')
     })
 
     it('应该显示 save-experience 且不显示旧 save-rules 入口', () => {

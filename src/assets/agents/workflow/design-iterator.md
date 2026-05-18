@@ -33,6 +33,8 @@ description: "通过 N 轮截图-分析-改进循环打磨已实现 UI。当初�
 
 ## 截图保存路径
 
+在执行任何 `agent-browser` 命令前，必须先调用 `ae-agent-browser-proof action=check` 确认当前工作区已有合法环境证明；证明缺失或无效时先执行 `ae:agent-browser` / `/ae-agent-browser` 环境验证流程；未通过 proof 校验前不得执行任何 `agent-browser` 命令。
+
 所有 `agent-browser screenshot` 命令的输出文件必须保存到 opencode 启动目录下的 `.opencode/ae/screenshot/` 目录中。例如在 `d:/test` 目录中启动 opencode，则截图保存到 `d:/test/.opencode/ae/screenshot/`。截图前须确保目录存在：
 
 ```bash
@@ -49,7 +51,7 @@ New-Item -ItemType Directory -Path .opencode/ae/screenshot -Force | Out-Null
 
 ### 准备：设置合适的窗口尺寸
 
-在执行任何 `agent-browser` 命令前，必须先调用 `ae-setup-proof action=check` 确认当前工作区已有合法证明。CLI 已安装、用户声称已安装或本地可用性检查成功都不能替代 setup proof。未通过 proof 校验前不得执行任何 `agent-browser` 命令；证明缺失或无效时先执行 `/ae-setup`，若 setup 失败、用户拒绝安装或当前环境无法安装，必须停止浏览器流程并记录无法验证原因。
+在执行任何 `agent-browser` 命令前，必须先调用 `ae-agent-browser-proof action=check` 确认当前工作区已有合法环境证明。CLI 已安装、用户声称已安装或本地可用性检查成功都不能替代环境证明。未通过 proof 校验前不得执行任何 `agent-browser` 命令；证明缺失或无效时先执行 `ae:agent-browser` / `/ae-agent-browser` 环境验证流程，若验证失败、用户拒绝安装或当前环境无法安装，必须停止浏览器流程并记录无法验证原因。
 
 开始迭代前，以有头模式打开浏览器以便查看和调整大小：
 
@@ -206,9 +208,9 @@ agent-browser --headed open [url]
 
 ### 步骤 0：前置检查与设计技能加载
 
-**首先执行 setup 前置门禁：**
+**首先执行 agent-browser 环境门禁：**
 
-如果当前工作区尚未通过 `ae-setup-proof action=check`，先执行 `/ae-setup`。环境就绪并写入证明后，再执行任何 `agent-browser` 命令。若 setup 安装失败、用户拒绝安装或当前环境无法安装，停止截图迭代并报告无法验证原因。
+如果当前工作区尚未通过 `ae-agent-browser-proof action=check`，先执行 `ae:agent-browser` / `/ae-agent-browser` 环境验证流程。环境就绪并写入证明后，再执行任何 `agent-browser` 命令。若验证失败、用户拒绝安装或当前环境无法安装，停止截图迭代并报告无法验证原因。
 
 **登录状态检测：**
 
