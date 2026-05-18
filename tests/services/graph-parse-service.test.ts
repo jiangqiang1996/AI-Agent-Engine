@@ -251,6 +251,22 @@ describe('graph-parse-service', () => {
     expect(files.map((file) => file.relativePath)).toEqual(['dist/a.ts'])
   })
 
+  it('应该结构化记录因为文件过大被跳过的文件', async () => {
+    const root = createTempRoot()
+    write(root, 'src/large.ts', 'x'.repeat((10 * 1024 * 1024) + 1))
+    write(root, 'src/small.ts', 'export const small = 1')
+
+    const files = collectGraphFiles(root, root, { exclude: [] })
+    const parsed = await parseFileRelations(root, files, { exclude: [] })
+
+    expect(parsed.skippedFiles).toEqual([
+      { path: 'src/large.ts', reason: '文件超过 10485760 字节上限', sizeBytes: (10 * 1024 * 1024) + 1 },
+    ])
+    expect(parsed.failedFiles).toEqual([])
+    expect(parsed.warnings).toContain('已跳过超大文件：src/large.ts - 文件超过 10485760 字节上限')
+    expect(parsed.files.some((file) => file.relativePath === 'src/small.ts')).toBe(true)
+  })
+
   it('应该按类似 .gitignore 的通配规则跳过根目录和子目录构建产物', async () => {
     const root = createTempRoot()
     write(root, 'dist/a.ts', '')

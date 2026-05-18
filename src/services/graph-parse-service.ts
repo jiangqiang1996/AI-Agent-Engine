@@ -32,6 +32,15 @@ export interface ParsedGraph {
   files: GraphFileNode[]
   relations: GraphRelation[]
   warnings: string[]
+  failedFiles: GraphParseIssue[]
+  skippedFiles: GraphParseIssue[]
+}
+
+/** 单文件解析问题，用于在构建结果中明确暴露被跳过或失败的文件。 */
+export interface GraphParseIssue {
+  path: string
+  reason: string
+  sizeBytes?: number
 }
 
 function shouldExclude(relativePath: string, config: GraphConfig, isDirectory = false): boolean {
@@ -639,6 +648,8 @@ function pushReference(
  */
 export async function parseFileRelations(worktree: string, files: CollectedGraphFile[], config: GraphConfig): Promise<ParsedGraph> {
   const warnings: string[] = []
+  const failedFiles: GraphParseIssue[] = []
+  const skippedFiles: GraphParseIssue[] = []
   const relations: GraphRelation[] = []
   const fileNodes: GraphFileNode[] = []
 
@@ -680,15 +691,19 @@ export async function parseFileRelations(worktree: string, files: CollectedGraph
       })
     }
     if ((file.sizeBytes ?? 0) > MAX_FILE_BYTES) {
-      warnings.push(`已跳过超大文件：${file.relativePath}`)
+      const reason = `文件超过 ${MAX_FILE_BYTES} 字节上限`
+      skippedFiles.push({ path: file.relativePath, reason, sizeBytes: file.sizeBytes })
+      warnings.push(`已跳过超大文件：${file.relativePath} - ${reason}`)
       continue
     }
 
     let content = ''
     try {
       content = readFileSync(file.absolutePath, 'utf8')
-    } catch {
-      warnings.push(`无法读取文件：${file.relativePath}`)
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error)
+      failedFiles.push({ path: file.relativePath, reason, sizeBytes: file.sizeBytes })
+      warnings.push(`无法读取文件：${file.relativePath} - ${reason}`)
       continue
     }
 
@@ -702,9 +717,21 @@ export async function parseFileRelations(worktree: string, files: CollectedGraph
         }
       }
     }
-    await parseByLanguage(fileNodes, relations, worktree, file, content, lines, markdownReferences, config, warnings)
+    try {
+      await parseByLanguage(fileNodes, relations, worktree, file, content, lines, markdownReferences, config, warnings)
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : String(error)
+      failedFiles.push({ path: file.relativePath, reason, sizeBytes: file.sizeBytes })
+      warnings.push(`文件解析失败：${file.relativePath} - ${reason}`)
+    }
   }
 
   const uniqueFiles = new Map(fileNodes.map((file) => [file.id ?? file.relativePath, file]))
-  return { files: [...uniqueFiles.values()].sort((a, b) => a.relativePath.localeCompare(b.relativePath) || getSortNodeId(a).localeCompare(getSortNodeId(b))), relations, warnings }
+  return {
+    files: [...uniqueFiles.values()].sort((a, b) => a.relativePath.localeCompare(b.relativePath) || getSortNodeId(a).localeCompare(getSortNodeId(b))),
+    relations,
+    warnings,
+    failedFiles,
+    skippedFiles,
+  }
 }

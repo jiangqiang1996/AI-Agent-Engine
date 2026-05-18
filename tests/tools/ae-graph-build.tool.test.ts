@@ -177,6 +177,29 @@ describe('ae-graph-build 工具', () => {
     expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json'))).toBe(true)
   })
 
+  it('应该在构建结果中返回被跳过文件的明细', async () => {
+    const root = createTempRoot()
+    write(root, 'src/large.ts', 'x'.repeat((10 * 1024 * 1024) + 1))
+    write(root, 'src/small.ts', 'export const small = 1')
+
+    const result = await aeGraphBuildTool.execute({ mode: 'full' }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as {
+      failedFiles: number
+      failedFileDetails: unknown[]
+      skippedFiles: number
+      skippedFileDetails: Array<{ path: string; reason: string; sizeBytes: number }>
+      warnings: string[]
+    }
+
+    expect(parsed.failedFiles).toBe(0)
+    expect(parsed.failedFileDetails).toEqual([])
+    expect(parsed.skippedFiles).toBe(1)
+    expect(parsed.skippedFileDetails).toEqual([
+      { path: 'src/large.ts', reason: '文件超过 10485760 字节上限', sizeBytes: (10 * 1024 * 1024) + 1 },
+    ])
+    expect(parsed.warnings).toContain('已跳过超大文件：src/large.ts - 文件超过 10485760 字节上限')
+  })
+
   it('应该在用户拒绝时保留锁文件并取消构建', async () => {
     const root = createTempRoot()
     write(root, 'src/a.ts', '')
