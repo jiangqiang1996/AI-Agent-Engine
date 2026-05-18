@@ -8,7 +8,7 @@ import { z } from 'zod'
 
 import { TOOL } from '../schemas/ae-asset-schema.js'
 import { loadGraphConfig, matchGraphExcludePath, saveGraphExcludeRule } from '../services/graph-config-service.js'
-import { createGraphStorage, resolveGraphDatabasePath } from '../services/graph-storage-service.js'
+import { createGraphStorage } from '../services/graph-storage-service.js'
 import { createRuntimeAssetManifest } from '../services/runtime-asset-manifest.js'
 import { collectGraphFiles, parseFileRelations } from '../services/graph-parse-service.js'
 import { isInsideRoot, pathContainsSymlink, resolvePathWithBase, toPosixPath } from '../utils/path-utils.js'
@@ -297,42 +297,18 @@ async function confirmMissingExcludes(worktree: string, configured: string[], ct
   return confirmed
 }
 
-async function confirmDatabaseWrite(worktree: string, ctx: { ask?: unknown }): Promise<boolean> {
+async function confirmStaleLockRecovery(worktree: string, ctx: { ask?: unknown }): Promise<boolean> {
   if (typeof ctx.ask !== 'function') {
     return false
   }
   try {
     await Effect.runPromise(ctx.ask({
       permission: 'file',
-      patterns: [
-        resolveGraphDatabasePath(worktree),
-        resolve(worktree, docsAePath(DOCS_AE_SUBDIRS.GRAPHS), 'version-*'),
-        resolve(worktree, docsAePath(DOCS_AE_SUBDIRS.GRAPHS), 'graph.json.tmp-*'),
-        resolve(worktree, docsAePath(DOCS_AE_SUBDIRS.GRAPHS), 'graph.json.lock'),
-        resolve(worktree, docsAePath(DOCS_AE_SUBDIRS.GRAPHS), 'index.html'),
-        resolve(worktree, docsAePath(DOCS_AE_SUBDIRS.GRAPHS), 'assets', '**'),
-      ],
-      always: [],
-      metadata: { action: '写入文件关系图谱 JSON 存储文件、分片、预览页及临时文件', target: `${docsAePath(DOCS_AE_SUBDIRS.GRAPHS)}/**` },
-    }))
-    return true
-  } catch {
-    return false
-  }
-}
-
-async function confirmForceOverwrite(ctx: { ask?: unknown }): Promise<boolean> {
-  if (typeof ctx.ask !== 'function') {
-    return false
-  }
-  try {
-    await Effect.runPromise(ctx.ask({
-      permission: 'file',
-      patterns: [],
+      patterns: [resolve(worktree, docsAePath(DOCS_AE_SUBDIRS.GRAPHS), 'graph.json.lock')],
       always: [],
       metadata: {
-        action: '检测到图谱锁文件存在（可能是上次构建意外终止残留），确认后将强制覆盖锁文件并重新构建',
-        suggestion: '选择「确认」强制覆盖锁文件重新构建，或选择「取消」等待其他进程完成',
+        action: '检测到图谱锁文件存在；确认上次构建已意外终止后，将清理残留锁并重新构建',
+        suggestion: '仅在确认没有其他 ae-graph-build 正在运行时继续；否则取消并稍后重试',
       },
     }))
     return true
@@ -391,21 +367,18 @@ export const aeGraphBuildTool = tool({
         config = { exclude: mergeGraphExcludeRules(loadGraphConfig(worktree).exclude, args.exclude) }
       }
 
-      const canWriteDatabase = await confirmDatabaseWrite(worktree, ctx)
-      if (!canWriteDatabase) {
-        return `用户未授权写入 \`${docsAePath(DOCS_AE_SUBDIRS.GRAPHS)}/graph.json\`，已取消文件关系图谱构建。`
-      }
-
       try {
         storage = createGraphStorage(worktree)
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         if (message.includes('正在被其他进程写入') && typeof ctx.ask === 'function') {
-          const forceOverwrite = await confirmForceOverwrite(ctx)
-          if (!forceOverwrite) {
-            return '图谱存储正在被其他进程写入，用户选择等待，已取消。'
+          const recoverStaleLock = await confirmStaleLockRecovery(worktree, ctx)
+          if (!recoverStaleLock) {
+            return '图谱存储正在被其他进程写入，已取消构建；请稍后重试。'
           }
           storage = createGraphStorage(worktree, { force: true })
+        } else if (message.includes('正在被其他进程写入')) {
+          return '图谱存储正在被其他进程写入，当前环境无法确认是否清理残留锁，请稍后重试。'
         } else {
           throw error
         }

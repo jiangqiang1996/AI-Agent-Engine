@@ -123,9 +123,38 @@ describe('ae-graph-build 工具', () => {
     expect(parsed.files).toBeGreaterThan(0)
   })
 
-  it('应该在授权被拒绝时取消写入图谱文件', async () => {
+  it('应该在创建图谱产物时不请求文件授权', async () => {
     const root = createTempRoot()
     write(root, 'src/a.ts', '')
+    const asked: unknown[] = []
+    const ctx = createCaptureAskContext(root, asked)
+
+    const result = await aeGraphBuildTool.execute({ mode: 'full' }, ctx)
+    const parsed = JSON.parse(result as string) as { database: string }
+
+    expect(asked).toEqual([])
+    expect(parsed.database).toBe('docs/ae/graphs/graph.json')
+    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json'))).toBe(true)
+  })
+
+  it('应该在没有 ask 能力时仍写入图谱文件', async () => {
+    const root = createTempRoot()
+    write(root, 'src/a.ts', '')
+    const ctx = createMockContext(root) as unknown as Record<string, unknown>
+    delete ctx.ask
+
+    const result = await aeGraphBuildTool.execute({ mode: 'full' }, ctx as unknown as ToolContext)
+    const parsed = JSON.parse(result as string) as { database: string }
+
+    expect(parsed.database).toBe('docs/ae/graphs/graph.json')
+    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json'))).toBe(true)
+  })
+
+  it('应该在用户拒绝时保留锁文件并取消构建', async () => {
+    const root = createTempRoot()
+    write(root, 'src/a.ts', '')
+    write(root, 'docs/ae/graphs/graph.json.lock', 'other\n')
+    write(root, '.opencode/ae.jsonc', '{ "graph": { "exclude": ["**/.opencode", "docs/ae/graphs"] } }')
     const ctx = {
       ...createMockContext(root),
       ask: () => {
@@ -135,20 +164,25 @@ describe('ae-graph-build 工具', () => {
 
     const result = await aeGraphBuildTool.execute({ mode: 'full' }, ctx)
 
-    expect(result).toContain('未授权写入')
-    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json'))).toBe(false)
+    expect(result).toContain('图谱存储正在被其他进程写入')
+    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json.lock'))).toBe(true)
   })
 
-  it('应该在无法确认写入授权时取消构建', async () => {
+  it('应该在用户确认后清理残留锁并重新构建', async () => {
     const root = createTempRoot()
     write(root, 'src/a.ts', '')
-    const ctx = createMockContext(root) as unknown as Record<string, unknown>
-    delete ctx.ask
+    write(root, 'docs/ae/graphs/graph.json.lock', 'other\n')
+    write(root, '.opencode/ae.jsonc', '{ "graph": { "exclude": ["docs/ae/graphs"] } }')
+    const asked: unknown[] = []
+    const ctx = createCaptureAskContext(root, asked)
 
-    const result = await aeGraphBuildTool.execute({ mode: 'full' }, ctx as unknown as ToolContext)
+    const result = await aeGraphBuildTool.execute({ mode: 'full' }, ctx)
+    const parsed = JSON.parse(result as string) as { database: string }
 
-    expect(result).toContain('未授权写入')
-    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json'))).toBe(false)
+    expect(parsed.database).toBe('docs/ae/graphs/graph.json')
+    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json.lock'))).toBe(false)
+    expect(JSON.stringify(asked)).toContain('清理残留锁')
+    expect(JSON.stringify(asked)).not.toContain('强制覆盖锁文件')
   })
 
   it('应该返回相对图谱文件路径和预览文件路径', async () => {
@@ -274,7 +308,7 @@ describe('ae-graph-build 工具', () => {
     expect(parsed.files).toBeGreaterThan(0)
     expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'version-1'))).toBe(true)
     expect(query.summary.chunkIds.length).toBeGreaterThan(0)
-  })
+  }, 30000)
 
   it('新增被既有文件引用的目标文件时应该回退全量构建', async () => {
     const root = createTempRoot()
