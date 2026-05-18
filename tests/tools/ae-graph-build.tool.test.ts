@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -59,6 +59,33 @@ function createCaptureAskContext(worktree: string, asked: unknown[]) {
   } as unknown as ToolContext
 }
 
+function previewIndexReferencesExistingAssets(root: string): boolean {
+  const indexPath = join(root, 'docs', 'ae', 'graphs', 'index.html')
+  if (!existsSync(indexPath)) {
+    return false
+  }
+  const html = readFileSync(indexPath, 'utf8')
+  const scriptMatch = html.match(/<script[^>]+src="\.\/assets\/([^"]+\.js)"/)
+  const stylesheetMatch = html.match(/<link[^>]+rel="stylesheet"[^>]+href="\.\/assets\/([^"]+\.css)"/)
+  if (!scriptMatch || !stylesheetMatch) {
+    return false
+  }
+  const scriptName = scriptMatch[1]
+  const stylesheetName = stylesheetMatch[1]
+  if (
+    !scriptName ||
+    !stylesheetName ||
+    scriptName.includes('/') ||
+    scriptName.includes('\\') ||
+    stylesheetName.includes('/') ||
+    stylesheetName.includes('\\')
+  ) {
+    return false
+  }
+  const assetDir = join(root, 'docs', 'ae', 'graphs', 'assets')
+  return existsSync(join(assetDir, scriptName)) && existsSync(join(assetDir, stylesheetName))
+}
+
 afterEach(() => {
   for (const root of tempRoots.splice(0)) {
     rmSync(root, { recursive: true, force: true })
@@ -81,7 +108,7 @@ describe('ae-graph-build 工具', () => {
     expect(parsed.parserStats).toEqual([])
     expect(parsed.preview).toBe('docs/ae/graphs/index.html')
     expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'index.html'))).toBe(true)
-    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'assets', 'index-RbR8_brQ.js'))).toBe(true)
+    expect(previewIndexReferencesExistingAssets(root)).toBe(true)
   })
 
   it('应该拒绝越界 target', async () => {
@@ -287,7 +314,7 @@ describe('ae-graph-build 工具', () => {
     expect(parsed.database).toBe('docs/ae/graphs/graph.json')
     expect(parsed.preview).toBe('docs/ae/graphs/index.html')
     expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'index.html'))).toBe(true)
-    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'assets', 'index-RbR8_brQ.js'))).toBe(true)
+    expect(previewIndexReferencesExistingAssets(root)).toBe(true)
     expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json.lock'))).toBe(false)
   })
 

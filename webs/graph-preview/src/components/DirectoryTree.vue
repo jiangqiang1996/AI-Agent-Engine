@@ -32,11 +32,12 @@ const emit = defineEmits<Emits>()
 
 const treeRef = ref<InstanceType<typeof ElTree>>()
 const expandedDirs = ref<Set<string>>(new Set())
+let skipNextCheckedSync = false
 
-// Build tree structure from flat directory stats
-const treeData = computed(() => {
+const treeIndex = computed(() => {
   const root: TreeNode[] = []
   const map = new Map<string, TreeNode>()
+  const descendantsByPath = new Map<string, string[]>()
 
   for (const dir of props.dirs) {
     const parts = dir.path.split('/')
@@ -65,8 +66,23 @@ const treeData = computed(() => {
     }
   }
 
-  return root
+  const collect = (node: TreeNode): string[] => {
+    const paths: string[] = []
+    for (const child of node.children ?? []) {
+      paths.push(child.path, ...collect(child))
+    }
+    descendantsByPath.set(node.path, paths)
+    return paths
+  }
+
+  for (const node of root) {
+    collect(node)
+  }
+
+  return { root, descendantsByPath }
 })
+
+const treeData = computed(() => treeIndex.value.root)
 
 // Tree expects checked keys to mean "selected"
 // But our model is "unselectedDirs" - so checked = NOT in unselectedDirs
@@ -87,28 +103,19 @@ function toggleAllDirs() {
   emit('selectAllDirs')
 }
 
-function collectDescendantPaths(node: TreeNode): string[] {
-  const paths: string[] = []
-  for (const child of node.children ?? []) {
-    paths.push(child.path, ...collectDescendantPaths(child))
-  }
-  return paths
-}
-
 function onCheck(data: TreeNode, state: { checkedKeys: Array<string | number> }) {
   const checked = new Set(state.checkedKeys.map(String))
-  const descendants = collectDescendantPaths(data)
-
-  if (checked.has(data.path)) {
-    for (const path of descendants) {
+  const isChecked = checked.has(data.path)
+  const descendants = treeIndex.value.descendantsByPath.get(data.path) ?? []
+  for (const path of descendants) {
+    if (isChecked) {
       checked.add(path)
-    }
-  } else {
-    for (const path of descendants) {
+    } else {
       checked.delete(path)
     }
+    treeRef.value?.setChecked(path, isChecked, false)
   }
-
+  skipNextCheckedSync = true
   emit('setCheckedDirs', Array.from(checked))
 }
 
@@ -152,10 +159,13 @@ function renderNode(_h: typeof h, context: unknown): VNode {
 watch(
   () => props.unselectedDirs,
   () => {
+    if (skipNextCheckedSync) {
+      skipNextCheckedSync = false
+      return
+    }
     treeRef.value?.setCheckedKeys(checkedKeys.value, false)
     restoreExpandedDirs()
   },
-  { deep: true }
 )
 
 watch(
@@ -164,9 +174,7 @@ watch(
     treeRef.value?.setCheckedKeys(checkedKeys.value, false)
     restoreExpandedDirs()
   },
-  { deep: true }
 )
-
 </script>
 
 <template>

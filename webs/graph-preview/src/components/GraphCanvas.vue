@@ -22,6 +22,7 @@ const cyInstance = ref<cytoscape.Core | null>(null)
 const tooltipVisible = ref(false)
 const tooltipText = ref('')
 const tooltipPos = ref({ left: 0, top: 0 })
+let focusedElements: cytoscape.CollectionReturnValue | null = null
 
 function graphLayout(mode: string, count: number): cytoscape.LayoutOptions {
   if (mode === 'grid' || count > 250) {
@@ -56,16 +57,7 @@ function graphLayout(mode: string, count: number): cytoscape.LayoutOptions {
   } as cytoscape.LayoutOptions
 }
 
-function renderGraph(data: CyData) {
-  if (cyInstance.value) {
-    cyInstance.value.destroy()
-    cyInstance.value = null
-  }
-
-  if (!containerRef.value || data.cyNodes.length === 0) {
-    return
-  }
-
+function graphStylesheet(): cytoscape.StylesheetCSS[] {
   const stylesheet = [
     {
       selector: 'node',
@@ -173,19 +165,10 @@ function renderGraph(data: CyData) {
     },
   ] as unknown as cytoscape.StylesheetCSS[]
 
-  const cy = cytoscape({
-    container: containerRef.value,
-    elements: {
-      nodes: data.cyNodes,
-      edges: data.cyEdges,
-    },
-    style: stylesheet,
-    layout: graphLayout(props.layoutMode, data.stats.nodes),
-    wheelSensitivity: 0.25,
-    minZoom: 0.08,
-    maxZoom: 5,
-  })
+  return stylesheet
+}
 
+function bindGraphEvents(cy: cytoscape.Core) {
   cy.on('tap', 'node', (evt) => {
     focusNode(evt.target)
     emit('nodeTap', evt.target.data() as CyNodeData)
@@ -206,8 +189,34 @@ function renderGraph(data: CyData) {
       emit('canvasTap')
     }
   })
+}
 
-  cyInstance.value = cy
+function renderGraph(data: CyData) {
+  focusedElements = null
+
+  if (!containerRef.value || data.cyNodes.length === 0) {
+    return
+  }
+
+  if (!cyInstance.value) {
+    const cy = cytoscape({
+      container: containerRef.value,
+      elements: [],
+      style: graphStylesheet(),
+      wheelSensitivity: 0.25,
+      minZoom: 0.08,
+      maxZoom: 5,
+    })
+    bindGraphEvents(cy)
+    cyInstance.value = cy
+  }
+
+  const cy = cyInstance.value
+  cy.batch(() => {
+    cy.elements().remove()
+    cy.add([...data.cyNodes, ...data.cyEdges])
+  })
+  cy.layout(graphLayout(props.layoutMode, data.stats.nodes)).run()
 
   setTimeout(() => {
     const n = cy.nodes().length
@@ -217,10 +226,14 @@ function renderGraph(data: CyData) {
 
 function focusNode(node: cytoscape.NodeSingular) {
   if (!cyInstance.value) return
-  cyInstance.value.elements().addClass('faded').removeClass('highlighted')
+  if (focusedElements) {
+    focusedElements.removeClass('highlighted')
+  }
+  cyInstance.value.elements().addClass('faded')
   const neighborhood = node.closedNeighborhood()
   neighborhood.removeClass('faded').addClass('highlighted')
   node.removeClass('faded').addClass('highlighted')
+  focusedElements = neighborhood.union(node)
 }
 
 function showNodeTip(node: cytoscape.NodeSingular, event: MouseEvent) {
@@ -259,9 +272,9 @@ watch(
     } else if (cyInstance.value) {
       cyInstance.value.destroy()
       cyInstance.value = null
+      focusedElements = null
     }
   },
-  { deep: true }
 )
 
 onMounted(() => {
@@ -274,6 +287,7 @@ onUnmounted(() => {
   if (cyInstance.value) {
     cyInstance.value.destroy()
     cyInstance.value = null
+    focusedElements = null
   }
 })
 

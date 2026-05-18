@@ -5,7 +5,7 @@ import Toolbar from './components/Toolbar.vue'
 import DirectoryTree from './components/DirectoryTree.vue'
 import GraphCanvas from './components/GraphCanvas.vue'
 import DetailPanel from './components/DetailPanel.vue'
-import type { CyData, CyNodeData, GraphFileNode, GraphRelation, LoadedGraph } from './graph-types'
+import type { CyData, CyNodeData, GraphFileNode, GraphIndex, GraphRelation, LoadedGraph } from './graph-types'
 import {
   loadGraphData,
   buildDirectoryStats,
@@ -14,6 +14,7 @@ import {
 
 const allNodes = ref<GraphFileNode[]>([])
 const allRelations = ref<GraphRelation[]>([])
+const graphIndex = ref<GraphIndex | null>(null)
 const loaded = ref(false)
 const loading = ref(false)
 const error = ref('')
@@ -33,6 +34,7 @@ const statusType = ref<'success' | 'warning' | 'danger' | 'info'>('info')
 const cyData = ref<CyData | null>(null)
 const detailVisible = ref(false)
 const selectedNode = ref<CyNodeData | null>(null)
+let renderFrame = 0
 
 const directoryStats = computed(() => buildDirectoryStats(allNodes.value, allRelations.value))
 
@@ -44,6 +46,7 @@ async function init() {
     const data: LoadedGraph = await loadGraphData('.')
     allNodes.value = data.files
     allRelations.value = data.relations
+    graphIndex.value = data.index
     loaded.value = true
     statusText.value = `已加载: ${allNodes.value.length} 文件 / ${allRelations.value.length} 关系 | 正在渲染...`
     statusType.value = 'success'
@@ -60,11 +63,11 @@ async function init() {
   }
 }
 
-function doRender() {
+function renderNow() {
   if (!loaded.value) return
+  if (!graphIndex.value) return
   const data = buildCyData({
-    files: allNodes.value,
-    relations: allRelations.value,
+    index: graphIndex.value,
     fileFilter: dirFilter.value.trim().replace(/\/+$/, ''),
     typeFilter: typeFilter.value,
     nodeLimit: nodeLimit.value,
@@ -74,6 +77,16 @@ function doRender() {
   })
   cyData.value = data
   statusText.value = `已渲染: ${data.stats.nodes} 节点 / ${data.stats.edges} 边 | 候选: ${data.stats.filteredFiles} 文件 / ${data.stats.filteredRelations} 关系 | 已取消目录: ${unselectedDirs.value.size}`
+}
+
+function doRender() {
+  if (renderFrame) {
+    cancelAnimationFrame(renderFrame)
+  }
+  renderFrame = requestAnimationFrame(() => {
+    renderFrame = 0
+    renderNow()
+  })
 }
 
 function setCheckedDirs(paths: string[]) {

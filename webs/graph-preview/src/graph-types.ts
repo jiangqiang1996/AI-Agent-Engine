@@ -60,6 +60,7 @@ export interface GraphChunk {
 export interface LoadedGraph {
   files: GraphFileNode[]
   relations: GraphRelation[]
+  index: GraphIndex
   manifest: GraphManifest
 }
 
@@ -108,4 +109,23 @@ export interface CyData {
     filteredFiles: number
     filteredRelations: number
   }
+}
+
+export interface IndexedGraphFile {
+  file: GraphFileNode
+  id: string
+}
+
+export interface IndexedGraphRelation {
+  relation: GraphRelation
+  source: string
+  target: string
+  type: string
+  searchText: string
+}
+
+export interface GraphIndex {
+  files: IndexedGraphFile[]
+  relations: IndexedGraphRelation[]
+  fileById: Map<string, GraphFileNode>
 }

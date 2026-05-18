@@ -1,13 +1,14 @@
 import type {
   CyData,
   DirectoryStat,
+  GraphIndex,
   GraphChunk,
   GraphFileNode,
   GraphManifest,
   GraphRelation,
   GraphStore,
   LoadedGraph,
-} from './graph-types'
+} from './graph-types.js'
 
 export const typeColors: Record<string, string> = {
   import: '#0969da',
@@ -59,9 +60,13 @@ export async function loadGraphData(base = '.'): Promise<LoadedGraph> {
   const manifest = await loadJSON<GraphManifest>(`${versionDir}/manifest.json`)
   const chunks = await Promise.all(manifest.chunks.map((chunkId) => loadJSON<GraphChunk>(`${versionDir}/${chunkId}.json`)))
 
+  const files = chunks.flatMap((chunk) => chunk.files ?? [])
+  const relations = chunks.flatMap((chunk) => chunk.relations ?? [])
+
   return {
-    files: chunks.flatMap((chunk) => chunk.files ?? []),
-    relations: chunks.flatMap((chunk) => chunk.relations ?? []),
+    files,
+    relations,
+    index: buildGraphIndex(files, relations),
     manifest,
   }
 }
@@ -144,6 +149,28 @@ function parentDirectories(path: string): string[] {
   return parts.slice(1).map((_, index) => parts.slice(0, index + 1).join('/'))
 }
 
+export function buildGraphIndex(files: GraphFileNode[], relations: GraphRelation[]): GraphIndex {
+  const indexedFiles = files.map((file) => ({
+    file,
+    id: nodeId(file),
+  }))
+  const fileById = new Map(indexedFiles.map((entry) => [entry.id, entry.file]))
+  const indexedRelations = relations.map((relation) => {
+    const type = relationType(relation)
+    return {
+      relation,
+      source: relationSourceId(relation),
+      target: relationTargetId(relation),
+      type,
+      searchText: [type, relation.type, relation.sourcePath, relation.targetPath, relation.evidence, relation.reason]
+        .join(' ')
+        .toLowerCase(),
+    }
+  })
+
+  return { files: indexedFiles, relations: indexedRelations, fileById }
+}
+
 function ensureDirectoryStat(stats: Map<string, DirectoryStat>, path: string, kind: DirectoryStat['kind']): DirectoryStat | null {
   const value = path.trim().replace(/\/+$|^\/+/, '')
   if (!isWorkspaceTreePath(value)) {
@@ -165,21 +192,6 @@ function isWorkspaceTreePath(path: string): boolean {
     return false
   }
   return true
-}
-
-function relationMatchesSearch(relation: GraphRelation, search: string): boolean {
-  if (!search) {
-    return true
-  }
-  const text = [
-    relationType(relation),
-    relation.type,
-    relation.sourcePath,
-    relation.targetPath,
-    relation.evidence,
-    relation.reason,
-  ].join(' ').toLowerCase()
-  return text.includes(search.toLowerCase())
 }
 
 function isUnselectedPath(path: string, unselectedDirs: Set<string>): boolean {
@@ -244,8 +256,7 @@ export function buildDirectoryStats(files: GraphFileNode[], relations: GraphRela
 }
 
 export function buildCyData(options: {
-  files: GraphFileNode[]
-  relations: GraphRelation[]
+  index: GraphIndex
   fileFilter: string
   typeFilter: string
   nodeLimit: number
@@ -253,8 +264,9 @@ export function buildCyData(options: {
   relationSearch: string
   unselectedDirs: Set<string>
 }): CyData {
-  const { files, relations, fileFilter, typeFilter, nodeLimit, granularity, relationSearch, unselectedDirs } = options
-  const filteredFiles = files.filter((file) => {
+  const { index, fileFilter, typeFilter, nodeLimit, granularity, relationSearch, unselectedDirs } = options
+  const search = relationSearch.toLowerCase()
+  const filteredFiles = index.files.filter(({ file }) => {
     if (isUnselectedPath(file.relativePath, unselectedDirs)) {
       return false
     }
@@ -270,15 +282,15 @@ export function buildCyData(options: {
     return file.fileType !== 'directory'
   })
 
-  const filteredRelations = relations.filter((relation) => {
-    const type = relationType(relation)
+  const filteredRelations = index.relations.filter((entry) => {
+    const { relation, type } = entry
     if (isUnselectedPath(relation.sourcePath, unselectedDirs) || isUnselectedPath(relation.targetPath, unselectedDirs)) {
       return false
     }
     if (typeFilter && type !== typeFilter) {
       return false
     }
-    if (!relationMatchesSearch(relation, relationSearch)) {
+    if (search && !entry.searchText.includes(search)) {
       return false
     }
     if (!fileFilter && type === 'directory') {
@@ -287,7 +299,7 @@ export function buildCyData(options: {
     if (granularity === 'file' && type === 'contains') {
       return false
     }
-    if (granularity === 'symbol' && type !== 'contains' && !relationSourceId(relation).startsWith('symbol:') && !relationTargetId(relation).startsWith('symbol:')) {
+    if (granularity === 'symbol' && type !== 'contains' && !entry.source.startsWith('symbol:') && !entry.target.startsWith('symbol:')) {
       return false
     }
     return !fileFilter || relation.sourcePath.startsWith(fileFilter) || relation.targetPath.startsWith(fileFilter)
@@ -295,37 +307,32 @@ export function buildCyData(options: {
 
   const degreeById = new Map<string, number>()
   for (const relation of filteredRelations) {
-    const source = relationSourceId(relation)
-    const target = relationTargetId(relation)
-    degreeById.set(source, (degreeById.get(source) ?? 0) + 1)
-    degreeById.set(target, (degreeById.get(target) ?? 0) + 1)
+    degreeById.set(relation.source, (degreeById.get(relation.source) ?? 0) + 1)
+    degreeById.set(relation.target, (degreeById.get(relation.target) ?? 0) + 1)
   }
 
-  let nodes = filteredFiles.filter((file) => degreeById.has(nodeId(file)))
-  nodes = nodes.sort((a, b) => (degreeById.get(nodeId(b)) ?? 0) - (degreeById.get(nodeId(a)) ?? 0) || a.relativePath.localeCompare(b.relativePath))
+  let nodes = filteredFiles.filter((entry) => degreeById.has(entry.id))
+  nodes = nodes.sort((a, b) => (degreeById.get(b.id) ?? 0) - (degreeById.get(a.id) ?? 0) || a.file.relativePath.localeCompare(b.file.relativePath))
   if (nodeLimit > 0 && nodes.length > nodeLimit) {
     nodes = nodes.slice(0, nodeLimit)
   }
 
-  const nodeSet = new Set(nodes.map(nodeId))
-  const cyNodes = nodes.map(makeCyNode)
+  const nodeSet = new Set(nodes.map((entry) => entry.id))
+  const cyNodes = nodes.map((entry) => makeCyNode(entry.file))
   const virtualNodes = new Map<string, { id: string; path: string; type: string } | GraphFileNode>()
   const seenEdges = new Set<string>()
-  const sourceNodes = new Map(files.map((file) => [nodeId(file), file]))
   const cyEdges: CyData['cyEdges'] = []
 
   filteredRelations
-    .filter((relation) => nodeSet.has(relationSourceId(relation)) || nodeSet.has(relationTargetId(relation)))
-    .forEach((relation, index) => {
-      const source = relationSourceId(relation)
-      const target = relationTargetId(relation)
+    .filter((entry) => nodeSet.has(entry.source) || nodeSet.has(entry.target))
+    .forEach((entry, relationIndex) => {
+      const { relation, source, target, type } = entry
       if (!nodeSet.has(source) && !virtualNodes.has(source)) {
-        virtualNodes.set(source, sourceNodes.get(source) ?? { id: source, path: relationPathForId(relation, source, true), type: virtualNodeType(source) })
+        virtualNodes.set(source, index.fileById.get(source) ?? { id: source, path: relationPathForId(relation, source, true), type: virtualNodeType(source) })
       }
       if (!nodeSet.has(target) && !virtualNodes.has(target)) {
-        virtualNodes.set(target, sourceNodes.get(target) ?? { id: target, path: relationPathForId(relation, target, false), type: virtualNodeType(target) })
+        virtualNodes.set(target, index.fileById.get(target) ?? { id: target, path: relationPathForId(relation, target, false), type: virtualNodeType(target) })
       }
-      const type = relationType(relation)
       const key = `${source}\u0000${target}\u0000${type}`
       if (seenEdges.has(key)) {
         return
@@ -333,7 +340,7 @@ export function buildCyData(options: {
       seenEdges.add(key)
       cyEdges.push({
         data: {
-          id: `e${index}`,
+          id: `e${relationIndex}`,
           source,
           target,
           relType: type,
