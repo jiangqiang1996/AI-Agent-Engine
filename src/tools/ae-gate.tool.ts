@@ -204,7 +204,8 @@ function collectTrustedReviewOutputs(
     const isReviewSubagent = subagentTypes.some((subagentType) => typeof subagentType === 'string'
       && REVIEW_SUBAGENT_TYPES.has(subagentType))
     const isReviewSource = isReviewTool || isReviewSubagent
-    if (role === 'tool' && (id === reviewRef || taskId === reviewRef) && isReviewSource && content) {
+    const isMatchingReviewSource = isReviewSource && (id === reviewRef || taskId === reviewRef)
+    if (role === 'tool' && isMatchingReviewSource && isReviewSource && content) {
       trustedOutputs[reviewRef] = content
     }
   }
@@ -222,8 +223,8 @@ function extractHistoryText(value: unknown): string {
   }
 
   if (value && typeof value === 'object') {
-    const candidate = value as { text?: unknown; content?: unknown; value?: unknown }
-    return extractHistoryText(candidate.text ?? candidate.content ?? candidate.value)
+    const candidate = value as { text?: unknown; content?: unknown; value?: unknown; output?: unknown }
+    return extractHistoryText(candidate.text ?? candidate.content ?? candidate.value ?? candidate.output)
   }
 
   return ''

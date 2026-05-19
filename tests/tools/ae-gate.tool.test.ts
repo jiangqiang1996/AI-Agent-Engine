@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { AGENT } from '../../src/schemas/ae-asset-schema.js'
+import { AGENT, TOOL } from '../../src/schemas/ae-asset-schema.js'
 import { hashReviewOutput } from '../../src/services/gate-service.js'
 
 const tempRoots: string[] = []
@@ -514,6 +514,52 @@ describe('ae-gate 工具', () => {
     expect(result.blockers).toEqual([])
   })
 
+  it('应该通过 ae-review-proof 形式 metadata 与匹配 ae:review 工具输出的 report_path 证据', async () => {
+    const root = createRepoRoot()
+    const fingerprint = initGitRepo(root)
+    const reviewOutput = createReviewOutput({ worktree: root, ...fingerprint })
+    writeReviewReport(root, {
+      reviewRunIdOrMessageRef: 'review-1',
+      worktree: root,
+      ...fingerprint,
+      reviewOutputHash: hashReviewOutput(reviewOutput),
+    })
+    const tool = await getToolDefinition()
+
+    const output = await tool.execute({
+      workflow: 'work',
+      checkpoint: 'final',
+      plan_path: 'ae/plans/test-plan.md',
+      validation_commands: ['npm run test'],
+      review_status: 'passed',
+      review_evidence: {
+        type: 'report_path',
+        review_trust: 'verified',
+        path: 'ae/reviews/review-1/metadata.json',
+        review_run_id_or_message_ref: 'review-1',
+        worktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        status_summary: fingerprint.statusSummary,
+      },
+      git_operations: [],
+      worktree_decision: 'rejected',
+      no_code_change_reason: '测试工具映射',
+      write_proof: false,
+    }, {
+      metadata: () => undefined,
+      worktree: root,
+      directory: root,
+      sessionID: 'test-session',
+      history: [{ id: 'review-1', role: 'tool', tool: 'ae:review', content: reviewOutput }],
+      abort: new AbortController().signal,
+    })
+    const result = JSON.parse(output) as { status: string; blockers: string[] }
+
+    expect(result.status).toBe('pass')
+    expect(result.blockers).toEqual([])
+  })
+
   it('应该采信 task 工具中明确审查子代理的结构化来源', async () => {
     const root = createRepoRoot()
     const fingerprint = initGitRepo(root)
@@ -715,6 +761,62 @@ describe('ae-gate 工具', () => {
     expect(result.blockers).toContain('审查工具输出未绑定当前 review_evidence 指纹，不能作为可验证审查来源证据。')
   })
 
+  it('不应该仅凭 ae-review-proof 工具返回的结构化审查输出放行', async () => {
+    const root = createRepoRoot()
+    const fingerprint = initGitRepo(root)
+    const reviewOutput = JSON.stringify({
+      generatedBy: 'ae:review',
+      reviewRunIdOrMessageRef: 'review-1',
+      reviewStatus: 'passed',
+      worktree: normalizedEvidencePath(root),
+      branch: fingerprint.branch,
+      head: fingerprint.head,
+      statusSummary: fingerprint.statusSummary,
+      summary: '审查通过',
+      findings: [],
+    }, null, 2)
+    writeReviewReport(root, {
+      reviewRunIdOrMessageRef: 'review-1',
+      worktree: root,
+      ...fingerprint,
+      reviewOutputHash: hashReviewOutput(reviewOutput),
+    })
+    const tool = await getToolDefinition()
+
+    const output = await tool.execute({
+      workflow: 'work',
+      checkpoint: 'final',
+      plan_path: 'ae/plans/test-plan.md',
+      validation_commands: ['npm run test'],
+      review_status: 'passed',
+      review_evidence: {
+        type: 'report_path',
+        review_trust: 'verified',
+        path: 'ae/reviews/review-1/metadata.json',
+        review_run_id_or_message_ref: 'review-1',
+        worktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        status_summary: fingerprint.statusSummary,
+      },
+      git_operations: [],
+      worktree_decision: 'rejected',
+      no_code_change_reason: '测试工具映射',
+      write_proof: false,
+    }, {
+      metadata: () => undefined,
+      worktree: root,
+      directory: root,
+      sessionID: 'test-session',
+      history: [{ id: 'tool-call-1', role: 'tool', tool: TOOL.AE_REVIEW_PROOF, content: { output: reviewOutput } }],
+      abort: new AbortController().signal,
+    })
+    const result = JSON.parse(output) as { status: string; blockers: string[] }
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('审查报告内容未绑定当前 review_evidence 指纹，不能作为可验证审查来源证据。')
+  })
+
   it('不应该把缺少结构化元数据的审查路径视为可信审查证据', async () => {
     const root = createRepoRoot()
     const fingerprint = initGitRepo(root)
@@ -786,6 +888,52 @@ describe('ae-gate 工具', () => {
       directory: root,
       sessionID: 'test-session',
       history: [{ id: 'other-tool', role: 'tool', content: 'ae:review 已生成审查运行 review-1，结论 passed' }],
+      abort: new AbortController().signal,
+    })
+    const result = JSON.parse(output) as { status: string; blockers: string[] }
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('审查报告内容未绑定当前 review_evidence 指纹，不能作为可验证审查来源证据。')
+  })
+
+  it('不应该把非匹配 id 的 ae:review 工具输出视为可信审查引用', async () => {
+    const root = createRepoRoot()
+    const fingerprint = initGitRepo(root)
+    const reviewOutput = createReviewOutput({ worktree: root, ...fingerprint })
+    writeReviewReport(root, {
+      reviewRunIdOrMessageRef: 'review-1',
+      worktree: root,
+      ...fingerprint,
+      reviewOutputHash: hashReviewOutput(reviewOutput),
+    })
+    const tool = await getToolDefinition()
+
+    const output = await tool.execute({
+      workflow: 'work',
+      checkpoint: 'final',
+      plan_path: 'ae/plans/test-plan.md',
+      validation_commands: ['npm run test'],
+      review_status: 'passed',
+      review_evidence: {
+        type: 'report_path',
+        review_trust: 'verified',
+        path: 'ae/reviews/review-1/metadata.json',
+        review_run_id_or_message_ref: 'review-1',
+        worktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        status_summary: fingerprint.statusSummary,
+      },
+      git_operations: [],
+      worktree_decision: 'rejected',
+      no_code_change_reason: '测试工具映射',
+      write_proof: false,
+    }, {
+      metadata: () => undefined,
+      worktree: root,
+      directory: root,
+      sessionID: 'test-session',
+      history: [{ id: 'other-review', role: 'tool', tool: 'ae:review', content: reviewOutput }],
       abort: new AbortController().signal,
     })
     const result = JSON.parse(output) as { status: string; blockers: string[] }
