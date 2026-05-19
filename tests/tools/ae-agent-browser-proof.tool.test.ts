@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -17,12 +17,26 @@ function createTempRoot(): string {
 }
 
 function createValidationResults() {
-  return [{
-    command: 'agent-browser --version',
-    exitCode: 0,
-    output: 'agent-browser 1.2.3 raw-output-token',
-    executedAt: '2026-04-29T00:00:00Z',
-  }]
+  return [
+    {
+      command: 'agent-browser --version',
+      exitCode: 0,
+      output: 'agent-browser 1.2.3',
+      executedAt: '2026-04-29T00:00:00Z',
+    },
+    {
+      command: 'agent-browser --help',
+      exitCode: 0,
+      output: 'Usage: agent-browser raw-output-token',
+      executedAt: '2026-04-29T00:00:01Z',
+    },
+    {
+      command: 'agent-browser skills get core --full',
+      exitCode: 0,
+      output: 'core skill content',
+      executedAt: '2026-04-29T00:00:02Z',
+    },
+  ]
 }
 
 async function callTool(
@@ -101,6 +115,16 @@ describe('ae-agent-browser-proof 工具', () => {
         exitCode: 0,
         outputHash: expect.stringMatching(/^[a-f0-9]{64}$/),
         executedAt: '2026-04-29T00:00:00Z',
+      }, {
+        command: 'agent-browser --help',
+        exitCode: 0,
+        outputHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+        executedAt: '2026-04-29T00:00:01Z',
+      }, {
+        command: 'agent-browser skills get core --full',
+        exitCode: 0,
+        outputHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+        executedAt: '2026-04-29T00:00:02Z',
       }],
     })
     expect(JSON.stringify(readAgentBrowserProof(root))).not.toContain('raw-output-token')
@@ -112,7 +136,7 @@ describe('ae-agent-browser-proof 工具', () => {
       const actual = await importOriginal<typeof import('../../src/services/agent-browser-proof-service.js')>()
       return {
         ...actual,
-        isAgentBrowserProofCompleted: () => true,
+        isAgentBrowserProofCompleted: vi.fn(() => true),
       }
     })
 
@@ -120,21 +144,18 @@ describe('ae-agent-browser-proof 工具', () => {
     const definition = tool as unknown as {
       execute: (args: Record<string, unknown>, ctx: Record<string, unknown>) => Promise<unknown>
     }
-    const result = await definition.execute({ action: 'check' }, { metadata: vi.fn(), worktree: createTempRoot() })
+    const service = await import('../../src/services/agent-browser-proof-service.js')
+    const result = await definition.execute({ action: 'check', worktree_fingerprint: 'fingerprint-1' }, { metadata: vi.fn(), worktree: createTempRoot() })
 
     expect(JSON.stringify(result)).toContain('已完成 agent-browser 环境验证')
     expect(JSON.stringify(result)).toContain('"completed":true')
+    expect(service.isAgentBrowserProofCompleted).toHaveBeenCalledWith(expect.any(String), undefined, 'fingerprint-1')
     vi.doUnmock('../../src/services/agent-browser-proof-service.js')
     vi.resetModules()
   })
 
-  it('旧 setup-proof.json 存在时 check 不应该返回完成', async () => {
-    const root = createTempRoot()
-    const dir = join(root, '.opencode', 'ae')
-    mkdirSync(dir, { recursive: true })
-    writeFileSync(join(dir, 'setup-proof.json'), JSON.stringify({ version: 'agent-browser 1.2.3' }), 'utf8')
-
-    const result = await callTool({ action: 'check' }, { worktree: root })
+  it('check 应该在证明缺失时返回未完成状态', async () => {
+    const result = await callTool({ action: 'check' }, { metadata: vi.fn(), worktree: createTempRoot() })
 
     expect(JSON.stringify(result)).toContain('尚未完成 agent-browser 环境验证')
     expect(JSON.stringify(result)).toContain('"completed":false')
@@ -203,6 +224,57 @@ describe('ae-agent-browser-proof 工具', () => {
     }))
 
     expect(String(result)).toContain('未成功退出')
+    expect(readAgentBrowserProof(root)).toBeNull()
+  })
+
+  it('缺少必需验证命令时不应该写入证明', async () => {
+    const root = createTempRoot()
+
+    const result = await callTool({
+      action: 'complete',
+      agent_browser_version: 'agent-browser 1.2.3',
+      worktree_fingerprint: 'fingerprint-1',
+      validation_results: createValidationResults().filter((result) => result.command !== 'agent-browser --help'),
+    }, setupContext({
+      worktree: root,
+      sessionID: 'session-1',
+    }))
+
+    expect(String(result)).toContain('必须实际运行验证命令 agent-browser --help')
+    expect(readAgentBrowserProof(root)).toBeNull()
+  })
+
+  it('版本号不来自 version 输出时不应该写入证明', async () => {
+    const root = createTempRoot()
+
+    const result = await callTool({
+      action: 'complete',
+      agent_browser_version: 'agent-browser 9.9.9',
+      worktree_fingerprint: 'fingerprint-1',
+      validation_results: createValidationResults(),
+    }, setupContext({
+      worktree: root,
+      sessionID: 'session-1',
+    }))
+
+    expect(String(result)).toContain('版本号必须来自')
+    expect(readAgentBrowserProof(root)).toBeNull()
+  })
+
+  it('版本号只匹配 version 输出前缀时不应该写入证明', async () => {
+    const root = createTempRoot()
+
+    const result = await callTool({
+      action: 'complete',
+      agent_browser_version: 'agent-browser 1.2',
+      worktree_fingerprint: 'fingerprint-1',
+      validation_results: createValidationResults(),
+    }, setupContext({
+      worktree: root,
+      sessionID: 'session-1',
+    }))
+
+    expect(String(result)).toContain('版本号必须来自')
     expect(readAgentBrowserProof(root)).toBeNull()
   })
 

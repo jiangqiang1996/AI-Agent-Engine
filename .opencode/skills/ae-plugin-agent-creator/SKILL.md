@@ -83,4 +83,4 @@ description: 用于创建或更新 AE 插件内置代理，要求遵守 ae:agent
 - 不新增旧式 `ae:agent-updater` 或平行更新入口。
 - 不跳过 `src/schemas/ae-asset-schema.ts`、代理注册/catalog 和相关测试同步。
 - 不默认放宽权限，不默认允许 destructive Git 操作、远程写操作、浏览器命令或外部副作用。
-- 不跳过浏览器能力的 `ae:setup` 前置要求；任何实际执行 `agent-browser` 的流程都必须先校验 setup proof。
+- 不跳过浏览器能力的 `ae:agent-browser` 前置要求；任何实际执行 `agent-browser` 的流程都必须先校验 agent-browser 环境证明。

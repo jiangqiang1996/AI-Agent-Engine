@@ -48,7 +48,6 @@ const ANTI_PATTERNS = [
   'where agent-browser',
   'agent-browser 已安装，运行',
   'agent-browser 未安装，跳过',
-  '未安装则提示用户运行 /ae-setup',
   '用户已安装',
   '已经安装即可继续',
   '已安装则直接运行 agent-browser',

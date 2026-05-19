@@ -28,7 +28,9 @@ export function ensureBrowserEnvironmentGate(prompt: string): string {
     return prompt
   }
 
-  const hasEnvironmentMarker = !NEGATED_ENVIRONMENT_GATE_RE.test(prompt) && (BROWSER_PROOF_CHECK_RE.test(prompt) || BROWSER_ENVIRONMENT_FLOW_RE.test(prompt))
+  const hasEnvironmentMarker = !NEGATED_ENVIRONMENT_GATE_RE.test(prompt)
+    && BROWSER_PROOF_CHECK_RE.test(prompt)
+    && BROWSER_ENVIRONMENT_FLOW_RE.test(prompt)
   if (hasEnvironmentMarker) {
     return prompt
   }

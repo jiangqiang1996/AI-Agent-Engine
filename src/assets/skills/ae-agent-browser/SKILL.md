@@ -46,6 +46,13 @@ agent-browser skills get core --full
 
 当需要完整命令参考、选择器模式、复制粘贴模板或专项工作流时，在环境验证流程中优先运行该命令获取与当前 CLI 版本匹配的指南。不要只凭记忆猜测参数。
 
+详细流程和离线引用见：
+
+- `references/environment-proof.md`：环境证明写入、复验和降级要求。
+- `references/browser-target-selection.md`：已有浏览器、CDP、新受控浏览器和 session 复用的选择契约。
+- `references/agent-browser-cli-reference.md`：agent-browser CLI 常用命令族和采集说明。
+- `references/agent-browser-core-skill.md`：`agent-browser skills get core --full` 的归档位置和更新要求。
+
 ## 无参数默认流程
 
 1. 调用 `ae-agent-browser-proof action=check` 检查当前工作区环境证明。

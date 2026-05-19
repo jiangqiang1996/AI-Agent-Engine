@@ -5,6 +5,12 @@ import { z } from 'zod'
 import { COMMAND, SKILL } from '../schemas/ae-asset-schema.js'
 import { hashAgentBrowserOutput, isAgentBrowserProofCompleted, writeAgentBrowserProof } from '../services/agent-browser-proof-service.js'
 
+const REQUIRED_VALIDATION_COMMANDS = [
+  'agent-browser --version',
+  'agent-browser --help',
+  'agent-browser skills get core --full',
+] as const
+
 function resolveWorktree(context: unknown): string {
   const worktree = (context as { worktree?: unknown }).worktree
   return typeof worktree === 'string' && worktree.length > 0 ? worktree : process.cwd()
@@ -90,7 +96,7 @@ export const aeAgentBrowserProofTool = tool({
 
     const worktree = resolveWorktree(ctx)
     if (args.action === 'check') {
-      const completed = isAgentBrowserProofCompleted(worktree)
+      const completed = isAgentBrowserProofCompleted(worktree, undefined, args.worktree_fingerprint?.trim())
       return {
         output: completed ? '当前工作区已完成 agent-browser 环境验证。' : '当前工作区尚未完成 agent-browser 环境验证。请先运行 ae:agent-browser / /ae-agent-browser。',
         metadata: { completed },
@@ -112,6 +118,17 @@ export const aeAgentBrowserProofTool = tool({
     const failedValidation = args.validation_results.find((result) => result.exitCode !== 0)
     if (failedValidation) {
       return `验证命令 ${failedValidation.command} 未成功退出，不能写入 agent-browser 环境证明。请修复环境后重新运行验证。`
+    }
+
+    const validationCommands = new Set(args.validation_results.map((result) => result.command.trim()))
+    const missingCommand = REQUIRED_VALIDATION_COMMANDS.find((command) => !validationCommands.has(command))
+    if (missingCommand) {
+      return `写入 agent-browser 环境证明前必须实际运行验证命令 ${missingCommand}。请补齐验证结果后重试。`
+    }
+
+    const versionValidation = args.validation_results.find((result) => result.command.trim() === 'agent-browser --version')
+    if (versionValidation?.output.trim() !== args.agent_browser_version.trim()) {
+      return 'agent-browser 版本号必须来自 `agent-browser --version` 的实际输出。请传入匹配的版本输出。'
     }
 
     const sessionId = resolveSessionId(ctx)

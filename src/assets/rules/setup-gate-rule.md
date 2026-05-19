@@ -15,7 +15,7 @@
 ## 豁免
 
 - `ae:agent-browser` 自身不需要先执行环境证明检查，它负责检查、安装指导、复检、浏览器候选展示和证明写入。
-- 安全边界中提到 `agent-browser` 但不实际调用它的描述不强制 setup。
+- 安全边界中提到 `agent-browser` 但不实际调用它的描述不强制环境准备。
 
 ## 适用范围
 
@@ -42,7 +42,7 @@
 
 ## 机器可校验的 agent-browser 环境证明
 
-`ae:agent-browser` 环境验证完成时会写入 `.opencode/ae/agent-browser-proof.json`，包含 `sessionId`、`completedAt`、`version` 字段。
+`ae:agent-browser` 环境验证完成时会写入 `.opencode/ae/agent-browser-proof.json`，包含 `sessionId`、`completedAt`、`schemaVersion`、`worktreeFingerprint`、`agentBrowserVersion`、`validationResults` 和 `proofKind` 字段。
 
 - 消费方通过 `ae-agent-browser-proof action=check` 判断当前工作区是否已有合法 proof
 - `sessionId` 记录写入证明的来源会话，仅用于审计，不作为跨会话复用的阻断条件
