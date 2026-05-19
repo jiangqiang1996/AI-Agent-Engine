@@ -97,6 +97,14 @@ describe('ae-asset-schema', () => {
     expect(registry[TOOL.AE_AGENT_BROWSER_PROOF]).toHaveProperty('execute')
   })
 
+  it('工具注册表应该暴露 review 证明工具', () => {
+    const registry = createToolRegistry()
+
+    expect(TOOL.AE_REVIEW_PROOF).toBe('ae-review-proof')
+    expect(registry[TOOL.AE_REVIEW_PROOF]).toBeDefined()
+    expect(registry[TOOL.AE_REVIEW_PROOF]).toHaveProperty('execute')
+  })
+
   it('不应该重新注册已废弃的浏览器环境入口', () => {
     const deprecatedSkill = ['ae', ':', 'setup'].join('')
     const deprecatedCommand = ['ae', '-', 'setup'].join('')

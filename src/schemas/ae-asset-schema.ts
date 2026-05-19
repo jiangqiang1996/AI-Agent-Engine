@@ -118,6 +118,7 @@ export const TOOL = {
   AE_PROMPT_OPTIMIZE: 'ae-prompt-optimize',
   AE_HELP: 'ae-help',
   AE_GATE: 'ae-gate',
+  AE_REVIEW_PROOF: 'ae-review-proof',
   AE_AGENT_BROWSER_PROOF: 'ae-agent-browser-proof',
   AE_SWAGGER_PARSER: 'ae-swagger-parser',
   AE_HTML_BUNDLE: 'ae-html-bundle',

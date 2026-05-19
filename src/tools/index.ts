@@ -8,6 +8,7 @@ import { aeWorktreeHandoffTool } from './ae-worktree-handoff.tool.js'
 import { aePromptOptimizeTool } from './ae-prompt-optimize.tool.js'
 import { aeHelpTool } from './ae-help.tool.js'
 import { aeGateTool } from './ae-gate.tool.js'
+import { aeReviewProofTool } from './ae-review-proof.tool.js'
 import { aeAgentBrowserProofTool } from './ae-agent-browser-proof.tool.js'
 import { aeSwaggerParserTool } from './ae-swagger-parser.tool.js'
 import { aeHtmlBundleTool } from './ae-html-bundle.tool.js'
@@ -24,6 +25,7 @@ export function createToolRegistry(): Record<string, ToolDefinition> {
     [TOOL.AE_PROMPT_OPTIMIZE]: aePromptOptimizeTool,
     [TOOL.AE_HELP]: aeHelpTool,
     [TOOL.AE_GATE]: aeGateTool,
+    [TOOL.AE_REVIEW_PROOF]: aeReviewProofTool,
     [TOOL.AE_AGENT_BROWSER_PROOF]: aeAgentBrowserProofTool,
     [TOOL.AE_SWAGGER_PARSER]: aeSwaggerParserTool,
     [TOOL.AE_HTML_BUNDLE]: aeHtmlBundleTool,
