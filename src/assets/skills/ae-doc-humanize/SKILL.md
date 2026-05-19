@@ -62,7 +62,7 @@ argument-hint: "[需求文档路径|计划文档路径|目录路径]"
 
 ### 无参数
 
-搜索 `docs/ae/brainstorms/` 和 `docs/ae/plans/` 中最近修改的候选文件，询问用户选择。
+搜索 `ae/brainstorms/` 和 `ae/plans/` 中最近修改的候选文件，询问用户选择。
 
 ## 工作流程
 

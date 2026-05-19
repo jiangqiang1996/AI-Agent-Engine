@@ -1,6 +1,6 @@
 ---
 name: ae:graph-build
-description: 构建或增量维护项目文件关系图谱，写入当前工作区 docs/ae/graphs/graph.json 并生成离线预览页
+description: 构建或增量维护项目文件关系图谱，写入当前工作区 ae/graphs/graph.json 并生成离线预览页
 argument-hint: "[target:<PATH>] [mode:auto|full|incremental] [depth:shallow] [include:<PATH>...] [exclude:<PATH>...]"
 ---
 
@@ -23,7 +23,7 @@ argument-hint: "[target:<PATH>] [mode:auto|full|incremental] [depth:shallow] [in
 - `mode` 可为 `auto`、`full` 或 `incremental`；非 Git 项目会降级为全量构建。
 - 优先使用 `mode=auto`；当图谱缺失、结构损坏或 scope 变化时使用全量构建，当 Git diff 后只需刷新变更文件时使用增量构建。
 - `depth` 首版仅支持 `shallow`，只做浅层正则解析，不执行 AST 深层解析。
-- 工具会读取可选图谱过滤配置，并可叠加 `include` / `exclude` 参数后将图谱写入当前工作区的 `docs/ae/graphs/graph.json`、manifest、索引、分片目录、离线预览页与本地 JS 资源；`include` 优先于 `exclude`，但不覆盖安全硬排除。
+- 工具会读取可选图谱过滤配置，并可叠加 `include` / `exclude` 参数后将图谱写入当前工作区的 `ae/graphs/graph.json`、manifest、索引、分片目录、离线预览页与本地 JS 资源；`include` 优先于 `exclude`，但不覆盖安全硬排除。
 - 构建完成后，优先调用 `ae:graph-query` 的 `stats` 或 `health` 验证图谱可查询，再按任务需要查询 `filter`、`deps`、`impact`、`core`、`path` 或 `pattern`。
 
 ## 输出要求
@@ -39,23 +39,8 @@ argument-hint: "[target:<PATH>] [mode:auto|full|incremental] [depth:shallow] [in
 - 自动写入 `graph.include` 或 `graph.exclude` 规则前必须通过工具确认机制获得许可。
 - `depth=shallow` 只做低成本浅层解析，不执行 AST 深层解析、语义生成或外部 LLM 摘要。
 
-## 预览页构建
-
-图谱预览基于 Vue 3 + Vite 构建，源码位于 `webs/graph-preview/`。
-
-构建并更新内置预览资源：
-
-```bash
-cd webs/graph-preview
-npm run build:copy
-```
-
-该命令会：
-1. 构建生产版本到 `webs/graph-preview/dist/`
-2. 将构建产物（不含数据文件 `graph.json` 和 `version-1/`）复制到 `src/assets/skills/ae-graph-build/references/`
-
 ## 完成标准
 
-- `docs/ae/graphs/graph.json` 存在并包含 active version、manifest、索引和分片。
-- `docs/ae/graphs/index.html` 及 `assets/` 目录存在，可在本地离线打开预览图谱；当前预览资源以已构建 bundle 为准，不要求额外单独的 `cytoscape.min.js` 文件。
+- `ae/graphs/graph.json` 存在并包含 active version、manifest、索引和分片。
+- `ae/graphs/index.html` 及 `assets/` 目录存在，可在本地离线打开预览图谱；当前预览资源以已构建 bundle 为准，不要求额外单独的 `cytoscape.min.js` 文件。
 - 后续可使用 `ae:graph-query` 查询图谱，并在项目理解、审查、计划、调试和重构任务中优先引用图谱结果。

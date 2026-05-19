@@ -11,14 +11,14 @@ description: "检测并修复 Web 实现与 Figma 设计之间的视觉差异。
 
 在执行任何 `agent-browser` 命令前，必须先调用 `ae-agent-browser-proof action=check` 确认当前工作区已有合法环境证明；证明缺失或无效时先执行 `ae:agent-browser` / `/ae-agent-browser` 环境验证流程；未通过 proof 校验前不得执行任何 `agent-browser` 命令。
 
-所有 `agent-browser screenshot` 命令的输出文件必须保存到 opencode 启动目录下的 `.opencode/ae/screenshot/` 目录中。例如在 `d:/test` 目录中启动 opencode，则截图保存到 `d:/test/.opencode/ae/screenshot/`。截图前须确保目录存在：
+所有 `agent-browser screenshot` 命令的输出文件必须保存到 opencode 启动目录下的 `ae/screenshot/` 目录中。例如在 `d:/test` 目录中启动 opencode，则截图保存到 `d:/test/ae/screenshot/`。截图前须确保目录存在：
 
 ```bash
-mkdir -p .opencode/ae/screenshot
+mkdir -p ae/screenshot
 ```
 
 ```powershell
-New-Item -ItemType Directory -Path .opencode/ae/screenshot -Force | Out-Null
+New-Item -ItemType Directory -Path ae/screenshot -Force | Out-Null
 ```
 
 ## 核心工作流
@@ -77,7 +77,7 @@ agent-browser open [url]
 agent-browser snapshot -i --json  # 检测是否进入登录页
 # 如需要登录，执行步骤 1.5 的登录等待流程
 agent-browser snapshot -i
-agent-browser screenshot .opencode/ae/screenshot/implementation.png
+agent-browser screenshot ae/screenshot/implementation.png
 ```
 
 ### 步骤 3：系统化对比分析

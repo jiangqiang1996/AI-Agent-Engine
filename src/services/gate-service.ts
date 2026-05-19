@@ -44,6 +44,14 @@ export interface GitAuthorizationEvidence {
   finalCommandArgs: string[]
 }
 
+/** 验证命令执行结果证据，用于区分命令清单声明和真实执行输出。 */
+export interface ValidationCommandResult {
+  command: string
+  exitCode: number
+  output: string
+  executedAt?: string
+}
+
 /** 审查来源证据的联合类型，支持工具输出、报告路径、未运行原因和声明四种形态。 */
 export type ReviewEvidence =
   | {
@@ -89,6 +97,7 @@ export interface GateInput {
   planPath?: string
   handoffPath?: string
   validationCommands?: string[]
+  validationResults?: ValidationCommandResult[]
   reviewStatus?: GateReviewStatus
   browserTestStatus?: GateReviewStatus
   gitOperations?: string[]
@@ -135,6 +144,7 @@ export interface GateResult {
     handoffExists?: boolean
     changedFiles: string[]
     validationCommands: string[]
+    validationResults: ValidationCommandResult[]
     reviewStatus: GateReviewStatus
     browserTestStatus: GateReviewStatus
     gitOperations: string[]
@@ -220,6 +230,10 @@ function isRuntimeEvidencePath(filePath: string): boolean {
   const normalized = toPosixPath(filePath)
   return normalized.startsWith(`${docsAePath(DOCS_AE_SUBDIRS.GATES)}/`)
     || normalized.startsWith(`${docsAePath(DOCS_AE_SUBDIRS.REVIEWS)}/`)
+    || normalized.startsWith(`${docsAePath(DOCS_AE_SUBDIRS.HANDOFFS)}/`)
+    || normalized === 'ae/agent-browser-proof.json'
+    || normalized.startsWith('ae/screenshot/')
+    || normalized.startsWith('ae/static-server/')
 }
 
 const GIT_EXEC_TIMEOUT = 30_000
@@ -792,6 +806,17 @@ function normalizeCommands(commands: string[] | undefined): string[] {
   return (commands ?? []).map((command) => command.trim()).filter(Boolean)
 }
 
+function normalizeValidationResults(results: ValidationCommandResult[] | undefined): ValidationCommandResult[] {
+  return (results ?? [])
+    .map((result) => ({
+      command: result.command.trim(),
+      exitCode: result.exitCode,
+      output: result.output.trim(),
+      executedAt: result.executedAt?.trim(),
+    }))
+    .filter((result) => result.command && result.output && Number.isInteger(result.exitCode))
+}
+
 function getArtifactSource(normalizedPath?: string, exists?: boolean): GateEvidenceSource {
   if (!normalizedPath) {
     return 'not_provided'
@@ -812,7 +837,8 @@ function getWorkExecutionSource(changedFiles: string[], noCodeChangeReason?: str
   return 'not_provided'
 }
 
-function getValidationSource(validationCommands: string[]): GateEvidenceSource {
+function getValidationSource(validationCommands: string[], validationResults: ValidationCommandResult[]): GateEvidenceSource {
+  void validationResults
   return validationCommands.length > 0 ? 'tool_input_declared' : 'not_provided'
 }
 
@@ -918,21 +944,21 @@ function addReviewEvidenceBlockers(
     }
 
     const reportPath = validateArtifactPath(repoRoot, reviewEvidence.path)
-    if (reportPath.error || !reportPath.exists) {
+    if (reportPath.error || !reportPath.exists || !reportPath.normalizedPath) {
       blockers.push('审查报告路径无效或不存在，不能作为可验证审查来源证据。')
       addMissingEvidence(missingEvidence, '存在的审查报告路径')
       addNextStep(nextSteps, `补充 ${docsAePath(DOCS_AE_SUBDIRS.REVIEWS)}/<run-id>/metadata.json 形式的审查元数据路径。`)
       return
     }
 
-    if (!isReviewMetadataPath(reviewEvidence.path)) {
+    if (!isReviewMetadataPath(reportPath.normalizedPath)) {
       blockers.push(`审查报告路径必须指向 ${docsAePath(DOCS_AE_SUBDIRS.REVIEWS)}/<run-id>/metadata.json。`)
       addMissingEvidence(missingEvidence, '结构化审查元数据路径')
       addNextStep(nextSteps, '使用 ae:review 生成结构化审查元数据，再将 metadata.json 作为 review_evidence.path。')
       return
     }
 
-    const reportAbsPath = resolve(repoRoot, reviewEvidence.path)
+    const reportAbsPath = resolve(repoRoot, reportPath.normalizedPath)
     let content: string
     try {
       content = readFileSync(reportAbsPath, 'utf8')
@@ -1411,6 +1437,7 @@ function runGateSync(repoRoot: string, input: GateInput): GateResult {
         ? parseChangedFiles(currentWorktreeFingerprint.statusSummary ?? '')
         : collectChangedFiles(repoRoot),
       validationCommands: normalizeCommands(input.validationCommands),
+      validationResults: normalizeValidationResults(input.validationResults),
       reviewStatus: input.reviewStatus ?? 'not_run',
       browserTestStatus: input.browserTestStatus ?? 'not_applicable',
       gitOperations,
@@ -1433,7 +1460,7 @@ function runGateSync(repoRoot: string, input: GateInput): GateResult {
     result.evidence.changedFiles,
     result.evidence.noCodeChangeReason,
   )
-  result.evidenceSources.validation = getValidationSource(result.evidence.validationCommands)
+  result.evidenceSources.validation = getValidationSource(result.evidence.validationCommands, result.evidence.validationResults)
   result.evidenceSources.review = getReviewSource(result.evidence.reviewStatus)
   result.evidenceSources.browserTest = getOptionalStatusSource(input.browserTestStatus)
 

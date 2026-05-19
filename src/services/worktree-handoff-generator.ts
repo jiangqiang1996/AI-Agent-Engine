@@ -215,7 +215,7 @@ export function generateHandoffMarkdown(input: WorktreeHandoffInput): { markdown
 }
 
 /**
- * 生成交接 Markdown 并写入目标 worktree 的 `docs/ae/handoffs/` 目录。
+ * 生成交接 Markdown 并写入目标 worktree 的 `ae/handoffs/` 目录。
  * 目录不存在时自动递归创建。
  */
 export async function writeHandoffFile(

@@ -13,5 +13,10 @@
       "enabled": true,
       "timeout": 5000
     }
+  },
+  "graph": {
+    "exclude": [
+      "ae/graphs"
+    ]
   }
 }

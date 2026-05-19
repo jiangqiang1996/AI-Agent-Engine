@@ -28,7 +28,7 @@ argument-hint: "[代理用途|代理名称] [--global] [--command]"
 - 普通用户代理只写入 `.opencode/agents/` 或 `~/.config/opencode/agents/`。
 - 普通用户命令只写入 `.opencode/commands/` 或 `~/.config/opencode/commands/`。
 - `src/assets/agents/` 只属于 AE 插件源码维护语境，不是普通用户代理创建路径。
-- 不要求用户项目存在本仓库的 `src/`、`dist/`、`.opencode/plugins/` 或 `docs/ae/` 结构。
+- 不要求用户项目存在本仓库的 `src/`、`dist/`、`.opencode/plugins/` 或 `ae/` 结构。
 
 ## 工作流
 

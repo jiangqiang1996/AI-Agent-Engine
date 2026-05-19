@@ -1,6 +1,6 @@
 # AE Graph Preview
 
-AE 文件关系图谱的离线预览 Web 应用。构建产物被打包到插件资产中，随 `ae:graph-build` 技能部署到用户项目的 `docs/ae/graphs/` 目录，可直接在浏览器中打开。
+AE 文件关系图谱的离线预览 Web 应用。构建产物被打包到插件资产中，随 `ae:graph-build` 技能部署到用户项目的 `ae/graphs/` 目录，可直接在浏览器中打开。
 
 ## 技术栈
 
@@ -67,7 +67,7 @@ npm run build:copy     # 构建 + 复制到插件资产目录
 
 ### 产物部署
 
-`ae-graph-build.tool.ts` 中的 `copyGraphPreview` 函数在构建图谱时，将 `references/` 目录下的所有文件复制到用户项目的 `docs/ae/graphs/` 目录。最终用户打开 `docs/ae/graphs/index.html` 即可查看图谱。
+`ae-graph-build.tool.ts` 中的 `copyGraphPreview` 函数在构建图谱时，将 `references/` 目录下的所有文件复制到用户项目的 `ae/graphs/` 目录。最终用户打开 `ae/graphs/index.html` 即可查看图谱。
 
 ## 类型体系
 

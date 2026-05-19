@@ -15,9 +15,11 @@ src/assets/skills/ae-sql/scripts/jre/
 src/assets/skills/ae-sql/scripts/drivers/*.jar
 /.env.local
 
-docs/ae/gates
-docs/ae/handoffs
-docs/ae/reviews
+ae/gates
+ae/handoffs
+ae/reviews
 /.opencode/ae.jsonc
-/docs/ae/graphs/
-/.opencode/ae/
+/ae/graphs/
+/ae/agent-browser-proof.json
+/ae/screenshot/
+/ae/static-server/

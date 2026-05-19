@@ -75,7 +75,7 @@ export const aeAgentBrowserProofTool = tool({
     '写入或检查 agent-browser 环境证明。',
     '',
     '功能说明：',
-    '- complete：在当前工作区写入 `.opencode/ae/agent-browser-proof.json`，记录实际环境验证结果',
+    '- complete：在当前工作区写入 `ae/agent-browser-proof.json`，记录实际环境验证结果',
     '- check：检查当前工作区是否存在可跨会话复用的合法 agent-browser 环境证明，并复验版本',
     '',
     '适用场景：',
@@ -143,11 +143,11 @@ export const aeAgentBrowserProofTool = tool({
     try {
       await Effect.runPromise(ctx.ask({
         permission: 'file',
-        patterns: ['.opencode/ae/agent-browser-proof.json'],
+        patterns: ['ae/agent-browser-proof.json'],
         always: [],
         metadata: {
           action: '写入 agent-browser 环境证明',
-          target: '.opencode/ae/agent-browser-proof.json',
+          target: 'ae/agent-browser-proof.json',
         },
       }))
 
@@ -167,7 +167,7 @@ export const aeAgentBrowserProofTool = tool({
         proofKind: 'agent-browser-environment',
       })
     } catch {
-      return '写入 agent-browser 环境证明失败。请确认当前工作区允许写入 `.opencode/ae/agent-browser-proof.json` 后重试。'
+      return '写入 agent-browser 环境证明失败。请确认当前工作区允许写入 `ae/agent-browser-proof.json` 后重试。'
     }
 
     return {

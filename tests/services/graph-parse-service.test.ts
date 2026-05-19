@@ -451,7 +451,7 @@ describe('graph-parse-service', () => {
     write(root, '.env', 'TOKEN=secret')
     write(root, 'src/private-key.json', '{}')
     write(root, '.ae/schema.sql', 'select 1')
-    write(root, 'docs/ae/graphs/graph.json', '{}')
+    write(root, 'ae/graphs/graph.json', '{}')
     write(root, 'src/a.ts', '')
 
     const files = collectGraphFiles(root, root, { exclude: [] })
@@ -501,9 +501,10 @@ describe('graph-parse-service', () => {
   it('graph.include 不应该覆盖安全硬排除', async () => {
     const root = createTempRoot()
     write(root, '.env', 'TOKEN=secret')
-    write(root, 'docs/ae/graphs/graph.json', '{}')
+    write(root, 'ae/graphs/graph.json', '{}')
+    write(root, 'src/logo.png', 'fake image')
 
-    const files = collectGraphFiles(root, root, { include: ['.env', 'docs/ae/graphs/graph.json'], exclude: [] })
+    const files = collectGraphFiles(root, root, { include: ['.env', 'ae/graphs/graph.json', 'src/logo.png'], exclude: [] })
 
     expect(files).toEqual([])
   })

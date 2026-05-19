@@ -92,7 +92,7 @@ describe('graph-storage-service', () => {
     const active = reopened.getActiveVersion(root, '.')
     reopened.closeDatabase()
 
-    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json'))).toBe(true)
+    expect(existsSync(join(root, 'ae', 'graphs', 'graph.json'))).toBe(true)
     expect(active?.files[0].relativePath).toBe('src/a.ts')
   })
 
@@ -110,9 +110,9 @@ describe('graph-storage-service', () => {
 
     expect(summary?.chunkIds.length).toBeGreaterThan(1)
     expect(chunks.length).toBeGreaterThan(1)
-    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'version-1'))).toBe(true)
-    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'version-1', 'manifest.json'))).toBe(true)
-    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'version-1', 'indexes', 'scope-summary.json'))).toBe(true)
+    expect(existsSync(join(root, 'ae', 'graphs', 'version-1'))).toBe(true)
+    expect(existsSync(join(root, 'ae', 'graphs', 'version-1', 'manifest.json'))).toBe(true)
+    expect(existsSync(join(root, 'ae', 'graphs', 'version-1', 'indexes', 'scope-summary.json'))).toBe(true)
   })
 
   it('应该返回 active version 的 manifest 和索引诊断', () => {
@@ -164,8 +164,8 @@ describe('graph-storage-service', () => {
     expect(summary?.nodeCount).toBe(2)
     expect(summary?.nodeKindCounts.symbol).toBe(1)
     expect(summary?.relationTypeCounts.call).toBe(1)
-    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'version-1', 'indexes', 'node-id-to-chunk.json'))).toBe(true)
-    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'version-1', 'indexes', 'source-node-to-relation-chunks.json'))).toBe(true)
+    expect(existsSync(join(root, 'ae', 'graphs', 'version-1', 'indexes', 'node-id-to-chunk.json'))).toBe(true)
+    expect(existsSync(join(root, 'ae', 'graphs', 'version-1', 'indexes', 'source-node-to-relation-chunks.json'))).toBe(true)
   })
 
   it('不应该用旧路径关系键覆盖同文件内不同节点关系', () => {
@@ -253,7 +253,7 @@ describe('graph-storage-service', () => {
     const versionId = storage.createVersion(root, '.', [])
     storage.insertFiles(versionId, [{ relativePath: 'src/a.ts', fileType: 'source' }])
     storage.activateVersion(versionId)
-    unlinkSync(join(root, 'docs', 'ae', 'graphs', 'version-1', 'manifest.json'))
+    unlinkSync(join(root, 'ae', 'graphs', 'version-1', 'manifest.json'))
 
     const diagnostic = storage.diagnoseActiveVersion(root, '.')
     storage.closeDatabase()
@@ -268,7 +268,7 @@ describe('graph-storage-service', () => {
     const versionId = storage.createVersion(root, '.', [])
     storage.insertFiles(versionId, [{ relativePath: 'src/a.ts', fileType: 'source' }])
     storage.activateVersion(versionId)
-    unlinkSync(join(root, 'docs', 'ae', 'graphs', 'version-1', 'chunk-000001-0000.json'))
+    unlinkSync(join(root, 'ae', 'graphs', 'version-1', 'chunk-000001-0000.json'))
 
     const diagnostic = storage.diagnoseActiveVersion(root, '.')
     storage.closeDatabase()
@@ -292,29 +292,29 @@ describe('graph-storage-service', () => {
 
   it('应该在已有写入锁时返回可恢复错误', () => {
     const root = createTempRoot()
-    mkdirSync(join(root, 'docs', 'ae', 'graphs'), { recursive: true })
-    writeFileSync(join(root, 'docs', 'ae', 'graphs', 'graph.json.lock'), 'other\n', 'utf8')
+    mkdirSync(join(root, 'ae', 'graphs'), { recursive: true })
+    writeFileSync(join(root, 'ae', 'graphs', 'graph.json.lock'), 'other\n', 'utf8')
 
     expect(() => createGraphStorage(root)).toThrow('图谱存储正在被其他进程写入')
   })
 
   it('应该在存储文件损坏时释放写入锁', () => {
     const root = createTempRoot()
-    mkdirSync(join(root, 'docs', 'ae', 'graphs'), { recursive: true })
-    writeFileSync(join(root, 'docs', 'ae', 'graphs', 'graph.json'), '{broken', 'utf8')
+    mkdirSync(join(root, 'ae', 'graphs'), { recursive: true })
+    writeFileSync(join(root, 'ae', 'graphs', 'graph.json'), '{broken', 'utf8')
 
     const storage = createGraphStorage(root)
     storage.closeDatabase()
 
-    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json.lock'))).toBe(false)
+    expect(existsSync(join(root, 'ae', 'graphs', 'graph.json.lock'))).toBe(false)
   })
 
   it('应该在图谱 schema 不兼容时清理旧图谱并重建空存储', () => {
     const root = createTempRoot()
-    mkdirSync(join(root, 'docs', 'ae', 'graphs', 'version-1'), { recursive: true })
-    writeFileSync(join(root, 'docs', 'ae', 'graphs', 'graph.json'), JSON.stringify({ schemaVersion: 2, nextVersionId: 2, versions: [] }), 'utf8')
-    writeFileSync(join(root, 'docs', 'ae', 'graphs', 'version-1', 'chunk.json'), '{}', 'utf8')
-    writeFileSync(join(root, 'docs', 'ae', 'graphs', 'README.md'), 'keep', 'utf8')
+    mkdirSync(join(root, 'ae', 'graphs', 'version-1'), { recursive: true })
+    writeFileSync(join(root, 'ae', 'graphs', 'graph.json'), JSON.stringify({ schemaVersion: 2, nextVersionId: 2, versions: [] }), 'utf8')
+    writeFileSync(join(root, 'ae', 'graphs', 'version-1', 'chunk.json'), '{}', 'utf8')
+    writeFileSync(join(root, 'ae', 'graphs', 'README.md'), 'keep', 'utf8')
 
     const storage = createGraphStorage(root)
     const versionId = storage.createVersion(root, '.', [])
@@ -325,8 +325,8 @@ describe('graph-storage-service', () => {
 
     expect(active?.versionId).toBe(1)
     expect(active?.files[0].relativePath).toBe('src/a.ts')
-    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'version-1', 'chunk.json'))).toBe(false)
-    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'README.md'))).toBe(true)
-    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json.lock'))).toBe(false)
+    expect(existsSync(join(root, 'ae', 'graphs', 'version-1', 'chunk.json'))).toBe(false)
+    expect(existsSync(join(root, 'ae', 'graphs', 'README.md'))).toBe(true)
+    expect(existsSync(join(root, 'ae', 'graphs', 'graph.json.lock'))).toBe(false)
   })
 })

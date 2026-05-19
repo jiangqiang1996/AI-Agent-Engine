@@ -109,7 +109,7 @@
 ```
 ⏰ 登录等待超时（已等待 300s）
 
-当前页面截图已保存: .opencode/ae/screenshot/login-timeout.png
+当前页面截图已保存: ae/screenshot/login-timeout.png
 当前 URL: [URL]
 
 请选择：
@@ -167,13 +167,13 @@
 先保存当前页面截图，再使用 `question` 工具询问用户：
 
 ```bash
-agent-browser screenshot .opencode/ae/screenshot/login-timeout.png
+agent-browser screenshot ae/screenshot/login-timeout.png
 ```
 
 ```typescript
 question({
   questions: [{
-    question: "登录等待超时（已等待 300s）。当前页面截图已保存: .opencode/ae/screenshot/login-timeout.png。请选择：",
+    question: "登录等待超时（已等待 300s）。当前页面截图已保存: ae/screenshot/login-timeout.png。请选择：",
     header: "超时处理",
     options: [
       { label: "已完成登录", description: "继续执行后续步骤" },

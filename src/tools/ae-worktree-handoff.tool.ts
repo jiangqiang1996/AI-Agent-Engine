@@ -45,11 +45,11 @@ const WorktreeHandoffInputSchema = z.object({
   plan_path: z
     .string()
     .optional()
-    .describe('可选计划文档相对路径，例如 docs/ae/plans/xxx-plan.md；未迁移或不存在时不传'),
+    .describe('可选计划文档相对路径，例如 ae/plans/xxx-plan.md；未迁移或不存在时不传'),
   requirements_path: z
     .string()
     .optional()
-    .describe('可选需求文档相对路径，例如 docs/ae/brainstorms/xxx.md；未迁移或不存在时不传'),
+    .describe('可选需求文档相对路径，例如 ae/brainstorms/xxx.md；未迁移或不存在时不传'),
   design_path: z
     .string()
     .optional()
@@ -57,11 +57,11 @@ const WorktreeHandoffInputSchema = z.object({
   graph_path: z
     .string()
     .optional()
-    .describe('可选图谱目录相对路径；仅在 docs/ae/graphs/ 真实存在且已迁移时传入'),
+    .describe('可选图谱目录相对路径；仅在 ae/graphs/ 真实存在且已迁移时传入'),
   ae_config_path: z
     .string()
     .optional()
-    .describe('可选 AE 项目配置相对路径；仅在 .opencode/ae.jsonc 真实存在且已迁移时传入'),
+    .describe('可选 AE 项目配置相对路径；仅在 .opencode/ae.jsonc 真实存在时传入'),
   design_borne_by_plan: z
     .boolean()
     .describe('设计是否由计划文档承载'),
@@ -173,7 +173,7 @@ export const aeWorktreeHandoffTool: ToolDefinition = tool({
     lines.push('交接后确认清单：')
     lines.push('1. 工具返回成功（本消息无错误提示）')
     lines.push('2. A 会话最后回复逐字使用了上方简短交接提示')
-    lines.push('3. 交接文件路径符合 docs/ae/handoffs/<timestamp>-worktree-handoff.md 格式')
+    lines.push('3. 交接文件路径符合 ae/handoffs/<timestamp>-worktree-handoff.md 格式')
     lines.push('4. B worktree 通过 ae:work 读取结构化交接文件继续')
 
     return lines.join('\n')

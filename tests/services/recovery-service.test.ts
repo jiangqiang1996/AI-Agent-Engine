@@ -12,16 +12,16 @@ const tempRoots: string[] = []
 function createRepoRoot(): string {
   const root = mkdtempSync(join(tmpdir(), 'ae-recovery-'))
   tempRoots.push(root)
-  mkdirSync(join(root, 'docs', 'ae', 'brainstorms'), { recursive: true })
-  mkdirSync(join(root, 'docs', 'ae', 'plans'), { recursive: true })
-  mkdirSync(join(root, 'docs', 'ae', 'work'), { recursive: true })
-  mkdirSync(join(root, 'docs', 'ae', 'review'), { recursive: true })
+  mkdirSync(join(root, 'ae', 'brainstorms'), { recursive: true })
+  mkdirSync(join(root, 'ae', 'plans'), { recursive: true })
+  mkdirSync(join(root, 'ae', 'work'), { recursive: true })
+  mkdirSync(join(root, 'ae', 'review'), { recursive: true })
   return root
 }
 
 function writePlan(root: string, fileName: string, frontmatter: string): void {
   writeFileSync(
-    join(root, 'docs', 'ae', 'plans', fileName),
+    join(root, 'ae', 'plans', fileName),
     `---\n${frontmatter.trim()}\n---\n\n# 测试计划\n`,
     'utf8',
   )
@@ -29,8 +29,26 @@ function writePlan(root: string, fileName: string, frontmatter: string): void {
 
 function writeBrainstorm(root: string, fileName: string, frontmatter: string): void {
   writeFileSync(
-    join(root, 'docs', 'ae', 'brainstorms', fileName),
+    join(root, 'ae', 'brainstorms', fileName),
     `---\n${frontmatter.trim()}\n---\n\n# 测试需求\n`,
+    'utf8',
+  )
+}
+
+function writeLegacyPlan(root: string, fileName: string): void {
+  mkdirSync(join(root, 'docs', 'ae', 'plans'), { recursive: true })
+  writeFileSync(
+    join(root, 'docs', 'ae', 'plans', fileName),
+    '---\ntype: plan\nstatus: active\ndate: 2026-04-27\ntitle: legacy-plan\n---\n\n# 旧计划\n',
+    'utf8',
+  )
+}
+
+function writeLegacyBrainstorm(root: string, fileName: string): void {
+  mkdirSync(join(root, 'docs', 'ae', 'brainstorms'), { recursive: true })
+  writeFileSync(
+    join(root, 'docs', 'ae', 'brainstorms', fileName),
+    '---\ntype: brainstorm\nstatus: drafted\ndate: 2026-04-27\ntopic: legacy-brainstorm\n---\n\n# 旧需求\n',
     'utf8',
   )
 }
@@ -84,7 +102,7 @@ type: plan
 status: active
 date: 2026-04-27
 title: fingerprint-mismatch
-origin: docs/ae/brainstorms/expected-source.md
+origin: ae/brainstorms/expected-source.md
 originFingerprint: 2026-04-27-source-topic
 `)
 
@@ -93,7 +111,7 @@ originFingerprint: 2026-04-27-source-topic
     })
 
     expect(result.resolution).toBe('resolved')
-    expect(result.path).toBe('docs/ae/plans/fingerprint-mismatch.md')
+    expect(result.path).toBe('ae/plans/fingerprint-mismatch.md')
     expect(result.warnings?.[0]).toContain('originFingerprint 不匹配')
     expect(result.warnings?.[0]).not.toContain(root)
   })
@@ -111,14 +129,14 @@ type: plan
 status: active
 date: 2026-04-27
 title: wrong-origin-fingerprint
-origin: docs/ae/brainstorms/source.md
+origin: ae/brainstorms/source.md
 originFingerprint: wrong-fingerprint
 `)
 
     const result = resolveRecovery(createRuntimeAssetManifestFromRoot(root), 'work')
 
     expect(result.resolution).toBe('resolved')
-    expect(result.path).toBe('docs/ae/plans/wrong-origin-fingerprint.md')
+    expect(result.path).toBe('ae/plans/wrong-origin-fingerprint.md')
     expect(result.warnings?.[0]).toContain("期望 '2026-04-27-source-topic'")
     expect(result.warnings?.[0]).not.toContain(root)
   })
@@ -136,15 +154,15 @@ type: plan
 status: active
 date: 2026-04-28
 title: derived-plan
-origin: docs/ae/plans/source-plan.md
+origin: ae/plans/source-plan.md
 originFingerprint: 2026-04-27-source-plan
 `)
 
     const result = resolveRecovery(createRuntimeAssetManifestFromRoot(root), 'work')
 
     expect(result.resolution).toBe('needs-selection')
-    expect(result.candidates).toContain('docs/ae/plans/source-plan.md')
-    expect(result.candidates).toContain('docs/ae/plans/derived-plan.md')
+    expect(result.candidates).toContain('ae/plans/source-plan.md')
+    expect(result.candidates).toContain('ae/plans/derived-plan.md')
     expect(result.warnings).toBeUndefined()
   })
 
@@ -155,7 +173,7 @@ type: plan
 status: active
 date: 2026-04-27
 title: missing-origin
-origin: docs/ae/brainstorms/missing.md
+origin: ae/brainstorms/missing.md
 originFingerprint: 2026-04-27-missing
 `)
 
@@ -195,8 +213,8 @@ title: review-plan
 
     expect(result.resolution).toBe('resolved')
     expect(result.nextSkill).toBe(SKILL.REVIEW)
-    expect(result.nextArguments).toBe('domain:document docs/ae/plans/review-plan.md')
-    expect(result.nextCommand).toBe(`${SKILL.REVIEW} domain:document docs/ae/plans/review-plan.md`)
+    expect(result.nextArguments).toBe('domain:document ae/plans/review-plan.md')
+    expect(result.nextCommand).toBe(`${SKILL.REVIEW} domain:document ae/plans/review-plan.md`)
   })
 
   it('review 阶段命中多个 plan 产物时不应返回可直接执行的无路径命令', () => {
@@ -236,8 +254,8 @@ title: lfg-plan
     expect(result.resolution).toBe('resolved')
     expect(result.resumePhase).toBe('review')
     expect(result.nextSkill).toBe(SKILL.REVIEW)
-    expect(result.nextArguments).toBe('mode:headless domain:document docs/ae/plans/lfg-plan.md')
-    expect(result.nextCommand).toBe(`${SKILL.REVIEW} mode:headless domain:document docs/ae/plans/lfg-plan.md`)
+    expect(result.nextArguments).toBe('mode:headless domain:document ae/plans/lfg-plan.md')
+    expect(result.nextCommand).toBe(`${SKILL.REVIEW} mode:headless domain:document ae/plans/lfg-plan.md`)
   })
 
   it('lfg 阶段命中 brainstorm 产物时应该恢复到 ae:review 无头文档域', () => {
@@ -253,9 +271,9 @@ topic: requirements
 
     expect(result.resolution).toBe('resolved')
     expect(result.nextSkill).toBe(SKILL.REVIEW)
-    expect(result.nextArguments).toBe('mode:headless domain:document docs/ae/brainstorms/requirements.md')
+    expect(result.nextArguments).toBe('mode:headless domain:document ae/brainstorms/requirements.md')
     expect(result.nextCommand).toBe(
-      `${SKILL.REVIEW} mode:headless domain:document docs/ae/brainstorms/requirements.md`,
+      `${SKILL.REVIEW} mode:headless domain:document ae/brainstorms/requirements.md`,
     )
   })
 
@@ -274,6 +292,26 @@ title: a-plan
     expect(result.resolution).not.toBe('resolved')
     expect(JSON.stringify(result)).not.toContain(rootA)
     expect(JSON.stringify(result)).not.toContain('a-plan.md')
+  })
+
+  it('不应该从旧 docs/ae 计划路径恢复产物', () => {
+    const root = createRepoRoot()
+    writeLegacyPlan(root, 'legacy-plan.md')
+
+    const result = resolveRecovery(createRuntimeAssetManifestFromRoot(root), 'work')
+
+    expect(result.resolution).not.toBe('resolved')
+    expect(JSON.stringify(result)).not.toContain('docs/ae/plans/legacy-plan.md')
+  })
+
+  it('不应该从旧 docs/ae 需求路径恢复产物', () => {
+    const root = createRepoRoot()
+    writeLegacyBrainstorm(root, 'legacy-brainstorm.md')
+
+    const result = resolveRecovery(createRuntimeAssetManifestFromRoot(root), 'lfg')
+
+    expect(result.resolution).not.toBe('resolved')
+    expect(JSON.stringify(result)).not.toContain('docs/ae/brainstorms/legacy-brainstorm.md')
   })
 
   it('当前 worktree 有自己的计划时不跨其他 worktree 恢复', () => {
@@ -295,15 +333,15 @@ title: b-plan
     const result = resolveRecovery(createRuntimeAssetManifestFromRoot(rootB), 'work')
 
     expect(result.resolution).toBe('resolved')
-    expect(result.path).toBe('docs/ae/plans/b-plan.md')
+    expect(result.path).toBe('ae/plans/b-plan.md')
     expect(JSON.stringify(result)).not.toContain(rootA)
     expect(JSON.stringify(result)).not.toContain('a-plan.md')
   })
 
   it('仅有 A 到 B 启动证明时不把证明当作计划产物恢复', () => {
     const rootB = createRepoRoot()
-    mkdirSync(join(rootB, 'docs', 'ae'), { recursive: true })
-    writeFileSync(join(rootB, 'docs', 'ae', 'worktree-startup-proof.md'), [
+    mkdirSync(join(rootB, 'ae'), { recursive: true })
+    writeFileSync(join(rootB, 'ae', 'worktree-startup-proof.md'), [
       '# A 到 B 启动证明',
       '',
       'source_session_id: session-a',

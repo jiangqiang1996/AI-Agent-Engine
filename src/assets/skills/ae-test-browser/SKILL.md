@@ -16,18 +16,18 @@ argument-hint: "[URL|路由]"
 
 ## 截图保存路径
 
-所有 `agent-browser screenshot` 命令的输出文件必须保存到 opencode 启动目录下的 `.opencode/ae/screenshot/` 目录中。
+所有 `agent-browser screenshot` 命令的输出文件必须保存到 opencode 启动目录下的 `ae/screenshot/` 目录中。
 
-例如在 `d:/test` 目录中启动 opencode，则截图保存到 `d:/test/.opencode/ae/screenshot/`。
+例如在 `d:/test` 目录中启动 opencode，则截图保存到 `d:/test/ae/screenshot/`。
 
 截图前须确保目录存在：
 
 ```bash
-mkdir -p .opencode/ae/screenshot
+mkdir -p ae/screenshot
 ```
 
 ```powershell
-New-Item -ItemType Directory -Path .opencode/ae/screenshot -Force | Out-Null
+New-Item -ItemType Directory -Path ae/screenshot -Force | Out-Null
 ```
 
 ## 边界
@@ -206,13 +206,13 @@ agent-browser snapshot -i --json
 
 如 300 秒后仍未检测到登录成功：
 
-1. 截图当前状态：`agent-browser screenshot .opencode/ae/screenshot/login-timeout.png`
+1. 截图当前状态：`agent-browser screenshot ae/screenshot/login-timeout.png`
 2. 使用 `question` 工具询问用户：
 
 ```
 ⏰ 登录等待超时（已等待 300s）
 
-当前页面截图已保存: .opencode/ae/screenshot/login-timeout.png
+当前页面截图已保存: ae/screenshot/login-timeout.png
 当前 URL: [URL]
 
 请选择：
@@ -261,8 +261,8 @@ agent-browser snapshot -i
 每次截图前都必须重新执行步骤 7。尤其在点击、刷新、跳转、等待或重新获取快照后，如果检测到登录页，先等待登录完成，再截图。
 
 ```bash
-agent-browser screenshot .opencode/ae/screenshot/页面名称.png
-agent-browser screenshot --full .opencode/ae/screenshot/页面名称-完整.png
+agent-browser screenshot ae/screenshot/页面名称.png
+agent-browser screenshot --full ae/screenshot/页面名称-完整.png
 ```
 
 ### 9. 人工验证（必要时）
@@ -283,7 +283,7 @@ agent-browser screenshot --full .opencode/ae/screenshot/页面名称-完整.png
 
 ### 10. 处理失败
 
-1. 截图错误状态：`agent-browser screenshot .opencode/ae/screenshot/error.png`
+1. 截图错误状态：`agent-browser screenshot ae/screenshot/error.png`
 2. 询问用户选择"立即修复"或"跳过"
 3. 选择"立即修复"则调查原因、提出修复方案、重新运行失败测试
 4. 如果失败属于审美打磨或 Figma 偏差，记录证据并建议对应专项代理，不在本技能内展开设计修正
@@ -329,8 +329,8 @@ agent-browser type @e1 "文本"
 agent-browser press Enter
 
 # 截图
-agent-browser screenshot .opencode/ae/screenshot/out.png
-agent-browser screenshot --full .opencode/ae/screenshot/out-full.png
+agent-browser screenshot ae/screenshot/out.png
+agent-browser screenshot --full ae/screenshot/out-full.png
 
 # 有头模式
 agent-browser --headed open <url>

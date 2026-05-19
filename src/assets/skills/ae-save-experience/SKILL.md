@@ -38,4 +38,4 @@ argument-hint: "[经验摘要|保存目标]"
 
 ## 低成本引用
 
-完成后提示后续计划、审查或研究流程可先检查 `docs/ae/solutions/` 和 `.opencode/rules/`，但首版不要求自动相似度检索或远程协作写操作。
+完成后提示后续计划、审查或研究流程可先检查 `ae/solutions/` 和 `.opencode/rules/`，但首版不要求自动相似度检索或远程协作写操作。

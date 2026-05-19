@@ -27,6 +27,19 @@ const AGENT_BROWSER_COMMAND = /agent-browser\s+(?:--headed\s+)?(?:open|snapshot|
 const GIT_WRITE_COMMAND = /git\s+(?:add|commit|push|reset|clean|switch|checkout|pull|worktree\s+add)\b/
 const DESTRUCTIVE_LOCAL_COMMAND = /(git\s+(?:reset\s+--hard|clean\b)|Remove-Item\s+.*(?:-Recurse|-Force)|rm\s+-rf\b)/
 const SKIP_VERIFICATION_COMMAND = /(--no-verify|--no-gpg-sign|跳过\s*(?:hooks|验证|审查)|skip\s+hooks)/i
+const SOURCE_REPO_CONTEXT = /(AE 插件源码|插件源码|源码维护|维护内置|安装仓库|更新|项目级更新|全局更新|内置代理)/
+const SOURCE_REPO_PATTERNS = [
+  /src\/assets/,
+  /\.opencode\/plugins/,
+  /ai-agent-engine/,
+]
+
+const SOURCE_REPO_CONTEXT_EXEMPTIONS = new Set([
+  'src/assets/skills/ae-update/SKILL.md',
+  'src/assets/skills/ae-agent-creator/SKILL.md',
+  'src/assets/skills/ae-agent-creator/references/opencode-agent-conventions.md',
+  'src/assets/skills/ae-agent-browser/references/agent-browser-cli-reference.md',
+])
 
 function hasAll(content: string, phrases: string[]): boolean {
   return phrases.every((phrase) => content.includes(phrase))
@@ -113,6 +126,21 @@ describe('Markdown 协议测试', () => {
         SKIP_VERIFICATION_COMMAND.test(actionableText),
         `protocol/skip-verification-boundary/${relative(process.cwd(), asset.path)}: 用户侧资产不得引导跳过 hooks、验证或审查`,
       ).toBe(false)
+    }
+  })
+
+  it('通用用户侧资产不得把插件源码仓库路径写成普通项目前提', () => {
+    for (const asset of ASSETS) {
+      const relativePath = relative(process.cwd(), asset.path).replace(/\\/g, '/')
+      const matched = SOURCE_REPO_PATTERNS.some((pattern) => pattern.test(asset.content))
+      if (!matched || SOURCE_REPO_CONTEXT_EXEMPTIONS.has(relativePath)) {
+        continue
+      }
+
+      expect(
+        SOURCE_REPO_CONTEXT.test(asset.content),
+        `protocol/source-repo-context/${relativePath}: 源码仓库路径或命令必须限定为插件源码维护、安装或内置资产管理语境`,
+      ).toBe(true)
     }
   })
 

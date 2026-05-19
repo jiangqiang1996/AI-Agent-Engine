@@ -48,10 +48,10 @@ describe('agent-browser-proof-service', () => {
     expect(result).toEqual(proof)
   })
 
-  it('证明文件应写入 .opencode/ae/agent-browser-proof.json', () => {
+  it('证明文件应写入 ae/agent-browser-proof.json', () => {
     writeAgentBrowserProof(testDir, createProof())
 
-    const expectedPath = join(testDir, '.opencode', 'ae', 'agent-browser-proof.json')
+    const expectedPath = join(testDir, 'ae', 'agent-browser-proof.json')
     expect(readFileSync(expectedPath, 'utf8')).toBeTruthy()
   })
 
@@ -80,7 +80,7 @@ describe('agent-browser-proof-service', () => {
   })
 
   it('证明文件损坏时返回 null', () => {
-    const dir = join(testDir, '.opencode', 'ae')
+    const dir = join(testDir, 'ae')
     mkdirSync(dir, { recursive: true })
     writeFileSync(join(dir, 'agent-browser-proof.json'), 'invalid json', 'utf8')
 

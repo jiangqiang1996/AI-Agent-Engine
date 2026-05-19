@@ -52,7 +52,7 @@
 
 ### 经验与历史方案
 
-- [已知模式] `docs/ae/solutions/export-pagination.md`
+- [已知模式] `ae/solutions/export-pagination.md`
 
 ### 覆盖情况
 
@@ -80,7 +80,7 @@
 ## 审查结果
 
 **域：** document
-**文档：** docs/ae/plans/2026-03-15-feat-user-auth-plan.md
+**文档：** ae/plans/2026-03-15-feat-user-auth-plan.md
 **类型：** plan
 **审查者：** coherence, feasibility, security, product-lens
 - security -- 计划新增带认证流程的公共 API 端点

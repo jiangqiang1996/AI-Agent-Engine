@@ -41,7 +41,7 @@ argument-hint: "[计划路径|需求文档路径|需求描述]"
 
 #### 0.1 恢复已有计划工作
 
-如果用户引用了现有计划文件，或在 `docs/ae/plans/` 中有明显的近期匹配计划：
+如果用户引用了现有计划文件，或在 `ae/plans/` 中有明显的近期匹配计划：
 - 读取它
 - 确认是就地更新还是创建新计划
 
@@ -53,7 +53,7 @@ argument-hint: "[计划路径|需求文档路径|需求描述]"
 
 #### 0.2 查找上游需求文档
 
-搜索 `docs/ae/brainstorms/` 中匹配 `*-requirements.md` 的文件。如果多个匹配，询问使用哪一个。
+搜索 `ae/brainstorms/` 中匹配 `*-requirements.md` 的文件。如果多个匹配，询问使用哪一个。
 
 #### 0.3 将源文档作为主要输入
 
@@ -116,7 +116,7 @@ argument-hint: "[计划路径|需求文档路径|需求描述]"
 
 #### 3.1 标题和文件命名
 
-文件名：`docs/ae/plans/YYYY-MM-DD-NNN-<type>-<descriptive-name>-plan.md`
+文件名：`ae/plans/YYYY-MM-DD-NNN-<type>-<descriptive-name>-plan.md`
 
 **Frontmatter 字段填写规则：** 计划文档的 frontmatter 必须包含 `type: plan`、`status: drafted`、`date` 和 `title`。`origin` 和 `originFingerprint` 仅在有上游产物时成对填写。`origin` 必须使用仓库相对路径。`originFingerprint` 的值为上游产物 frontmatter 中 `date` + `-` + `topic` 的 kebab-case 拼接；若上游没有 `topic`，则使用 `date` + `-` + `title`（如 `2026-04-27-artifact-template-restructure`）。`supersededBy` 不由计划技能填写，由后续技能在替代旧文档时写入。`depth` 仅对标准和深度计划填写。
 

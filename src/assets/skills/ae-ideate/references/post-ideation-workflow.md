@@ -44,16 +44,16 @@
 
 | 动作 | 仓库模式默认 | 外部模式默认 |
 |---|---|---|
-| 保存 | `docs/ae/ideation/YYYY-MM-DD-<topic>-ideation.md` | `docs/ae/ideation/YYYY-MM-DD-<topic>-ideation.md` |
+| 保存 | `ae/ideation/YYYY-MM-DD-<topic>-ideation.md` | `ae/ideation/YYYY-MM-DD-<topic>-ideation.md` |
 | 头脑风暴交接 | `ae:brainstorm` | `ae:brainstorm` |
 | 结束 | 仅对话即可 | 仅对话即可 |
 
 ### 5.1 文件保存
 
-1. 确保 `docs/ae/ideation/` 存在
+1. 确保 `ae/ideation/` 存在
 2. 选择文件路径：
-   - `docs/ae/ideation/YYYY-MM-DD-<topic>-ideation.md`
-   - `docs/ae/ideation/YYYY-MM-DD-open-ideation.md` 当没有焦点时
+   - `ae/ideation/YYYY-MM-DD-<topic>-ideation.md`
+   - `ae/ideation/YYYY-MM-DD-open-ideation.md` 当没有焦点时
 3. 写入或更新创意文档
 
 文档结构：

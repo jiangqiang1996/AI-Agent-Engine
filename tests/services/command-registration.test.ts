@@ -74,7 +74,7 @@ describe('command-registration', () => {
 
     expect(getPhaseOneEntries().map((entry) => entry.commandName)).not.toContain(WORK_CONTINUE_COMMAND)
     expect(config[WORK_CONTINUE_COMMAND]).toBeDefined()
-    expect(config[WORK_CONTINUE_COMMAND]?.template).toContain('docs/ae/handoffs/*-worktree-handoff.md')
+    expect(config[WORK_CONTINUE_COMMAND]?.template).toContain('ae/handoffs/*-worktree-handoff.md')
     expect(config[WORK_CONTINUE_COMMAND]?.template).toContain('如果找到多个交接文件')
     expect(config[WORK_CONTINUE_COMMAND]?.template).toContain('不得按裸提示词处理')
     expect(config[`${WORK_CONTINUE_COMMAND}${PO_SUFFIX}`]).toBeUndefined()

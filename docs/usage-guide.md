@@ -60,7 +60,7 @@
 
 ```text
 /ae-review mode:report-only
-/ae-review domain:document docs/ae/plans/example.md
+/ae-review domain:document ae/plans/example.md
 ```
 
 `mode:report-only` 只报告发现，不自动修复。`domain:document` 会走文档审查团队，不会把文档当代码 diff 处理。
@@ -226,10 +226,10 @@
 
 | 路径 | 作用 |
 | --- | --- |
-| `docs/ae/brainstorms/` | 需求文档 |
-| `docs/ae/plans/` | 计划文档 |
-| `docs/ae/solutions/` | 历史方案、研究和经验沉淀 |
-| `docs/ae/gates/` | 门禁证明 |
+| `ae/brainstorms/` | 需求文档 |
+| `ae/plans/` | 计划文档 |
+| `ae/solutions/` | 历史方案、研究和经验沉淀 |
+| `ae/gates/` | 门禁证明 |
 | `.opencode/rules/` | 项目长期规则，可由经验沉淀流程写入 |
 | `.opencode/ae.jsonc` | 项目级 AE 配置 |
 

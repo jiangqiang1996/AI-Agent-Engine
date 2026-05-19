@@ -5,7 +5,7 @@ import { join } from 'node:path'
 
 import { AgentBrowserProofSchema, type AgentBrowserProof } from '../schemas/agent-browser-proof-schema.js'
 
-const PROOF_DIR = '.opencode/ae'
+const PROOF_DIR = 'ae'
 const PROOF_FILENAME = 'agent-browser-proof.json'
 
 export type AgentBrowserVersionReader = () => string

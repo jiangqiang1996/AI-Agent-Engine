@@ -27,33 +27,33 @@ function createReviewOutput(
 function createRepoRoot(): string {
   const root = mkdtempSync(join(tmpdir(), 'ae-gate-'))
   tempRoots.push(root)
-  mkdirSync(join(root, 'docs', 'ae', 'brainstorms'), { recursive: true })
-  mkdirSync(join(root, 'docs', 'ae', 'plans'), { recursive: true })
+  mkdirSync(join(root, 'ae', 'brainstorms'), { recursive: true })
+  mkdirSync(join(root, 'ae', 'plans'), { recursive: true })
   return root
 }
 
 function createAllowedWorktreeRoot(root: string, name: string): string {
   const target = join(root, '..', 'worktrees', `${name}-${basename(root)}`)
   tempRoots.push(target)
-  mkdirSync(join(target, 'docs', 'ae', 'brainstorms'), { recursive: true })
-  mkdirSync(join(target, 'docs', 'ae', 'plans'), { recursive: true })
+  mkdirSync(join(target, 'ae', 'brainstorms'), { recursive: true })
+  mkdirSync(join(target, 'ae', 'plans'), { recursive: true })
   return target
 }
 
 function writePlan(root: string): void {
-  writeFileSync(join(root, 'docs', 'ae', 'plans', 'test-plan.md'), '# 测试计划\n', 'utf8')
+  writeFileSync(join(root, 'ae', 'plans', 'test-plan.md'), '# 测试计划\n', 'utf8')
 }
 
 function writeHandoff(root: string): void {
-  mkdirSync(join(root, 'docs', 'ae', 'handoffs'), { recursive: true })
-  writeFileSync(join(root, 'docs', 'ae', 'handoffs', 'test-worktree-handoff.md'), [
+  mkdirSync(join(root, 'ae', 'handoffs'), { recursive: true })
+  writeFileSync(join(root, 'ae', 'handoffs', 'test-worktree-handoff.md'), [
     '---',
     'type: worktree-handoff',
     'status: transferred',
     '---',
     '# 测试交接',
     '## A→B Startup Proof',
-    'resume_entrypoint: ae:work docs/ae/handoffs/test-worktree-handoff.md',
+    'resume_entrypoint: ae:work ae/handoffs/test-worktree-handoff.md',
     '## Execution Baseline',
     '',
   ].join('\n'), 'utf8')
@@ -90,8 +90,8 @@ function writeReviewReport(
   },
 ): void {
   const reviewOutputHash = evidence.reviewOutputHash ?? hashReviewOutput(createReviewOutput(evidence))
-  mkdirSync(join(root, 'docs', 'ae', 'reviews', evidence.reviewRunIdOrMessageRef), { recursive: true })
-  writeFileSync(join(root, 'docs', 'ae', 'reviews', evidence.reviewRunIdOrMessageRef, 'metadata.json'), `${JSON.stringify({
+  mkdirSync(join(root, 'ae', 'reviews', evidence.reviewRunIdOrMessageRef), { recursive: true })
+  writeFileSync(join(root, 'ae', 'reviews', evidence.reviewRunIdOrMessageRef, 'metadata.json'), `${JSON.stringify({
     generatedBy: 'ae:review',
     reviewRunIdOrMessageRef: evidence.reviewRunIdOrMessageRef,
     worktree: normalizedEvidencePath(evidence.worktree),
@@ -133,7 +133,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       reviewStatus: 'not_applicable',
       gitOperations: [],
       noCodeChangeReason: '仅更新流程规则，无运行时代码变更',
@@ -153,7 +153,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperations: ['git commit -m "test"'],
@@ -173,7 +173,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperations: ['git commit -m "test"'],
@@ -210,6 +210,57 @@ describe('门禁服务', () => {
     expect(result.evidenceSources.workExecution).toBe('tool_input_declared')
   })
 
+  it('应该记录验证结果但不把工具入参自报升级为 tool_output', () => {
+    const root = createRepoRoot()
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      validationCommands: ['npm run typecheck'],
+      validationResults: [{ command: 'npm run typecheck', exitCode: 0, output: 'typecheck passed' }],
+      reviewStatus: 'not_applicable',
+      gitOperations: [],
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '简单规则更新，无需计划文档',
+      notes: '裸提示词小任务',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('pass')
+    expect(result.evidenceSources.validation).toBe('tool_input_declared')
+    expect(result.evidence.validationResults).toEqual([{ command: 'npm run typecheck', exitCode: 0, output: 'typecheck passed' }])
+    expect(result.warnings).toContain('validation_commands 当前只记录代理声明的命令列表；除非附带可引用执行结果，否则不能单独证明验证已成功执行。')
+  })
+
+  it('不应该把失败或不匹配的 validation_results 视为可信验证证据', () => {
+    const root = createRepoRoot()
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      validationCommands: ['npm run typecheck'],
+      validationResults: [
+        { command: 'npm run typecheck', exitCode: 1, output: 'typecheck failed' },
+        { command: 'npm run test', exitCode: 0, output: 'tests passed' },
+        { command: 'npm run typecheck', exitCode: 0, output: '' },
+      ],
+      reviewStatus: 'not_applicable',
+      gitOperations: [],
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '简单规则更新，无需计划文档',
+      notes: '裸提示词小任务',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('pass')
+    expect(result.evidenceSources.validation).toBe('tool_input_declared')
+    expect(result.evidence.validationResults).toEqual([
+      { command: 'npm run typecheck', exitCode: 1, output: 'typecheck failed' },
+      { command: 'npm run test', exitCode: 0, output: 'tests passed' },
+    ])
+    expect(result.warnings).toContain('validation_commands 当前只记录代理声明的命令列表；除非附带可引用执行结果，否则不能单独证明验证已成功执行。')
+  })
+
   it('应该允许 ae:work 使用交接文件作为无计划路径的执行基线', () => {
     const root = createRepoRoot()
     writeHandoff(root)
@@ -217,7 +268,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      handoffPath: 'docs/ae/handoffs/test-worktree-handoff.md',
+      handoffPath: 'ae/handoffs/test-worktree-handoff.md',
       validationCommands: ['npm run typecheck'],
       reviewStatus: 'not_run',
       reviewEvidence: { type: 'not_run_reason', reason: '测试无代码变更路径' },
@@ -228,7 +279,7 @@ describe('门禁服务', () => {
     })
 
     expect(result.status).toBe('pass')
-    expect(result.evidence.handoffPath).toBe('docs/ae/handoffs/test-worktree-handoff.md')
+    expect(result.evidence.handoffPath).toBe('ae/handoffs/test-worktree-handoff.md')
     expect(result.evidence.handoffExists).toBe(true)
     expect(result.evidenceSources.handoff).toBe('observable_workspace')
     expect(result.warnings).toContain('本次 ae:work 未提供计划路径；已使用交接文件作为 B worktree 续执行基线。')
@@ -241,7 +292,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      handoffPath: 'docs/ae/handoffs/missing-worktree-handoff.md',
+      handoffPath: 'ae/handoffs/missing-worktree-handoff.md',
       validationCommands: ['npm run typecheck'],
       reviewStatus: 'not_run',
       reviewEvidence: { type: 'not_run_reason', reason: '测试无代码变更路径' },
@@ -252,7 +303,7 @@ describe('门禁服务', () => {
     })
 
     expect(result.status).toBe('block')
-    expect(result.blockers).toContain('交接文件无效或不存在：docs/ae/handoffs/missing-worktree-handoff.md')
+    expect(result.blockers).toContain('交接文件无效或不存在：ae/handoffs/missing-worktree-handoff.md')
     expect(result.missingEvidence).toContain('存在的规范 A→B worktree 交接文件')
   })
 
@@ -262,7 +313,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      handoffPath: 'docs/ae/plans/test-plan.md',
+      handoffPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run typecheck'],
       reviewStatus: 'not_run',
       reviewEvidence: { type: 'not_run_reason', reason: '测试无代码变更路径' },
@@ -273,18 +324,18 @@ describe('门禁服务', () => {
     })
 
     expect(result.status).toBe('block')
-    expect(result.blockers).toContain('交接文件无效或不存在：docs/ae/plans/test-plan.md')
+    expect(result.blockers).toContain('交接文件无效或不存在：ae/plans/test-plan.md')
   })
 
   it('应该阻断 handoffPath 指向缺少规范标记的交接文件', () => {
     const root = createRepoRoot()
-    mkdirSync(join(root, 'docs', 'ae', 'handoffs'), { recursive: true })
-    writeFileSync(join(root, 'docs', 'ae', 'handoffs', 'invalid-worktree-handoff.md'), '# 非规范交接\n', 'utf8')
+    mkdirSync(join(root, 'ae', 'handoffs'), { recursive: true })
+    writeFileSync(join(root, 'ae', 'handoffs', 'invalid-worktree-handoff.md'), '# 非规范交接\n', 'utf8')
 
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      handoffPath: 'docs/ae/handoffs/invalid-worktree-handoff.md',
+      handoffPath: 'ae/handoffs/invalid-worktree-handoff.md',
       validationCommands: ['npm run typecheck'],
       reviewStatus: 'not_run',
       reviewEvidence: { type: 'not_run_reason', reason: '测试无代码变更路径' },
@@ -295,13 +346,13 @@ describe('门禁服务', () => {
     })
 
     expect(result.status).toBe('block')
-    expect(result.blockers).toContain('交接文件无效或不存在：docs/ae/handoffs/invalid-worktree-handoff.md')
+    expect(result.blockers).toContain('交接文件无效或不存在：ae/handoffs/invalid-worktree-handoff.md')
   })
 
   it('应该阻断缺少 resume_entrypoint 的旧格式交接文件', () => {
     const root = createRepoRoot()
-    mkdirSync(join(root, 'docs', 'ae', 'handoffs'), { recursive: true })
-    writeFileSync(join(root, 'docs', 'ae', 'handoffs', 'legacy-worktree-handoff.md'), [
+    mkdirSync(join(root, 'ae', 'handoffs'), { recursive: true })
+    writeFileSync(join(root, 'ae', 'handoffs', 'legacy-worktree-handoff.md'), [
       '---',
       'type: worktree-handoff',
       'status: transferred',
@@ -315,7 +366,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      handoffPath: 'docs/ae/handoffs/legacy-worktree-handoff.md',
+      handoffPath: 'ae/handoffs/legacy-worktree-handoff.md',
       validationCommands: ['npm run typecheck'],
       reviewStatus: 'not_run',
       reviewEvidence: { type: 'not_run_reason', reason: '测试旧格式交接文件阻断' },
@@ -326,7 +377,7 @@ describe('门禁服务', () => {
     })
 
     expect(result.status).toBe('block')
-    expect(result.blockers).toContain('交接文件无效或不存在：docs/ae/handoffs/legacy-worktree-handoff.md')
+    expect(result.blockers).toContain('交接文件无效或不存在：ae/handoffs/legacy-worktree-handoff.md')
   })
 
   it('应该在计划路径存在输入时优先阻断不存在的计划文件', () => {
@@ -336,8 +387,8 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/missing-plan.md',
-      handoffPath: 'docs/ae/handoffs/test-worktree-handoff.md',
+      planPath: 'ae/plans/missing-plan.md',
+      handoffPath: 'ae/handoffs/test-worktree-handoff.md',
       validationCommands: ['npm run typecheck'],
       reviewStatus: 'not_run',
       reviewEvidence: { type: 'not_run_reason', reason: '测试无代码变更路径' },
@@ -348,7 +399,7 @@ describe('门禁服务', () => {
     })
 
     expect(result.status).toBe('block')
-    expect(result.blockers).toContain('计划文件不存在：docs/ae/plans/missing-plan.md')
+    expect(result.blockers).toContain('计划文件不存在：ae/plans/missing-plan.md')
     expect(result.warnings).not.toContain('本次 ae:work 未提供计划路径；已使用交接文件作为 B worktree 续执行基线。')
   })
 
@@ -381,13 +432,13 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'lfg',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run typecheck', 'npm run test'],
       reviewStatus: 'passed',
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/reviews/review-run-1/metadata.json',
+        path: 'ae/reviews/review-run-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-run-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -402,7 +453,7 @@ describe('门禁服务', () => {
     })
 
     expect(result.status).toBe('pass')
-    expect(result.proofPath).toMatch(/^docs\/ae\/gates\//)
+    expect(result.proofPath).toMatch(/^ae\/gates\//)
     expect(result.proofPath ? existsSync(join(root, result.proofPath)) : false).toBe(true)
 
     const proof = JSON.parse(readFileSync(join(root, result.proofPath!), 'utf8')) as {
@@ -429,7 +480,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'lfg',
       checkpoint: 'before_review',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
     })
 
     expect(result.status).toBe('block')
@@ -481,7 +532,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['   '],
       reviewStatus: 'not_applicable',
       gitOperations: [],
@@ -500,7 +551,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'failed',
       gitOperations: [],
@@ -520,7 +571,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperations: ['git -C . clean -fd'],
@@ -539,7 +590,7 @@ describe('门禁服务', () => {
     const writeResult = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperations: ['git worktree add ../x -b feat/x'],
@@ -549,7 +600,7 @@ describe('门禁服务', () => {
     const readResult = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperations: ['git worktree list'],
@@ -572,7 +623,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperations: ['git commit -m test'],
@@ -607,7 +658,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'passed',
       gitOperations: [],
@@ -627,7 +678,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperations: [],
@@ -648,7 +699,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run typecheck'],
       reviewStatus: 'not_applicable',
       gitOperations: [],
@@ -669,7 +720,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperations: [],
@@ -690,7 +741,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       browserTestStatus: 'passed',
@@ -711,7 +762,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperations: [],
@@ -730,7 +781,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_run',
       gitOperations: [],
@@ -750,7 +801,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperations: [],
@@ -779,7 +830,7 @@ describe('门禁服务', () => {
       const result = runGateSync(root, {
         workflow: 'work',
         checkpoint: 'final',
-        planPath: 'docs/ae/plans/test-plan.md',
+        planPath: 'ae/plans/test-plan.md',
         validationCommands: ['npm run test'],
         reviewStatus: 'not_applicable',
         gitOperationArgs: [commandArgs],
@@ -806,7 +857,7 @@ describe('门禁服务', () => {
       const result = runGateSync(root, {
         workflow: 'work',
         checkpoint: 'before_work',
-        planPath: 'docs/ae/plans/test-plan.md',
+        planPath: 'ae/plans/test-plan.md',
         gitOperationArgs: [commandArgs],
         worktreeDecision: 'rejected',
         writeProof: false,
@@ -824,7 +875,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperationArgs: [['-c', 'alias.safe=!git commit -m test', 'safe']],
@@ -844,7 +895,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperationArgs: [['git', '-calias.safe=!git commit -m test', 'safe']],
@@ -869,7 +920,7 @@ describe('门禁服务', () => {
       const result = runGateSync(root, {
         workflow: 'work',
         checkpoint: 'final',
-        planPath: 'docs/ae/plans/test-plan.md',
+        planPath: 'ae/plans/test-plan.md',
         validationCommands: ['npm run test'],
         reviewStatus: 'not_applicable',
         gitOperationArgs: [commandArgs],
@@ -892,7 +943,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperationArgs: [commandArgs],
@@ -927,7 +978,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperationArgs: [commandArgs],
@@ -964,7 +1015,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperationArgs: [commandArgs],
@@ -999,7 +1050,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'passed',
       reviewEvidence: { type: 'declared', summary: '审查通过', reviewTrust: 'declaration_only' },
@@ -1021,13 +1072,13 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'passed',
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/reviews/review-1/missing.json',
+        path: 'ae/reviews/review-1/missing.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -1052,7 +1103,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'passed',
       reviewEvidence: {
@@ -1079,19 +1130,19 @@ describe('门禁服务', () => {
     const root = createRepoRoot()
     writePlan(root)
     const fingerprint = initGitRepo(root)
-    mkdirSync(join(root, 'docs', 'ae', 'reviews'), { recursive: true })
-    writeFileSync(join(root, 'docs', 'ae', 'reviews', 'review.md'), '# 伪报告\n', 'utf8')
+    mkdirSync(join(root, 'ae', 'reviews'), { recursive: true })
+    writeFileSync(join(root, 'ae', 'reviews', 'review.md'), '# 伪报告\n', 'utf8')
 
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'passed',
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/reviews/review.md',
+        path: 'ae/reviews/review.md',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -1105,7 +1156,40 @@ describe('门禁服务', () => {
     })
 
     expect(result.status).toBe('block')
-    expect(result.blockers).toContain('审查报告路径必须指向 docs/ae/reviews/<run-id>/metadata.json。')
+    expect(result.blockers).toContain('审查报告路径必须指向 ae/reviews/<run-id>/metadata.json。')
+  })
+
+  it('应该阻断通过路径穿越逃逸审查元数据目录的 report_path', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+    const fingerprint = initGitRepo(root)
+    mkdirSync(join(root, 'ae'), { recursive: true })
+    writeFileSync(join(root, 'ae', 'metadata.json'), '{}\n', 'utf8')
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'passed',
+      reviewEvidence: {
+        type: 'report_path',
+        reviewTrust: 'verified',
+        path: 'ae/reviews/../metadata.json',
+        reviewRunIdOrMessageRef: 'review-1',
+        worktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        statusSummary: fingerprint.statusSummary,
+      },
+      gitOperations: [],
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('审查报告路径必须指向 ae/reviews/<run-id>/metadata.json。')
   })
 
   it('应该同时检查 legacy 和结构化 Git 操作记录', () => {
@@ -1115,7 +1199,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperations: ['git commit -m test'],
@@ -1136,7 +1220,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperations: ['cmd /c git commit -m test'],
@@ -1158,7 +1242,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperationArgs: [commandArgs],
@@ -1193,7 +1277,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'passed',
       reviewEvidence: {
@@ -1225,7 +1309,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'passed',
       reviewEvidence: {
@@ -1259,7 +1343,7 @@ describe('门禁服务', () => {
       const result = runGateSync(root, {
         workflow: 'work',
         checkpoint: 'final',
-        planPath: 'docs/ae/plans/test-plan.md',
+        planPath: 'ae/plans/test-plan.md',
         validationCommands: ['npm run test'],
         reviewStatus: 'not_applicable',
         gitOperations: [],
@@ -1280,7 +1364,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'lfg',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperations: [],
@@ -1299,7 +1383,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'lfg',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'passed',
       gitOperations: [],
@@ -1316,12 +1400,23 @@ describe('门禁服务', () => {
     const root = createRepoRoot()
     writePlan(root)
     initGitRepo(root)
-    mkdirSync(join(root, 'docs', 'ae', 'reviews'), { recursive: true })
-    writeFileSync(join(root, 'docs', 'ae', 'reviews', 'review.md'), '# 审查报告\n', 'utf8')
+    mkdirSync(join(root, 'ae', 'reviews'), { recursive: true })
+    mkdirSync(join(root, 'ae', 'handoffs'), { recursive: true })
+    mkdirSync(join(root, 'ae', 'screenshot'), { recursive: true })
+    mkdirSync(join(root, 'ae', 'static-server'), { recursive: true })
+    writeFileSync(join(root, 'ae', 'reviews', 'review.md'), '# 审查报告\n', 'utf8')
+    writeFileSync(join(root, 'ae', 'handoffs', 'test-worktree-handoff.md'), '# 交接\n', 'utf8')
+    writeFileSync(join(root, 'ae', 'agent-browser-proof.json'), '{}\n', 'utf8')
+    writeFileSync(join(root, 'ae', 'screenshot', 'page.png'), 'image', 'utf8')
+    writeFileSync(join(root, 'ae', 'static-server', '.static-server-info.json'), '{}\n', 'utf8')
 
     const fingerprint = collectCurrentWorktreeFingerprint(root)
 
-    expect(fingerprint.statusSummary).not.toContain('docs/ae/reviews/review.md')
+    expect(fingerprint.statusSummary).not.toContain('ae/reviews/review.md')
+    expect(fingerprint.statusSummary).not.toContain('ae/handoffs/test-worktree-handoff.md')
+    expect(fingerprint.statusSummary).not.toContain('ae/agent-browser-proof.json')
+    expect(fingerprint.statusSummary).not.toContain('ae/screenshot/page.png')
+    expect(fingerprint.statusSummary).not.toContain('ae/static-server/.static-server-info.json')
   })
 
   it('应该在 git status 降级省略未跟踪文件时阻断审查证据复用', async () => {
@@ -1370,13 +1465,13 @@ describe('门禁服务', () => {
       const result = Effect.runSync(gateService.runGate(root, {
         workflow: 'work',
         checkpoint: 'final',
-        planPath: 'docs/ae/plans/test-plan.md',
+        planPath: 'ae/plans/test-plan.md',
         validationCommands: ['npm run test'],
         reviewStatus: 'passed',
         reviewEvidence: {
           type: 'report_path',
           reviewTrust: 'verified',
-          path: 'docs/ae/reviews/review-degraded/metadata.json',
+          path: 'ae/reviews/review-degraded/metadata.json',
           ...evidence,
         },
         trustedReviewRefs: ['review-degraded'],
@@ -1524,7 +1619,7 @@ describe('门禁服务', () => {
     const result = runGateSync(rootB, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperationArgs: [commandArgs],
@@ -1565,7 +1660,7 @@ describe('门禁服务', () => {
     const result = runGateSync(rootB, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperationArgs: [commandArgs],
@@ -1603,7 +1698,7 @@ describe('门禁服务', () => {
     const result = runGateSync(rootB, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperationArgs: [commandArgs],
@@ -1640,7 +1735,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperationArgs: [commandArgs],
@@ -1678,7 +1773,7 @@ describe('门禁服务', () => {
     const result = runGateSync(rootB, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperationArgs: [commandArgs],
@@ -1715,7 +1810,7 @@ describe('门禁服务', () => {
     const result = runGateSync(rootB, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperationArgs: [commandArgs],
@@ -1761,7 +1856,7 @@ describe('门禁服务', () => {
       const result = runGateSync(rootB, {
         workflow: 'work',
         checkpoint: 'final',
-        planPath: 'docs/ae/plans/test-plan.md',
+        planPath: 'ae/plans/test-plan.md',
         validationCommands: ['npm run test'],
         reviewStatus: 'not_applicable',
         gitOperationArgs: [commandArgs],
@@ -1801,7 +1896,7 @@ describe('门禁服务', () => {
     const result = runGateSync(rootB, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperationArgs: [commandArgs],
@@ -1839,7 +1934,7 @@ describe('门禁服务', () => {
     const result = runGateSync(rootA, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperationArgs: [commandArgs],
@@ -1877,7 +1972,7 @@ describe('门禁服务', () => {
     const result = runGateSync(rootB, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperationArgs: [commandArgs],
@@ -1909,7 +2004,7 @@ describe('门禁服务', () => {
     const rootA = createRepoRoot()
     const rootB = join(rootA, '..', 'worktrees', 'repo-b', 'nested')
     tempRoots.push(rootB)
-    mkdirSync(join(rootB, 'docs', 'ae', 'plans'), { recursive: true })
+    mkdirSync(join(rootB, 'ae', 'plans'), { recursive: true })
     writePlan(rootB)
     const fingerprint = initGitRepo(rootB)
     const commandArgs = ['git', 'worktree', 'add', rootB]
@@ -1917,7 +2012,7 @@ describe('门禁服务', () => {
     const result = runGateSync(rootB, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperationArgs: [commandArgs],
@@ -1954,7 +2049,7 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'not_applicable',
       gitOperationArgs: [commandArgs],
@@ -1989,13 +2084,13 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'passed',
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/reviews/review-1/metadata.json',
+        path: 'ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -2021,13 +2116,13 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'passed',
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/reviews/review-1/metadata.json',
+        path: 'ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -2054,13 +2149,13 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'passed',
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/reviews/review-1/metadata.json',
+        path: 'ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -2096,13 +2191,13 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'passed',
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/reviews/review-1/metadata.json',
+        path: 'ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -2136,13 +2231,13 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'passed',
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/reviews/review-1/metadata.json',
+        path: 'ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -2184,13 +2279,13 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'passed',
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/reviews/review-1/metadata.json',
+        path: 'ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -2231,13 +2326,13 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'passed',
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/reviews/review-1/metadata.json',
+        path: 'ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -2278,13 +2373,13 @@ describe('门禁服务', () => {
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'passed',
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/reviews/review-1/metadata.json',
+        path: 'ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -2325,13 +2420,13 @@ current evidence: ${normalizedEvidencePath(root)} ${fingerprint.branch} ${finger
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'passed',
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/reviews/review-1/metadata.json',
+        path: 'ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -2360,13 +2455,13 @@ current evidence: ${normalizedEvidencePath(root)} ${fingerprint.branch} ${finger
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'passed',
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'declaration_only',
-        path: 'docs/ae/reviews/review-1/metadata.json',
+        path: 'ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -2391,7 +2486,7 @@ current evidence: ${normalizedEvidencePath(root)} ${fingerprint.branch} ${finger
     const fingerprint = initGitRepo(root)
     const reviewOutput = createReviewOutput({ worktree: root, ...fingerprint })
     writeReviewReport(root, { reviewRunIdOrMessageRef: 'review-1', worktree: root, ...fingerprint })
-    writeFileSync(join(root, 'docs', 'ae', 'reviews', 'review-1', 'metadata.json'), `${JSON.stringify({
+    writeFileSync(join(root, 'ae', 'reviews', 'review-1', 'metadata.json'), `${JSON.stringify({
       generatedBy: 'manual',
       reviewRunIdOrMessageRef: 'review-1',
       worktree: normalizedEvidencePath(root),
@@ -2404,13 +2499,13 @@ current evidence: ${normalizedEvidencePath(root)} ${fingerprint.branch} ${finger
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'passed',
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/reviews/review-1/metadata.json',
+        path: 'ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -2439,13 +2534,13 @@ current evidence: ${normalizedEvidencePath(root)} ${fingerprint.branch} ${finger
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'passed',
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/reviews/review-1/metadata.json',
+        path: 'ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -2474,13 +2569,13 @@ current evidence: ${normalizedEvidencePath(root)} ${fingerprint.branch} ${finger
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'passed',
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/reviews/review-1/metadata.json',
+        path: 'ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -2510,13 +2605,13 @@ current evidence: ${normalizedEvidencePath(root)} ${fingerprint.branch} ${finger
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'passed',
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/reviews/review-1/metadata.json',
+        path: 'ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: root,
         branch: fingerprint.branch,
@@ -2546,13 +2641,13 @@ current evidence: ${normalizedEvidencePath(root)} ${fingerprint.branch} ${finger
     const result = runGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'docs/ae/plans/test-plan.md',
+      planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
       reviewStatus: 'passed',
       reviewEvidence: {
         type: 'report_path',
         reviewTrust: 'verified',
-        path: 'docs/ae/reviews/review-1/metadata.json',
+        path: 'ae/reviews/review-1/metadata.json',
         reviewRunIdOrMessageRef: 'review-1',
         worktree: otherRoot,
         branch: fingerprint.branch,

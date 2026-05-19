@@ -47,7 +47,7 @@ describe('ae-worktree-handoff 工具', () => {
       covered_command_args: 'git worktree add ../worktrees/feat-graph-config -b feat/graph-config HEAD',
       final_command_args: 'git worktree add "../worktrees/feat-graph-config" -b "feat/graph-config" HEAD',
       creation_result: 'Git worktree 创建成功',
-      graph_path: 'docs/ae/graphs/',
+      graph_path: 'ae/graphs/',
       ae_config_path: '.opencode/ae.jsonc',
       design_borne_by_plan: true,
       execution_baseline: '必须从阶段 1 继续执行',
@@ -60,9 +60,9 @@ describe('ae-worktree-handoff 工具', () => {
     if (match === null) return
 
     const content = readFileSync(match[1].trim(), 'utf-8')
-    expect(content).toContain('- graph: `docs/ae/graphs/`')
+    expect(content).toContain('- graph: `ae/graphs/`')
     expect(content).toContain('- ae_config: `.opencode/ae.jsonc`')
-    expect(content).toContain('  - graph: `docs/ae/graphs/`')
+    expect(content).toContain('  - graph: `ae/graphs/`')
     expect(content).toContain('  - ae_config: `.opencode/ae.jsonc`')
   })
 })

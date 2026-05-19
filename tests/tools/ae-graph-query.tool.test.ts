@@ -92,8 +92,8 @@ describe('ae-graph-query 工具', () => {
 
   it('应该在图谱文件损坏时返回可恢复提示', async () => {
     const root = createTempRoot()
-    mkdirSync(join(root, 'docs', 'ae', 'graphs'), { recursive: true })
-    writeFileSync(join(root, 'docs', 'ae', 'graphs', 'graph.json'), '{broken', 'utf8')
+    mkdirSync(join(root, 'ae', 'graphs'), { recursive: true })
+    writeFileSync(join(root, 'ae', 'graphs', 'graph.json'), '{broken', 'utf8')
 
     const result = await aeGraphQueryTool.execute({ mode: 'stats' }, createMockContext(root))
 
@@ -456,7 +456,7 @@ describe('ae-graph-query 工具', () => {
   it('stats 快路径在分片缺失时仍应该返回诊断', async () => {
     const root = createTempRoot()
     seedGraph(root)
-    const versionDir = join(root, 'docs', 'ae', 'graphs', 'version-1')
+    const versionDir = join(root, 'ae', 'graphs', 'version-1')
     const chunkFile = readdirSync(versionDir).find((entry) => entry.startsWith('chunk-') && entry.endsWith('.json'))
     if (!chunkFile) {
       throw new Error('测试图谱缺少分片文件')

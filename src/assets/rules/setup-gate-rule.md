@@ -8,7 +8,7 @@
 
 1. **ae:agent-browser 是唯一前置入口** — 在执行任何 `agent-browser` 命令前，必须先通过 `ae-agent-browser-proof action=check` 确认当前工作区已有合法证明；没有证明时必须实际完成 `ae:agent-browser` / `/ae-agent-browser` 环境验证流程并得到环境就绪结果。
 2. **已有安装不能替代 proof** — `agent-browser` 已安装、`command -v` / `Get-Command` / `where` 检查成功、用户声称已安装或本地 CLI 可用性检查成功，都不能替代 `ae-agent-browser-proof` 的机器校验结果。
-3. **环境证明可跨会话复用** — 合法的 `.opencode/ae/agent-browser-proof.json` 可在同一工作区跨会话复用；新会话只需先检查证明，证明缺失或无效时再执行环境验证流程。
+3. **环境证明可跨会话复用** — 合法的 `ae/agent-browser-proof.json` 可在同一工作区跨会话复用；新会话只需先检查证明，证明缺失或无效时再执行环境验证流程。
 4. **未完成 proof 校验前禁止执行** — 当前工作区没有合法 agent-browser 环境证明时，不得执行任何 `agent-browser` 命令。此禁令包括但不限于：直接 bash 调用、通过工具封装调用、通过 MCP 服务器调用、通过子代理调用。
 5. **环境验证失败时的降级路径** — 只有当环境验证失败、用户拒绝安装或当前环境无法安装时，才允许记录"无法验证"并停止浏览器流程，不得继续执行 `agent-browser` 命令。
 
@@ -42,7 +42,7 @@
 
 ## 机器可校验的 agent-browser 环境证明
 
-`ae:agent-browser` 环境验证完成时会写入 `.opencode/ae/agent-browser-proof.json`，包含 `sessionId`、`completedAt`、`schemaVersion`、`worktreeFingerprint`、`agentBrowserVersion`、`validationResults` 和 `proofKind` 字段。
+`ae:agent-browser` 环境验证完成时会写入 `ae/agent-browser-proof.json`，包含 `sessionId`、`completedAt`、`schemaVersion`、`worktreeFingerprint`、`agentBrowserVersion`、`validationResults` 和 `proofKind` 字段。
 
 - 消费方通过 `ae-agent-browser-proof action=check` 判断当前工作区是否已有合法 proof
 - `sessionId` 记录写入证明的来源会话，仅用于审计，不作为跨会话复用的阻断条件

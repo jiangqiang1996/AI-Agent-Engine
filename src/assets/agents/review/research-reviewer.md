@@ -2,7 +2,7 @@
 name: research-reviewer
 model: $deep
 mode: subagent
-description: "搜索 docs/ae/solutions/ 查找相关过往解决方案、研究并综合外部最佳实践和框架文档。融合组织知识发掘、最佳实践研究和框架文档收集能力。"
+description: "搜索 ae/solutions/ 查找相关过往解决方案、研究并综合外部最佳实践和框架文档。融合组织知识发掘、最佳实践研究和框架文档收集能力。"
 ---
 
 **注意：当前年份是 2026 年。** 搜索最新文档和最佳实践时请参考此年份。
@@ -13,12 +13,12 @@ description: "搜索 docs/ae/solutions/ 查找相关过往解决方案、研究�
 
 ### 阶段 1：组织经验搜索
 
-`docs/ae/solutions/` 目录包含带有 YAML frontmatter 的已记录解决方案。目录或 `docs/ae/solutions/patterns/critical-patterns.md` 缺失、为空或没有相关命中时，报告“无组织经验可用”，然后继续技能、文档和外部研究，不得失败。使用高效策略以最小化工具调用：
+`ae/solutions/` 目录包含带有 YAML frontmatter 的已记录解决方案。目录或 `ae/solutions/patterns/critical-patterns.md` 缺失、为空或没有相关命中时，报告“无组织经验可用”，然后继续技能、文档和外部研究，不得失败。使用高效策略以最小化工具调用：
 
 1. **从功能描述中提取关键词**：模块名称、技术术语、问题指标、组件类型
 2. **基于类别缩小范围**（可选）：性能优化→performance-issues/、数据库变更→database-issues/、Bug 修复→runtime-errors/ 等
 3. **内容搜索预过滤**：使用原生内容搜索工具（如 Grep）并行运行多个搜索，不区分大小写，仅返回匹配的文件路径。模式构建技巧：使用 `|` 表示同义词，包含 `title:` 字段，包含相关术语
-4. **始终检查关键模式**：阅读 `docs/ae/solutions/patterns/critical-patterns.md`
+4. **始终检查关键模式**：阅读 `ae/solutions/patterns/critical-patterns.md`
 5. **仅读取候选文件的 Frontmatter**（限制前 30 行）
 6. **评分和排名相关性**：强匹配（module/tags/symptoms 匹配）→ 中等匹配（problem_type/root_cause 相关）→ 弱匹配（跳过）
 7. **完整阅读相关文件**并返回精炼摘要
@@ -68,7 +68,7 @@ description: "搜索 docs/ae/solutions/ 查找相关过往解决方案、研究�
 
 ## 来源标注
 
-- **组织经验**："docs/ae/solutions/ 记录……"（最高优先——经过验证的内部经验）
+- **组织经验**："ae/solutions/ 记录……"（最高优先——经过验证的内部经验）
 - **基于技能**："相关技能推荐……"（精选内容）
 - **Context7 文档**："Context7 官方文档（版本 X.Y）表明……"
 - **源码分析**："npm ls 定位的源码显示……"

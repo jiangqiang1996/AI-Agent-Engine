@@ -4,7 +4,7 @@ import { Effect } from 'effect'
 
 import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
 import { ARTIFACT_KIND, type ArtifactKind } from '../schemas/artifact-schema.js'
-import { DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
+import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
 import { parseFrontmatter, type FrontmatterData } from '../utils/frontmatter.js'
 
 /** 产物目录中单个 Markdown 文件的解析结果。 */
@@ -41,7 +41,7 @@ function readMarkdownFiles(dir: string): string[] {
   }
 }
 
-/** 产物类型到 `docs/ae/` 子目录名的映射，用于定位产物存储位置。 */
+/** 产物类型到 AE 产物子目录名的映射，用于定位产物存储位置。 */
 const CONTEXT_DIR_TYPE_MAP: Record<ArtifactKind, string> = {
   [ARTIFACT_KIND.BRAINSTORM]: DOCS_AE_SUBDIRS.BRAINSTORMS,
   [ARTIFACT_KIND.PLAN]: DOCS_AE_SUBDIRS.PLANS,
@@ -54,7 +54,7 @@ function getArtifactDirectory(
   manifest: RuntimeAssetManifest,
   type: ArtifactKind,
 ): string {
-  return join(manifest.repoRoot, 'docs', 'ae', CONTEXT_DIR_TYPE_MAP[type])
+  return join(manifest.repoRoot, docsAePath(CONTEXT_DIR_TYPE_MAP[type]))
 }
 
 /**

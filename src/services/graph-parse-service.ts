@@ -3,24 +3,19 @@ import { dirname, extname, join, relative, resolve } from 'node:path'
 
 import { makeExternalNodeId, makeFileNodeId, makeSymbolNodeId, makeUnresolvedNodeId } from './graph/graph-schema.js'
 import type { GraphSymbolKind } from './graph/graph-schema.js'
-import { matchGraphPath, type GraphConfig } from './graph-config-service.js'
+import type { GraphConfig } from './graph-config-service.js'
 import type { GraphFileNode, GraphRelation, GraphRelationType } from './graph-storage-service.js'
 import { loadTreeSitterLanguage } from './graph/tree-sitter-loader.js'
 import type { TreeSitterLanguageHandle, TreeSitterNode, TreeSitterTreeResult } from './graph/tree-sitter-loader.js'
 import { isInsideRoot, pathContainsSymlink, toPosixPath } from '../utils/path-utils.js'
-import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
+import { getGraphPathDecision, graphFileTypeForPath, isSupportedGraphFile } from './graph-filter-suggestion-service.js'
 
-const DEFAULT_EXCLUDED_DIRS = new Set(['.git', '.ae'])
-const SENSITIVE_FILENAMES = [/^\.env/, /credential/i, /secret/i, /password/i, /token/i, /private[-_]?key/i]
 const MAX_FILE_BYTES = 10 * 1024 * 1024
-
-const SOURCE_EXTENSIONS = new Set([
+const RESOLVABLE_EXTENSIONS = [
   '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.py', '.java', '.go', '.rs', '.c', '.cpp', '.h', '.rb', '.php',
   '.swift', '.kt', '.scala', '.vue', '.svelte', '.css', '.scss', '.less', '.html', '.sql', '.prisma', '.graphql',
-])
-const DOCUMENT_EXTENSIONS = new Set(['.md', '.txt', '.rst', '.adoc'])
-const CONFIG_EXTENSIONS = new Set(['.json', '.jsonc', '.yaml', '.yml', '.toml', '.xml'])
-const RESOLVABLE_EXTENSIONS = [...SOURCE_EXTENSIONS, ...DOCUMENT_EXTENSIONS, ...CONFIG_EXTENSIONS]
+  '.md', '.txt', '.rst', '.adoc', '.json', '.jsonc', '.yaml', '.yml', '.toml', '.xml',
+]
 
 /** 采集的图谱文件，在 `GraphFileNode` 基础上增加绝对路径用于后续读取。 */
 export interface CollectedGraphFile extends GraphFileNode {
@@ -41,30 +36,6 @@ export interface GraphParseIssue {
   path: string
   reason: string
   sizeBytes?: number
-}
-
-interface GraphPathDecision {
-  excluded: boolean
-  hardExcluded: boolean
-}
-
-function getGraphPathDecision(relativePath: string, config: GraphConfig, isDirectory = false): GraphPathDecision {
-  const graphsDir = docsAePath(DOCS_AE_SUBDIRS.GRAPHS)
-  if (relativePath === graphsDir || relativePath.startsWith(`${graphsDir}/`)) {
-    return { excluded: true, hardExcluded: true }
-  }
-  const parts = relativePath.split('/')
-  if (parts.some((part) => DEFAULT_EXCLUDED_DIRS.has(part))) {
-    return { excluded: true, hardExcluded: true }
-  }
-  if (SENSITIVE_FILENAMES.some((pattern) => pattern.test(parts.at(-1) ?? ''))) {
-    return { excluded: true, hardExcluded: true }
-  }
-  return { excluded: matchGraphPath(relativePath, config, isDirectory).excluded, hardExcluded: false }
-}
-
-function shouldExclude(relativePath: string, config: GraphConfig, isDirectory = false): boolean {
-  return getGraphPathDecision(relativePath, config, isDirectory).excluded
 }
 
 function hasIncludedDescendantRule(relativePath: string, config: GraphConfig): boolean {
@@ -91,15 +62,8 @@ function hasIncludedDescendantRule(relativePath: string, config: GraphConfig): b
   })
 }
 
-function getFileType(filePath: string): GraphFileNode['fileType'] {
-  const ext = extname(filePath).toLowerCase()
-  if (DOCUMENT_EXTENSIONS.has(ext)) {
-    return 'document'
-  }
-  if (CONFIG_EXTENSIONS.has(ext)) {
-    return 'config'
-  }
-  return 'source'
+function shouldExclude(relativePath: string, config: GraphConfig, isDirectory = false): boolean {
+  return getGraphPathDecision(relativePath, config, isDirectory).excluded
 }
 
 function getLanguage(filePath: string): string | undefined {
@@ -135,11 +99,6 @@ function getTreeSitterGrammarName(filePath: string, language: string | undefined
     return language
   }
   return undefined
-}
-
-function isSupportedFile(fileName: string): boolean {
-  const ext = extname(fileName).toLowerCase()
-  return SOURCE_EXTENSIONS.has(ext) || DOCUMENT_EXTENSIONS.has(ext) || CONFIG_EXTENSIONS.has(ext)
 }
 
 /**
@@ -178,14 +137,14 @@ export function collectGraphFiles(worktree: string, target: string, config: Grap
         visit(absolutePath)
         continue
       }
-      if (!entry.isFile() || !isSupportedFile(entry.name)) {
+      if (!entry.isFile() || !isSupportedGraphFile(entry.name)) {
         continue
       }
       const fileStat = statSync(absolutePath)
       files.push({
         absolutePath,
         relativePath,
-        fileType: getFileType(entry.name),
+        fileType: graphFileTypeForPath(entry.name),
         language: getLanguage(entry.name),
         sizeBytes: fileStat.size,
       })

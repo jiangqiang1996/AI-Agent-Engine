@@ -1,7 +1,7 @@
 import { tool, type ToolDefinition } from '@opencode-ai/plugin/tool'
 import { Effect } from 'effect'
 
-import { runGate, type ReviewEvidence } from '../services/gate-service.js'
+import { runGate, type ReviewEvidence, type ValidationCommandResult } from '../services/gate-service.js'
 import { AGENT, COMMAND, SKILL } from '../schemas/ae-asset-schema.js'
 
 const REVIEW_SUBAGENT_TYPES: ReadonlySet<string> = new Set([
@@ -88,6 +88,20 @@ function mapReviewEvidence(evidence: ToolReviewEvidenceInput | undefined): Revie
     head: evidence.head,
     statusSummary: evidence.status_summary,
   }
+}
+
+function mapValidationResults(results: Array<{
+  command: string
+  exit_code: number
+  output: string
+  executed_at?: string
+}> | undefined): ValidationCommandResult[] | undefined {
+  return results?.map((result) => ({
+    command: result.command,
+    exitCode: result.exit_code,
+    output: result.output,
+    executedAt: result.executed_at,
+  }))
 }
 
 function collectTrustedAuthorizationRefs(
@@ -237,7 +251,7 @@ export const aeGateTool: ToolDefinition = tool({
     '功能说明：',
     '- 为 `/ae-lfg` 和 `ae:work` 检查阶段是否跳过、验证是否记录、Git 写操作是否授权',
     '- 收集需求文档、计划文档、工作区变更、验证命令、审查状态等证据',
-    '- 在最终门禁写入 `docs/ae/gates/` 证明文件',
+    '- 在最终门禁写入 `ae/gates/` 证明文件',
     '',
     '适用场景：',
     '- `/ae-lfg` 的 before_work、before_review、final 门禁',
@@ -259,6 +273,12 @@ export const aeGateTool: ToolDefinition = tool({
       .optional()
       .describe('B worktree 续执行交接文件路径，使用仓库相对路径，仅用于证明无 plan_path 时的执行基线'),
     validation_commands: tool.schema.array(tool.schema.string()).optional().describe('已实际运行的验证命令列表'),
+    validation_results: tool.schema.array(tool.schema.object({
+      command: tool.schema.string().describe('已实际执行的验证命令，需与 validation_commands 中的命令一致'),
+      exit_code: tool.schema.number().int().describe('验证命令退出码，0 表示通过'),
+      output: tool.schema.string().describe('验证命令输出摘要或完整输出，用于证明命令确实执行'),
+      executed_at: tool.schema.string().optional().describe('验证命令执行时间或可引用时间戳'),
+    })).optional().describe('验证命令真实执行结果记录；用于写入交付证据，但工具入参自报不会升级为可信 tool_output 证据'),
     review_status: tool.schema
       .enum(['passed', 'failed', 'not_run', 'not_applicable'])
       .optional()
@@ -303,7 +323,7 @@ export const aeGateTool: ToolDefinition = tool({
         tool.schema.object({
           type: tool.schema.literal('report_path').describe('审查报告路径证据'),
           review_trust: tool.schema.enum(['verified', 'declaration_only']).describe('审查证据可信度'),
-          path: tool.schema.string().describe('审查元数据路径，格式为 docs/ae/reviews/<run-id>/metadata.json'),
+          path: tool.schema.string().describe('审查元数据路径，格式为 ae/reviews/<run-id>/metadata.json'),
           review_run_id_or_message_ref: tool.schema.string().describe('审查运行 ID 或消息引用'),
           worktree: tool.schema.string().describe('审查发生的 worktree'),
           branch: tool.schema.string().describe('审查发生的分支'),
@@ -345,6 +365,7 @@ export const aeGateTool: ToolDefinition = tool({
         planPath: args.plan_path,
         handoffPath: args.handoff_path,
         validationCommands: args.validation_commands,
+        validationResults: mapValidationResults(args.validation_results),
         reviewStatus: args.review_status,
         browserTestStatus: args.browser_test_status,
         gitOperations: args.git_operations,

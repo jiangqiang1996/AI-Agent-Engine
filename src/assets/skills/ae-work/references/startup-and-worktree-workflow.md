@@ -1,4 +1,4 @@
-﻿# 启动与 Worktree 工作流
+# 启动与 Worktree 工作流
 
 本文件定义 `ae:work` 阶段 1 的启动门禁。修改任何项目文件前必须完成本文件全部适用步骤。
 
@@ -26,13 +26,18 @@ git log --oneline -1
 
 - 检查调用方是否显式传入 `worktree`、`current-worktree`、`auto`。
 - 兼容输入 `--no-worktree` 映射为 `current-worktree`。
+- 每次正式实现型任务在修改项目文件前，都必须先解析 worktree 模式：`worktree`、`current-worktree`、`auto`。
+- 显式 `auto` 模式复用阶段 0 的 S3/S4 分流和强制升级停点作为推荐依据：S3 轻量修复、预计不超过 2 个生产文件时推荐 `current-worktree`；S4 多步骤实现、10+ 文件或高风险时推荐 `worktree`，并在最终 gate notes / Git 操作状态中记录推荐依据。
 - 如果调用方是 `ae:lfg` 或 `ae:task-loop`，固定按 `current-worktree` 处理，记录 `worktree_decision: rejected`，不得询问 worktree 模式、不得创建 worktree、不得把未传值补齐为 `auto`。
 - 若输入为规范 worktree 交接文件且当前目录匹配目标 B worktree，视为 worktree 模式已由 A→B 启动证明确定，记录 `worktree_decision: created`，不得再次询问 worktree 模式或分支策略，不得再次创建 worktree。
-- 单独使用 `ae:work` 且未显式传入三值中的任何一个时，必须向用户询问，不得自行推断或默认采用 `auto`；询问必须基于任务大小给出推荐：小任务推荐当前工作区，大任务推荐创建新 worktree。
+- 单独使用 `ae:work` 且未显式传入 worktree 模式时，必须基于任务上下文给出推荐依据并明确询问是否创建新的 worktree，不得自行推断或默认采用 `auto`；询问必须基于任务大小给出推荐：小任务推荐当前工作区，大任务推荐创建新 worktree。
+- S3 轻量修复也必须进入阶段 1，完成准备环境 / worktree 决策后再实现。
 
 ## 风险确认
 
 根据 Git 状态、worktree 模式和任务大小向用户展示风险评估并等待确认；若调用方是 `ae:lfg` 或 `ae:task-loop`，本步骤只记录固定当前工作区执行的风险，不询问、不创建 worktree。
+
+未创建 worktree 不等于允许直接在默认分支实现；若当前在默认分支继续当前工作区，必须二次确认风险，并在 gate notes 中记录该风险接受证据。
 
 | 场景 | 必须说明的风险 | 必须提供的选项 |
 |------|----------------|----------------|
@@ -51,13 +56,13 @@ git log --oneline -1
 
 - 本地目录固定为 `../worktrees/<name>`，`<name>` 使用分支名或任务名净化后的短名。
 - 创建 B 后，A 会话不得再写入 A worktree 的任何文件，也不得在 B 中修改代码、测试或其他项目文件；仅允许按下条迁移可选上下文和写入唯一规范交接文件。
-- A 会话只允许在 B 写入真实存在且已确定为执行基线的需求/计划/设计产物、`docs/ae/graphs/`、`.opencode/ae.jsonc`，以及唯一规范交接文件 `docs/ae/handoffs/<timestamp>-worktree-handoff.md`。其中 `.opencode/ae.jsonc` 只能作为已确定的 AE 项目配置上下文迁移并在交接文件中显式记录；未迁移的需求/计划/设计、图谱或 AE 项目配置产物不在交接文件中出现，不得声称已复制。
+- A 会话只允许在 B 写入真实存在且已确定为执行基线的需求/计划/设计产物、`ae/graphs/`、`.opencode/ae.jsonc`，以及唯一规范交接文件 `ae/handoffs/<timestamp>-worktree-handoff.md`。其中 `.opencode/ae.jsonc` 只能作为已确定的 AE 项目配置上下文迁移并在交接文件中显式记录；未迁移的需求/计划/设计、图谱或 AE 项目配置产物不在交接文件中出现，不得声称已复制。
 
 ### 交接文件生成（必须调用工具）
 
 - **禁止自行拼接交接 Markdown**，必须调用 `ae-worktree-handoff` 工具生成交接文件。
 - 续执行入口必须写入 A→B 启动证明和执行基线，B worktree 通过 `ae:work <交接文件>` 读取结构化交接文件继续。
-- A→B 启动证明必须包含 source_session_id、source_worktree、target_worktree、branch、head、授权来源、命令参数、创建结果、迁移产物状态和执行基线；迁移产物状态只列出实际迁移的需求/计划/设计、`docs/ae/graphs/` 和 `.opencode/ae.jsonc`，未迁移的不出现。
+- A→B 启动证明必须包含 source_session_id、source_worktree、target_worktree、branch、head、授权来源、命令参数、创建结果、迁移产物状态和执行基线；迁移产物状态只列出实际迁移的需求/计划/设计、`ae/graphs/` 和 `.opencode/ae.jsonc`，未迁移的不出现。
 - 调用工具时传入所有必填参数；工具会按固定模板生成 Markdown、写入目标 B worktree 并返回 A 会话最终回复使用的简短交接提示。
 - `source_session_id`：运行时可见时记录；不可见时传 `unavailable`，并**同时**传入 `session_evidence`（可引用的消息或会话证据），否则工具会返回错误。
 - `execution_baseline`：描述进入 B 后必须遵守的基线约束，例如"必须从 ae:work 阶段 1 的任务分析继续执行，优先执行计划的 U0 决策门"。
@@ -75,7 +80,7 @@ git log --oneline -1
 
 1. 工具返回成功（无错误提示）
 2. A 会话最后回复逐字使用了工具返回的简短交接提示
-3. 交接文件路径符合 `docs/ae/handoffs/<timestamp>-worktree-handoff.md` 格式
+3. 交接文件路径符合 `ae/handoffs/<timestamp>-worktree-handoff.md` 格式
 
 ## 输出契约
 

@@ -1,6 +1,8 @@
 import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 
+import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
+
 import type {
   GraphConfidence,
   GraphNodeKind,
@@ -989,11 +991,11 @@ export class GraphStorage {
 }
 
 export function resolveGraphDatabasePath(worktree: string): string {
-  return join(resolve(worktree), 'docs', 'ae', 'graphs', 'graph.json')
+  return join(resolve(worktree), docsAePath(DOCS_AE_SUBDIRS.GRAPHS), 'graph.json')
 }
 
 export function resolveGraphGraphDir(worktree: string): string {
-  return join(resolve(worktree), 'docs', 'ae', 'graphs')
+  return join(resolve(worktree), docsAePath(DOCS_AE_SUBDIRS.GRAPHS))
 }
 
 export function graphDatabaseExists(worktree: string): boolean {

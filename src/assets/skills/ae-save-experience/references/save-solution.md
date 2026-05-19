@@ -8,13 +8,13 @@
 
 ## 去重
 
-写入前搜索 `docs/ae/solutions/` 和 `docs/ae/solutions/patterns/critical-patterns.md`。如果已有条目覆盖当前经验，提示复用已有路径；如果只是补充证据，询问是否更新索引或新增条目。
+写入前搜索 `ae/solutions/` 和 `ae/solutions/patterns/critical-patterns.md`。如果已有条目覆盖当前经验，提示复用已有路径；如果只是补充证据，询问是否更新索引或新增条目。
 
 目录缺失时可创建，但必须先确认目标路径。
 
 ## 文件格式
 
-建议路径：`docs/ae/solutions/YYYY-MM-DD-<slug>.md`。
+建议路径：`ae/solutions/YYYY-MM-DD-<slug>.md`。
 
 建议 frontmatter：
 

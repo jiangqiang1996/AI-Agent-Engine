@@ -34,11 +34,11 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 **始终排除（任何情况下不可覆盖）：**
 - 敏感文件：`.env`、`.env.*`（保留 `.env.example`、`.env.template`）——在文件收集阶段即从文件列表中移除，后续任何阶段不可读取或引用
 - `.opencode/` 目录下的所有文件
-- 受保护产物：`docs/ae/reviews/*`、`docs/ae/solutions/*`
+- 受保护产物：`ae/reviews/*`、`ae/solutions/*`
 
 **全域默认排除（域安全需求 R4-R5）：**
-- `docs/ae/brainstorms/` 下的文件
-- `docs/ae/plans/` 下的文件
+- `ae/brainstorms/` 下的文件
+- `ae/plans/` 下的文件
 
 **"明确指定"条件——满足任一则纳入：**
 1. 用户传入的文件路径指向这些目录下的文件
@@ -118,7 +118,7 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 #### 文档域（`domain:document`）
 
 - **指定文档路径**（参数中非标志标记视为路径）→ 使用指定路径
-- **未指定路径 + 交互模式** → 确定性搜索：在 `docs/ae/brainstorms/` 和 `docs/ae/plans/` 中查找最近修改的文件
+- **未指定路径 + 交互模式** → 确定性搜索：在 `ae/brainstorms/` 和 `ae/plans/` 中查找最近修改的文件
   - 搜索成功 → 纳入文档（等同于"明确指定"条件 3），展示搜索结果让用户确认（"找到最近修改的文档 X，是否审查此文档？"）
   - **局限性：** 搜索按修改时间降序返回最新文件，不一定是用户意图审查的文件。交互模式下搜索结果需展示给用户确认
   - 搜索无结果 → 询问用户要审查哪个文档
@@ -133,7 +133,7 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 
 **意图发现：** 结合对话上下文编写 2-3 行意图摘要，传递给每个审查者。
 
-**计划发现（需求验证）：** 按优先级检查：`plan:` 参数 → 自动发现 `docs/ae/plans/` 中的最近计划。记录置信度标记（`explicit`/`inferred`）。
+**计划发现（需求验证）：** 按优先级检查：`plan:` 参数 → 自动发现 `ae/plans/` 中的最近计划。记录置信度标记（`explicit`/`inferred`）。
 
 #### 文档域
 
@@ -147,7 +147,7 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 分类信号（按优先级）：
 1. **frontmatter**：`topic` 字段暗示内容主题
 2. **标题结构**：包含"需求"、"问题框架"→ requirements；包含"实现步骤"、"架构"→ plan；包含"测试用例"、"验收标准"、"预期结果"→ test
-3. **路径提示**（辅助）：`docs/ae/brainstorms/` → 倾向 requirements；`docs/ae/plans/` → 倾向 plan
+3. **路径提示**（辅助）：`ae/brainstorms/` → 倾向 requirements；`ae/plans/` → 倾向 plan
 
 **退出条件：** 代码域——意图摘要已编写，计划发现已完成；文档域——文档类型已分类。
 
@@ -231,7 +231,7 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 
 向每个文档域代理传递**完整文档**——不要按章节拆分。
 
-所有角色子代理作为并行子代理生成。角色子代理相对于项目是**只读**的。每个代理将完整 JSON 写入 `docs/ae/reviews/{run_id}/{reviewer_name}.json`，返回精简 JSON。
+所有角色子代理作为并行子代理生成。角色子代理相对于项目是**只读**的。每个代理将完整 JSON 写入 `ae/reviews/{run_id}/{reviewer_name}.json`，返回精简 JSON。
 
 **错误处理：** 如果代理失败或超时，使用已完成代理的发现继续。在覆盖范围部分注明失败的代理。
 

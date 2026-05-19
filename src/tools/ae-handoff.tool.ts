@@ -7,6 +7,7 @@ import { join, resolve, normalize, relative } from 'node:path'
 
 import { getGlobalClient } from '../services/client-holder.js'
 import { executeHandoff } from '../services/handoff.service.js'
+import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
 import { isInsideRoot } from '../utils/path-utils.js'
 
 function extractTodosFromPlanFile(filePath: string): Promise<string[]> {
@@ -118,7 +119,7 @@ export const aeHandoffTool: ToolDefinition = tool({
     }
 
     const workDir = context.directory
-    const plansDir = join(workDir, 'docs', 'ae', 'plans')
+    const plansDir = join(workDir, docsAePath(DOCS_AE_SUBDIRS.PLANS))
     let enrichedPendingTasks = args.pending_tasks
 
     const ctx = context as { history?: Array<{ content?: string }> }

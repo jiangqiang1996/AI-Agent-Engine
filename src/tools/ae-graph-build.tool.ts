@@ -1,5 +1,5 @@
 import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, realpathSync, type Dirent } from 'node:fs'
-import { dirname, join, relative, resolve } from 'node:path'
+import { join, relative, resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
 
 import { tool } from '@opencode-ai/plugin/tool'
@@ -9,28 +9,19 @@ import { z } from 'zod'
 import { TOOL } from '../schemas/ae-asset-schema.js'
 import {
   loadGraphConfig,
-  matchGraphExcludePath,
-  matchGraphPath,
   updateGraphRulesInProjectConfig,
   type GraphConfig,
 } from '../services/graph-config-service.js'
 import { createGraphStorage } from '../services/graph-storage-service.js'
 import { createRuntimeAssetManifest } from '../services/runtime-asset-manifest.js'
 import { collectGraphFiles, parseFileRelations } from '../services/graph-parse-service.js'
+import {
+  collectGraphFilterCandidateSummary,
+  collectMissingGraphFilterSuggestions,
+  getGraphPathDecision,
+} from '../services/graph-filter-suggestion-service.js'
 import { isInsideRoot, pathContainsSymlink, resolvePathWithBase, toPosixPath } from '../utils/path-utils.js'
 import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
-
-interface FilterSuggestionCandidate {
-  path: string
-  rule: string
-  reason: string
-}
-
-interface FilterSuggestion extends FilterSuggestionCandidate {
-  covered: boolean
-  coveredBy?: string
-  uncoveredReason?: string
-}
 
 interface GraphFilterDecisions {
   include?: string[]
@@ -43,51 +34,10 @@ interface SavedGraphFilterDecisions {
   warning?: string
 }
 
-const EXCLUDE_SUGGESTION_CANDIDATES: FilterSuggestionCandidate[] = [
-  { path: '.idea', rule: '**/.idea', reason: 'IDE 项目配置和索引状态不表达源码依赖关系' },
-  { path: '.opencode', rule: '**/.opencode', reason: 'OpenCode 本地配置、桥接插件和依赖缓存属于工具运行产物' },
-  { path: docsAePath(DOCS_AE_SUBDIRS.GRAPHS), rule: docsAePath(DOCS_AE_SUBDIRS.GRAPHS), reason: '图谱自身输出目录会造成派生产物回流' },
-  { path: 'node_modules', rule: '**/node_modules', reason: '包管理器依赖目录体积大且不属于项目源码真源' },
-  { path: 'dist', rule: '**/dist', reason: '编译输出目录通常由源码生成，关系会重复且噪声较大' },
-  { path: 'build', rule: '**/build', reason: '构建产物目录通常由源码生成，关系会重复且噪声较大' },
-  { path: 'coverage', rule: '**/coverage', reason: '覆盖率报告是测试生成产物，不表达源码依赖关系' },
-  { path: 'target', rule: '**/target', reason: 'Java/Rust 等生态构建输出体积大且由源码生成' },
-  { path: 'tmp', rule: '**/tmp', reason: '临时运行产物不具备稳定关系语义' },
-  { path: 'temp', rule: '**/temp', reason: '临时运行产物不具备稳定关系语义' },
-  { path: 'runs', rule: '**/runs', reason: '本地运行记录和调试输出不属于源码依赖图' },
-  { path: '.next', rule: '**/.next', reason: 'Next.js 缓存和构建输出由源码生成' },
-  { path: '.nuxt', rule: '**/.nuxt', reason: 'Nuxt 缓存和构建输出由源码生成' },
-  { path: '.turbo', rule: '**/.turbo', reason: '构建缓存目录不表达源码依赖关系' },
-  { path: '.cache', rule: '**/.cache', reason: '工具缓存目录不表达源码依赖关系' },
-]
-
-const FILE_EXCLUDE_SUGGESTION_CANDIDATES: FilterSuggestionCandidate[] = [
-  { path: '**/*.log', rule: '**/*.log', reason: '日志文件是运行输出，通常体积大且无稳定源码关系' },
-  { path: '**/*.tmp', rule: '**/*.tmp', reason: '临时文件不具备稳定关系语义' },
-  { path: '**/*.tsbuildinfo', rule: '**/*.tsbuildinfo', reason: 'TypeScript 增量编译缓存由构建生成' },
-  { path: '**/*.zip', rule: '**/*.zip', reason: '压缩包是二进制归档，无法做文本关系解析' },
-  { path: '**/*.tar', rule: '**/*.tar', reason: '压缩包是二进制归档，无法做文本关系解析' },
-  { path: '**/*.gz', rule: '**/*.gz', reason: '压缩包是二进制归档，无法做文本关系解析' },
-  { path: '**/*.7z', rule: '**/*.7z', reason: '压缩包是二进制归档，无法做文本关系解析' },
-  { path: '**/*.rar', rule: '**/*.rar', reason: '压缩包是二进制归档，无法做文本关系解析' },
-  { path: '**/*.png', rule: '**/*.png', reason: '图片是二进制素材，不参与源码关系解析' },
-  { path: '**/*.jpg', rule: '**/*.jpg', reason: '图片是二进制素材，不参与源码关系解析' },
-  { path: '**/*.jpeg', rule: '**/*.jpeg', reason: '图片是二进制素材，不参与源码关系解析' },
-  { path: '**/*.gif', rule: '**/*.gif', reason: '图片是二进制素材，不参与源码关系解析' },
-  { path: '**/*.webp', rule: '**/*.webp', reason: '图片是二进制素材，不参与源码关系解析' },
-  { path: '**/*.ico', rule: '**/*.ico', reason: '图片是二进制素材，不参与源码关系解析' },
-  { path: '**/*.woff', rule: '**/*.woff', reason: '字体是二进制素材，不参与源码关系解析' },
-  { path: '**/*.woff2', rule: '**/*.woff2', reason: '字体是二进制素材，不参与源码关系解析' },
-  { path: '**/*.ttf', rule: '**/*.ttf', reason: '字体是二进制素材，不参与源码关系解析' },
-  { path: '**/*.mp3', rule: '**/*.mp3', reason: '音频是二进制素材，不参与源码关系解析' },
-  { path: '**/*.mp4', rule: '**/*.mp4', reason: '视频是二进制素材，不参与源码关系解析' },
-  { path: '**/*.webm', rule: '**/*.webm', reason: '视频是二进制素材，不参与源码关系解析' },
-]
-
 function copyGraphPreview(worktree: string): void {
   const manifest = createRuntimeAssetManifest(import.meta.url)
   const refDir = join(manifest.skillsDir, 'ae-graph-build', 'references')
-  const targetDir = join(worktree, 'docs', 'ae', 'graphs')
+  const targetDir = join(worktree, docsAePath(DOCS_AE_SUBDIRS.GRAPHS))
 
   function copyDir(src: string, dest: string): void {
     if (!existsSync(dest)) {
@@ -118,8 +68,7 @@ function copyGraphPreview(worktree: string): void {
 }
 
 function isGraphRuntimeFile(filePath: string): boolean {
-  const graphsDir = docsAePath(DOCS_AE_SUBDIRS.GRAPHS)
-  return filePath === graphsDir || filePath.startsWith(`${graphsDir}/`)
+  return getGraphPathDecision(filePath, { include: [], exclude: [] }).hardExcluded
 }
 
 function mergeGraphRules(config: GraphConfig, args: { include?: string[]; exclude?: string[] }): GraphConfig {
@@ -172,81 +121,7 @@ function getChangedFiles(worktree: string): { files: string[]; hasStructuralChan
 }
 
 function filterChangedFiles(files: string[], config: GraphConfig): string[] {
-  return files.filter((file) => !matchGraphPath(file, config).excluded)
-}
-
-function collectMissingFilterSuggestions(worktree: string, config: GraphConfig): FilterSuggestion[] {
-  const directorySuggestions = EXCLUDE_SUGGESTION_CANDIDATES
-    .filter((candidate) => existsSync(resolve(worktree, candidate.path)))
-    .map((candidate) => buildFilterSuggestion(candidate, config, true))
-  const fileSuggestions = FILE_EXCLUDE_SUGGESTION_CANDIDATES
-    .flatMap((candidate) => {
-      const existingPath = findExistingFileMatch(worktree, candidate.rule)
-      return existingPath ? [{ ...candidate, path: existingPath }] : []
-    })
-    .map((candidate) => buildFilterSuggestion(candidate, config, false))
-
-  return dedupeFilterSuggestions([...directorySuggestions, ...fileSuggestions].filter((suggestion) => !suggestion.covered))
-}
-
-function buildFilterSuggestion(candidate: FilterSuggestionCandidate, config: GraphConfig, isDirectory: boolean): FilterSuggestion {
-  const pathCoverage = matchGraphPath(candidate.path, config, isDirectory)
-  const ruleCoverage = matchGraphPath(candidate.rule, config, isDirectory)
-  const matchedInclude = pathCoverage.matchedInclude ?? ruleCoverage.matchedInclude
-  const matchedExclude = pathCoverage.matchedExclude ?? ruleCoverage.matchedExclude
-  return {
-    ...candidate,
-    covered: pathCoverage.covered || ruleCoverage.covered,
-    coveredBy: matchedInclude ?? matchedExclude,
-    uncoveredReason: '现有 graph.include / graph.exclude 规则均未覆盖该实际存在路径或建议规则',
-  }
-}
-
-function dedupeFilterSuggestions(suggestions: FilterSuggestion[]): FilterSuggestion[] {
-  const seen = new Set<string>()
-  return suggestions.filter((suggestion) => {
-    if (seen.has(suggestion.rule)) {
-      return false
-    }
-    seen.add(suggestion.rule)
-    return true
-  })
-}
-
-function findExistingFileMatch(worktree: string, rule: string): string | undefined {
-  const matcher = rule.replace(/^\*\*\//, '')
-  if (!matcher.startsWith('*.')) {
-    return undefined
-  }
-  const extension = matcher.slice(1)
-  const stack = [worktree]
-  while (stack.length > 0) {
-    const dir = stack.pop()
-    if (!dir) {
-      continue
-    }
-    let entries: Dirent[]
-    try {
-      entries = readdirSync(dir, { withFileTypes: true })
-    } catch {
-      continue
-    }
-    for (const entry of entries) {
-      const absolutePath = resolve(dir, entry.name)
-      const relativePath = toPosixPath(relative(worktree, absolutePath))
-      if (matchGraphExcludePath(relativePath, ['**/.git', '**/node_modules', docsAePath(DOCS_AE_SUBDIRS.GRAPHS)], entry.isDirectory()).excluded) {
-        continue
-      }
-      if (entry.isDirectory()) {
-        stack.push(absolutePath)
-        continue
-      }
-      if (entry.isFile() && entry.name.toLowerCase().endsWith(extension)) {
-        return relativePath
-      }
-    }
-  }
-  return undefined
+  return files.filter((file) => !getGraphPathDecision(file, config).excluded)
 }
 
 function normalizeFilterDecisionRules(decisions: GraphFilterDecisions | undefined): Required<GraphFilterDecisions> {
@@ -292,7 +167,7 @@ async function persistGraphFilterDecisions(
 }
 
 async function collectFilterDecisionWarnings(worktree: string, config: GraphConfig, ctx: { ask?: unknown }): Promise<string[]> {
-  const missing = collectMissingFilterSuggestions(worktree, config)
+  const missing = collectMissingGraphFilterSuggestions(worktree, config)
   if (missing.length === 0) {
     return []
   }
@@ -348,7 +223,7 @@ export const aeGraphBuildTool = tool({
     '',
     '功能说明：',
     '- 扫描工作区文件并解析浅层 import/require/include 与 Markdown 链接',
-    '- 将图谱保存到项目 `docs/ae/graphs/graph.json` 与分片目录，使用本地 JSON 版本化快照',
+    '- 将图谱保存到项目 `ae/graphs/graph.json` 与分片目录，使用本地 JSON 版本化快照',
     '- 同步生成离线 HTML 预览页与本地 Cytoscape.js 资源，便于直接打开查看图谱',
     '- 支持 full、incremental、auto 模式；非 Git 项目自动降级全量构建',
     '- filterDecisions 会在获得文件写入授权后持久化到项目级 `.opencode/ae.jsonc` 的 graph.include / graph.exclude',
@@ -420,7 +295,14 @@ export const aeGraphBuildTool = tool({
 
       const requestedMode = args.mode ?? 'auto'
       const rawDiff = requestedMode === 'full' ? { files: [] } : getChangedFiles(worktree)
-      const diff = { ...rawDiff, files: filterChangedFiles(rawDiff.files, config) }
+      const filteredFiles = filterChangedFiles(rawDiff.files, config)
+      const diff = { ...rawDiff, files: filteredFiles, hasStructuralChange: rawDiff.hasStructuralChange && filteredFiles.length > 0 }
+      const filterCandidateSummary = collectGraphFilterCandidateSummary(
+        worktree,
+        target,
+        config,
+        requestedMode === 'full' ? undefined : rawDiff.files,
+      )
       const active = storage.getActiveVersion(worktree, scopeRoot)
       const rulesChanged = graphRulesChanged(active, config)
       const effectiveMode = requestedMode === 'full' || diff.warning || diff.hasStructuralChange || !active || rulesChanged ? 'full' : 'incremental'
@@ -438,6 +320,7 @@ export const aeGraphBuildTool = tool({
           excludeRules: config.exclude,
           warnings: [savedDecisions.warning, ...filterDecisionWarnings].filter(Boolean),
           filterDecisionWarnings,
+          filterCandidateSummary,
           savedIncludes: savedDecisions.savedIncludes,
           savedExcludes: savedDecisions.savedExcludes,
           database: `${docsAePath(DOCS_AE_SUBDIRS.GRAPHS)}/graph.json`,
@@ -487,6 +370,7 @@ export const aeGraphBuildTool = tool({
         excludeRules: config.exclude,
         warnings: [diff.warning, savedDecisions.warning, ...parsed.warnings, ...filterDecisionWarnings].filter(Boolean),
         filterDecisionWarnings,
+        filterCandidateSummary,
         savedIncludes: savedDecisions.savedIncludes,
         savedExcludes: savedDecisions.savedExcludes,
         database: `${docsAePath(DOCS_AE_SUBDIRS.GRAPHS)}/graph.json`,

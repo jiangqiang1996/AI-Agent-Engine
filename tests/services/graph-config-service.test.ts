@@ -46,6 +46,12 @@ describe('graph-config-service', () => {
     expect(loadGraphConfig(root, builtinConfigPath)).toEqual({ include: [], exclude: ['dist'] })
   })
 
+  it('内置 ae.jsonc 默认应该排除迁移后的图谱产物目录', () => {
+    expect(loadGraphConfig(process.cwd())).toEqual(expect.objectContaining({
+      exclude: expect.arrayContaining(['ae/graphs']),
+    }))
+  })
+
   it('应该按 builtin-opencode 优先级覆盖 graph 配置', () => {
     const root = createTempRoot()
     const builtinConfigPath = join(root, 'src', 'assets', 'config', 'ae.jsonc')
@@ -53,11 +59,11 @@ describe('graph-config-service', () => {
     mkdirSync(join(builtinConfigPath, '..'), { recursive: true })
     mkdirSync(join(projectConfigPath, '..'), { recursive: true })
     writeFileSync(builtinConfigPath, '{ "graph": { "include": ["src/generated/keep.ts"], "exclude": ["**/dist", "**/node_modules"] } }')
-    writeFileSync(projectConfigPath, '{ "graph": { "include": ["src/generated/keep.ts", "src/generated/manual.ts"], "exclude": ["docs/ae/graphs", "**/dist"] } }')
+    writeFileSync(projectConfigPath, '{ "graph": { "include": ["src/generated/keep.ts", "src/generated/manual.ts"], "exclude": ["ae/graphs", "**/dist"] } }')
 
     expect(loadGraphConfig(root, builtinConfigPath)).toEqual({
       include: ['src/generated/keep.ts', 'src/generated/manual.ts'],
-      exclude: ['docs/ae/graphs', '**/dist'],
+      exclude: ['ae/graphs', '**/dist'],
     })
   })
 
@@ -71,10 +77,10 @@ describe('graph-config-service', () => {
     expect(saveGraphExcludeRule(root, '**/node_modules', builtinConfigPath)).toEqual({ include: [], exclude: ['**/node_modules'] })
   })
 
-  it('应该在 ae.jsonc 不存在时返回空排除规则并可保存新规则', () => {
+  it('应该在 ae.jsonc 不存在时返回内置排除规则并可保存新规则', () => {
     const root = createTempRoot()
 
-    expect(loadGraphConfig(root)).toEqual({ include: [], exclude: [] })
+    expect(loadGraphConfig(root)).toEqual({ include: [], exclude: ['ae/graphs'] })
     expect(saveGraphExcludeRule(root, 'node_modules')).toEqual({ include: [], exclude: ['node_modules'] })
     expect(loadGraphConfig(root)).toEqual({ include: [], exclude: ['node_modules'] })
   })
@@ -96,12 +102,12 @@ describe('graph-config-service', () => {
   })
 
   it('应该按 glob 语义匹配星号、路径和目录，且不特殊处理否定规则', () => {
-    const rules = ['**/dist', '**/*.log', 'docs/ae/graphs', '!packages/app/dist/keep.ts']
+    const rules = ['**/dist', '**/*.log', 'ae/graphs', '!packages/app/dist/keep.ts']
 
     expect(matchGraphExcludePath('dist', rules, true)).toEqual({ excluded: true, matchedRule: '**/dist' })
     expect(matchGraphExcludePath('packages/app/dist/index.js', rules)).toEqual({ excluded: true, matchedRule: '**/dist' })
     expect(matchGraphExcludePath('logs/app.log', rules)).toEqual({ excluded: true, matchedRule: '**/*.log' })
-    expect(matchGraphExcludePath('docs/ae/graphs/graph.json', rules)).toEqual({ excluded: true, matchedRule: 'docs/ae/graphs' })
+    expect(matchGraphExcludePath('ae/graphs/graph.json', rules)).toEqual({ excluded: true, matchedRule: 'ae/graphs' })
     expect(matchGraphExcludePath('packages/app/dist/keep.ts', rules)).toEqual({ excluded: true, matchedRule: '**/dist' })
   })
 

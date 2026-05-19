@@ -4,7 +4,7 @@
 
 ## 证明文件
 
-- 路径：`.opencode/ae/agent-browser-proof.json`
+- 路径：`ae/agent-browser-proof.json`
 - 类型：`proofKind: "agent-browser-environment"`
 - Schema 版本：`schemaVersion: 1`
 - 关键字段：`sessionId`、`completedAt`、`worktreeFingerprint`、`agentBrowserVersion`、`validationResults`
@@ -27,7 +27,7 @@ agent-browser skills get core --full
 
 1. 用户必须明确触发 `ae:agent-browser` 或 `/ae-agent-browser`。
 2. 所有验证命令必须成功退出。
-3. 写入前必须请求文件写入授权，目标限定为 `.opencode/ae/agent-browser-proof.json`。
+3. 写入前必须请求文件写入授权，目标限定为 `ae/agent-browser-proof.json`。
 4. `validationResults.outputHash` 只保存输出哈希，不保存可能包含本机路径或敏感信息的完整输出。
 5. `worktreeFingerprint` 用于审计当前工作区路径、HEAD 和状态摘要；调用方提供当前指纹时必须匹配。
 

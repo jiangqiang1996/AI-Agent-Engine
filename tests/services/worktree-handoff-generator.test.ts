@@ -37,8 +37,8 @@ function validInput(overrides?: Partial<WorktreeHandoffInput>): WorktreeHandoffI
     covered_command_args: 'git worktree add ../worktrees/feat-xyz -b feat/xyz HEAD',
     final_command_args: 'git worktree add "../worktrees/feat-xyz" -b "feat/xyz" HEAD',
     creation_result: 'Git worktree 创建成功',
-    plan_path: 'docs/ae/plans/test-plan.md',
-    requirements_path: 'docs/ae/brainstorms/test-req.md',
+    plan_path: 'ae/plans/test-plan.md',
+    requirements_path: 'ae/brainstorms/test-req.md',
     design_borne_by_plan: true,
     execution_baseline: '必须从阶段 1 继续执行',
     verification_requirements: '交付前运行 Vitest 和 typecheck',
@@ -55,7 +55,7 @@ describe('worktree-handoff-generator', () => {
 
       const { markdown, handoffRelPath } = result
 
-      expect(handoffRelPath).toMatch(/^docs\/ae\/handoffs\/\d{4}-\d{2}-\d{2}-\d{9}-worktree-handoff\.md$/)
+      expect(handoffRelPath).toMatch(/^ae\/handoffs\/\d{4}-\d{2}-\d{2}-\d{9}-worktree-handoff\.md$/)
       expect(markdown).toContain('type: worktree-handoff')
       expect(markdown).toContain('status: transferred')
       expect(markdown).toContain('## A→B Startup Proof')
@@ -77,7 +77,7 @@ describe('worktree-handoff-generator', () => {
       if ('error' in result) return
       const { markdown } = result
 
-      expect(markdown).toContain('resume_entrypoint: ae:work docs/ae/handoffs/')
+      expect(markdown).toContain('resume_entrypoint: ae:work ae/handoffs/')
     })
 
     it('source_session_id=unavailable 且无 session_evidence 时应报错', () => {
@@ -171,22 +171,22 @@ describe('worktree-handoff-generator', () => {
     it('design_borne_by_plan=false 且有 design_path 时应在 Migrated Artifacts 中体现', () => {
       const result = generateHandoffMarkdown(validInput({
         design_borne_by_plan: false,
-        design_path: 'docs/ae/designs/test-design.md',
+        design_path: 'ae/designs/test-design.md',
       }))
       if ('error' in result) return
-      expect(result.markdown).toContain('docs/ae/designs/test-design.md')
+      expect(result.markdown).toContain('ae/designs/test-design.md')
     })
 
     it('有图谱和 AE 配置路径时应在迁移产物中体现', () => {
       const result = generateHandoffMarkdown(validInput({
-        graph_path: 'docs/ae/graphs/',
+        graph_path: 'ae/graphs/',
         ae_config_path: '.opencode/ae.jsonc',
       }))
       if ('error' in result) return
 
-      expect(result.markdown).toContain('- graph: `docs/ae/graphs/`')
+      expect(result.markdown).toContain('- graph: `ae/graphs/`')
       expect(result.markdown).toContain('- ae_config: `.opencode/ae.jsonc`')
-      expect(result.markdown).toContain('  - graph: `docs/ae/graphs/`')
+      expect(result.markdown).toContain('  - graph: `ae/graphs/`')
       expect(result.markdown).toContain('  - ae_config: `.opencode/ae.jsonc`')
     })
 

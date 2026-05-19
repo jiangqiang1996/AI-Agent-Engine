@@ -41,7 +41,7 @@ argument-hint: "[mode:deps|impact|health|filter|path|core|stats|pattern] [file:<
 
 ## 安全边界
 
-- 只读取当前工作区 `docs/ae/graphs/graph.json` 的 active version、manifest、索引和必要分片。
+- 只读取当前工作区 `ae/graphs/graph.json` 的 active version、manifest、索引和必要分片。
 - 所有路径参数必须位于当前工作区内。
 - 不构建或修改图谱数据。
 - 图谱结果是结构快照，不能替代读取真实源码、Git diff、测试、类型检查、构建或安全审查。

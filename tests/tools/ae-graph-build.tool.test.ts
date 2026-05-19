@@ -60,7 +60,7 @@ function createCaptureAskContext(worktree: string, asked: unknown[]) {
 }
 
 function previewIndexReferencesExistingAssets(root: string): boolean {
-  const indexPath = join(root, 'docs', 'ae', 'graphs', 'index.html')
+  const indexPath = join(root, 'ae', 'graphs', 'index.html')
   if (!existsSync(indexPath)) {
     return false
   }
@@ -82,7 +82,7 @@ function previewIndexReferencesExistingAssets(root: string): boolean {
   ) {
     return false
   }
-  const assetDir = join(root, 'docs', 'ae', 'graphs', 'assets')
+  const assetDir = join(root, 'ae', 'graphs', 'assets')
   return existsSync(join(assetDir, scriptName)) && existsSync(join(assetDir, stylesheetName))
 }
 
@@ -106,8 +106,8 @@ describe('ae-graph-build 工具', () => {
     expect(parsed.nodes).toBe(parsed.files)
     expect(parsed.relations).toBeGreaterThan(0)
     expect(parsed.parserStats).toEqual([])
-    expect(parsed.preview).toBe('docs/ae/graphs/index.html')
-    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'index.html'))).toBe(true)
+    expect(parsed.preview).toBe('ae/graphs/index.html')
+    expect(existsSync(join(root, 'ae', 'graphs', 'index.html'))).toBe(true)
     expect(previewIndexReferencesExistingAssets(root)).toBe(true)
   })
 
@@ -160,8 +160,8 @@ describe('ae-graph-build 工具', () => {
     const parsed = JSON.parse(result as string) as { database: string }
 
     expect(asked).toEqual([])
-    expect(parsed.database).toBe('docs/ae/graphs/graph.json')
-    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json'))).toBe(true)
+    expect(parsed.database).toBe('ae/graphs/graph.json')
+    expect(existsSync(join(root, 'ae', 'graphs', 'graph.json'))).toBe(true)
   })
 
   it('应该在没有 ask 能力时仍写入图谱文件', async () => {
@@ -173,8 +173,8 @@ describe('ae-graph-build 工具', () => {
     const result = await aeGraphBuildTool.execute({ mode: 'full' }, ctx as unknown as ToolContext)
     const parsed = JSON.parse(result as string) as { database: string }
 
-    expect(parsed.database).toBe('docs/ae/graphs/graph.json')
-    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json'))).toBe(true)
+    expect(parsed.database).toBe('ae/graphs/graph.json')
+    expect(existsSync(join(root, 'ae', 'graphs', 'graph.json'))).toBe(true)
   })
 
   it('应该在构建结果中返回被跳过文件的明细', async () => {
@@ -203,8 +203,8 @@ describe('ae-graph-build 工具', () => {
   it('应该在用户拒绝时保留锁文件并取消构建', async () => {
     const root = createTempRoot()
     write(root, 'src/a.ts', '')
-    write(root, 'docs/ae/graphs/graph.json.lock', 'other\n')
-    write(root, '.opencode/ae.jsonc', '{ "graph": { "exclude": ["**/.opencode", "docs/ae/graphs"] } }')
+    write(root, 'ae/graphs/graph.json.lock', 'other\n')
+    write(root, '.opencode/ae.jsonc', '{ "graph": { "exclude": ["**/.opencode", "ae/graphs"] } }')
     const ctx = {
       ...createMockContext(root),
       ask: () => {
@@ -215,22 +215,22 @@ describe('ae-graph-build 工具', () => {
     const result = await aeGraphBuildTool.execute({ mode: 'full' }, ctx)
 
     expect(result).toContain('图谱存储正在被其他进程写入')
-    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json.lock'))).toBe(true)
+    expect(existsSync(join(root, 'ae', 'graphs', 'graph.json.lock'))).toBe(true)
   })
 
   it('应该在用户确认后清理残留锁并重新构建', async () => {
     const root = createTempRoot()
     write(root, 'src/a.ts', '')
-    write(root, 'docs/ae/graphs/graph.json.lock', 'other\n')
-    write(root, '.opencode/ae.jsonc', '{ "graph": { "exclude": ["docs/ae/graphs"] } }')
+    write(root, 'ae/graphs/graph.json.lock', 'other\n')
+    write(root, '.opencode/ae.jsonc', '{ "graph": { "exclude": ["ae/graphs"] } }')
     const asked: unknown[] = []
     const ctx = createCaptureAskContext(root, asked)
 
     const result = await aeGraphBuildTool.execute({ mode: 'full' }, ctx)
     const parsed = JSON.parse(result as string) as { database: string }
 
-    expect(parsed.database).toBe('docs/ae/graphs/graph.json')
-    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json.lock'))).toBe(false)
+    expect(parsed.database).toBe('ae/graphs/graph.json')
+    expect(existsSync(join(root, 'ae', 'graphs', 'graph.json.lock'))).toBe(false)
     expect(JSON.stringify(asked)).toContain('清理残留锁')
     expect(JSON.stringify(asked)).not.toContain('强制覆盖锁文件')
   })
@@ -242,8 +242,8 @@ describe('ae-graph-build 工具', () => {
     const result = await aeGraphBuildTool.execute({ mode: 'full' }, createMockContext(root))
     const parsed = JSON.parse(result as string) as { database: string; preview: string }
 
-    expect(parsed.database).toBe('docs/ae/graphs/graph.json')
-    expect(parsed.preview).toBe('docs/ae/graphs/index.html')
+    expect(parsed.database).toBe('ae/graphs/graph.json')
+    expect(parsed.preview).toBe('ae/graphs/index.html')
   })
 
   it('应该支持相对 target 与 exclude 参数', async () => {
@@ -268,12 +268,37 @@ describe('ae-graph-build 工具', () => {
     write(root, 'node_modules/pkg/index.js', 'export const ignored = true')
 
     const result = await aeGraphBuildTool.execute({ mode: 'full' }, createMockContext(root))
-    const parsed = JSON.parse(result as string) as { savedExcludes: string[]; excludeRules: string[]; files: number }
+    const parsed = JSON.parse(result as string) as {
+      savedExcludes: string[]
+      excludeRules: string[]
+      files: number
+      filterCandidateSummary: { rawFileCount: number; candidateFileCount: number }
+    }
 
     expect(parsed.savedExcludes).toEqual([])
     expect(parsed.excludeRules).not.toContain('**/node_modules')
     expect(existsSync(join(root, '.opencode', 'ae.jsonc'))).toBe(false)
     expect(parsed.files).toBeGreaterThan(0)
+    expect(parsed.filterCandidateSummary.rawFileCount).toBe(2)
+    expect(parsed.filterCandidateSummary.candidateFileCount).toBe(2)
+  })
+
+  it('应该在构建结果中返回扩展名和路径段过滤候选摘要', async () => {
+    const root = createTempRoot()
+    write(root, 'src/a.ts', '')
+    write(root, 'src/logo.svg', '<svg />')
+    write(root, 'dist/bundle.js', '')
+
+    const result = await aeGraphBuildTool.execute({ mode: 'full' }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as {
+      filterCandidateSummary: {
+        extensionCandidates: Array<{ value: string; count: number; suggestedRule: string }>
+        pathSegmentCandidates: Array<{ value: string; count: number; suggestedRule: string }>
+      }
+    }
+
+    expect(parsed.filterCandidateSummary.extensionCandidates).toContainEqual(expect.objectContaining({ value: '.svg', count: 1, suggestedRule: '**/*.svg' }))
+    expect(parsed.filterCandidateSummary.pathSegmentCandidates).toContainEqual(expect.objectContaining({ value: 'dist', count: 1, suggestedRule: '**/dist' }))
   })
 
   it('未持久化排除规则时当前构建不应该排除候选目录', async () => {
@@ -377,11 +402,29 @@ describe('ae-graph-build 工具', () => {
     const parsed = JSON.parse(result as string) as { message: string; database: string; preview: string }
 
     expect(parsed.message).toContain('图谱无需更新')
-    expect(parsed.database).toBe('docs/ae/graphs/graph.json')
-    expect(parsed.preview).toBe('docs/ae/graphs/index.html')
-    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'index.html'))).toBe(true)
+    expect(parsed.database).toBe('ae/graphs/graph.json')
+    expect(parsed.preview).toBe('ae/graphs/index.html')
+    expect(existsSync(join(root, 'ae', 'graphs', 'index.html'))).toBe(true)
     expect(previewIndexReferencesExistingAssets(root)).toBe(true)
-    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'graph.json.lock'))).toBe(false)
+    expect(existsSync(join(root, 'ae', 'graphs', 'graph.json.lock'))).toBe(false)
+  })
+
+  it('仅运行产物变化时不应该触发全量重建', async () => {
+    const root = createTempRoot()
+    execFileSync('git', ['init'], { cwd: root, stdio: 'ignore' })
+    write(root, 'src/a.ts', 'export const a = 1')
+    execFileSync('git', ['add', 'src/a.ts'], { cwd: root, stdio: 'ignore' })
+    execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-m', 'test'], { cwd: root, stdio: 'ignore' })
+    await aeGraphBuildTool.execute({ mode: 'full' }, createMockContext(root))
+
+    write(root, 'ae/static-server/.static-server-info.json', '{}')
+    write(root, 'ae/screenshot/page.png', 'image')
+    write(root, 'ae/gates/proof.json', '{}')
+    const result = await aeGraphBuildTool.execute({ mode: 'auto' }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as { message: string; mode: string }
+
+    expect(parsed.mode).toBe('incremental')
+    expect(parsed.message).toContain('图谱无需更新')
   })
 
   it('大图谱应写入分片文件并在查询时返回 summary', async () => {
@@ -399,7 +442,7 @@ describe('ae-graph-build 工具', () => {
     const query = JSON.parse(queryResult as string) as { summary: { chunkIds: string[] } }
 
     expect(parsed.files).toBeGreaterThan(0)
-    expect(existsSync(join(root, 'docs', 'ae', 'graphs', 'version-1'))).toBe(true)
+    expect(existsSync(join(root, 'ae', 'graphs', 'version-1'))).toBe(true)
     expect(query.summary.chunkIds.length).toBeGreaterThan(0)
   }, 30000)
 

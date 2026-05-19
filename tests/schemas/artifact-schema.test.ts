@@ -81,7 +81,7 @@ describe('ArtifactFrontmatterSchema', () => {
         status: 'drafted',
         date: '2026-04-27',
         topic: 'test-topic',
-        origin: 'docs/ae/brainstorms/xxx.md',
+        origin: 'ae/brainstorms/xxx.md',
         originFingerprint: '2026-04-27-xxx',
       })
       expect(result.success).toBe(true)
@@ -93,7 +93,7 @@ describe('ArtifactFrontmatterSchema', () => {
         status: 'drafted',
         date: '2026-04-27',
         topic: 'test-topic',
-        origin: 'docs/ae/brainstorms/source.md',
+        origin: 'ae/brainstorms/source.md',
       })
       expect(result.success).toBe(false)
       if (!result.success) {
@@ -124,7 +124,7 @@ describe('ArtifactFrontmatterSchema', () => {
         status: 'drafted',
         date: '2026-04-27',
         topic: 'test-topic',
-        origin: 'docs/ae/../outside.md',
+        origin: 'ae/../outside.md',
         originFingerprint: '2026-04-27-source',
       })
       expect(result.success).toBe(false)

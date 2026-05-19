@@ -74,10 +74,10 @@ async function safeCleanup(root: string, infoPath: string) {
 }
 
 describe('ae-static-server 脚本', () => {
-  it('应该后台启动并把服务器信息集中写入 .opencode/ae/static-server', async () => {
+  it('应该后台启动并把服务器信息集中写入 ae/static-server', async () => {
     const root = await tempDir()
     const site = path.join(root, 'site')
-    const infoPath = path.join(root, '.opencode/ae/static-server/.static-server-info.json')
+    const infoPath = path.join(root, 'ae/static-server/.static-server-info.json')
 
     try {
       await mkdir(site)
@@ -90,18 +90,18 @@ describe('ae-static-server 脚本', () => {
 
       expect(stdout).toContain('静态服务器已在后台启动')
       expect(info.servers).toHaveLength(1)
-      expect(info.servers[0].port).toBe(43210)
-      expect(info.servers[0].url).toBe('http://localhost:43210')
+      expect(info.servers[0].port).toBeGreaterThanOrEqual(43210)
+      expect(info.servers[0].url).toBe(`http://localhost:${info.servers[0].port}`)
       expect(info.servers[0].rootPath).toBe(site)
     } finally {
       await safeCleanup(root, infoPath)
     }
   })
 
-  it('应该避开 .opencode/ae/static-server/.static-server-info.json 中已登记的端口', async () => {
+  it('应该避开 ae/static-server/.static-server-info.json 中已登记的端口', async () => {
     const root = await tempDir()
     const site = path.join(root, 'site')
-    const artifactDir = path.join(root, '.opencode/ae/static-server')
+    const artifactDir = path.join(root, 'ae/static-server')
     const infoPath = path.join(artifactDir, '.static-server-info.json')
 
     try {

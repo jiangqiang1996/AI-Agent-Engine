@@ -6,7 +6,7 @@
 
 ### worktree 交接输入
 
-输入为 `docs/ae/handoffs/*-worktree-handoff.md`，或绝对/相对路径指向规范 worktree 交接文件时，进入 B worktree 续执行路径。
+输入为 `ae/handoffs/*-worktree-handoff.md`，或绝对/相对路径指向规范 worktree 交接文件时，进入 B worktree 续执行路径。
 
 交接文件是 B worktree 续执行路径的唯一必需输入。只读取交接文件，以及交接文件明确引用且在当前 B worktree 中真实存在的需求/计划/设计产物、图谱目录和 AE 项目配置作为可选上下文；不得因为这些可选产物缺失而把续执行判定为失败。必须以 frontmatter、`## A→B Startup Proof`、`resume_entrypoint`、`## Migrated Artifacts` 和 `## Execution Baseline` 作为结构化真源。
 

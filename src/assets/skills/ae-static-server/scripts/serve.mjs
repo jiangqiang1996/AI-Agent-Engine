@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 import { execSync, spawn } from 'node:child_process'
 
 const SERVER_INFO_FILE = '.static-server-info.json'
-const ARTIFACT_DIR = path.join('.opencode', 'ae', 'static-server')
+const ARTIFACT_DIR = path.join('ae', 'static-server')
 const SERVER_LOG_FILE = 'static-server.log'
 
 function showHelp() {
@@ -26,8 +26,8 @@ function showHelp() {
   -h, --help             显示帮助信息
 
 产物:
-  .opencode/ae/static-server/.static-server-info.json  所有服务器实例的集中登记（JSON 数组）
-  .opencode/ae/static-server/static-server.log         后台日志
+  ae/static-server/.static-server-info.json  所有服务器实例的集中登记（JSON 数组）
+  ae/static-server/static-server.log         后台日志
 
 示例:
   node serve.mjs ./dist

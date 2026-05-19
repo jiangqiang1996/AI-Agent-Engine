@@ -58,7 +58,7 @@ agent-browser skills get core --full
 1. 调用 `ae-agent-browser-proof action=check` 检查当前工作区环境证明。
 2. 证明缺失时，使用低风险环境探测命令验证 agent-browser：`agent-browser --version`、`agent-browser --help`、`agent-browser skills get core --full`。
 3. 未安装或验证失败时，向用户说明需要安装的命令、来源、写入证明路径和取消后的降级行为，并取得确认后再安装或引导安装。
-4. 验证通过后，调用 `ae-agent-browser-proof action=complete` 写入 `.opencode/ae/agent-browser-proof.json`。
+4. 验证通过后，调用 `ae-agent-browser-proof action=complete` 写入 `ae/agent-browser-proof.json`。
 5. 环境就绪后优先展示可接管的现有浏览器候选、CDP 连接风险和登录态暴露风险；只有用户确认目标后才连接。
 6. 用户不确认或接管失败时，询问是打开新受控浏览器，还是按 remote debugging 参数重启已有浏览器后连接。
 

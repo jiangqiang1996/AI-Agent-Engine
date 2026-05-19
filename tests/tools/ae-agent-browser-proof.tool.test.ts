@@ -103,7 +103,11 @@ describe('ae-agent-browser-proof 工具', () => {
     }))
 
     expect(JSON.stringify(result)).toContain('已写入 agent-browser 环境证明')
-    expect(ask).toHaveBeenCalledWith(expect.objectContaining({ permission: 'file' }))
+    expect(ask).toHaveBeenCalledWith(expect.objectContaining({
+      permission: 'file',
+      patterns: ['ae/agent-browser-proof.json'],
+      metadata: expect.objectContaining({ target: 'ae/agent-browser-proof.json' }),
+    }))
     expect(readAgentBrowserProof(root)).toMatchObject({
       sessionId: 'session-1',
       schemaVersion: 1,

@@ -38,7 +38,7 @@ export const aeGraphQueryTool = tool({
     '',
     '功能说明：',
     '- 查询单文件依赖、影响范围、健康检查、条件筛选、最短路径、核心模块和关系统计',
-    '- 读取 `docs/ae/graphs/graph.json` 的 active version、manifest、索引和必要分片，返回 scope、诊断和截断信息',
+    '- 读取 `ae/graphs/graph.json` 的 active version、manifest、索引和必要分片，返回 scope、诊断和截断信息',
     '- 所有路径参数必须位于当前 worktree 内',
     '',
     '适用场景：',
