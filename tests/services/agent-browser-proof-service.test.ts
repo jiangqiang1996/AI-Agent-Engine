@@ -55,19 +55,6 @@ describe('agent-browser-proof-service', () => {
     expect(readFileSync(expectedPath, 'utf8')).toBeTruthy()
   })
 
-  it('旧 setup-proof.json 存在时不应该被识别为新证明', () => {
-    const dir = join(testDir, '.opencode', 'ae')
-    mkdirSync(dir, { recursive: true })
-    writeFileSync(join(dir, 'setup-proof.json'), JSON.stringify({
-      sessionId: 'session-1',
-      completedAt: '2026-04-29T00:00:00Z',
-      version: 'agent-browser 1.0.0',
-    }), 'utf8')
-
-    expect(readAgentBrowserProof(testDir)).toBeNull()
-    expect(isAgentBrowserProofCompleted(testDir, () => 'agent-browser 1.0.0')).toBe(false)
-  })
-
   it('存在合法证明且版本复验一致时返回 true', () => {
     writeAgentBrowserProof(testDir, createProof())
 
@@ -106,5 +93,16 @@ describe('agent-browser-proof-service', () => {
       validationResults: [],
     })
     expect(result.success).toBe(false)
+  })
+
+  it('AgentBrowserProofSchema 应拒绝缺少新证明必填字段的证明', () => {
+    const requiredFields = ['schemaVersion', 'worktreeFingerprint', 'agentBrowserVersion', 'proofKind'] as const
+
+    for (const field of requiredFields) {
+      const proof = { ...createProof() }
+      delete proof[field]
+
+      expect(AgentBrowserProofSchema.safeParse(proof).success).toBe(false)
+    }
   })
 })

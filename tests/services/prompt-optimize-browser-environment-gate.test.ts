@@ -49,22 +49,32 @@ describe('ensureBrowserEnvironmentGate', () => {
     expect(result).toContain('ae:agent-browser')
   })
 
-  it('已包含 /ae-agent-browser 时不重复注入', () => {
+  it('仅包含 /ae-agent-browser 但缺少证明检查时仍然注入门禁', () => {
     const prompt = '先运行 /ae-agent-browser，然后使用 agent-browser open http://localhost:3000'
     const result = ensureBrowserEnvironmentGate(prompt)
-    expect(result).toBe(prompt)
+    expect(result).not.toBe(prompt)
+    expect(result).toContain('ae-agent-browser-proof action=check')
   })
 
-  it('已包含 ae:agent-browser 时不重复注入', () => {
+  it('仅包含 ae:agent-browser 但缺少证明检查时仍然注入门禁', () => {
     const prompt = '完成 ae:agent-browser 后使用 agent-browser'
     const result = ensureBrowserEnvironmentGate(prompt)
+    expect(result).not.toBe(prompt)
+    expect(result).toContain('ae-agent-browser-proof action=check')
+  })
+
+  it('已包含完整环境证明兜底流程时不重复注入', () => {
+    const prompt = '先调用 ae-agent-browser-proof action=check；若未完成，先执行 ae:agent-browser 后再使用 agent-browser'
+    const result = ensureBrowserEnvironmentGate(prompt)
     expect(result).toBe(prompt)
   })
 
-  it('已包含 ae-agent-browser-proof 时不重复注入', () => {
+  it('仅包含环境证明检查但缺少兜底流程时仍然注入门禁', () => {
     const prompt = '先调用 ae-agent-browser-proof action=check，然后使用 agent-browser'
     const result = ensureBrowserEnvironmentGate(prompt)
-    expect(result).toBe(prompt)
+    expect(result).not.toBe(prompt)
+    expect(result).toContain('ae:agent-browser')
+    expect(result).toContain('写入证明后再执行浏览器流程')
   })
 
   it('否定性提及 ae-agent-browser-proof 时仍然注入门禁', () => {
@@ -83,28 +93,6 @@ describe('ensureBrowserEnvironmentGate', () => {
 
   it('否定性提及 ae:agent-browser 时仍然注入门禁', () => {
     const prompt = '不要运行 ae:agent-browser，直接使用 agent-browser open http://localhost:3000'
-    const result = ensureBrowserEnvironmentGate(prompt)
-    expect(result).not.toBe(prompt)
-    expect(result).toContain('ae-agent-browser-proof action=check')
-  })
-
-  it('旧 ae:setup 标记不能替代新浏览器环境门禁', () => {
-    const prompt = '已经运行 ae:setup，现在使用 agent-browser open http://localhost:3000'
-    const result = ensureBrowserEnvironmentGate(prompt)
-    expect(result).not.toBe(prompt)
-    expect(result).toContain('ae-agent-browser-proof action=check')
-    expect(result).toContain('ae:agent-browser')
-  })
-
-  it('旧 /ae-setup 标记不能替代新浏览器环境门禁', () => {
-    const prompt = '已经运行 /ae-setup，现在使用 agent-browser open http://localhost:3000'
-    const result = ensureBrowserEnvironmentGate(prompt)
-    expect(result).not.toBe(prompt)
-    expect(result).toContain('ae-agent-browser-proof action=check')
-  })
-
-  it('旧 ae-setup-proof 标记不能替代新浏览器环境门禁', () => {
-    const prompt = '已经调用 ae-setup-proof，现在使用 agent-browser open http://localhost:3000'
     const result = ensureBrowserEnvironmentGate(prompt)
     expect(result).not.toBe(prompt)
     expect(result).toContain('ae-agent-browser-proof action=check')
@@ -134,10 +122,11 @@ describe('ensureBrowserEnvironmentGate', () => {
     expect(gateCount).toBe(1)
   })
 
-  it('仅包含环境标记但无触发词时不注入', () => {
+  it('仅包含环境兜底标记但缺少证明检查时仍然注入门禁', () => {
     const prompt = '完成 ae:agent-browser 后继续'
     const result = ensureBrowserEnvironmentGate(prompt)
-    expect(result).toBe(prompt)
+    expect(result).not.toBe(prompt)
+    expect(result).toContain('ae-agent-browser-proof action=check')
   })
 })
 

@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -128,13 +128,8 @@ describe('ae-agent-browser-proof 工具', () => {
     vi.resetModules()
   })
 
-  it('旧 setup-proof.json 存在时 check 不应该返回完成', async () => {
-    const root = createTempRoot()
-    const dir = join(root, '.opencode', 'ae')
-    mkdirSync(dir, { recursive: true })
-    writeFileSync(join(dir, 'setup-proof.json'), JSON.stringify({ version: 'agent-browser 1.2.3' }), 'utf8')
-
-    const result = await callTool({ action: 'check' }, { worktree: root })
+  it('check 应该在证明缺失时返回未完成状态', async () => {
+    const result = await callTool({ action: 'check' }, { metadata: vi.fn(), worktree: createTempRoot() })
 
     expect(JSON.stringify(result)).toContain('尚未完成 agent-browser 环境验证')
     expect(JSON.stringify(result)).toContain('"completed":false')

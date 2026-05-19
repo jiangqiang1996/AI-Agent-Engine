@@ -1,0 +1,369 @@
+{
+  "schemaVersion": 1,
+  "status": "complete",
+  "generatedAt": "2026-05-19T03:09:38.622Z",
+  "generatedBy": "src/assets/skills/ae-agent-browser/scripts/collect-agent-browser-help.mjs",
+  "agentBrowserVersion": "agent-browser 0.26.0",
+  "commands": [
+    {
+      "command": "agent-browser --version",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser 0.26.0\n",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser --help",
+      "exitCode": 0,
+      "stdoutSummary": "\nagent-browser - fast browser automation CLI for AI agents\n\nUsage: agent-browser <command> [args] [options]\n\nStart here (for AI agents):\n  agent-browser skills get core --full\n\n  Skills ship with the CLI (always version-matched) and include workflow\n  patterns, ref/selector usage, and copy-paste examples. Prefer this over\n  guessing commands from flag docs alone. Specialized skills cover Electron\n  apps, Slack, exploratory testing, and cloud browser providers.\n\n  skills [list]                Lis",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser skills get core --full",
+      "exitCode": 0,
+      "stdoutSummary": "---\nname: core\ndescription: Core agent-browser usage guide. Read this before running any agent-browser commands. Covers the snapshot-and-ref workflow, navigating pages, interacting with elements (click, fill, type, select), extracting text and data, taking screenshots, managing tabs, handling forms and auth, waiting for content, running multiple browser sessions in parallel, and troubleshooting common failures. Use when the user asks to interact with a website, fill a form, click something, extr",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser auth --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser auth - Manage authentication profiles\n\nUsage: agent-browser auth <subcommand> [args]\n\nSubcommands:\n  save <name>              Save credentials for a login profile\n  login <name>             Login using saved credentials (waits for form fields)\n  list                     List saved profiles (names and URLs only)\n  show <name>              Show profile metadata (no passwords)\n  delete <name>            Delete a saved profile\n\nSave Options:\n  --url <url>              Login page URL (r",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser back --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser back - Navigate back in history\n\nUsage: agent-browser back\n\nGoes back one page in the browser history, equivalent to clicking\nthe browser's back button.\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser back\n",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser batch --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser batch - Execute multiple commands sequentially\n\nUsage: agent-browser batch [options] \"<cmd1>\" \"<cmd2>\" ...\n       echo '<json>' | agent-browser batch [options]\n\nRuns multiple commands in sequence. Commands can be passed as quoted\narguments or piped as JSON via stdin. Results are printed in order,\nseparated by blank lines (or as a JSON array with --json).\n\nOptions:\n  --bail               Stop on first error (default: continue all commands)\n  --json               Output results as a ",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser check --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser check - Check a checkbox\n\nUsage: agent-browser check <selector>\n\nChecks a checkbox element. If already checked, no action is taken.\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser check \"#terms-checkbox\"\n  agent-browser check @e7\n",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser click --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser click - Click an element\n\nUsage: agent-browser click <selector> [--new-tab]\n\nClicks on the specified element. The selector can be a CSS selector,\nXPath, or an element reference from snapshot (e.g., @e1).\n\nOptions:\n  --new-tab            Open link in a new tab instead of navigating current tab\n                       (only works on elements with href attribute)\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browse",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser clipboard --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser clipboard - Read and write clipboard\n\nUsage: agent-browser clipboard <operation> [text]\n\nRead from or write to the browser clipboard.\n\nOperations:\n  read                 Read text from clipboard\n  write <text>         Write text to clipboard\n  copy                 Copy current selection (simulates Ctrl+C)\n  paste                Paste from clipboard (simulates Ctrl+V)\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agen",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser close --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser close - Close the browser\n\nUsage: agent-browser close [options]\n\nCloses the browser instance for the current session.\n\nAliases: quit, exit\n\nOptions:\n  --all                Close all active sessions\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser close\n  agent-browser close --session mysession\n  agent-browser close --all\n",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser confirm --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser confirm/deny - Approve or deny pending actions\n\nUsage:\n  agent-browser confirm <confirmation-id>\n  agent-browser deny <confirmation-id>\n\nWhen --confirm-actions is set, certain action categories return a\nconfirmation_required response with a confirmation ID. Use confirm/deny\nto approve or reject the action.\n\nPending confirmations auto-deny after 60 seconds.\n\nExamples:\n  agent-browser confirm c_8f3a1234\n  agent-browser deny c_8f3a1234\n",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser connect --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser connect - Connect to browser via CDP\n\nUsage: agent-browser connect <port|url>\n\nConnects to a running browser instance via Chrome DevTools Protocol (CDP).\nThis allows controlling browsers, Electron apps, or remote browser services.\n\nArguments:\n  <port>               Local port number (e.g., 9222)\n  <url>                Full WebSocket URL (ws://, wss://, http://, https://)\n\nSupported URL formats:\n  - Port number: 9222 (connects to http://localhost:9222)\n  - WebSocket URL: ws://localh",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser console --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser console - View console logs\n\nUsage: agent-browser console [--clear]\n\nView browser console output (log, warn, error, info).\n\nOptions:\n  --clear              Clear console log buffer\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser console\n  agent-browser console --clear\n",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser cookies --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser cookies - Manage browser cookies\n\nUsage: agent-browser cookies [operation] [args]\n\nManage browser cookies for the current context.\n\nOperations:\n  get                                Get all cookies (default)\n  set <name> <value> [options]       Set a cookie with optional properties\n  clear                              Clear all cookies\n\nCookie Set Options:\n  --url <url>                        URL for the cookie (allows setting before page load)\n  --domain <domain>                  C",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser dashboard --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser dashboard - Observability dashboard\n\nUsage: agent-browser dashboard [start|stop] [options]\n\nManage the observability dashboard, a local web UI that shows live\nbrowser viewports and command activity feeds for all sessions.\nThe dashboard is bundled into the binary and requires no separate install.\n\nSubcommands:\n  start [--port <n>]   Start the dashboard server (default port: 4848)\n  stop                 Stop the dashboard server\n\nRunning 'agent-browser dashboard' with no subcommand i",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser dblclick --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser dblclick - Double-click an element\n\nUsage: agent-browser dblclick <selector>\n\nDouble-clicks on the specified element. Useful for text selection\nor triggering double-click handlers.\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser dblclick \"#editable-text\"\n  agent-browser dblclick @e5\n",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser deny --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser confirm/deny - Approve or deny pending actions\n\nUsage:\n  agent-browser confirm <confirmation-id>\n  agent-browser deny <confirmation-id>\n\nWhen --confirm-actions is set, certain action categories return a\nconfirmation_required response with a confirmation ID. Use confirm/deny\nto approve or reject the action.\n\nPending confirmations auto-deny after 60 seconds.\n\nExamples:\n  agent-browser confirm c_8f3a1234\n  agent-browser deny c_8f3a1234\n",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser diff --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser diff - Compare page states\n\nSubcommands:\n\n  diff snapshot                   Compare current snapshot to last snapshot in session\n  diff screenshot --baseline <f>  Visual pixel diff against a baseline image\n  diff url <url1> <url2>          Compare two pages\n\nSnapshot Diff:\n\n  Usage: agent-browser diff snapshot [options]\n\n  Options:\n    -b, --baseline <file>    Compare against a saved snapshot file\n    -s, --selector <sel>     Scope snapshot to a CSS selector or @ref\n    -c, --compa",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser doctor --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser doctor - Diagnose and repair your install\n\nUsage: agent-browser doctor [options]\n\nRuns a battery of checks across environment, Chrome install, daemon state,\nconfig files, encryption key, providers, network reachability, and a live\nheadless browser launch test.\n\nAuto-cleans stale daemon socket/pid/version sidecar files. Destructive\nrepairs (reinstalling Chrome, purging old state files, generating a missing\nencryption key) are gated behind --fix.\n\nOptions:\n  --offline            Skip",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser download --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser download - Download a file by clicking an element\n\nUsage: agent-browser download <selector> <path>\n\nClicks an element that triggers a download and saves the file to the specified path.\n\nArguments:\n  selector             Element to click (CSS selector or @ref)\n  path                 Path where the downloaded file will be saved\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser download \"#download-btn\" ./file.",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser drag --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser drag - Drag and drop\n\nUsage: agent-browser drag <source> <target>\n\nDrags an element from source to target location.\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser drag \"#draggable\" \"#drop-zone\"\n  agent-browser drag @e1 @e2\n",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser errors --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser errors - View page errors\n\nUsage: agent-browser errors [--clear]\n\nView JavaScript errors and uncaught exceptions.\n\nOptions:\n  --clear              Clear error buffer\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser errors\n  agent-browser errors --clear\n",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser eval --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser eval - Execute JavaScript\n\nUsage: agent-browser eval [options] <script>\n\nExecutes JavaScript code in the browser context and returns the result.\n\nOptions:\n  -b, --base64         Decode script from base64 (avoids shell escaping issues)\n  --stdin              Read script from stdin (useful for heredocs/multiline)\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser eval \"document.title\"\n  agent-browser eval \"win",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser fill --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser fill - Clear and fill an input field\n\nUsage: agent-browser fill <selector> <text>\n\nClears the input field and fills it with the specified text.\nThis replaces any existing content in the field.\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser fill \"#email\" \"user@example.com\"\n  agent-browser fill @e3 \"Hello World\"\n  agent-browser fill \"input[name='search']\" \"query\"\n",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser find --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser find - Find and interact with elements by locator\n\nUsage: agent-browser find <locator> <value> [action] [text]\n\nFinds elements using semantic locators and optionally performs an action.\n\nLocators:\n  role <role>              Find by ARIA role (--name <n>, --exact)\n  text <text>              Find by text content (--exact)\n  label <label>            Find by associated label (--exact)\n  placeholder <text>       Find by placeholder text (--exact)\n  alt <text>               Find by alt t",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser focus --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser focus - Focus an element\n\nUsage: agent-browser focus <selector>\n\nSets keyboard focus to the specified element.\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser focus \"#input-field\"\n  agent-browser focus @e2\n",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser forward --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser forward - Navigate forward in history\n\nUsage: agent-browser forward\n\nGoes forward one page in the browser history, equivalent to clicking\nthe browser's forward button.\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser forward\n",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser get --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser get - Retrieve information from elements or page\n\nUsage: agent-browser get <subcommand> [args]\n\nRetrieves various types of information from elements or the page.\n\nSubcommands:\n  text <selector>            Get text content of element\n  html <selector>            Get inner HTML of element\n  value <selector>           Get value of input element\n  attr <selector> <name>     Get attribute value\n  title                      Get page title\n  url                        Get current URL\n  co",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser highlight --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser highlight - Highlight an element\n\nUsage: agent-browser highlight <selector>\n\nVisually highlights an element on the page for debugging.\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser highlight \"#target-element\"\n  agent-browser highlight @e5\n",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser hover --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser hover - Hover over an element\n\nUsage: agent-browser hover <selector>\n\nMoves the mouse to hover over the specified element. Useful for\ntriggering hover states or dropdown menus.\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser hover \"#dropdown-trigger\"\n  agent-browser hover @e4\n",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser inspect --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser inspect - Open Chrome DevTools for the active page\n\nStarts a local WebSocket proxy and opens Chrome's DevTools frontend in your\ndefault browser. The proxy routes DevTools traffic through the daemon's\nexisting CDP connection, so both DevTools and agent-browser commands work\nsimultaneously.\n\nUsage: agent-browser inspect\n\nExamples:\n  agent-browser open example.com\n  agent-browser inspect          # opens DevTools in your browser\n  agent-browser click \"Submit\"   # commands still work w",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser install --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser install - Install browser binaries\n\nUsage: agent-browser install [--with-deps]\n\nDownloads and installs browser binaries required for automation.\n\nOptions:\n  -d, --with-deps      Also install system dependencies (Linux only)\n\nExamples:\n  agent-browser install\n  agent-browser install --with-deps\n",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser is --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser is - Check element state\n\nUsage: agent-browser is <subcommand> <selector>\n\nChecks the state of an element and returns true/false.\n\nSubcommands:\n  visible <selector>   Check if element is visible\n  enabled <selector>   Check if element is enabled (not disabled)\n  checked <selector>   Check if checkbox/radio is checked\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser is visible \"#modal\"\n  agent-browser is en",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser keyboard --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser keyboard - Raw keyboard input (no selector needed)\n\nUsage: agent-browser keyboard <subcommand> <text>\n\nSends keyboard input to whatever element currently has focus.\nUnlike 'type' which requires a selector, 'keyboard' operates on\nthe current focus — essential for contenteditable editors like\nLexical, ProseMirror, CodeMirror, and Monaco.\n\nSubcommands:\n  type <text>          Type text character-by-character with real\n                       key events (keydown, keypress, keyup per char",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser mouse --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser mouse - Low-level mouse operations\n\nUsage: agent-browser mouse <subcommand> [args]\n\nPerforms low-level mouse operations for precise control.\n\nSubcommands:\n  move <x> <y>         Move mouse to coordinates\n  down [button]        Press mouse button (left, right, middle)\n  up [button]          Release mouse button\n  wheel <dy> [dx]      Scroll mouse wheel\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser mouse ",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser network --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser network - Network interception and monitoring\n\nUsage: agent-browser network <subcommand> [args]\n\nIntercept, mock, or monitor network requests.\n\nSubcommands:\n  route <url> [options]      Intercept requests matching URL pattern\n    --abort                  Abort matching requests\n    --body <json>            Respond with custom body\n  unroute [url]              Remove route (all if no URL)\n  requests [options]         List captured requests\n    --clear                  Clear request ",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser open --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser open - Navigate to a URL\n\nUsage: agent-browser open <url>\n\nNavigates the browser to the specified URL. If no protocol is provided,\nhttps:// is automatically prepended.\n\nAliases: goto, navigate\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n  --headers <json>     Set HTTP headers (scoped to this origin)\n  --headed             Show browser window\n\nExamples:\n  agent-browser open example.com\n  agent-browser open https://github.com\n  a",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser pdf --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser pdf - Save page as PDF\n\nUsage: agent-browser pdf <path>\n\nSaves the current page as a PDF file.\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser pdf ./page.pdf\n  agent-browser pdf ~/Documents/report.pdf\n",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser press --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser press - Press a key or key combination\n\nUsage: agent-browser press <key>\n\nPresses a key or key combination. Supports special keys and modifiers.\n\nAliases: key\n\nSpecial Keys:\n  Enter, Tab, Escape, Backspace, Delete, Space\n  ArrowUp, ArrowDown, ArrowLeft, ArrowRight\n  Home, End, PageUp, PageDown\n  F1-F12\n\nModifiers (combine with +):\n  Control, Alt, Shift, Meta\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser profiler --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser profiler - Record Chrome DevTools performance profile\n\nUsage: agent-browser profiler <operation> [options]\n\nRecord a performance profile using Chrome DevTools Protocol (CDP) Tracing.\nThe output JSON file can be loaded into Chrome DevTools Performance panel,\nPerfetto UI (https://ui.perfetto.dev/), or other trace analysis tools.\n\nOperations:\n  start                Start profiling\n  stop [path]          Stop profiling and save to file\n\nStart Options:\n  --categories <list>  Comma-separ",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser profiles --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser profiles - List available Chrome profiles\n\nUsage: agent-browser profiles\n\nLists all Chrome profiles found in your Chrome user data directory, showing\nthe directory name and display name for each profile. Use the directory name\nwith --profile to launch Chrome with that profile's login state.\n\nGlobal Options:\n  --json               Output as JSON\n\nExamples:\n  agent-browser profiles\n  agent-browser profiles --json\n  agent-browser --profile Default open https://gmail.com\n",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser record --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser record - Record browser session to video\n\nUsage: agent-browser record start <path.webm> [url]\n       agent-browser record stop\n       agent-browser record restart <path.webm> [url]\n\nRecord the browser to a WebM video file.\nCreates a fresh browser context but preserves cookies and localStorage.\nIf no URL is provided, automatically navigates to your current page.\n\nOperations:\n  start <path> [url]     Start recording (defaults to current URL if omitted)\n  stop                   Stop r",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser reload --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser reload - Reload the current page\n\nUsage: agent-browser reload\n\nReloads the current page, equivalent to pressing F5 or clicking\nthe browser's reload button.\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser reload\n",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser screenshot --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser screenshot - Take a screenshot\n\nUsage: agent-browser screenshot [selector] [path]\n\nCaptures a screenshot of the current page. If no path is provided,\nsaves to a temporary directory with a generated filename.\n\nOptions:\n  --full, -f           Capture full page (not just viewport)\n  --annotate           Overlay numbered labels on interactive elements.\n                       Each label [N] corresponds to ref @eN from snapshot.\n                       Prints a legend mapping labels to el",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser scroll --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser scroll - Scroll the page\n\nUsage: agent-browser scroll [direction] [amount] [options]\n\nScrolls the page or a specific element in the specified direction.\n\nArguments:\n  direction            up, down, left, right (default: down)\n  amount               Pixels to scroll (default: 300)\n\nOptions:\n  -s, --selector <sel> CSS selector for a scrollable container\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser scroll",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser scrollintoview --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser scrollintoview - Scroll element into view\n\nUsage: agent-browser scrollintoview <selector>\n\nScrolls the page until the specified element is visible in the viewport.\n\nAliases: scrollinto\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser scrollintoview \"#footer\"\n  agent-browser scrollintoview @e15\n",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser select --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser select - Select a dropdown option\n\nUsage: agent-browser select <selector> <value...>\n\nSelects one or more options in a <select> dropdown by value.\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser select \"#country\" \"US\"\n  agent-browser select @e5 \"option2\"\n  agent-browser select \"#menu\" \"opt1\" \"opt2\" \"opt3\"\n",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser session --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser session - Manage sessions\n\nUsage: agent-browser session [operation]\n\nManage isolated browser sessions. Each session has its own browser\ninstance with separate cookies, storage, and state.\n\nOperations:\n  (none)               Show current session name\n  list                 List all active sessions\n\nEnvironment:\n  AGENT_BROWSER_SESSION    Default session name\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser ",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser set --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser set - Configure browser settings\n\nUsage: agent-browser set <setting> [args]\n\nConfigures various browser settings and emulation options.\n\nSettings:\n  viewport <w> <h> [scale]   Set viewport size (scale = deviceScaleFactor, e.g. 2 for retina)\n  device <name>              Emulate device (e.g., \"iPhone 12\")\n  geo <lat> <lng>            Set geolocation\n  offline [on|off]           Toggle offline mode\n  headers <json>             Set extra HTTP headers\n  credentials <user> <pass>  Set HT",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser skills --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser skills - List and retrieve bundled skill content\n\nUsage: agent-browser skills [subcommand] [options]\n\nSubcommands:\n  list                       List all available skills (default)\n  get <name> [name...]       Output a skill's full content\n  get <name> --full          Include references and templates\n  get --all                  Output every skill\n  path [name]                Print filesystem path to skill directory\n\nOptions:\n  --json                     Output as JSON\n\nThe skills c",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser snapshot --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser snapshot - Get accessibility tree snapshot\n\nUsage: agent-browser snapshot [options]\n\nReturns an accessibility tree representation of the page with element\nreferences (like @e1, @e2) that can be used in subsequent commands.\nDesigned for AI agents to understand page structure.\n\nOptions:\n  -i, --interactive    Only include interactive elements\n  -u, --urls           Include href URLs for link elements\n  -c, --compact        Remove empty structural elements\n  -d, --depth <n>      Limit",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser storage --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser storage - Manage web storage\n\nUsage: agent-browser storage <type> [operation] [key] [value]\n\nManage localStorage and sessionStorage.\n\nTypes:\n  local                localStorage\n  session              sessionStorage\n\nOperations:\n  get [key]            Get all storage or specific key\n  set <key> <value>    Set a key-value pair\n  clear                Clear all storage\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser stream --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser stream - Manage live WebSocket browser streaming\n\nUsage:\n  agent-browser stream enable [--port <port>]\n  agent-browser stream disable\n  agent-browser stream status\n\nEnables or disables the session-scoped WebSocket stream server without restarting\nan already-running daemon. If --port is omitted, agent-browser binds an\navailable localhost port automatically and reports it back.\n\nNotes:\n  - 'stream enable' creates the WebSocket server.\n  - WebSocket clients trigger frame streaming aut",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser tab --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser tab - Manage browser tabs\n\nUsage: agent-browser tab [operation] [args]\n\nManage browser tabs in the current window. Stable tab ids look like `t1`,\n`t2`, `t3`. An id is never reused within a session, so scripts can keep\nreferring to the same tab across commands. Optional user-assigned labels\n(e.g. `docs`, `app`) are interchangeable with ids everywhere a tab ref is\naccepted.\n\nOperations:\n  list                       List open tabs with their ids and labels (default)\n  new [url]       ",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser trace --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser trace - Record execution trace\n\nUsage: agent-browser trace <operation> [path]\n\nRecord a Chrome DevTools trace for debugging.\n\nOperations:\n  start [path]         Start recording trace\n  stop [path]          Stop recording and save trace\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser trace start\n  agent-browser trace start ./my-trace\n  agent-browser trace stop\n  agent-browser trace stop ./debug-trace.zip\n",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser type --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser type - Type text into an element\n\nUsage: agent-browser type <selector> <text>\n\nTypes text into the specified element character by character.\nUnlike fill, this does not clear existing content first.\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser type \"#search\" \"hello\"\n  agent-browser type @e2 \"additional text\"\n\nSee Also:\n  For typing into contenteditable editors (Lexical, ProseMirror, etc.)\n  without a se",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser uncheck --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser uncheck - Uncheck a checkbox\n\nUsage: agent-browser uncheck <selector>\n\nUnchecks a checkbox element. If already unchecked, no action is taken.\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser uncheck \"#newsletter-opt-in\"\n  agent-browser uncheck @e8\n",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser upload --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser upload - Upload files\n\nUsage: agent-browser upload <selector> <files...>\n\nUploads one or more files to a file input element.\n\nGlobal Options:\n  --json               Output as JSON\n  --session <name>     Use specific session\n\nExamples:\n  agent-browser upload \"#file-input\" ./document.pdf\n  agent-browser upload @e3 ./image1.png ./image2.png\n",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser upgrade --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser upgrade - Upgrade to the latest version\n\nUsage: agent-browser upgrade\n\nDetects the current installation method (npm, Homebrew, or Cargo) and runs\nthe appropriate update command. Displays the version change on success, or\ninforms you if you are already on the latest version.\n\nExamples:\n  agent-browser upgrade\n",
+      "stderrSummary": ""
+    },
+    {
+      "command": "agent-browser wait --help",
+      "exitCode": 0,
+      "stdoutSummary": "agent-browser wait - Wait for condition\n\nUsage: agent-browser wait <selector|ms|option>\n\nWaits for an element to appear, a timeout, or other conditions.\n\nModes:\n  <selector>           Wait for element to appear\n  <ms>                 Wait for specified milliseconds\n  --url <pattern>      Wait for URL to match pattern\n  --load <state>       Wait for load state (load, domcontentloaded, networkidle)\n  --fn <expression>    Wait for JavaScript expression to be truthy\n  --text <text>        Wait for t",
+      "stderrSummary": ""
+    }
+  ]
+}

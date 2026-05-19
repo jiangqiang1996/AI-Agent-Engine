@@ -173,6 +173,34 @@ describe('资产健康巡检', () => {
     }
   })
 
+  it('ae-agent-browser 应该提供环境证明、目标选择和 CLI 引用资产', () => {
+    const skillText = readFileSync('src/assets/skills/ae-agent-browser/SKILL.md', 'utf8')
+    const referenceFiles = [
+      'src/assets/skills/ae-agent-browser/references/environment-proof.md',
+      'src/assets/skills/ae-agent-browser/references/browser-target-selection.md',
+      'src/assets/skills/ae-agent-browser/references/agent-browser-cli-reference.md',
+      'src/assets/skills/ae-agent-browser/references/agent-browser-core-skill.md',
+      'src/assets/skills/ae-agent-browser/references/agent-browser-help-inventory.json',
+      'src/assets/skills/ae-agent-browser/scripts/collect-agent-browser-help.mjs',
+    ]
+
+    for (const file of referenceFiles) {
+      expect(existsSync(file), `asset-health/agent-browser-reference/${file}: 缺少引用资产`).toBe(true)
+    }
+
+    expect(skillText).toContain('references/environment-proof.md')
+    expect(skillText).toContain('references/browser-target-selection.md')
+    expect(skillText).toContain('references/agent-browser-cli-reference.md')
+    expect(skillText).toContain('references/agent-browser-core-skill.md')
+    expect(readFileSync('src/assets/skills/ae-agent-browser/references/environment-proof.md', 'utf8')).toContain('agentBrowserVersion')
+    expect(readFileSync('src/assets/skills/ae-agent-browser/references/browser-target-selection.md', 'utf8')).toContain('即使只有一个候选')
+    const cliReferenceText = readFileSync('src/assets/skills/ae-agent-browser/references/agent-browser-cli-reference.md', 'utf8')
+    const collectorText = readFileSync('src/assets/skills/ae-agent-browser/scripts/collect-agent-browser-help.mjs', 'utf8')
+
+    expect(cliReferenceText).toContain('scripts/collect-agent-browser-help.mjs')
+    expect(collectorText).toContain('agentBrowserVersion: summarizeOutput(version.stdout.trim())')
+  })
+
   it('文档互转资产引用的模板和代理应该存在并注册', () => {
     const agent = getAllAgentDefinitions().find((entry) => entry.name === AGENT.DOC_EQUIVALENCE_REVIEWER)
     const humanize = readFileSync('src/assets/skills/ae-doc-humanize/SKILL.md', 'utf8')

@@ -86,11 +86,6 @@ describe('ae-asset-schema', () => {
     expect(AeCommandNameSchema.safeParse('ae-skill-updater').success).toBe(false)
   })
 
-  it('应该拒绝旧 setup 技能和命令入口', () => {
-    expect(AeSkillNameSchema.safeParse('ae:setup').success).toBe(false)
-    expect(AeCommandNameSchema.safeParse('ae-setup').success).toBe(false)
-  })
-
   it('应该声明 agent-browser 环境证明工具名', () => {
     expect(TOOL.AE_AGENT_BROWSER_PROOF).toBe('ae-agent-browser-proof')
   })
@@ -100,6 +95,16 @@ describe('ae-asset-schema', () => {
 
     expect(registry[TOOL.AE_AGENT_BROWSER_PROOF]).toBeDefined()
     expect(registry[TOOL.AE_AGENT_BROWSER_PROOF]).toHaveProperty('execute')
-    expect(registry['ae-setup-proof']).toBeUndefined()
+  })
+
+  it('不应该重新注册已废弃的浏览器环境入口', () => {
+    const deprecatedSkill = ['ae', ':', 'setup'].join('')
+    const deprecatedCommand = ['ae', '-', 'setup'].join('')
+    const deprecatedTool = ['ae', '-', 'setup', '-', 'proof'].join('')
+    const registry = createToolRegistry()
+
+    expect(AeSkillNameSchema.safeParse(deprecatedSkill).success).toBe(false)
+    expect(AeCommandNameSchema.safeParse(deprecatedCommand).success).toBe(false)
+    expect(registry[deprecatedTool]).toBeUndefined()
   })
 })

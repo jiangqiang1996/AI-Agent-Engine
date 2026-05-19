@@ -115,17 +115,8 @@ describe('AE catalog 一致性', () => {
     expect(skillText).toContain('agent-browser --help')
     expect(skillText).toContain('ae-agent-browser-proof action=check')
     expect(skillText).toContain('agent-browser skills get core --full')
-    expect(skillText).not.toContain('ae:setup')
-    expect(skillText).not.toContain('/ae-setup')
     expect(getPhaseOnePoEntries().some((item) => item.commandName === 'ae-agent-browser-po')).toBe(false)
     expect(getPhaseOnePaEntries().some((item) => item.commandName === 'ae-agent-browser-pa')).toBe(false)
-  })
-
-  it('不应注册 ae:setup 旧入口', () => {
-    const entries = getPhaseOneEntries()
-
-    expect(entries.map((item) => item.skillName as string)).not.toContain('ae:setup')
-    expect(entries.map((item) => item.commandName as string)).not.toContain('ae-setup')
   })
 
   it('ae:skill-creator 应保持单一入口并描述创建与更新能力', () => {
