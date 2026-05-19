@@ -3,7 +3,7 @@ import { dirname, extname, join, relative, resolve } from 'node:path'
 
 import { makeExternalNodeId, makeFileNodeId, makeSymbolNodeId, makeUnresolvedNodeId } from './graph/graph-schema.js'
 import type { GraphSymbolKind } from './graph/graph-schema.js'
-import { matchGraphExcludePath, type GraphConfig } from './graph-config-service.js'
+import { matchGraphPath, type GraphConfig } from './graph-config-service.js'
 import type { GraphFileNode, GraphRelation, GraphRelationType } from './graph-storage-service.js'
 import { loadTreeSitterLanguage } from './graph/tree-sitter-loader.js'
 import type { TreeSitterLanguageHandle, TreeSitterNode, TreeSitterTreeResult } from './graph/tree-sitter-loader.js'
@@ -43,29 +43,51 @@ export interface GraphParseIssue {
   sizeBytes?: number
 }
 
-function shouldExclude(relativePath: string, config: GraphConfig, isDirectory = false): boolean {
+interface GraphPathDecision {
+  excluded: boolean
+  hardExcluded: boolean
+}
+
+function getGraphPathDecision(relativePath: string, config: GraphConfig, isDirectory = false): GraphPathDecision {
   const graphsDir = docsAePath(DOCS_AE_SUBDIRS.GRAPHS)
   if (relativePath === graphsDir || relativePath.startsWith(`${graphsDir}/`)) {
-    return true
+    return { excluded: true, hardExcluded: true }
   }
   const parts = relativePath.split('/')
   if (parts.some((part) => DEFAULT_EXCLUDED_DIRS.has(part))) {
-    return true
+    return { excluded: true, hardExcluded: true }
   }
   if (SENSITIVE_FILENAMES.some((pattern) => pattern.test(parts.at(-1) ?? ''))) {
-    return true
+    return { excluded: true, hardExcluded: true }
   }
-  return matchGraphExcludePath(relativePath, config.exclude, isDirectory).excluded
+  return { excluded: matchGraphPath(relativePath, config, isDirectory).excluded, hardExcluded: false }
 }
 
-function hasNegatedDescendantRule(relativePath: string, config: GraphConfig): boolean {
-  return config.exclude.some((rule) => {
+function shouldExclude(relativePath: string, config: GraphConfig, isDirectory = false): boolean {
+  return getGraphPathDecision(relativePath, config, isDirectory).excluded
+}
+
+function hasIncludedDescendantRule(relativePath: string, config: GraphConfig): boolean {
+  const normalizedPath = toPosixPath(relativePath).replace(/^\/+/, '').replace(/\/+$/, '')
+  return (config.include ?? []).some((rule) => {
     const normalizedRule = toPosixPath(rule.trim())
-    if (!normalizedRule.startsWith('!')) {
+    const pattern = normalizedRule.replace(/^\/+/, '').replace(/\/+$/, '')
+    if (!pattern) {
       return false
     }
-    const pattern = normalizedRule.slice(1).replace(/^\/+/, '').replace(/\/+$/, '')
-    return pattern.startsWith('**/') || pattern === relativePath || pattern.startsWith(`${relativePath}/`)
+    if (pattern === normalizedPath || pattern.startsWith(`${normalizedPath}/`)) {
+      return true
+    }
+    const wildcardIndex = pattern.search(/[?*]/)
+    if (wildcardIndex < 0) {
+      return false
+    }
+    const literalPrefix = pattern.slice(0, wildcardIndex)
+    const prefixBoundary = literalPrefix.lastIndexOf('/')
+    const directoryPrefix = prefixBoundary < 0 ? '' : literalPrefix.slice(0, prefixBoundary)
+    return directoryPrefix === normalizedPath
+      || directoryPrefix.startsWith(`${normalizedPath}/`)
+      || normalizedPath.startsWith(`${directoryPrefix}/`)
   })
 }
 
@@ -145,8 +167,9 @@ export function collectGraphFiles(worktree: string, target: string, config: Grap
         continue
       }
       const relativePath = toPosixPath(relative(root, absolutePath))
-      if (shouldExclude(relativePath, config, entry.isDirectory())) {
-        if (entry.isDirectory() && hasNegatedDescendantRule(relativePath, config)) {
+      const decision = getGraphPathDecision(relativePath, config, entry.isDirectory())
+      if (decision.excluded) {
+        if (entry.isDirectory() && !decision.hardExcluded && hasIncludedDescendantRule(relativePath, config)) {
           visit(absolutePath)
         }
         continue

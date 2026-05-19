@@ -1,7 +1,7 @@
 ---
 name: ae:graph-build
 description: 构建或增量维护项目文件关系图谱，写入当前工作区 docs/ae/graphs/graph.json 并生成离线预览页
-argument-hint: "[target:<PATH>] [mode:auto|full|incremental] [depth:shallow] [exclude:<PATH>...]"
+argument-hint: "[target:<PATH>] [mode:auto|full|incremental] [depth:shallow] [include:<PATH>...] [exclude:<PATH>...]"
 ---
 
 # Skill: ae:graph-build
@@ -18,25 +18,25 @@ argument-hint: "[target:<PATH>] [mode:auto|full|incremental] [depth:shallow] [ex
 
 ## 执行流程
 
-- 调用 `ae-graph-build` 工具，传入 `target`、`mode` 和 `depth` 参数。
+- 调用 `ae-graph-build` 工具，传入 `target`、`mode`、`depth`、`include` 和 `exclude` 参数。
 - `target` 支持绝对路径和相对路径；省略时按当前会话启动路径解析。
 - `mode` 可为 `auto`、`full` 或 `incremental`；非 Git 项目会降级为全量构建。
 - 优先使用 `mode=auto`；当图谱缺失、结构损坏或 scope 变化时使用全量构建，当 Git diff 后只需刷新变更文件时使用增量构建。
 - `depth` 首版仅支持 `shallow`，只做浅层正则解析，不执行 AST 深层解析。
-- 工具会读取可选图谱排除配置，并可叠加 `exclude` 参数后将图谱写入当前工作区的 `docs/ae/graphs/graph.json`、manifest、索引、分片目录、离线预览页与本地 JS 资源。
+- 工具会读取可选图谱过滤配置，并可叠加 `include` / `exclude` 参数后将图谱写入当前工作区的 `docs/ae/graphs/graph.json`、manifest、索引、分片目录、离线预览页与本地 JS 资源；`include` 优先于 `exclude`，但不覆盖安全硬排除。
 - 构建完成后，优先调用 `ae:graph-query` 的 `stats` 或 `health` 验证图谱可查询，再按任务需要查询 `filter`、`deps`、`impact`、`core`、`path` 或 `pattern`。
 
 ## 输出要求
 
-- 返回构建模式、模式原因、scope、version、文件数、关系数、warning、排除规则、图谱文件路径、预览页路径、分片摘要和耗时。
+- 返回构建模式、模式原因、scope、version、文件数、关系数、warning、包含规则、排除规则、图谱文件路径、预览页路径、分片摘要和耗时。
 - Git diff 无变更时返回当前 active summary，而不是只返回空更新提示。
 - 若目标路径越界、配置解析失败或图谱文件写入失败，返回中文可恢复提示。
 
 ## 安全边界
 
 - 不解析当前工作区外的路径。
-- 默认排除 `.git`、`.env*`、凭证类文件和图谱产物目录；发现常见构建产物目录时，可在获得工具确认后保存排除规则。
-- 自动写入排除规则前必须通过工具确认机制获得许可。
+- 默认排除 `.git`、`.env*`、凭证类文件和图谱产物目录；发现常见过滤候选时，必须由用户明确选择 `include` 或 `exclude` 后才可通过 `filterDecisions` 保存到项目级配置。
+- 自动写入 `graph.include` 或 `graph.exclude` 规则前必须通过工具确认机制获得许可。
 - `depth=shallow` 只做低成本浅层解析，不执行 AST 深层解析、语义生成或外部 LLM 摘要。
 
 ## 预览页构建
