@@ -54,6 +54,14 @@ const WorktreeHandoffInputSchema = z.object({
     .string()
     .optional()
     .describe('可选设计文档相对路径；设计由计划承载、未迁移或不存在时无需传值'),
+  graph_path: z
+    .string()
+    .optional()
+    .describe('可选图谱目录相对路径；仅在 docs/ae/graphs/ 真实存在且已迁移时传入'),
+  ae_config_path: z
+    .string()
+    .optional()
+    .describe('可选 AE 项目配置相对路径；仅在 .opencode/ae.jsonc 真实存在且已迁移时传入'),
   design_borne_by_plan: z
     .boolean()
     .describe('设计是否由计划文档承载'),
@@ -74,7 +82,7 @@ export const aeWorktreeHandoffTool: ToolDefinition = tool({
     '- 交接文件采用结构化章节和 resume_entrypoint 作为真源',
     '- 返回简短交接提示，供 A 会话最后回复使用',
     '- A→B Startup Proof 按固定 schema 逐字段输出，不允许遗漏',
-    '- 需求、计划和设计路径都是可选上下文；只在文件真实存在且已迁移时传入，工具不会假定它们必然存在',
+    '- 需求、计划、设计、图谱和 AE 项目配置路径都是可选上下文；只在真实存在且已迁移时传入，工具不会假定它们必然存在',
     '- source_session_id=unavailable 时强制要求 session_evidence',
     '- 自动创建目标目录并写入文件',
     '',
@@ -101,6 +109,8 @@ export const aeWorktreeHandoffTool: ToolDefinition = tool({
     plan_path: WorktreeHandoffInputSchema.shape.plan_path,
     requirements_path: WorktreeHandoffInputSchema.shape.requirements_path,
     design_path: WorktreeHandoffInputSchema.shape.design_path,
+    graph_path: WorktreeHandoffInputSchema.shape.graph_path,
+    ae_config_path: WorktreeHandoffInputSchema.shape.ae_config_path,
     design_borne_by_plan: WorktreeHandoffInputSchema.shape.design_borne_by_plan,
     execution_baseline: WorktreeHandoffInputSchema.shape.execution_baseline,
     verification_requirements: WorktreeHandoffInputSchema.shape.verification_requirements,
@@ -133,6 +143,12 @@ export const aeWorktreeHandoffTool: ToolDefinition = tool({
     }
     if (args.design_path !== undefined) {
       input.design_path = args.design_path
+    }
+    if (args.graph_path !== undefined) {
+      input.graph_path = args.graph_path
+    }
+    if (args.ae_config_path !== undefined) {
+      input.ae_config_path = args.ae_config_path
     }
 
     const result = await writeHandoffFile(input)

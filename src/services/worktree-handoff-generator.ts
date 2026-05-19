@@ -23,6 +23,8 @@ export interface WorktreeHandoffInput {
   plan_path?: string
   requirements_path?: string
   design_path?: string
+  graph_path?: string
+  ae_config_path?: string
   design_borne_by_plan: boolean
   execution_baseline: string
   verification_requirements: string
@@ -73,6 +75,12 @@ function buildMigratedArtifacts(input: WorktreeHandoffInput): string {
     lines.push('- design: 由计划文档承载')
   } else if (input.design_path?.trim()) {
     lines.push(`- design: \`${input.design_path}\``)
+  }
+  if (input.graph_path?.trim()) {
+    lines.push(`- graph: \`${input.graph_path}\``)
+  }
+  if (input.ae_config_path?.trim()) {
+    lines.push(`- ae_config: \`${input.ae_config_path}\``)
   }
   return lines.join('\n')
 }
@@ -136,6 +144,12 @@ function buildStartupProof(input: WorktreeHandoffInput, handoffRelPath: string):
     lines.push('  - design: 由计划文档承载')
   } else if (input.design_path?.trim()) {
     lines.push(`  - design: \`${input.design_path}\``)
+  }
+  if (input.graph_path?.trim()) {
+    lines.push(`  - graph: \`${input.graph_path}\``)
+  }
+  if (input.ae_config_path?.trim()) {
+    lines.push(`  - ae_config: \`${input.ae_config_path}\``)
   }
   lines.push(`- execution_baseline: ${input.execution_baseline}`)
   lines.push(`- resume_entrypoint: ae:work ${handoffRelPath}`)

@@ -6,9 +6,9 @@
 
 计划文档输入必须完整阅读工作文档，视为决策产物，并检查每个单元的 `Execution note`、`Deferred to Implementation`、`Scope Boundaries`。若用户明确要求 TDD，即使计划无 Execution note 也要遵循。
 
-B worktree 续执行路径必须解析交接文件并产出 `handoff_context`：目标 B worktree、可选的需求文档路径、可选的计划文档路径、可选的设计文档路径、A→B 启动证明和执行基线声明。交接文件是唯一必需文件；需求、计划和设计只在交接文件引用且当前 B worktree 中真实存在时读取。续执行以结构化章节和 `resume_entrypoint` 为真源。
+B worktree 续执行路径必须解析交接文件并产出 `handoff_context`：目标 B worktree、可选的需求文档路径、可选的计划文档路径、可选的设计文档路径、可选的图谱目录、可选的 AE 项目配置路径、A→B 启动证明和执行基线声明。交接文件是唯一必需文件；需求、计划、设计、图谱目录和 AE 项目配置只在交接文件引用且当前 B worktree 中真实存在时读取。续执行以结构化章节和 `resume_entrypoint` 为真源。
 
-B worktree 续执行必须校验当前目录和 `git rev-parse --show-toplevel` 输出是否与目标 B worktree 一致；不一致时停止并报告，不得回到 A worktree 写文件。交接文件缺少执行基线声明或启动证明时停止；交接文件未提供需求/计划/设计路径，或引用路径在 B 中不存在时，只记录可选上下文缺失，不得在 B 中补做文档审查。
+B worktree 续执行必须校验当前目录和 `git rev-parse --show-toplevel` 输出是否与目标 B worktree 一致；不一致时停止并报告，不得回到 A worktree 写文件。交接文件缺少执行基线声明或启动证明时停止；交接文件未提供需求/计划/设计路径、图谱目录或 AE 项目配置，或引用路径在 B 中不存在时，只记录可选上下文缺失，不得在 B 中补做文档审查或回 A 补迁移。
 
 ## Git 状态检查
 
@@ -50,14 +50,14 @@ git log --oneline -1
 仅当用户选择创建 worktree 时执行本节。创建 worktree 前必须获得用户对具体 `git worktree add` 命令参数的明确授权。
 
 - 本地目录固定为 `../worktrees/<name>`，`<name>` 使用分支名或任务名净化后的短名。
-- 创建 B 后，A 会话不得再写入 A worktree 的任何文件，也不得在 B 中修改代码、配置、测试或其他项目文件。
-- A 会话只允许在 B 写入真实存在且已确定为执行基线的需求/计划/设计产物，以及唯一规范交接文件 `docs/ae/handoffs/<timestamp>-worktree-handoff.md`。未迁移的需求/计划/设计产物不在交接文件中出现，不得声称已复制。
+- 创建 B 后，A 会话不得再写入 A worktree 的任何文件，也不得在 B 中修改代码、测试或其他项目文件；仅允许按下条迁移可选上下文和写入唯一规范交接文件。
+- A 会话只允许在 B 写入真实存在且已确定为执行基线的需求/计划/设计产物、`docs/ae/graphs/`、`.opencode/ae.jsonc`，以及唯一规范交接文件 `docs/ae/handoffs/<timestamp>-worktree-handoff.md`。其中 `.opencode/ae.jsonc` 只能作为已确定的 AE 项目配置上下文迁移并在交接文件中显式记录；未迁移的需求/计划/设计、图谱或 AE 项目配置产物不在交接文件中出现，不得声称已复制。
 
 ### 交接文件生成（必须调用工具）
 
 - **禁止自行拼接交接 Markdown**，必须调用 `ae-worktree-handoff` 工具生成交接文件。
 - 续执行入口必须写入 A→B 启动证明和执行基线，B worktree 通过 `ae:work <交接文件>` 读取结构化交接文件继续。
-- A→B 启动证明必须包含 source_session_id、source_worktree、target_worktree、branch、head、授权来源、命令参数、创建结果、迁移产物状态和执行基线；迁移产物状态只列出实际迁移的产物，未迁移的不出现。
+- A→B 启动证明必须包含 source_session_id、source_worktree、target_worktree、branch、head、授权来源、命令参数、创建结果、迁移产物状态和执行基线；迁移产物状态只列出实际迁移的需求/计划/设计、`docs/ae/graphs/` 和 `.opencode/ae.jsonc`，未迁移的不出现。
 - 调用工具时传入所有必填参数；工具会按固定模板生成 Markdown、写入目标 B worktree 并返回 A 会话最终回复使用的简短交接提示。
 - `source_session_id`：运行时可见时记录；不可见时传 `unavailable`，并**同时**传入 `session_evidence`（可引用的消息或会话证据），否则工具会返回错误。
 - `execution_baseline`：描述进入 B 后必须遵守的基线约束，例如"必须从 ae:work 阶段 1 的任务分析继续执行，优先执行计划的 U0 决策门"。

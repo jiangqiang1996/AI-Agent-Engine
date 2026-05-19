@@ -177,6 +177,32 @@ describe('worktree-handoff-generator', () => {
       expect(result.markdown).toContain('docs/ae/designs/test-design.md')
     })
 
+    it('有图谱和 AE 配置路径时应在迁移产物中体现', () => {
+      const result = generateHandoffMarkdown(validInput({
+        graph_path: 'docs/ae/graphs/',
+        ae_config_path: '.opencode/ae.jsonc',
+      }))
+      if ('error' in result) return
+
+      expect(result.markdown).toContain('- graph: `docs/ae/graphs/`')
+      expect(result.markdown).toContain('- ae_config: `.opencode/ae.jsonc`')
+      expect(result.markdown).toContain('  - graph: `docs/ae/graphs/`')
+      expect(result.markdown).toContain('  - ae_config: `.opencode/ae.jsonc`')
+    })
+
+    it('无图谱和 AE 配置路径时不应在交接文件中提及这些产物', () => {
+      const result = generateHandoffMarkdown(validInput({
+        graph_path: '   ',
+        ae_config_path: '',
+      }))
+      if ('error' in result) return
+
+      expect(result.markdown).not.toContain('- graph:')
+      expect(result.markdown).not.toContain('- ae_config:')
+      expect(result.markdown).not.toContain('  - graph:')
+      expect(result.markdown).not.toContain('  - ae_config:')
+    })
+
     it('Startup Proof 应包含所有必填字段', () => {
       const result = generateHandoffMarkdown(validInput())
       if ('error' in result) return
