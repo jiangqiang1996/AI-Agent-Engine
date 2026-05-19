@@ -237,7 +237,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillSlug: skillDir(SKILL.GRAPH_BUILD),
     commandName: COMMAND.GRAPH_BUILD,
     description: '构建或增量维护项目文件关系图谱',
-    argumentHint: '[target:<PATH>] [mode:auto|full|incremental] [depth:shallow] [exclude:<PATH>...]',
+    argumentHint: '[target:<PATH>] [mode:auto|full|incremental] [depth:shallow] [include:<PATH>...] [exclude:<PATH>...]',
     defaultEntry: false,
     skillFile: `src/assets/skills/${skillDir(SKILL.GRAPH_BUILD)}/SKILL.md`,
   },

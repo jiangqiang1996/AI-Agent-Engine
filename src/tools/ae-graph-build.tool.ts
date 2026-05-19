@@ -7,26 +7,42 @@ import { Effect } from 'effect'
 import { z } from 'zod'
 
 import { TOOL } from '../schemas/ae-asset-schema.js'
-import { loadGraphConfig, matchGraphExcludePath, saveGraphExcludeRule } from '../services/graph-config-service.js'
+import {
+  loadGraphConfig,
+  matchGraphExcludePath,
+  matchGraphPath,
+  updateGraphRulesInProjectConfig,
+  type GraphConfig,
+} from '../services/graph-config-service.js'
 import { createGraphStorage } from '../services/graph-storage-service.js'
 import { createRuntimeAssetManifest } from '../services/runtime-asset-manifest.js'
 import { collectGraphFiles, parseFileRelations } from '../services/graph-parse-service.js'
 import { isInsideRoot, pathContainsSymlink, resolvePathWithBase, toPosixPath } from '../utils/path-utils.js'
 import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
 
-interface ExcludeSuggestionCandidate {
+interface FilterSuggestionCandidate {
   path: string
   rule: string
   reason: string
 }
 
-interface ExcludeSuggestion extends ExcludeSuggestionCandidate {
+interface FilterSuggestion extends FilterSuggestionCandidate {
   covered: boolean
   coveredBy?: string
   uncoveredReason?: string
 }
 
-const EXCLUDE_SUGGESTION_CANDIDATES: ExcludeSuggestionCandidate[] = [
+interface GraphFilterDecisions {
+  include?: string[]
+  exclude?: string[]
+}
+
+interface SavedGraphFilterDecisions {
+  savedIncludes: string[]
+  savedExcludes: string[]
+}
+
+const EXCLUDE_SUGGESTION_CANDIDATES: FilterSuggestionCandidate[] = [
   { path: '.idea', rule: '**/.idea', reason: 'IDE 项目配置和索引状态不表达源码依赖关系' },
   { path: '.opencode', rule: '**/.opencode', reason: 'OpenCode 本地配置、桥接插件和依赖缓存属于工具运行产物' },
   { path: docsAePath(DOCS_AE_SUBDIRS.GRAPHS), rule: docsAePath(DOCS_AE_SUBDIRS.GRAPHS), reason: '图谱自身输出目录会造成派生产物回流' },
@@ -44,7 +60,7 @@ const EXCLUDE_SUGGESTION_CANDIDATES: ExcludeSuggestionCandidate[] = [
   { path: '.cache', rule: '**/.cache', reason: '工具缓存目录不表达源码依赖关系' },
 ]
 
-const FILE_EXCLUDE_SUGGESTION_CANDIDATES: ExcludeSuggestionCandidate[] = [
+const FILE_EXCLUDE_SUGGESTION_CANDIDATES: FilterSuggestionCandidate[] = [
   { path: '**/*.log', rule: '**/*.log', reason: '日志文件是运行输出，通常体积大且无稳定源码关系' },
   { path: '**/*.tmp', rule: '**/*.tmp', reason: '临时文件不具备稳定关系语义' },
   { path: '**/*.tsbuildinfo', rule: '**/*.tsbuildinfo', reason: 'TypeScript 增量编译缓存由构建生成' },
@@ -105,8 +121,19 @@ function isGraphRuntimeFile(filePath: string): boolean {
   return filePath === graphsDir || filePath.startsWith(`${graphsDir}/`)
 }
 
-function mergeGraphExcludeRules(configExclude: string[], argumentExclude: string[] | undefined): string[] {
-  return [...new Set([...configExclude, ...(argumentExclude ?? [])])]
+function mergeGraphRules(config: GraphConfig, args: { include?: string[]; exclude?: string[] }): GraphConfig {
+  return {
+    include: [...new Set([...(config.include ?? []), ...(args.include ?? [])])],
+    exclude: [...new Set([...config.exclude, ...(args.exclude ?? [])])],
+  }
+}
+
+function graphRulesChanged(active: { includeRules?: string[]; excludeRules?: string[] } | undefined, config: GraphConfig): boolean {
+  if (!active) {
+    return false
+  }
+  return JSON.stringify(active.includeRules ?? []) !== JSON.stringify(config.include ?? [])
+    || JSON.stringify(active.excludeRules ?? []) !== JSON.stringify(config.exclude)
 }
 
 function hasOnlyModifiedFiles(diff: { files: string[]; hasStructuralChange?: boolean; warning?: string }): boolean {
@@ -139,57 +166,34 @@ function getChangedFiles(worktree: string): { files: string[]; hasStructuralChan
   }
 }
 
-function collectMissingExcludeSuggestions(worktree: string, configured: string[]): ExcludeSuggestion[] {
+function collectMissingFilterSuggestions(worktree: string, config: GraphConfig): FilterSuggestion[] {
   const directorySuggestions = EXCLUDE_SUGGESTION_CANDIDATES
     .filter((candidate) => existsSync(resolve(worktree, candidate.path)))
-    .map((candidate) => buildDirectoryExcludeSuggestion(worktree, candidate, configured))
+    .map((candidate) => buildFilterSuggestion(candidate, config, true))
   const fileSuggestions = FILE_EXCLUDE_SUGGESTION_CANDIDATES
     .flatMap((candidate) => {
       const existingPath = findExistingFileMatch(worktree, candidate.rule)
       return existingPath ? [{ ...candidate, path: existingPath }] : []
     })
-    .map((candidate) => buildExcludeSuggestion(candidate, configured, false))
+    .map((candidate) => buildFilterSuggestion(candidate, config, false))
 
-  return dedupeExcludeSuggestions([...directorySuggestions, ...fileSuggestions].filter((suggestion) => !suggestion.covered))
+  return dedupeFilterSuggestions([...directorySuggestions, ...fileSuggestions].filter((suggestion) => !suggestion.covered))
 }
 
-function buildExcludeSuggestion(candidate: ExcludeSuggestionCandidate, configured: string[], isDirectory: boolean): ExcludeSuggestion {
-  const coverage = matchGraphExcludePath(candidate.path, configured, isDirectory)
+function buildFilterSuggestion(candidate: FilterSuggestionCandidate, config: GraphConfig, isDirectory: boolean): FilterSuggestion {
+  const pathCoverage = matchGraphPath(candidate.path, config, isDirectory)
+  const ruleCoverage = matchGraphPath(candidate.rule, config, isDirectory)
+  const matchedInclude = pathCoverage.matchedInclude ?? ruleCoverage.matchedInclude
+  const matchedExclude = pathCoverage.matchedExclude ?? ruleCoverage.matchedExclude
   return {
     ...candidate,
-    covered: coverage.excluded,
-    coveredBy: coverage.excluded ? coverage.matchedRule : undefined,
-    uncoveredReason: coverage.matchedRule?.startsWith('!')
-      ? `最终匹配规则 ${coverage.matchedRule} 是否定规则，路径被重新纳入图谱`
-      : '现有 graph.exclude 规则按最终匹配结果未覆盖该实际存在路径',
+    covered: pathCoverage.covered || ruleCoverage.covered,
+    coveredBy: matchedInclude ?? matchedExclude,
+    uncoveredReason: '现有 graph.include / graph.exclude 规则均未覆盖该实际存在路径或建议规则',
   }
 }
 
-function buildDirectoryExcludeSuggestion(
-  worktree: string,
-  candidate: ExcludeSuggestionCandidate,
-  configured: string[],
-): ExcludeSuggestion {
-  const suggestion = buildExcludeSuggestion(candidate, configured, true)
-  if (!suggestion.covered) {
-    return suggestion
-  }
-  const uncoveredDescendant = findUncoveredDescendant(worktree, candidate.path, configured)
-  if (!uncoveredDescendant) {
-    return suggestion
-  }
-  const descendantMatch = matchGraphExcludePath(uncoveredDescendant, configured)
-  return {
-    ...suggestion,
-    path: uncoveredDescendant,
-    covered: false,
-    uncoveredReason: descendantMatch.matchedRule?.startsWith('!')
-      ? `目录规则 ${suggestion.coveredBy} 已覆盖目录，但 ${uncoveredDescendant} 被后续否定规则 ${descendantMatch.matchedRule} 重新纳入图谱`
-      : `目录规则 ${suggestion.coveredBy} 已覆盖目录，但 ${uncoveredDescendant} 未被最终排除规则覆盖`,
-  }
-}
-
-function dedupeExcludeSuggestions(suggestions: ExcludeSuggestion[]): ExcludeSuggestion[] {
+function dedupeFilterSuggestions(suggestions: FilterSuggestion[]): FilterSuggestion[] {
   const seen = new Set<string>()
   return suggestions.filter((suggestion) => {
     if (seen.has(suggestion.rule)) {
@@ -236,65 +240,76 @@ function findExistingFileMatch(worktree: string, rule: string): string | undefin
   return undefined
 }
 
-function findUncoveredDescendant(worktree: string, relativeDirectory: string, configured: string[]): string | undefined {
-  const stack = [resolve(worktree, relativeDirectory)]
-  while (stack.length > 0) {
-    const dir = stack.pop()
-    if (!dir) {
-      continue
-    }
-    let entries: Dirent[]
-    try {
-      entries = readdirSync(dir, { withFileTypes: true })
-    } catch {
-      continue
-    }
-    for (const entry of entries) {
-      const absolutePath = resolve(dir, entry.name)
-      const relativePath = toPosixPath(relative(worktree, absolutePath))
-      const match = matchGraphExcludePath(relativePath, configured, entry.isDirectory())
-      if (!match.excluded) {
-        return relativePath
-      }
-      if (entry.isDirectory()) {
-        stack.push(absolutePath)
-      }
-    }
+function normalizeFilterDecisionRules(decisions: GraphFilterDecisions | undefined): Required<GraphFilterDecisions> {
+  return {
+    include: [...new Set(decisions?.include ?? [])],
+    exclude: [...new Set(decisions?.exclude ?? [])],
   }
-  return undefined
 }
 
-async function confirmMissingExcludes(worktree: string, configured: string[], ctx: { ask?: unknown }): Promise<string[]> {
-  const missing = collectMissingExcludeSuggestions(worktree, configured)
-  if (missing.length === 0 || typeof ctx.ask !== 'function') {
-    return []
+async function persistGraphFilterDecisions(
+  worktree: string,
+  decisions: GraphFilterDecisions | undefined,
+  ctx: { ask?: unknown },
+): Promise<SavedGraphFilterDecisions> {
+  const normalized = normalizeFilterDecisionRules(decisions)
+  if (normalized.include.length === 0 && normalized.exclude.length === 0) {
+    return { savedIncludes: [], savedExcludes: [] }
+  }
+  if (typeof ctx.ask !== 'function') {
+    return { savedIncludes: [], savedExcludes: [] }
   }
 
-  const confirmed: string[] = []
   try {
     await Effect.runPromise(ctx.ask({
       permission: 'file',
       patterns: [resolve(worktree, '.opencode', 'ae.jsonc')],
       always: [],
       metadata: {
-        action: '检测到实际存在且明显应排除的图谱路径，确认后批量保存为 graph.exclude 规则',
-        suggestions: missing.map((suggestion) => ({
-          existingPath: suggestion.path,
-          suggestedRule: suggestion.rule,
-          existingRulesCovered: suggestion.covered,
-          uncoveredReason: suggestion.uncoveredReason,
-          reason: suggestion.reason,
-        })),
+        action: '确认后将用户明确选择的图谱过滤规则保存到项目级 graph.include / graph.exclude',
+        include: normalized.include,
+        exclude: normalized.exclude,
       },
     }))
-    for (const suggestion of missing) {
-      saveGraphExcludeRule(worktree, suggestion.rule)
-      confirmed.push(suggestion.rule)
-    }
+    updateGraphRulesInProjectConfig(worktree, {
+      appendInclude: normalized.include,
+      appendExclude: normalized.exclude,
+    })
   } catch {
+    return { savedIncludes: [], savedExcludes: [] }
+  }
+  return { savedIncludes: normalized.include, savedExcludes: normalized.exclude }
+}
+
+async function collectFilterDecisionWarnings(worktree: string, config: GraphConfig, ctx: { ask?: unknown }): Promise<string[]> {
+  const missing = collectMissingFilterSuggestions(worktree, config)
+  if (missing.length === 0) {
     return []
   }
-  return confirmed
+
+  if (typeof ctx.ask === 'function') {
+    try {
+      await Effect.runPromise(ctx.ask({
+        permission: 'file',
+        patterns: [resolve(worktree, '.opencode', 'ae.jsonc')],
+        always: [],
+        metadata: {
+          action: '检测到实际存在且明显应纳入 graph.include 或 graph.exclude 的候选；请明确选择 include、exclude 或跳过后通过 filterDecisions 再次调用',
+          suggestions: missing.map((suggestion) => ({
+            existingPath: suggestion.path,
+            suggestedRule: suggestion.rule,
+            existingRulesCovered: suggestion.covered,
+            uncoveredReason: suggestion.uncoveredReason,
+            reason: suggestion.reason,
+          })),
+        },
+      }))
+    } catch {
+      return []
+    }
+  }
+
+  return missing.map((suggestion) => `过滤候选未持久化：${suggestion.path} 建议规则 ${suggestion.rule}，原因：${suggestion.reason}`)
 }
 
 async function confirmStaleLockRecovery(worktree: string, ctx: { ask?: unknown }): Promise<boolean> {
@@ -338,7 +353,12 @@ export const aeGraphBuildTool = tool({
     target: z.string().optional().describe('目标目录，支持绝对路径或相对路径；默认相对于 opencode 启动路径解析。'),
     mode: z.enum(['auto', 'full', 'incremental']).optional().describe('构建模式：auto/full/incremental。默认 auto。'),
     depth: z.enum(['shallow']).optional().describe('解析深度。首版仅支持 shallow。'),
+    include: z.array(z.string()).optional().describe('额外包含的子路径或路径集合，优先于排除规则但不覆盖安全硬排除。'),
     exclude: z.array(z.string()).optional().describe('额外排除的子路径或路径集合，优先与现有排除规则合并。'),
+    filterDecisions: z.object({
+      include: z.array(z.string()).optional().describe('用户明确选择持久化到 graph.include 的过滤规则。'),
+      exclude: z.array(z.string()).optional().describe('用户明确选择持久化到 graph.exclude 的过滤规则。'),
+    }).optional().describe('对未覆盖过滤候选的用户选择；写入前仍会请求项目级 ae.jsonc 文件授权。'),
   },
   execute: async (args, ctx) => {
     const startedAt = Date.now()
@@ -360,12 +380,12 @@ export const aeGraphBuildTool = tool({
 
     let storage: ReturnType<typeof createGraphStorage> | undefined
     try {
-      let config = loadGraphConfig(worktree)
-      config = { exclude: mergeGraphExcludeRules(config.exclude, args.exclude) }
-      const savedExcludes = await confirmMissingExcludes(worktree, config.exclude, ctx)
-      if (savedExcludes.length > 0) {
-        config = { exclude: mergeGraphExcludeRules(loadGraphConfig(worktree).exclude, args.exclude) }
+      let config = mergeGraphRules(loadGraphConfig(worktree), args)
+      const savedDecisions = await persistGraphFilterDecisions(worktree, args.filterDecisions, ctx)
+      if (savedDecisions.savedIncludes.length > 0 || savedDecisions.savedExcludes.length > 0) {
+        config = mergeGraphRules(loadGraphConfig(worktree), args)
       }
+      const filterDecisionWarnings = await collectFilterDecisionWarnings(worktree, config, ctx)
 
       try {
         storage = createGraphStorage(worktree)
@@ -390,17 +410,31 @@ export const aeGraphBuildTool = tool({
       const requestedMode = args.mode ?? 'auto'
       const diff = requestedMode === 'full' ? { files: [] } : getChangedFiles(worktree)
       const active = storage.getActiveVersion(worktree, scopeRoot)
-      const effectiveMode = requestedMode === 'full' || diff.warning || diff.hasStructuralChange || !active ? 'full' : 'incremental'
+      const rulesChanged = graphRulesChanged(active, config)
+      const effectiveMode = requestedMode === 'full' || diff.warning || diff.hasStructuralChange || !active || rulesChanged ? 'full' : 'incremental'
       if (effectiveMode === 'incremental' && diff.files.length === 0 && active) {
         const summary = storage.getActiveVersionSummary(worktree, scopeRoot)
         copyGraphPreview(worktree)
         storage.closeDatabase()
         storage = undefined
-        return JSON.stringify({ message: 'Git diff 无变更，图谱无需更新', mode: effectiveMode, scopeRoot, summary, database: `${docsAePath(DOCS_AE_SUBDIRS.GRAPHS)}/graph.json`, preview: `${docsAePath(DOCS_AE_SUBDIRS.GRAPHS)}/index.html` }, null, 2)
+        return JSON.stringify({
+          message: 'Git diff 无变更，图谱无需更新',
+          mode: effectiveMode,
+          scopeRoot,
+          summary,
+          includeRules: config.include,
+          excludeRules: config.exclude,
+          warnings: filterDecisionWarnings,
+          filterDecisionWarnings,
+          savedIncludes: savedDecisions.savedIncludes,
+          savedExcludes: savedDecisions.savedExcludes,
+          database: `${docsAePath(DOCS_AE_SUBDIRS.GRAPHS)}/graph.json`,
+          preview: `${docsAePath(DOCS_AE_SUBDIRS.GRAPHS)}/index.html`,
+        }, null, 2)
       }
 
       const allFiles = collectGraphFiles(worktree, target, config)
-      const versionId = storage.createVersion(worktree, scopeRoot, config.exclude, 'HEAD')
+      const versionId = storage.createVersion(worktree, scopeRoot, config.exclude, 'HEAD', config.include)
       let parseFiles = allFiles
       if (effectiveMode === 'incremental' && active) {
         storage.copyVersion(active.versionId, versionId)
@@ -424,7 +458,7 @@ export const aeGraphBuildTool = tool({
 
       return JSON.stringify({
         mode: effectiveMode,
-        modeReason: effectiveMode === 'full' ? (diff.warning ?? (diff.hasStructuralChange ? '检测到新增、删除、重命名或未跟踪文件，已保守全量构建' : '未找到可复用 active version 或用户请求 full')) : '仅检测到可安全增量刷新的修改文件',
+        modeReason: effectiveMode === 'full' ? (diff.warning ?? (rulesChanged ? '图谱过滤规则变化，已全量重建' : (diff.hasStructuralChange ? '检测到新增、删除、重命名或未跟踪文件，已保守全量构建' : '未找到可复用 active version 或用户请求 full'))) : '仅检测到可安全增量刷新的修改文件',
         depth: args.depth ?? 'shallow',
         scopeRoot,
         versionId,
@@ -437,9 +471,12 @@ export const aeGraphBuildTool = tool({
         skippedFiles: parsed.skippedFiles.length,
         skippedFileDetails: parsed.skippedFiles,
         chunkSummary: storage.getActiveVersionSummary(worktree, scopeRoot),
+        includeRules: config.include,
         excludeRules: config.exclude,
-        warnings: [diff.warning, ...parsed.warnings].filter(Boolean),
-        savedExcludes,
+        warnings: [diff.warning, ...parsed.warnings, ...filterDecisionWarnings].filter(Boolean),
+        filterDecisionWarnings,
+        savedIncludes: savedDecisions.savedIncludes,
+        savedExcludes: savedDecisions.savedExcludes,
         database: `${docsAePath(DOCS_AE_SUBDIRS.GRAPHS)}/graph.json`,
         preview: `${docsAePath(DOCS_AE_SUBDIRS.GRAPHS)}/index.html`,
         elapsedMs: Date.now() - startedAt,

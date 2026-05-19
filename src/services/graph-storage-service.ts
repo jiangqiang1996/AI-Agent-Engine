@@ -49,6 +49,8 @@ export interface ActiveGraph {
   scopeRoot: string
   files: GraphFileNode[]
   relations: GraphRelation[]
+  includeRules?: string[]
+  excludeRules: string[]
   chunkIds?: string[]
 }
 
@@ -136,6 +138,7 @@ interface GraphVersionRecord {
   isActive: boolean
   fileCount: number
   relationCount: number
+  includeRules?: string[]
   excludeRules: string[]
   gitRef?: string
   createdAt: string
@@ -404,7 +407,7 @@ export class GraphStorage {
     }
   }
 
-  createVersion(workspaceRoot: string, scopeRoot: string, excludeRules: string[], gitRef?: string): number {
+  createVersion(workspaceRoot: string, scopeRoot: string, excludeRules: string[], gitRef?: string, includeRules: string[] = []): number {
     this.assertWritable()
     const id = this.store.nextVersionId
     this.store.nextVersionId += 1
@@ -415,6 +418,7 @@ export class GraphStorage {
       isActive: false,
       fileCount: 0,
       relationCount: 0,
+      includeRules: [...includeRules],
       excludeRules: [...excludeRules],
       gitRef,
       createdAt: new Date().toISOString(),
@@ -516,6 +520,8 @@ export class GraphStorage {
       scopeRoot: version.scopeRoot,
       files: cloneFiles(files),
       relations: cloneRelations(relations),
+      includeRules: [...(version.includeRules ?? [])],
+      excludeRules: [...version.excludeRules],
       chunkIds: version.chunkIds?.length ? [...version.chunkIds] : undefined,
     }
   }

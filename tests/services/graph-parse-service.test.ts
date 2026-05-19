@@ -278,7 +278,7 @@ describe('graph-parse-service', () => {
     expect(files.map((file) => file.relativePath)).toEqual(['src/a.ts'])
   })
 
-  it('应该让否定规则按最终匹配结果重新纳入文件', async () => {
+  it('不应该让否定规则重新纳入文件', async () => {
     const root = createTempRoot()
     write(root, 'dist/a.ts', '')
     write(root, 'dist/keep.ts', '')
@@ -286,7 +286,7 @@ describe('graph-parse-service', () => {
 
     const files = collectGraphFiles(root, root, { exclude: ['**/dist', '!dist/keep.ts'] })
 
-    expect(files.map((file) => file.relativePath)).toEqual(['dist/keep.ts', 'src/a.ts'])
+    expect(files.map((file) => file.relativePath)).toEqual(['src/a.ts'])
   })
 
   it('应该解析省略扩展名和 index 文件的相对引用', async () => {
@@ -466,5 +466,35 @@ describe('graph-parse-service', () => {
     const files = collectGraphFiles(root, root, { exclude: [] })
 
     expect(files.map((file) => file.relativePath)).toEqual(['dist/a.ts'])
+  })
+
+  it('graph.include 应该优先于 graph.exclude 并允许递归进入被排除目录', async () => {
+    const root = createTempRoot()
+    write(root, 'dist/keep.ts', '')
+    write(root, 'dist/drop.ts', '')
+
+    const files = collectGraphFiles(root, root, { include: ['dist/keep.ts'], exclude: ['**/dist'] })
+
+    expect(files.map((file) => file.relativePath)).toEqual(['dist/keep.ts'])
+  })
+
+  it('graph.include glob 应该允许递归进入被排除目录', async () => {
+    const root = createTempRoot()
+    write(root, 'dist/nested/keep.ts', '')
+    write(root, 'dist/nested/drop.js', '')
+
+    const files = collectGraphFiles(root, root, { include: ['dist/**/*.ts'], exclude: ['**/dist'] })
+
+    expect(files.map((file) => file.relativePath)).toEqual(['dist/nested/keep.ts'])
+  })
+
+  it('graph.include 不应该覆盖安全硬排除', async () => {
+    const root = createTempRoot()
+    write(root, '.env', 'TOKEN=secret')
+    write(root, 'docs/ae/graphs/graph.json', '{}')
+
+    const files = collectGraphFiles(root, root, { include: ['.env', 'docs/ae/graphs/graph.json'], exclude: [] })
+
+    expect(files).toEqual([])
   })
 })

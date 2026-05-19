@@ -276,12 +276,15 @@ describe('ae-graph-build 工具', () => {
     expect(parsed.files).toBeGreaterThan(0)
   })
 
-  it('应该在用户确认后保存未覆盖的明显排除规则', async () => {
+  it('应该在用户明确选择后保存未覆盖的明显排除规则', async () => {
     const root = createTempRoot()
     write(root, 'src/a.ts', '')
     write(root, 'node_modules/pkg/index.js', 'export const ignored = true')
 
-    const result = await aeGraphBuildTool.execute({ mode: 'full' }, createAllowExcludeContext(root))
+    const result = await aeGraphBuildTool.execute({
+      mode: 'full',
+      filterDecisions: { exclude: ['**/node_modules'] },
+    }, createAllowExcludeContext(root))
     const parsed = JSON.parse(result as string) as { savedExcludes: string[]; excludeRules: string[]; files: number }
     const config = readFileSync(join(root, '.opencode', 'ae.jsonc'), 'utf8')
 
@@ -307,19 +310,25 @@ describe('ae-graph-build 工具', () => {
     expect(parsed.excludeRules.filter((rule) => rule === '**/dist')).toHaveLength(1)
   })
 
-  it('否定规则重新纳入路径时应该按最终结果询问保存', async () => {
+  it('应该支持用户明确选择 graph.include 规则并优先于排除规则', async () => {
     const root = createTempRoot()
     write(root, 'src/a.ts', '')
-    write(root, 'dist/a.ts', '')
-    write(root, '.opencode/ae.jsonc', '{ "graph": { "exclude": ["**/dist", "!dist/a.ts"] } }')
-    const asked: unknown[] = []
-    const ctx = createCaptureAskContext(root, asked)
+    write(root, 'dist/keep.ts', '')
+    write(root, 'dist/drop.ts', '')
+    write(root, '.opencode/ae.jsonc', '{ "graph": { "exclude": ["**/dist"] } }')
 
-    const result = await aeGraphBuildTool.execute({ mode: 'full' }, ctx)
-    const parsed = JSON.parse(result as string) as { savedExcludes: string[] }
+    const result = await aeGraphBuildTool.execute({
+      mode: 'full',
+      filterDecisions: { include: ['dist/keep.ts'] },
+    }, createAllowExcludeContext(root))
+    const parsed = JSON.parse(result as string) as { savedIncludes: string[]; includeRules: string[]; excludeRules: string[]; files: number }
+    const config = readFileSync(join(root, '.opencode', 'ae.jsonc'), 'utf8')
 
-    expect(parsed.savedExcludes).toContain('**/dist')
-    expect(asked.some((item) => JSON.stringify(item).includes('否定规则 !dist/a.ts 重新纳入图谱'))).toBe(true)
+    expect(parsed.savedIncludes).toContain('dist/keep.ts')
+    expect(parsed.includeRules).toContain('dist/keep.ts')
+    expect(parsed.excludeRules).toContain('**/dist')
+    expect(config).toContain('dist/keep.ts')
+    expect(parsed.files).toBeGreaterThan(0)
   })
 
   it('Git diff 无变更时应该跳过增量构建并返回图谱文件路径', async () => {
@@ -415,5 +424,26 @@ describe('ae-graph-build 工具', () => {
 
     expect(parsed.mode).toBe('incremental')
     expect(query.result.impacted).toContain('src/a.ts')
+  })
+
+  it('过滤规则变化时应该回退全量构建', async () => {
+    const root = createTempRoot()
+    execFileSync('git', ['init'], { cwd: root, stdio: 'ignore' })
+    write(root, 'src/a.ts', 'export const a = 1')
+    write(root, 'dist/keep.ts', 'export const keep = 1')
+    write(root, '.opencode/ae.jsonc', '{ "graph": { "exclude": ["**/dist"] } }')
+    execFileSync('git', ['add', 'src/a.ts', 'dist/keep.ts', '.opencode/ae.jsonc'], { cwd: root, stdio: 'ignore' })
+    execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-m', 'test'], { cwd: root, stdio: 'ignore' })
+    await aeGraphBuildTool.execute({ mode: 'full' }, createMockContext(root))
+
+    write(root, '.opencode/ae.jsonc', '{ "graph": { "include": ["dist/keep.ts"], "exclude": ["**/dist"] } }')
+    const result = await aeGraphBuildTool.execute({ mode: 'auto' }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as { mode: string; modeReason: string }
+    const queryResult = await aeGraphQueryTool.execute({ mode: 'filter' }, createMockContext(root))
+    const query = JSON.parse(queryResult as string) as { result: { files: Array<{ relativePath: string }> } }
+
+    expect(parsed.mode).toBe('full')
+    expect(parsed.modeReason).toContain('图谱过滤规则变化')
+    expect(query.result.files.some((file) => file.relativePath === 'dist/keep.ts')).toBe(true)
   })
 })

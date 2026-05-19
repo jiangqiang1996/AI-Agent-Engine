@@ -19,6 +19,29 @@
         ]
       }
     },
+    "graph": {
+      "type": "object",
+      "description": "项目文件关系图谱过滤配置。include 优先于 exclude，但不覆盖安全硬排除。",
+      "additionalProperties": true,
+      "properties": {
+        "include": {
+          "type": "array",
+          "description": "显式纳入图谱的路径或 glob 规则，优先于 graph.exclude。",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "exclude": {
+          "type": "array",
+          "description": "显式排除图谱的路径或 glob 规则；如需重新纳入请使用 graph.include，不支持 ! 否定规则。",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
     "modelScenarios": {
       "type": "object",
       "description": "模型场景到 opencode 模型标识的极简映射。稳定场景包括 quick、standard、deep、vision；允许自定义场景键。",
