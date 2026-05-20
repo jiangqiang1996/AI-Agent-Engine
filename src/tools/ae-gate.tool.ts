@@ -12,6 +12,7 @@ const REVIEW_SUBAGENT_TYPES: ReadonlySet<string> = new Set([
   AGENT.COHERENCE_REVIEWER,
   AGENT.CORRECTNESS_REVIEWER,
   AGENT.DATA_MIGRATIONS_REVIEWER,
+  AGENT.DOC_EQUIVALENCE_REVIEWER,
   AGENT.DESIGN_LENS_REVIEWER,
   AGENT.FEASIBILITY_REVIEWER,
   AGENT.MAINTAINABILITY_REVIEWER,
@@ -44,6 +45,7 @@ type ToolReviewEvidenceInput =
       review_trust: 'verified' | 'declaration_only'
       path: string
       review_run_id_or_message_ref: string
+      source_review_ref?: string
       worktree: string
       branch: string
       head: string
@@ -83,6 +85,7 @@ function mapReviewEvidence(evidence: ToolReviewEvidenceInput | undefined): Revie
     reviewTrust: evidence.review_trust,
     path: evidence.path,
     reviewRunIdOrMessageRef: evidence.review_run_id_or_message_ref,
+    sourceReviewRef: evidence.source_review_ref,
     worktree: evidence.worktree,
     branch: evidence.branch,
     head: evidence.head,
@@ -187,7 +190,9 @@ function collectTrustedReviewOutputs(
     const role = candidate.role ?? candidate.message?.role
     const id = candidate.id ?? candidate.message?.id
     const taskId = candidate.task_id ?? candidate.message?.task_id
-    const reviewRef = evidence.review_run_id_or_message_ref
+    const reviewRef = evidence.type === 'report_path'
+      ? evidence.source_review_ref ?? evidence.review_run_id_or_message_ref
+      : evidence.review_run_id_or_message_ref
     const content = extractHistoryText(candidate.content ?? candidate.text ?? candidate.message?.content ?? candidate.message?.text)
     const toolNames = [
       candidate.tool,
@@ -243,6 +248,10 @@ function isExplicitGitAuthorizationText(text: string, commandArgs: string[]): bo
   return /\bgit\b/i.test(text)
     && /(授权|同意|允许|确认执行|authorize|authorized|approve|approved|permission)/i.test(text)
     && text.includes(commandText)
+}
+
+function shouldWriteProof(args: { checkpoint?: unknown; write_proof?: unknown }): boolean {
+  return typeof args.write_proof === 'boolean' ? args.write_proof : args.checkpoint === 'final'
 }
 
 export const aeGateTool: ToolDefinition = tool({
@@ -326,6 +335,7 @@ export const aeGateTool: ToolDefinition = tool({
           review_trust: tool.schema.enum(['verified', 'declaration_only']).describe('审查证据可信度'),
           path: tool.schema.string().describe('审查元数据路径，格式为 ae/reviews/<run-id>/metadata.json'),
           review_run_id_or_message_ref: tool.schema.string().describe('审查运行 ID 或消息引用'),
+          source_review_ref: tool.schema.string().optional().describe('原始 ae:review 或审查子代理输出的消息 ID/task_id；省略时兼容使用 review_run_id_or_message_ref'),
           worktree: tool.schema.string().describe('审查发生的 worktree'),
           branch: tool.schema.string().describe('审查发生的分支'),
           head: tool.schema.string().describe('审查覆盖的 HEAD'),
@@ -357,6 +367,27 @@ export const aeGateTool: ToolDefinition = tool({
   },
   async execute(args, context) {
     context.metadata({ title: `AE 门禁检查: ${args.workflow}/${args.checkpoint}` })
+
+    if (shouldWriteProof(args)) {
+      if (typeof context.ask !== 'function') {
+        return '当前环境没有 ask 能力，不能写入 ae/gates/ 门禁证明。请在支持文件写入授权的 opencode 运行时中重试，或显式设置 write_proof: false 仅执行检查。'
+      }
+
+      try {
+        await Effect.runPromise(context.ask({
+          permission: 'file',
+          patterns: ['ae/gates/*.json'],
+          always: [],
+          metadata: {
+            action: '写入 AE 门禁证明',
+            target: 'ae/gates/*.json',
+          },
+        }))
+      } catch (error) {
+        const reason = error instanceof Error && error.message ? `：${error.message}` : ''
+        return `写入 ae/gates/ 门禁证明未获得文件授权${reason}。请确认当前工作区允许写入 ae/gates/*.json 后重试，或显式设置 write_proof: false 仅执行检查。`
+      }
+    }
 
     return Effect.runPromise(
       runGate(context.worktree, {

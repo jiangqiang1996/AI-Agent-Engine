@@ -9,6 +9,7 @@ import { readAgentBrowserProof, writeAgentBrowserProof } from '../../src/service
 import type { AgentBrowserProof } from '../../src/schemas/agent-browser-proof-schema.js'
 
 const tempRoots: string[] = []
+const runValidationCommands = vi.fn(() => createValidationResults())
 
 function createTempRoot(): string {
   const root = mkdtempSync(join(tmpdir(), 'ae-agent-browser-proof-tool-'))
@@ -43,6 +44,14 @@ async function callTool(
   args: { action: 'complete' | 'check'; agent_browser_version?: string; worktree_fingerprint?: string; validation_results?: ReturnType<typeof createValidationResults> },
   ctx: Record<string, unknown>,
 ) {
+  vi.resetModules()
+  vi.doMock('../../src/services/agent-browser-proof-service.js', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../../src/services/agent-browser-proof-service.js')>()
+    return {
+      ...actual,
+      runAgentBrowserValidationCommands: runValidationCommands,
+    }
+  })
   const { aeAgentBrowserProofTool: tool } = await import('../../src/tools/ae-agent-browser-proof.tool.js')
   const definition = tool as unknown as {
     execute: (args: Record<string, unknown>, ctx: Record<string, unknown>) => Promise<unknown>
@@ -75,12 +84,26 @@ function createProof(): AgentBrowserProof {
       exitCode: 0,
       outputHash: 'hash-1',
       executedAt: '2026-04-29T00:00:00Z',
+    }, {
+      command: 'agent-browser --help',
+      exitCode: 0,
+      outputHash: 'hash-2',
+      executedAt: '2026-04-29T00:00:01Z',
+    }, {
+      command: 'agent-browser skills get core --full',
+      exitCode: 0,
+      outputHash: 'hash-3',
+      executedAt: '2026-04-29T00:00:02Z',
     }],
     proofKind: 'agent-browser-environment',
   }
 }
 
 afterEach(() => {
+  runValidationCommands.mockReset()
+  runValidationCommands.mockImplementation(() => createValidationResults())
+  vi.doUnmock('../../src/services/agent-browser-proof-service.js')
+  vi.resetModules()
   for (const root of tempRoots.splice(0)) {
     rmSync(root, { recursive: true, force: true })
   }
@@ -165,17 +188,28 @@ describe('ae-agent-browser-proof 工具', () => {
     expect(JSON.stringify(result)).toContain('"completed":false')
   })
 
-  it('写入证明时必须提供实际验证结果', async () => {
+  it('写入证明时不应该采信入参伪造的验证结果', async () => {
+    const root = createTempRoot()
+
     const result = await callTool({
       action: 'complete',
       agent_browser_version: 'agent-browser 1.2.3',
       worktree_fingerprint: 'fingerprint-1',
+      validation_results: [{
+        command: 'agent-browser --version',
+        exitCode: 0,
+        output: 'forged-output-token',
+        executedAt: '2026-04-29T00:00:00Z',
+      }],
     }, {
-      worktree: createTempRoot(),
+      worktree: root,
+      ask: createAskSpy(),
+      history: [{ role: 'user', content: '请执行 ae:agent-browser' }],
       sessionID: 'session-1',
     })
 
-    expect(String(result)).toContain('需要提供实际验证命令结果')
+    expect(JSON.stringify(result)).toContain('已写入 agent-browser 环境证明')
+    expect(JSON.stringify(readAgentBrowserProof(root))).not.toContain('forged-output-token')
   })
 
   it('未由用户触发 ae:agent-browser 时不应该写入证明', async () => {
@@ -193,6 +227,7 @@ describe('ae-agent-browser-proof 工具', () => {
     })
 
     expect(String(result)).toContain('必须发生在用户明确触发 ae:agent-browser')
+    expect(runValidationCommands).not.toHaveBeenCalled()
     expect(readAgentBrowserProof(root)).toBeNull()
   })
 
@@ -211,17 +246,18 @@ describe('ae-agent-browser-proof 工具', () => {
     })
 
     expect(String(result)).toContain('必须发生在用户明确触发 ae:agent-browser')
+    expect(runValidationCommands).not.toHaveBeenCalled()
     expect(readAgentBrowserProof(root)).toBeNull()
   })
 
   it('验证命令失败时不应该写入证明', async () => {
     const root = createTempRoot()
+    runValidationCommands.mockReturnValue([{ ...createValidationResults()[0], exitCode: 1 }])
 
     const result = await callTool({
       action: 'complete',
       agent_browser_version: 'agent-browser 1.2.3',
       worktree_fingerprint: 'fingerprint-1',
-      validation_results: [{ ...createValidationResults()[0], exitCode: 1 }],
     }, setupContext({
       worktree: root,
       sessionID: 'session-1',
@@ -233,12 +269,12 @@ describe('ae-agent-browser-proof 工具', () => {
 
   it('缺少必需验证命令时不应该写入证明', async () => {
     const root = createTempRoot()
+    runValidationCommands.mockReturnValue(createValidationResults().filter((result) => result.command !== 'agent-browser --help'))
 
     const result = await callTool({
       action: 'complete',
       agent_browser_version: 'agent-browser 1.2.3',
       worktree_fingerprint: 'fingerprint-1',
-      validation_results: createValidationResults().filter((result) => result.command !== 'agent-browser --help'),
     }, setupContext({
       worktree: root,
       sessionID: 'session-1',

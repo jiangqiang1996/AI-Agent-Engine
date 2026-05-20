@@ -41,7 +41,11 @@ function getGitFingerprint(root: string): { branch: string; head: string; status
   return { branch, head, statusSummary: '' }
 }
 
-function createToolContext(root: string): Parameters<typeof aeReviewProofTool.execute>[1] {
+function createToolContext(
+  root: string,
+  sourceReviewOutput?: string,
+  sourceReviewRef = 'review-1',
+): Parameters<typeof aeReviewProofTool.execute>[1] {
   return {
     metadata: () => undefined,
     ask: () => Effect.succeed(undefined),
@@ -50,8 +54,14 @@ function createToolContext(root: string): Parameters<typeof aeReviewProofTool.ex
     sessionID: 'test-session',
     messageID: 'message-1',
     agent: 'test-agent',
+    history: sourceReviewOutput ? [{
+      id: sourceReviewRef,
+      role: 'tool',
+      tool: 'ae:review',
+      content: sourceReviewOutput,
+    }] : [],
     abort: new AbortController().signal,
-  }
+  } as Parameters<typeof aeReviewProofTool.execute>[1]
 }
 
 afterEach(() => {
@@ -71,7 +81,7 @@ describe('ae-review-proof 工具', () => {
       summary: '审查通过',
       findings: [],
       source_review_output: sourceReviewOutput,
-    }, createToolContext(root))
+    }, createToolContext(root, sourceReviewOutput, 'review-1'))
 
     expect(typeof result).toBe('object')
     const output = (result as { output: string }).output
@@ -80,9 +90,34 @@ describe('ae-review-proof 工具', () => {
     const metadata = JSON.parse(readFileSync(metadataPath, 'utf8')) as Record<string, unknown>
 
     expect(metadata.generatedBy).toBe('ae:review')
+    expect(metadata.proofKind).toBe('ae-review-proof')
     expect(metadata.reviewRunIdOrMessageRef).toBe('review-1')
+    expect(metadata.sourceReviewRef).toBe('review-1')
+    expect(metadata.hasBlockingFinding).toBe(false)
     expect(metadata.reviewOutputHash).toBe(hashReviewOutput(sourceReviewOutput))
     expect(output).toBe(sourceReviewOutput)
+  })
+
+  it('应该记录独立的原始审查来源 ref', async () => {
+    const root = createRepoRoot()
+    const sourceReviewOutput = createSourceReviewOutput({ worktree: root, ...getGitFingerprint(root) })
+
+    const result = await aeReviewProofTool.execute({
+      review_run_id: 'proof-run-1',
+      source_review_ref: 'task-review-1',
+      review_status: 'passed',
+      summary: '审查通过',
+      findings: [],
+      source_review_output: sourceReviewOutput,
+    }, createToolContext(root, sourceReviewOutput, 'task-review-1'))
+
+    expect(typeof result).toBe('object')
+    const metadataPath = join(root, 'ae', 'reviews', 'proof-run-1', 'metadata.json')
+    const metadata = JSON.parse(readFileSync(metadataPath, 'utf8')) as Record<string, unknown>
+
+    expect(metadata.reviewRunIdOrMessageRef).toBe('proof-run-1')
+    expect(metadata.sourceReviewRef).toBe('task-review-1')
+    expect((result as { metadata?: Record<string, unknown> }).metadata?.sourceReviewRef).toBe('task-review-1')
   })
 
   it('应该接受审查子代理常见的 review_status 和 HEAD 字段', async () => {
@@ -104,7 +139,7 @@ describe('ae-review-proof 工具', () => {
       summary: '审查通过',
       findings: [],
       source_review_output: sourceReviewOutput,
-    }, createToolContext(root))
+    }, createToolContext(root, sourceReviewOutput, 'review-subagent-style'))
 
     expect(typeof result).toBe('object')
     const metadataPath = join(root, 'ae', 'reviews', 'review-subagent-style', 'metadata.json')
@@ -131,7 +166,7 @@ describe('ae-review-proof 工具', () => {
       summary: '审查通过',
       findings: [],
       source_review_output: sourceReviewOutput,
-    }, createToolContext(root))
+    }, createToolContext(root, sourceReviewOutput, 'review-spaced-status'))
 
     expect(typeof result).toBe('object')
     const metadataPath = join(root, 'ae', 'reviews', 'review-spaced-status', 'metadata.json')
@@ -157,7 +192,7 @@ describe('ae-review-proof 工具', () => {
       summary: '审查失败',
       findings: [{ severity: 'high', title: '高风险问题' }],
       source_review_output: sourceReviewOutput,
-    }, createToolContext(root))
+    }, createToolContext(root, sourceReviewOutput, 'review-failed'))
 
     expect(typeof result).toBe('object')
     const metadataPath = join(root, 'ae', 'reviews', 'review-failed', 'metadata.json')
@@ -221,5 +256,71 @@ describe('ae-review-proof 工具', () => {
     }, createToolContext(root))
 
     expect(result).toBe('source_review_output 必须包含与当前 worktree 指纹和 review_status 匹配的真实结构化审查输出。')
+  })
+
+  it('应该拒绝不在当前会话历史中的 source_review_output', async () => {
+    const root = createRepoRoot()
+    const sourceReviewOutput = createSourceReviewOutput({ worktree: root, ...getGitFingerprint(root) })
+
+    const result = await aeReviewProofTool.execute({
+      review_run_id: 'review-missing-history',
+      review_status: 'passed',
+      summary: '审查通过',
+      findings: [],
+      source_review_output: sourceReviewOutput,
+    }, createToolContext(root))
+
+    expect(result).toBe('source_review_output 必须来自当前会话历史中匹配 source_review_ref 的真实 ae:review 或审查子代理输出。')
+  })
+
+  it('应该拒绝 source_review_ref 与历史审查输出不匹配', async () => {
+    const root = createRepoRoot()
+    const sourceReviewOutput = createSourceReviewOutput({ worktree: root, ...getGitFingerprint(root) })
+
+    const result = await aeReviewProofTool.execute({
+      review_run_id: 'proof-run-2',
+      source_review_ref: 'task-review-2',
+      review_status: 'passed',
+      summary: '审查通过',
+      findings: [],
+      source_review_output: sourceReviewOutput,
+    }, createToolContext(root, sourceReviewOutput, 'task-review-other'))
+
+    expect(result).toBe('source_review_output 必须来自当前会话历史中匹配 source_review_ref 的真实 ae:review 或审查子代理输出。')
+  })
+
+  it('ask 缺失时应该返回明确授权错误', async () => {
+    const root = createRepoRoot()
+    const sourceReviewOutput = createSourceReviewOutput({ worktree: root, ...getGitFingerprint(root) })
+    const context = createToolContext(root, sourceReviewOutput, 'review-no-ask')
+    delete (context as { ask?: unknown }).ask
+
+    const result = await aeReviewProofTool.execute({
+      review_run_id: 'review-no-ask',
+      review_status: 'passed',
+      summary: '审查通过',
+      findings: [],
+      source_review_output: sourceReviewOutput,
+    }, context)
+
+    expect(result).toContain('当前环境没有 ask 能力')
+  })
+
+  it('ask 拒绝时应该返回授权失败原因', async () => {
+    const root = createRepoRoot()
+    const sourceReviewOutput = createSourceReviewOutput({ worktree: root, ...getGitFingerprint(root) })
+
+    const result = await aeReviewProofTool.execute({
+      review_run_id: 'review-denied',
+      review_status: 'passed',
+      summary: '审查通过',
+      findings: [],
+      source_review_output: sourceReviewOutput,
+    }, {
+      ...createToolContext(root, sourceReviewOutput, 'review-denied'),
+      ask: () => Effect.fail(new Error('denied')) as unknown as Effect.Effect<void>,
+    })
+
+    expect(result).toContain('未获得文件授权：denied')
   })
 })

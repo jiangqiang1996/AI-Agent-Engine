@@ -69,6 +69,7 @@ export type ReviewEvidence =
       reviewTrust: EvidenceTrust
       path: string
       reviewRunIdOrMessageRef: string
+      sourceReviewRef?: string
       worktree: string
       branch: string
       head: string
@@ -819,7 +820,7 @@ function normalizeValidationResults(results: ValidationCommandResult[] | undefin
       output: result.output.trim(),
       executedAt: result.executedAt?.trim(),
     }))
-    .filter((result) => result.command && result.output && Number.isInteger(result.exitCode))
+    .filter((result) => result.command && Number.isInteger(result.exitCode))
 }
 
 function getArtifactSource(normalizedPath?: string, exists?: boolean): GateEvidenceSource {
@@ -845,6 +846,38 @@ function getWorkExecutionSource(changedFiles: string[], noCodeChangeReason?: str
 function getValidationSource(validationCommands: string[], validationResults: ValidationCommandResult[]): GateEvidenceSource {
   void validationResults
   return validationCommands.length > 0 ? 'tool_input_declared' : 'not_provided'
+}
+
+function addValidationResultBlockers(
+  blockers: string[],
+  missingEvidence: string[],
+  nextSteps: string[],
+  warnings: string[],
+  result: GateResult,
+): void {
+  if (result.evidence.validationCommands.length === 0) {
+    return
+  }
+
+  const matchingResults = result.evidence.validationResults.filter((item) => result.evidence.validationCommands.includes(item.command))
+  const missingResults = result.evidence.validationCommands.filter((command) => !matchingResults.some((item) => item.command === command))
+  const failedResults = matchingResults.filter((item) => item.exitCode !== 0)
+
+  if (missingResults.length > 0) {
+    blockers.push(`验证命令缺少真实执行结果：${missingResults.join('、')}`)
+    addMissingEvidence(missingEvidence, '验证命令执行结果')
+    addNextStep(nextSteps, '为每条 validation_commands 补充对应 validation_results，且 exit_code 必须为 0。')
+  }
+
+  if (failedResults.length > 0) {
+    blockers.push(`验证命令执行失败：${failedResults.map((item) => `${item.command} (exit ${item.exitCode})`).join('、')}`)
+    addMissingEvidence(missingEvidence, '通过的验证命令执行结果')
+    addNextStep(nextSteps, '修复验证失败项并重新运行命令，再传入 exit_code 为 0 的 validation_results。')
+  }
+
+  if (missingResults.length === 0 && failedResults.length === 0) {
+    warnings.push('validation_results 来自工具入参声明；已检查命令匹配和退出码，但不会升级为 tool_output 证据。')
+  }
 }
 
 function getReviewSource(reviewStatus: GateReviewStatus): GateEvidenceSource {
@@ -1012,20 +1045,34 @@ function reviewReportMatchesEvidence(
 ): boolean {
   try {
     const metadata = JSON.parse(content) as Record<string, unknown>
-    const output = trustedReviewOutputs[evidence.reviewRunIdOrMessageRef]
+    const expectedSourceReviewRef = evidence.sourceReviewRef ?? evidence.reviewRunIdOrMessageRef
+    const metadataSourceReviewRef = typeof metadata.sourceReviewRef === 'string'
+      ? metadata.sourceReviewRef
+      : evidence.reviewRunIdOrMessageRef
+    const output = trustedReviewOutputs[expectedSourceReviewRef]
     const outputHash = output ? hashReviewOutput(output) : undefined
-    return metadata.generatedBy === SKILL.REVIEW
+    const metadataMatchesEvidence = metadata.generatedBy === SKILL.REVIEW
+      && metadata.proofKind === 'ae-review-proof'
       && metadata.reviewRunIdOrMessageRef === evidence.reviewRunIdOrMessageRef
-      && trustedReviewRefs.includes(evidence.reviewRunIdOrMessageRef)
-      && typeof outputHash === 'string'
-      && outputHash.length > 0
-      && metadata.reviewOutputHash === outputHash
-      && reviewOutputMatchesEvidence(output, evidence, expectedStatus)
+      && typeof metadata.sourceReviewRef === 'string'
+      && metadataSourceReviewRef === expectedSourceReviewRef
+      && typeof metadata.sessionId === 'string'
+      && metadata.sessionId.length > 0
       && metadata.worktree === normalizePathForEvidence(evidence.worktree)
       && metadata.branch === evidence.branch
       && metadata.head === evidence.head
       && metadata.statusSummary === evidence.statusSummary
       && metadata.reviewStatus === expectedStatus
+
+    if (!metadataMatchesEvidence) {
+      return false
+    }
+
+    return trustedReviewRefs.includes(expectedSourceReviewRef)
+      && typeof outputHash === 'string'
+      && outputHash.length > 0
+      && metadata.reviewOutputHash === outputHash
+      && reviewOutputMatchesEvidence(output, evidence, expectedStatus)
   } catch {
     return false
   }
@@ -1243,6 +1290,10 @@ function addCheckpointBlockers(
     addMissingEvidence(missingEvidence, '验证命令记录')
     addNextStep(nextSteps, '先运行至少一条与本次实现相关的验证命令，再传入 validation_commands。')
   }
+
+  if (input.workflow === 'lfg' && input.checkpoint === 'before_review') {
+    addValidationResultBlockers(blockers, missingEvidence, nextSteps, [], result)
+  }
 }
 
 function addGitAuthorizationBlockers(
@@ -1313,7 +1364,7 @@ function addFinalBlockers(
     addMissingEvidence(missingEvidence, '验证命令记录')
     addNextStep(nextSteps, '补充本次实际运行的验证命令；没有可运行验证时，在最终交付中明确降级为未验证。')
   } else {
-    warnings.push('validation_commands 当前只记录代理声明的命令列表；除非附带可引用执行结果，否则不能单独证明验证已成功执行。')
+    addValidationResultBlockers(blockers, missingEvidence, nextSteps, warnings, result)
   }
 
   if (!input.gitOperations && !input.gitOperationArgs) {

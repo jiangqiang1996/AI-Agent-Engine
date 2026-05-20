@@ -30,12 +30,26 @@ describe('agent-browser-proof-service', () => {
       schemaVersion: 1,
       worktreeFingerprint: 'fingerprint-1',
       agentBrowserVersion: 'agent-browser 1.0.0',
-      validationResults: [{
-        command: 'agent-browser --version',
-        exitCode: 0,
-        outputHash: 'hash-1',
-        executedAt: '2026-04-29T00:00:00Z',
-      }],
+      validationResults: [
+        {
+          command: 'agent-browser --version',
+          exitCode: 0,
+          outputHash: 'hash-1',
+          executedAt: '2026-04-29T00:00:00Z',
+        },
+        {
+          command: 'agent-browser --help',
+          exitCode: 0,
+          outputHash: 'hash-2',
+          executedAt: '2026-04-29T00:00:01Z',
+        },
+        {
+          command: 'agent-browser skills get core --full',
+          exitCode: 0,
+          outputHash: 'hash-3',
+          executedAt: '2026-04-29T00:00:02Z',
+        },
+      ],
       proofKind: 'agent-browser-environment',
     }
   }
@@ -85,6 +99,33 @@ describe('agent-browser-proof-service', () => {
     writeFileSync(join(dir, 'agent-browser-proof.json'), 'invalid json', 'utf8')
 
     expect(readAgentBrowserProof(testDir)).toBeNull()
+  })
+
+  it('缺少必需验证命令时返回 false', () => {
+    writeAgentBrowserProof(testDir, {
+      ...createProof(),
+      validationResults: createProof().validationResults.filter((result) => result.command !== 'agent-browser --help'),
+    })
+
+    expect(isAgentBrowserProofCompleted(testDir, () => 'agent-browser 1.0.0')).toBe(false)
+  })
+
+  it('必需验证命令失败时返回 false', () => {
+    writeAgentBrowserProof(testDir, {
+      ...createProof(),
+      validationResults: createProof().validationResults.map((result) => result.command === 'agent-browser --help' ? { ...result, exitCode: 1 } : result),
+    })
+
+    expect(isAgentBrowserProofCompleted(testDir, () => 'agent-browser 1.0.0')).toBe(false)
+  })
+
+  it('必需验证命令 outputHash 为空白时返回 false', () => {
+    writeAgentBrowserProof(testDir, {
+      ...createProof(),
+      validationResults: createProof().validationResults.map((result) => result.command === 'agent-browser --help' ? { ...result, outputHash: '   ' } : result),
+    })
+
+    expect(isAgentBrowserProofCompleted(testDir, () => 'agent-browser 1.0.0')).toBe(false)
   })
 
   it('AgentBrowserProofSchema 应拒绝缺少验证结果的证明', () => {

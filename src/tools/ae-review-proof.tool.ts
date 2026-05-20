@@ -5,11 +5,36 @@ import { tool, type ToolDefinition } from '@opencode-ai/plugin/tool'
 import { Effect } from 'effect'
 import { z } from 'zod'
 
-import { SKILL } from '../schemas/ae-asset-schema.js'
+import { AGENT, COMMAND, SKILL } from '../schemas/ae-asset-schema.js'
 import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
 import { collectCurrentWorktreeFingerprint, hashReviewOutput, normalizeStatusSummaryForEvidence } from '../services/gate-service.js'
 
 const REVIEW_RUN_ID_PATTERN = /^[a-zA-Z0-9._-]+$/
+
+const REVIEW_SUBAGENT_TYPES: ReadonlySet<string> = new Set([
+  AGENT.ADVERSARIAL_REVIEWER,
+  AGENT.AGENT_NATIVE_REVIEWER,
+  AGENT.API_CONTRACT_REVIEWER,
+  AGENT.ARCHITECTURE_STRATEGIST,
+  AGENT.COHERENCE_REVIEWER,
+  AGENT.CORRECTNESS_REVIEWER,
+  AGENT.DATA_MIGRATIONS_REVIEWER,
+  AGENT.DOC_EQUIVALENCE_REVIEWER,
+  AGENT.DESIGN_LENS_REVIEWER,
+  AGENT.FEASIBILITY_REVIEWER,
+  AGENT.MAINTAINABILITY_REVIEWER,
+  AGENT.PATTERN_RECOGNITION_SPECIALIST,
+  AGENT.PERFORMANCE_REVIEWER,
+  AGENT.PREVIOUS_COMMENTS_REVIEWER,
+  AGENT.PRODUCT_LENS_REVIEWER,
+  AGENT.RELIABILITY_REVIEWER,
+  AGENT.RESEARCH_REVIEWER,
+  AGENT.SECURITY_REVIEWER,
+  AGENT.STANDARDS_REVIEWER,
+  AGENT.STEP_GRANULARITY_REVIEWER,
+  AGENT.TEST_CASE_REVIEWER,
+  AGENT.TESTING_REVIEWER,
+])
 
 const ReviewFindingSchema = z.object({
   severity: z.string().min(1).describe('发现严重级别，例如 P0/P1/P2/P3 或 high/medium/low'),
@@ -85,6 +110,74 @@ function parseSourceReviewOutput(output: string): {
   }
 }
 
+function extractHistoryText(value: unknown): string {
+  if (typeof value === 'string') {
+    return value
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(extractHistoryText).filter(Boolean).join('\n')
+  }
+
+  if (value && typeof value === 'object') {
+    const candidate = value as { text?: unknown; content?: unknown; value?: unknown; output?: unknown }
+    return extractHistoryText(candidate.text ?? candidate.content ?? candidate.value ?? candidate.output)
+  }
+
+  return ''
+}
+
+function hasTrustedSourceReviewOutput(context: unknown, sourceReviewRef: string, sourceReviewOutput: string): boolean {
+  const history = (context as { history?: unknown }).history
+  if (!Array.isArray(history)) {
+    return false
+  }
+
+  return history.some((entry) => {
+    if (!entry || typeof entry !== 'object') {
+      return false
+    }
+
+    const candidate = entry as {
+      id?: unknown
+      task_id?: unknown
+      role?: unknown
+      tool?: unknown
+      name?: unknown
+      toolName?: unknown
+      subagent_type?: unknown
+      content?: unknown
+      text?: unknown
+      message?: {
+        id?: unknown
+        task_id?: unknown
+        role?: unknown
+        tool?: unknown
+        name?: unknown
+        toolName?: unknown
+        subagent_type?: unknown
+        content?: unknown
+        text?: unknown
+      }
+    }
+    const role = candidate.role ?? candidate.message?.role
+    const id = candidate.id ?? candidate.message?.id
+    const taskId = candidate.task_id ?? candidate.message?.task_id
+    const toolNames = [candidate.tool, candidate.name, candidate.toolName, candidate.message?.tool, candidate.message?.name, candidate.message?.toolName]
+    const subagentTypes = [candidate.subagent_type, candidate.message?.subagent_type]
+    const isReviewTool = toolNames.some((toolName) => typeof toolName === 'string'
+      && (toolName === SKILL.REVIEW || toolName === COMMAND.REVIEW))
+    const isReviewSubagent = subagentTypes.some((subagentType) => typeof subagentType === 'string'
+      && REVIEW_SUBAGENT_TYPES.has(subagentType))
+    const content = extractHistoryText(candidate.content ?? candidate.text ?? candidate.message?.content ?? candidate.message?.text)
+
+    return role === 'tool'
+      && (id === sourceReviewRef || taskId === sourceReviewRef)
+      && (isReviewTool || isReviewSubagent)
+      && content === sourceReviewOutput
+  })
+}
+
 /**
  * 写入 ae:review 的结构化审查证明，供 ae-gate 绑定当前 worktree 指纹复验。
  */
@@ -105,6 +198,7 @@ export const aeReviewProofTool: ToolDefinition = tool({
   ].join('\n'),
   args: {
     review_run_id: z.string().min(1).describe('审查运行 ID；只允许字母、数字、点、下划线和短横线'),
+    source_review_ref: z.string().min(1).optional().describe('原始 ae:review 或审查子代理输出的消息 ID/task_id；用于跨会话复验时区分 proof run id 与审查来源'),
     review_status: z.enum(['passed', 'failed']).describe('审查结论；passed 表示无阻断发现，failed 表示存在阻断发现或审查失败'),
     summary: z.string().min(1).describe('审查结论摘要'),
     findings: z.array(ReviewFindingSchema).default([]).describe('审查发现列表；passed 时不得包含 P0/P1/P2/high/medium 级别发现'),
@@ -147,19 +241,31 @@ export const aeReviewProofTool: ToolDefinition = tool({
       return 'source_review_output 必须包含与当前 worktree 指纹和 review_status 匹配的真实结构化审查输出。'
     }
 
+    const sourceReviewRef = args.source_review_ref ?? args.review_run_id
+    if (!hasTrustedSourceReviewOutput(ctx, sourceReviewRef, args.source_review_output)) {
+      return 'source_review_output 必须来自当前会话历史中匹配 source_review_ref 的真实 ae:review 或审查子代理输出。'
+    }
+
     const reviewOutputHash = hashReviewOutput(args.source_review_output)
     const metadata = {
       generatedBy: SKILL.REVIEW,
+      proofKind: 'ae-review-proof',
       reviewRunIdOrMessageRef: args.review_run_id,
+      sourceReviewRef,
       sessionId,
       worktree: fingerprint.worktreePath,
       branch: fingerprint.branch,
       head: fingerprint.head,
       statusSummary: fingerprint.statusSummary,
       reviewStatus: args.review_status,
+      hasBlockingFinding: parsedOutput.hasBlockingFinding,
       reviewOutputHash,
     }
     const metadataPath = `${docsAePath(DOCS_AE_SUBDIRS.REVIEWS)}/${args.review_run_id}/metadata.json`
+
+    if (typeof ctx.ask !== 'function') {
+      return '当前环境没有 ask 能力，不能写入 ae:review 审查证明。请在支持文件写入授权的 opencode 运行时中重试。'
+    }
 
     try {
       await Effect.runPromise(ctx.ask({
@@ -171,11 +277,17 @@ export const aeReviewProofTool: ToolDefinition = tool({
           target: metadataPath,
         },
       }))
+    } catch (error) {
+      const reason = error instanceof Error && error.message ? `：${error.message}` : ''
+      return `写入 ae:review 审查证明未获得文件授权${reason}。请确认当前工作区允许写入 ${metadataPath} 后重试。`
+    }
 
+    try {
       mkdirSync(join(worktree, docsAePath(DOCS_AE_SUBDIRS.REVIEWS), args.review_run_id), { recursive: true })
       writeFileSync(join(worktree, metadataPath), `${JSON.stringify(metadata, null, 2)}\n`, 'utf8')
-    } catch {
-      return `写入 ae:review 审查证明失败。请确认当前工作区允许写入 ${metadataPath} 后重试。`
+    } catch (error) {
+      const reason = error instanceof Error && error.message ? `：${error.message}` : ''
+      return `写入 ae:review 审查证明失败${reason}。请确认当前工作区允许写入 ${metadataPath} 后重试。`
     }
 
     return {
@@ -183,6 +295,7 @@ export const aeReviewProofTool: ToolDefinition = tool({
       metadata: {
         path: metadataPath,
         reviewRunIdOrMessageRef: args.review_run_id,
+        sourceReviewRef,
         reviewOutputHash,
       },
     }

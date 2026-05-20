@@ -3,13 +3,15 @@ import { Effect } from 'effect'
 import { z } from 'zod'
 
 import { COMMAND, SKILL } from '../schemas/ae-asset-schema.js'
-import { hashAgentBrowserOutput, isAgentBrowserProofCompleted, writeAgentBrowserProof } from '../services/agent-browser-proof-service.js'
+import {
+  getRequiredAgentBrowserValidationCommands,
+  hashAgentBrowserOutput,
+  isAgentBrowserProofCompleted,
+  runAgentBrowserValidationCommands,
+  writeAgentBrowserProof,
+} from '../services/agent-browser-proof-service.js'
 
-const REQUIRED_VALIDATION_COMMANDS = [
-  'agent-browser --version',
-  'agent-browser --help',
-  'agent-browser skills get core --full',
-] as const
+const REQUIRED_VALIDATION_COMMANDS = getRequiredAgentBrowserValidationCommands()
 
 function resolveWorktree(context: unknown): string {
   const worktree = (context as { worktree?: unknown }).worktree
@@ -89,7 +91,7 @@ export const aeAgentBrowserProofTool = tool({
     action: z.enum(['complete', 'check']).describe('操作类型：complete 写入证明，check 检查证明'),
     agent_browser_version: z.string().optional().describe('agent-browser 版本号；action=complete 时必填，使用实际验证命令输出'),
     worktree_fingerprint: z.string().optional().describe('当前工作区路径、HEAD 和状态摘要形成的指纹；action=complete 时必填'),
-    validation_results: z.array(ValidationResultInputSchema).optional().describe('实际运行过的环境验证命令结果；action=complete 时必填'),
+    validation_results: z.array(ValidationResultInputSchema).optional().describe('兼容旧字段；complete 会重新运行验证命令，不采信该入参'),
   },
   execute: async (args, ctx) => {
     ctx.metadata({ title: args.action === 'complete' ? '写入 agent-browser 环境证明...' : '检查 agent-browser 环境证明...' })
@@ -111,26 +113,6 @@ export const aeAgentBrowserProofTool = tool({
       return '写入 agent-browser 环境证明需要提供当前 worktree 指纹。'
     }
 
-    if (!args.validation_results || args.validation_results.length === 0) {
-      return '写入 agent-browser 环境证明需要提供实际验证命令结果。'
-    }
-
-    const failedValidation = args.validation_results.find((result) => result.exitCode !== 0)
-    if (failedValidation) {
-      return `验证命令 ${failedValidation.command} 未成功退出，不能写入 agent-browser 环境证明。请修复环境后重新运行验证。`
-    }
-
-    const validationCommands = new Set(args.validation_results.map((result) => result.command.trim()))
-    const missingCommand = REQUIRED_VALIDATION_COMMANDS.find((command) => !validationCommands.has(command))
-    if (missingCommand) {
-      return `写入 agent-browser 环境证明前必须实际运行验证命令 ${missingCommand}。请补齐验证结果后重试。`
-    }
-
-    const versionValidation = args.validation_results.find((result) => result.command.trim() === 'agent-browser --version')
-    if (versionValidation?.output.trim() !== args.agent_browser_version.trim()) {
-      return 'agent-browser 版本号必须来自 `agent-browser --version` 的实际输出。请传入匹配的版本输出。'
-    }
-
     const sessionId = resolveSessionId(ctx)
     if (!sessionId) {
       return '无法获取当前会话 ID，不能写入 agent-browser 环境证明。请在支持 sessionID 的 opencode 运行时中重试。'
@@ -138,6 +120,23 @@ export const aeAgentBrowserProofTool = tool({
 
     if (!hasAgentBrowserInvocation(ctx)) {
       return '写入 agent-browser 环境证明必须发生在用户明确触发 ae:agent-browser / /ae-agent-browser 的会话流程中。请先运行 ae:agent-browser / /ae-agent-browser。'
+    }
+
+    const actualValidationResults = runAgentBrowserValidationCommands()
+    const failedValidation = actualValidationResults.find((result) => result.exitCode !== 0)
+    if (failedValidation) {
+      return `验证命令 ${failedValidation.command} 未成功退出，不能写入 agent-browser 环境证明。请修复环境后重新运行验证。`
+    }
+
+    const validationCommands = new Set(actualValidationResults.map((result) => result.command.trim()))
+    const missingCommand = REQUIRED_VALIDATION_COMMANDS.find((command) => !validationCommands.has(command))
+    if (missingCommand) {
+      return `写入 agent-browser 环境证明前必须实际运行验证命令 ${missingCommand}。请修复工具内部验证流程后重试。`
+    }
+
+    const versionValidation = actualValidationResults.find((result) => result.command.trim() === 'agent-browser --version')
+    if (versionValidation?.output.trim() !== args.agent_browser_version.trim()) {
+      return 'agent-browser 版本号必须来自 `agent-browser --version` 的实际输出。请传入匹配的版本输出。'
     }
 
     try {
@@ -158,7 +157,7 @@ export const aeAgentBrowserProofTool = tool({
         schemaVersion: 1,
         worktreeFingerprint: args.worktree_fingerprint.trim(),
         agentBrowserVersion: args.agent_browser_version.trim(),
-        validationResults: args.validation_results.map((result) => ({
+        validationResults: actualValidationResults.map((result) => ({
           command: result.command,
           exitCode: result.exitCode,
           outputHash: hashAgentBrowserOutput(result.output),

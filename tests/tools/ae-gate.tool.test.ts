@@ -2,6 +2,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { Effect } from 'effect'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { AGENT, TOOL } from '../../src/schemas/ae-asset-schema.js'
@@ -69,18 +70,25 @@ function writeReviewReport(
     head: string
     statusSummary: string
     reviewOutputHash?: string
+    sourceReviewRef?: string
+    hasBlockingFinding?: boolean
+    proofKind?: string
   },
 ): void {
   const reviewOutputHash = evidence.reviewOutputHash ?? hashReviewOutput(createReviewOutput(evidence))
   mkdirSync(join(root, 'ae', 'reviews', evidence.reviewRunIdOrMessageRef), { recursive: true })
   writeFileSync(join(root, 'ae', 'reviews', evidence.reviewRunIdOrMessageRef, 'metadata.json'), `${JSON.stringify({
     generatedBy: 'ae:review',
+    proofKind: evidence.proofKind ?? 'ae-review-proof',
     reviewRunIdOrMessageRef: evidence.reviewRunIdOrMessageRef,
+    sourceReviewRef: evidence.sourceReviewRef ?? evidence.reviewRunIdOrMessageRef,
+    sessionId: 'test-session',
     worktree: normalizedEvidencePath(evidence.worktree),
     branch: evidence.branch,
     head: evidence.head,
     statusSummary: evidence.statusSummary,
     reviewStatus: 'passed',
+    ...(typeof evidence.hasBlockingFinding === 'boolean' ? { hasBlockingFinding: evidence.hasBlockingFinding } : {}),
     reviewOutputHash,
   }, null, 2)}\n`, 'utf8')
 }
@@ -171,6 +179,7 @@ describe('ae-gate 工具', () => {
       checkpoint: 'final',
       plan_path: 'ae/plans/test-plan.md',
       validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
       review_status: 'not_run',
       review_evidence: { type: 'not_run_reason', reason: '测试工具映射' },
       git_operation_args: [commandArgs],
@@ -211,6 +220,59 @@ describe('ae-gate 工具', () => {
     expect(result.evidence.reviewEvidence).toMatchObject({ type: 'not_run_reason', reason: '测试工具映射' })
   })
 
+  it('默认写 proof 时应该要求文件授权', async () => {
+    const root = createRepoRoot()
+    const tool = await getToolDefinition()
+
+    const output = await tool.execute({
+      workflow: 'work',
+      checkpoint: 'final',
+      plan_path: 'ae/plans/test-plan.md',
+      validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
+      review_status: 'not_run',
+      review_evidence: { type: 'not_run_reason', reason: '测试授权' },
+      git_operations: [],
+      worktree_decision: 'rejected',
+      no_code_change_reason: '测试授权',
+    }, {
+      metadata: () => undefined,
+      worktree: root,
+      directory: root,
+      sessionID: 'test-session',
+      abort: new AbortController().signal,
+    })
+
+    expect(output).toContain('当前环境没有 ask 能力')
+  })
+
+  it('拒绝写 proof 授权时应该返回可恢复提示', async () => {
+    const root = createRepoRoot()
+    const tool = await getToolDefinition()
+
+    const output = await tool.execute({
+      workflow: 'work',
+      checkpoint: 'final',
+      plan_path: 'ae/plans/test-plan.md',
+      validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
+      review_status: 'not_run',
+      review_evidence: { type: 'not_run_reason', reason: '测试授权' },
+      git_operations: [],
+      worktree_decision: 'rejected',
+      no_code_change_reason: '测试授权',
+    }, {
+      metadata: () => undefined,
+      ask: () => Effect.fail(new Error('denied')),
+      worktree: root,
+      directory: root,
+      sessionID: 'test-session',
+      abort: new AbortController().signal,
+    })
+
+    expect(output).toContain('写入 ae/gates/ 门禁证明未获得文件授权：denied')
+  })
+
   it('应该从上下文历史收集可信用户授权引用', async () => {
     const root = createRepoRoot()
     const tool = await getToolDefinition()
@@ -220,6 +282,7 @@ describe('ae-gate 工具', () => {
       checkpoint: 'final',
       plan_path: 'ae/plans/test-plan.md',
       validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
       review_status: 'not_run',
       review_evidence: { type: 'not_run_reason', reason: '测试工具映射' },
       git_authorization_evidence: [{
@@ -264,6 +327,7 @@ describe('ae-gate 工具', () => {
       checkpoint: 'final',
       plan_path: 'ae/plans/test-plan.md',
       validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
       review_status: 'not_run',
       review_evidence: { type: 'not_run_reason', reason: '测试工具映射' },
       git_authorization_evidence: [{
@@ -305,6 +369,7 @@ describe('ae-gate 工具', () => {
       checkpoint: 'final',
       plan_path: 'ae/plans/test-plan.md',
       validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
       review_status: 'not_run',
       review_evidence: { type: 'not_run_reason', reason: '测试工具映射' },
       git_authorization_evidence: [{
@@ -345,6 +410,7 @@ describe('ae-gate 工具', () => {
       checkpoint: 'final',
       plan_path: 'ae/plans/test-plan.md',
       validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
       review_status: 'passed',
       review_evidence: {
         type: 'report_path',
@@ -388,6 +454,7 @@ describe('ae-gate 工具', () => {
       checkpoint: 'final',
       plan_path: 'ae/plans/test-plan.md',
       validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
       review_status: 'passed',
       git_operations: [],
       worktree_decision: 'rejected',
@@ -443,6 +510,7 @@ describe('ae-gate 工具', () => {
       checkpoint: 'final',
       plan_path: 'ae/plans/test-plan.md',
       validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
       review_status: 'passed',
       review_evidence: {
         type: 'tool_output',
@@ -485,6 +553,7 @@ describe('ae-gate 工具', () => {
       checkpoint: 'final',
       plan_path: 'ae/plans/test-plan.md',
       validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
       review_status: 'passed',
       review_evidence: {
         type: 'report_path',
@@ -531,6 +600,7 @@ describe('ae-gate 工具', () => {
       checkpoint: 'final',
       plan_path: 'ae/plans/test-plan.md',
       validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
       review_status: 'passed',
       review_evidence: {
         type: 'report_path',
@@ -560,6 +630,57 @@ describe('ae-gate 工具', () => {
     expect(result.blockers).toEqual([])
   })
 
+  it('应该使用 source_review_ref 匹配原始审查输出', async () => {
+    const root = createRepoRoot()
+    const fingerprint = initGitRepo(root)
+    const reviewOutput = createReviewOutput({ worktree: root, ...fingerprint })
+    writeReviewReport(root, {
+      reviewRunIdOrMessageRef: 'proof-run-1',
+      sourceReviewRef: 'task-review-1',
+      worktree: root,
+      ...fingerprint,
+      proofKind: 'ae-review-proof',
+      hasBlockingFinding: false,
+      reviewOutputHash: hashReviewOutput(reviewOutput),
+    })
+    const tool = await getToolDefinition()
+
+    const output = await tool.execute({
+      workflow: 'work',
+      checkpoint: 'final',
+      plan_path: 'ae/plans/test-plan.md',
+      validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
+      review_status: 'passed',
+      review_evidence: {
+        type: 'report_path',
+        review_trust: 'verified',
+        path: 'ae/reviews/proof-run-1/metadata.json',
+        review_run_id_or_message_ref: 'proof-run-1',
+        source_review_ref: 'task-review-1',
+        worktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        status_summary: fingerprint.statusSummary,
+      },
+      git_operations: [],
+      worktree_decision: 'rejected',
+      no_code_change_reason: '测试工具映射',
+      write_proof: false,
+    }, {
+      metadata: () => undefined,
+      worktree: root,
+      directory: root,
+      sessionID: 'test-session',
+      history: [{ id: 'task-review-1', role: 'tool', tool: 'ae:review', content: reviewOutput }],
+      abort: new AbortController().signal,
+    })
+    const result = JSON.parse(output) as { status: string; blockers: string[] }
+
+    expect(result.status).toBe('pass')
+    expect(result.blockers).toEqual([])
+  })
+
   it('应该采信 task 工具中明确审查子代理的结构化来源', async () => {
     const root = createRepoRoot()
     const fingerprint = initGitRepo(root)
@@ -577,6 +698,7 @@ describe('ae-gate 工具', () => {
       checkpoint: 'final',
       plan_path: 'ae/plans/test-plan.md',
       validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
       review_status: 'passed',
       review_evidence: {
         type: 'report_path',
@@ -618,6 +740,7 @@ describe('ae-gate 工具', () => {
       AGENT.STANDARDS_REVIEWER,
       AGENT.API_CONTRACT_REVIEWER,
       AGENT.DATA_MIGRATIONS_REVIEWER,
+      AGENT.DOC_EQUIVALENCE_REVIEWER,
       AGENT.AGENT_NATIVE_REVIEWER,
       AGENT.DESIGN_LENS_REVIEWER,
       AGENT.FEASIBILITY_REVIEWER,
@@ -644,6 +767,7 @@ describe('ae-gate 工具', () => {
         checkpoint: 'final',
         plan_path: 'ae/plans/test-plan.md',
         validation_commands: ['npm run test'],
+        validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
         review_status: 'passed',
         review_evidence: {
           type: 'report_path',
@@ -691,6 +815,7 @@ describe('ae-gate 工具', () => {
       checkpoint: 'final',
       plan_path: 'ae/plans/test-plan.md',
       validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
       review_status: 'passed',
       review_evidence: {
         type: 'report_path',
@@ -732,6 +857,7 @@ describe('ae-gate 工具', () => {
       checkpoint: 'final',
       plan_path: 'ae/plans/test-plan.md',
       validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
       review_status: 'passed',
       review_evidence: {
         type: 'tool_output',
@@ -788,6 +914,7 @@ describe('ae-gate 工具', () => {
       checkpoint: 'final',
       plan_path: 'ae/plans/test-plan.md',
       validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
       review_status: 'passed',
       review_evidence: {
         type: 'report_path',
@@ -827,6 +954,7 @@ describe('ae-gate 工具', () => {
       checkpoint: 'final',
       plan_path: 'ae/plans/test-plan.md',
       validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
       review_status: 'passed',
       review_evidence: {
         type: 'report_path',
@@ -867,6 +995,7 @@ describe('ae-gate 工具', () => {
       checkpoint: 'final',
       plan_path: 'ae/plans/test-plan.md',
       validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
       review_status: 'passed',
       review_evidence: {
         type: 'report_path',
@@ -913,6 +1042,7 @@ describe('ae-gate 工具', () => {
       checkpoint: 'final',
       plan_path: 'ae/plans/test-plan.md',
       validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
       review_status: 'passed',
       review_evidence: {
         type: 'report_path',
@@ -950,6 +1080,7 @@ describe('ae-gate 工具', () => {
       checkpoint: 'final',
       plan_path: 'ae/plans/test-plan.md',
       validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
       review_status: 'not_run',
       review_evidence: { type: 'declared', summary: '仅声明审查', review_trust: 'declaration_only' },
       git_operations: [],
@@ -981,6 +1112,7 @@ describe('ae-gate 工具', () => {
       checkpoint: 'final',
       plan_path: 'ae/plans/test-plan.md',
       validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
       review_status: 'passed',
       review_evidence: {
         type: 'report_path',
@@ -1021,6 +1153,7 @@ describe('ae-gate 工具', () => {
       checkpoint: 'final',
       plan_path: 'ae/plans/test-plan.md',
       validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
       review_status: 'passed',
       review_evidence: {
         type: 'report_path',
@@ -1061,6 +1194,7 @@ describe('ae-gate 工具', () => {
       checkpoint: 'final',
       plan_path: 'ae/plans/test-plan.md',
       validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
       review_status: 'passed',
       review_evidence: {
         type: 'report_path',
@@ -1107,6 +1241,7 @@ describe('ae-gate 工具', () => {
       checkpoint: 'final',
       plan_path: 'ae/plans/test-plan.md',
       validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
       review_status: 'passed',
       review_evidence: {
         type: 'report_path',

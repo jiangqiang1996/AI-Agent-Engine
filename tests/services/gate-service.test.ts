@@ -87,18 +87,25 @@ function writeReviewReport(
     statusSummary: string
     reviewStatus?: 'passed' | 'failed'
     reviewOutputHash?: string
+    sourceReviewRef?: string
+    hasBlockingFinding?: boolean
+    proofKind?: string | null
   },
 ): void {
   const reviewOutputHash = evidence.reviewOutputHash ?? hashReviewOutput(createReviewOutput(evidence))
   mkdirSync(join(root, 'ae', 'reviews', evidence.reviewRunIdOrMessageRef), { recursive: true })
   writeFileSync(join(root, 'ae', 'reviews', evidence.reviewRunIdOrMessageRef, 'metadata.json'), `${JSON.stringify({
     generatedBy: 'ae:review',
+    ...(evidence.proofKind === null ? {} : { proofKind: evidence.proofKind ?? 'ae-review-proof' }),
     reviewRunIdOrMessageRef: evidence.reviewRunIdOrMessageRef,
+    sourceReviewRef: evidence.sourceReviewRef ?? evidence.reviewRunIdOrMessageRef,
+    sessionId: 'test-session',
     worktree: normalizedEvidencePath(evidence.worktree),
     branch: evidence.branch,
     head: evidence.head,
     statusSummary: evidence.statusSummary,
     reviewStatus: evidence.reviewStatus ?? 'passed',
+    ...(typeof evidence.hasBlockingFinding === 'boolean' ? { hasBlockingFinding: evidence.hasBlockingFinding } : {}),
     reviewOutputHash,
   }, null, 2)}\n`, 'utf8')
 }
@@ -109,15 +116,24 @@ afterEach(() => {
   }
 })
 
-function runGateSync(root: string, input: Parameters<typeof runGate>[1]) {
+function rawRunGateSync(root: string, input: Parameters<typeof runGate>[1]) {
   return Effect.runSync(runGate(root, input))
+}
+
+function runGateSync(root: string, input: Parameters<typeof runGate>[1]) {
+  const validationResults = input.validationResults ?? input.validationCommands?.map((command) => ({
+    command,
+    exitCode: 0,
+    output: `${command} passed`,
+  }))
+  return rawRunGateSync(root, { ...input, validationResults })
 }
 
 describe('门禁服务', () => {
   it('应该阻断缺少计划路径的实现前门禁', () => {
     const root = createRepoRoot()
 
-    const result = runGateSync(root, {
+    const result = rawRunGateSync(root, {
       workflow: 'lfg',
       checkpoint: 'before_work',
     })
@@ -188,10 +204,10 @@ describe('门禁服务', () => {
     expect(result.evidenceSources.gitAuthorization).toBe('tool_input_declared')
   })
 
-  it('应该允许 ae:work 裸提示词在说明后通过最终门禁', () => {
+  it('应该阻断缺少验证执行结果的最终门禁', () => {
     const root = createRepoRoot()
 
-    const result = runGateSync(root, {
+    const result = rawRunGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
       validationCommands: ['npm run typecheck'],
@@ -203,9 +219,9 @@ describe('门禁服务', () => {
       writeProof: false,
     })
 
-    expect(result.status).toBe('pass')
+    expect(result.status).toBe('block')
     expect(result.warnings).toContain('本次 ae:work 未提供计划或交接基线路径；仅适用于简单裸提示词或 notes 已说明执行基线。')
-    expect(result.warnings).toContain('validation_commands 当前只记录代理声明的命令列表；除非附带可引用执行结果，否则不能单独证明验证已成功执行。')
+    expect(result.blockers).toContain('验证命令缺少真实执行结果：npm run typecheck')
     expect(result.evidenceSources.validation).toBe('tool_input_declared')
     expect(result.evidenceSources.workExecution).toBe('tool_input_declared')
   })
@@ -229,10 +245,30 @@ describe('门禁服务', () => {
     expect(result.status).toBe('pass')
     expect(result.evidenceSources.validation).toBe('tool_input_declared')
     expect(result.evidence.validationResults).toEqual([{ command: 'npm run typecheck', exitCode: 0, output: 'typecheck passed' }])
-    expect(result.warnings).toContain('validation_commands 当前只记录代理声明的命令列表；除非附带可引用执行结果，否则不能单独证明验证已成功执行。')
+    expect(result.warnings).toContain('validation_results 来自工具入参声明；已检查命令匹配和退出码，但不会升级为 tool_output 证据。')
   })
 
-  it('不应该把失败或不匹配的 validation_results 视为可信验证证据', () => {
+  it('应该允许验证命令成功但输出为空', () => {
+    const root = createRepoRoot()
+
+    const result = rawRunGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      validationCommands: ['npm run silent'],
+      validationResults: [{ command: 'npm run silent', exitCode: 0, output: '' }],
+      reviewStatus: 'not_applicable',
+      gitOperations: [],
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '简单规则更新，无需计划文档',
+      notes: '裸提示词小任务',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('pass')
+    expect(result.evidence.validationResults).toEqual([{ command: 'npm run silent', exitCode: 0, output: '' }])
+  })
+
+  it('应该阻断失败的 validation_results', () => {
     const root = createRepoRoot()
 
     const result = runGateSync(root, {
@@ -252,13 +288,57 @@ describe('门禁服务', () => {
       writeProof: false,
     })
 
-    expect(result.status).toBe('pass')
+    expect(result.status).toBe('block')
     expect(result.evidenceSources.validation).toBe('tool_input_declared')
-    expect(result.evidence.validationResults).toEqual([
+    expect(result.evidence.validationResults.map(({ command, exitCode, output }) => ({ command, exitCode, output }))).toEqual([
       { command: 'npm run typecheck', exitCode: 1, output: 'typecheck failed' },
       { command: 'npm run test', exitCode: 0, output: 'tests passed' },
+      { command: 'npm run typecheck', exitCode: 0, output: '' },
     ])
-    expect(result.warnings).toContain('validation_commands 当前只记录代理声明的命令列表；除非附带可引用执行结果，否则不能单独证明验证已成功执行。')
+    expect(result.blockers).toContain('验证命令执行失败：npm run typecheck (exit 1)')
+  })
+
+  it('应该忽略 validation_commands 之外的历史失败结果', () => {
+    const root = createRepoRoot()
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      validationCommands: ['npm run typecheck'],
+      validationResults: [
+        { command: 'npm run typecheck', exitCode: 0, output: 'typecheck passed' },
+        { command: 'npm run old-test', exitCode: 1, output: 'old test failed' },
+      ],
+      reviewStatus: 'not_applicable',
+      gitOperations: [],
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '简单规则更新，无需计划文档',
+      notes: '裸提示词小任务',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('pass')
+    expect(result.blockers.join('\n')).not.toContain('npm run old-test')
+  })
+
+  it('应该阻断部分验证命令缺少执行结果', () => {
+    const root = createRepoRoot()
+
+    const result = rawRunGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      validationCommands: ['npm run typecheck', 'npm run test'],
+      validationResults: [{ command: 'npm run typecheck', exitCode: 0, output: 'typecheck passed' }],
+      reviewStatus: 'not_applicable',
+      gitOperations: [],
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '简单规则更新，无需计划文档',
+      notes: '裸提示词小任务',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('验证命令缺少真实执行结果：npm run test')
   })
 
   it('应该允许 ae:work 使用交接文件作为无计划路径的执行基线', () => {
@@ -473,6 +553,128 @@ describe('门禁服务', () => {
     })
   })
 
+  it('应该阻断仅凭结构化审查元数据跨会话自证', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+    const fingerprint = initGitRepo(root)
+    writeReviewReport(root, {
+      reviewRunIdOrMessageRef: 'review-run-1',
+      worktree: root,
+      ...fingerprint,
+      proofKind: 'ae-review-proof',
+      hasBlockingFinding: false,
+    })
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'ae/plans/test-plan.md',
+      validationCommands: ['npm run typecheck'],
+      reviewStatus: 'passed',
+      reviewEvidence: {
+        type: 'report_path',
+        reviewTrust: 'verified',
+        path: 'ae/reviews/review-run-1/metadata.json',
+        reviewRunIdOrMessageRef: 'review-run-1',
+        worktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        statusSummary: fingerprint.statusSummary,
+      },
+      gitOperations: [],
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '测试用例中无真实代码变更',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('审查报告内容未绑定当前 review_evidence 指纹，不能作为可验证审查来源证据。')
+  })
+
+  it('应该允许审查 proof run id 与原始审查来源 ref 分离', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+    const fingerprint = initGitRepo(root)
+    const reviewOutput = createReviewOutput({ worktree: root, ...fingerprint })
+    writeReviewReport(root, {
+      reviewRunIdOrMessageRef: 'proof-run-1',
+      sourceReviewRef: 'task-review-1',
+      worktree: root,
+      ...fingerprint,
+      reviewOutputHash: hashReviewOutput(reviewOutput),
+      proofKind: 'ae-review-proof',
+      hasBlockingFinding: false,
+    })
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'ae/plans/test-plan.md',
+      validationCommands: ['npm run typecheck'],
+      reviewStatus: 'passed',
+      reviewEvidence: {
+        type: 'report_path',
+        reviewTrust: 'verified',
+        path: 'ae/reviews/proof-run-1/metadata.json',
+        reviewRunIdOrMessageRef: 'proof-run-1',
+        sourceReviewRef: 'task-review-1',
+        worktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        statusSummary: fingerprint.statusSummary,
+      },
+      gitOperations: [],
+      trustedReviewRefs: ['task-review-1'],
+      trustedReviewOutputs: { 'task-review-1': reviewOutput },
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '测试用例中无真实代码变更',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('pass')
+  })
+
+  it('应该阻断当前会话有可信审查输出但 metadata 缺少 ae-review-proof 标记', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+    const fingerprint = initGitRepo(root)
+    const reviewOutput = createReviewOutput({ worktree: root, ...fingerprint })
+    writeReviewReport(root, {
+      reviewRunIdOrMessageRef: 'review-handwritten',
+      worktree: root,
+      ...fingerprint,
+      proofKind: null,
+      reviewOutputHash: hashReviewOutput(reviewOutput),
+    })
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'ae/plans/test-plan.md',
+      validationCommands: ['npm run typecheck'],
+      reviewStatus: 'passed',
+      reviewEvidence: {
+        type: 'report_path',
+        reviewTrust: 'verified',
+        path: 'ae/reviews/review-handwritten/metadata.json',
+        reviewRunIdOrMessageRef: 'review-handwritten',
+        worktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        statusSummary: fingerprint.statusSummary,
+      },
+      gitOperations: [],
+      trustedReviewRefs: ['review-handwritten'],
+      trustedReviewOutputs: { 'review-handwritten': reviewOutput },
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '测试用例中无真实代码变更',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('审查报告内容未绑定当前 review_evidence 指纹，不能作为可验证审查来源证据。')
+  })
+
   it('应该阻断进入审查前缺少验证命令的 LFG 门禁', () => {
     const root = createRepoRoot()
     writePlan(root)
@@ -486,6 +688,37 @@ describe('门禁服务', () => {
     expect(result.status).toBe('block')
     expect(result.blockers).toContain('进入代码审查前缺少验证命令记录，不能证明实现已验证。')
     expect(result.summary).toContain('门禁阻断')
+  })
+
+  it('应该阻断进入审查前缺少验证执行结果的 LFG 门禁', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+
+    const result = rawRunGateSync(root, {
+      workflow: 'lfg',
+      checkpoint: 'before_review',
+      planPath: 'ae/plans/test-plan.md',
+      validationCommands: ['npm run typecheck'],
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('验证命令缺少真实执行结果：npm run typecheck')
+  })
+
+  it('应该阻断进入审查前验证执行失败的 LFG 门禁', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+
+    const result = rawRunGateSync(root, {
+      workflow: 'lfg',
+      checkpoint: 'before_review',
+      planPath: 'ae/plans/test-plan.md',
+      validationCommands: ['npm run typecheck'],
+      validationResults: [{ command: 'npm run typecheck', exitCode: 1, output: 'typecheck failed' }],
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('验证命令执行失败：npm run typecheck (exit 1)')
   })
 
   it('应该阻断仓库外计划路径', () => {
