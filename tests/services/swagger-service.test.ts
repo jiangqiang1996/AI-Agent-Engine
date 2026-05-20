@@ -23,4 +23,14 @@ describe('swagger-service', () => {
     expect(output).toContain('引用文件超出安全边界')
     expect(output).not.toContain('订单状态')
   })
+
+  it('多级相对文件引用不应该漂移出主文档安全根', async () => {
+    const output = await parseSwaggerSource('tests/fixtures/swagger/refs/nested-main.yaml', process.cwd(), {
+      method: 'GET',
+      path: '/users',
+    })
+
+    expect(output).toContain('引用文件超出安全边界')
+    expect(output).not.toContain('泄露字段')
+  })
 })

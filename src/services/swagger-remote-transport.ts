@@ -14,10 +14,23 @@ export interface RemoteTransportResponse {
 
 const MAX_REDIRECTS = 3
 const TIMEOUT_MS = 10_000
+const DNS_TIMEOUT_MS = 10_000
 const MAX_RESPONSE_BYTES = 5 * 1024 * 1024
 
 async function selectAddress(hostname: string): Promise<string> {
-  const records = await dns.lookup(hostname, { all: true })
+  let timeout: NodeJS.Timeout | undefined
+  const records = await Promise.race([
+    dns.lookup(hostname, { all: true }),
+    new Promise<never>((_, reject) => {
+      timeout = setTimeout(() => {
+        reject(new SwaggerError('remote_timeout', '远程 DNS 解析超时：请稍后重试或使用本地 JSON 文件。'))
+      }, DNS_TIMEOUT_MS)
+    }),
+  ]).finally(() => {
+    if (timeout) {
+      clearTimeout(timeout)
+    }
+  })
   const record = records.find((item) => {
     try {
       assertPublicRemoteAddress(item.address)
@@ -104,6 +117,9 @@ export async function fetchRemoteSwagger(source: string, redirectCount = 0): Pro
       throw new SwaggerError('remote_non_2xx', '远程非 2xx 响应：重定向缺少 Location。')
     }
     const next = new URL(Array.isArray(location) ? location[0] : location, url)
+    if (next.origin !== url.origin) {
+      throw new SwaggerError('remote_address_blocked', '远程地址被安全策略阻止：重定向不能跨 origin。')
+    }
     return fetchRemoteSwagger(next.toString(), redirectCount + 1)
   }
 

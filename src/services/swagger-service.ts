@@ -24,6 +24,12 @@ interface RelativeRefBudget {
   bytes: number
 }
 
+interface RelativeRefContext {
+  loaded: SwaggerSourceResult
+  baseDir: string
+  currentDir: string
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -124,8 +130,8 @@ function splitRef(ref: string): { fileRef: string; pointer: string } {
     : { fileRef: ref.slice(0, index), pointer: ref.slice(index) }
 }
 
-async function readRelativeRefDocument(loaded: SwaggerSourceResult, ref: string, budget: RelativeRefBudget): Promise<unknown> {
-  if (loaded.sourceType !== 'local' || !loaded.documentDir) {
+async function readRelativeRefDocument(context: RelativeRefContext, ref: string, budget: RelativeRefBudget): Promise<unknown> {
+  if (context.loaded.sourceType !== 'local' || !context.loaded.documentDir) {
     return { $ref: ref, description: '远程或未知来源的外部引用默认不展开。' }
   }
 
@@ -134,13 +140,13 @@ async function readRelativeRefDocument(loaded: SwaggerSourceResult, ref: string,
     return { $ref: ref, description: '外部引用默认不展开。' }
   }
 
-  const target = path.resolve(loaded.documentDir, fileRef)
+  const target = path.resolve(context.currentDir, fileRef)
   const realTarget = await fs.realpath(target).catch(() => undefined)
   if (!realTarget) {
     return { $ref: ref, description: '引用文件不存在，无法展开。' }
   }
 
-  const relative = path.relative(loaded.documentDir, realTarget)
+  const relative = path.relative(context.baseDir, realTarget)
   if (relative.startsWith('..') || path.isAbsolute(relative) || isSensitiveRefPath(relative) || !/\.ya?ml$|\.json$/i.test(realTarget)) {
     return { $ref: ref, description: '引用文件超出安全边界，已停止展开。' }
   }
@@ -159,7 +165,7 @@ async function readRelativeRefDocument(loaded: SwaggerSourceResult, ref: string,
   const document = parseLoadedDocument(content)
   const selected = pointer ? resolveRelativePointer(document, pointer, ref) : document
   const resolvedSelected = resolveInternalRefs(selected, document)
-  return resolveRelativeRefs(resolvedSelected, { ...loaded, realPath: realTarget, documentDir: path.dirname(realTarget) }, budget)
+  return resolveRelativeRefs(resolvedSelected, { ...context, currentDir: path.dirname(realTarget) }, budget)
 }
 
 function resolveInternalRefs(value: unknown, root: unknown, depth = 0, visited = new Set<string>()): unknown {
@@ -201,28 +207,29 @@ function resolveRelativePointer(document: unknown, pointer: string, originalRef:
   return current
 }
 
-async function resolveRelativeRefs(value: unknown, loaded: SwaggerSourceResult, budget: RelativeRefBudget, depth = 0): Promise<unknown> {
+async function resolveRelativeRefs(value: unknown, context: RelativeRefContext, budget: RelativeRefBudget, depth = 0): Promise<unknown> {
   if (depth > MAX_DOCUMENT_DEPTH || typeof value !== 'object' || value === null) {
     return value
   }
   if (Array.isArray(value)) {
-    return Promise.all(value.map((item) => resolveRelativeRefs(item, loaded, budget, depth + 1)))
+    return Promise.all(value.map((item) => resolveRelativeRefs(item, context, budget, depth + 1)))
   }
 
   const record = value as Record<string, unknown>
   if (typeof record.$ref === 'string' && !record.$ref.startsWith('#/')) {
-    return readRelativeRefDocument(loaded, record.$ref, budget)
+    return readRelativeRefDocument(context, record.$ref, budget)
   }
 
   const entries = await Promise.all(
-    Object.entries(record).map(async ([key, item]) => [key, await resolveRelativeRefs(item, loaded, budget, depth + 1)] as const),
+    Object.entries(record).map(async ([key, item]) => [key, await resolveRelativeRefs(item, context, budget, depth + 1)] as const),
   )
   return Object.fromEntries(entries)
 }
 
 export async function parseSwaggerSource(source: string, worktree: string, filter: SwaggerFilterInput): Promise<string> {
   const loaded = await loadSwaggerSource(source, worktree)
-  const document = await resolveRelativeRefs(parseLoadedDocument(loaded.content), loaded, { files: 0, bytes: 0 })
+  const baseDir = loaded.documentDir ?? worktree
+  const document = await resolveRelativeRefs(parseLoadedDocument(loaded.content), { loaded, baseDir, currentDir: baseDir }, { files: 0, bytes: 0 })
   assertSafeParsedDocument(document)
   const parsed = parseSwaggerDocument(document)
   const filtered = filterSwaggerOperations(parsed, filter)

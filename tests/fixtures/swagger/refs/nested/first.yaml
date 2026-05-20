@@ -1,0 +1,7 @@
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        leaked:
+          $ref: '../../outside.yaml#/components/schemas/Leak'
