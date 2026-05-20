@@ -1,6 +1,6 @@
 # AE Solutions 经验库
 
-`docs/ae/solutions/` 用于保存历史方案、研究沉淀、调试复盘和已验证经验；`.opencode/rules/` 用于保存未来必须长期遵守的项目规范。不要把一次性方案直接规则化，也不要把长期规则只埋在 solution 正文中。
+`ae/solutions/` 用于保存历史方案、研究沉淀、调试复盘和已验证经验；`.opencode/rules/` 用于保存未来必须长期遵守的项目规范。不要把一次性方案直接规则化，也不要把长期规则只埋在 solution 正文中。
 
 ## 适用语境
 
@@ -8,7 +8,7 @@
 
 ## 文件命名
 
-建议使用 `docs/ae/solutions/YYYY-MM-DD-<slug>.md`。高频风险和关键模式可在 `docs/ae/solutions/patterns/critical-patterns.md` 建立索引，不复制所有 solution 正文。
+建议使用 `ae/solutions/YYYY-MM-DD-<slug>.md`。高频风险和关键模式可在 `ae/solutions/patterns/critical-patterns.md` 建立索引，不复制所有 solution 正文。
 
 ## 推荐 Frontmatter
 

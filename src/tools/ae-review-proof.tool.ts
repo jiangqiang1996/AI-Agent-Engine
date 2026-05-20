@@ -7,7 +7,7 @@ import { z } from 'zod'
 
 import { SKILL } from '../schemas/ae-asset-schema.js'
 import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
-import { collectCurrentWorktreeFingerprint, hashReviewOutput } from '../services/gate-service.js'
+import { collectCurrentWorktreeFingerprint, hashReviewOutput, normalizeStatusSummaryForEvidence } from '../services/gate-service.js'
 
 const REVIEW_RUN_ID_PATTERN = /^[a-zA-Z0-9._-]+$/
 
@@ -59,7 +59,7 @@ function parseSourceReviewOutput(output: string): {
 
   try {
     const parsed = JSON.parse(output.slice(start, end + 1)) as Record<string, unknown>
-    const rawStatus = parsed.reviewStatus ?? parsed.status ?? parsed.conclusion
+    const rawStatus = parsed.reviewStatus ?? parsed.review_status ?? parsed.status ?? parsed.conclusion
     const normalizedStatus = typeof rawStatus === 'string' ? rawStatus.toLowerCase() : undefined
     if (normalizedStatus !== 'passed' && normalizedStatus !== 'pass'
       && normalizedStatus !== 'failed' && normalizedStatus !== 'fail') {
@@ -70,8 +70,8 @@ function parseSourceReviewOutput(output: string): {
       status: normalizedStatus === 'passed' || normalizedStatus === 'pass' ? 'passed' : 'failed',
       worktree: typeof parsed.worktree === 'string' ? normalizePathForEvidence(parsed.worktree) : undefined,
       branch: typeof parsed.branch === 'string' ? parsed.branch : undefined,
-      head: typeof parsed.head === 'string' ? parsed.head : undefined,
-      statusSummary: typeof parsed.statusSummary === 'string' ? parsed.statusSummary : undefined,
+      head: typeof parsed.head === 'string' ? parsed.head : typeof parsed.HEAD === 'string' ? parsed.HEAD : undefined,
+      statusSummary: typeof parsed.statusSummary === 'string' ? normalizeStatusSummaryForEvidence(parsed.statusSummary) : undefined,
       hasBlockingFinding: Array.isArray(parsed.findings) && parsed.findings.some((finding) => {
         if (!finding || typeof finding !== 'object') {
           return false

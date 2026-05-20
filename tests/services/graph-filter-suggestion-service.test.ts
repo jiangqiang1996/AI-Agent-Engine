@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import {
+  collectGraphFilterSuggestionsFromSummary,
   collectGraphFilterCandidateSummary,
   collectMissingGraphFilterSuggestions,
   getGraphPathDecision,
@@ -83,6 +84,41 @@ describe('graph-filter-suggestion-service', () => {
 
     expect(suggestions.some((suggestion) => suggestion.rule === '**/node_modules')).toBe(true)
     expect(suggestions.some((suggestion) => suggestion.rule === '**/dist')).toBe(false)
+  })
+
+  it('应该从本次候选摘要返回未覆盖的过滤建议', () => {
+    const root = createTempRoot()
+    write(root, 'src/a.ts', '')
+    write(root, 'src/logo.svg', '<svg />')
+    write(root, 'dist/bundle.js', '')
+
+    const summary = collectGraphFilterCandidateSummary(root, root, { exclude: [] })
+    const suggestions = collectGraphFilterSuggestionsFromSummary(summary, { exclude: ['**/dist'] })
+
+    expect(suggestions).toContainEqual(expect.objectContaining({ group: 'extension', suggestedRule: '**/*.svg' }))
+    expect(suggestions).not.toContainEqual(expect.objectContaining({ group: 'path-segment', suggestedRule: '**/dist' }))
+  })
+
+  it('具体示例被 include 覆盖时仍应该提示聚合候选', () => {
+    const root = createTempRoot()
+    write(root, 'src/a.svg', '<svg />')
+    write(root, 'src/b.svg', '<svg />')
+
+    const summary = collectGraphFilterCandidateSummary(root, root, { include: ['src/a.svg'], exclude: [] })
+    const suggestions = collectGraphFilterSuggestionsFromSummary(summary, { include: ['src/a.svg'], exclude: [] })
+
+    expect(suggestions).toContainEqual(expect.objectContaining({ group: 'extension', suggestedRule: '**/*.svg' }))
+  })
+
+  it('具体示例被 exclude 覆盖时仍应该提示剩余聚合候选', () => {
+    const root = createTempRoot()
+    write(root, 'src/a.svg', '<svg />')
+    write(root, 'src/b.svg', '<svg />')
+
+    const summary = collectGraphFilterCandidateSummary(root, root, { exclude: ['src/a.svg'] })
+    const suggestions = collectGraphFilterSuggestionsFromSummary(summary, { exclude: ['src/a.svg'] })
+
+    expect(suggestions).toContainEqual(expect.objectContaining({ group: 'extension', suggestedRule: '**/*.svg' }))
   })
 
   it('不应该让 ae 运行产物进入候选统计或可解析集合', () => {

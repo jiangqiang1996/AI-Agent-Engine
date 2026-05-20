@@ -301,6 +301,32 @@ describe('ae-graph-build 工具', () => {
     expect(parsed.filterCandidateSummary.pathSegmentCandidates).toContainEqual(expect.objectContaining({ value: 'dist', count: 1, suggestedRule: '**/dist' }))
   })
 
+  it('应该只基于本次 target 范围提示过滤候选', async () => {
+    const root = createTempRoot()
+    write(root, 'src/a.ts', '')
+    write(root, 'src/logo.svg', '<svg />')
+    write(root, 'other/logo.svg', '<svg />')
+    const asked: unknown[] = []
+
+    await aeGraphBuildTool.execute({ target: 'src', mode: 'full' }, createCaptureAskContext(root, asked))
+
+    const suggestions = JSON.stringify(asked)
+    expect(suggestions).toContain('src/logo.svg')
+    expect(suggestions).not.toContain('other/logo.svg')
+  })
+
+  it('已有规则覆盖本次候选时不应该重复提示', async () => {
+    const root = createTempRoot()
+    write(root, 'src/a.ts', '')
+    write(root, 'src/logo.svg', '<svg />')
+    write(root, '.opencode/ae.jsonc', '{ "graph": { "exclude": ["**/*.svg"] } }')
+    const asked: unknown[] = []
+
+    await aeGraphBuildTool.execute({ target: 'src', mode: 'full' }, createCaptureAskContext(root, asked))
+
+    expect(JSON.stringify(asked)).not.toContain('**/*.svg')
+  })
+
   it('未持久化排除规则时当前构建不应该排除候选目录', async () => {
     const root = createTempRoot()
     write(root, 'src/a.ts', '')

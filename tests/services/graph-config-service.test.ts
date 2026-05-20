@@ -47,7 +47,9 @@ describe('graph-config-service', () => {
   })
 
   it('内置 ae.jsonc 默认应该排除迁移后的图谱产物目录', () => {
-    expect(loadGraphConfig(process.cwd())).toEqual(expect.objectContaining({
+    const root = createTempRoot()
+
+    expect(loadGraphConfig(root)).toEqual(expect.objectContaining({
       exclude: expect.arrayContaining(['ae/graphs']),
     }))
   })

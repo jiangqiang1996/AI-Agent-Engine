@@ -17,8 +17,9 @@ import { createRuntimeAssetManifest } from '../services/runtime-asset-manifest.j
 import { collectGraphFiles, parseFileRelations } from '../services/graph-parse-service.js'
 import {
   collectGraphFilterCandidateSummary,
-  collectMissingGraphFilterSuggestions,
+  collectGraphFilterSuggestionsFromSummary,
   getGraphPathDecision,
+  type GraphFilterCandidateSummary,
 } from '../services/graph-filter-suggestion-service.js'
 import { isInsideRoot, pathContainsSymlink, resolvePathWithBase, toPosixPath } from '../utils/path-utils.js'
 import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
@@ -166,8 +167,13 @@ async function persistGraphFilterDecisions(
   return { savedIncludes: normalized.include, savedExcludes: normalized.exclude }
 }
 
-async function collectFilterDecisionWarnings(worktree: string, config: GraphConfig, ctx: { ask?: unknown }): Promise<string[]> {
-  const missing = collectMissingGraphFilterSuggestions(worktree, config)
+async function collectFilterDecisionWarnings(
+  worktree: string,
+  config: GraphConfig,
+  ctx: { ask?: unknown },
+  filterCandidateSummary: GraphFilterCandidateSummary,
+): Promise<string[]> {
+  const missing = collectGraphFilterSuggestionsFromSummary(filterCandidateSummary, config)
   if (missing.length === 0) {
     return []
   }
@@ -181,8 +187,11 @@ async function collectFilterDecisionWarnings(worktree: string, config: GraphConf
         metadata: {
           action: '检测到实际存在且明显应纳入 graph.include 或 graph.exclude 的候选；请明确选择 include、exclude 或跳过后通过 filterDecisions 再次调用',
           suggestions: missing.map((suggestion) => ({
-            existingPath: suggestion.path,
-            suggestedRule: suggestion.rule,
+            group: suggestion.group,
+            value: suggestion.value,
+            count: suggestion.count,
+            examples: suggestion.examples,
+            suggestedRule: suggestion.suggestedRule,
             existingRulesCovered: suggestion.covered,
             uncoveredReason: suggestion.uncoveredReason,
             reason: suggestion.reason,
@@ -194,7 +203,7 @@ async function collectFilterDecisionWarnings(worktree: string, config: GraphConf
     }
   }
 
-  return missing.map((suggestion) => `过滤候选未持久化：${suggestion.path} 建议规则 ${suggestion.rule}，原因：${suggestion.reason}`)
+  return missing.map((suggestion) => `过滤候选未持久化：${suggestion.value} 建议规则 ${suggestion.suggestedRule}，原因：${suggestion.reason}`)
 }
 
 async function confirmStaleLockRecovery(worktree: string, ctx: { ask?: unknown }): Promise<boolean> {
@@ -271,8 +280,6 @@ export const aeGraphBuildTool = tool({
       if (savedDecisions.savedIncludes.length > 0 || savedDecisions.savedExcludes.length > 0) {
         config = mergeGraphRules(loadGraphConfig(worktree), args)
       }
-      const filterDecisionWarnings = await collectFilterDecisionWarnings(worktree, config, ctx)
-
       try {
         storage = createGraphStorage(worktree)
       } catch (error) {
@@ -303,6 +310,7 @@ export const aeGraphBuildTool = tool({
         config,
         requestedMode === 'full' ? undefined : rawDiff.files,
       )
+      const filterDecisionWarnings = await collectFilterDecisionWarnings(worktree, config, ctx, filterCandidateSummary)
       const active = storage.getActiveVersion(worktree, scopeRoot)
       const rulesChanged = graphRulesChanged(active, config)
       const effectiveMode = requestedMode === 'full' || diff.warning || diff.hasStructuralChange || !active || rulesChanged ? 'full' : 'incremental'

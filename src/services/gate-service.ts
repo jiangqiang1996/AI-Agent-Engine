@@ -236,6 +236,17 @@ function isRuntimeEvidencePath(filePath: string): boolean {
     || normalized.startsWith('ae/static-server/')
 }
 
+/** 将 git status 摘要归一化为门禁指纹使用的稳定格式。 */
+export function normalizeStatusSummaryForEvidence(statusSummary: string): string {
+  return statusSummary
+    .split('\n')
+    .filter((line) => !line.startsWith('## '))
+    .filter((line) => line.trim())
+    .filter((line) => !isRuntimeEvidencePath(line.slice(3).trim()))
+    .map((line) => line.trim())
+    .join('\n')
+}
+
 const GIT_EXEC_TIMEOUT = 30_000
 const GIT_STATUS_TIMEOUT = 5_000
 const GIT_TIMEOUT_RETRIES = 1
@@ -309,13 +320,7 @@ export function collectCurrentWorktreeFingerprint(repoRoot: string): WorktreeFin
     const status = runGitStatus(repoRoot)
     const statusOutput = status.output
     const branch = parseBranchFromStatus(statusOutput) ?? runGit(repoRoot, ['rev-parse', '--abbrev-ref', 'HEAD'])
-    const statusSummary = statusOutput
-      .split('\n')
-      .filter((line) => !line.startsWith('## '))
-      .filter((line) => line.trim())
-      .filter((line) => !isRuntimeEvidencePath(line.slice(3).trim()))
-      .map((line) => line.trim())
-      .join('\n')
+    const statusSummary = normalizeStatusSummaryForEvidence(statusOutput)
 
     return {
       worktreePath,
@@ -1071,7 +1076,7 @@ function parseStructuredReviewOutput(output: string): {
 
   try {
     const parsed = JSON.parse(jsonText) as Record<string, unknown>
-    const rawStatus = parsed.reviewStatus ?? parsed.status ?? parsed.conclusion
+    const rawStatus = parsed.reviewStatus ?? parsed.review_status ?? parsed.status ?? parsed.conclusion
     const normalizedStatus = typeof rawStatus === 'string' ? rawStatus.toLowerCase() : undefined
     if (normalizedStatus !== 'passed' && normalizedStatus !== 'pass'
       && normalizedStatus !== 'failed' && normalizedStatus !== 'fail') {
@@ -1082,8 +1087,8 @@ function parseStructuredReviewOutput(output: string): {
       status: normalizedStatus === 'passed' || normalizedStatus === 'pass' ? 'passed' : 'failed',
       worktree: typeof parsed.worktree === 'string' ? normalizePathForEvidence(parsed.worktree) : undefined,
       branch: typeof parsed.branch === 'string' ? parsed.branch : undefined,
-      head: typeof parsed.head === 'string' ? parsed.head : undefined,
-      statusSummary: typeof parsed.statusSummary === 'string' ? parsed.statusSummary : undefined,
+      head: typeof parsed.head === 'string' ? parsed.head : typeof parsed.HEAD === 'string' ? parsed.HEAD : undefined,
+      statusSummary: typeof parsed.statusSummary === 'string' ? normalizeStatusSummaryForEvidence(parsed.statusSummary) : undefined,
       hasHighOrMediumFinding: hasBlockingFinding(parsed.findings),
     }
   } catch {

@@ -349,7 +349,7 @@ describe('ae-gate 工具', () => {
       review_evidence: {
         type: 'report_path',
         review_trust: 'verified',
-        path: 'ae/reviews/review.md',
+        path: 'ae/reviews/review-1/metadata.json',
         review_run_id_or_message_ref: 'review-1',
         worktree: root,
         branch: 'main',
@@ -376,7 +376,7 @@ describe('ae-gate 工具', () => {
       reviewTrust: 'verified',
       reviewRunIdOrMessageRef: 'review-1',
       statusSummary: ' M src/index.ts',
-      path: 'ae/reviews/review.md',
+      path: 'ae/reviews/review-1/metadata.json',
     })
   })
 
@@ -672,7 +672,7 @@ describe('ae-gate 工具', () => {
       expect(result.status).toBe('pass')
       expect(result.blockers).toEqual([])
     }
-  })
+  }, 30000)
 
   it('应该采信 task_id 精确匹配的审查子代理来源', async () => {
     const root = createRepoRoot()

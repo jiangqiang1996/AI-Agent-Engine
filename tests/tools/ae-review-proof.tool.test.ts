@@ -85,6 +85,88 @@ describe('ae-review-proof 工具', () => {
     expect(output).toBe(sourceReviewOutput)
   })
 
+  it('应该接受审查子代理常见的 review_status 和 HEAD 字段', async () => {
+    const root = createRepoRoot()
+    const fingerprint = getGitFingerprint(root)
+    const sourceReviewOutput = JSON.stringify({
+      review_status: 'passed',
+      worktree: process.platform === 'win32' ? root.replaceAll('\\', '/').toLowerCase() : root,
+      branch: fingerprint.branch,
+      HEAD: fingerprint.head,
+      statusSummary: fingerprint.statusSummary,
+      findings: [],
+      summary: '审查通过',
+    }, null, 2)
+
+    const result = await aeReviewProofTool.execute({
+      review_run_id: 'review-subagent-style',
+      review_status: 'passed',
+      summary: '审查通过',
+      findings: [],
+      source_review_output: sourceReviewOutput,
+    }, createToolContext(root))
+
+    expect(typeof result).toBe('object')
+    const metadataPath = join(root, 'ae', 'reviews', 'review-subagent-style', 'metadata.json')
+    expect(existsSync(metadataPath)).toBe(true)
+  })
+
+  it('应该接受带 porcelain 前导空格的 statusSummary', async () => {
+    const root = createRepoRoot()
+    writeFileSync(join(root, 'README.md'), '# changed\n', 'utf8')
+    const fingerprint = getGitFingerprint(root)
+    const sourceReviewOutput = JSON.stringify({
+      reviewStatus: 'passed',
+      worktree: process.platform === 'win32' ? root.replaceAll('\\', '/').toLowerCase() : root,
+      branch: fingerprint.branch,
+      head: fingerprint.head,
+      statusSummary: ' M README.md',
+      findings: [],
+      summary: '审查通过',
+    }, null, 2)
+
+    const result = await aeReviewProofTool.execute({
+      review_run_id: 'review-spaced-status',
+      review_status: 'passed',
+      summary: '审查通过',
+      findings: [],
+      source_review_output: sourceReviewOutput,
+    }, createToolContext(root))
+
+    expect(typeof result).toBe('object')
+    const metadataPath = join(root, 'ae', 'reviews', 'review-spaced-status', 'metadata.json')
+    expect(existsSync(metadataPath)).toBe(true)
+  })
+
+  it('应该允许 failed 结论携带阻断级发现并写入 metadata', async () => {
+    const root = createRepoRoot()
+    const fingerprint = getGitFingerprint(root)
+    const sourceReviewOutput = JSON.stringify({
+      reviewStatus: 'failed',
+      worktree: process.platform === 'win32' ? root.replaceAll('\\', '/').toLowerCase() : root,
+      branch: fingerprint.branch,
+      head: fingerprint.head,
+      statusSummary: fingerprint.statusSummary,
+      findings: [{ severity: 'high', title: '高风险问题' }],
+      summary: '审查失败',
+    }, null, 2)
+
+    const result = await aeReviewProofTool.execute({
+      review_run_id: 'review-failed',
+      review_status: 'failed',
+      summary: '审查失败',
+      findings: [{ severity: 'high', title: '高风险问题' }],
+      source_review_output: sourceReviewOutput,
+    }, createToolContext(root))
+
+    expect(typeof result).toBe('object')
+    const metadataPath = join(root, 'ae', 'reviews', 'review-failed', 'metadata.json')
+    const metadata = JSON.parse(readFileSync(metadataPath, 'utf8')) as Record<string, unknown>
+
+    expect(metadata.reviewStatus).toBe('failed')
+    expect(metadata.reviewOutputHash).toBe(hashReviewOutput(sourceReviewOutput))
+  })
+
   it('应该拒绝包含路径分隔符的运行 ID', async () => {
     const root = createRepoRoot()
 

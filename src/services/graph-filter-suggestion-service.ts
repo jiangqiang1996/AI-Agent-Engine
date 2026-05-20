@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, readdirSync, realpathSync } from 'node:fs'
+import { existsSync, lstatSync, readdirSync, realpathSync, type Dirent } from 'node:fs'
 import { extname, join, relative, resolve } from 'node:path'
 
 import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
@@ -111,6 +111,19 @@ export interface GraphFilterCandidateSummary {
   pathSegmentCandidates: GraphCandidateStat[]
 }
 
+/** 本次构建范围内未被配置覆盖的图谱过滤建议。 */
+export interface GraphFilterSummarySuggestion {
+  group: 'extension' | 'path-segment'
+  value: string
+  count: number
+  examples: string[]
+  suggestedRule: string
+  reason: string
+  covered: boolean
+  coveredBy?: string
+  uncoveredReason?: string
+}
+
 interface MutableStat {
   count: number
   examples: string[]
@@ -185,6 +198,45 @@ export function collectMissingGraphFilterSuggestions(worktree: string, config: G
     .map((candidate) => buildFilterSuggestion(candidate, config, false))
 
   return dedupeFilterSuggestions([...directorySuggestions, ...fileSuggestions].filter((suggestion) => !suggestion.covered))
+}
+
+/**
+ * 从本次 target/scopeRoot 的真实候选摘要生成过滤建议。
+ * 只返回当前 graph.include / graph.exclude 尚未覆盖的扩展名和路径段候选。
+ */
+export function collectGraphFilterSuggestionsFromSummary(
+  summary: GraphFilterCandidateSummary,
+  config: GraphConfig,
+): GraphFilterSummarySuggestion[] {
+  const extensionSuggestions = summary.extensionCandidates.map((candidate) =>
+    buildSummarySuggestion('extension', candidate, config, false)
+  )
+  const pathSegmentSuggestions = summary.pathSegmentCandidates.map((candidate) =>
+    buildSummarySuggestion('path-segment', candidate, config, true)
+  )
+
+  return [...extensionSuggestions, ...pathSegmentSuggestions].filter((suggestion) => !suggestion.covered)
+}
+
+function buildSummarySuggestion(
+  group: GraphFilterSummarySuggestion['group'],
+  candidate: GraphCandidateStat,
+  config: GraphConfig,
+  isDirectory: boolean,
+): GraphFilterSummarySuggestion {
+  const ruleCoverage = matchGraphPath(candidate.suggestedRule, config, isDirectory)
+
+  return {
+    group,
+    value: candidate.value,
+    count: candidate.count,
+    examples: candidate.examples,
+    suggestedRule: candidate.suggestedRule,
+    reason: candidate.reason,
+    covered: ruleCoverage.covered,
+    coveredBy: ruleCoverage.matchedInclude ?? ruleCoverage.matchedExclude,
+    uncoveredReason: '现有 graph.include / graph.exclude 规则均未覆盖该真实候选或建议规则',
+  }
 }
 
 function buildFilterSuggestion(candidate: FilterSuggestionCandidate, config: GraphConfig, isDirectory: boolean): GraphFilterSuggestion {
@@ -280,7 +332,12 @@ export function collectGraphFilterCandidateSummary(
   let hardExcludedFileCount = 0
 
   function visit(dir: string): void {
-    const entries = readdirSync(dir, { withFileTypes: true })
+    let entries: Dirent[]
+    try {
+      entries = readdirSync(dir, { withFileTypes: true })
+    } catch {
+      return
+    }
     for (const entry of entries) {
       const absolutePath = join(dir, entry.name)
       if (entry.isSymbolicLink()) {

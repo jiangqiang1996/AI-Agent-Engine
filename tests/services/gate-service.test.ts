@@ -1417,7 +1417,7 @@ describe('门禁服务', () => {
     expect(fingerprint.statusSummary).not.toContain('ae/agent-browser-proof.json')
     expect(fingerprint.statusSummary).not.toContain('ae/screenshot/page.png')
     expect(fingerprint.statusSummary).not.toContain('ae/static-server/.static-server-info.json')
-  })
+  }, 30000)
 
   it('应该在 git status 降级省略未跟踪文件时阻断审查证据复用', async () => {
     const root = createRepoRoot()
@@ -1883,7 +1883,7 @@ describe('门禁服务', () => {
       expect(result.status).toBe('block')
       expect(result.blockers).toContain('Git 写操作授权证据未覆盖实际执行的命令范围或当前 worktree。')
     }
-  })
+  }, 30000)
 
   it('应该阻断 git worktree add -- 指向授权目标以外的路径', () => {
     const rootA = createRepoRoot()

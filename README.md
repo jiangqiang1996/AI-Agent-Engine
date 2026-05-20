@@ -217,9 +217,9 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 
 ## 文档入口
 
-| 入口 | 内容 |
-| --- | --- |
-| [docs/usage-guide.md](docs/usage-guide.md) | 用户手册、经典用法、能力说明、代理、工具、产物路径 |
+| 入口                                               | 内容                         |
+|--------------------------------------------------|----------------------------|
+| [docs/usage-guide.md](docs/usage-guide.md)       | 用户手册、经典用法、能力说明、代理、工具、产物路径  |
 | [docs/builtin-config.md](docs/builtin-config.md) | MCP、`ae.jsonc`、模型场景路由和覆盖规则 |
-| `.opencode/INSTALL.md` | 安装、更新、卸载代理执行说明 |
-| `/ae-help` | 当前运行时权威帮助 |
+| [.opencode/INSTALL.md](.opencode/INSTALL.md)     | 安装、更新、卸载代理执行说明             |
+| `/ae-help`                                       | 当前运行时权威帮助                  |
