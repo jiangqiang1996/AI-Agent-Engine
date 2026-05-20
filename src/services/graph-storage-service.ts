@@ -61,6 +61,7 @@ export interface ActiveGraphSummary {
   scopeRoot: string
   chunkIds: string[]
   fileCount: number
+  nodeCount: number
   relationCount: number
 }
 
@@ -114,6 +115,7 @@ interface GraphStorageDiagnosticOptions {
 interface GraphChunkRecord {
   id: string
   fileCount: number
+  nodeCount: number
   relationCount: number
   files: GraphFileNode[]
   relations: GraphRelation[]
@@ -226,6 +228,10 @@ function isFileLevelRelation(relation: GraphRelation): boolean {
   return getRelationType(relation) !== 'contains'
 }
 
+function countFileLevelNodes(files: GraphFileNode[]): number {
+  return files.filter((file) => getNodeKind(file) !== 'symbol').length
+}
+
 function isGraphStore(value: unknown): value is GraphStore {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return false
@@ -238,9 +244,10 @@ function isChunkRecord(value: unknown): value is GraphChunkRecord {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
     return false
   }
-  const candidate = value as { id?: unknown; fileCount?: unknown; relationCount?: unknown; files?: unknown; relations?: unknown }
+  const candidate = value as { id?: unknown; fileCount?: unknown; nodeCount?: unknown; relationCount?: unknown; files?: unknown; relations?: unknown }
   return typeof candidate.id === 'string'
     && typeof candidate.fileCount === 'number'
+    && (candidate.nodeCount === undefined || typeof candidate.nodeCount === 'number')
     && typeof candidate.relationCount === 'number'
     && Array.isArray(candidate.files)
     && Array.isArray(candidate.relations)
@@ -494,7 +501,7 @@ export class GraphStorage {
     const files = version.files ?? this.loadVersionFiles(version)
     const relations = version.relations ?? this.loadVersionRelations(version)
     version.chunkIds = this.writeChunks(version.id, files, relations)
-    version.fileCount = files.length
+    version.fileCount = countFileLevelNodes(files)
     version.relationCount = relations.length
     version.files = undefined
     version.relations = undefined
@@ -541,6 +548,7 @@ export class GraphStorage {
       scopeRoot: version.scopeRoot,
       chunkIds: [...(version.chunkIds ?? [])],
       fileCount: version.fileCount,
+      nodeCount: this.readScopeSummary(workspaceRoot, scopeRoot)?.nodeCount ?? this.loadVersionFiles(version).length,
       relationCount: version.relationCount,
     }
   }
@@ -555,7 +563,8 @@ export class GraphStorage {
     }
     const chunkIds = version.chunkIds ?? []
     if (chunkIds.length === 0) {
-      return [{ id: sanitizeChunkId(version.id, 0), fileCount: version.fileCount, relationCount: version.relationCount, files: version.files ?? this.loadVersionFiles(version), relations: version.relations ?? this.loadVersionRelations(version) }]
+      const files = version.files ?? this.loadVersionFiles(version)
+      return [{ id: sanitizeChunkId(version.id, 0), fileCount: countFileLevelNodes(files), nodeCount: files.length, relationCount: version.relationCount, files, relations: version.relations ?? this.loadVersionRelations(version) }]
     }
     return chunkIds.flatMap((chunkId) => {
       const chunkPath = join(versionChunkDir(this.storePath, version.id), `${chunkId}.json`)
@@ -577,7 +586,7 @@ export class GraphStorage {
     }
     const chunks = (version.chunkIds ?? [])
       .map((chunkId) => this.readChunk(version.id, chunkId))
-      .filter((chunk) => chunk.fileCount > 0)
+      .filter((chunk) => (chunk.nodeCount ?? chunk.files.length) > 0)
     return { chunks, chunkIds: chunks.map((chunk) => chunk.id) }
   }
 
@@ -626,6 +635,7 @@ export class GraphStorage {
     }
     if (options.verifyChunks !== false) {
       let fileCount = 0
+      let nodeCount = 0
       let relationCount = 0
       for (const chunkId of manifest.chunks) {
         const chunkPath = join(versionChunkDir(this.storePath, version.id), `${chunkId}.json`)
@@ -638,12 +648,13 @@ export class GraphStorage {
             return this.createDiagnostic('invalid_chunk', scopeRoot, availableScopes, '请重新执行 ae-graph-build 重建异常分片。', { problemPath: chunkPath, problemChunkId: chunkId })
           }
           fileCount += parsed.fileCount
+          nodeCount += parsed.nodeCount ?? parsed.files.length
           relationCount += parsed.relationCount
         } catch {
           return this.createDiagnostic('invalid_chunk', scopeRoot, availableScopes, '请重新执行 ae-graph-build 重建异常分片。', { problemPath: chunkPath, problemChunkId: chunkId })
         }
       }
-      if (fileCount !== manifest.fileCount || relationCount !== manifest.relationCount) {
+      if (fileCount !== manifest.fileCount || nodeCount !== manifest.nodeCount || relationCount !== manifest.relationCount) {
         return this.createDiagnostic('count_mismatch', scopeRoot, availableScopes, 'manifest 与分片计数不一致，请重新执行 ae-graph-build。', { problemPath: manifestPath })
       }
     }
@@ -803,12 +814,15 @@ export class GraphStorage {
     for (let index = 0; index < chunkCount; index += 1) {
       const chunkId = sanitizeChunkId(versionId, index)
       const chunkPath = versionChunkPath(this.storePath, versionId, index)
+      const fileChunk = fileChunks[index] ?? []
+      const relationChunk = relationChunks[index] ?? []
       const chunk: GraphChunkRecord = {
         id: chunkId,
-        fileCount: fileChunks[index]?.length ?? 0,
-        relationCount: relationChunks[index]?.length ?? 0,
-        files: cloneFiles(fileChunks[index] ?? []),
-        relations: cloneRelations(relationChunks[index] ?? []),
+        fileCount: countFileLevelNodes(fileChunk),
+        nodeCount: fileChunk.length,
+        relationCount: relationChunk.length,
+        files: cloneFiles(fileChunk),
+        relations: cloneRelations(relationChunk),
       }
       writeJsonAtomic(chunkPath, chunk)
       chunkIds.push(chunkId)
@@ -918,7 +932,7 @@ export class GraphStorage {
       versionId,
       scopeRoot: version.scopeRoot,
       createdAt: version.createdAt,
-      fileCount: files.length,
+      fileCount: fileLevelNodes.length,
       nodeCount: files.length,
       relationCount: relations.length,
       chunks: chunkIds,

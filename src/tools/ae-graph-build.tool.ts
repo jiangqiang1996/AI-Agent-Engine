@@ -358,6 +358,7 @@ export const aeGraphBuildTool = tool({
       storage.insertRelations(versionId, parsed.relations)
       storage.activateVersion(versionId)
       copyGraphPreview(worktree)
+      const activeSummary = storage.getActiveVersionSummary(worktree, scopeRoot)
 
       return JSON.stringify({
         mode: effectiveMode,
@@ -365,15 +366,17 @@ export const aeGraphBuildTool = tool({
         depth: args.depth ?? 'shallow',
         scopeRoot,
         versionId,
-        files: parsed.files.length,
-        nodes: parsed.files.length,
+        parsedNodes: parsed.files.length,
+        activeFiles: activeSummary?.fileCount ?? parsed.files.length,
+        activeNodes: activeSummary?.nodeCount ?? parsed.files.length,
+        activeRelations: activeSummary?.relationCount ?? parsed.relations.length,
         relations: parsed.relations.length,
         parserStats: [],
         failedFiles: parsed.failedFiles.length,
         failedFileDetails: parsed.failedFiles,
         skippedFiles: parsed.skippedFiles.length,
         skippedFileDetails: parsed.skippedFiles,
-        chunkSummary: storage.getActiveVersionSummary(worktree, scopeRoot),
+        chunkSummary: activeSummary,
         includeRules: config.include,
         excludeRules: config.exclude,
         warnings: [diff.warning, savedDecisions.warning, ...parsed.warnings, ...filterDecisionWarnings].filter(Boolean),

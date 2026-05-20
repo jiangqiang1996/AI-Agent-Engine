@@ -99,11 +99,20 @@ describe('ae-graph-build 工具', () => {
     write(root, 'src/b.ts', 'export const b = 1')
 
     const result = await aeGraphBuildTool.execute({ mode: 'full' }, createMockContext(root))
-    const parsed = JSON.parse(result as string) as { mode: string; files: number; nodes: number; relations: number; parserStats: unknown[]; preview: string }
+    const parsed = JSON.parse(result as string) as {
+      mode: string
+      parsedNodes: number
+      activeFiles: number
+      activeNodes: number
+      relations: number
+      parserStats: unknown[]
+      preview: string
+    }
 
     expect(parsed.mode).toBe('full')
-    expect(parsed.files).toBeGreaterThan(0)
-    expect(parsed.nodes).toBe(parsed.files)
+    expect(parsed.parsedNodes).toBeGreaterThan(0)
+    expect(parsed.activeFiles).toBeGreaterThan(0)
+    expect(parsed.activeNodes).toBe(parsed.parsedNodes)
     expect(parsed.relations).toBeGreaterThan(0)
     expect(parsed.parserStats).toEqual([])
     expect(parsed.preview).toBe('ae/graphs/index.html')
@@ -144,10 +153,10 @@ describe('ae-graph-build 工具', () => {
     execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-m', 'test'], { cwd: root, stdio: 'ignore' })
 
     const result = await aeGraphBuildTool.execute({ mode: 'auto' }, createMockContext(root))
-    const parsed = JSON.parse(result as string) as { mode: string; files: number }
+    const parsed = JSON.parse(result as string) as { mode: string; activeNodes: number }
 
     expect(parsed.mode).toBe('full')
-    expect(parsed.files).toBeGreaterThan(0)
+    expect(parsed.activeNodes).toBeGreaterThan(0)
   })
 
   it('应该在创建图谱产物时不请求文件授权', async () => {
@@ -253,11 +262,11 @@ describe('ae-graph-build 工具', () => {
     write(root, 'workspace/src/c.ts', 'export const c = 1')
 
     const result = await aeGraphBuildTool.execute({ target: './workspace', mode: 'full', exclude: ['workspace/src/c.ts'] }, createMockContext(root))
-    const parsed = JSON.parse(result as string) as { files: number; relations: number }
+    const parsed = JSON.parse(result as string) as { activeNodes: number; relations: number }
     const queryResult = await aeGraphQueryTool.execute({ mode: 'deps', scope: 'workspace', file: 'workspace/src/a.ts' }, createMockContext(root))
     const query = JSON.parse(queryResult as string) as { summary: { chunkIds: string[] }; result: { dependencies: Array<{ targetPath: string }> } }
 
-    expect(parsed.files).toBeGreaterThan(0)
+    expect(parsed.activeNodes).toBeGreaterThan(0)
     expect(query.result.dependencies.some((relation) => relation.targetPath === 'workspace/src/c.ts')).toBe(false)
     expect(query.summary.chunkIds.length).toBeGreaterThan(0)
   })
@@ -271,14 +280,14 @@ describe('ae-graph-build 工具', () => {
     const parsed = JSON.parse(result as string) as {
       savedExcludes: string[]
       excludeRules: string[]
-      files: number
+      activeNodes: number
       filterCandidateSummary: { rawFileCount: number; candidateFileCount: number }
     }
 
     expect(parsed.savedExcludes).toEqual([])
     expect(parsed.excludeRules).not.toContain('**/node_modules')
     expect(existsSync(join(root, '.opencode', 'ae.jsonc'))).toBe(false)
-    expect(parsed.files).toBeGreaterThan(0)
+    expect(parsed.activeNodes).toBeGreaterThan(0)
     expect(parsed.filterCandidateSummary.rawFileCount).toBe(2)
     expect(parsed.filterCandidateSummary.candidateFileCount).toBe(2)
   })
@@ -348,7 +357,7 @@ describe('ae-graph-build 工具', () => {
       mode: 'full',
       filterDecisions: { exclude: ['**/node_modules'] },
     }, createAllowExcludeContext(root))
-    const parsed = JSON.parse(result as string) as { savedExcludes: string[]; excludeRules: string[]; files: number }
+    const parsed = JSON.parse(result as string) as { savedExcludes: string[]; excludeRules: string[]; activeNodes: number }
     const queryResult = await aeGraphQueryTool.execute({ mode: 'filter' }, createMockContext(root))
     const query = JSON.parse(queryResult as string) as { result: { files: Array<{ relativePath: string }> } }
     const config = readFileSync(join(root, '.opencode', 'ae.jsonc'), 'utf8')
@@ -356,7 +365,7 @@ describe('ae-graph-build 工具', () => {
     expect(parsed.savedExcludes).toContain('**/node_modules')
     expect(parsed.excludeRules).toContain('**/node_modules')
     expect(config).toContain('**/node_modules')
-    expect(parsed.files).toBeGreaterThan(0)
+    expect(parsed.activeNodes).toBeGreaterThan(0)
     expect(query.result.files.some((file) => file.relativePath === 'node_modules/pkg/index.js')).toBe(false)
     expect(query.result.files.some((file) => file.relativePath === 'src/a.ts')).toBe(true)
   })
@@ -388,7 +397,7 @@ describe('ae-graph-build 工具', () => {
       mode: 'full',
       filterDecisions: { include: ['dist/keep.ts'] },
     }, createAllowExcludeContext(root))
-    const parsed = JSON.parse(result as string) as { savedIncludes: string[]; includeRules: string[]; excludeRules: string[]; files: number }
+    const parsed = JSON.parse(result as string) as { savedIncludes: string[]; includeRules: string[]; excludeRules: string[]; activeNodes: number }
     const queryResult = await aeGraphQueryTool.execute({ mode: 'filter' }, createMockContext(root))
     const query = JSON.parse(queryResult as string) as { result: { files: Array<{ relativePath: string }> } }
     const config = readFileSync(join(root, '.opencode', 'ae.jsonc'), 'utf8')
@@ -397,7 +406,7 @@ describe('ae-graph-build 工具', () => {
     expect(parsed.includeRules).toContain('dist/keep.ts')
     expect(parsed.excludeRules).toContain('**/dist')
     expect(config).toContain('dist/keep.ts')
-    expect(parsed.files).toBeGreaterThan(0)
+    expect(parsed.activeNodes).toBeGreaterThan(0)
     expect(query.result.files.some((file) => file.relativePath === 'dist/keep.ts')).toBe(true)
     expect(query.result.files.some((file) => file.relativePath === 'dist/drop.ts')).toBe(false)
   })
@@ -463,11 +472,11 @@ describe('ae-graph-build 工具', () => {
     execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-m', 'test'], { cwd: root, stdio: 'ignore' })
 
     const result = await aeGraphBuildTool.execute({ mode: 'full' }, createMockContext(root))
-    const parsed = JSON.parse(result as string) as { files: number }
+    const parsed = JSON.parse(result as string) as { activeNodes: number }
     const queryResult = await aeGraphQueryTool.execute({ mode: 'stats' }, createMockContext(root))
     const query = JSON.parse(queryResult as string) as { summary: { chunkIds: string[] } }
 
-    expect(parsed.files).toBeGreaterThan(0)
+    expect(parsed.activeNodes).toBeGreaterThan(0)
     expect(existsSync(join(root, 'ae', 'graphs', 'version-1'))).toBe(true)
     expect(query.summary.chunkIds.length).toBeGreaterThan(0)
   }, 30000)
@@ -526,6 +535,9 @@ describe('ae-graph-build 工具', () => {
     const query = JSON.parse(queryResult as string) as { result: { impacted: string[] } }
 
     expect(parsed.mode).toBe('incremental')
+    expect((parsed as { activeFiles?: number; activeNodes?: number; activeRelations?: number }).activeFiles).toBeGreaterThanOrEqual(2)
+    expect((parsed as { activeNodes?: number }).activeNodes).toBeGreaterThanOrEqual(2)
+    expect((parsed as { activeRelations?: number }).activeRelations).toBeGreaterThanOrEqual(1)
     expect(query.result.impacted).toContain('src/a.ts')
   })
 

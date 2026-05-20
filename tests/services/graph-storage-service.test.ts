@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -224,6 +224,51 @@ describe('graph-storage-service', () => {
     expect(summary?.isolatedCount).toBe(1)
   })
 
+  it('active summary 的 fileCount 应该与 scope summary 的文件级节点计数一致', () => {
+    const root = createTempRoot()
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    storage.insertFiles(versionId, [
+      { id: 'file:src/a.ts', kind: 'file', relativePath: 'src/a.ts', fileType: 'source' },
+      { id: 'symbol:src/a.ts#function:run:1', kind: 'symbol', relativePath: 'src/a.ts', fileType: 'source', parentId: 'file:src/a.ts' },
+    ])
+    storage.activateVersion(versionId)
+    const activeSummary = storage.getActiveVersionSummary(root, '.')
+    const scopeSummary = storage.readScopeSummary(root, '.')
+    storage.closeDatabase()
+
+    expect(activeSummary?.fileCount).toBe(1)
+    expect(activeSummary?.nodeCount).toBe(2)
+    expect(scopeSummary?.fileCount).toBe(1)
+    expect(scopeSummary?.nodeCount).toBe(2)
+  })
+
+  it('manifest 和 chunk 的 fileCount 应该使用文件级节点计数', () => {
+    const root = createTempRoot()
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    storage.insertFiles(versionId, [
+      { id: 'file:src/a.ts', kind: 'file', relativePath: 'src/a.ts', fileType: 'source' },
+      { id: 'symbol:src/a.ts#function:run:1', kind: 'symbol', relativePath: 'src/a.ts', fileType: 'source', parentId: 'file:src/a.ts' },
+    ])
+    storage.activateVersion(versionId)
+    storage.closeDatabase()
+
+    const manifest = JSON.parse(readFileSync(join(root, 'ae', 'graphs', 'version-1', 'manifest.json'), 'utf8')) as {
+      fileCount: number
+      nodeCount: number
+    }
+    const chunk = JSON.parse(readFileSync(join(root, 'ae', 'graphs', 'version-1', 'chunk-000001-0000.json'), 'utf8')) as {
+      fileCount: number
+      nodeCount: number
+    }
+
+    expect(manifest.fileCount).toBe(1)
+    expect(manifest.nodeCount).toBe(2)
+    expect(chunk.fileCount).toBe(1)
+    expect(chunk.nodeCount).toBe(2)
+  })
+
   it('不应该让同路径 symbol 节点覆盖文件路径索引', () => {
     const root = createTempRoot()
     const storage = createGraphStorage(root)
@@ -245,6 +290,29 @@ describe('graph-storage-service', () => {
     storage.closeDatabase()
 
     expect(active?.files.some((file) => file.id === 'file:src/a.ts' && file.kind === 'file')).toBe(true)
+  })
+
+  it('读取文件分片时不应该丢弃纯 symbol 节点分片', () => {
+    const root = createTempRoot()
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [])
+    storage.insertFiles(versionId, [
+      { id: 'file:src/a.ts', kind: 'file', relativePath: 'src/a.ts', fileType: 'source' },
+      ...Array.from({ length: 260 }, (_, index) => ({
+        id: `symbol:src/a.ts#function:item${index}:1`,
+        kind: 'symbol' as const,
+        relativePath: 'src/a.ts',
+        fileType: 'source' as const,
+        parentId: 'file:src/a.ts',
+      })),
+    ])
+    storage.activateVersion(versionId)
+
+    const { chunks } = storage.loadFileChunks(root, '.')
+    storage.closeDatabase()
+
+    expect(chunks.length).toBeGreaterThan(1)
+    expect(chunks.some((chunk) => chunk.fileCount === 0 && chunk.nodeCount > 0)).toBe(true)
   })
 
   it('应该在 manifest 缺失时返回可恢复诊断', () => {
