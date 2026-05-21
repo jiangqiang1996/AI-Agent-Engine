@@ -8,7 +8,7 @@
 
 输入为 `ae/handoffs/*-worktree-handoff.md`，或绝对/相对路径指向规范 worktree 交接文件时，进入 B worktree 续执行路径。
 
-交接文件是 B worktree 续执行路径的唯一必需输入。只读取交接文件，以及交接文件明确引用且在当前 B worktree 中真实存在的需求/计划/设计产物、图谱目录和 AE 项目配置作为可选上下文；不得因为这些可选产物缺失而把续执行判定为失败。必须以 frontmatter、`## A→B Startup Proof`、`resume_entrypoint`、`## Migrated Artifacts` 和 `## Execution Baseline` 作为结构化真源。
+交接文件是 B worktree 续执行路径的唯一必需输入。只读取交接文件，以及交接文件明确引用且在当前 B worktree 中真实存在的需求/计划/设计产物、图谱目录和 AE 项目配置作为可选上下文；存在性判断必须使用文件系统视角，不得依赖 `git status`、`git ls-files` 或其他会受 `.gitignore` 影响的 Git 视角；不得因为这些可选产物缺失而把续执行判定为失败。必须以 frontmatter、`## A→B Startup Proof`、`resume_entrypoint`、`## Migrated Artifacts` 和 `## Execution Baseline` 作为结构化真源。
 
 不重新审查、深化或转换需求、设计或计划，不触发 `ae:brainstorm`、`ae:plan`、`ae:review domain:document`、`ae:doc-structure` 或 `ae:doc-humanize`。
 

@@ -52,7 +52,7 @@
 - `ae:lfg` 或 `ae:task-loop` 调用 `ae:work` 时，必须固定当前工作区执行，禁止询问 worktree 模式，禁止创建 worktree，禁止把未显式传入的模式补齐或透传为 `auto`；`--no-worktree` 仅作为兼容输入映射到 `current-worktree`，不再作为默认策略中心
 - 普通 Git 写操作：同时记录 `git_operation_args` 和覆盖相同参数数组的 `git_authorization_evidence`
 - A→B 启动证明：授权证据区分 `operation_worktree` 与 `target_worktree`，`target_worktree` 必须是 A 项目根目录同级的 `../worktrees/<name>` 直接子目录，B 中最终 gate 的当前 worktree 必须匹配 `target_worktree`
-- A→B 产物迁移：创建 B 后，A 会话只允许把当前任务已确定执行基线中真实存在的具体需求/计划/设计文件、`ae/graphs/` 和 `.opencode/ae.jsonc` 迁移到 B，并在交接文件中逐一显式引用实际迁移的文件或目录；其中 `.opencode/ae.jsonc` 只能作为已确定的 AE 项目配置上下文迁移并在交接文件中显式记录；禁止按 glob 批量复制未进入执行基线的需求/计划/设计文件；若存在多个候选需求/计划/设计文件，必须先选择唯一基线文件集；未迁移的需求/计划/设计、图谱或 AE 项目配置产物不在交接文件中出现，不得声称已复制；若设计已由计划承载，交接文件必须明确说明；不迁移 gate/review 运行时产物，不修改 B 中代码、测试或其他项目文件
+- A→B 产物迁移：创建 B 后，A 会话只允许把当前任务已确定执行基线中真实存在的具体需求/计划/设计文件、`ae/graphs/` 和 `.opencode/ae.jsonc` 迁移到 B，并在交接文件中逐一显式引用实际迁移的文件或目录；迁移源路径和 B 中目标路径的存在性判断必须使用文件系统视角，即使路径被 `.gitignore` 忽略也必须按真实文件系统存在性迁移，不得用 `git status`、`git ls-files`、Git diff 或图谱结果判断这些文件不存在；其中 `.opencode/ae.jsonc` 只能作为已确定的 AE 项目配置上下文迁移并在交接文件中显式记录；禁止按 glob 批量复制未进入执行基线的需求/计划/设计文件；若存在多个候选需求/计划/设计文件，必须先选择唯一基线文件集；未迁移的需求/计划/设计、图谱或 AE 项目配置产物不在交接文件中出现，不得声称已复制；若设计已由计划承载，交接文件必须明确说明；不迁移 gate/review 运行时产物，不修改 B 中代码、测试或其他项目文件
 - A→B 交接文件：创建 B 后，A 会话不得再写入 A worktree 的任何文件；交接文件必须通过 `ae-worktree-handoff` 工具生成，写入 `ae/handoffs/<timestamp>-worktree-handoff.md`；禁止自行拼接交接 Markdown
 - B 续执行门禁基线：对 B 续执行来说只有交接文件是必需输入；若最终 gate 无 `plan_path`，应传入 `handoff_path`，并把交接文件作为 B worktree 续执行基线；不得写成无需计划。`notes` 只能作为执行基线的声明型补充，不能替代可观察的交接文件证据
 - A→B 最终交付：A 会话的 `worktree_decision: transferred` 只表示执行已转移；若当前可观察 worktree 匹配 A→B 交接文件或启动证明中的目标 B worktree，B 会话最终功能交付使用 `worktree_decision: created` 表示已在独立 worktree 中执行并交付，并覆盖普通当前工作区场景的 `rejected`；`transferred` 和 `cancelled` 不得通过最终功能交付 gate
