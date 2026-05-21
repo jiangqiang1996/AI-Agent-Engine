@@ -115,6 +115,7 @@ export const TOOL = {
   AE_REVIEW_CONTRACT: 'ae-review-contract',
   AE_HANDOFF: 'ae-handoff',
   AE_WORKTREE_HANDOFF: 'ae-worktree-handoff',
+  AE_CREATE_SESSION: 'ae-create-session',
   AE_PROMPT_OPTIMIZE: 'ae-prompt-optimize',
   AE_HELP: 'ae-help',
   AE_GATE: 'ae-gate',

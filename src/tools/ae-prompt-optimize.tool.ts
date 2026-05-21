@@ -4,7 +4,6 @@ import { Effect } from 'effect'
 
 import { getGlobalClient } from '../services/client-holder.js'
 import { executePromptSubmit } from '../services/prompt-optimize.service.js'
-import { ensureBrowserEnvironmentGate } from '../services/browser-environment-gate.js'
 
 export const aePromptOptimizeTool: ToolDefinition = tool({
   description: [
@@ -46,12 +45,10 @@ export const aePromptOptimizeTool: ToolDefinition = tool({
       ].join('\n')
     }
 
-    const safePrompt = ensureBrowserEnvironmentGate(args.optimized_prompt)
-
     context.metadata({ title: '正在创建新会话...' })
 
     return Effect.runPromise(
-      executePromptSubmit(client, safePrompt, args.session_title).pipe(
+      executePromptSubmit(client, args.optimized_prompt, args.session_title).pipe(
         Effect.map((result) => {
           context.metadata({ title: '优化提示词已提交' })
 
@@ -66,11 +63,17 @@ export const aePromptOptimizeTool: ToolDefinition = tool({
         }),
         Effect.catch((error) => {
           const message = error instanceof Error ? error.message : String(error)
+          const recoverablePrompt = typeof error === 'object'
+            && error !== null
+            && 'recoverablePrompt' in error
+            && typeof error.recoverablePrompt === 'string'
+            ? error.recoverablePrompt
+            : args.optimized_prompt
           return Effect.succeed([
             `❌ 提交失败（${error instanceof Error ? error.name : '未知错误'}）：${message}`,
             '',
             '已确认的提示词原文：',
-            args.optimized_prompt,
+            recoverablePrompt,
             '',
             '请检查错误原因后重试，或手动复制提示词到新会话。',
           ].join('\n'))

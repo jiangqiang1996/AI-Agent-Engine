@@ -66,6 +66,26 @@ describe('ae-prompt-optimize 工具', () => {
     expect(result).toContain('提示词已提交到新会话')
     expect(result).toContain('/sessions/new-session')
     expect(result).toContain('已自动切换到新会话窗口')
+    expect(mockExecutePromptSubmit).toHaveBeenCalledWith(mockClient, '提示词', undefined)
+  })
+
+  it('浏览器门禁由通用服务处理，工具层不提前改写提示词', async () => {
+    const mockClient = { session: {} } as never
+    const prompt = '使用 agent-browser open http://localhost:3000'
+    mockGetGlobalClient.mockReturnValue(mockClient)
+    mockExecutePromptSubmit.mockReturnValue(
+      Effect.succeed({
+        success: true,
+        sessionId: 'new-session',
+        sessionUrl: '/sessions/new-session',
+        navigated: true,
+        optimizedPrompt: prompt,
+      }),
+    )
+
+    await callTool({ optimized_prompt: prompt })
+
+    expect(mockExecutePromptSubmit).toHaveBeenCalledWith(mockClient, prompt, undefined)
   })
 
   it('导航失败时显示降级提示', async () => {
@@ -98,5 +118,19 @@ describe('ae-prompt-optimize 工具', () => {
 
     expect(result).toContain('提交失败')
     expect(result).toContain('我的提示词')
+  })
+
+  it('浏览器提示词提交失败时返回带门禁的可恢复提示词', async () => {
+    const mockClient = { session: {} } as never
+    mockGetGlobalClient.mockReturnValue(mockClient)
+    const error = Object.assign(new Error('发送失败'), {
+      name: 'PromptSessionCreateError',
+      recoverablePrompt: '必须先调用 ae-agent-browser-proof action=check\n\n使用 agent-browser open http://localhost:3000',
+    })
+    mockExecutePromptSubmit.mockImplementation(() => Effect.fail(error))
+
+    const result = await callTool({ optimized_prompt: '使用 agent-browser open http://localhost:3000' })
+
+    expect(result).toContain('ae-agent-browser-proof action=check')
   })
 })
