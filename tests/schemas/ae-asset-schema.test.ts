@@ -97,6 +97,14 @@ describe('ae-asset-schema', () => {
     expect(registry[TOOL.AE_AGENT_BROWSER_PROOF]).toHaveProperty('execute')
   })
 
+  it('工具注册表应该暴露通用新会话创建工具', () => {
+    const registry = createToolRegistry()
+
+    expect(TOOL.AE_CREATE_SESSION).toBe('ae-create-session')
+    expect(registry[TOOL.AE_CREATE_SESSION]).toBeDefined()
+    expect(registry[TOOL.AE_CREATE_SESSION]).toHaveProperty('execute')
+  })
+
   it('工具注册表应该暴露 review 证明工具', () => {
     const registry = createToolRegistry()
 

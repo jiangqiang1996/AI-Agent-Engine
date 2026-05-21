@@ -5,6 +5,7 @@ import { aeRecoveryTool } from './ae-recovery.tool.js'
 import { aeReviewContractTool } from './ae-review-contract.tool.js'
 import { aeHandoffTool } from './ae-handoff.tool.js'
 import { aeWorktreeHandoffTool } from './ae-worktree-handoff.tool.js'
+import { aeCreateSessionTool } from './ae-create-session.tool.js'
 import { aePromptOptimizeTool } from './ae-prompt-optimize.tool.js'
 import { aeHelpTool } from './ae-help.tool.js'
 import { aeGateTool } from './ae-gate.tool.js'
@@ -22,6 +23,7 @@ export function createToolRegistry(): Record<string, ToolDefinition> {
     [TOOL.AE_REVIEW_CONTRACT]: aeReviewContractTool,
     [TOOL.AE_HANDOFF]: aeHandoffTool,
     [TOOL.AE_WORKTREE_HANDOFF]: aeWorktreeHandoffTool,
+    [TOOL.AE_CREATE_SESSION]: aeCreateSessionTool,
     [TOOL.AE_PROMPT_OPTIMIZE]: aePromptOptimizeTool,
     [TOOL.AE_HELP]: aeHelpTool,
     [TOOL.AE_GATE]: aeGateTool,

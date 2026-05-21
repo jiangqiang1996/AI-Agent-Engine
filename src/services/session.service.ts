@@ -115,7 +115,7 @@ interface SessionPromptClient {
   session: {
     prompt: (args: {
       path: { id: string }
-      body: { noReply: boolean; parts: Array<{ type: 'text'; text: string }> }
+      body: { noReply?: boolean; system?: string; parts: Array<{ type: 'text'; text: string }> }
     }) => Promise<unknown>
   }
 }
@@ -134,15 +134,62 @@ export function injectContextAsMessage(
   sessionId: string,
   extractResult: SessionExtractResult,
 ): Effect.Effect<void, Error> {
-  const promptClient = client as SessionPromptClient
   const contextContent = formatContextMessage(extractResult)
+  return injectNoReplyMessage(client, sessionId, contextContent)
+}
+
+/** 将字符串上下文以 noReply 普通消息注入指定会话。 */
+export function injectNoReplyMessage(
+  client: unknown,
+  sessionId: string,
+  text: string,
+): Effect.Effect<void, Error> {
+  const promptClient = client as SessionPromptClient
 
   return Effect.tryPromise(async () => {
     await promptClient.session.prompt({
       path: { id: sessionId },
       body: {
         noReply: true,
-        parts: [{ type: 'text', text: contextContent }],
+        parts: [{ type: 'text', text }],
+      },
+    })
+  })
+}
+
+/** 优先以 system 字段注入上下文，失败时由调用方决定是否降级。 */
+export function injectSystemPrompt(
+  client: unknown,
+  sessionId: string,
+  systemPrompt: string,
+): Effect.Effect<void, Error> {
+  const promptClient = client as SessionPromptClient
+
+  return Effect.tryPromise(async () => {
+    await promptClient.session.prompt({
+      path: { id: sessionId },
+      body: {
+        noReply: true,
+        system: systemPrompt,
+        parts: [{ type: 'text', text: systemPrompt }],
+      },
+    })
+  })
+}
+
+/** 向指定会话提交用户提示词并触发回复。 */
+export function submitUserPrompt(
+  client: unknown,
+  sessionId: string,
+  text: string,
+): Effect.Effect<void, Error> {
+  const promptClient = client as SessionPromptClient
+
+  return Effect.tryPromise(async () => {
+    await promptClient.session.prompt({
+      path: { id: sessionId },
+      body: {
+        parts: [{ type: 'text', text }],
       },
     })
   })

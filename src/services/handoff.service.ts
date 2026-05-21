@@ -4,11 +4,10 @@ import type { OpencodeClient } from '@opencode-ai/sdk'
 
 import type { SessionExtractResult } from './session-extract.service.js'
 import {
-  createNewSession,
+  formatContextMessage,
   formatSystemPrompt,
-  injectContextAsMessage,
-  navigateToSession,
 } from './session.service.js'
+import { createSessionFlow } from './session-create.service.js'
 
 class SessionCreateError extends Error {
   constructor(message: string) {
@@ -47,45 +46,33 @@ function createSessionWithFallback(
   SessionCreateError | ContextInjectError
 > {
   const systemPrompt = formatSystemPrompt(extractResult)
+  const contextMessage = formatContextMessage(extractResult)
 
   return Effect.gen(function* () {
-    const session = yield* createNewSession(client, { title: sessionTitle }).pipe(
-      Effect.mapError((e) => new SessionCreateError(e.message)),
-    )
-
-    const fallback = yield* Effect.tryPromise({
-      try: () =>
-        client.session
-          .prompt({
-            path: { id: session.id },
-            body: {
-              noReply: true,
-              system: systemPrompt,
-              parts: [{ type: 'text', text: systemPrompt }],
-            },
-          })
-          .then(() => false),
-      catch: (e) => (e instanceof Error ? e : new Error(String(e))),
+    const result = yield* createSessionFlow(client, {
+      title: sessionTitle,
+      systemPrompt,
+      contextMessage,
+      navigate: true,
     }).pipe(
-      Effect.matchEffect({
-        onSuccess: () => Effect.succeed(false),
-        onFailure: () =>
-          // 部分 opencode 版本不接受 system 字段；降级为 noReply 消息仍能把交接上下文带入新会话。
-          injectContextAsMessage(client, session.id, extractResult).pipe(
-            Effect.map(() => true),
-            Effect.mapError((e) => new ContextInjectError(e.message)),
-          ),
+      Effect.mapError((e) => {
+        if (e.message.includes('上下文')) {
+          return new ContextInjectError(e.message)
+        }
+        return new SessionCreateError(e.message)
       }),
     )
 
-    const navigated = yield* navigateToSession(client, session.id).pipe(
-      Effect.match({
-        onSuccess: () => true,
-        onFailure: () => false,
-      }),
-    )
+    if (!result.contextInjected) {
+      return yield* Effect.fail(new ContextInjectError(result.error ?? '上下文注入失败'))
+    }
 
-    return { id: session.id, url: session.url, fallback, navigated }
+    return {
+      id: result.sessionId ?? '',
+      url: result.sessionUrl ?? '',
+      fallback: result.fallbackMode,
+      navigated: result.navigated,
+    }
   })
 }
 

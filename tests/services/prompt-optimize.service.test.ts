@@ -7,10 +7,16 @@ vi.mock('../../src/services/session.service.js', () => ({
   navigateToSession: vi.fn(),
 }))
 
+vi.mock('../../src/services/session-create.service.js', () => ({
+  createSessionFlow: vi.fn(),
+}))
+
 import { createNewSession, navigateToSession } from '../../src/services/session.service.js'
+import { createSessionFlow } from '../../src/services/session-create.service.js'
 
 const mockCreateNewSession = vi.mocked(createNewSession)
 const mockNavigateToSession = vi.mocked(navigateToSession)
+const mockCreateSessionFlow = vi.mocked(createSessionFlow)
 
 function mockClient() {
   return {
@@ -27,6 +33,19 @@ function mockClient() {
 describe('prompt-optimize.service', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockCreateSessionFlow.mockReturnValue(Effect.succeed({
+      success: true,
+      partial: false,
+      sessionId: 'session-1',
+      sessionUrl: '/sessions/session-1',
+      navigated: true,
+      contextInjected: false,
+      fallbackMode: false,
+      promptAttempted: true,
+      promptSubmitted: true,
+      warnings: [],
+      recoverablePrompt: '优化后的提示词',
+    }))
   })
 
   describe('generateSessionTitle', () => {
@@ -66,12 +85,6 @@ describe('prompt-optimize.service', () => {
   describe('executePromptSubmit', () => {
     it('正常路径：创建会话、发送消息、导航成功', async () => {
       const client = mockClient()
-      mockCreateNewSession.mockReturnValue(Effect.succeed({
-        id: 'session-1',
-        title: '测试会话',
-        url: '/sessions/session-1',
-      }))
-      mockNavigateToSession.mockReturnValue(Effect.succeed(undefined))
 
       const result = await Effect.runPromise(
         executePromptSubmit(client, '优化后的提示词'),
@@ -82,16 +95,27 @@ describe('prompt-optimize.service', () => {
       expect(result.sessionUrl).toBe('/sessions/session-1')
       expect(result.navigated).toBe(true)
       expect(result.optimizedPrompt).toBe('优化后的提示词')
+      expect(mockCreateSessionFlow).toHaveBeenCalledWith(client, expect.objectContaining({
+        userPrompt: '优化后的提示词',
+        autoExecute: true,
+        navigate: true,
+      }))
     })
 
     it('导航失败为非致命，success 仍为 true', async () => {
       const client = mockClient()
-      mockCreateNewSession.mockReturnValue(Effect.succeed({
-        id: 'session-2',
-        title: '测试',
-        url: '/sessions/session-2',
+      mockCreateSessionFlow.mockReturnValue(Effect.succeed({
+        success: true,
+        partial: true,
+        sessionId: 'session-2',
+        sessionUrl: '/sessions/session-2',
+        navigated: false,
+        contextInjected: false,
+        fallbackMode: false,
+        promptAttempted: true,
+        promptSubmitted: true,
+        warnings: ['导航失败'],
       }))
-      mockNavigateToSession.mockReturnValue(Effect.fail(new Error('导航失败')))
 
       const result = await Effect.runPromise(
         executePromptSubmit(client, '提示词'),
@@ -103,7 +127,7 @@ describe('prompt-optimize.service', () => {
 
     it('会话创建失败时返回错误', async () => {
       const client = mockClient()
-      mockCreateNewSession.mockReturnValue(Effect.fail(new Error('创建失败')))
+      mockCreateSessionFlow.mockReturnValue(Effect.fail(new Error('创建失败')))
 
       const result = await Effect.runPromise(
         executePromptSubmit(client, '提示词'),
@@ -113,45 +137,40 @@ describe('prompt-optimize.service', () => {
       expect(result.name).toBe('PromptSessionCreateError')
     })
 
-    it('提示词提交为 fire-and-forget，即使失败也不影响返回', async () => {
-      const client = {
-        session: {
-          prompt: vi.fn().mockRejectedValue(new Error('发送失败')),
-        },
-        tui: { publish: vi.fn() },
-      } as unknown as import('@opencode-ai/sdk').OpencodeClient
-
-      mockCreateNewSession.mockReturnValue(Effect.succeed({
-        id: 'session-3',
-        title: '测试',
-        url: '/sessions/session-3',
+    it('提示词提交失败时返回错误，避免误报成功', async () => {
+      const client = mockClient()
+      mockCreateSessionFlow.mockReturnValue(Effect.succeed({
+        success: false,
+        partial: true,
+        sessionId: 'session-3',
+        sessionUrl: '/sessions/session-3',
+        navigated: true,
+        contextInjected: false,
+        fallbackMode: false,
+        promptAttempted: true,
+        promptSubmitted: false,
+        warnings: ['提示词提交失败：发送失败'],
+        recoverablePrompt: '提示词',
       }))
-      mockNavigateToSession.mockReturnValue(Effect.succeed(undefined))
 
       const result = await Effect.runPromise(
         executePromptSubmit(client, '提示词'),
-      )
+      ).catch((e) => e)
 
-      expect(result.success).toBe(true)
-      expect(client.session.prompt).toHaveBeenCalled()
+      expect(result).toBeInstanceOf(Error)
+      expect(result.message).toContain('发送失败')
+      expect(result.recoverablePrompt).toBe('提示词')
     })
 
     it('使用自定义会话标题', async () => {
       const client = mockClient()
-      mockCreateNewSession.mockImplementation((_client, options) =>
-        Effect.succeed({
-          id: 'session-4',
-          title: options.title,
-          url: '/sessions/session-4',
-        }),
-      )
-      mockNavigateToSession.mockReturnValue(Effect.succeed(undefined))
 
       const result = await Effect.runPromise(
         executePromptSubmit(client, '提示词', '自定义标题'),
       )
 
       expect(result.success).toBe(true)
+      expect(mockCreateSessionFlow).toHaveBeenCalledWith(client, expect.objectContaining({ title: '自定义标题' }))
     })
   })
 })

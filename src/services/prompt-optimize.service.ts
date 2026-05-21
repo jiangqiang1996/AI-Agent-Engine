@@ -1,15 +1,15 @@
 import { Effect } from 'effect'
 import type { OpencodeClient } from '@opencode-ai/sdk'
 
-import {
-  createNewSession,
-  navigateToSession,
-} from './session.service.js'
+import { createSessionFlow } from './session-create.service.js'
 
 class PromptSessionCreateError extends Error {
-  constructor(message: string) {
+  readonly recoverablePrompt?: string
+
+  constructor(message: string, recoverablePrompt?: string) {
     super(message)
     this.name = 'PromptSessionCreateError'
+    this.recoverablePrompt = recoverablePrompt
   }
 }
 
@@ -44,32 +44,26 @@ export function executePromptSubmit(
   const title = sessionTitle ?? generateSessionTitle(optimizedPrompt)
 
   return Effect.gen(function* () {
-    const session = yield* createNewSession(client, { title }).pipe(
+    const result = yield* createSessionFlow(client, {
+      title,
+      userPrompt: optimizedPrompt,
+      autoExecute: true,
+      navigate: true,
+    }).pipe(
       Effect.mapError((e) => new PromptSessionCreateError(e.message)),
     )
 
-    const navigated = yield* navigateToSession(client, session.id).pipe(
-      Effect.match({
-        onSuccess: () => true,
-        onFailure: () => false,
-      }),
-    )
-
-    client.session
-      .prompt({
-        path: { id: session.id },
-        body: {
-          parts: [{ type: 'text', text: optimizedPrompt }],
-        },
-      })
-      // 新会话已创建且已尝试导航，提交失败时由目标会话自身暴露错误，不阻断工具返回可复制的提示词。
-      .catch(() => {})
+    if (result.partial && !result.promptSubmitted) {
+      return yield* Effect.fail(
+        new PromptSessionCreateError(result.warnings.join('；') || '提示词提交失败', result.recoverablePrompt),
+      )
+    }
 
     return {
-      success: true,
-      sessionId: session.id,
-      sessionUrl: session.url,
-      navigated,
+      success: result.success,
+      sessionId: result.sessionId,
+      sessionUrl: result.sessionUrl,
+      navigated: result.navigated,
       optimizedPrompt,
     }
   })
