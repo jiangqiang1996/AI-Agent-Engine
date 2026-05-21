@@ -1,9 +1,9 @@
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Effect } from 'effect'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { AGENT, TOOL } from '../../src/schemas/ae-asset-schema.js'
 import { hashReviewOutput } from '../../src/services/gate-service.js'
@@ -220,7 +220,7 @@ describe('ae-gate 工具', () => {
     expect(result.evidence.reviewEvidence).toMatchObject({ type: 'not_run_reason', reason: '测试工具映射' })
   })
 
-  it('默认写 proof 时应该要求文件授权', async () => {
+  it('默认 final 通过时应该直接写入 proof', async () => {
     const root = createRepoRoot()
     const tool = await getToolDefinition()
 
@@ -242,13 +242,47 @@ describe('ae-gate 工具', () => {
       sessionID: 'test-session',
       abort: new AbortController().signal,
     })
+    const result = JSON.parse(output) as { status: string; proofPath?: string }
 
-    expect(output).toContain('当前环境没有 ask 能力')
+    expect(result.status).toBe('pass')
+    expect(result.proofPath).toMatch(/^ae\/gates\//)
+    expect(result.proofPath ? existsSync(join(root, result.proofPath)) : false).toBe(true)
   })
 
-  it('拒绝写 proof 授权时应该返回可恢复提示', async () => {
+  it('最终门禁阻断时不应该先请求写 proof 授权', async () => {
     const root = createRepoRoot()
     const tool = await getToolDefinition()
+    const ask = vi.fn(() => Effect.fail(new Error('should not ask')))
+
+    const output = await tool.execute({
+      workflow: 'work',
+      checkpoint: 'final',
+      plan_path: 'ae/plans/test-plan.md',
+      review_status: 'not_run',
+      review_evidence: { type: 'not_run_reason', reason: '测试阻断预检' },
+      git_operations: [],
+      worktree_decision: 'rejected',
+      no_code_change_reason: '测试阻断预检',
+    }, {
+      metadata: () => undefined,
+      ask,
+      worktree: root,
+      directory: root,
+      sessionID: 'test-session',
+      abort: new AbortController().signal,
+    })
+    const result = JSON.parse(output) as { status: string; blockers: string[]; proofPath?: string }
+
+    expect(ask).not.toHaveBeenCalled()
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('缺少验证命令记录，不能证明没有漏验证。')
+    expect(result.proofPath).toBeUndefined()
+  })
+
+  it('ask 拒绝不应该阻止通过的 final 门禁写入 proof', async () => {
+    const root = createRepoRoot()
+    const tool = await getToolDefinition()
+    const ask = vi.fn(() => Effect.fail(new Error('denied')))
 
     const output = await tool.execute({
       workflow: 'work',
@@ -261,6 +295,38 @@ describe('ae-gate 工具', () => {
       git_operations: [],
       worktree_decision: 'rejected',
       no_code_change_reason: '测试授权',
+    }, {
+      metadata: () => undefined,
+      ask,
+      worktree: root,
+      directory: root,
+      sessionID: 'test-session',
+      abort: new AbortController().signal,
+    })
+    const result = JSON.parse(output) as { status: string; proofPath?: string }
+
+    expect(ask).not.toHaveBeenCalled()
+    expect(result.status).toBe('pass')
+    expect(result.proofPath).toMatch(/^ae\/gates\//)
+    expect(result.proofPath ? existsSync(join(root, result.proofPath)) : false).toBe(true)
+  })
+
+  it('显式请求 write_proof 时应该写入 proof', async () => {
+    const root = createRepoRoot()
+    const tool = await getToolDefinition()
+
+    const output = await tool.execute({
+      workflow: 'work',
+      checkpoint: 'final',
+      plan_path: 'ae/plans/test-plan.md',
+      validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
+      review_status: 'not_run',
+      review_evidence: { type: 'not_run_reason', reason: '测试显式写 proof' },
+      git_operations: [],
+      worktree_decision: 'rejected',
+      no_code_change_reason: '测试显式写 proof',
+      write_proof: true,
     }, {
       metadata: () => undefined,
       ask: () => Effect.fail(new Error('denied')),
@@ -269,8 +335,43 @@ describe('ae-gate 工具', () => {
       sessionID: 'test-session',
       abort: new AbortController().signal,
     })
+    const result = JSON.parse(output) as { status: string; proofPath?: string }
 
-    expect(output).toContain('写入 ae/gates/ 门禁证明未获得文件授权：denied')
+    expect(result.status).toBe('pass')
+    expect(result.proofPath).toMatch(/^ae\/gates\//)
+    expect(result.proofPath ? existsSync(join(root, result.proofPath)) : false).toBe(true)
+  })
+
+  it('最终门禁通过且 ask 可用时应该写入 proof 但不请求授权', async () => {
+    const root = createRepoRoot()
+    const tool = await getToolDefinition()
+    const ask = vi.fn(() => Effect.succeed(undefined))
+
+    const output = await tool.execute({
+      workflow: 'work',
+      checkpoint: 'final',
+      plan_path: 'ae/plans/test-plan.md',
+      validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
+      review_status: 'not_run',
+      review_evidence: { type: 'not_run_reason', reason: '测试授权通过后写入 proof' },
+      git_operations: [],
+      worktree_decision: 'rejected',
+      no_code_change_reason: '测试授权通过后写入 proof',
+    }, {
+      metadata: () => undefined,
+      ask,
+      worktree: root,
+      directory: root,
+      sessionID: 'test-session',
+      abort: new AbortController().signal,
+    })
+    const result = JSON.parse(output) as { status: string; proofPath?: string }
+
+    expect(ask).not.toHaveBeenCalled()
+    expect(result.status).toBe('pass')
+    expect(result.proofPath).toMatch(/^ae\/gates\//)
+    expect(result.proofPath ? existsSync(join(root, result.proofPath)) : false).toBe(true)
   })
 
   it('应该从上下文历史收集可信用户授权引用', async () => {
@@ -622,6 +723,53 @@ describe('ae-gate 工具', () => {
       directory: root,
       sessionID: 'test-session',
       history: [{ id: 'review-1', role: 'tool', tool: 'ae:review', content: reviewOutput }],
+      abort: new AbortController().signal,
+    })
+    const result = JSON.parse(output) as { status: string; blockers: string[] }
+
+    expect(result.status).toBe('pass')
+    expect(result.blockers).toEqual([])
+  })
+
+  it('应该采信安全审查子代理的结构化来源', async () => {
+    const root = createRepoRoot()
+    const fingerprint = initGitRepo(root)
+    const reviewOutput = createReviewOutput({ worktree: root, ...fingerprint })
+    writeReviewReport(root, {
+      reviewRunIdOrMessageRef: 'review-security',
+      worktree: root,
+      ...fingerprint,
+      reviewOutputHash: hashReviewOutput(reviewOutput),
+    })
+    const tool = await getToolDefinition()
+
+    const output = await tool.execute({
+      workflow: 'work',
+      checkpoint: 'final',
+      plan_path: 'ae/plans/test-plan.md',
+      validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
+      review_status: 'passed',
+      review_evidence: {
+        type: 'report_path',
+        review_trust: 'verified',
+        path: 'ae/reviews/review-security/metadata.json',
+        review_run_id_or_message_ref: 'review-security',
+        worktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        status_summary: fingerprint.statusSummary,
+      },
+      git_operations: [],
+      worktree_decision: 'rejected',
+      no_code_change_reason: '测试工具映射',
+      write_proof: false,
+    }, {
+      metadata: () => undefined,
+      worktree: root,
+      directory: root,
+      sessionID: 'test-session',
+      history: [{ id: 'review-security', role: 'tool', tool: 'task', subagent_type: 'security-reviewer', content: reviewOutput }],
       abort: new AbortController().signal,
     })
     const result = JSON.parse(output) as { status: string; blockers: string[] }

@@ -1,7 +1,7 @@
 import { tool, type ToolDefinition } from '@opencode-ai/plugin/tool'
 import { Effect } from 'effect'
 
-import { runGate, type ReviewEvidence, type ValidationCommandResult } from '../services/gate-service.js'
+import { runGate, type GateInput, type ReviewEvidence, type ValidationCommandResult } from '../services/gate-service.js'
 import { AGENT, COMMAND, SKILL } from '../schemas/ae-asset-schema.js'
 
 const REVIEW_SUBAGENT_TYPES: ReadonlySet<string> = new Set([
@@ -368,70 +368,62 @@ export const aeGateTool: ToolDefinition = tool({
   async execute(args, context) {
     context.metadata({ title: `AE 门禁检查: ${args.workflow}/${args.checkpoint}` })
 
+    const gateInput: GateInput = {
+      workflow: args.workflow,
+      checkpoint: args.checkpoint,
+      requirementsPath: args.requirements_path,
+      planPath: args.plan_path,
+      handoffPath: args.handoff_path,
+      validationCommands: args.validation_commands,
+      validationResults: mapValidationResults(args.validation_results),
+      reviewStatus: args.review_status,
+      browserTestStatus: args.browser_test_status,
+      gitOperations: args.git_operations,
+      gitOperationArgs: args.git_operation_args,
+      gitAuthorizationEvidence: args.git_authorization_evidence?.map((evidence) => ({
+        authorizationSource: evidence.authorization_source,
+        authorizationSummary: evidence.authorization_summary,
+        authorizationTrust: evidence.authorization_trust,
+        coveredCommandArgs: evidence.covered_command_args,
+        sourceSessionId: evidence.source_session_id,
+        operationWorktree: evidence.operation_worktree,
+        targetWorktree: evidence.target_worktree,
+        branch: evidence.branch,
+        head: evidence.head,
+        authorizedAtOrMessageRef: evidence.authorized_at_or_message_ref,
+        finalCommandArgs: evidence.final_command_args,
+      })),
+      reviewEvidence: mapReviewEvidence(args.review_evidence),
+      worktreeDecision: args.worktree_decision,
+      currentSessionId: context.sessionID,
+      trustedAuthorizationRefs: collectTrustedAuthorizationRefs(
+        context as Record<string, unknown>,
+        args.git_authorization_evidence,
+      ),
+      trustedReviewRefs: collectTrustedReviewRefs(context as Record<string, unknown>, args.review_evidence),
+      trustedReviewOutputs: collectTrustedReviewOutputs(
+        context as Record<string, unknown>,
+        args.review_evidence,
+      ),
+      userAuthorizedGitWrite: args.user_authorized_git_write,
+      noCodeChangeReason: args.no_code_change_reason,
+      notes: args.notes,
+      writeProof: args.write_proof,
+    }
     if (shouldWriteProof(args)) {
-      if (typeof context.ask !== 'function') {
-        return '当前环境没有 ask 能力，不能写入 ae/gates/ 门禁证明。请在支持文件写入授权的 opencode 运行时中重试，或显式设置 write_proof: false 仅执行检查。'
-      }
-
       try {
-        await Effect.runPromise(context.ask({
-          permission: 'file',
-          patterns: ['ae/gates/*.json'],
-          always: [],
-          metadata: {
-            action: '写入 AE 门禁证明',
-            target: 'ae/gates/*.json',
-          },
-        }))
+        const preflightResult = await Effect.runPromise(runGate(context.worktree, { ...gateInput, writeProof: false }))
+        if (preflightResult.status === 'block') {
+          return JSON.stringify(preflightResult, null, 2)
+        }
       } catch (error) {
-        const reason = error instanceof Error && error.message ? `：${error.message}` : ''
-        return `写入 ae/gates/ 门禁证明未获得文件授权${reason}。请确认当前工作区允许写入 ae/gates/*.json 后重试，或显式设置 write_proof: false 仅执行检查。`
+        const message = error instanceof Error ? error.message : String(error)
+        return `❌ AE 门禁检查失败：${message}`
       }
     }
 
     return Effect.runPromise(
-      runGate(context.worktree, {
-        workflow: args.workflow,
-        checkpoint: args.checkpoint,
-        requirementsPath: args.requirements_path,
-        planPath: args.plan_path,
-        handoffPath: args.handoff_path,
-        validationCommands: args.validation_commands,
-        validationResults: mapValidationResults(args.validation_results),
-        reviewStatus: args.review_status,
-        browserTestStatus: args.browser_test_status,
-        gitOperations: args.git_operations,
-        gitOperationArgs: args.git_operation_args,
-        gitAuthorizationEvidence: args.git_authorization_evidence?.map((evidence) => ({
-          authorizationSource: evidence.authorization_source,
-          authorizationSummary: evidence.authorization_summary,
-          authorizationTrust: evidence.authorization_trust,
-          coveredCommandArgs: evidence.covered_command_args,
-          sourceSessionId: evidence.source_session_id,
-          operationWorktree: evidence.operation_worktree,
-          targetWorktree: evidence.target_worktree,
-          branch: evidence.branch,
-          head: evidence.head,
-          authorizedAtOrMessageRef: evidence.authorized_at_or_message_ref,
-          finalCommandArgs: evidence.final_command_args,
-        })),
-        reviewEvidence: mapReviewEvidence(args.review_evidence),
-        worktreeDecision: args.worktree_decision,
-        currentSessionId: context.sessionID,
-        trustedAuthorizationRefs: collectTrustedAuthorizationRefs(
-          context as Record<string, unknown>,
-          args.git_authorization_evidence,
-        ),
-        trustedReviewRefs: collectTrustedReviewRefs(context as Record<string, unknown>, args.review_evidence),
-        trustedReviewOutputs: collectTrustedReviewOutputs(
-          context as Record<string, unknown>,
-          args.review_evidence,
-        ),
-        userAuthorizedGitWrite: args.user_authorized_git_write,
-        noCodeChangeReason: args.no_code_change_reason,
-        notes: args.notes,
-        writeProof: args.write_proof,
-      }).pipe(
+      runGate(context.worktree, gateInput).pipe(
         Effect.map((result) => JSON.stringify(result, null, 2)),
         Effect.catch((error) => {
           const message = error instanceof Error ? error.message : String(error)

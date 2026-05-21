@@ -7,6 +7,12 @@ const routingText = readFileSync('src/assets/skills/ae-lfg/references/task-routi
 describe('ae:lfg 门禁文本契约', () => {
   it('应该同步最终门禁的新证据字段', () => {
     expect(skillText).toContain('review_evidence:{...}')
+    expect(skillText).toContain('checkpoint:before_review plan_path:<plan-path> validation_commands:[...] validation_results:[...]')
+    expect(skillText).toContain('checkpoint:final plan_path:<plan-path> validation_commands:[...] validation_results:[...]')
+    expect(skillText).toContain('validation_results:[...]')
+    expect(skillText).toContain('`validation_results` 必须与 `validation_commands` 一一对应')
+    expect(skillText).toContain('每条包含 `command`、`exit_code`、`output`、`executed_at`')
+    expect(skillText).toContain('用于通过门禁的 `exit_code` 必须为 0')
     expect(skillText).toContain('git_operation_args')
     expect(skillText).toContain('git_authorization_evidence')
     expect(skillText).toContain('worktree_decision:<created|rejected|not_applicable>')

@@ -34,6 +34,7 @@
 4. **AE 门禁证明（必需，最终写操作之后执行）**
     - 调用 `ae-gate workflow:work checkpoint:final`
     - 传入 `verification_result` 中记录的实际运行 `validation_commands`
+    - 传入与 `validation_commands` 一一对应的 `validation_results`，每条包含 `command`、`exit_code`、`output`、`executed_at`；用于通过门禁的 `exit_code` 必须为 0
     - 传入 `review_status`；正式代码交付必须为 `passed`，除非本轮无代码变更或审查工具不可用且最终回复明确标记为无法完成交付
     - 未审查时必须通过 `review_evidence: { type: 'not_run_reason' }` 说明原因，且不得把该状态作为正式代码交付已完成的依据
     - `review_status: passed` 或 `failed` 必须附带可验证 `review_evidence`，绑定当前可观察 worktree、branch、HEAD 和状态摘要
@@ -56,7 +57,7 @@
 - B 续执行门禁基线：对 B 续执行来说只有交接文件是必需输入；若最终 gate 无 `plan_path`，应传入 `handoff_path`，并把交接文件作为 B worktree 续执行基线；不得写成无需计划。`notes` 只能作为执行基线的声明型补充，不能替代可观察的交接文件证据
 - A→B 最终交付：A 会话的 `worktree_decision: transferred` 只表示执行已转移；若当前可观察 worktree 匹配 A→B 交接文件或启动证明中的目标 B worktree，B 会话最终功能交付使用 `worktree_decision: created` 表示已在独立 worktree 中执行并交付，并覆盖普通当前工作区场景的 `rejected`；`transferred` 和 `cancelled` 不得通过最终功能交付 gate
 - 未运行审查：`review_status: not_run` 搭配 `review_evidence.type: not_run_reason`，仅用于无代码变更、审查工具不可用或非正式交付说明；正式代码交付不得用该状态放行
-- 已通过审查：`review_status: passed` 搭配已存在的 `report_path` 证据及当前工作区指纹；`tool_output` 只能作为声明记录，不能独立放行最终门禁
+- 已通过审查：`review_status: passed` 优先搭配已存在的 `report_path` 证据及当前工作区指纹；同一会话中来自真实 `ae:review` 或审查子代理的 `tool_output` 也可放行最终门禁；普通 task 正文、手写摘要或 `ae-review-proof` 工具返回本身不能独立放行
 
 ## 最终交付模板
 

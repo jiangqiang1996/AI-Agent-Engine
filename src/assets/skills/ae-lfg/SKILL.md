@@ -47,8 +47,8 @@ disable-model-invocation: true
 在关键阶段调用 `ae-gate` 工具，不能只用文字承诺替代门禁结果：
 
 - 进入实现前：`ae-gate workflow:lfg checkpoint:before_work plan_path:<plan-path>` 必须通过
-- 进入代码审查前：`ae-gate workflow:lfg checkpoint:before_review plan_path:<plan-path> validation_commands:[...]` 必须通过
-- 最终交付前：`ae-gate workflow:lfg checkpoint:final plan_path:<plan-path> validation_commands:[...] review_status:passed review_evidence:{...} git_operations:[...] worktree_decision:<created|rejected|not_applicable>` 必须通过并写入证明；若执行过 Git 写操作，还必须传入 `git_operation_args` 和可验证 `git_authorization_evidence`
+- 进入代码审查前：`ae-gate workflow:lfg checkpoint:before_review plan_path:<plan-path> validation_commands:[...] validation_results:[...]` 必须通过
+- 最终交付前：`ae-gate workflow:lfg checkpoint:final plan_path:<plan-path> validation_commands:[...] validation_results:[...] review_status:passed review_evidence:{...} git_operations:[...] worktree_decision:<created|rejected|not_applicable>` 必须通过并写入证明；若执行过 Git 写操作，还必须传入 `git_operation_args` 和可验证 `git_authorization_evidence`
 
 如果门禁返回 `status: block`，必须先补齐阻断项再继续，不得输出 `<promise>DONE</promise>`。
 
@@ -106,7 +106,7 @@ disable-model-invocation: true
 
 ### 步骤 7：代码审查
 
-先运行 `ae-gate workflow:lfg checkpoint:before_review plan_path:<plan-path-from-step-4>`，并传入已实际运行的 `validation_commands`。如果尚未运行验证，先运行验证再审查。
+先运行 `ae-gate workflow:lfg checkpoint:before_review plan_path:<plan-path-from-step-4>`，并传入已实际运行的 `validation_commands` 及一一对应的 `validation_results`。如果尚未运行验证，先运行验证再审查；`validation_results` 的每条 `command` 必须匹配 `validation_commands`，且用于通过门禁的 `exit_code` 必须为 0。
 
 运行 `ae:review mode:autofix plan:<plan-path-from-step-4>`
 
@@ -126,7 +126,7 @@ disable-model-invocation: true
 
 ### 步骤 9：完成
 
-运行 `ae-gate workflow:lfg checkpoint:final plan_path:<plan-path-from-step-4> validation_commands:[...] review_status:passed review_evidence:{...} git_operations:[...] worktree_decision:<created|rejected|not_applicable>`。`worktree_decision` 必须沿用步骤 6 的结果；若结果为 `transferred` 或 `cancelled`，不得进入最终功能交付 gate。`review_evidence` 必须绑定当前 worktree、branch、HEAD 和状态摘要；如执行过 Git 写操作，传入 `git_operation_args` 和可验证 `git_authorization_evidence`，不能只依赖 `user_authorized_git_write`。如有浏览器测试，传入 `browser_test_status`。门禁通过后，在最终回复中引用 `proofPath`。
+运行 `ae-gate workflow:lfg checkpoint:final plan_path:<plan-path-from-step-4> validation_commands:[...] validation_results:[...] review_status:passed review_evidence:{...} git_operations:[...] worktree_decision:<created|rejected|not_applicable>`。`validation_results` 必须与 `validation_commands` 一一对应，每条包含 `command`、`exit_code`、`output`、`executed_at`，且用于通过门禁的 `exit_code` 必须为 0。`worktree_decision` 必须沿用步骤 6 的结果；若结果为 `transferred` 或 `cancelled`，不得进入最终功能交付 gate。`review_evidence` 必须绑定当前 worktree、branch、HEAD 和状态摘要；如执行过 Git 写操作，传入 `git_operation_args` 和可验证 `git_authorization_evidence`，不能只依赖 `user_authorized_git_write`。如有浏览器测试，传入 `browser_test_status`。门禁通过后，在最终回复中引用 `proofPath`。
 
 最终回复必须遵循 `ae:work` 交付参考中的最终模板分区：已完成、已验证、未验证/无法验证、Git 操作状态、门禁结果、剩余风险。
 

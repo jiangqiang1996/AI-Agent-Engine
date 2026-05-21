@@ -38,10 +38,13 @@
   "changed_files_verified": true,
   "unauthorized_changes": [],
   "validation_commands": ["实际运行的命令"],
+  "validation_results": [
+    { "command": "实际运行的命令", "exit_code": 0, "output": "命令输出摘要", "executed_at": "执行时间或可引用时间戳" }
+  ],
   "validation_summary": "命令结果摘要",
   "blocked": false,
   "blockers": []
 }
 ```
 
-`verification_result` 和实际 `validation_commands` 必须传递给 `references/shipping-workflow.md`，也可供上游 `ae:lfg` before_review/final gate 消费。
+`verification_result` 中的实际 `validation_commands` 和一一对应的 `validation_results` 必须传递给 `references/shipping-workflow.md`，也可供上游 `ae:lfg` before_review/final gate 消费。`validation_results` 的每条记录必须包含 `command`、`exit_code`、`output`、`executed_at`；每条 `command` 必须匹配 `validation_commands`，且用于通过门禁的 `exit_code` 必须为 0。

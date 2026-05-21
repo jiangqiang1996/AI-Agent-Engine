@@ -77,6 +77,7 @@ argument-hint: "[计划路径|交接文件路径|工作描述]"
 - `plan_path`（如果本次从计划文档执行）
 - `notes`（如果本次没有计划路径，必须说明任务为何无需计划，并记录定位证据和升级判断）
 - `validation_commands`（本次实际运行的测试、构建、类型检查、lint 等命令）
+- `validation_results`（每条 `validation_commands` 对应的真实执行结果，包含 `command`、`exit_code`、`output`、`executed_at`；用于通过门禁的 `exit_code` 必须为 0）
 - `review_status`（代码审查状态；未运行时说明原因）
 - `git_operations`（本次会话执行过的 Git 写操作；没有则传空数组）
 - `worktree_decision`（创建、拒绝或不适用；`transferred`/`cancelled` 只能作为终止状态记录，不得作为最终功能交付 gate 的通过状态）

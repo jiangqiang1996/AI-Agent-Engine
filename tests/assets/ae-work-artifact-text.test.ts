@@ -53,6 +53,12 @@ describe('ae:work 产物与交付文本契约', () => {
     expect(shippingText).toContain('git_authorization_evidence')
     expect(shippingText).toContain('user_authorized_git_write` 只是声明证据')
     expect(shippingText).toContain('review_evidence')
+    expect(skillText).toContain('在最终交付前必须调用 `ae-gate workflow:work checkpoint:final`')
+    expect(skillText).toContain('`validation_results`（每条 `validation_commands` 对应的真实执行结果')
+    expect(skillText).toContain('包含 `command`、`exit_code`、`output`、`executed_at`')
+    expect(shippingText).toContain('与 `validation_commands` 一一对应的 `validation_results`')
+    expect(shippingText).toContain('每条包含 `command`、`exit_code`、`output`、`executed_at`')
+    expect(shippingText).toContain('用于通过门禁的 `exit_code` 必须为 0')
   })
 
   it('应该说明 rejected 表示当前工作区交付而不只是用户拒绝', () => {
