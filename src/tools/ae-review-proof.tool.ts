@@ -126,6 +126,56 @@ function extractHistoryText(value: unknown): string {
   return ''
 }
 
+function extractTrustedReviewPayload(output: string): string {
+  let payload = output
+  while (true) {
+    const openTag = '<task_result>'
+    const closeTag = '</task_result>'
+    const start = payload.indexOf(openTag)
+    const end = payload.lastIndexOf(closeTag)
+    if (start < 0 || end <= start) {
+      return payload
+    }
+    const nextPayload = payload.slice(start + openTag.length, end).trim()
+    if (!nextPayload || nextPayload === payload) {
+      return payload
+    }
+    payload = nextPayload
+  }
+}
+
+function isSameTrustedReviewOutput(historyOutput: string, sourceReviewOutput: string): boolean {
+  return extractTrustedReviewPayload(historyOutput) === extractTrustedReviewPayload(sourceReviewOutput)
+}
+
+function isTrustedReviewToolName(candidate: {
+  tool?: unknown
+  name?: unknown
+  toolName?: unknown
+  command?: unknown
+  message?: {
+    tool?: unknown
+    name?: unknown
+    toolName?: unknown
+    command?: unknown
+  }
+}): boolean {
+  const explicitToolNames = [
+    candidate.tool,
+    candidate.toolName,
+    candidate.command,
+    candidate.message?.tool,
+    candidate.message?.toolName,
+    candidate.message?.command,
+  ]
+  const fallbackNames = [candidate.name, candidate.message?.name]
+  const hasExplicitToolMarker = explicitToolNames.some((toolName) => typeof toolName === 'string')
+  const toolNames = hasExplicitToolMarker ? explicitToolNames : fallbackNames
+
+  return toolNames.some((toolName) => typeof toolName === 'string'
+    && (toolName === SKILL.REVIEW || toolName === COMMAND.REVIEW))
+}
+
 function hasTrustedSourceReviewOutput(context: unknown, sourceReviewRef: string, sourceReviewOutput: string): boolean {
   const history = (context as { history?: unknown }).history
   if (!Array.isArray(history)) {
@@ -144,6 +194,7 @@ function hasTrustedSourceReviewOutput(context: unknown, sourceReviewRef: string,
       tool?: unknown
       name?: unknown
       toolName?: unknown
+      command?: unknown
       subagent_type?: unknown
       content?: unknown
       text?: unknown
@@ -154,6 +205,7 @@ function hasTrustedSourceReviewOutput(context: unknown, sourceReviewRef: string,
         tool?: unknown
         name?: unknown
         toolName?: unknown
+        command?: unknown
         subagent_type?: unknown
         content?: unknown
         text?: unknown
@@ -162,10 +214,8 @@ function hasTrustedSourceReviewOutput(context: unknown, sourceReviewRef: string,
     const role = candidate.role ?? candidate.message?.role
     const id = candidate.id ?? candidate.message?.id
     const taskId = candidate.task_id ?? candidate.message?.task_id
-    const toolNames = [candidate.tool, candidate.name, candidate.toolName, candidate.message?.tool, candidate.message?.name, candidate.message?.toolName]
     const subagentTypes = [candidate.subagent_type, candidate.message?.subagent_type]
-    const isReviewTool = toolNames.some((toolName) => typeof toolName === 'string'
-      && (toolName === SKILL.REVIEW || toolName === COMMAND.REVIEW))
+    const isReviewTool = isTrustedReviewToolName(candidate)
     const isReviewSubagent = subagentTypes.some((subagentType) => typeof subagentType === 'string'
       && REVIEW_SUBAGENT_TYPES.has(subagentType))
     const content = extractHistoryText(candidate.content ?? candidate.text ?? candidate.message?.content ?? candidate.message?.text)
@@ -173,7 +223,7 @@ function hasTrustedSourceReviewOutput(context: unknown, sourceReviewRef: string,
     return role === 'tool'
       && (id === sourceReviewRef || taskId === sourceReviewRef)
       && (isReviewTool || isReviewSubagent)
-      && content === sourceReviewOutput
+      && isSameTrustedReviewOutput(content, sourceReviewOutput)
   })
 }
 
@@ -229,7 +279,8 @@ export const aeReviewProofTool: ToolDefinition = tool({
       return '当前工作区指纹省略了未跟踪文件，不能写入 ae:review 审查证明。请清理或纳入未跟踪文件后重试。'
     }
 
-    const parsedOutput = parseSourceReviewOutput(args.source_review_output)
+    const trustedReviewPayload = extractTrustedReviewPayload(args.source_review_output)
+    const parsedOutput = parseSourceReviewOutput(trustedReviewPayload)
     if (!parsedOutput
       || parsedOutput.status !== args.review_status
       || parsedOutput.worktree !== fingerprint.worktreePath
@@ -245,7 +296,7 @@ export const aeReviewProofTool: ToolDefinition = tool({
       return 'source_review_output 必须来自当前会话历史中匹配 source_review_ref 的真实 ae:review 或审查子代理输出。'
     }
 
-    const reviewOutputHash = hashReviewOutput(args.source_review_output)
+    const reviewOutputHash = hashReviewOutput(trustedReviewPayload)
     const metadata = {
       generatedBy: SKILL.REVIEW,
       proofKind: 'ae-review-proof',
@@ -290,7 +341,7 @@ export const aeReviewProofTool: ToolDefinition = tool({
     }
 
     return {
-      output: args.source_review_output,
+      output: trustedReviewPayload,
       metadata: {
         path: metadataPath,
         reviewRunIdOrMessageRef: args.review_run_id,

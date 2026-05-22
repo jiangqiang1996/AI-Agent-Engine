@@ -1050,7 +1050,8 @@ function reviewReportMatchesEvidence(
       ? metadata.sourceReviewRef
       : evidence.reviewRunIdOrMessageRef
     const output = trustedReviewOutputs[expectedSourceReviewRef]
-    const outputHash = output ? hashReviewOutput(output) : undefined
+    const trustedPayload = output ? extractTrustedReviewPayload(output) : undefined
+    const outputHash = trustedPayload ? hashReviewOutput(trustedPayload) : undefined
     const metadataMatchesEvidence = metadata.generatedBy === SKILL.REVIEW
       && metadata.proofKind === 'ae-review-proof'
       && metadata.reviewRunIdOrMessageRef === evidence.reviewRunIdOrMessageRef
@@ -1072,7 +1073,8 @@ function reviewReportMatchesEvidence(
       && typeof outputHash === 'string'
       && outputHash.length > 0
       && metadata.reviewOutputHash === outputHash
-      && reviewOutputMatchesEvidence(output, evidence, expectedStatus)
+      && typeof trustedPayload === 'string'
+      && reviewOutputMatchesEvidence(trustedPayload, evidence, expectedStatus)
   } catch {
     return false
   }
@@ -1101,6 +1103,24 @@ function reviewOutputMatchesEvidence(
   }
 
   return true
+}
+
+function extractTrustedReviewPayload(output: string): string {
+  let payload = output
+  while (true) {
+    const openTag = '<task_result>'
+    const closeTag = '</task_result>'
+    const start = payload.indexOf(openTag)
+    const end = payload.lastIndexOf(closeTag)
+    if (start < 0 || end <= start) {
+      return payload
+    }
+    const nextPayload = payload.slice(start + openTag.length, end).trim()
+    if (!nextPayload || nextPayload === payload) {
+      return payload
+    }
+    payload = nextPayload
+  }
 }
 
 /** 对审查输出内容计算 SHA-256 哈希，用于门禁中比对审查结果是否被篡改。 */
