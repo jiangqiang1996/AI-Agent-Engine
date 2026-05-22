@@ -12,8 +12,6 @@ export const SKILL = {
   MERGE_BRANCH: 'ae:merge-branch',
   REVIEW: 'ae:review',
   LFG: 'ae:lfg',
-  DOC_HUMANIZE: 'ae:doc-humanize',
-  DOC_STRUCTURE: 'ae:doc-structure',
   AGENT_BROWSER: 'ae:agent-browser',
   TEST_BROWSER: 'ae:test-browser',
   FRONTEND_DESIGN: 'ae:frontend-design',
@@ -43,8 +41,6 @@ export const PROMPT_OPTIMIZE_VARIANT_EXCLUDED_SKILLS = [
   SKILL.WORK_REPORT,
   SKILL.MERGE_BRANCH,
   SKILL.REVIEW,
-  SKILL.DOC_HUMANIZE,
-  SKILL.DOC_STRUCTURE,
   SKILL.AGENT_BROWSER,
   SKILL.TEST_BROWSER,
   SKILL.HANDOFF,
@@ -96,7 +92,6 @@ export const AGENT = {
   STEP_GRANULARITY_REVIEWER: 'step-granularity-reviewer',
   DESIGN_LENS_REVIEWER: 'design-lens-reviewer',
   TEST_CASE_REVIEWER: 'test-case-reviewer',
-  DOC_EQUIVALENCE_REVIEWER: 'doc-equivalence-reviewer',
   ARCHITECTURE_STRATEGIST: 'architecture-strategist',
   PATTERN_RECOGNITION_SPECIALIST: 'pattern-recognition-specialist',
   REPO_RESEARCH_ANALYST: 'repo-research-analyst',
@@ -126,6 +121,7 @@ export const TOOL = {
   AE_GRAPH_BUILD: 'ae-graph-build',
   AE_GRAPH_QUERY: 'ae-graph-query',
   AE_TASK_ANALYZER: 'ae-task-analyzer',
+  AE_DOC_EXTRACT: 'ae-doc-extract',
 } as const
 
 export const AeModeSchema = z
@@ -145,8 +141,6 @@ export const AeSkillNameSchema = z
     SKILL.MERGE_BRANCH,
     SKILL.REVIEW,
     SKILL.LFG,
-    SKILL.DOC_HUMANIZE,
-    SKILL.DOC_STRUCTURE,
     SKILL.AGENT_BROWSER,
     SKILL.TEST_BROWSER,
     SKILL.FRONTEND_DESIGN,

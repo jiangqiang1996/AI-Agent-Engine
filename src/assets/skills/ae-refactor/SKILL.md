@@ -8,7 +8,7 @@ argument-hint: "[重构目标|计划路径|需求文档路径|代码异味描述
 
 `ae:refactor` 是 `ae:plan` 的重构专项入口。它不维护独立计划流程或独立模板，而是在进入 `ae:plan` 前补充强约束，让 `ae:plan` 以重构语义创建或修改标准 `type: plan` 文档。
 
-本技能不会直接写代码、不会运行测试、不会单独创建非 plan 类型产物。产出的计划必须使用 `ae:plan` 的 `references/plan-template.md` 结构。`ae:doc-structure` 生成的普通 `type: plan` 可作为本技能输入；当它被继续改写为重构计划时，必须补齐重构专属的行为保持要求和回滚信号。
+本技能不会直接写代码、不会运行测试、不会单独创建非 plan 类型产物。产出的计划必须使用 `ae:plan` 的 `references/plan-template.md` 结构。普通 `type: plan` 可作为本技能输入；当它被继续改写为重构计划时，必须补齐重构专属的行为保持要求和回滚信号。
 
 ## 输入
 

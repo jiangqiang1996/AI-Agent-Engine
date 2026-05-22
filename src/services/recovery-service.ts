@@ -9,6 +9,8 @@ import { ArtifactFrontmatterSchema, type ArtifactKind } from '../schemas/artifac
 import { SKILL } from '../schemas/ae-asset-schema.js'
 import { getFrontmatterString, parseFrontmatter, type FrontmatterData } from '../utils/frontmatter.js'
 
+type RecoverableArtifactKind = NonNullable<RecoveryResult['artifactType']>
+
 function invalidResult(phase: RecoveryResult['phase'], reason: string): RecoveryResult {
   return {
     resolution: 'invalid-artifact',
@@ -32,7 +34,7 @@ function fallbackSkillForPhase(phase: RecoveryResult['phase']): string {
   }
 }
 
-function preferredArtifactTypes(phase: RecoveryResult['phase']): ArtifactKind[] {
+function preferredArtifactTypes(phase: RecoveryResult['phase']): RecoverableArtifactKind[] {
   switch (phase) {
     case 'brainstorm':
       return []
@@ -48,7 +50,7 @@ function preferredArtifactTypes(phase: RecoveryResult['phase']): ArtifactKind[] 
   }
 }
 
-function nextSkillForArtifact(phase: RecoveryResult['phase'], artifactType: ArtifactKind): string {
+function nextSkillForArtifact(phase: RecoveryResult['phase'], artifactType: RecoverableArtifactKind): string {
   switch (phase) {
     case 'plan':
       return SKILL.PLAN
@@ -79,7 +81,7 @@ function nextSkillForArtifact(phase: RecoveryResult['phase'], artifactType: Arti
 
 function nextArgumentsForArtifact(
   phase: RecoveryResult['phase'],
-  artifactType: ArtifactKind,
+  artifactType: RecoverableArtifactKind,
   path?: string,
 ): string | undefined {
   if ((phase === 'review' || phase === 'lfg') && (artifactType === 'plan' || artifactType === 'brainstorm')) {
@@ -94,7 +96,7 @@ function nextArgumentsForArtifact(
 
 function nextCommandForArtifact(
   phase: RecoveryResult['phase'],
-  artifactType: ArtifactKind,
+  artifactType: RecoverableArtifactKind,
   path?: string,
 ): string | undefined {
   const nextSkill = nextSkillForArtifact(phase, artifactType)
@@ -104,7 +106,7 @@ function nextCommandForArtifact(
 
 function resumePhaseForArtifact(
   phase: RecoveryResult['phase'],
-  artifactType: ArtifactKind,
+  artifactType: RecoverableArtifactKind,
 ): RecoveryResult['phase'] {
   if (phase !== 'lfg') {
     return phase

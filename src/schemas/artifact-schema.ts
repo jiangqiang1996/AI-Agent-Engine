@@ -6,7 +6,11 @@ import { z } from 'zod'
  */
 export const ARTIFACT_KIND = {
   BRAINSTORM: 'brainstorm',
+  BRAINSTORM_SHARD: 'brainstorm-shard',
   PLAN: 'plan',
+  PLAN_SHARD: 'plan-shard',
+  DESIGN: 'design',
+  DESIGN_SHARD: 'design-shard',
   WORK: 'work',
   REVIEW: 'review',
 } as const
@@ -15,8 +19,30 @@ export const ARTIFACT_KIND = {
 export type ArtifactKind = typeof ARTIFACT_KIND[keyof typeof ARTIFACT_KIND]
 
 export const ArtifactTypeSchema = z
-  .enum([ARTIFACT_KIND.BRAINSTORM, ARTIFACT_KIND.PLAN, ARTIFACT_KIND.WORK, ARTIFACT_KIND.REVIEW])
+  .enum([
+    ARTIFACT_KIND.BRAINSTORM,
+    ARTIFACT_KIND.BRAINSTORM_SHARD,
+    ARTIFACT_KIND.PLAN,
+    ARTIFACT_KIND.PLAN_SHARD,
+    ARTIFACT_KIND.DESIGN,
+    ARTIFACT_KIND.DESIGN_SHARD,
+    ARTIFACT_KIND.WORK,
+    ARTIFACT_KIND.REVIEW,
+  ])
   .describe('产物类型')
+
+export const TOP_LEVEL_ARTIFACT_KINDS = [
+  ARTIFACT_KIND.BRAINSTORM,
+  ARTIFACT_KIND.PLAN,
+  ARTIFACT_KIND.WORK,
+  ARTIFACT_KIND.REVIEW,
+] as const
+
+export function isShardArtifactKind(value: string): boolean {
+  return [ARTIFACT_KIND.BRAINSTORM_SHARD, ARTIFACT_KIND.PLAN_SHARD, ARTIFACT_KIND.DESIGN_SHARD].includes(
+    value as typeof ARTIFACT_KIND.BRAINSTORM_SHARD,
+  )
+}
 
 /**
  * AE 产物生命周期状态。
@@ -46,6 +72,12 @@ export const ArtifactFrontmatterSchema = z.object({
   topic: z.string().optional().describe('主题'),
   title: z.string().optional().describe('标题'),
   depth: z.enum(['standard', 'deep']).optional().describe('计划深度'),
+  format: z.string().optional().describe('文档格式'),
+  version: z.string().optional().describe('文档格式版本'),
+  sharded: z.boolean().optional().describe('是否为分片主文件'),
+  shards: z.array(z.unknown()).optional().describe('分片索引'),
+  parent: z.string().optional().describe('分片父文档路径'),
+  module: z.string().optional().describe('分片所属模块'),
 }).superRefine((data, ctx) => {
   const hasOrigin = Boolean(data.origin)
   const hasOriginFingerprint = Boolean(data.originFingerprint)
@@ -76,6 +108,17 @@ export const ArtifactFrontmatterSchema = z.object({
       message: 'depth 仅允许用于 plan 类型',
       path: ['depth'],
     })
+  }
+
+  if (isShardArtifactKind(data.type)) {
+    if (!data.parent) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: '分片类型必须有 parent 字段', path: ['parent'] })
+    } else if (!isRepositoryRelativePath(data.parent)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'parent 必须使用仓库相对路径', path: ['parent'] })
+    }
+    if (!data.module) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: '分片类型必须有 module 字段', path: ['module'] })
+    }
   }
 
   if (data.type === 'brainstorm') {
@@ -122,6 +165,14 @@ export const ArtifactFrontmatterSchema = z.object({
         message: `plan 的 status 必须为 ${PLAN_ALLOWED_STATUSES.join(' | ')}`,
         path: ['status'],
       })
+    }
+  }
+  if (data.type === 'design') {
+    if (!data.date) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'design 类型必须有 date 字段', path: ['date'] })
+    }
+    if (!data.title) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'design 类型必须有 title 字段', path: ['title'] })
     }
   }
 })

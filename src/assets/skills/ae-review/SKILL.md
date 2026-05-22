@@ -125,7 +125,9 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 - **未指定路径 + 无头模式** → 输出错误信息，**立即终止**
 - **未指定路径 + ae:lfg 管道模式**（disable-model-invocation）→ 确定性搜索；搜索失败输出错误并终止
 
-**退出条件：** 文档路径已确定，文档已读取。
+如果文档 frontmatter 包含 `sharded: true`，或文档类型为 `*-shard`，先调用 `ae-doc-extract` 构建分片审查上下文；上下文至少保留 `rootDocument`、`shards`、`missingShards`、`duplicateIds`、`parentMismatch`、`globalRelations` 和 `diagnostics` 语义。缺失分片、重复 ID、父子引用不一致等确定性问题必须作为审查输入证据传递给子代理，不得静默降级为只审查主文件。
+
+**退出条件：** 文档路径已确定；单文件文档已读取，或分片文档已读取主文件并构建分片审查上下文。
 
 ### 阶段 2：意图发现与分类
 
@@ -192,7 +194,6 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 - **architecture-strategist** — 文档类型为 plan 且包含重要架构决策
 - **adversarial** — 文档包含 >=5 个独立需求、重要架构决策、高风险领域或新抽象提议
 - **test-case** — 文档类型为 test
-- **doc-equivalence** — 文档是 `ae:doc-humanize` / `ae:doc-structure` 转换产物，或 frontmatter/正文记录了 `upstream`、`origin` 等上游转换来源
 
 **退出条件：** 审查团队已确定并公布。
 
@@ -225,11 +226,12 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 | `{schema}` | 发现 schema 内容 |
 | `{document_type}` | "requirements"、"plan"、"test" 或 "general" |
 | `{document_path}` | 文档路径 |
-| `{document_content}` | 文档完整文本 |
+| `{document_content}` | 单文件文档完整文本；分片文档为主文件全文、分片摘要、子文件内容和 diagnostics 组成的统一审查上下文 |
+| `{sharded_review_context}` | 分片文档审查上下文；单文件文档为空。包含 rootDocument、shards、missingShards、duplicateIds、parentMismatch、globalRelations、diagnostics |
 | `{run_id}` | 运行标识符 |
 | `{reviewer_name}` | 审查者名称 |
 
-向每个文档域代理传递**完整文档**——不要按章节拆分。
+向每个文档域代理传递**完整文档集合**——单文件时传递完整文档；分片时传递主文件、相关子文件和确定性 diagnostics，不要按章节拆分。
 
 所有角色子代理作为并行子代理生成。角色子代理相对于项目是**只读**的。每个代理将完整 JSON 写入 `ae/reviews/{run_id}/{reviewer_name}.json`，返回精简 JSON。
 

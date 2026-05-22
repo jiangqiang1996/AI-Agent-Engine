@@ -107,8 +107,6 @@
 | `/ae-merge-branch` | `[来源分支名\|本地 worktree 路径]` | 合并来源分支或 worktree 变更 | 本地 Git 写操作需明确授权 |
 | `/ae-review` | `[mode:*] [domain:code\|domain:document] [from:<ref>] [full] [full:<path>] [session] [plan:<path>] [文档路径]` | 审查代码、文档、计划、全量路径或会话变更 | 代码域和文档域分开处理 |
 | `/ae-lfg` | `[需求描述\|已有产物路径]` | 默认全流程入口 | 优先恢复已有产物；缺上游时回退到更早阶段 |
-| `/ae-doc-humanize` | `[需求文档路径\|计划文档路径\|目录路径]` | 把结构化需求或计划转换成人读文档 | 只做等价转换，不镀金 |
-| `/ae-doc-structure` | `[需求文档路径\|详细设计文档路径]` | 把人读文档恢复成 AI 易执行的结构化文档 | 无法等价转换时停止确认 |
 | `/ae-agent-browser` | `[环境验证\|浏览器目标\|agent-browser 命令]` | 浏览器能力中枢，负责环境验证、目标选择和浏览器控制 | 写入可跨会话复用的 agent-browser 环境证明 |
 | `/ae-test-browser` | `[URL\|路由]` | 浏览器端到端验收 | 先校验 agent-browser 环境证明；不做审美设计 |
 | `/ae-frontend-design` | `[描述\|路径]` | 构建前端初版界面 | 不替代完整 E2E 或 Figma 对齐 |
@@ -178,7 +176,6 @@
 | `@design-lens-reviewer` | 信息架构、交互状态、用户流程和设计决策缺口 |
 | `@step-granularity-reviewer` | 计划步骤粒度、唯一产物和批量操作方式 |
 | `@test-case-reviewer` | 测试用例文档覆盖、步骤和可验证结果 |
-| `@doc-equivalence-reviewer` | 文档人读化/结构化转换是否语义等价且未镀金 |
 | `@research-reviewer` | 历史方案、外部最佳实践和框架文档 |
 
 ## 研究与流程代理
@@ -209,6 +206,7 @@
 | `ae-graph-build` | 构建或增量维护项目文件关系图谱 | 不分析运行时动态依赖或符号级调用链 |
 | `ae-graph-query` | 查询图谱中的依赖、影响范围、核心模块和健康状态 | 不构建图谱 |
 | `ae-task-analyzer` | 分析任务单元、文件范围和并行组 | 不修改项目文件 |
+| `ae-doc-extract` | 从人读需求、计划或设计文档及其分片中提取结构化上下文 | 不生成、转换或迁移文档 |
 | `ae-worktree-handoff` | 生成 A→B worktree 转移交接文件 | 不创建新会话 |
 
 ## 前端能力怎么选

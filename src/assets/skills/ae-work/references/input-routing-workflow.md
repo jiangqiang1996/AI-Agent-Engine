@@ -10,7 +10,7 @@
 
 交接文件是 B worktree 续执行路径的唯一必需输入。只读取交接文件，以及交接文件明确引用且在当前 B worktree 中真实存在的需求/计划/设计产物、图谱目录和 AE 项目配置作为可选上下文；存在性判断必须使用文件系统视角，不得依赖 `git status`、`git ls-files` 或其他会受 `.gitignore` 影响的 Git 视角；不得因为这些可选产物缺失而把续执行判定为失败。必须以 frontmatter、`## A→B Startup Proof`、`resume_entrypoint`、`## Migrated Artifacts` 和 `## Execution Baseline` 作为结构化真源。
 
-不重新审查、深化或转换需求、设计或计划，不触发 `ae:brainstorm`、`ae:plan`、`ae:review domain:document`、`ae:doc-structure` 或 `ae:doc-humanize`。
+不重新审查、深化或转换需求、设计或计划，不触发 `ae:brainstorm`、`ae:plan` 或 `ae:review domain:document`。
 
 除非交接文件缺失、可观察的当前目录或 `git rev-parse --show-toplevel` 输出与目标 B worktree 不一致，或用户明确要求重新审查，否则直接进入任务分析和阶段 2 执行。若交接文件引用的需求、计划、设计路径、图谱目录或 AE 项目配置不存在，只记录 `optional_context_missing`，不得回到 A worktree 查找或补迁移。`/ae-work-continue` 只是查找交接文件后调用 `ae:work <交接文件>` 的便捷包装，不维护独立续执行流程。
 

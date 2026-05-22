@@ -29,7 +29,7 @@ describe('asset-model-routing-catalog', () => {
   })
 
   it('复杂规划和审查命令不应该落到 quick', () => {
-    for (const command of [COMMAND.PLAN, COMMAND.DOC_HUMANIZE, COMMAND.DOC_STRUCTURE, COMMAND.WORK, COMMAND.REVIEW]) {
+    for (const command of [COMMAND.PLAN, COMMAND.WORK, COMMAND.REVIEW]) {
       expect(getCommandModelScenario(command)).toBe(MODEL_SCENARIO.DEEP)
     }
   })

@@ -16,6 +16,7 @@ import { aeHtmlBundleTool } from './ae-html-bundle.tool.js'
 import { aeGraphBuildTool } from './ae-graph-build.tool.js'
 import { aeGraphQueryTool } from './ae-graph-query.tool.js'
 import { aeTaskAnalyzerTool } from './ae-task-analyzer.tool.js'
+import { aeDocExtractTool } from './ae-doc-extract.tool.js'
 
 export function createToolRegistry(): Record<string, ToolDefinition> {
   return {
@@ -34,5 +35,6 @@ export function createToolRegistry(): Record<string, ToolDefinition> {
     [TOOL.AE_GRAPH_BUILD]: aeGraphBuildTool,
     [TOOL.AE_GRAPH_QUERY]: aeGraphQueryTool,
     [TOOL.AE_TASK_ANALYZER]: aeTaskAnalyzerTool,
+    [TOOL.AE_DOC_EXTRACT]: aeDocExtractTool,
   }
 }

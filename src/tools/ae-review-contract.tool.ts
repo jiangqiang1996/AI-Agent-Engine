@@ -57,8 +57,7 @@ export const aeReviewContractTool: ToolDefinition = tool({
     has_infra: tool.schema.boolean().optional().describe('是否涉及基础设施变更'),
     has_database: tool.schema.boolean().optional().describe('是否涉及数据库变更'),
     has_script: tool.schema.boolean().optional().describe('是否涉及脚本变更'),
-    has_upstream: tool.schema.boolean().optional().describe('文档是否记录了 upstream/origin 等上游转换来源'),
-    is_doc_conversion: tool.schema.boolean().optional().describe('是否正在审查 doc-humanize/doc-structure 转换产物'),
+    has_upstream: tool.schema.boolean().optional().describe('文档是否记录了 upstream/origin 等上游来源'),
   },
   async execute(args) {
     return Effect.runPromise(
@@ -92,7 +91,6 @@ export const aeReviewContractTool: ToolDefinition = tool({
             isHighRiskDomain: args.is_high_risk_domain,
             hasNewAbstraction: args.has_new_abstraction,
             hasUpstream: args.has_upstream,
-            isDocConversion: args.is_doc_conversion,
           })
 
           return JSON.stringify(

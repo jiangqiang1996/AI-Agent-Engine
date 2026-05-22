@@ -130,10 +130,10 @@ describe('资产健康巡检', () => {
     expect(commandConfig[`${COMMAND.AGENT_CREATOR}-pa`], 'asset-health/prompt-variant/command/ae-agent-creator-pa').toBeUndefined()
     expect(commandConfig[`${COMMAND.WORK_REPORT}-po`], 'asset-health/prompt-variant/command/ae-work-report-po').toBeUndefined()
     expect(commandConfig[`${COMMAND.WORK_REPORT}-pa`], 'asset-health/prompt-variant/command/ae-work-report-pa').toBeUndefined()
-    expect(commandConfig[`${COMMAND.DOC_HUMANIZE}-po`], 'asset-health/prompt-variant/command/ae-doc-humanize-po').toBeUndefined()
-    expect(commandConfig[`${COMMAND.DOC_HUMANIZE}-pa`], 'asset-health/prompt-variant/command/ae-doc-humanize-pa').toBeUndefined()
-    expect(commandConfig[`${COMMAND.DOC_STRUCTURE}-po`], 'asset-health/prompt-variant/command/ae-doc-structure-po').toBeUndefined()
-    expect(commandConfig[`${COMMAND.DOC_STRUCTURE}-pa`], 'asset-health/prompt-variant/command/ae-doc-structure-pa').toBeUndefined()
+    expect(commandConfig['ae-doc-humanize-po'], 'asset-health/prompt-variant/command/ae-doc-humanize-po').toBeUndefined()
+    expect(commandConfig['ae-doc-humanize-pa'], 'asset-health/prompt-variant/command/ae-doc-humanize-pa').toBeUndefined()
+    expect(commandConfig['ae-doc-structure-po'], 'asset-health/prompt-variant/command/ae-doc-structure-po').toBeUndefined()
+    expect(commandConfig['ae-doc-structure-pa'], 'asset-health/prompt-variant/command/ae-doc-structure-pa').toBeUndefined()
     expect(commandConfig[`${COMMAND.TASK_LOOP}-po`], 'asset-health/prompt-variant/command/ae-task-loop-po').toBeDefined()
     expect(commandConfig[`${COMMAND.TASK_LOOP}-pa`], 'asset-health/prompt-variant/command/ae-task-loop-pa').toBeDefined()
     expect(commandConfig[`${COMMAND.GRAPH_BUILD}-po`], 'asset-health/prompt-variant/command/ae-graph-build-po').toBeUndefined()
@@ -201,32 +201,19 @@ describe('资产健康巡检', () => {
     expect(collectorText).toContain('agentBrowserVersion: summarizeOutput(version.stdout.trim())')
   })
 
-  it('文档互转资产引用的模板和代理应该存在并注册', () => {
-    const agent = getAllAgentDefinitions().find((entry) => entry.name === AGENT.DOC_EQUIVALENCE_REVIEWER)
-    const humanize = readFileSync('src/assets/skills/ae-doc-humanize/SKILL.md', 'utf8')
-    const structure = readFileSync('src/assets/skills/ae-doc-structure/SKILL.md', 'utf8')
-    const requirementsTemplate = readFileSync('src/assets/skills/ae-doc-humanize/references/requirements-template.md', 'utf8')
-    const designTemplate = readFileSync('src/assets/skills/ae-doc-humanize/references/design-template.md', 'utf8')
-    const structuredRequirements = readFileSync('src/assets/skills/ae-doc-structure/references/structured-requirements-template.md', 'utf8')
-    const structuredPlan = readFileSync('src/assets/skills/ae-doc-structure/references/structured-plan-template.md', 'utf8')
+  it('旧文档互转资产和等价转换代理不应该存在或注册', () => {
+    const agentNames = getAllAgentDefinitions().map((entry) => entry.name)
+    const entries = getPhaseOneEntries()
+    const commandConfig = buildCommandConfig('__missing_commands_dir__')
 
-    expect(agent).toMatchObject({ stage: 'review', tier: 'required', path: 'src/assets/agents/review/doc-equivalence-reviewer.md' })
-    expect(existsSync('src/assets/skills/ae-doc-humanize/references/requirements-template.md')).toBe(true)
-    expect(existsSync('src/assets/skills/ae-doc-humanize/references/design-template.md')).toBe(true)
-    expect(existsSync('src/assets/skills/ae-doc-structure/references/structured-requirements-template.md')).toBe(true)
-    expect(existsSync('src/assets/skills/ae-doc-structure/references/structured-plan-template.md')).toBe(true)
-    expect(humanize).toContain('references/requirements-template.md')
-    expect(humanize).toContain('references/design-template.md')
-    expect(structure).toContain('references/structured-requirements-template.md')
-    expect(structure).toContain('references/structured-plan-template.md')
-    expect(requirementsTemplate).not.toContain('## 用户与场景')
-    expect(requirementsTemplate).not.toContain('## 术语表')
-    expect(requirementsTemplate).not.toContain('视觉沟通')
-    expect(designTemplate).not.toContain('## 影响面 [可选]')
-    expect(structuredRequirements).not.toContain('## 用户与场景')
-    expect(structuredRequirements).not.toContain('## 术语表')
-    expect(structuredRequirements).toContain('## 等价性检查')
-    expect(structuredPlan).not.toContain('## 影响面 [可选]')
+    expect(existsSync('src/assets/skills/ae-doc-humanize')).toBe(false)
+    expect(existsSync('src/assets/skills/ae-doc-structure')).toBe(false)
+    expect(existsSync('src/assets/agents/review/doc-equivalence-reviewer.md')).toBe(false)
+    expect(agentNames).not.toContain('doc-equivalence-reviewer')
+    expect(entries.map((entry) => entry.skillName)).not.toContain('ae:doc-humanize')
+    expect(entries.map((entry) => entry.skillName)).not.toContain('ae:doc-structure')
+    expect(commandConfig['ae-doc-humanize']).toBeUndefined()
+    expect(commandConfig['ae-doc-structure']).toBeUndefined()
   })
 
   it('技能目录不应该使用单数 script 资源目录', () => {
@@ -355,8 +342,6 @@ describe('资产健康巡检', () => {
       COMMAND.WORK_REPORT,
       COMMAND.REFACTOR,
       COMMAND.REVIEW,
-      COMMAND.DOC_HUMANIZE,
-      COMMAND.DOC_STRUCTURE,
       COMMAND.FRONTEND_DESIGN,
       COMMAND.AGENT_BROWSER,
       COMMAND.TEST_BROWSER,

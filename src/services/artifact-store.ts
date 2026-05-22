@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { Effect } from 'effect'
 
 import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
-import { ARTIFACT_KIND, type ArtifactKind } from '../schemas/artifact-schema.js'
+import { ARTIFACT_KIND, isShardArtifactKind, type ArtifactKind } from '../schemas/artifact-schema.js'
 import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
 import { parseFrontmatter, type FrontmatterData } from '../utils/frontmatter.js'
 
@@ -42,9 +42,10 @@ function readMarkdownFiles(dir: string): string[] {
 }
 
 /** 产物类型到 AE 产物子目录名的映射，用于定位产物存储位置。 */
-const CONTEXT_DIR_TYPE_MAP: Record<ArtifactKind, string> = {
+const CONTEXT_DIR_TYPE_MAP: Partial<Record<ArtifactKind, string>> = {
   [ARTIFACT_KIND.BRAINSTORM]: DOCS_AE_SUBDIRS.BRAINSTORMS,
   [ARTIFACT_KIND.PLAN]: DOCS_AE_SUBDIRS.PLANS,
+  [ARTIFACT_KIND.DESIGN]: DOCS_AE_SUBDIRS.DESIGNS,
   [ARTIFACT_KIND.WORK]: DOCS_AE_SUBDIRS.WORK,
   [ARTIFACT_KIND.REVIEW]: DOCS_AE_SUBDIRS.REVIEW,
 }
@@ -54,7 +55,11 @@ function getArtifactDirectory(
   manifest: RuntimeAssetManifest,
   type: ArtifactKind,
 ): string {
-  return join(manifest.repoRoot, docsAePath(CONTEXT_DIR_TYPE_MAP[type]))
+  const directory = CONTEXT_DIR_TYPE_MAP[type]
+  if (!directory || isShardArtifactKind(type)) {
+    throw new Error(`产物类型 ${type} 不作为顶层 AE 产物扫描`)
+  }
+  return join(manifest.repoRoot, docsAePath(directory))
 }
 
 /**
