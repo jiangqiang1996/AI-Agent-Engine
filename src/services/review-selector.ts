@@ -25,7 +25,6 @@ export interface ReviewSelectionInput {
   isHighRiskDomain?: boolean
   hasNewAbstraction?: boolean
   hasUpstream?: boolean
-  isDocConversion?: boolean
   requirementCountGte5?: boolean
   changedLineCountGte50?: boolean
 }

@@ -81,20 +81,15 @@ describe('command-registration', () => {
     expect(config[`${WORK_CONTINUE_COMMAND}${PA_SUFFIX}`]).toBeUndefined()
   })
 
-  it('应该为文档互转技能只生成基础命令', () => {
+  it('不应该再注册旧文档互转命令', () => {
     const config = buildCommandConfig('__missing_commands_dir__')
 
-    for (const [skillName, commandName] of [
-      [SKILL.DOC_HUMANIZE, COMMAND.DOC_HUMANIZE],
-      [SKILL.DOC_STRUCTURE, COMMAND.DOC_STRUCTURE],
-    ] as const) {
-      const poCommand = `${commandName}${PO_SUFFIX}`
-      const paCommand = `${commandName}${PA_SUFFIX}`
-
-      expect(config[commandName]?.template).toContain(`使用 \`${skillName}\` 技能处理这次请求`)
-      expect(config[poCommand]).toBeUndefined()
-      expect(config[paCommand]).toBeUndefined()
-    }
+    expect(config['ae-doc-humanize']).toBeUndefined()
+    expect(config['ae-doc-humanize-po']).toBeUndefined()
+    expect(config['ae-doc-humanize-pa']).toBeUndefined()
+    expect(config['ae-doc-structure']).toBeUndefined()
+    expect(config['ae-doc-structure-po']).toBeUndefined()
+    expect(config['ae-doc-structure-pa']).toBeUndefined()
   })
 
   it('应该为工具型和结构化输入命令只生成基础命令', () => {

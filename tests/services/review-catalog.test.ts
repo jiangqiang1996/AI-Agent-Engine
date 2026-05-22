@@ -26,16 +26,8 @@ describe('REVIEW_MATRIX', () => {
     ])
   })
 
-  it('doc-equivalence-reviewer 应在文档域按转换来源条件激活', () => {
-    const reviewer = REVIEW_MATRIX.find((r) => r.name === AGENT.DOC_EQUIVALENCE_REVIEWER)
-
-    expect(reviewer).toBeDefined()
-    expect(reviewer!.domain).toBe('document')
-    expect(reviewer!.alwaysOn).toBe(false)
-    expect(reviewer!.conditionGroups).toEqual([
-      [{ field: 'hasUpstream', operator: 'truthy' }],
-      [{ field: 'isDocConversion', operator: 'truthy' }],
-    ])
+  it('审查矩阵不应注册旧文档等价转换代理', () => {
+    expect(REVIEW_MATRIX.map((r) => r.name)).not.toContain('doc-equivalence-reviewer')
   })
 
   it('每个条目应有非空 description', () => {

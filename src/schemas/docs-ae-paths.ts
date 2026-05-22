@@ -8,6 +8,7 @@ export const DOCS_AE_ROOT = 'ae'
 export const DOCS_AE_SUBDIRS = {
   BRAINSTORMS: 'brainstorms',
   PLANS: 'plans',
+  DESIGNS: 'designs',
   WORK: 'work',
   REVIEW: 'review',
   GATES: 'gates',

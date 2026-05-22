@@ -93,7 +93,6 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 工作总结 | `/ae-work-report` |
 | 重构计划 | `/ae-refactor` |
 | 代码或文档审查 | `/ae-review` |
-| 文档人读化/结构化 | `/ae-doc-humanize`、`/ae-doc-structure` |
 | 前端初版 | `/ae-frontend-design` |
 | agent-browser 使用指导 | `/ae-agent-browser` |
 | 浏览器验收 | `/ae-test-browser` |
@@ -125,10 +124,10 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 
 | 类型 | 当前快照 | 真源 |
 | --- | ---: | --- |
-| 技能 | 30 | `src/assets/skills/`、`src/services/ae-catalog.ts` |
-| 命令 | 50 | `src/services/command-registration.ts`、`src/assets/commands/` |
-| 代理 | 27 | `src/assets/agents/`、`src/services/agent-registration.ts` |
-| 工具 | 13 | `src/tools/` |
+| 技能 | 28 | `src/assets/skills/`、`src/services/ae-catalog.ts` |
+| 命令 | 48 | `src/services/command-registration.ts`、`src/assets/commands/` |
+| 代理 | 26 | `src/assets/agents/`、`src/services/agent-registration.ts` |
+| 工具 | 14 | `src/tools/` |
 | 规则 | 4 | `src/assets/rules/` |
 | 内置配置 | 1 | `src/assets/config/ae.jsonc` |
 

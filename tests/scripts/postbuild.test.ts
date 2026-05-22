@@ -91,14 +91,14 @@ describe('postbuild 构建脚本', () => {
   it('应该复制内置技能目录和 references 资产到 dist', () => {
     const root = createTempRoot()
     const distSrc = join(root, 'dist', 'src')
-    const skillDir = join(root, 'src', 'assets', 'skills', 'ae-doc-humanize')
+    const skillDir = join(root, 'src', 'assets', 'skills', 'ae-brainstorm')
     mkdirSync(distSrc, { recursive: true })
     mkdirSync(join(root, '.opencode', 'plugins'), { recursive: true })
     mkdirSync(join(skillDir, 'references'), { recursive: true })
     writeFileSync(join(root, 'package.json'), '{"type":"module"}\n', 'utf8')
     writeFileSync(join(distSrc, 'index.js'), 'export default { id: "server", server: async () => ({}) }\n', 'utf8')
-    writeFileSync(join(skillDir, 'SKILL.md'), '---\nname: ae:doc-humanize\n---\n', 'utf8')
-    writeFileSync(join(skillDir, 'references', 'requirements-template.md'), '# template\n', 'utf8')
+    writeFileSync(join(skillDir, 'SKILL.md'), '---\nname: ae:brainstorm\n---\n', 'utf8')
+    writeFileSync(join(skillDir, 'references', 'requirements-capture.md'), '# template\n', 'utf8')
 
     execFileSync(process.execPath, [
       '--input-type=module',
@@ -109,14 +109,14 @@ describe('postbuild 构建脚本', () => {
       ].join('\n'),
     ], { stdio: 'pipe' })
 
-    expect(existsSync(join(distSrc, 'assets', 'skills', 'ae-doc-humanize', 'SKILL.md'))).toBe(true)
+    expect(existsSync(join(distSrc, 'assets', 'skills', 'ae-brainstorm', 'SKILL.md'))).toBe(true)
     expect(existsSync(join(
       distSrc,
       'assets',
       'skills',
-      'ae-doc-humanize',
+      'ae-brainstorm',
       'references',
-      'requirements-template.md',
+      'requirements-capture.md',
     ))).toBe(true)
   })
 })

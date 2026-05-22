@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { ArtifactFrontmatterSchema, ArtifactStatusSchema } from '../../src/schemas/artifact-schema.js'
+import { ArtifactFrontmatterSchema, ArtifactStatusSchema, isShardArtifactKind } from '../../src/schemas/artifact-schema.js'
 
 describe('ArtifactStatusSchema', () => {
   it('应该包含 active 枚举值', () => {
@@ -210,6 +210,95 @@ describe('ArtifactFrontmatterSchema', () => {
         status: 'drafted',
       })
       expect(result.success).toBe(true)
+    })
+  })
+
+  describe('design 类型', () => {
+    it('应该接受有效的 design frontmatter', () => {
+      const result = ArtifactFrontmatterSchema.safeParse({
+        type: 'design',
+        status: 'drafted',
+        date: '2026-05-22',
+        title: '详细设计',
+      })
+
+      expect(result.success).toBe(true)
+    })
+
+    it('应该拒绝缺少 date 或 title 的 design', () => {
+      const result = ArtifactFrontmatterSchema.safeParse({
+        type: 'design',
+        status: 'drafted',
+      })
+
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        const paths = result.error.issues.map((i) => i.path[0])
+        expect(paths).toContain('date')
+        expect(paths).toContain('title')
+      }
+    })
+  })
+
+  describe('分片类型', () => {
+    it('应该接受有效的 plan-shard frontmatter', () => {
+      const result = ArtifactFrontmatterSchema.safeParse({
+        type: 'plan-shard',
+        status: 'drafted',
+        parent: 'ae/plans/main.md',
+        module: 'auth',
+      })
+
+      expect(result.success).toBe(true)
+    })
+
+    it('应该接受有效的 design-shard frontmatter', () => {
+      const result = ArtifactFrontmatterSchema.safeParse({
+        type: 'design-shard',
+        status: 'drafted',
+        parent: 'ae/designs/main.md',
+        module: 'auth',
+      })
+
+      expect(result.success).toBe(true)
+    })
+
+    it('应该拒绝缺少 parent 或 module 的分片 frontmatter', () => {
+      const result = ArtifactFrontmatterSchema.safeParse({
+        type: 'brainstorm-shard',
+        status: 'drafted',
+      })
+
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        const paths = result.error.issues.map((i) => i.path[0])
+        expect(paths).toContain('parent')
+        expect(paths).toContain('module')
+      }
+    })
+
+    it('应该拒绝分片 parent 绝对路径或路径穿越', () => {
+      for (const parent of ['D:/tmp/main.md', 'ae/plans/../outside.md']) {
+        const result = ArtifactFrontmatterSchema.safeParse({
+          type: 'plan-shard',
+          status: 'drafted',
+          parent,
+          module: 'auth',
+        })
+
+        expect(result.success).toBe(false)
+        if (!result.success) {
+          const issue = result.error.issues.find((i) => i.path[0] === 'parent')
+          expect(issue).toBeDefined()
+        }
+      }
+    })
+
+    it('应该识别分片产物类型', () => {
+      expect(isShardArtifactKind('brainstorm-shard')).toBe(true)
+      expect(isShardArtifactKind('plan-shard')).toBe(true)
+      expect(isShardArtifactKind('design-shard')).toBe(true)
+      expect(isShardArtifactKind('plan')).toBe(false)
     })
   })
 

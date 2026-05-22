@@ -1,6 +1,6 @@
 # AI 结构化计划模板
 
-本模板是 `ae:plan`、`ae:refactor` 和 `ae:doc-structure` 生成 `type: plan` 文档的唯一结构契约。
+本模板是 `ae:plan` 和 `ae:refactor` 生成 `type: plan` 文档的唯一结构契约。
 
 生成计划时必须保持正文章节名、字段名和实现单元结构稳定。frontmatter 可选字段按规则省略；可选章节仅在有实质内容时包含；不得写“暂无”“待补充”等占位内容。计划是给 AI 执行的结构化文档，不需要干系人、读者对象、业务价值、背景介绍或汇报型影响说明；只有这些信息会改变实现、验证、迁移、发布或回滚决策时，才可作为范围、约束或风险记录。
 
@@ -104,7 +104,7 @@ depth: <standard|deep>  # 轻量计划删除此行
 ### 推迟到执行
 - Q2. <问题>
 
-## 等价性检查
+## 一致性检查
 - implementationUnitsCount: <U* 数量>
 - tracedRequirementsCount: <被追溯的 R* 数量>
 - decisionsCount: <D* 数量>
@@ -113,8 +113,8 @@ depth: <standard|deep>  # 轻量计划删除此行
 
 ## 兼容要求
 
-- `ae:plan`、`ae:refactor` 和 `ae:doc-structure` 生成的 `type: plan` 文档必须符合此结构。
+- `ae:plan` 和 `ae:refactor` 生成的 `type: plan` 文档必须符合此结构。
 - `ae:work` 必须能直接读取“实现单元”章节执行工作，不需要阅读人读详细设计文档。
-- `origin` 和 `originFingerprint` 只在有真实上游文档时填写；`ae:doc-structure` 从人读设计文档生成计划时，必须把输入文档作为上游记录。
+- `origin` 和 `originFingerprint` 只在有真实上游文档时填写；不得用上游路径替代计划正文中的可执行内容。
 - 可选章节缺失不代表 TODO；只有“待定问题”中的问题才表示未决。
-- 本计划模板与 `ae:doc-humanize` 的人读详细设计模板必须互相可推断：不得为了人读完整性新增计划中没有的干系人、业务价值、背景介绍、影响叙述或最佳实践章节。
+- 本计划模板必须同时人读清晰且机器可抽取：不得为了“完整性”新增计划中没有的干系人、业务价值、背景介绍、影响叙述或最佳实践章节。
