@@ -1,5 +1,7 @@
 import type { GraphFileNode, GraphRelation } from './graph-storage-service.js'
 import { createGraphStorage } from './graph-storage-service.js'
+import { loadGraphConfig } from './graph-config-service.js'
+import { evaluateGraphFreshnessBasis, readGraphBuildState, type GraphFreshness } from './graph-freshness-service.js'
 
 type QueryMode = 'deps' | 'impact' | 'health' | 'filter' | 'path' | 'core' | 'stats' | 'pattern'
 
@@ -251,6 +253,7 @@ function formatOkResult(params: {
   mode: QueryMode
   scopeRoot: string
   versionId: number
+  freshness: GraphFreshness
   summary: unknown
   chunksRead: number
   indexesUsed: string[]
@@ -263,6 +266,7 @@ function formatOkResult(params: {
     mode: params.mode,
     scopeRoot: params.scopeRoot,
     versionId: params.versionId,
+    freshness: params.freshness,
     summary: params.summary,
     queryCost: { chunksRead: params.chunksRead, indexesUsed: params.indexesUsed, chunkBudget: MAX_CHUNKS },
     truncation: { truncated: params.truncated, returnedCount: countResultItems(params.result), limitApplied: params.limit, maxResultItems: MAX_RESULT_ITEMS },
@@ -280,6 +284,15 @@ export function executeGraphQuery(request: GraphQueryRequest): unknown {
     const limit = clampLimit(request.limit)
     const excluded = new Set(request.exclude ?? [])
     const summary = storage.getActiveVersionSummary(request.worktree, request.scopeRoot)
+    const activeMetadata = storage.getActiveVersionMetadata(request.worktree, request.scopeRoot)
+    const freshness = evaluateGraphFreshnessBasis({
+      worktree: request.worktree,
+      scopeRoot: request.scopeRoot,
+      activeVersionId: summary?.versionId,
+      activeMetadata,
+      buildState: readGraphBuildState(request.worktree, request.scopeRoot),
+      config: loadGraphConfig(request.worktree),
+    })
     const indexedSummary = storage.readScopeSummary(request.worktree, request.scopeRoot)
     if (!summary) {
       return { status: 'diagnostic', diagnostic: storage.diagnoseActiveVersion(request.worktree, request.scopeRoot) }
@@ -292,6 +305,7 @@ export function executeGraphQuery(request: GraphQueryRequest): unknown {
           mode: request.mode,
           scopeRoot: request.scopeRoot,
           versionId: summary.versionId,
+          freshness,
           summary,
           chunksRead: 0,
           indexesUsed: indexedSummary ? ['scope-summary'] : [],
@@ -310,6 +324,7 @@ export function executeGraphQuery(request: GraphQueryRequest): unknown {
         mode: request.mode,
         scopeRoot: request.scopeRoot,
         versionId: summary.versionId,
+        freshness,
         summary,
         chunksRead: 0,
         indexesUsed: [],
@@ -358,6 +373,7 @@ export function executeGraphQuery(request: GraphQueryRequest): unknown {
         mode: request.mode,
         scopeRoot: request.scopeRoot,
         versionId: summary.versionId,
+        freshness,
         summary,
         chunksRead,
         indexesUsed,
@@ -382,6 +398,7 @@ export function executeGraphQuery(request: GraphQueryRequest): unknown {
             mode: request.mode,
             scopeRoot: request.scopeRoot,
             versionId: summary.versionId,
+            freshness,
             summary,
             chunksRead: 0,
             indexesUsed: ['scope-summary'],
@@ -402,6 +419,7 @@ export function executeGraphQuery(request: GraphQueryRequest): unknown {
         mode: request.mode,
         scopeRoot: request.scopeRoot,
         versionId: summary.versionId,
+        freshness,
         summary,
         chunksRead: 0,
         indexesUsed: [],
@@ -429,6 +447,7 @@ export function executeGraphQuery(request: GraphQueryRequest): unknown {
         mode: request.mode,
         scopeRoot: request.scopeRoot,
         versionId: graph.versionId,
+        freshness,
         summary,
         chunksRead: 0,
         indexesUsed: [],
@@ -455,6 +474,7 @@ export function executeGraphQuery(request: GraphQueryRequest): unknown {
         mode: request.mode,
         scopeRoot: request.scopeRoot,
         versionId: graph.versionId,
+        freshness,
         summary,
         chunksRead: 0,
         indexesUsed: [],
@@ -498,6 +518,7 @@ export function executeGraphQuery(request: GraphQueryRequest): unknown {
         mode: request.mode,
         scopeRoot: request.scopeRoot,
         versionId: graph.versionId,
+        freshness,
         summary,
         chunksRead: 0,
         indexesUsed: [],
@@ -516,6 +537,7 @@ export function executeGraphQuery(request: GraphQueryRequest): unknown {
         mode: request.mode,
         scopeRoot: request.scopeRoot,
         versionId: graph.versionId,
+        freshness,
         summary,
         chunksRead: 0,
         indexesUsed: [],
@@ -540,6 +562,7 @@ export function executeGraphQuery(request: GraphQueryRequest): unknown {
         mode: request.mode,
         scopeRoot: request.scopeRoot,
         versionId: graph.versionId,
+        freshness,
         summary,
         chunksRead: 0,
         indexesUsed: [],

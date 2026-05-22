@@ -397,4 +397,36 @@ describe('graph-storage-service', () => {
     expect(existsSync(join(root, 'ae', 'graphs', 'README.md'))).toBe(true)
     expect(existsSync(join(root, 'ae', 'graphs', 'graph.json.lock'))).toBe(false)
   })
+
+  it('应该持久化 active version 的构建输入元数据', () => {
+    const root = createTempRoot()
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [], 'HEAD', [], {
+      buildInputFingerprint: 'start-fingerprint',
+      buildInput: {
+        scopeRoot: '.',
+        depth: 'shallow',
+        requestedMode: 'full',
+        effectiveMode: 'full',
+        includeRules: [],
+        excludeRules: [],
+        changedFilesDigest: 'changed',
+        configDigest: 'config',
+      },
+    })
+    storage.updateVersionBuildMetadata(versionId, {
+      buildInputFingerprint: 'start-fingerprint',
+      endInputFingerprint: 'end-fingerprint',
+      inputChangedDuringBuild: true,
+      completedAt: '2026-05-22T00:00:00.000Z',
+    })
+    storage.activateVersion(versionId)
+    const metadata = storage.getActiveVersionMetadata(root, '.')
+    storage.closeDatabase()
+
+    expect(metadata?.buildInputFingerprint).toBe('start-fingerprint')
+    expect(metadata?.endInputFingerprint).toBe('end-fingerprint')
+    expect(metadata?.inputChangedDuringBuild).toBe(true)
+    expect(metadata?.completedAt).toBe('2026-05-22T00:00:00.000Z')
+  })
 })

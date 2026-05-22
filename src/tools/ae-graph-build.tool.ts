@@ -16,6 +16,17 @@ import { createGraphStorage } from '../services/graph-storage-service.js'
 import { createRuntimeAssetManifest } from '../services/runtime-asset-manifest.js'
 import { collectGraphFiles, parseFileRelations } from '../services/graph-parse-service.js'
 import {
+  createGraphRequestFingerprint,
+  createUpdatingGraphBuildState,
+  evaluateGraphFreshnessBasis,
+  isGraphBuildStateStale,
+  normalizeGraphBuildInput,
+  readGraphBuildState,
+  writeGraphBuildState,
+  type GraphBuildInput,
+  type GraphBuildState,
+} from '../services/graph-freshness-service.js'
+import {
   collectGraphFilterCandidateSummary,
   collectGraphFilterSuggestionsFromSummary,
   getGraphPathDecision,
@@ -93,6 +104,52 @@ function normalizeRuleSet(rules: string[]): string[] {
 
 function hasOnlyModifiedFiles(diff: { files: string[]; hasStructuralChange?: boolean; warning?: string }): boolean {
   return !diff.warning && !diff.hasStructuralChange && diff.files.length > 0
+}
+
+function formatBuildStateReuse(state: GraphBuildState, equivalent: boolean): string {
+  return JSON.stringify({
+    status: 'updating',
+    reusedExistingBuild: equivalent,
+    scopeRoot: state.scopeRoot,
+    requestFingerprint: state.requestFingerprint,
+    startedAt: state.startedAt,
+    message: equivalent ? '等价图谱构建已在进行中，复用当前构建状态。' : '已有其他图谱构建正在进行，请稍后重试。',
+    recoverBy: state.recoverBy,
+    freshness: {
+      status: 'updating',
+      message: '构建完成前查询会继续使用最后一个完整 active version。',
+      canUseAsEvidence: false,
+    },
+    database: `${docsAePath(DOCS_AE_SUBDIRS.GRAPHS)}/graph.json`,
+    preview: `${docsAePath(DOCS_AE_SUBDIRS.GRAPHS)}/index.html`,
+    tool: TOOL.AE_GRAPH_BUILD,
+  }, null, 2)
+}
+
+function isEquivalentBuildRequest(state: GraphBuildState, input: GraphBuildInput): boolean {
+  return state.requestFingerprint === createGraphRequestFingerprint(input)
+    || (
+      state.scopeRoot === input.scopeRoot
+      && state.requestSummary.requestedMode === input.requestedMode
+      && state.requestSummary.depth === input.depth
+      && state.requestSummary.changedFilesDigest === input.changedFilesDigest
+      && state.requestSummary.configDigest === input.configDigest
+      && state.requestSummary.gitHead === input.gitHead
+      && state.requestSummary.gitStatusDigest === input.gitStatusDigest
+    )
+}
+
+function markBuildCompleted(state: GraphBuildState, targetVersionId: number): GraphBuildState {
+  const now = new Date().toISOString()
+  return {
+    ...state,
+    status: 'completed',
+    updatedAt: now,
+    completedAt: now,
+    targetVersionId,
+    message: '图谱构建完成。',
+    recoverBy: '无需恢复。',
+  }
 }
 
 function getChangedFiles(worktree: string): { files: string[]; hasStructuralChange?: boolean; warning?: string } {
@@ -206,10 +263,16 @@ async function collectFilterDecisionWarnings(
   return missing.map((suggestion) => `过滤候选未持久化：${suggestion.value} 建议规则 ${suggestion.suggestedRule}，原因：${suggestion.reason}`)
 }
 
-async function confirmStaleLockRecovery(worktree: string, ctx: { ask?: unknown }): Promise<boolean> {
+async function confirmStaleLockRecovery(worktree: string, scopeRoot: string, ctx: { ask?: unknown }): Promise<boolean> {
   if (typeof ctx.ask !== 'function') {
     return false
   }
+
+  const state = readGraphBuildState(worktree, scopeRoot) ?? (scopeRoot === '.' ? undefined : readGraphBuildState(worktree, '.'))
+  if (state?.status !== 'failed' && state?.status !== 'completed' && !(state?.status === 'updating' && isGraphBuildStateStale(state))) {
+    return false
+  }
+
   try {
     await Effect.runPromise(ctx.ask({
       permission: 'file',
@@ -233,6 +296,7 @@ export const aeGraphBuildTool = tool({
     '功能说明：',
     '- 扫描工作区文件并解析浅层 import/require/include 与 Markdown 链接',
     '- 将图谱保存到项目 `ae/graphs/graph.json` 与分片目录，使用本地 JSON 版本化快照',
+    '- 写入构建输入指纹和构建状态，用于查询端判断 freshness 和构建中状态',
     '- 同步生成离线 HTML 预览页与本地 Cytoscape.js 资源，便于直接打开查看图谱',
     '- 支持 full、incremental、auto 模式；非 Git 项目自动降级全量构建',
     '- filterDecisions 会在获得文件写入授权后持久化到项目级 `.opencode/ae.jsonc` 的 graph.include / graph.exclude',
@@ -274,18 +338,34 @@ export const aeGraphBuildTool = tool({
     }
 
     let storage: ReturnType<typeof createGraphStorage> | undefined
+    let currentBuildFingerprint: string | undefined
+    let currentBuildScopeRoot: string | undefined
     try {
       let config = mergeGraphRules(loadGraphConfig(worktree), args)
       const savedDecisions = await persistGraphFilterDecisions(worktree, args.filterDecisions, ctx)
       if (savedDecisions.savedIncludes.length > 0 || savedDecisions.savedExcludes.length > 0) {
         config = mergeGraphRules(loadGraphConfig(worktree), args)
       }
+      const scopeRoot = toPosixPath(relative(worktree, target) || '.')
+      const requestedMode = args.mode ?? 'auto'
+      const preliminaryInput = normalizeGraphBuildInput({
+        worktree,
+        scopeRoot,
+        requestedMode,
+        effectiveMode: requestedMode === 'incremental' ? 'incremental' : 'full',
+        config,
+      })
+      const preliminaryFingerprint = createGraphRequestFingerprint(preliminaryInput)
+      const stateBeforeLock = readGraphBuildState(worktree, scopeRoot)
+      if (stateBeforeLock?.status === 'updating' && !isGraphBuildStateStale(stateBeforeLock) && stateBeforeLock.scopeRoot === scopeRoot) {
+        return formatBuildStateReuse(stateBeforeLock, isEquivalentBuildRequest(stateBeforeLock, preliminaryInput))
+      }
       try {
         storage = createGraphStorage(worktree)
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         if (message.includes('正在被其他进程写入') && typeof ctx.ask === 'function') {
-          const recoverStaleLock = await confirmStaleLockRecovery(worktree, ctx)
+          const recoverStaleLock = await confirmStaleLockRecovery(worktree, scopeRoot, ctx)
           if (!recoverStaleLock) {
             return '图谱存储正在被其他进程写入，已取消构建；请稍后重试。'
           }
@@ -297,10 +377,8 @@ export const aeGraphBuildTool = tool({
         }
       }
 
-      const scopeRoot = toPosixPath(relative(worktree, target) || '.')
       storage.cleanupIncompleteVersions(worktree, scopeRoot)
 
-      const requestedMode = args.mode ?? 'auto'
       const rawDiff = requestedMode === 'full' ? { files: [] } : getChangedFiles(worktree)
       const filteredFiles = filterChangedFiles(rawDiff.files, config)
       const diff = { ...rawDiff, files: filteredFiles, hasStructuralChange: rawDiff.hasStructuralChange && filteredFiles.length > 0 }
@@ -313,31 +391,71 @@ export const aeGraphBuildTool = tool({
       const filterDecisionWarnings = await collectFilterDecisionWarnings(worktree, config, ctx, filterCandidateSummary)
       const active = storage.getActiveVersion(worktree, scopeRoot)
       const rulesChanged = graphRulesChanged(active, config)
-      const effectiveMode = requestedMode === 'full' || diff.warning || diff.hasStructuralChange || !active || rulesChanged ? 'full' : 'incremental'
+      let effectiveMode: 'full' | 'incremental' = requestedMode === 'full' || diff.warning || diff.hasStructuralChange || !active || rulesChanged ? 'full' : 'incremental'
       if (effectiveMode === 'incremental' && diff.files.length === 0 && active) {
         const summary = storage.getActiveVersionSummary(worktree, scopeRoot)
-        copyGraphPreview(worktree)
+        const activeMetadata = storage.getActiveVersionMetadata(worktree, scopeRoot)
+        const freshness = evaluateGraphFreshnessBasis({
+          worktree,
+          scopeRoot,
+          activeVersionId: summary?.versionId,
+          activeMetadata,
+          buildState: readGraphBuildState(worktree, scopeRoot),
+          config,
+        })
+        if (freshness.status === 'fresh') {
+          copyGraphPreview(worktree)
+          storage.closeDatabase()
+          storage = undefined
+          return JSON.stringify({
+            message: 'Git diff 无变更，图谱无需更新',
+            mode: effectiveMode,
+            scopeRoot,
+            summary,
+            freshness,
+            includeRules: config.include,
+            excludeRules: config.exclude,
+            warnings: [savedDecisions.warning, ...filterDecisionWarnings].filter(Boolean),
+            filterDecisionWarnings,
+            filterCandidateSummary,
+            savedIncludes: savedDecisions.savedIncludes,
+            savedExcludes: savedDecisions.savedExcludes,
+            database: `${docsAePath(DOCS_AE_SUBDIRS.GRAPHS)}/graph.json`,
+            preview: `${docsAePath(DOCS_AE_SUBDIRS.GRAPHS)}/index.html`,
+          }, null, 2)
+        }
+        effectiveMode = 'full'
+      }
+      const startInput: GraphBuildInput = normalizeGraphBuildInput({
+        worktree,
+        scopeRoot,
+        requestedMode,
+        effectiveMode,
+        config,
+      })
+      const startInputFingerprint = createGraphRequestFingerprint(startInput)
+      currentBuildFingerprint = startInputFingerprint
+      currentBuildScopeRoot = scopeRoot
+      const existingState = readGraphBuildState(worktree, scopeRoot)
+      if (existingState?.status === 'updating' && !isGraphBuildStateStale(existingState) && existingState.scopeRoot === scopeRoot) {
         storage.closeDatabase()
         storage = undefined
-        return JSON.stringify({
-          message: 'Git diff 无变更，图谱无需更新',
-          mode: effectiveMode,
-          scopeRoot,
-          summary,
-          includeRules: config.include,
-          excludeRules: config.exclude,
-          warnings: [savedDecisions.warning, ...filterDecisionWarnings].filter(Boolean),
-          filterDecisionWarnings,
-          filterCandidateSummary,
-          savedIncludes: savedDecisions.savedIncludes,
-          savedExcludes: savedDecisions.savedExcludes,
-          database: `${docsAePath(DOCS_AE_SUBDIRS.GRAPHS)}/graph.json`,
-          preview: `${docsAePath(DOCS_AE_SUBDIRS.GRAPHS)}/index.html`,
-        }, null, 2)
+        return formatBuildStateReuse(existingState, isEquivalentBuildRequest(existingState, startInput))
       }
 
+      const buildState = createUpdatingGraphBuildState({
+        worktree,
+        scopeRoot,
+        requestFingerprint: startInputFingerprint,
+        requestSummary: startInput,
+        activeVersionAtStart: active?.versionId,
+      })
+      writeGraphBuildState(worktree, buildState)
       const allFiles = collectGraphFiles(worktree, target, config)
-      const versionId = storage.createVersion(worktree, scopeRoot, config.exclude, 'HEAD', config.include)
+      const versionId = storage.createVersion(worktree, scopeRoot, config.exclude, 'HEAD', config.include, {
+        buildInputFingerprint: startInputFingerprint,
+        buildInput: startInput,
+      })
       let parseFiles = allFiles
       if (effectiveMode === 'incremental' && active) {
         storage.copyVersion(active.versionId, versionId)
@@ -356,7 +474,25 @@ export const aeGraphBuildTool = tool({
       const parsed = await parseFileRelations(worktree, parseFiles, config)
       storage.insertFiles(versionId, parsed.files)
       storage.insertRelations(versionId, parsed.relations)
+      const endInput = normalizeGraphBuildInput({
+        worktree,
+        scopeRoot,
+        requestedMode,
+        effectiveMode,
+        config,
+      })
+      const endInputFingerprint = createGraphRequestFingerprint(endInput)
+      const inputChangedDuringBuild = startInputFingerprint !== endInputFingerprint
+      const completedAt = new Date().toISOString()
+      storage.updateVersionBuildMetadata(versionId, {
+        buildInputFingerprint: startInputFingerprint,
+        buildInput: startInput,
+        endInputFingerprint,
+        inputChangedDuringBuild,
+        completedAt,
+      })
       storage.activateVersion(versionId)
+      writeGraphBuildState(worktree, markBuildCompleted(buildState, versionId))
       copyGraphPreview(worktree)
       const activeSummary = storage.getActiveVersionSummary(worktree, scopeRoot)
 
@@ -380,6 +516,19 @@ export const aeGraphBuildTool = tool({
         includeRules: config.include,
         excludeRules: config.exclude,
         warnings: [diff.warning, savedDecisions.warning, ...parsed.warnings, ...filterDecisionWarnings].filter(Boolean),
+        freshness: {
+          status: inputChangedDuringBuild ? 'maybe_stale' : (endInput.warning ? 'maybe_stale' : 'fresh'),
+          activeVersionId: versionId,
+          basis: inputChangedDuringBuild
+            ? ['构建期间输入摘要发生变化。']
+            : (endInput.warning ? [endInput.warning] : ['构建结束输入摘要与 active version 一致。']),
+          message: inputChangedDuringBuild ? '图谱已更新，但构建期间输入变化，需再次刷新才能作为高影响结论证据。' : '图谱构建完成。',
+          requiresRefreshFor: inputChangedDuringBuild ? ['无影响、无依赖、完整覆盖等高影响结论'] : [],
+          canUseAsEvidence: !inputChangedDuringBuild && !endInput.warning,
+        },
+        buildInputFingerprint: startInputFingerprint,
+        endInputFingerprint,
+        inputChangedDuringBuild,
         filterDecisionWarnings,
         filterCandidateSummary,
         savedIncludes: savedDecisions.savedIncludes,
@@ -391,6 +540,17 @@ export const aeGraphBuildTool = tool({
       }, null, 2)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
+      const currentState = readGraphBuildState(worktree, currentBuildScopeRoot)
+      if (currentState?.status === 'updating' && currentState.requestFingerprint === currentBuildFingerprint) {
+        const now = new Date().toISOString()
+        writeGraphBuildState(worktree, {
+          ...currentState,
+          status: 'failed',
+          updatedAt: now,
+          message: `文件关系图谱构建失败：${message}`,
+          recoverBy: '请修复失败原因后重新执行 ae-graph-build。',
+        })
+      }
       return `文件关系图谱构建失败：${message}`
     } finally {
       storage?.closeDatabase()

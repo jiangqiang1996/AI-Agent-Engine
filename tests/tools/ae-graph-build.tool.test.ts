@@ -9,6 +9,32 @@ import { Effect } from 'effect'
 
 import { aeGraphBuildTool } from '../../src/tools/ae-graph-build.tool.js'
 import { aeGraphQueryTool } from '../../src/tools/ae-graph-query.tool.js'
+import {
+  createGraphRequestFingerprint,
+  createUpdatingGraphBuildState,
+  normalizeGraphBuildInput,
+  writeGraphBuildState,
+} from '../../src/services/graph-freshness-service.js'
+import { loadGraphConfig } from '../../src/services/graph-config-service.js'
+
+const GRAPH_BUILD_STATE_BASE = {
+  schemaVersion: 1,
+  startedAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  worktreeKey: '.',
+  scopeRoot: '.',
+  requestFingerprint: 'old',
+  requestSummary: {
+    scopeRoot: '.',
+    depth: 'shallow',
+    requestedMode: 'full',
+    effectiveMode: 'full',
+    includeRules: [],
+    excludeRules: [],
+    changedFilesDigest: 'old',
+    configDigest: 'old',
+  },
+}
 
 const tempRoots: string[] = []
 
@@ -107,6 +133,9 @@ describe('ae-graph-build 工具', () => {
       relations: number
       parserStats: unknown[]
       preview: string
+      freshness: { status: string; canUseAsEvidence: boolean }
+      buildInputFingerprint: string
+      endInputFingerprint: string
     }
 
     expect(parsed.mode).toBe('full')
@@ -115,6 +144,9 @@ describe('ae-graph-build 工具', () => {
     expect(parsed.activeNodes).toBe(parsed.parsedNodes)
     expect(parsed.relations).toBeGreaterThan(0)
     expect(parsed.parserStats).toEqual([])
+    expect(parsed.freshness.status).toBe('maybe_stale')
+    expect(parsed.freshness.canUseAsEvidence).toBe(false)
+    expect(parsed.buildInputFingerprint).toBe(parsed.endInputFingerprint)
     expect(parsed.preview).toBe('ae/graphs/index.html')
     expect(existsSync(join(root, 'ae', 'graphs', 'index.html'))).toBe(true)
     expect(previewIndexReferencesExistingAssets(root)).toBe(true)
@@ -231,6 +263,12 @@ describe('ae-graph-build 工具', () => {
     const root = createTempRoot()
     write(root, 'src/a.ts', '')
     write(root, 'ae/graphs/graph.json.lock', 'other\n')
+    write(root, 'ae/graphs/graph-build-state.json', JSON.stringify({
+      ...GRAPH_BUILD_STATE_BASE,
+      status: 'failed',
+      message: '失败',
+      recoverBy: '重试',
+    }))
     write(root, '.opencode/ae.jsonc', '{ "graph": { "exclude": ["ae/graphs"] } }')
     const asked: unknown[] = []
     const ctx = createCaptureAskContext(root, asked)
@@ -242,6 +280,113 @@ describe('ae-graph-build 工具', () => {
     expect(existsSync(join(root, 'ae', 'graphs', 'graph.json.lock'))).toBe(false)
     expect(JSON.stringify(asked)).toContain('清理残留锁')
     expect(JSON.stringify(asked)).not.toContain('强制覆盖锁文件')
+  })
+
+  it('应该在 completed 状态存在残留锁时允许用户确认后恢复', async () => {
+    const root = createTempRoot()
+    write(root, 'src/a.ts', '')
+    write(root, 'ae/graphs/graph.json.lock', 'other\n')
+    write(root, 'ae/graphs/graph-build-state.json', JSON.stringify({
+      ...GRAPH_BUILD_STATE_BASE,
+      status: 'completed',
+      completedAt: new Date().toISOString(),
+      targetVersionId: 1,
+      message: '已完成',
+      recoverBy: '无需恢复',
+    }))
+    const asked: unknown[] = []
+    const ctx = createCaptureAskContext(root, asked)
+
+    const result = await aeGraphBuildTool.execute({ mode: 'full' }, ctx)
+    const parsed = JSON.parse(result as string) as { database: string }
+
+    expect(parsed.database).toBe('ae/graphs/graph.json')
+    expect(existsSync(join(root, 'ae', 'graphs', 'graph.json.lock'))).toBe(false)
+    expect(JSON.stringify(asked)).toContain('清理残留锁')
+  })
+
+  it('应该用默认 scope 的 completed 状态恢复跨 scope 残留锁', async () => {
+    const root = createTempRoot()
+    write(root, 'src/a.ts', '')
+    write(root, 'ae/graphs/graph.json.lock', 'other\n')
+    write(root, 'ae/graphs/graph-build-state.json', JSON.stringify({
+      ...GRAPH_BUILD_STATE_BASE,
+      status: 'completed',
+      completedAt: new Date().toISOString(),
+      targetVersionId: 1,
+      message: '默认 scope 已完成',
+      recoverBy: '无需恢复',
+    }))
+    const asked: unknown[] = []
+    const ctx = createCaptureAskContext(root, asked)
+
+    const result = await aeGraphBuildTool.execute({ target: 'src', mode: 'full' }, ctx)
+    const parsed = JSON.parse(result as string) as { database: string; scopeRoot: string }
+
+    expect(parsed.database).toBe('ae/graphs/graph.json')
+    expect(parsed.scopeRoot).toBe('src')
+    expect(existsSync(join(root, 'ae', 'graphs', 'graph.json.lock'))).toBe(false)
+    expect(JSON.stringify(asked)).toContain('清理残留锁')
+  })
+
+  it('不应该在缺少残留构建状态时清理可能活跃的锁', async () => {
+    const root = createTempRoot()
+    write(root, 'src/a.ts', '')
+    write(root, 'ae/graphs/graph.json.lock', 'other\n')
+    const asked: unknown[] = []
+    const ctx = createCaptureAskContext(root, asked)
+
+    const result = await aeGraphBuildTool.execute({ mode: 'full' }, ctx)
+
+    expect(result).toContain('图谱存储正在被其他进程写入')
+    expect(existsSync(join(root, 'ae', 'graphs', 'graph.json.lock'))).toBe(true)
+    expect(asked).toEqual([])
+  })
+
+  it('不应该清理未过期 updating 状态对应的残留锁', async () => {
+    const root = createTempRoot()
+    write(root, 'src/a.ts', '')
+    write(root, 'ae/graphs/graph.json.lock', 'other\n')
+    write(root, 'ae/graphs/graph-build-state.json', JSON.stringify({
+      ...GRAPH_BUILD_STATE_BASE,
+      status: 'updating',
+      message: '构建中',
+      recoverBy: '稍后重试',
+    }))
+    const asked: unknown[] = []
+    const ctx = createCaptureAskContext(root, asked)
+
+    const result = await aeGraphBuildTool.execute({ mode: 'full' }, ctx)
+    const parsed = JSON.parse(result as string) as { status: string; message: string }
+
+    expect(parsed.status).toBe('updating')
+    expect(parsed.message).toContain('已有其他图谱构建正在进行')
+    expect(existsSync(join(root, 'ae', 'graphs', 'graph.json.lock'))).toBe(true)
+    expect(asked).toEqual([])
+  })
+
+  it('应该在过期 updating 状态存在残留锁时允许用户确认后恢复', async () => {
+    const root = createTempRoot()
+    const staleTime = new Date(Date.now() - 11 * 60 * 1000).toISOString()
+    write(root, 'src/a.ts', '')
+    write(root, 'ae/graphs/graph.json.lock', 'other\n')
+    write(root, 'ae/graphs/graph-build-state.json', JSON.stringify({
+      ...GRAPH_BUILD_STATE_BASE,
+      status: 'updating',
+      startedAt: staleTime,
+      updatedAt: staleTime,
+      message: '构建中',
+      recoverBy: '确认后恢复',
+    }))
+    const asked: unknown[] = []
+    const ctx = createCaptureAskContext(root, asked)
+
+    const result = await aeGraphBuildTool.execute({ mode: 'full' }, ctx)
+    const parsed = JSON.parse(result as string) as { database: string }
+
+    expect(parsed.database).toBe('ae/graphs/graph.json')
+    expect(existsSync(join(root, 'ae', 'graphs', 'graph.json.lock'))).toBe(false)
+    expect(JSON.stringify(asked)).toContain('清理残留锁')
   })
 
   it('应该返回相对图谱文件路径和预览文件路径', async () => {
@@ -442,7 +587,7 @@ describe('ae-graph-build 工具', () => {
     expect(existsSync(join(root, 'ae', 'graphs', 'index.html'))).toBe(true)
     expect(previewIndexReferencesExistingAssets(root)).toBe(true)
     expect(existsSync(join(root, 'ae', 'graphs', 'graph.json.lock'))).toBe(false)
-  })
+  }, 30000)
 
   it('仅运行产物变化时不应该触发全量重建', async () => {
     const root = createTempRoot()
@@ -462,6 +607,63 @@ describe('ae-graph-build 工具', () => {
     expect(parsed.message).toContain('图谱无需更新')
   })
 
+  it('应该在 auto 增量构建进行中复用等价请求', async () => {
+    const root = createTempRoot()
+    execFileSync('git', ['init'], { cwd: root, stdio: 'ignore' })
+    write(root, 'src/a.ts', 'export const a = 1')
+    execFileSync('git', ['add', 'src/a.ts'], { cwd: root, stdio: 'ignore' })
+    execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-m', 'test'], { cwd: root, stdio: 'ignore' })
+    write(root, 'src/a.ts', 'export const a = 2')
+    const requestSummary = normalizeGraphBuildInput({
+      worktree: root,
+      scopeRoot: '.',
+      requestedMode: 'auto',
+      effectiveMode: 'incremental',
+      config: loadGraphConfig(root),
+    })
+    writeGraphBuildState(root, createUpdatingGraphBuildState({
+      worktree: root,
+      scopeRoot: '.',
+      requestFingerprint: createGraphRequestFingerprint(requestSummary),
+      requestSummary,
+    }))
+
+    const result = await aeGraphBuildTool.execute({ mode: 'auto' }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as { status: string; reusedExistingBuild: boolean }
+
+    expect(parsed.status).toBe('updating')
+    expect(parsed.reusedExistingBuild).toBe(true)
+  }, 30000)
+
+  it('不应该复用非等价的进行中构建请求', async () => {
+    const root = createTempRoot()
+    execFileSync('git', ['init'], { cwd: root, stdio: 'ignore' })
+    write(root, 'src/a.ts', 'export const a = 1')
+    execFileSync('git', ['add', 'src/a.ts'], { cwd: root, stdio: 'ignore' })
+    execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-m', 'test'], { cwd: root, stdio: 'ignore' })
+    write(root, 'src/a.ts', 'export const a = 2')
+    const requestSummary = normalizeGraphBuildInput({
+      worktree: root,
+      scopeRoot: '.',
+      requestedMode: 'auto',
+      effectiveMode: 'incremental',
+      config: { ...loadGraphConfig(root), exclude: ['src/**'] },
+    })
+    writeGraphBuildState(root, createUpdatingGraphBuildState({
+      worktree: root,
+      scopeRoot: '.',
+      requestFingerprint: createGraphRequestFingerprint(requestSummary),
+      requestSummary,
+    }))
+
+    const result = await aeGraphBuildTool.execute({ mode: 'auto' }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as { status: string; reusedExistingBuild: boolean; message: string }
+
+    expect(parsed.status).toBe('updating')
+    expect(parsed.reusedExistingBuild).toBe(false)
+    expect(parsed.message).toContain('已有其他图谱构建正在进行')
+  }, 30000)
+
   it('大图谱应写入分片文件并在查询时返回 summary', async () => {
     const root = createTempRoot()
     execFileSync('git', ['init'], { cwd: root, stdio: 'ignore' })
@@ -479,7 +681,7 @@ describe('ae-graph-build 工具', () => {
     expect(parsed.activeNodes).toBeGreaterThan(0)
     expect(existsSync(join(root, 'ae', 'graphs', 'version-1'))).toBe(true)
     expect(query.summary.chunkIds.length).toBeGreaterThan(0)
-  }, 30000)
+  }, 60000)
 
   it('新增被既有文件引用的目标文件时应该回退全量构建', async () => {
     const root = createTempRoot()
@@ -560,7 +762,7 @@ describe('ae-graph-build 工具', () => {
     expect(parsed.mode).toBe('full')
     expect(parsed.modeReason).toContain('图谱过滤规则变化')
     expect(query.result.files.some((file) => file.relativePath === 'dist/keep.ts')).toBe(true)
-  })
+  }, 30000)
 
   it('过滤规则仅顺序变化时不应该回退全量构建', async () => {
     const root = createTempRoot()

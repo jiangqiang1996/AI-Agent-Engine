@@ -1,4 +1,5 @@
 import { mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -6,6 +7,13 @@ import { afterEach, describe, expect, it } from 'vitest'
 import type { ToolContext } from '@opencode-ai/plugin/tool'
 
 import { createGraphStorage } from '../../src/services/graph-storage-service.js'
+import {
+  createGraphRequestFingerprint,
+  createUpdatingGraphBuildState,
+  normalizeGraphBuildInput,
+  writeGraphBuildState,
+} from '../../src/services/graph-freshness-service.js'
+import { loadGraphConfig } from '../../src/services/graph-config-service.js'
 import { aeGraphQueryTool } from '../../src/tools/ae-graph-query.tool.js'
 
 const tempRoots: string[] = []
@@ -63,6 +71,12 @@ function seedScopedGraph(root: string): void {
   storage.closeDatabase()
 }
 
+function initGitRepo(root: string): void {
+  execFileSync('git', ['init'], { cwd: root, stdio: 'ignore' })
+  execFileSync('git', ['config', 'user.email', 'test@example.com'], { cwd: root, stdio: 'ignore' })
+  execFileSync('git', ['config', 'user.name', 'Test User'], { cwd: root, stdio: 'ignore' })
+}
+
 afterEach(() => {
   for (const root of tempRoots.splice(0)) {
     rmSync(root, { recursive: true, force: true })
@@ -79,6 +93,96 @@ describe('ae-graph-query 工具', () => {
 
     expect(parsed.result.dependencies).toHaveLength(1)
     expect(parsed.queryCost.indexesUsed).toContain('source-to-relation-chunks')
+  })
+
+  it('查询结果应该包含 freshness，旧图谱降级为 maybe_stale', async () => {
+    const root = createTempRoot()
+    seedGraph(root)
+
+    const result = await aeGraphQueryTool.execute({ mode: 'stats' }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as {
+      freshness: { status: string; canUseAsEvidence: boolean; requiresRefreshFor: string[] }
+    }
+
+    expect(parsed.freshness.status).toBe('maybe_stale')
+    expect(parsed.freshness.canUseAsEvidence).toBe(false)
+    expect(parsed.freshness.requiresRefreshFor).toContain('无影响、无依赖、完整覆盖等高影响结论')
+  })
+
+  it('查询结果应该在输入指纹匹配时标记 fresh 且可作为证据', async () => {
+    const root = createTempRoot()
+    initGitRepo(root)
+    mkdirSync(join(root, 'src'), { recursive: true })
+    writeFileSync(join(root, 'src', 'a.ts'), '')
+    execFileSync('git', ['add', 'src/a.ts'], { cwd: root, stdio: 'ignore' })
+    execFileSync('git', ['commit', '-m', 'init'], { cwd: root, stdio: 'ignore' })
+    const input = normalizeGraphBuildInput({
+      worktree: root,
+      scopeRoot: '.',
+      requestedMode: 'full',
+      effectiveMode: 'full',
+      config: loadGraphConfig(root),
+    })
+    const fingerprint = createGraphRequestFingerprint(input)
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [], 'HEAD', [], {
+      buildInputFingerprint: fingerprint,
+      buildInput: input,
+      endInputFingerprint: fingerprint,
+      inputChangedDuringBuild: false,
+      completedAt: new Date().toISOString(),
+    })
+    storage.insertFiles(versionId, [{ relativePath: 'src/a.ts', fileType: 'source' }])
+    storage.activateVersion(versionId)
+    storage.closeDatabase()
+
+    const result = await aeGraphQueryTool.execute({ mode: 'stats' }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as { freshness: { status: string; canUseAsEvidence: boolean } }
+
+    expect(parsed.freshness.status).toBe('fresh')
+    expect(parsed.freshness.canUseAsEvidence).toBe(true)
+  })
+
+  it('查询结果应该在存在有效构建状态时标记 updating', async () => {
+    const root = createTempRoot()
+    initGitRepo(root)
+    mkdirSync(join(root, 'src'), { recursive: true })
+    writeFileSync(join(root, 'src', 'a.ts'), '')
+    execFileSync('git', ['add', 'src/a.ts'], { cwd: root, stdio: 'ignore' })
+    execFileSync('git', ['commit', '-m', 'init'], { cwd: root, stdio: 'ignore' })
+    const input = normalizeGraphBuildInput({
+      worktree: root,
+      scopeRoot: '.',
+      requestedMode: 'full',
+      effectiveMode: 'full',
+      config: loadGraphConfig(root),
+    })
+    const fingerprint = createGraphRequestFingerprint(input)
+    const storage = createGraphStorage(root)
+    const versionId = storage.createVersion(root, '.', [], 'HEAD', [], {
+      buildInputFingerprint: fingerprint,
+      buildInput: input,
+      endInputFingerprint: fingerprint,
+      inputChangedDuringBuild: false,
+      completedAt: new Date().toISOString(),
+    })
+    storage.insertFiles(versionId, [{ relativePath: 'src/a.ts', fileType: 'source' }])
+    storage.activateVersion(versionId)
+    storage.closeDatabase()
+    writeGraphBuildState(root, createUpdatingGraphBuildState({
+      worktree: root,
+      scopeRoot: '.',
+      requestFingerprint: fingerprint,
+      requestSummary: input,
+      activeVersionAtStart: versionId,
+    }))
+
+    const result = await aeGraphQueryTool.execute({ mode: 'stats' }, createMockContext(root))
+    const parsed = JSON.parse(result as string) as { freshness: { status: string; canUseAsEvidence: boolean; buildState?: { status: string } } }
+
+    expect(parsed.freshness.status).toBe('updating')
+    expect(parsed.freshness.canUseAsEvidence).toBe(false)
+    expect(parsed.freshness.buildState?.status).toBe('updating')
   })
 
   it('应该在图谱文件不存在时提示先构建', async () => {

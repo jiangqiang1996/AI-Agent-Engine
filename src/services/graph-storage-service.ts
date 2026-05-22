@@ -65,6 +65,20 @@ export interface ActiveGraphSummary {
   relationCount: number
 }
 
+export interface GraphVersionBuildMetadata {
+  buildInputFingerprint?: string
+  buildInput?: unknown
+  endInputFingerprint?: string
+  inputChangedDuringBuild?: boolean
+  completedAt?: string
+}
+
+export interface ActiveGraphMetadata extends ActiveGraphSummary, GraphVersionBuildMetadata {
+  createdAt: string
+  includeRules?: string[]
+  excludeRules: string[]
+}
+
 export type GraphStorageDiagnosticCode =
   | 'ok'
   | 'missing_store'
@@ -133,6 +147,7 @@ interface GraphVersionManifest {
   chunks: string[]
   indexes: string[]
   summary: GraphScopeSummaryIndex
+  buildMetadata?: GraphVersionBuildMetadata
 }
 
 interface GraphVersionRecord {
@@ -146,6 +161,7 @@ interface GraphVersionRecord {
   excludeRules: string[]
   gitRef?: string
   createdAt: string
+  buildMetadata?: GraphVersionBuildMetadata
   chunkIds: string[]
   files?: GraphFileNode[]
   relations?: GraphRelation[]
@@ -416,7 +432,14 @@ export class GraphStorage {
     }
   }
 
-  createVersion(workspaceRoot: string, scopeRoot: string, excludeRules: string[], gitRef?: string, includeRules: string[] = []): number {
+  createVersion(
+    workspaceRoot: string,
+    scopeRoot: string,
+    excludeRules: string[],
+    gitRef?: string,
+    includeRules: string[] = [],
+    buildMetadata?: GraphVersionBuildMetadata,
+  ): number {
     this.assertWritable()
     const id = this.store.nextVersionId
     this.store.nextVersionId += 1
@@ -431,6 +454,7 @@ export class GraphStorage {
       excludeRules: [...excludeRules],
       gitRef,
       createdAt: new Date().toISOString(),
+      buildMetadata: buildMetadata ? { ...buildMetadata } : undefined,
       chunkIds: [],
       files: [],
       relations: [],
@@ -514,6 +538,12 @@ export class GraphStorage {
     this.saveStore()
   }
 
+  updateVersionBuildMetadata(versionId: number, buildMetadata: GraphVersionBuildMetadata): void {
+    const version = this.getWritableVersion(versionId)
+    version.buildMetadata = { ...buildMetadata }
+    this.saveStore()
+  }
+
   getActiveVersion(workspaceRoot: string, scopeRoot: string): ActiveGraph | undefined {
     const workspaceKey = getWorkspaceKey(workspaceRoot)
     const version = this.store.versions
@@ -550,6 +580,24 @@ export class GraphStorage {
       fileCount: version.fileCount,
       nodeCount: this.readScopeSummary(workspaceRoot, scopeRoot)?.nodeCount ?? this.loadVersionFiles(version).length,
       relationCount: version.relationCount,
+    }
+  }
+
+  getActiveVersionMetadata(workspaceRoot: string, scopeRoot: string): ActiveGraphMetadata | undefined {
+    const version = this.findActiveVersion(workspaceRoot, scopeRoot)
+    if (!version) {
+      return undefined
+    }
+    const summary = this.getActiveVersionSummary(workspaceRoot, scopeRoot)
+    if (!summary) {
+      return undefined
+    }
+    return {
+      ...summary,
+      createdAt: version.createdAt,
+      includeRules: [...(version.includeRules ?? [])],
+      excludeRules: [...version.excludeRules],
+      ...(version.buildMetadata ?? {}),
     }
   }
 
@@ -938,6 +986,7 @@ export class GraphStorage {
       chunks: chunkIds,
       indexes: [...INDEX_NAMES],
       summary,
+      buildMetadata: version.buildMetadata,
     } satisfies GraphVersionManifest)
   }
 
