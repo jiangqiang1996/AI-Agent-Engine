@@ -12,6 +12,24 @@ const tempRoots: string[] = []
 const REVIEW_OUTPUT = '<task_result>{"reviewer":"correctness","reviewStatus":"passed","findings":[]}</task_result>'
 const SECURITY_REVIEW_OUTPUT = '<task_result>{"reviewStatus":"passed","findings":[]}</task_result>'
 
+function extractTrustedReviewPayload(output: string): string {
+  let payload = output
+  while (true) {
+    const openTag = '<task_result>'
+    const closeTag = '</task_result>'
+    const start = payload.indexOf(openTag)
+    const end = payload.lastIndexOf(closeTag)
+    if (start < 0 || end <= start) {
+      return payload
+    }
+    const nextPayload = payload.slice(start + openTag.length, end).trim()
+    if (!nextPayload || nextPayload === payload) {
+      return payload
+    }
+    payload = nextPayload
+  }
+}
+
 function createReviewOutput(evidence: { worktree: string; branch: string; head: string; statusSummary: string }): string {
   return `<task_result>${JSON.stringify({
     reviewer: 'correctness',
@@ -75,7 +93,7 @@ function writeReviewReport(
     proofKind?: string
   },
 ): void {
-  const reviewOutputHash = evidence.reviewOutputHash ?? hashReviewOutput(createReviewOutput(evidence))
+  const reviewOutputHash = evidence.reviewOutputHash ?? hashReviewOutput(extractTrustedReviewPayload(createReviewOutput(evidence)))
   mkdirSync(join(root, 'ae', 'reviews', evidence.reviewRunIdOrMessageRef), { recursive: true })
   writeFileSync(join(root, 'ae', 'reviews', evidence.reviewRunIdOrMessageRef, 'metadata.json'), `${JSON.stringify({
     generatedBy: 'ae:review',
@@ -642,6 +660,91 @@ describe('ae-gate 工具', () => {
     expect(result.evidenceSources.review).toBe('observable_workspace')
   })
 
+  it('应该通过 ae:review command 字段标记的 task 子代理 tool_output 证据', async () => {
+    const root = createRepoRoot()
+    const fingerprint = initGitRepo(root)
+    const reviewOutput = createReviewOutput({ worktree: root, ...fingerprint })
+    const wrappedReviewOutput = `task_id: task-review-1 (for resuming to continue this task if needed)\n\n<task_result>\n${reviewOutput}\n</task_result>`
+    const tool = await getToolDefinition()
+
+    const output = await tool.execute({
+      workflow: 'work',
+      checkpoint: 'final',
+      plan_path: 'ae/plans/test-plan.md',
+      validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
+      review_status: 'passed',
+      review_evidence: {
+        type: 'tool_output',
+        review_trust: 'verified',
+        review_run_id_or_message_ref: 'task-review-1',
+        worktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        status_summary: fingerprint.statusSummary,
+        summary: '审查通过',
+      },
+      git_operations: [],
+      worktree_decision: 'rejected',
+      no_code_change_reason: '测试工具映射',
+      write_proof: false,
+    }, {
+      metadata: () => undefined,
+      worktree: root,
+      directory: root,
+      sessionID: 'test-session',
+      history: [{ task_id: 'task-review-1', role: 'tool', command: 'ae:review', subagent_type: 'correctness-reviewer', content: wrappedReviewOutput }],
+      abort: new AbortController().signal,
+    })
+    const result = JSON.parse(output) as { status: string; blockers: string[]; evidenceSources: { review: string } }
+
+    expect(result.status).toBe('pass')
+    expect(result.blockers).toEqual([])
+    expect(result.evidenceSources.review).toBe('observable_workspace')
+  })
+
+  it('应该通过仅 name 字段标记的 ae:review 工具证据', async () => {
+    const root = createRepoRoot()
+    const fingerprint = initGitRepo(root)
+    const reviewOutput = createReviewOutput({ worktree: root, ...fingerprint })
+    const tool = await getToolDefinition()
+
+    const output = await tool.execute({
+      workflow: 'work',
+      checkpoint: 'final',
+      plan_path: 'ae/plans/test-plan.md',
+      validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
+      review_status: 'passed',
+      review_evidence: {
+        type: 'tool_output',
+        review_trust: 'verified',
+        review_run_id_or_message_ref: 'review-name-1',
+        worktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        status_summary: fingerprint.statusSummary,
+        summary: '审查通过',
+      },
+      git_operations: [],
+      worktree_decision: 'rejected',
+      no_code_change_reason: '测试工具映射',
+      write_proof: false,
+    }, {
+      metadata: () => undefined,
+      worktree: root,
+      directory: root,
+      sessionID: 'test-session',
+      history: [{ id: 'review-name-1', role: 'tool', name: 'ae:review', content: reviewOutput }],
+      abort: new AbortController().signal,
+    })
+    const result = JSON.parse(output) as { status: string; blockers: string[]; evidenceSources: { review: string } }
+
+    expect(result.status).toBe('pass')
+    expect(result.blockers).toEqual([])
+    expect(result.evidenceSources.review).toBe('observable_workspace')
+  })
+
   it('应该通过结构化审查报告元数据放行有效报告路径', async () => {
     const root = createRepoRoot()
     const fingerprint = initGitRepo(root)
@@ -692,7 +795,7 @@ describe('ae-gate 工具', () => {
       reviewRunIdOrMessageRef: 'review-1',
       worktree: root,
       ...fingerprint,
-      reviewOutputHash: hashReviewOutput(reviewOutput),
+      reviewOutputHash: hashReviewOutput(extractTrustedReviewPayload(reviewOutput)),
     })
     const tool = await getToolDefinition()
 
@@ -739,7 +842,7 @@ describe('ae-gate 工具', () => {
       reviewRunIdOrMessageRef: 'review-security',
       worktree: root,
       ...fingerprint,
-      reviewOutputHash: hashReviewOutput(reviewOutput),
+      reviewOutputHash: hashReviewOutput(extractTrustedReviewPayload(reviewOutput)),
     })
     const tool = await getToolDefinition()
 
@@ -789,7 +892,7 @@ describe('ae-gate 工具', () => {
       ...fingerprint,
       proofKind: 'ae-review-proof',
       hasBlockingFinding: false,
-      reviewOutputHash: hashReviewOutput(reviewOutput),
+      reviewOutputHash: hashReviewOutput(extractTrustedReviewPayload(reviewOutput)),
     })
     const tool = await getToolDefinition()
 
@@ -829,6 +932,58 @@ describe('ae-gate 工具', () => {
     expect(result.blockers).toEqual([])
   })
 
+  it('应该用 task_result 内层审查输出校验 report_path 哈希', async () => {
+    const root = createRepoRoot()
+    const fingerprint = initGitRepo(root)
+    const reviewOutput = createReviewOutput({ worktree: root, ...fingerprint })
+    const wrappedReviewOutput = `task_id: task-review-1 (for resuming to continue this task if needed)\n\n<task_result>\n${reviewOutput}\n</task_result>`
+    writeReviewReport(root, {
+      reviewRunIdOrMessageRef: 'proof-run-1',
+      sourceReviewRef: 'task-review-1',
+      worktree: root,
+      ...fingerprint,
+      proofKind: 'ae-review-proof',
+      hasBlockingFinding: false,
+      reviewOutputHash: hashReviewOutput(extractTrustedReviewPayload(reviewOutput)),
+    })
+    const tool = await getToolDefinition()
+
+    const output = await tool.execute({
+      workflow: 'work',
+      checkpoint: 'final',
+      plan_path: 'ae/plans/test-plan.md',
+      validation_commands: ['npm run test'],
+      validation_results: [{ command: 'npm run test', exit_code: 0, output: 'tests passed' }],
+      review_status: 'passed',
+      review_evidence: {
+        type: 'report_path',
+        review_trust: 'verified',
+        path: 'ae/reviews/proof-run-1/metadata.json',
+        review_run_id_or_message_ref: 'proof-run-1',
+        source_review_ref: 'task-review-1',
+        worktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        status_summary: fingerprint.statusSummary,
+      },
+      git_operations: [],
+      worktree_decision: 'rejected',
+      no_code_change_reason: '测试工具映射',
+      write_proof: false,
+    }, {
+      metadata: () => undefined,
+      worktree: root,
+      directory: root,
+      sessionID: 'test-session',
+      history: [{ task_id: 'task-review-1', role: 'tool', command: 'ae:review', subagent_type: 'correctness-reviewer', content: wrappedReviewOutput }],
+      abort: new AbortController().signal,
+    })
+    const result = JSON.parse(output) as { status: string; blockers: string[] }
+
+    expect(result.status).toBe('pass')
+    expect(result.blockers).toEqual([])
+  })
+
   it('应该采信 task 工具中明确审查子代理的结构化来源', async () => {
     const root = createRepoRoot()
     const fingerprint = initGitRepo(root)
@@ -837,7 +992,7 @@ describe('ae-gate 工具', () => {
       reviewRunIdOrMessageRef: 'review-1',
       worktree: root,
       ...fingerprint,
-      reviewOutputHash: hashReviewOutput(reviewOutput),
+      reviewOutputHash: hashReviewOutput(extractTrustedReviewPayload(reviewOutput)),
     })
     const tool = await getToolDefinition()
 
@@ -907,7 +1062,7 @@ describe('ae-gate 工具', () => {
         reviewRunIdOrMessageRef: reviewId,
         worktree: root,
         ...fingerprint,
-        reviewOutputHash: hashReviewOutput(reviewOutput),
+        reviewOutputHash: hashReviewOutput(extractTrustedReviewPayload(reviewOutput)),
       })
 
       const output = await tool.execute({
@@ -954,7 +1109,7 @@ describe('ae-gate 工具', () => {
       reviewRunIdOrMessageRef: 'review-1',
       worktree: root,
       ...fingerprint,
-      reviewOutputHash: hashReviewOutput(reviewOutput),
+      reviewOutputHash: hashReviewOutput(extractTrustedReviewPayload(reviewOutput)),
     })
     const tool = await getToolDefinition()
 
@@ -1053,7 +1208,7 @@ describe('ae-gate 工具', () => {
       reviewRunIdOrMessageRef: 'review-1',
       worktree: root,
       ...fingerprint,
-      reviewOutputHash: hashReviewOutput(reviewOutput),
+      reviewOutputHash: hashReviewOutput(extractTrustedReviewPayload(reviewOutput)),
     })
     const tool = await getToolDefinition()
 
@@ -1181,7 +1336,7 @@ describe('ae-gate 工具', () => {
       reviewRunIdOrMessageRef: 'review-1',
       worktree: root,
       ...fingerprint,
-      reviewOutputHash: hashReviewOutput(reviewOutput),
+      reviewOutputHash: hashReviewOutput(extractTrustedReviewPayload(reviewOutput)),
     })
     const tool = await getToolDefinition()
 
@@ -1380,7 +1535,7 @@ describe('ae-gate 工具', () => {
       reviewRunIdOrMessageRef: 'review-1',
       worktree: root,
       ...fingerprint,
-      reviewOutputHash: hashReviewOutput(reviewOutput),
+      reviewOutputHash: hashReviewOutput(extractTrustedReviewPayload(reviewOutput)),
     })
     const tool = await getToolDefinition()
 

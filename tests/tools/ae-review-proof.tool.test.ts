@@ -120,6 +120,68 @@ describe('ae-review-proof 工具', () => {
     expect((result as { metadata?: Record<string, unknown> }).metadata?.sourceReviewRef).toBe('task-review-1')
   })
 
+  it('应该接受 ae:review 命令触发的 task 子代理输出包裹', async () => {
+    const root = createRepoRoot()
+    const sourceReviewOutput = createSourceReviewOutput({ worktree: root, ...getGitFingerprint(root) })
+    const wrappedReviewOutput = `task_id: task-review-1 (for resuming to continue this task if needed)\n\n<task_result>\n${sourceReviewOutput}\n</task_result>`
+
+    const ctx = {
+      ...createToolContext(root),
+      history: [{
+        task_id: 'task-review-1',
+        role: 'tool',
+        command: 'ae:review',
+        subagent_type: 'correctness-reviewer',
+        content: wrappedReviewOutput,
+      }],
+    } as Parameters<typeof aeReviewProofTool.execute>[1]
+
+    const result = await aeReviewProofTool.execute({
+      review_run_id: 'proof-run-1',
+      source_review_ref: 'task-review-1',
+      review_status: 'passed',
+      summary: '审查通过',
+      findings: [],
+      source_review_output: sourceReviewOutput,
+    }, ctx)
+
+    expect(typeof result).toBe('object')
+    const metadataPath = join(root, 'ae', 'reviews', 'proof-run-1', 'metadata.json')
+    const metadata = JSON.parse(readFileSync(metadataPath, 'utf8')) as Record<string, unknown>
+
+    expect(metadata.sourceReviewRef).toBe('task-review-1')
+    expect(metadata.reviewOutputHash).toBe(hashReviewOutput(sourceReviewOutput))
+    expect((result as { output: string }).output).toBe(sourceReviewOutput)
+  })
+
+  it('应该接受仅通过 name 标记的 ae:review 工具输出', async () => {
+    const root = createRepoRoot()
+    const sourceReviewOutput = createSourceReviewOutput({ worktree: root, ...getGitFingerprint(root) })
+
+    const ctx = {
+      ...createToolContext(root),
+      history: [{
+        id: 'review-name-1',
+        role: 'tool',
+        name: 'ae:review',
+        content: sourceReviewOutput,
+      }],
+    } as Parameters<typeof aeReviewProofTool.execute>[1]
+
+    const result = await aeReviewProofTool.execute({
+      review_run_id: 'proof-name-1',
+      source_review_ref: 'review-name-1',
+      review_status: 'passed',
+      summary: '审查通过',
+      findings: [],
+      source_review_output: sourceReviewOutput,
+    }, ctx)
+
+    expect(typeof result).toBe('object')
+    const metadataPath = join(root, 'ae', 'reviews', 'proof-name-1', 'metadata.json')
+    expect(existsSync(metadataPath)).toBe(true)
+  })
+
   it('应该接受审查子代理常见的 review_status 和 HEAD 字段', async () => {
     const root = createRepoRoot()
     const fingerprint = getGitFingerprint(root)
@@ -285,6 +347,27 @@ describe('ae-review-proof 工具', () => {
       findings: [],
       source_review_output: sourceReviewOutput,
     }, createToolContext(root, sourceReviewOutput, 'task-review-other'))
+
+    expect(result).toBe('source_review_output 必须来自当前会话历史中匹配 source_review_ref 的真实 ae:review 或审查子代理输出。')
+  })
+
+  it('应该拒绝只在历史包裹外层出现的 source_review_output', async () => {
+    const root = createRepoRoot()
+    const sourceReviewOutput = createSourceReviewOutput({ worktree: root, ...getGitFingerprint(root) })
+    const wrappedReviewOutput = `${sourceReviewOutput}\n<task_result>{"reviewStatus":"failed"}</task_result>`
+    const ctx = {
+      ...createToolContext(root),
+      history: [{ task_id: 'task-review-1', role: 'tool', command: 'ae:review', content: wrappedReviewOutput }],
+    } as Parameters<typeof aeReviewProofTool.execute>[1]
+
+    const result = await aeReviewProofTool.execute({
+      review_run_id: 'proof-run-outer-only',
+      source_review_ref: 'task-review-1',
+      review_status: 'passed',
+      summary: '审查通过',
+      findings: [],
+      source_review_output: sourceReviewOutput,
+    }, ctx)
 
     expect(result).toBe('source_review_output 必须来自当前会话历史中匹配 source_review_ref 的真实 ae:review 或审查子代理输出。')
   })

@@ -146,6 +146,34 @@ function collectTrustedReviewRefs(context: Record<string, unknown>, evidence: To
   return Object.keys(collectTrustedReviewOutputs(context, evidence))
 }
 
+function isTrustedReviewToolName(candidate: {
+  tool?: unknown
+  name?: unknown
+  toolName?: unknown
+  command?: unknown
+  message?: {
+    tool?: unknown
+    name?: unknown
+    toolName?: unknown
+    command?: unknown
+  }
+}): boolean {
+  const explicitToolNames = [
+    candidate.tool,
+    candidate.toolName,
+    candidate.command,
+    candidate.message?.tool,
+    candidate.message?.toolName,
+    candidate.message?.command,
+  ]
+  const fallbackNames = [candidate.name, candidate.message?.name]
+  const hasExplicitToolMarker = explicitToolNames.some((toolName) => typeof toolName === 'string')
+  const toolNames = hasExplicitToolMarker ? explicitToolNames : fallbackNames
+
+  return toolNames.some((toolName) => typeof toolName === 'string'
+    && (toolName === SKILL.REVIEW || toolName === COMMAND.REVIEW))
+}
+
 function collectTrustedReviewOutputs(
   context: Record<string, unknown>,
   evidence: ToolReviewEvidenceInput | undefined,
@@ -172,6 +200,7 @@ function collectTrustedReviewOutputs(
       tool?: unknown
       name?: unknown
       toolName?: unknown
+      command?: unknown
       subagent_type?: unknown
       content?: unknown
       text?: unknown
@@ -182,6 +211,7 @@ function collectTrustedReviewOutputs(
         tool?: unknown
         name?: unknown
         toolName?: unknown
+        command?: unknown
         subagent_type?: unknown
         content?: unknown
         text?: unknown
@@ -194,18 +224,11 @@ function collectTrustedReviewOutputs(
       ? evidence.source_review_ref ?? evidence.review_run_id_or_message_ref
       : evidence.review_run_id_or_message_ref
     const content = extractHistoryText(candidate.content ?? candidate.text ?? candidate.message?.content ?? candidate.message?.text)
-    const toolNames = [
-      candidate.tool,
-      candidate.toolName,
-      candidate.message?.tool,
-      candidate.message?.toolName,
-    ]
     const subagentTypes = [
       candidate.subagent_type,
       candidate.message?.subagent_type,
     ]
-    const isReviewTool = toolNames.some((toolName) => typeof toolName === 'string'
-      && (toolName === SKILL.REVIEW || toolName === COMMAND.REVIEW))
+    const isReviewTool = isTrustedReviewToolName(candidate)
     const isReviewSubagent = subagentTypes.some((subagentType) => typeof subagentType === 'string'
       && REVIEW_SUBAGENT_TYPES.has(subagentType))
     const isReviewSource = isReviewTool || isReviewSubagent
