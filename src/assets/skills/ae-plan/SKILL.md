@@ -118,7 +118,7 @@ argument-hint: "[计划路径|需求文档路径|需求描述]"
 
 文件名：`ae/plans/YYYY-MM-DD-NNN-<type>-<descriptive-name>-plan.md`
 
-**Frontmatter 字段填写规则：** 计划文档的 frontmatter 必须包含 `type: plan`、`status: drafted`、`date` 和 `title`。`origin` 和 `originFingerprint` 仅在有上游产物时成对填写。`origin` 必须使用仓库相对路径。`originFingerprint` 的值为上游产物 frontmatter 中 `date` + `-` + `topic` 的 kebab-case 拼接；若上游没有 `topic`，则使用 `date` + `-` + `title`（如 `2026-04-27-artifact-template-restructure`）。`supersededBy` 不由计划技能填写，由后续技能在替代旧文档时写入。`depth` 仅对标准和深度计划填写。
+**Frontmatter 字段填写规则：** 计划文档的 frontmatter 必须包含 `type: plan`、`status: drafted`、`date`、`title`、`format: human-readable-plan` 和 `sharded`。`origin` 和 `originFingerprint` 仅在有上游产物时成对填写。`origin` 必须使用仓库相对路径。`originFingerprint` 的值为上游产物 frontmatter 中 `date` + `-` + `topic` 的 kebab-case 拼接；若上游没有 `topic`，则使用 `date` + `-` + `title`（如 `2026-04-27-artifact-template-restructure`）。`supersededBy` 不由计划技能填写，由后续技能在替代旧文档时写入。`depth` 仅对标准和深度计划填写。仅当模块数量大于 1，或用户明确要求分片时，`sharded` 才为 `true`。
 
 Frontmatter 模板：
 ```yaml
@@ -130,6 +130,8 @@ title: <kebab-case-title>
 origin: <上游产物路径，若无则删除此行>
 originFingerprint: <上游指纹，若无则删除此行>
 depth: <standard|deep>  # 轻量计划删除此行
+format: human-readable-plan
+sharded: false
 ---
 ```
 
@@ -147,7 +149,7 @@ depth: <standard|deep>  # 轻量计划删除此行
 
 #### 3.5 定义每个实现单元
 
-每个单元必须包含：目标、覆盖需求、依赖、文件、方法、需遵循的模式、测试场景（正常路径、边界情况、错误路径、集成）、验证。重构计划还必须包含行为保持要求和回滚信号。
+每个单元必须包含：目标、覆盖需求、唯一产出物、依赖、文件、方法、需遵循的模式、测试场景（正常路径、边界情况、错误路径、集成）、验证。存在明确模块边界时还必须包含所属模块。重构计划还必须包含行为保持要求和回滚信号。
 
 #### 3.6 保持计划时和实现时的未知事项分离
 

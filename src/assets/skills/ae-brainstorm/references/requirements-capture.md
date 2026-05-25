@@ -32,6 +32,8 @@ date: YYYY-MM-DD
 topic: <kebab-case-topic>
 origin: <上游路径，若无则删除此行>
 originFingerprint: <上游指纹，若无则删除此行>
+format: human-readable-requirements
+sharded: false
 ---
 
 # <主题标题>
@@ -90,7 +92,7 @@ originFingerprint: <上游指纹，若无则删除此行>
 ### 推迟到规划
 - [影响 R2][技术] [应在规划期间回答的问题]
 
-## AI 解析契约
+## 一致性检查
 - requirementsCount: [R* 数量]
 - nonFunctionalRequirementsCount: [NFR* 数量]
 - decisionsCount: [D* 数量]
@@ -108,7 +110,17 @@ originFingerprint: <上游指纹，若无则删除此行>
 | `topic` | `<kebab-case-topic>` | 主题的 kebab-case 形式 |
 | `origin` | 上游产物路径 | 仅在有上游产物时填写，否则删除此行。必须使用仓库相对路径 |
 | `originFingerprint` | 上游指纹 | 仅在有上游产物时填写，否则删除此行。值为上游产物 `date` + `-` + `topic` 的 kebab-case 拼接；若上游没有 `topic`，则使用 `date` + `-` + `title`（如 `2026-04-27-artifact-template-restructure`） |
+| `format` | `human-readable-requirements` | 固定值，表示同一文档同时供人读和机器提取 |
+| `sharded` | `false` 或 `true` | 仅当模块数量大于 1，或用户明确要求分片时使用 `true`；不得按需求数量、文档行数或预估 token 数自动分片 |
 | `supersededBy` | — | 不由 brainstorm 技能填写，由后续技能在替代旧文档时写入 |
+
+**分片规则：**
+
+仅当模块数量大于 1，或用户明确要求分片时，才创建分片需求文档。主文件仍必须保留问题框架、全局范围、跨模块流程、共享数据、接口边界或其他跨模块关系，不能退化为分片路径列表。
+
+分片主文件 frontmatter 使用 `type: brainstorm`、`format: human-readable-requirements`、`sharded: true` 和 `shards` 索引。`shards` 每项至少包含 `file`、`module`，并尽量列出该分片覆盖的 `requirements`、`decisions` 或其他稳定 ID。
+
+分片子文件 frontmatter 使用 `type: brainstorm-shard`、`parent: <主文件仓库相对路径>` 和 `module: <模块名>`。子文件只承载本模块需求、约束和待定问题，不作为恢复、规划或执行入口的顶层产物。
 
 对于**标准**和**深入**头脑风暴，通常需要一份需求数据文档。
 
@@ -118,7 +130,7 @@ originFingerprint: <上游指纹，若无则删除此行>
 
 非功能需求使用 `NFR1`、`NFR2` 稳定 ID；关键决策使用 `D1`、`D2` 稳定 ID。待定问题在文本中应显式标注影响的需求 ID 和问题类型，避免后续阶段推断。
 
-当需求跨越多个不同关注点时，在需求部分的加粗主题标题下分组。分组依据是逻辑主题的不同，而非需求数量。需求保留其原始稳定 ID——编号不按组重新开始。
+当需求跨越多个不同关注点时，在需求部分的加粗主题标题下分组。分组依据是逻辑主题的不同，而非需求数量。需求保留其原始稳定 ID——编号不按组重新开始。只有这些关注点对应多个模块，或用户明确要求分片时，才创建 `brainstorm-shard` 子文件。
 
 当工作简单时，保留固定章节名，但省略没有实质内容的可选章节。简短且结构稳定的需求数据文档好于臃肿的。
 
@@ -132,7 +144,7 @@ originFingerprint: <上游指纹，若无则删除此行>
 - 是否有一个低成本的变更会使这显著更有用？
 - 视觉辅助是否能帮助读者比纯文字更快地理解需求？
 - 每个需求条目是否都有明确的验收条件？
-- `AI 解析契约` 是否存在且数量与正文一致？
+- `AI 解析契约` 是否存在，且 `一致性检查` 中的数量是否与正文一致？
 - 是否保留了足够稳定 ID，使 `ae-doc-extract` 可按 ID 或模块提取所需上下文？
 
 如果规划需要发明产品行为、范围边界或成功标准，头脑风暴还没有完成。
