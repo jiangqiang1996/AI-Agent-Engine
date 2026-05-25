@@ -34,6 +34,7 @@ argument-hint: "[mode:deps|impact|health|filter|path|core|stats|pattern] [file:<
 ## 输出要求
 
 - 返回 JSON 结构化结果，包含查询模式、scope、图谱版本、分片摘要、`queryCost`、`truncation` 和查询结果。
+- 必须读取并保留 `freshness`：只有 `freshness.status=fresh` 时，空结果、无影响或无依赖结论才可作为图谱证据；`maybe_stale`、`stale`、`updating` 或诊断状态只能作为定位线索。
 - 图谱损坏、scope 不匹配、manifest/chunk/index 缺失时返回 `status=diagnostic`、问题位置、可用 scope 和 `recoverBy`，不得把空结果解释为无依赖。
 - 图谱文件不存在时提示先运行 `ae:graph-build`。
 - 参数缺失或路径越界时返回中文可恢复提示。
@@ -45,6 +46,7 @@ argument-hint: "[mode:deps|impact|health|filter|path|core|stats|pattern] [file:<
 - 所有路径参数必须位于当前工作区内。
 - 不构建或修改图谱数据。
 - 图谱结果是结构快照，不能替代读取真实源码、Git diff、测试、类型检查、构建或安全审查。
+- `freshness.status` 不是 `fresh` 时，不得用图谱空结果声明无影响、无依赖、完整覆盖或无需修改；必须先刷新图谱，或用真实文件、源码搜索、Git 状态和验证命令补证。
 - 图谱空结果、过期结果或范围外结果不能证明文件不存在、无引用或无风险；必须用文件系统、源码搜索或验证命令复核关键结论。
 
 ## 完成标准

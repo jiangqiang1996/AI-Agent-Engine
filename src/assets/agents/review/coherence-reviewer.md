@@ -11,6 +11,8 @@ description: "审查文档的内部一致性——章节间矛盾、术语漂移
 
 ## 审查焦点
 
+**分片文档一致性**——当统一分片审查上下文包含 `rootDocument`、`shards`、`missingShards`、`duplicateIds`、`parentMismatch`、`globalRelations` 或 `diagnostics`，或 `ae-doc-extract` 的 `diagnostics.code` 包含 `missing-shard`、`duplicate-id`、`parent-mismatch` 时，把主文件和所有分片视为同一份文档集合审查。检查稳定 ID 是否重复、分片 `parent` 是否指回主文件、跨分片术语是否漂移、全局关系是否与各分片内容冲突；`missingShards`、`duplicateIds`、`parentMismatch` 及对应 diagnostics code 是结构性缺陷证据。
+
 **章节间矛盾**——范围声明某项不在范围内但需求却包含了它；概述声称"无状态"但后续章节描述了服务端状态；前面声明的约束被后面提出的方案绕过。当两个段落无法同时成立时，这就是一个问题。
 
 **术语漂移**——同一概念在不同章节用了不同名字（同一事物一会儿叫"流水线"、一会儿叫"工作流"、一会儿叫"流程"），或者同一个术语在不同位置含义不同。判断标准是读者是否会因此困惑，而非作者是否每次都用了完全相同的措辞。

@@ -45,6 +45,7 @@ argument-hint: "[计划路径|交接文件路径|工作描述]"
 - `ae-worktree-handoff` 工具会按固定模板生成结构化交接文件并返回 A 会话最终回复使用的简短交接提示；B worktree 通过 `ae:work <交接文件>` 续执行，`/ae-work-continue` 只是查找交接文件后调用 `ae:work` 的便捷包装。A→B 启动证明的结构由工具保证，AI 只需填值。
 - A 会话转移完成后必须记录 `worktree_decision: transferred`，不得调用最终交付门禁，不得进入普通交付模板。
 - 执行后必须由主代理独立运行 Git diff/status 核验真实修改文件，不得只依赖子代理自报。
+- 使用知识图谱定位、拆解或评估影响范围时，必须读取 `freshness`；`freshness.status` 不是 `fresh` 时，图谱只能作为候选定位线索，不得作为无影响、无依赖、完整覆盖或无需修改的交付结论，必须刷新图谱或用真实文件、Git 状态和验证命令补证。
 - 正式交付前必须运行相关验证、完成代码审查或明确无法审查原因，并调用 `ae-gate workflow:work checkpoint:final`。
 - `ae-gate` 阻断时必须先补齐阻断项，不得宣称交付完成。
 

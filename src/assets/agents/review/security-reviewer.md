@@ -60,6 +60,8 @@ description: "跨域审查角色。代码域：审查代码中的可利用漏洞
 
 评估计划是否在规划阶段就考虑了安全。区别于代码级安全审查——你审查的是计划是否在实现开始之前做出了安全相关决策并识别了攻击面。
 
+当统一分片审查上下文包含 `rootDocument`、`shards`、`missingShards`、`duplicateIds`、`parentMismatch`、`globalRelations` 或 `diagnostics`，或 `ae-doc-extract` 的 `diagnostics.code` 包含 `missing-shard`、`duplicate-id`、`parent-mismatch` 时，把主文件和所有分片视为同一文档集合审查。跨分片追踪攻击面、权限假设和数据暴露；若安全相关分片缺失、父子关系不匹配或诊断显示结构损坏，必须把它作为安全审查覆盖风险记录。
+
 ### 审查焦点
 
 跳过与文档范围不相关的领域。

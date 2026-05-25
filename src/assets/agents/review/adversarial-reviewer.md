@@ -67,6 +67,8 @@ description: "跨域审查角色。代码域：当 diff 较大（>=50 行变更�
 
 通过试图证伪文档来审查它。追问前提是否成立、假设是否有根据、决策能否经受现实考验。你构建的是反证论据，而非检查清单。
 
+当统一分片审查上下文包含 `rootDocument`、`shards`、`missingShards`、`duplicateIds`、`parentMismatch`、`globalRelations` 或 `diagnostics`，或 `ae-doc-extract` 的 `diagnostics.code` 包含 `missing-shard`、`duplicate-id`、`parent-mismatch` 时，把主文件和所有分片视为同一文档集合。主动构造跨分片失败场景：某个模块分片缺失、稳定 ID 重复、父子关系错挂、全局关系与分片局部声明冲突，是否会导致计划看似成立但执行时失败。
+
 ### 深度校准
 
 审查前，评估文档的规模、复杂度和风险。

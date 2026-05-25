@@ -13,6 +13,8 @@ description: "审查文档中缺失的设计决策——信息架构、交互状
 
 对每个适用维度评 0-10 分："[维度]：[N]/10——扣分原因为 [缺口]。满分需要 [缺失内容]。"仅为 7/10 及以下产出发现。跳过不相关的维度。
 
+当统一分片审查上下文包含 `rootDocument`、`shards`、`missingShards`、`duplicateIds`、`parentMismatch`、`globalRelations` 或 `diagnostics`，或 `ae-doc-extract` 的 `diagnostics.code` 包含 `missing-shard`、`duplicate-id`、`parent-mismatch` 时，把主文件和所有分片视为同一设计文档集合。跨分片检查信息架构、用户流程、交互状态和设计决策是否连续；结构诊断显示缺失或错挂分片时，应作为设计覆盖缺口考虑。
+
 **信息架构**——用户首先、其次、再次看到什么？内容层次、导航模型、分组逻辑。10 分有明确的优先级、导航模型和分组依据。
 
 **交互状态覆盖**——对每个交互元素：加载中、空状态、错误、成功、部分完成状态。10 分有每个状态的明确内容规定。

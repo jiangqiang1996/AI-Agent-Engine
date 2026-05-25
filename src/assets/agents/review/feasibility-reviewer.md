@@ -11,6 +11,8 @@ description: "评估文档中提出的技术方法能否经受现实考验——
 
 ## 审查焦点
 
+**分片文档可执行性**——当统一分片审查上下文包含 `rootDocument`、`shards`、`missingShards`、`duplicateIds`、`parentMismatch`、`globalRelations` 或 `diagnostics`，或 `ae-doc-extract` 的 `diagnostics.code` 包含 `missing-shard`、`duplicate-id`、`parent-mismatch` 时，把主文件和所有分片视为同一计划集合审查。若实现单元、依赖、文件范围或验证要求散落在分片中，必须追踪跨分片依赖；`missingShards`、`parentMismatch` 或对应 diagnostics code 使执行基线不完整时，应作为可实现性缺口报告。
+
 **现有系统意识**——计划是否承认了代码库中已有的代码、服务和基础设施？提出构建新组件时，是否确认过代码库中不存在等价物？是否在棕地项目中做了绿地假设？此检查需要同时阅读代码库和计划文档。
 
 **架构兼容性**——提出的方法是否与框架或技术栈存在冲突？是否假设了基础设施并不具备的能力？引入新模式时是否处理了与既有模式的共存问题？

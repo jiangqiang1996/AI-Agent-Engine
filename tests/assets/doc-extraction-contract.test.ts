@@ -5,6 +5,14 @@ import { describe, expect, it } from 'vitest'
 const brainstormCapture = readFileSync('src/assets/skills/ae-brainstorm/references/requirements-capture.md', 'utf8')
 const planTemplate = readFileSync('src/assets/skills/ae-plan/references/plan-template.md', 'utf8')
 const planSkill = readFileSync('src/assets/skills/ae-plan/SKILL.md', 'utf8')
+const reviewAgentPaths = [
+  'src/assets/agents/review/adversarial-reviewer.md',
+  'src/assets/agents/review/coherence-reviewer.md',
+  'src/assets/agents/review/design-lens-reviewer.md',
+  'src/assets/agents/review/feasibility-reviewer.md',
+  'src/assets/agents/review/product-lens-reviewer.md',
+  'src/assets/agents/review/security-reviewer.md',
+]
 
 describe('文档抽取收敛契约', () => {
   it('应该只保留便于人读和机器抽取的核心章节', () => {
@@ -28,5 +36,24 @@ describe('文档抽取收敛契约', () => {
     expect(brainstormCapture).toContain('ae-doc-extract')
     expect(planTemplate).toContain('AI 解析契约')
     expect(planSkill).toContain('ae-doc-extract')
+  })
+
+  it('文档审查代理应该支持分片文档集合输入', () => {
+    for (const path of reviewAgentPaths) {
+      const agent = readFileSync(path, 'utf8')
+      expect(agent).toContain('rootDocument')
+      expect(agent).toContain('shards')
+      expect(agent).toContain('missingShards')
+      expect(agent).toContain('duplicateIds')
+      expect(agent).toContain('parentMismatch')
+      expect(agent).toContain('globalRelations')
+      expect(agent).toContain('diagnostics')
+      expect(agent).toContain('ae-doc-extract')
+      expect(agent).toContain('diagnostics.code')
+      expect(agent).toContain('missing-shard')
+      expect(agent).toContain('duplicate-id')
+      expect(agent).toContain('parent-mismatch')
+      expect(agent).toMatch(/同一(?:份)?(?:\S{0,8})文档集合|同一计划集合|同一设计文档集合|同一产品\/范围文档集合/)
+    }
   })
 })

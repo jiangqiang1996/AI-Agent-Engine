@@ -11,6 +11,8 @@ description: "以高级产品负责人的视角审查文档——质疑前提主
 
 ## 产品上下文识别
 
+当统一分片审查上下文包含 `rootDocument`、`shards`、`missingShards`、`duplicateIds`、`parentMismatch`、`globalRelations` 或 `diagnostics`，或 `ae-doc-extract` 的 `diagnostics.code` 包含 `missing-shard`、`duplicate-id`、`parent-mismatch` 时，把主文件和所有分片视为同一产品/范围文档集合。范围、目标、优先级和机会成本必须跨分片综合判断；不要只审查单个分片导致遗漏跨模块范围膨胀或目标断裂。
+
 在应用分析协议之前，先从文档和代码库中识别产品上下文。
 
 **外部产品**（交付给可自由选择是否采用的客户）：竞争定位和市场认知有真实分量。用户可以转身离开，所以身份一致性和品牌信任直接影响采用和付费意愿。

@@ -19,6 +19,7 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 5. **排除规则不可绕过** — 敏感文件和 `.opencode/` 始终排除。需求/计划文档默认排除，仅在满足"明确指定"条件时纳入。
 6. **auto vs present 的判断标准是修复确定性** — 判断标准不是"这个修复重要吗？"而是"是否有不止一种合理的修复方式？"。明确正确的修复 → `auto`；需要用户判断 → `gated`/`manual`。
 7. **域互斥** — 不支持混合域审查。`domain` 参数为互斥值：`code` 或 `document`。
+8. **图谱新鲜度门控** — 使用 `ae:graph-query` 确定范围或影响面时必须读取 `freshness`；`freshness.status` 不是 `fresh` 时，图谱结果只能辅助定位，不得作为无影响、无依赖、完整覆盖或无需审查的结论证据；需要这类高影响结论时必须刷新图谱，或用真实文件、源码搜索、Git 状态和验证命令补证。
 
 ## 模式规则
 
