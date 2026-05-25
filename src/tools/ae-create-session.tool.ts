@@ -15,14 +15,14 @@ export const aeCreateSessionTool: ToolDefinition = tool({
     '- 可选注入 system 上下文，失败时降级为普通 noReply 上下文消息',
     '- 可选发送 user_prompt 并触发新会话回复；auto_execute 默认 false',
     '- 是否执行前确认完全由 require_confirmation 参数决定，工具不会自行推断',
-    '- 通过工具自动执行 user_prompt 时必须能够请求用户确认；专用技能可直接调用服务保持既有流程',
+    '- 通过工具自动执行 user_prompt 时是否请求确认仍由 require_confirmation 决定；调用方必须显式承担该决策',
     '- 自动执行前会强制为浏览器相关提示词注入 agent-browser 环境证明门禁',
     '- 导航失败不会阻断会话创建或提示词提交结果',
     '',
     '适用场景：',
     '- 会话中需要主动创建新会话',
     '- 需要把上下文传递到新会话后继续处理',
-    '- 需要显式确认后在新会话自动执行提示词',
+    '- 需要由调用方显式决定是否确认的新会话自动执行',
     '',
     '不适用场景：',
     '- 需要 ae:handoff 的结构化会话摘要提取',
@@ -55,17 +55,10 @@ export const aeCreateSessionTool: ToolDefinition = tool({
 
     const willAutoExecute = args.auto_execute === true
 
-    if ((args.require_confirmation || willAutoExecute) && typeof ctx.ask !== 'function') {
+    if (args.require_confirmation && typeof ctx.ask !== 'function') {
       return {
         output: '当前运行环境无法请求新会话创建确认，已停止执行。',
         metadata: { tool: TOOL.AE_CREATE_SESSION, success: false },
-      }
-    }
-
-    if (willAutoExecute && !args.require_confirmation) {
-      return {
-        output: 'auto_execute=true 会在新会话触发模型回复，必须同时传入 require_confirmation=true 并完成用户确认。',
-        metadata: { tool: TOOL.AE_CREATE_SESSION, success: false, authorizationRequired: true },
       }
     }
 

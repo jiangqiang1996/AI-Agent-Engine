@@ -242,7 +242,7 @@ describe('ae-create-session 工具', () => {
     }))
   })
 
-  it('require_confirmation=false 时 auto_execute=true 返回授权错误且不创建会话', async () => {
+  it('require_confirmation=false 时 auto_execute=true 不额外请求确认', async () => {
     const ask = vi.fn(() => Effect.fail(new Error('should not ask')))
     mockGetGlobalClient.mockReturnValue({} as never)
     mockCreateSessionFlow.mockReturnValue(Effect.succeed({
@@ -264,9 +264,11 @@ describe('ae-create-session 工具', () => {
       ask,
     )
 
-    expect(result.output).toContain('必须同时传入 require_confirmation=true')
-    expect(result.metadata.authorizationRequired).toBe(true)
+    expect(result.output).toContain('提示词已提交')
     expect(ask).not.toHaveBeenCalled()
-    expect(mockCreateSessionFlow).not.toHaveBeenCalled()
+    expect(mockCreateSessionFlow).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      userPrompt: '提示词',
+      autoExecute: true,
+    }))
   })
 })
