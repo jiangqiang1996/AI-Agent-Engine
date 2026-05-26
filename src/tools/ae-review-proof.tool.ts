@@ -7,7 +7,7 @@ import { z } from 'zod'
 
 import { AGENT, COMMAND, SKILL } from '../schemas/ae-asset-schema.js'
 import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
-import { collectCurrentWorktreeFingerprint, hashReviewOutput, normalizeStatusSummaryForEvidence } from '../services/gate-service.js'
+import { collectCurrentWorktreeFingerprint, hashReviewOutput, parseReviewOutputEvidence } from '../services/gate-service.js'
 
 const REVIEW_RUN_ID_PATTERN = /^[a-zA-Z0-9._-]+$/
 
@@ -60,53 +60,6 @@ function resolveSessionId(context: unknown): string | undefined {
 
 function hasBlockingFinding(findings: Array<z.infer<typeof ReviewFindingSchema>>): boolean {
   return findings.some((finding) => BLOCKING_SEVERITY_PATTERN.test(finding.severity))
-}
-
-function normalizePathForEvidence(path: string): string {
-  const normalized = path.replaceAll('\\', '/')
-  return process.platform === 'win32' ? normalized.toLowerCase() : normalized
-}
-
-function parseSourceReviewOutput(output: string): {
-  status: 'passed' | 'failed'
-  worktree?: string
-  branch?: string
-  head?: string
-  statusSummary?: string
-  hasBlockingFinding: boolean
-} | undefined {
-  const start = output.indexOf('{')
-  const end = output.lastIndexOf('}')
-  if (start < 0 || end <= start) {
-    return undefined
-  }
-
-  try {
-    const parsed = JSON.parse(output.slice(start, end + 1)) as Record<string, unknown>
-    const rawStatus = parsed.reviewStatus ?? parsed.review_status ?? parsed.status ?? parsed.conclusion
-    const normalizedStatus = typeof rawStatus === 'string' ? rawStatus.toLowerCase() : undefined
-    if (normalizedStatus !== 'passed' && normalizedStatus !== 'pass'
-      && normalizedStatus !== 'failed' && normalizedStatus !== 'fail') {
-      return undefined
-    }
-
-    return {
-      status: normalizedStatus === 'passed' || normalizedStatus === 'pass' ? 'passed' : 'failed',
-      worktree: typeof parsed.worktree === 'string' ? normalizePathForEvidence(parsed.worktree) : undefined,
-      branch: typeof parsed.branch === 'string' ? parsed.branch : undefined,
-      head: typeof parsed.head === 'string' ? parsed.head : typeof parsed.HEAD === 'string' ? parsed.HEAD : undefined,
-      statusSummary: typeof parsed.statusSummary === 'string' ? normalizeStatusSummaryForEvidence(parsed.statusSummary) : undefined,
-      hasBlockingFinding: Array.isArray(parsed.findings) && parsed.findings.some((finding) => {
-        if (!finding || typeof finding !== 'object') {
-          return false
-        }
-        const severity = (finding as { severity?: unknown }).severity
-        return typeof severity === 'string' && BLOCKING_SEVERITY_PATTERN.test(severity)
-      }),
-    }
-  } catch {
-    return undefined
-  }
 }
 
 function extractHistoryText(value: unknown): string {
@@ -280,7 +233,7 @@ export const aeReviewProofTool: ToolDefinition = tool({
     }
 
     const trustedReviewPayload = extractTrustedReviewPayload(args.source_review_output)
-    const parsedOutput = parseSourceReviewOutput(trustedReviewPayload)
+    const parsedOutput = parseReviewOutputEvidence(trustedReviewPayload)
     if (!parsedOutput
       || parsedOutput.status !== args.review_status
       || parsedOutput.worktree !== fingerprint.worktreePath

@@ -2643,6 +2643,106 @@ describe('门禁服务', () => {
     expect(result.blockers).toContain('审查报告内容未绑定当前 review_evidence 指纹，不能作为可验证审查来源证据。')
   })
 
+  it('应该接受 ae:review Markdown 审查输出并绑定报告路径证据', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+    const fingerprint = initGitRepo(root)
+    const reviewOutput = [
+      '## 审查结果',
+      '- **Review Status:** passed',
+      `- **Worktree:** ${normalizedEvidencePath(root)}`,
+      `- **Branch:** ${fingerprint.branch}`,
+      `- **HEAD:** ${fingerprint.head}`,
+      '- **Status Summary:** clean',
+      '',
+      '无阻断发现。',
+    ].join('\n')
+    writeReviewReport(root, {
+      reviewRunIdOrMessageRef: 'review-markdown',
+      worktree: root,
+      ...fingerprint,
+      reviewOutputHash: hashReviewPayload(reviewOutput),
+    })
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'passed',
+      reviewEvidence: {
+        type: 'report_path',
+        reviewTrust: 'verified',
+        path: 'ae/reviews/review-markdown/metadata.json',
+        reviewRunIdOrMessageRef: 'review-markdown',
+        worktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        statusSummary: fingerprint.statusSummary,
+      },
+      trustedReviewRefs: ['review-markdown'],
+      trustedReviewOutputs: { 'review-markdown': reviewOutput },
+      gitOperations: [],
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.blockers).not.toContain('审查报告内容未绑定当前 review_evidence 指纹，不能作为可验证审查来源证据。')
+  })
+
+  it('应该阻断 passed Markdown 审查输出中的标题式阻断发现', () => {
+    const root = createRepoRoot()
+    writePlan(root)
+    const fingerprint = initGitRepo(root)
+    const reviewOutput = [
+      '## 审查结果',
+      'Review Status: passed',
+      `Worktree: ${normalizedEvidencePath(root)}`,
+      `Branch: ${fingerprint.branch}`,
+      `HEAD: ${fingerprint.head}`,
+      'Status Summary: clean',
+      '',
+      '### P1 -- 应该修复',
+      '| Severity | Finding |',
+      '| --- | --- |',
+      '| P1 | 阻断问题 |',
+    ].join('\n')
+    writeReviewReport(root, {
+      reviewRunIdOrMessageRef: 'review-markdown-blocking',
+      worktree: root,
+      ...fingerprint,
+      reviewOutputHash: hashReviewPayload(reviewOutput),
+    })
+
+    const result = runGateSync(root, {
+      workflow: 'work',
+      checkpoint: 'final',
+      planPath: 'ae/plans/test-plan.md',
+      validationCommands: ['npm run test'],
+      reviewStatus: 'passed',
+      reviewEvidence: {
+        type: 'report_path',
+        reviewTrust: 'verified',
+        path: 'ae/reviews/review-markdown-blocking/metadata.json',
+        reviewRunIdOrMessageRef: 'review-markdown-blocking',
+        worktree: root,
+        branch: fingerprint.branch,
+        head: fingerprint.head,
+        statusSummary: fingerprint.statusSummary,
+      },
+      trustedReviewRefs: ['review-markdown-blocking'],
+      trustedReviewOutputs: { 'review-markdown-blocking': reviewOutput },
+      gitOperations: [],
+      worktreeDecision: 'rejected',
+      noCodeChangeReason: '测试场景',
+      writeProof: false,
+    })
+
+    expect(result.status).toBe('block')
+    expect(result.blockers).toContain('审查报告内容未绑定当前 review_evidence 指纹，不能作为可验证审查来源证据。')
+  })
+
   it('应该阻断正文夹带当前指纹但结构化 JSON 未绑定当前指纹的审查输出', () => {
     const root = createRepoRoot()
     writePlan(root)

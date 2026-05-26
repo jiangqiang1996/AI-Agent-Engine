@@ -249,6 +249,37 @@ export function normalizeStatusSummaryForEvidence(statusSummary: string): string
     .join('\n')
 }
 
+function normalizeReviewStatusSummary(statusSummary: string): string {
+  const normalized = statusSummary.trim().toLowerCase()
+  if (normalized === 'clean' || normalized === 'no changes' || normalized === 'no output') {
+    return ''
+  }
+  return normalizeStatusSummaryForEvidence(statusSummary)
+}
+
+function extractLabeledTextField(output: string, labels: string[]): string | undefined {
+  const escapedLabels = labels.map((label) => label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  const labelPattern = escapedLabels.join('|')
+  const match = output.match(new RegExp(
+    `(?:^|\n)\\s*(?:[-*]\\s*)?(?:\\*\\*)?(?:${labelPattern})(?:\\*\\*)?\\s*[:：]\\s*(?:\\*\\*)?\\s*(.+)`,
+    'i',
+  ))
+  return match?.[1]?.replace(/^\*\*\s*/, '').replace(/\s*\*\*$/, '').trim()
+}
+
+function hasBlockingFindingInText(output: string): boolean {
+  return /^\s*(?:#{1,6}\s*)?(?:(?:[-*]|\d+[.)])\s*)?(?:\*\*)?\[?(?:P[0-2]|critical|high|medium)\]?(?:\b|\s|[-—:：])/im.test(output)
+}
+
+export interface ReviewOutputEvidence {
+  status: 'passed' | 'failed'
+  worktree?: string
+  branch?: string
+  head?: string
+  statusSummary?: string
+  hasBlockingFinding: boolean
+}
+
 const GIT_EXEC_TIMEOUT = 30_000
 const GIT_STATUS_TIMEOUT = 5_000
 const GIT_TIMEOUT_RETRIES = 1
@@ -1086,7 +1117,7 @@ function reviewOutputMatchesEvidence(
   evidence: Extract<ReviewEvidence, { type: 'report_path' | 'tool_output' }>,
   expectedStatus: GateReviewStatus,
 ): boolean {
-  const parsed = parseStructuredReviewOutput(output)
+  const parsed = parseReviewOutputEvidence(output)
   if (!parsed
     || parsed.worktree !== normalizePathForEvidence(evidence.worktree)
     || parsed.branch !== evidence.branch
@@ -1096,11 +1127,11 @@ function reviewOutputMatchesEvidence(
   }
 
   if (expectedStatus === 'passed') {
-    return parsed.status === 'passed' && !parsed.hasHighOrMediumFinding
+    return parsed.status === 'passed' && !parsed.hasBlockingFinding
   }
 
   if (expectedStatus === 'failed') {
-    return parsed.status === 'failed' || parsed.hasHighOrMediumFinding
+    return parsed.status === 'failed' || parsed.hasBlockingFinding
   }
 
   return true
@@ -1129,38 +1160,50 @@ export function hashReviewOutput(content: string): string {
   return createHash(HASH_ALGORITHM).update(content, 'utf8').digest('hex')
 }
 
-function parseStructuredReviewOutput(output: string): {
-  status: 'passed' | 'failed'
-  worktree?: string
-  branch?: string
-  head?: string
-  statusSummary?: string
-  hasHighOrMediumFinding: boolean
-} | undefined {
+export function parseReviewOutputEvidence(output: string): ReviewOutputEvidence | undefined {
   const jsonText = extractJsonObject(output)
-  if (!jsonText) {
+  if (jsonText) {
+    try {
+      const parsed = JSON.parse(jsonText) as Record<string, unknown>
+      const rawStatus = parsed.reviewStatus ?? parsed.review_status ?? parsed.status ?? parsed.conclusion
+      const normalizedStatus = typeof rawStatus === 'string' ? rawStatus.toLowerCase() : undefined
+      if (normalizedStatus === 'passed' || normalizedStatus === 'pass'
+        || normalizedStatus === 'failed' || normalizedStatus === 'fail') {
+        return {
+          status: normalizedStatus === 'passed' || normalizedStatus === 'pass' ? 'passed' : 'failed',
+          worktree: typeof parsed.worktree === 'string' ? normalizePathForEvidence(parsed.worktree) : undefined,
+          branch: typeof parsed.branch === 'string' ? parsed.branch : undefined,
+          head: typeof parsed.head === 'string' ? parsed.head : typeof parsed.HEAD === 'string' ? parsed.HEAD : undefined,
+          statusSummary: typeof parsed.statusSummary === 'string'
+            ? normalizeReviewStatusSummary(parsed.statusSummary)
+            : undefined,
+          hasBlockingFinding: hasBlockingFinding(parsed.findings),
+        }
+      }
+    } catch {
+      // ae:review 的最终输出通常是 Markdown/结构化文本；JSON 解析失败时继续按文本解析。
+    }
+  }
+
+  const rawStatus = extractLabeledTextField(output, ['reviewStatus', 'review_status', 'Review Status', 'status', 'Status'])
+  const normalizedStatus = rawStatus?.toLowerCase()
+  if (normalizedStatus !== 'passed' && normalizedStatus !== 'pass'
+    && normalizedStatus !== 'failed' && normalizedStatus !== 'fail') {
     return undefined
   }
 
-  try {
-    const parsed = JSON.parse(jsonText) as Record<string, unknown>
-    const rawStatus = parsed.reviewStatus ?? parsed.review_status ?? parsed.status ?? parsed.conclusion
-    const normalizedStatus = typeof rawStatus === 'string' ? rawStatus.toLowerCase() : undefined
-    if (normalizedStatus !== 'passed' && normalizedStatus !== 'pass'
-      && normalizedStatus !== 'failed' && normalizedStatus !== 'fail') {
-      return undefined
-    }
+  const worktree = extractLabeledTextField(output, ['worktree', 'Worktree'])
+  const branch = extractLabeledTextField(output, ['branch', 'Branch'])
+  const head = extractLabeledTextField(output, ['head', 'HEAD'])
+  const statusSummary = extractLabeledTextField(output, ['statusSummary', 'Status Summary'])
 
-    return {
-      status: normalizedStatus === 'passed' || normalizedStatus === 'pass' ? 'passed' : 'failed',
-      worktree: typeof parsed.worktree === 'string' ? normalizePathForEvidence(parsed.worktree) : undefined,
-      branch: typeof parsed.branch === 'string' ? parsed.branch : undefined,
-      head: typeof parsed.head === 'string' ? parsed.head : typeof parsed.HEAD === 'string' ? parsed.HEAD : undefined,
-      statusSummary: typeof parsed.statusSummary === 'string' ? normalizeStatusSummaryForEvidence(parsed.statusSummary) : undefined,
-      hasHighOrMediumFinding: hasBlockingFinding(parsed.findings),
-    }
-  } catch {
-    return undefined
+  return {
+    status: normalizedStatus === 'passed' || normalizedStatus === 'pass' ? 'passed' : 'failed',
+    worktree: worktree ? normalizePathForEvidence(worktree) : undefined,
+    branch,
+    head,
+    statusSummary: statusSummary === undefined ? undefined : normalizeReviewStatusSummary(statusSummary),
+    hasBlockingFinding: hasBlockingFindingInText(output),
   }
 }
 

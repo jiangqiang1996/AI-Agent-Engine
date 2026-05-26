@@ -208,6 +208,96 @@ describe('ae-review-proof 工具', () => {
     expect(existsSync(metadataPath)).toBe(true)
   })
 
+  it('应该接受 ae:review Markdown 结构化文本输出', async () => {
+    const root = createRepoRoot()
+    const fingerprint = getGitFingerprint(root)
+    const worktree = process.platform === 'win32' ? root.replaceAll('\\', '/').toLowerCase() : root
+    const sourceReviewOutput = [
+      '## 审查结果',
+      '- **Review Status:** failed',
+      `- **Worktree:** ${worktree}`,
+      `- **Branch:** ${fingerprint.branch}`,
+      `- **HEAD:** ${fingerprint.head}`,
+      '- **Status Summary:** clean',
+      'Mode: autofix',
+      'Domain: document',
+      '',
+      '### P1 -- 应该修复',
+      '- P1 非代码产物验证与门禁模型缺口。Evidence: 待定问题仍将验证与门禁证据推迟到规划。',
+    ].join('\n')
+
+    const result = await aeReviewProofTool.execute({
+      review_run_id: 'review-markdown-output',
+      review_status: 'failed',
+      summary: '审查失败',
+      findings: [{ severity: 'P1', title: '非代码产物验证与门禁模型缺口' }],
+      source_review_output: sourceReviewOutput,
+    }, createToolContext(root, sourceReviewOutput, 'review-markdown-output'))
+
+    expect(typeof result).toBe('object')
+    const metadataPath = join(root, 'ae', 'reviews', 'review-markdown-output', 'metadata.json')
+    const metadata = JSON.parse(readFileSync(metadataPath, 'utf8')) as Record<string, unknown>
+
+    expect(metadata.reviewStatus).toBe('failed')
+    expect(metadata.hasBlockingFinding).toBe(true)
+    expect(metadata.reviewOutputHash).toBe(hashReviewOutput(sourceReviewOutput))
+  })
+
+  it.each(['clean', 'no changes', 'no output'])('应该将 JSON 输出中的 %s statusSummary 视为干净工作区', async (statusSummary) => {
+    const root = createRepoRoot()
+    const fingerprint = getGitFingerprint(root)
+    const sourceReviewOutput = JSON.stringify({
+      reviewStatus: 'passed',
+      worktree: process.platform === 'win32' ? root.replaceAll('\\', '/').toLowerCase() : root,
+      branch: fingerprint.branch,
+      head: fingerprint.head,
+      statusSummary,
+      findings: [],
+      summary: '审查通过',
+    }, null, 2)
+
+    const result = await aeReviewProofTool.execute({
+      review_run_id: `review-json-${statusSummary.replaceAll(' ', '-')}-status`,
+      review_status: 'passed',
+      summary: '审查通过',
+      findings: [],
+      source_review_output: sourceReviewOutput,
+    }, createToolContext(root, sourceReviewOutput, `review-json-${statusSummary.replaceAll(' ', '-')}-status`))
+
+    expect(typeof result).toBe('object')
+    const metadataPath = join(root, 'ae', 'reviews', `review-json-${statusSummary.replaceAll(' ', '-')}-status`, 'metadata.json')
+    expect(existsSync(metadataPath)).toBe(true)
+  })
+
+  it('应该拒绝 passed Markdown 输出中的标题式阻断发现', async () => {
+    const root = createRepoRoot()
+    const fingerprint = getGitFingerprint(root)
+    const worktree = process.platform === 'win32' ? root.replaceAll('\\', '/').toLowerCase() : root
+    const sourceReviewOutput = [
+      '## 审查结果',
+      'Review Status: passed',
+      `Worktree: ${worktree}`,
+      `Branch: ${fingerprint.branch}`,
+      `HEAD: ${fingerprint.head}`,
+      'Status Summary: clean',
+      '',
+      '### P1 -- 应该修复',
+      '| Severity | Finding |',
+      '| --- | --- |',
+      '| P1 | 阻断问题 |',
+    ].join('\n')
+
+    const result = await aeReviewProofTool.execute({
+      review_run_id: 'review-markdown-passed-with-p1',
+      review_status: 'passed',
+      summary: '审查通过',
+      findings: [],
+      source_review_output: sourceReviewOutput,
+    }, createToolContext(root, sourceReviewOutput, 'review-markdown-passed-with-p1'))
+
+    expect(result).toBe('source_review_output 必须包含与当前 worktree 指纹和 review_status 匹配的真实结构化审查输出。')
+  })
+
   it('应该接受带 porcelain 前导空格的 statusSummary', async () => {
     const root = createRepoRoot()
     writeFileSync(join(root, 'README.md'), '# changed\n', 'utf8')
