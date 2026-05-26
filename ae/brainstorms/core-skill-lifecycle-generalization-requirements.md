@@ -3,6 +3,8 @@ type: brainstorm
 status: drafted
 date: 2026-05-22
 topic: core-skill-lifecycle-generalization
+format: human-readable-requirements
+sharded: false
 ---
 
 # 核心技能生命周期通用化
@@ -65,7 +67,7 @@ AE 核心技能当前容易被理解为只服务软件开发全流程，但用�
 - [影响 R3][路由] 非软件任务应复用现有文档模板，还是需要通用任务模板？
 - [影响 R8-R9][产物] `ae:work` 和 `ae:review` 如何表达非代码产物的验证与门禁证据？
 
-## AI 解析契约
+## 一致性检查
 - requirementsCount: 10
 - nonFunctionalRequirementsCount: 0
 - decisionsCount: 3
