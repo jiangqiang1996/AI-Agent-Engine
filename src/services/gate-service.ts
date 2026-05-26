@@ -230,6 +230,7 @@ function normalizePathForEvidence(path: string): string {
 function isRuntimeEvidencePath(filePath: string): boolean {
   const normalized = toPosixPath(filePath)
   return normalized.startsWith(`${docsAePath(DOCS_AE_SUBDIRS.GATES)}/`)
+    || normalized.startsWith(`${docsAePath(DOCS_AE_SUBDIRS.EVIDENCE)}/`)
     || normalized.startsWith(`${docsAePath(DOCS_AE_SUBDIRS.REVIEWS)}/`)
     || normalized.startsWith(`${docsAePath(DOCS_AE_SUBDIRS.HANDOFFS)}/`)
     || normalized === 'ae/agent-browser-proof.json'

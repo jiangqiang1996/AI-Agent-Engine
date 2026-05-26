@@ -12,6 +12,7 @@ export const DOCS_AE_SUBDIRS = {
   WORK: 'work',
   REVIEW: 'review',
   GATES: 'gates',
+  EVIDENCE: 'evidence',
   REVIEWS: 'reviews',
   HANDOFFS: 'handoffs',
   GRAPHS: 'graphs',

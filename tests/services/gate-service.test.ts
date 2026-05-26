@@ -24,6 +24,15 @@ function createReviewOutput(
   })}</task_result>`
 }
 
+function extractReviewPayload(output: string): string {
+  const match = /<task_result>\s*([\s\S]*?)\s*<\/task_result>/.exec(output)
+  return match?.[1]?.trim() ?? output
+}
+
+function hashReviewPayload(output: string): string {
+  return hashReviewOutput(extractReviewPayload(output))
+}
+
 function createRepoRoot(): string {
   const root = mkdtempSync(join(tmpdir(), 'ae-gate-'))
   tempRoots.push(root)
@@ -92,7 +101,7 @@ function writeReviewReport(
     proofKind?: string | null
   },
 ): void {
-  const reviewOutputHash = evidence.reviewOutputHash ?? hashReviewOutput(createReviewOutput(evidence))
+  const reviewOutputHash = evidence.reviewOutputHash ?? hashReviewPayload(createReviewOutput(evidence))
   mkdirSync(join(root, 'ae', 'reviews', evidence.reviewRunIdOrMessageRef), { recursive: true })
   writeFileSync(join(root, 'ae', 'reviews', evidence.reviewRunIdOrMessageRef, 'metadata.json'), `${JSON.stringify({
     generatedBy: 'ae:review',
@@ -601,7 +610,7 @@ describe('门禁服务', () => {
       sourceReviewRef: 'task-review-1',
       worktree: root,
       ...fingerprint,
-      reviewOutputHash: hashReviewOutput(reviewOutput),
+      reviewOutputHash: hashReviewPayload(reviewOutput),
       proofKind: 'ae-review-proof',
       hasBlockingFinding: false,
     })
@@ -644,7 +653,7 @@ describe('门禁服务', () => {
       worktree: root,
       ...fingerprint,
       proofKind: null,
-      reviewOutputHash: hashReviewOutput(reviewOutput),
+      reviewOutputHash: hashReviewPayload(reviewOutput),
     })
 
     const result = runGateSync(root, {
@@ -1635,10 +1644,12 @@ describe('门禁服务', () => {
     initGitRepo(root)
     mkdirSync(join(root, 'ae', 'reviews'), { recursive: true })
     mkdirSync(join(root, 'ae', 'handoffs'), { recursive: true })
+    mkdirSync(join(root, 'ae', 'evidence', 'artifacts', 'validation'), { recursive: true })
     mkdirSync(join(root, 'ae', 'screenshot'), { recursive: true })
     mkdirSync(join(root, 'ae', 'static-server'), { recursive: true })
     writeFileSync(join(root, 'ae', 'reviews', 'review.md'), '# 审查报告\n', 'utf8')
     writeFileSync(join(root, 'ae', 'handoffs', 'test-worktree-handoff.md'), '# 交接\n', 'utf8')
+    writeFileSync(join(root, 'ae', 'evidence', 'artifacts', 'validation', 'validation-1.json'), '{}\n', 'utf8')
     writeFileSync(join(root, 'ae', 'agent-browser-proof.json'), '{}\n', 'utf8')
     writeFileSync(join(root, 'ae', 'screenshot', 'page.png'), 'image', 'utf8')
     writeFileSync(join(root, 'ae', 'static-server', '.static-server-info.json'), '{}\n', 'utf8')
@@ -1647,6 +1658,7 @@ describe('门禁服务', () => {
 
     expect(fingerprint.statusSummary).not.toContain('ae/reviews/review.md')
     expect(fingerprint.statusSummary).not.toContain('ae/handoffs/test-worktree-handoff.md')
+    expect(fingerprint.statusSummary).not.toContain('ae/evidence/artifacts/validation/validation-1.json')
     expect(fingerprint.statusSummary).not.toContain('ae/agent-browser-proof.json')
     expect(fingerprint.statusSummary).not.toContain('ae/screenshot/page.png')
     expect(fingerprint.statusSummary).not.toContain('ae/static-server/.static-server-info.json')
@@ -1663,7 +1675,7 @@ describe('门禁服务', () => {
       statusSummary: 'M src/a.ts',
     }
     const reviewOutput = createReviewOutput(evidence)
-    writeReviewReport(root, { ...evidence, reviewOutputHash: hashReviewOutput(reviewOutput) })
+    writeReviewReport(root, { ...evidence, reviewOutputHash: hashReviewPayload(reviewOutput) })
     vi.resetModules()
     vi.doMock('node:child_process', async (importOriginal) => {
       const actual = await importOriginal<typeof import('node:child_process')>()
@@ -2418,7 +2430,7 @@ describe('门禁服务', () => {
       reviewRunIdOrMessageRef: 'review-1',
       worktree: root,
       ...fingerprint,
-      reviewOutputHash: hashReviewOutput(unrelatedReviewOutput),
+      reviewOutputHash: hashReviewPayload(unrelatedReviewOutput),
     })
 
     const result = runGateSync(root, {
@@ -2458,7 +2470,7 @@ describe('门禁服务', () => {
       reviewRunIdOrMessageRef: 'review-1',
       worktree: root,
       ...fingerprint,
-      reviewOutputHash: hashReviewOutput(failedReviewOutput),
+      reviewOutputHash: hashReviewPayload(failedReviewOutput),
     })
 
     const result = runGateSync(root, {
@@ -2506,7 +2518,7 @@ describe('门禁服务', () => {
       reviewRunIdOrMessageRef: 'review-1',
       worktree: root,
       ...fingerprint,
-      reviewOutputHash: hashReviewOutput(maliciousReviewOutput),
+      reviewOutputHash: hashReviewPayload(maliciousReviewOutput),
     })
 
     const result = runGateSync(root, {
@@ -2553,7 +2565,7 @@ describe('门禁服务', () => {
       reviewRunIdOrMessageRef: 'review-1',
       worktree: root,
       ...fingerprint,
-      reviewOutputHash: hashReviewOutput(maliciousReviewOutput),
+      reviewOutputHash: hashReviewPayload(maliciousReviewOutput),
     })
 
     const result = runGateSync(root, {
@@ -2600,7 +2612,7 @@ describe('门禁服务', () => {
       reviewRunIdOrMessageRef: 'review-1',
       worktree: root,
       ...fingerprint,
-      reviewOutputHash: hashReviewOutput(maliciousReviewOutput),
+      reviewOutputHash: hashReviewPayload(maliciousReviewOutput),
     })
 
     const result = runGateSync(root, {
@@ -2647,7 +2659,7 @@ current evidence: ${normalizedEvidencePath(root)} ${fingerprint.branch} ${finger
       reviewRunIdOrMessageRef: 'review-1',
       worktree: root,
       ...fingerprint,
-      reviewOutputHash: hashReviewOutput(reviewOutput),
+      reviewOutputHash: hashReviewPayload(reviewOutput),
     })
 
     const result = runGateSync(root, {
