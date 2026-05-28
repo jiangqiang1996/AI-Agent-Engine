@@ -119,14 +119,54 @@ function writeReviewReport(
   }, null, 2)}\n`, 'utf8')
 }
 
+function removeTempRoot(root: string): void {
+  try {
+    rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 })
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code
+    if (process.platform === 'win32' && (code === 'EPERM' || code === 'EBUSY' || code === 'ENOTEMPTY')) {
+      return
+    }
+    throw error
+  }
+}
+
 afterEach(() => {
   for (const root of tempRoots.splice(0)) {
-    rmSync(root, { recursive: true, force: true })
+    removeTempRoot(root)
   }
 })
 
 function rawRunGateSync(root: string, input: Parameters<typeof runGate>[1]) {
   return Effect.runSync(runGate(root, input))
+}
+
+function runCleanGateSync(root: string, input: Parameters<typeof runGate>[1]) {
+  const currentFingerprint = existsSync(join(root, '.git')) ? collectCurrentWorktreeFingerprint(root) : undefined
+  const fingerprint = currentFingerprint?.available && currentFingerprint.branch && currentFingerprint.head
+    ? {
+        branch: currentFingerprint.branch,
+        head: currentFingerprint.head,
+        statusSummary: currentFingerprint.statusSummary ?? '',
+      }
+    : initGitRepo(root)
+  return rawRunGateSync(root, {
+    ...input,
+    reviewEvidence: input.reviewEvidence ?? {
+      type: 'tool_output',
+      reviewTrust: 'verified',
+      reviewRunIdOrMessageRef: 'clean-review',
+      worktree: root,
+      branch: fingerprint.branch,
+      head: fingerprint.head,
+      statusSummary: fingerprint.statusSummary,
+      summary: '审查通过',
+    },
+    trustedReviewRefs: input.trustedReviewRefs ?? ['clean-review'],
+    trustedReviewOutputs: input.trustedReviewOutputs ?? {
+      'clean-review': createReviewOutput({ worktree: root, ...fingerprint }),
+    },
+  })
 }
 
 function runGateSync(root: string, input: Parameters<typeof runGate>[1]) {
@@ -142,7 +182,7 @@ describe('门禁服务', () => {
   it('应该阻断缺少计划路径的实现前门禁', () => {
     const root = createRepoRoot()
 
-    const result = rawRunGateSync(root, {
+    const result = runCleanGateSync(root, {
       workflow: 'lfg',
       checkpoint: 'before_work',
     })
@@ -155,7 +195,7 @@ describe('门禁服务', () => {
     const root = createRepoRoot()
     writePlan(root)
 
-    const result = runGateSync(root, {
+    const result = runCleanGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
       planPath: 'ae/plans/test-plan.md',
@@ -175,7 +215,7 @@ describe('门禁服务', () => {
     const root = createRepoRoot()
     writePlan(root)
 
-    const result = runGateSync(root, {
+    const result = runCleanGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
       planPath: 'ae/plans/test-plan.md',
@@ -195,7 +235,7 @@ describe('门禁服务', () => {
     const root = createRepoRoot()
     writePlan(root)
 
-    const result = runGateSync(root, {
+    const result = runCleanGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
       planPath: 'ae/plans/test-plan.md',
@@ -216,7 +256,7 @@ describe('门禁服务', () => {
   it('应该阻断缺少验证执行结果的最终门禁', () => {
     const root = createRepoRoot()
 
-    const result = rawRunGateSync(root, {
+    const result = runCleanGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
       validationCommands: ['npm run typecheck'],
@@ -238,7 +278,7 @@ describe('门禁服务', () => {
   it('应该记录验证结果但不把工具入参自报升级为 tool_output', () => {
     const root = createRepoRoot()
 
-    const result = runGateSync(root, {
+    const result = runCleanGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
       validationCommands: ['npm run typecheck'],
@@ -260,7 +300,7 @@ describe('门禁服务', () => {
   it('应该允许验证命令成功但输出为空', () => {
     const root = createRepoRoot()
 
-    const result = rawRunGateSync(root, {
+    const result = runCleanGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
       validationCommands: ['npm run silent'],
@@ -280,7 +320,7 @@ describe('门禁服务', () => {
   it('应该阻断失败的 validation_results', () => {
     const root = createRepoRoot()
 
-    const result = runGateSync(root, {
+    const result = runCleanGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
       validationCommands: ['npm run typecheck'],
@@ -310,7 +350,7 @@ describe('门禁服务', () => {
   it('应该忽略 validation_commands 之外的历史失败结果', () => {
     const root = createRepoRoot()
 
-    const result = runGateSync(root, {
+    const result = runCleanGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
       validationCommands: ['npm run typecheck'],
@@ -354,11 +394,12 @@ describe('门禁服务', () => {
     const root = createRepoRoot()
     writeHandoff(root)
 
-    const result = runGateSync(root, {
+    const result = runCleanGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
       handoffPath: 'ae/handoffs/test-worktree-handoff.md',
       validationCommands: ['npm run typecheck'],
+      validationResults: [{ command: 'npm run typecheck', exitCode: 0, output: 'npm run typecheck passed' }],
       reviewStatus: 'not_run',
       reviewEvidence: { type: 'not_run_reason', reason: '测试无代码变更路径' },
       gitOperations: [],
@@ -378,7 +419,7 @@ describe('门禁服务', () => {
   it('应该阻断 ae:work 无计划且交接文件不存在的最终门禁', () => {
     const root = createRepoRoot()
 
-    const result = runGateSync(root, {
+    const result = runCleanGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
       handoffPath: 'ae/handoffs/missing-worktree-handoff.md',
@@ -399,7 +440,7 @@ describe('门禁服务', () => {
   it('应该阻断 handoffPath 指向仓库内非交接文件', () => {
     const root = createRepoRoot()
 
-    const result = runGateSync(root, {
+    const result = runCleanGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
       handoffPath: 'ae/plans/test-plan.md',
@@ -421,7 +462,7 @@ describe('门禁服务', () => {
     mkdirSync(join(root, 'ae', 'handoffs'), { recursive: true })
     writeFileSync(join(root, 'ae', 'handoffs', 'invalid-worktree-handoff.md'), '# 非规范交接\n', 'utf8')
 
-    const result = runGateSync(root, {
+    const result = runCleanGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
       handoffPath: 'ae/handoffs/invalid-worktree-handoff.md',
@@ -452,7 +493,7 @@ describe('门禁服务', () => {
       '',
     ].join('\n'), 'utf8')
 
-    const result = runGateSync(root, {
+    const result = runCleanGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
       handoffPath: 'ae/handoffs/legacy-worktree-handoff.md',
@@ -839,11 +880,12 @@ describe('门禁服务', () => {
       noCodeChangeReason: '测试场景',
       writeProof: false,
     })
-    const readResult = runGateSync(root, {
+    const readResult = runCleanGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
       planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
+      validationResults: [{ command: 'npm run test', exitCode: 0, output: 'npm run test passed' }],
       reviewStatus: 'not_applicable',
       gitOperations: ['git worktree list'],
       worktreeDecision: 'rejected',
@@ -862,11 +904,12 @@ describe('门禁服务', () => {
     const fingerprint = initGitRepo(root)
     const commandArgs = ['git', 'commit', '-m', 'test']
 
-    const result = runGateSync(root, {
+    const result = runCleanGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
       planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
+      validationResults: [{ command: 'npm run test', exitCode: 0, output: 'npm run test passed' }],
       reviewStatus: 'not_applicable',
       gitOperations: ['git commit -m test'],
       gitOperationArgs: [commandArgs],
@@ -938,11 +981,12 @@ describe('门禁服务', () => {
     const root = createRepoRoot()
     writePlan(root)
 
-    const result = runGateSync(root, {
+    const result = runCleanGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
       planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run typecheck'],
+      validationResults: [{ command: 'npm run typecheck', exitCode: 0, output: 'npm run typecheck passed' }],
       reviewStatus: 'not_applicable',
       gitOperations: [],
       worktreeDecision: 'rejected',
@@ -959,11 +1003,12 @@ describe('门禁服务', () => {
     const root = createRepoRoot()
     writePlan(root)
 
-    const result = runGateSync(root, {
+    const result = runCleanGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
       planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
+      validationResults: [{ command: 'npm run test', exitCode: 0, output: 'npm run test passed' }],
       reviewStatus: 'not_applicable',
       gitOperations: [],
       worktreeDecision: 'rejected',
@@ -980,11 +1025,12 @@ describe('门禁服务', () => {
     const root = createRepoRoot()
     writePlan(root)
 
-    const result = runGateSync(root, {
+    const result = runCleanGateSync(root, {
       workflow: 'work',
       checkpoint: 'final',
       planPath: 'ae/plans/test-plan.md',
       validationCommands: ['npm run test'],
+      validationResults: [{ command: 'npm run test', exitCode: 0, output: 'npm run test passed' }],
       reviewStatus: 'not_applicable',
       browserTestStatus: 'passed',
       gitOperations: [],
