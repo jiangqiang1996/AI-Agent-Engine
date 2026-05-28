@@ -130,9 +130,21 @@ async function getToolDefinition(): Promise<GateToolDefinitionForTest> {
 
 afterEach(() => {
   for (const root of tempRoots.splice(0)) {
-    rmSync(root, { recursive: true, force: true })
+    removeTempRoot(root)
   }
 })
+
+function removeTempRoot(root: string): void {
+  try {
+    rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 })
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code
+    if (process.platform === 'win32' && (code === 'EPERM' || code === 'EBUSY' || code === 'ENOTEMPTY')) {
+      return
+    }
+    throw error
+  }
+}
 
 describe('ae-gate 工具', () => {
   it('应该暴露 worktree 和结构化证据参数', async () => {

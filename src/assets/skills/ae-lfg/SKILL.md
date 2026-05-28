@@ -1,14 +1,14 @@
 ---
 name: ae:lfg
-description: "默认入口：驱动从需求到执行的 AE 主流程；若已有产物则优先恢复，否则从头脑风暴开始"
-argument-hint: "[需求描述|已有产物路径]"
+description: "默认入口：编排构思、探索、计划、实施、审查等通用任务生命周期；若已有产物则优先恢复"
+argument-hint: "[任务描述|已有产物路径]"
 defaultEntry: true
 disable-model-invocation: true
 ---
 
 # AE LFG
 
-全自主工程管道。按顺序执行每个步骤，**不得跳过任何必需步骤，不得提前进入编码或实现。**
+通用任务生命周期编排入口。按任务类型组织构思、探索、计划、实施和审查，**不得跳过当前任务必需步骤，不得在目标、边界和验收标准不清时提前进入实施。** 软件开发是重点场景之一，但不是唯一适用范围。
 
 ## 静默执行原则
 
@@ -18,7 +18,7 @@ disable-model-invocation: true
 
 <feature_description> #$ARGUMENTS </feature_description>
 
-**如果上面的描述为空，询问用户：** "你想构建什么？请描述功能、问题或改进。" 然后等待回复再继续。
+**如果上面的描述为空，询问用户：** "你想完成什么任务？请描述目标、产物、约束或已有材料。" 然后等待回复再继续。
 
 ## 任务分类
 
@@ -27,12 +27,12 @@ disable-model-invocation: true
 - **S1 简单问答**：直接回答；必要时只做只读搜索/读取。不进入 `ae:lfg` 管道。
 - **S2 模糊想法**：先澄清，或进入步骤 2 的 `ae:brainstorm`。需求仍模糊时不得直接编码。
 - **S3 小修复**：如果范围仍然轻量，可转 `ae:work` 轻路径；只有在正式代码交付时才要求最终 `ae-gate`。一旦命中升级停点，立即改走 S4。
-- **S4 多步骤实现**：这是 `ae:lfg` 的标准适用场景，必须走完整主管道。
+- **S4 多步骤任务**：这是 `ae:lfg` 的标准适用场景，必须走完整主管道。
 - **S5 只读审查**：改用 `ae:review mode:report-only`，默认保持只读，不进入 `ae:lfg` 管道。
 - **S6 提交请求**：改走 Git 安全流程或 `/ae-commit`，不自动开始实现。
 - **S7 混合意图**：先拆分阶段；实现与验证完成后，才允许进入提交流程。
 
-如果任务显然不属于软件任务，告知用户：`"ae:lfg 专注于软件工程管道。此任务不属于软件范畴，请直接描述你的需求，我将尽力协助。"` 然后停止。
+非软件任务不得被排除在主管道之外。若任务不涉及代码、测试或构建，将其作为文档、测试用例、设计、报告或通用产物交付处理，并在实施与门禁阶段使用产物路径、追溯关系、审查结论、人工可检查标准或用户确认作为证据。
 
 ## 恢复策略
 
@@ -47,7 +47,7 @@ disable-model-invocation: true
 在关键阶段调用 `ae-gate` 工具，不能只用文字承诺替代门禁结果：
 
 - 进入实现前：`ae-gate workflow:lfg checkpoint:before_work plan_path:<plan-path>` 必须通过
-- 进入代码审查前：`ae-gate workflow:lfg checkpoint:before_review plan_path:<plan-path> validation_commands:[...] validation_results:[...]` 必须通过
+- 进入结果审查前：`ae-gate workflow:lfg checkpoint:before_review plan_path:<plan-path> validation_commands:[...] validation_results:[...]` 必须通过；非代码任务也必须使用真实可执行的产物存在性、格式、一致性或人工可复核检查命令作为验证证据，不得伪造测试命令
 - 最终交付前：`ae-gate workflow:lfg checkpoint:final plan_path:<plan-path> validation_commands:[...] validation_results:[...] review_status:passed review_evidence:{...} git_operations:[...] worktree_decision:<created|rejected|not_applicable>` 必须通过并写入证明；若执行过 Git 写操作，还必须传入 `git_operation_args` 和可验证 `git_authorization_evidence`
 
 如果门禁返回 `status: block`，必须先补齐阻断项再继续，不得输出 `<promise>DONE</promise>`。
@@ -90,7 +90,7 @@ disable-model-invocation: true
 
 **门控：** 验证计划审查通过。如果审查未通过，根据发现修正计划后重新审查。
 
-### 步骤 6：执行实现
+### 步骤 6：执行实施
 
 先运行 `ae-gate workflow:lfg checkpoint:before_work plan_path:<plan-path-from-step-4>`。门禁通过后再继续。
 
@@ -102,13 +102,13 @@ disable-model-invocation: true
 
 如果 `ae:work` 返回 `worktree_decision: cancelled`，当前主管道立即停止：只输出取消状态、已完成/未完成项和不运行后续步骤或最终功能交付 gate 的说明。
 
-**门控：** 验证实现工作已执行——存在与计划执行范围一致的文件创建或修改，并确认没有未授权的范围外变更。**如果没有代码变更，不得继续步骤 7；如果存在范围外变更，必须先说明、修复或取得用户确认。**
+**门控：** 验证实施工作已执行——存在与计划执行范围一致的文件创建、修改、结构化交付摘要或用户确认来源，并确认没有未授权的范围外变更。代码或可执行逻辑变更必须按代码交付处理；非代码任务不得因没有代码 diff 被阻断，但必须提供可引用产物、追溯、审查或确认证据。
 
-### 步骤 7：代码审查
+### 步骤 7：结果审查
 
-先运行 `ae-gate workflow:lfg checkpoint:before_review plan_path:<plan-path-from-step-4>`，并传入已实际运行的 `validation_commands` 及一一对应的 `validation_results`。如果尚未运行验证，先运行验证再审查；`validation_results` 的每条 `command` 必须匹配 `validation_commands`，且用于通过门禁的 `exit_code` 必须为 0。
+先运行 `ae-gate workflow:lfg checkpoint:before_review plan_path:<plan-path-from-step-4>`，并传入已实际运行的 `validation_commands` 及一一对应的 `validation_results`。如果尚未运行验证，先运行验证再审查；`validation_results` 的每条 `command` 必须匹配 `validation_commands`，且用于通过门禁的 `exit_code` 必须为 0。非代码产物的验证命令可以是读取产物路径、检查 Markdown/YAML 格式、比对计划验收清单、运行文档专用测试或其他真实可复核检查；不得填入未执行的测试命令。
 
-运行 `ae:review mode:autofix plan:<plan-path-from-step-4>`
+运行 `ae:review mode:autofix plan:<plan-path-from-step-4>`；若是非代码产物，明确传入产物路径或审查目标，避免按代码差异误判。
 
 传递步骤 4 的计划文件路径，以便 `ae:review` 可以验证需求完整性。
 
@@ -116,7 +116,7 @@ disable-model-invocation: true
 
 ### 步骤 8：浏览器测试
 
-检查项目中是否有 UI 相关文件（`src/app/*`、`src/components/*`、`src/views/*`、`*.html` 等）：
+仅当任务产物包含需要浏览器验证的 UI、页面或 HTML 交付时检查浏览器测试需求：
 
 - 如果存在 UI 文件，先运行 `ae:agent-browser` / `/ae-agent-browser` 环境验证流程；环境就绪后再运行 `ae:test-browser`
 - 如果环境验证失败、用户拒绝安装或当前环境无法安装，记录“无法验证：浏览器测试未执行”，不得运行 `agent-browser` 命令
@@ -134,7 +134,7 @@ disable-model-invocation: true
 
 ---
 
-标准主链路：`ae:brainstorm` → `ae:review mode:headless domain:document`（有需求文档时）→ `ae:plan` / `ae:refactor` → `ae:review mode:headless domain:document` → `ae:work` → `ae:review` → 浏览器测试
+标准主链路：`ae:brainstorm` → `ae:review mode:headless domain:document`（有需求文档时）→ `ae:plan` / `ae:refactor` → `ae:review mode:headless domain:document` → `ae:work` → `ae:review` → 可选专项验收
 
 从步骤 2 现在开始。记住：先计划，再工作。永远不要跳过计划。
 

@@ -66,7 +66,15 @@ function createToolContext(
 
 afterEach(() => {
   for (const root of tempRoots.splice(0)) {
-    rmSync(root, { recursive: true, force: true })
+    try {
+      rmSync(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 })
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code
+      if (process.platform === 'win32' && (code === 'EPERM' || code === 'EBUSY' || code === 'ENOTEMPTY')) {
+        continue
+      }
+      throw error
+    }
   }
 })
 

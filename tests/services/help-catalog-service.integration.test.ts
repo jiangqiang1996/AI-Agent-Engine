@@ -22,7 +22,7 @@ describe('help-catalog-service 集成', () => {
     expect(text).toContain(`/${COMMAND.REFACTOR}`)
     expect(text).toContain(`/${COMMAND.REFACTOR}${PO_SUFFIX}`)
     expect(text).toContain(`/${COMMAND.REFACTOR}${PA_SUFFIX}`)
-    expect(text).toContain('[重构目标\\|计划路径\\|需求文档路径\\|代码异味描述]')
+    expect(text).toContain('[重构目标\\|计划路径\\|需求文档路径\\|旧机制描述]')
   })
 
   it('应该在真实帮助目录中暴露 ae:merge-branch 入口', () => {

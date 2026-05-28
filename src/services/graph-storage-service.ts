@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 
 import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
@@ -120,6 +120,7 @@ export interface GraphScopeSummaryIndex {
 interface GraphStorageOptions {
   readonly?: boolean
   force?: boolean
+  workspaceRoot?: string
 }
 
 interface GraphStorageDiagnosticOptions {
@@ -336,6 +337,28 @@ function ensureDir(path: string): void {
   mkdirSync(path, { recursive: true })
 }
 
+function assertPathComponentsNotSymlink(path: string, boundary: string): void {
+  const resolvedBoundary = resolve(boundary)
+  const resolvedPath = resolve(path)
+  const relativePath = relative(resolvedBoundary, resolvedPath)
+  if (relativePath.startsWith('..') || resolve(relativePath) === relativePath) {
+    throw new Error('图谱存储路径必须位于工作区内')
+  }
+  let current = resolvedBoundary
+  for (const segment of relativePath.split(/[\\/]+/).filter(Boolean)) {
+    current = join(current, segment)
+    if (existsSync(current) && lstatSync(current).isSymbolicLink()) {
+      throw new Error('图谱存储路径不能包含符号链接')
+    }
+  }
+}
+
+function ensureGraphDir(path: string, boundary: string): void {
+  assertPathComponentsNotSymlink(path, boundary)
+  ensureDir(path)
+  assertPathComponentsNotSymlink(path, boundary)
+}
+
 function cleanGraphStoreDirectory(storeDir: string, lockPath: string): void {
   if (!existsSync(storeDir)) {
     return
@@ -348,6 +371,9 @@ function cleanGraphStoreDirectory(storeDir: string, lockPath: string): void {
     }
     if (entry !== 'graph.json' && !entry.startsWith('graph.json.tmp-') && !entry.startsWith('version-')) {
       continue
+    }
+    if (lstatSync(entryPath).isSymbolicLink()) {
+      throw new Error('图谱存储目录不能包含符号链接')
     }
     rmSync(entryPath, { force: true, recursive: true })
   }
@@ -381,18 +407,87 @@ function formatDiagnosticMessage(code: Exclude<GraphStorageDiagnosticCode, 'ok'>
   return messages[code]
 }
 
+function isRetryableFsError(error: unknown): boolean {
+  return error instanceof Error && 'code' in error && (
+    error.code === 'EPERM' ||
+    error.code === 'EBUSY' ||
+    error.code === 'EACCES' ||
+    error.code === 'EEXIST'
+  )
+}
+
+function runWithFsRetry(operation: () => void): void {
+  let lastError: unknown
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      operation()
+      return
+    } catch (error) {
+      lastError = error
+      if (!isRetryableFsError(error)) {
+        throw error
+      }
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50)
+    }
+  }
+  throw lastError
+}
+
+function assertWritableGraphFile(path: string): void {
+  try {
+    if (lstatSync(path).isSymbolicLink()) {
+      throw new Error('图谱存储文件不能是符号链接')
+    }
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+      return
+    }
+    throw error
+  }
+}
+
+function graphFileExists(path: string): boolean {
+  try {
+    lstatSync(path)
+    return true
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+      return false
+    }
+    throw error
+  }
+}
+
 function writeJsonAtomic(path: string, value: unknown): void {
   const tempPath = `${path}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  const backupPath = `${tempPath}.bak`
   writeFileSync(tempPath, `${JSON.stringify(value, null, 2)}\n`, 'utf8')
   try {
     renameSync(tempPath, path)
   } catch (error) {
-    rmSync(path, { force: true })
-    renameSync(tempPath, path)
-    if (error instanceof Error && 'code' in error && (error.code === 'EPERM' || error.code === 'EEXIST')) {
-      return
+    if (!isRetryableFsError(error)) {
+      rmSync(tempPath, { force: true })
+      throw error
     }
-    throw error
+    const hasBackup = graphFileExists(path)
+    if (hasBackup) {
+      assertWritableGraphFile(path)
+      copyFileSync(path, backupPath)
+    }
+    runWithFsRetry(() => {
+      assertWritableGraphFile(path)
+      renameSync(tempPath, path)
+    })
+    try {
+      rmSync(tempPath, { force: true })
+    } catch {
+      // 替换成功后临时文件只影响磁盘清洁度，不应回滚已持久化的新图谱。
+    }
+    try {
+      runWithFsRetry(() => rmSync(backupPath, { force: true }))
+    } catch {
+      // 备份残留不影响新图谱已写入；后续构建会清理 graph.json.tmp-* 残留文件。
+    }
   }
 }
 
@@ -404,14 +499,13 @@ export class GraphStorage {
   constructor(private readonly storePath: string, private readonly options: GraphStorageOptions = {}) {
     this.lockPath = `${storePath}.lock`
     const storeDir = dirname(storePath)
-    if (existsSync(storeDir) && lstatSync(storeDir).isSymbolicLink()) {
-      throw new Error('图谱存储目录不能是符号链接')
-    }
+    const workspaceRoot = options.workspaceRoot ?? dirname(dirname(storeDir))
+    assertPathComponentsNotSymlink(storeDir, workspaceRoot)
     if (existsSync(storePath) && lstatSync(storePath).isSymbolicLink()) {
       throw new Error('图谱存储文件不能是符号链接')
     }
     if (!options.readonly) {
-      ensureDir(storeDir)
+      ensureGraphDir(storeDir, workspaceRoot)
       this.acquireLock()
     }
     try {
@@ -851,9 +945,13 @@ export class GraphStorage {
 
   private writeChunks(versionId: number, files: GraphFileNode[], relations: GraphRelation[]): string[] {
     const dir = versionChunkDir(this.storePath, versionId)
-    ensureDir(dir)
+    ensureGraphDir(dir, dirname(dirname(dirname(dir))))
     for (const entry of readdirSync(dir)) {
-      rmSync(join(dir, entry), { force: true, recursive: true })
+      const entryPath = join(dir, entry)
+      if (lstatSync(entryPath).isSymbolicLink()) {
+        throw new Error('图谱版本分片目录不能包含符号链接')
+      }
+      rmSync(entryPath, { force: true, recursive: true })
     }
     const fileChunks = chunkFiles(files)
     const relationChunks = chunkRelations(relations)
@@ -885,7 +983,7 @@ export class GraphStorage {
       throw new Error(`图谱版本不存在：${versionId}`)
     }
     const indexDir = versionIndexDir(this.storePath, versionId)
-    ensureDir(indexDir)
+    ensureGraphDir(indexDir, dirname(dirname(dirname(dirname(indexDir)))))
     const fileChunks = chunkFiles(files)
     const relationChunks = chunkRelations(relations)
     const pathToFileChunk: Record<string, string> = {}
@@ -1066,5 +1164,5 @@ export function graphDatabaseExists(worktree: string): boolean {
 }
 
 export function createGraphStorage(worktree: string, options: GraphStorageOptions = {}): GraphStorage {
-  return new GraphStorage(resolveGraphDatabasePath(worktree), options)
+  return new GraphStorage(resolveGraphDatabasePath(worktree), { ...options, workspaceRoot: resolve(worktree) })
 }

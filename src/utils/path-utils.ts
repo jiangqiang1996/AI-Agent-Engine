@@ -10,6 +10,11 @@ function isPluginRootCandidate(dir: string): boolean {
   return existsSync(join(dir, 'dist', 'src', 'assets'))
 }
 
+function isNestedUnderHiddenDirectory(moduleDir: string, candidateRoot: string): boolean {
+  const rel = relative(candidateRoot, moduleDir)
+  return rel.split(/[\\/]+/).some((part) => part.startsWith('.'))
+}
+
 /**
  * 根据模块 URL 推断 AE 插件根目录，兼容源码运行和仅分发 dist 产物两种结构。
  */
@@ -28,7 +33,7 @@ export function resolvePluginRootFromModuleUrl(moduleUrl: string): string {
     }
 
     // 优先根据插件结构推断根目录，兼容只有桥接文件和 dist 产物的安装方式。
-    if (isPluginRootCandidate(dir)) {
+    if (isPluginRootCandidate(dir) && !isNestedUnderHiddenDirectory(dirname(fileURLToPath(moduleUrl)), dir)) {
       return dir
     }
     dir = dirname(dir)

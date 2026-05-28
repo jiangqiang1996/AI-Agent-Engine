@@ -25,9 +25,21 @@ describe('AE catalog 一致性', () => {
     const entry = getPhaseOneEntries().find((item) => item.skillName === SKILL.WORK)
     const frontmatter = readFrontmatter('src/assets/skills/ae-work/SKILL.md')
 
-    expect(entry?.argumentHint).toBe(frontmatter['argument-hint'])
-    expect(entry?.description).toContain('按')
-    expect(frontmatter.description).toContain('按计划高效执行工作')
+    expect(entry?.argumentHint).toBe('[计划路径|交接文件路径|任务描述]')
+    expect(entry?.description).toContain('实施阶段')
+    expect(frontmatter.description).toBe(entry?.description)
+  })
+
+  it('核心技能 catalog 应使用通用生命周期阶段描述', () => {
+    const entries = getPhaseOneEntries()
+
+    expect(entries.find((item) => item.skillName === SKILL.IDEATE)?.description).toContain('构思阶段')
+    expect(entries.find((item) => item.skillName === SKILL.BRAINSTORM)?.description).toContain('探索阶段')
+    expect(entries.find((item) => item.skillName === SKILL.PLAN)?.description).toContain('渐进计划阶段')
+    expect(entries.find((item) => item.skillName === SKILL.REFACTOR)?.description).toContain('重构计划阶段')
+    expect(entries.find((item) => item.skillName === SKILL.WORK)?.description).toContain('实施阶段')
+    expect(entries.find((item) => item.skillName === SKILL.REVIEW)?.description).toContain('审查阶段')
+    expect(entries.find((item) => item.skillName === SKILL.LFG)?.description).toContain('通用任务生命周期')
   })
 
   it('ae:merge-branch 的 catalog 应与 frontmatter 字面一致', () => {
