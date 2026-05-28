@@ -53,6 +53,17 @@ describe('path-utils', () => {
       .toThrow('无法从模块路径推断仓库根目录')
   })
 
+  it('不应该把隐藏目录外层的 dist assets 当作嵌套插件根目录', () => {
+    const projectRoot = createTempRoot()
+    const pluginRoot = join(projectRoot, '.opencode', 'ai-agent-engine')
+    mkdirSync(join(projectRoot, 'dist', 'src', 'assets'), { recursive: true })
+    mkdirSync(join(pluginRoot, 'dist', 'src'), { recursive: true })
+    writeFileSync(join(pluginRoot, 'dist', 'src', 'index.js'), 'export {}')
+
+    expect(() => resolvePluginRootFromModuleUrl(pathToFileURL(join(pluginRoot, 'dist', 'src', 'index.js')).href))
+      .toThrow('无法从模块路径推断仓库根目录')
+  })
+
   it('应该在源码结构下推断插件根目录', () => {
     const root = createTempRoot()
     mkdirSync(join(root, 'src', 'assets'), { recursive: true })
