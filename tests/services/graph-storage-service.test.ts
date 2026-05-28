@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, w
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { createGraphStorage } from '../../src/services/graph-storage-service.js'
 
@@ -428,5 +428,234 @@ describe('graph-storage-service', () => {
     expect(metadata?.endInputFingerprint).toBe('end-fingerprint')
     expect(metadata?.inputChangedDuringBuild).toBe(true)
     expect(metadata?.completedAt).toBe('2026-05-22T00:00:00.000Z')
+  })
+
+  it('非重试型原子替换失败时应该保留旧图谱文件', async () => {
+    const root = createTempRoot()
+    const graphDir = join(root, 'ae', 'graphs')
+    const graphPath = join(graphDir, 'graph.json')
+    const oldStore = { schemaVersion: 3, nextVersionId: 1, versions: [] }
+    mkdirSync(graphDir, { recursive: true })
+    writeFileSync(graphPath, `${JSON.stringify(oldStore, null, 2)}\n`, 'utf8')
+
+    vi.resetModules()
+    vi.doMock('node:fs', async () => {
+      const actual = await vi.importActual<typeof import('node:fs')>('node:fs')
+      return {
+        ...actual,
+        renameSync: vi.fn((from: string, to: string) => {
+          if (to === graphPath && from.includes('graph.json.tmp-') && !from.endsWith('.bak')) {
+            const error = new Error('cross-device link') as Error & { code: string }
+            error.code = 'EXDEV'
+            throw error
+          }
+          actual.renameSync(from, to)
+        }),
+      }
+    })
+
+    try {
+      const { createGraphStorage: createMockedGraphStorage } = await import('../../src/services/graph-storage-service.js')
+      const storage = createMockedGraphStorage(root)
+
+      expect(() => storage.createVersion(root, '.', [])).toThrow('cross-device link')
+      expect(JSON.parse(readFileSync(graphPath, 'utf8'))).toEqual(oldStore)
+    } finally {
+      vi.doUnmock('node:fs')
+      vi.resetModules()
+    }
+  })
+
+  it('重试型原子替换失败后成功时应该写入新图谱文件', async () => {
+    const root = createTempRoot()
+    const graphDir = join(root, 'ae', 'graphs')
+    const graphPath = join(graphDir, 'graph.json')
+    mkdirSync(graphDir, { recursive: true })
+    writeFileSync(graphPath, `${JSON.stringify({ schemaVersion: 3, nextVersionId: 1, versions: [] }, null, 2)}\n`, 'utf8')
+    let failedInitialReplace = false
+
+    vi.resetModules()
+    vi.doMock('node:fs', async () => {
+      const actual = await vi.importActual<typeof import('node:fs')>('node:fs')
+      return {
+        ...actual,
+        renameSync: vi.fn((from: string, to: string) => {
+          if (!failedInitialReplace && to === graphPath && from.includes('graph.json.tmp-')) {
+            failedInitialReplace = true
+            const error = new Error('file is busy') as Error & { code: string }
+            error.code = 'EPERM'
+            throw error
+          }
+          actual.renameSync(from, to)
+        }),
+      }
+    })
+
+    try {
+      const { createGraphStorage: createMockedGraphStorage } = await import('../../src/services/graph-storage-service.js')
+      const storage = createMockedGraphStorage(root)
+      const versionId = storage.createVersion(root, '.', [])
+      storage.insertFiles(versionId, [{ relativePath: 'src/a.ts', fileType: 'source' }])
+      storage.closeDatabase()
+
+      const store = JSON.parse(readFileSync(graphPath, 'utf8')) as { nextVersionId: number }
+      expect(failedInitialReplace).toBe(true)
+      expect(store.nextVersionId).toBe(2)
+    } finally {
+      vi.doUnmock('node:fs')
+      vi.resetModules()
+    }
+  })
+
+  it('重试型原子替换耗尽失败时应该恢复旧图谱文件', async () => {
+    const root = createTempRoot()
+    const graphDir = join(root, 'ae', 'graphs')
+    const graphPath = join(graphDir, 'graph.json')
+    const oldStore = { schemaVersion: 3, nextVersionId: 1, versions: [] }
+    mkdirSync(graphDir, { recursive: true })
+    writeFileSync(graphPath, `${JSON.stringify(oldStore, null, 2)}\n`, 'utf8')
+
+    vi.resetModules()
+    vi.doMock('node:fs', async () => {
+      const actual = await vi.importActual<typeof import('node:fs')>('node:fs')
+      return {
+        ...actual,
+        renameSync: vi.fn((from: string, to: string) => {
+          if (to === graphPath && from.includes('graph.json.tmp-')) {
+            const error = new Error('file is busy') as Error & { code: string }
+            error.code = 'EPERM'
+            throw error
+          }
+          actual.renameSync(from, to)
+        }),
+        copyFileSync: vi.fn((from: string, to: string) => {
+          if (to === graphPath && from.includes('graph.json.tmp-') && !from.endsWith('.bak')) {
+            const error = new Error('file is still busy') as Error & { code: string }
+            error.code = 'EPERM'
+            throw error
+          }
+          actual.copyFileSync(from, to)
+        }),
+      }
+    })
+
+    try {
+      const { createGraphStorage: createMockedGraphStorage } = await import('../../src/services/graph-storage-service.js')
+      const storage = createMockedGraphStorage(root)
+
+      expect(() => storage.createVersion(root, '.', [])).toThrow('file is still busy')
+      expect(JSON.parse(readFileSync(graphPath, 'utf8'))).toEqual(oldStore)
+    } finally {
+      vi.doUnmock('node:fs')
+      vi.resetModules()
+    }
+  })
+
+  it('备份清理失败时不应该重放已成功的原子替换', async () => {
+    const root = createTempRoot()
+    const graphDir = join(root, 'ae', 'graphs')
+    const graphPath = join(graphDir, 'graph.json')
+    mkdirSync(graphDir, { recursive: true })
+    writeFileSync(graphPath, `${JSON.stringify({ schemaVersion: 3, nextVersionId: 1, versions: [] }, null, 2)}\n`, 'utf8')
+    let failedInitialReplace = false
+    let cleanupFailed = false
+
+    vi.resetModules()
+    vi.doMock('node:fs', async () => {
+      const actual = await vi.importActual<typeof import('node:fs')>('node:fs')
+      return {
+        ...actual,
+        renameSync: vi.fn((from: string, to: string) => {
+          if (!failedInitialReplace && to === graphPath && from.includes('graph.json.tmp-')) {
+            failedInitialReplace = true
+            const error = new Error('file is busy') as Error & { code: string }
+            error.code = 'EPERM'
+            throw error
+          }
+          actual.renameSync(from, to)
+        }),
+        rmSync: vi.fn((target: string, options?: Parameters<typeof rmSync>[1]) => {
+          if (target.endsWith('.bak')) {
+            cleanupFailed = true
+            const error = new Error('backup is busy') as Error & { code: string }
+            error.code = 'EPERM'
+            throw error
+          }
+          actual.rmSync(target, options)
+        }),
+      }
+    })
+
+    try {
+      const { createGraphStorage: createMockedGraphStorage } = await import('../../src/services/graph-storage-service.js')
+      const storage = createMockedGraphStorage(root)
+      const versionId = storage.createVersion(root, '.', [])
+      storage.insertFiles(versionId, [{ relativePath: 'src/a.ts', fileType: 'source' }])
+      storage.closeDatabase()
+
+      const store = JSON.parse(readFileSync(graphPath, 'utf8')) as { nextVersionId: number }
+      expect(failedInitialReplace).toBe(true)
+      expect(cleanupFailed).toBe(true)
+      expect(store.nextVersionId).toBe(2)
+    } finally {
+      vi.doUnmock('node:fs')
+      vi.resetModules()
+    }
+  })
+
+  it('恢复旧图谱失败后重试时不应该用新图谱覆盖原始备份', async () => {
+    const root = createTempRoot()
+    const graphDir = join(root, 'ae', 'graphs')
+    const graphPath = join(graphDir, 'graph.json')
+    const oldStore = { schemaVersion: 3, nextVersionId: 1, versions: [] }
+    mkdirSync(graphDir, { recursive: true })
+    writeFileSync(graphPath, `${JSON.stringify(oldStore, null, 2)}\n`, 'utf8')
+    let failedInitialReplace = false
+    let restoreFailed = false
+
+    vi.resetModules()
+    vi.doMock('node:fs', async () => {
+      const actual = await vi.importActual<typeof import('node:fs')>('node:fs')
+      return {
+        ...actual,
+        renameSync: vi.fn((from: string, to: string) => {
+          if (!failedInitialReplace && to === graphPath && from.includes('graph.json.tmp-')) {
+            failedInitialReplace = true
+            const error = new Error('file is busy') as Error & { code: string }
+            error.code = 'EPERM'
+            throw error
+          }
+          actual.renameSync(from, to)
+        }),
+        copyFileSync: vi.fn((from: string, to: string) => {
+          if (to === graphPath && from.includes('graph.json.tmp-') && !from.endsWith('.bak')) {
+            actual.copyFileSync(from, to)
+            const error = new Error('temp cleanup failed') as Error & { code: string }
+            error.code = 'EPERM'
+            throw error
+          }
+          if (!restoreFailed && to === graphPath && from.endsWith('.bak')) {
+            restoreFailed = true
+            const error = new Error('restore failed') as Error & { code: string }
+            error.code = 'EPERM'
+            throw error
+          }
+          actual.copyFileSync(from, to)
+        }),
+      }
+    })
+
+    try {
+      const { createGraphStorage: createMockedGraphStorage } = await import('../../src/services/graph-storage-service.js')
+      const storage = createMockedGraphStorage(root)
+
+      expect(() => storage.createVersion(root, '.', [])).toThrow('temp cleanup failed')
+      expect(failedInitialReplace).toBe(true)
+      expect(restoreFailed).toBe(true)
+      expect(JSON.parse(readFileSync(graphPath, 'utf8'))).toEqual(oldStore)
+    } finally {
+      vi.doUnmock('node:fs')
+      vi.resetModules()
+    }
   })
 })

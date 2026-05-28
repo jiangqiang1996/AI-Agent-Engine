@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 
 import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
@@ -381,18 +381,63 @@ function formatDiagnosticMessage(code: Exclude<GraphStorageDiagnosticCode, 'ok'>
   return messages[code]
 }
 
+function isRetryableFsError(error: unknown): boolean {
+  return error instanceof Error && 'code' in error && (
+    error.code === 'EPERM' ||
+    error.code === 'EBUSY' ||
+    error.code === 'EACCES' ||
+    error.code === 'EEXIST'
+  )
+}
+
+function runWithFsRetry(operation: () => void): void {
+  let lastError: unknown
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    try {
+      operation()
+      return
+    } catch (error) {
+      lastError = error
+      if (!isRetryableFsError(error)) {
+        throw error
+      }
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50)
+    }
+  }
+  throw lastError
+}
+
 function writeJsonAtomic(path: string, value: unknown): void {
   const tempPath = `${path}.tmp-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`
+  const backupPath = `${tempPath}.bak`
   writeFileSync(tempPath, `${JSON.stringify(value, null, 2)}\n`, 'utf8')
   try {
     renameSync(tempPath, path)
   } catch (error) {
-    rmSync(path, { force: true })
-    renameSync(tempPath, path)
-    if (error instanceof Error && 'code' in error && (error.code === 'EPERM' || error.code === 'EEXIST')) {
-      return
+    if (!isRetryableFsError(error)) {
+      rmSync(tempPath, { force: true })
+      throw error
     }
-    throw error
+    const hasBackup = existsSync(path)
+    if (hasBackup) {
+      copyFileSync(path, backupPath)
+    }
+    runWithFsRetry(() => {
+      try {
+        copyFileSync(tempPath, path)
+        rmSync(tempPath, { force: true })
+      } catch (replaceError) {
+        if (hasBackup) {
+          copyFileSync(backupPath, path)
+        }
+        throw replaceError
+      }
+    })
+    try {
+      runWithFsRetry(() => rmSync(backupPath, { force: true }))
+    } catch {
+      // 备份残留不影响新图谱已写入；后续构建会清理 graph.json.tmp-* 残留文件。
+    }
   }
 }
 
