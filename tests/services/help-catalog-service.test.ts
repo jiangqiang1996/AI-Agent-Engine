@@ -132,7 +132,7 @@ describe('help-catalog-service', () => {
           stage: 'review',
           tier: 'required',
           description: '审查逻辑错误',
-          path: 'src/assets/agents/review/correctness-reviewer.md',
+          path: 'domains/review/specialists/correctness-reviewer.md',
         },
       ] as ReturnType<typeof aeCatalog.getAllAgentDefinitions>)
 

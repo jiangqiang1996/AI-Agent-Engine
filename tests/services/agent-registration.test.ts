@@ -14,6 +14,7 @@ vi.mock('../../src/services/ae-catalog.js', () => ({
       name: 'demo-reviewer',
       stage: 'review',
       description: 'catalog description',
+      path: 'review/demo-reviewer.md',
     },
   ],
 }))

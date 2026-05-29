@@ -6,12 +6,12 @@ const brainstormCapture = readFileSync('src/assets/skills/ae-brainstorm/referenc
 const planTemplate = readFileSync('src/assets/skills/ae-plan/references/plan-template.md', 'utf8')
 const planSkill = readFileSync('src/assets/skills/ae-plan/SKILL.md', 'utf8')
 const reviewAgentPaths = [
-  'src/assets/agents/review/adversarial-reviewer.md',
-  'src/assets/agents/review/coherence-reviewer.md',
-  'src/assets/agents/review/design-lens-reviewer.md',
-  'src/assets/agents/review/feasibility-reviewer.md',
-  'src/assets/agents/review/product-lens-reviewer.md',
-  'src/assets/agents/review/security-reviewer.md',
+  'src/assets/agents/domains/review/specialists/adversarial-reviewer.md',
+  'src/assets/agents/domains/review/specialists/coherence-reviewer.md',
+  'src/assets/agents/domains/review/specialists/design-lens-reviewer.md',
+  'src/assets/agents/domains/review/specialists/feasibility-reviewer.md',
+  'src/assets/agents/domains/review/specialists/product-lens-reviewer.md',
+  'src/assets/agents/domains/review/specialists/security-reviewer.md',
 ]
 
 describe('文档抽取收敛契约', () => {

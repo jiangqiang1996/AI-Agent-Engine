@@ -51,7 +51,10 @@ describe('REVIEW_MATRIX', () => {
   })
 
   it('test-case-reviewer 提示词应包含误报抑制边界', () => {
-    const content = readFileSync(new URL('../../src/assets/agents/review/test-case-reviewer.md', import.meta.url), 'utf-8')
+    const content = readFileSync(
+      new URL('../../src/assets/agents/domains/review/specialists/test-case-reviewer.md', import.meta.url),
+      'utf-8',
+    )
 
     expect(content).toContain('无外部需求来源')
     expect(content).toContain('没有来源证据的字段约束')

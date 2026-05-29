@@ -84,4 +84,36 @@ describe('runtime-asset-manifest', () => {
     expect(manifest.agentsDir).toBe(join(root, 'dist', 'src', 'assets', 'agents'))
     expect(manifest.builtinConfigFile).toBe(join(root, 'dist', 'src', 'assets', 'config', 'ae.jsonc'))
   })
+
+  it('应该按 agent.path 保留嵌套代理目录结构', () => {
+    const root = createRepoRoot()
+    mkdirSync(join(root, 'dist', 'src', 'assets', 'agents', 'domains', 'review', 'specialists'), { recursive: true })
+
+    const manifest = createRuntimeAssetManifestFromRoot(root)
+    const correctnessReviewer = manifest.runtimeAgentFiles.find((file) => file.source.endsWith(
+      join('domains', 'review', 'specialists', 'correctness-reviewer.md'),
+    ))
+
+    expect(correctnessReviewer?.source).toBe(join(
+      root,
+      'dist',
+      'src',
+      'assets',
+      'agents',
+      'domains',
+      'review',
+      'specialists',
+      'correctness-reviewer.md',
+    ))
+    expect(correctnessReviewer?.target).toBe(join(
+      root,
+      '.opencode',
+      'agents',
+      'ae',
+      'domains',
+      'review',
+      'specialists',
+      'correctness-reviewer.md',
+    ))
+  })
 })

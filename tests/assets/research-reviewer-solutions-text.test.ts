@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 
 const readme = readFileSync('ae/solutions/README.md', 'utf8')
 const patterns = readFileSync('ae/solutions/patterns/critical-patterns.md', 'utf8')
-const reviewer = readFileSync('src/assets/agents/review/research-reviewer.md', 'utf8')
+const reviewer = readFileSync('src/assets/agents/domains/review/specialists/research-reviewer.md', 'utf8')
 
 describe('research-reviewer 经验库文本契约', () => {
   it('README 应该区分 solution 与 rules 的用途', () => {

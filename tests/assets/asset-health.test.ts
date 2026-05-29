@@ -155,6 +155,7 @@ describe('资产健康巡检', () => {
     const definitionNames = new Set(definitions.map((agent) => agent.name))
 
     for (const agentFile of listMarkdownFiles(join(process.cwd(), 'src/assets/agents'))) {
+      if (agentFile.includes(`${join('references', '')}`)) continue
       const frontmatter = parseFrontmatter(readFileSync(agentFile, 'utf8')).data
       const name = getFrontmatterString(frontmatter, 'name')
       expect(name, `asset-health/agent-frontmatter/name/file/${agentFile}`).toBeTruthy()
@@ -162,7 +163,7 @@ describe('资产健康巡检', () => {
     }
 
     for (const agent of getAllAgentDefinitions()) {
-      const agentPath = join(process.cwd(), agent.path)
+      const agentPath = join(process.cwd(), 'src/assets/agents', agent.path)
       expect(existsSync(agentPath), `asset-health/agent-file/agent/${agent.name}: 缺少 ${agent.path}`).toBe(true)
 
       const frontmatter = parseFrontmatter(readFileSync(agentPath, 'utf8')).data
