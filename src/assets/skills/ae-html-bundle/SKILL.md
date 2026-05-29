@@ -27,7 +27,7 @@ argument-hint: "[entry:<HTML_PATH>] [output:<HTML_PATH>] [external:keep|fail]"
 1. 要求用户提供显式 `entry` HTML 文件和 `output` 输出文件；缺失时先询问。
 2. 调用 `ae-html-bundle` 工具执行打包，默认使用 `external:keep`。
 3. 阅读工具返回的 `complete`、`partial` 或 `failed` 状态。
-4. 如果是 `partial`，明确列出保留外链、运行时-only 构造或超预算资源，不得宣称产物完全离线自包含。
+4. 如果是 `partial`，明确列出保留外链、仅运行时才能解析的构造或超预算资源，不得宣称产物完全离线自包含。
 5. 如果是 `failed`，按工具返回的中文原因让用户修正输入路径、资源闭包、预算或输出权限后重试。
 
 ## 输入处理
@@ -40,7 +40,7 @@ argument-hint: "[entry:<HTML_PATH>] [output:<HTML_PATH>] [external:keep|fail]"
 ## 输出要求
 
 - 报告输出文件路径、状态、内联资源数、保留资源数、输出大小和 warning。
-- `complete` 表示未发现需要保留的外链或运行时-only 构造。
+- `complete` 表示未发现需要保留的外链或仅运行时才能解析的构造。
 - `partial` 表示已生成 HTML，但仍保留外链、动态加载、WASM、preload/prefetch、CSP 风险或超预算资源。
 - `failed` 表示未生成可用输出，必须展示可恢复原因。
 

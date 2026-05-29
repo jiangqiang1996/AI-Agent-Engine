@@ -1,10 +1,10 @@
 ---
-description: 安全清理本地分支、worktree 和对应本地目录
+description: 安全清理本地分支、worktree 及其对应的本地目录
 model: $standard
 subtask: false
 ---
 
-安全清理当前仓库中的本地分支、关联 worktree 和对应本地目录。必须根据 `$ARGUMENTS` 判断清理范围，并在执行任何删除前取得用户明确授权。
+安全清理当前仓库中的本地分支、关联 worktree 及其对应的本地目录。必须根据 `$ARGUMENTS` 判断清理范围，并在执行任何删除前取得用户明确授权。
 
 ## 输入处理
 
@@ -18,7 +18,7 @@ subtask: false
 
 - 只操作本地 worktree、本地分支和本地文件系统路径。
 - 不操作任何远程分支，不执行 push，不创建 PR。
-- 定向模式下尽量删除匹配目标相关的三类对象：worktree、本地分支、本地文件路径。
+- 定向模式下，在通过风险检查并获得授权后，删除与匹配目标相关的三类对象：worktree、本地分支、本地文件路径。
 - 空参数模式下，在确认后删除当前分支之外的其余所有本地分支、关联 worktree 和对应本地目录。
 - 三类删除步骤互相独立；获得授权后，某一步失败不能阻止继续尝试其他已授权删除步骤，但最终必须报告每一步结果。
 
@@ -51,7 +51,7 @@ git branch --format="%(refname:short)"
 - 分支名：必须能在本地分支列表中唯一匹配；如果该分支是当前分支，必须停止并请求用户确认是否真的要删除当前分支相关路径。
 - worktree 名或路径：必须能在 `git worktree list --porcelain` 中唯一匹配；匹配后读取该 worktree 的 `branch` 字段确定本地分支。
 - 本地文件或目录路径：必须先确认路径存在，再定位它所属的 worktree；不能仅凭路径字符串猜测。
-- 若目标没有关联分支、没有关联 worktree 或没有可删除本地路径，仍继续保留已识别对象作为候选，并在清单中标注缺失项。
+- 若目标没有关联分支、关联 worktree 或可删除的本地路径，仍应将已识别对象保留为候选，并在清单中标注缺失项。
 
 ### 3. 风险检查
 
@@ -80,7 +80,7 @@ git branch --format="%(refname:short)"
 
 ### 5. 执行清理
 
-获得授权后按独立步骤执行；每一步失败都记录失败原因，然后继续尝试后续已授权步骤：
+获得授权后按步骤独立执行；每一步失败都记录失败原因，然后继续尝试后续已授权步骤：
 
 ```bash
 git worktree remove <候选 worktree 路径>
@@ -97,7 +97,7 @@ git branch -D <候选分支名>
 Remove-Item -LiteralPath <候选本地文件或目录路径> -Recurse -Force
 ```
 
-禁止默认执行 `git reset --hard`、`git clean -fd`、覆盖 checkout、rebase、push、force push 或修改 Git 配置；“不跳过 hooks”仅表示保留验证步骤，不代表允许跳过任何检查。
+禁止默认执行 `git reset --hard`、`git clean -fd`、覆盖 checkout、rebase、push、force push 或修改 Git 配置；禁止使用 `--no-verify` 等方式跳过 Git hooks，也不得省略本文档要求的风险检查、授权确认或结果验证。
 
 ### 6. 验证结果
 
@@ -124,5 +124,5 @@ git status --short --branch
 - 不修改 Git 配置，不跳过 hooks。
 - 不把“用户想清理”视为强制删除授权；强制删除必须单独确认。
 - 空参数模式必须先展示候选清单并确认，不能静默删除当前分支之外的所有对象。
-- 删除当前分支、当前 worktree 或当前工作目录下文件前，必须单独高风险确认。
+- 删除当前分支、当前 worktree 或当前工作目录下的文件前，必须单独进行高风险确认。
 - 文件删除只能针对已解析出的相关 worktree 或用户明确指定且位于仓库 worktree 范围内的本地路径。

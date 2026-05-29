@@ -6,9 +6,9 @@
 
 计划文档输入必须完整阅读工作文档，视为决策产物，并检查每个单元的 `Execution note`、`Deferred to Implementation`、`Scope Boundaries`。若用户明确要求 TDD，即使计划无 Execution note 也要遵循。
 
-B worktree 续执行路径必须解析交接文件并产出 `handoff_context`：目标 B worktree、可选的需求文档路径、可选的计划文档路径、可选的设计文档路径、可选的图谱目录、可选的 AE 项目配置路径、A→B 启动证明和执行基线声明。交接文件是唯一必需文件；需求、计划、设计、图谱目录和 AE 项目配置只在交接文件引用且当前 B worktree 中真实存在时读取。存在性判断必须使用文件系统视角，不得依赖 `git status`、`git ls-files` 或其他会受 `.gitignore` 影响的 Git 视角。续执行以结构化章节和 `resume_entrypoint` 为真源。
+B worktree 继续执行路径必须解析交接文件并产出 `handoff_context`：目标 B worktree、可选的需求文档路径、可选的计划文档路径、可选的设计文档路径、可选的图谱目录、可选的 AE 项目配置路径、A→B 启动证明和执行基线声明。交接文件是唯一必需文件；需求、计划、设计、图谱目录和 AE 项目配置只在交接文件引用且当前 B worktree 中真实存在时读取。存在性判断必须使用文件系统视角，不得依赖 `git status`、`git ls-files` 或其他会受 `.gitignore` 影响的 Git 视角。继续执行以结构化章节和 `resume_entrypoint` 为真源。
 
-B worktree 续执行必须校验当前目录和 `git rev-parse --show-toplevel` 输出是否与目标 B worktree 一致；不一致时停止并报告，不得回到 A worktree 写文件。交接文件缺少执行基线声明或启动证明时停止；交接文件未提供需求/计划/设计路径、图谱目录或 AE 项目配置，或引用路径在 B 中不存在时，只记录可选上下文缺失，不得在 B 中补做文档审查或回 A 补迁移。
+B worktree 继续执行必须校验当前目录和 `git rev-parse --show-toplevel` 输出是否与目标 B worktree 一致；不一致时停止并报告，不得回到 A worktree 写文件。交接文件缺少执行基线声明或启动证明时停止；交接文件未提供需求/计划/设计路径、图谱目录或 AE 项目配置，或引用路径在 B 中不存在时，只记录可选上下文缺失，不得在 B 中补做文档审查或回 A 补迁移。
 
 ## Git 状态检查
 
@@ -61,7 +61,7 @@ git log --oneline -1
 ### 交接文件生成（必须调用工具）
 
 - **禁止自行拼接交接 Markdown**，必须调用 `ae-worktree-handoff` 工具生成交接文件。
-- 续执行入口必须写入 A→B 启动证明和执行基线，B worktree 通过 `ae:work <交接文件>` 读取结构化交接文件继续。
+- 继续执行入口必须写入 A→B 启动证明和执行基线，B worktree 通过 `ae:work <交接文件>` 读取结构化交接文件继续。
 - A→B 启动证明必须包含 source_session_id、source_worktree、target_worktree、branch、head、授权来源、命令参数、创建结果、迁移产物状态和执行基线；迁移产物状态只列出实际迁移的需求/计划/设计、`ae/graphs/` 和 `.opencode/ae.jsonc`，未迁移的不出现。
 - 调用工具时传入所有必填参数；工具会按固定模板生成 Markdown、写入目标 B worktree 并返回 A 会话最终回复使用的简短交接提示。
 - `source_session_id`：运行时可见时记录；不可见时传 `unavailable`，并**同时**传入 `session_evidence`（可引用的消息或会话证据），否则工具会返回错误。

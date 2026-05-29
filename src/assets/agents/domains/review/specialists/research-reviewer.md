@@ -13,14 +13,14 @@ description: "搜索 ae/solutions/ 查找相关过往解决方案、研究并综
 
 ### 阶段 1：组织经验搜索
 
-`ae/solutions/` 目录包含带有 YAML frontmatter 的已记录解决方案。目录或 `ae/solutions/patterns/critical-patterns.md` 缺失、为空或没有相关命中时，报告“无组织经验可用”，然后继续技能、文档和外部研究，不得失败。使用高效策略以最小化工具调用：
+`ae/solutions/` 目录包含带有 YAML frontmatter 的已记录解决方案。目录或 `ae/solutions/patterns/critical-patterns.md` 缺失、为空或没有相关命中时，报告“无组织经验可用”，然后继续查询技能、文档，并开展外部研究，不得失败。使用高效策略以最小化工具调用：
 
 1. **从功能描述中提取关键词**：模块名称、技术术语、问题指标、组件类型
 2. **基于类别缩小范围**（可选）：性能优化→performance-issues/、数据库变更→database-issues/、Bug 修复→runtime-errors/ 等
 3. **内容搜索预过滤**：使用原生内容搜索工具（如 Grep）并行运行多个搜索，不区分大小写，仅返回匹配的文件路径。模式构建技巧：使用 `|` 表示同义词，包含 `title:` 字段，包含相关术语
 4. **始终检查关键模式**：阅读 `ae/solutions/patterns/critical-patterns.md`
 5. **仅读取候选文件的 Frontmatter**（限制前 30 行）
-6. **评分和排名相关性**：强匹配（module/tags/symptoms 匹配）→ 中等匹配（problem_type/root_cause 相关）→ 弱匹配（跳过）
+6. **为相关性评分并排序**：强匹配（module/tags/symptoms 匹配）→ 中等匹配（problem_type/root_cause 相关）→ 弱匹配（跳过）
 7. **完整阅读相关文件**并返回精炼摘要
 
 ### 阶段 2：技能与文档查询
@@ -55,7 +55,7 @@ description: "搜索 ae/solutions/ 查找相关过往解决方案、研究并综
 ### 阶段 4：综合所有发现
 
 1. **评估信息质量**：组织经验 > 技能指导 > Context7 官方文档 > 源码分析 > 社区共识
-2. **组织发现**：按清晰类别组织（"必须遵循"、"推荐"、"可选"），标注来源
+2. **整理发现**：按清晰类别组织（"必须遵循"、"推荐"、"可选"），标注来源
 3. **交付可操作的指导**：以结构化格式呈现，包含代码示例和权威来源链接
 
 ## 输出格式

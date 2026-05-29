@@ -64,7 +64,7 @@ disable-model-invocation: true
 
 在需求探索阶段一次性收集后续静默执行所需的关键决策：目标、范围边界、验收标准、可接受的验证方式，以及 Git 写操作授权边界。`ae:lfg` 不收集、不询问、不透传 worktree 模式；调用 `ae:work` 时固定当前工作区执行。兼容输入 `--no-worktree` 或明确写明“不使用 worktree”时，也只作为当前工作区执行的同义约束记录。
 
-**门控：** 验证 `ae:brainstorm` 产出了需求文档（`ae/brainstorms/*-requirements.md`）。如果未产出且需求已经足够清晰，继续。如果需求模糊且未产出文档，重新运行 `ae:brainstorm $ARGUMENTS`。在继续步骤 3 之前，**必须**有足够的产物流入计划阶段。
+**门控：** 验证 `ae:brainstorm` 产出了需求文档（`ae/brainstorms/*-requirements.md`）。如果未产出且需求已经足够清晰，继续。如果需求模糊且未产出文档，重新运行 `ae:brainstorm $ARGUMENTS`。在继续步骤 3 之前，**必须**有足够的上游产物可供计划阶段使用。
 
 只有在 `ae:brainstorm` 已将任务重新归类为 S3 轻量修复时，才允许跳出本主管道转入 `ae:work`；否则必须继续计划阶段。
 
