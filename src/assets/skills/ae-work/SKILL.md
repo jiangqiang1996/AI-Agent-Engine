@@ -4,13 +4,13 @@ description: "实施阶段：执行计划或直接任务，产出代码、文档
 argument-hint: "[计划路径|交接文件路径|任务描述]"
 ---
 
-# 工作执行技能
+# 工作执行技能（编排层）
 
-按计划或明确任务高效实施，保持质量并完成可验证交付。
+按计划或明确任务高效实施，采用四阶段编排协议，将实施调度委托给开发域代理。
 
 ## 简介
 
-本技能接收一份计划文档、worktree 交接文件或一段描述工作的提示词，并系统化地执行。核心目标是**交付可验证结果**；结果可以是代码、文档、测试用例、设计、报告或其他任务产物。
+本技能接收一份计划文档、worktree 交接文件或一段描述工作的提示词，按四阶段协议系统化执行。核心目标是**交付可验证结果**；结果可以是代码、文档、测试用例、设计、报告或其他任务产物。
 
 ## 输入文档
 
@@ -25,11 +25,11 @@ argument-hint: "[计划路径|交接文件路径|任务描述]"
 1. `references/input-routing-workflow.md`：识别输入类型、委派来源和任务大小。
 2. `references/startup-and-worktree-workflow.md`：完成 Git 状态检查、worktree 决策和 A→B 交接处理。
 3. `references/task-analysis-workflow.md`：分析任务、构建待办和选择执行策略。
-4. `references/execution-workflow.md`：执行实现、串行/并行调度、失败处理和进度跟踪。
+4. `references/execution-workflow.md`：执行前验证、失败处理、进度跟踪和主代理汇总职责。
 5. `references/verification-workflow.md`：核验真实变更范围、越权修改和统一验证结果。
 6. `references/shipping-workflow.md`：完成代码审查、最终 gate 和交付模板。
 
-并行执行子代理只能通过 `references/execution-workflow.md` 引用 `references/work-subagent-template.md` 构建提示。
+调度阶段只构造 `DomainCallRequest` 并委托 `@development-domain`；开发域代理内部负责选择和调度专精代理，主代理不得再按旧模板自行二次派发。
 
 ## 硬性门禁
 
@@ -44,34 +44,91 @@ argument-hint: "[计划路径|交接文件路径|任务描述]"
 - A 会话创建 B worktree 后，不得继续实现；只能按需迁移当前任务已确定、真实存在的需求/计划/设计产物、`ae/graphs/` 和 `.opencode/ae.jsonc` 可选上下文，并调用 `ae-worktree-handoff` 工具生成交接文件；存在性判断和复制必须使用文件系统视角，不能依赖 `git status`、`git ls-files` 或其他会受 `.gitignore` 影响的 Git 视角；未迁移的可选上下文不得出现在交接文件中，禁止自行拼接交接 Markdown。
 - `ae-worktree-handoff` 工具会按固定模板生成结构化交接文件并返回 A 会话最终回复使用的简短交接提示；B worktree 通过 `ae:work <交接文件>` 续执行，`/ae-work-continue` 只是查找交接文件后调用 `ae:work` 的便捷包装。A→B 启动证明的结构由工具保证，AI 只需填值。
 - A 会话转移完成后必须记录 `worktree_decision: transferred`，不得调用最终交付门禁，不得进入普通交付模板。
-- 执行后必须由主代理独立运行 Git diff/status 核验真实修改文件，不得只依赖子代理自报。
+- 执行后必须由主代理独立运行 Git diff/status 核验真实修改文件，不得只依赖域代理自报。
 - 使用知识图谱定位、拆解或评估影响范围时，必须读取 `freshness`；`freshness.status` 不是 `fresh` 时，图谱只能作为候选定位线索，不得作为无影响、无依赖、完整覆盖或无需修改的交付结论，必须刷新图谱或用真实文件、Git 状态和验证命令补证。
 - 正式交付前必须运行相关验证、完成代码审查或明确无法审查原因，并调用 `ae-gate workflow:work checkpoint:final`。
 - `ae-gate` 阻断时必须先补齐阻断项，不得宣称交付完成。
 
-## 执行工作流
+## 四阶段编排协议
 
-### 阶段 0：输入分流
+### 阶段一：入口（Entry）
 
-读取 `references/input-routing-workflow.md`，输出 `work_intent`。若输入为计划路径、worktree 交接文件、裸提示词或上游编排器委派，都必须先完成该阶段。
+解析输入，确定工作意图和约束，输出 `TaskIntent`。
 
-### 阶段 1：快速启动
+读取 `references/input-routing-workflow.md` 识别输入类型（计划路径、worktree 交接文件、裸提示词或上游编排器委派）。
 
-读取 `references/startup-and-worktree-workflow.md`，输出 `work_context`。该阶段是修改文件前的硬性阻断门禁。
+读取 `references/startup-and-worktree-workflow.md` 完成 Git 状态检查和 worktree 决策。该阶段是修改文件前的硬性阻断门禁。
 
-随后读取 `references/task-analysis-workflow.md`，输出 `todo_units`、`conflict_matrix`、`parallel_groups` 和执行策略。
+读取 `references/task-analysis-workflow.md` 分析任务结构、构建待办和选择执行策略。
 
-### 阶段 2：执行
+#### TaskIntent 输出
 
-读取 `references/execution-workflow.md`。执行前必须确认 `work_context.worktree_decision` 已确定，且用户或上游编排器已确认当前工作区策略。
+```typescript
+{
+  stage: 'entry',
+  intent: '工作意图标签（如：实现功能 X、修复 Bug Y、重构模块 Z）',
+  domain: 'development',
+  constraints: ['排除规则', 'worktree 约束', '验证要求'],
+  rawInput: '原始输入',
+  timestamp: 'ISO 时间戳'
+}
+```
 
-### 阶段 3：验证
+### 阶段二：交互（Interact）
 
-读取 `references/verification-workflow.md`，输出 `verification_result` 和实际 `validation_commands`。发现越权或污染修改时停止并请求用户决策，不得自动覆盖或回滚。
+确认工作范围和执行策略，输出 `ConfirmedContext`。
 
-### 阶段 4：质量检查与交付
+- 交互模式：展示任务分解、执行策略和预览，让用户确认或修正
+- 上游编排器委派（ae:lfg / ae:task-loop）：跳过用户确认，直接进入调度
+- worktree 交接文件：按交接文件中的 `resume_entrypoint` 继续，跳过重新确认
 
-当所有阶段 2 任务完成且阶段 3 验证结果可用时，读取 `references/shipping-workflow.md` 获取完整交付工作流。
+#### ConfirmedContext 输出
+
+```typescript
+{
+  stage: 'interact',
+  confirmedParams: { 执行策略、待办单元、并行分组 },
+  exclusions: ['排除的文件和范围'],
+  boundaries: ['安全边界和操作限制'],
+  timestamp: 'ISO 时间戳'
+}
+```
+
+### 阶段三：调度（Dispatch）
+
+通过 Task 工具调用开发域代理（`@development-domain`），传入 `DomainCallRequest`。
+
+开发域代理负责：
+1. 根据任务类型选择专精代理（frontend-dev / backend-dev / debug-fix / refactor-dev）
+2. 并行调度选中的专精代理执行实现
+3. 综合所有专精代理的实现结果
+4. 返回 `DomainExecutionResult`
+
+传入开发域代理的 prompt 必须包含：
+- 任务描述（含待办单元、文件范围、实现要求）
+- 已确认的参数和约束
+- 计划文档内容（如有）
+- 验证要求
+
+**错误处理：** 如果域代理返回 `failed` 或 `partial`，使用已完成的结果继续验证，记录失败原因。
+
+#### DispatchResults 输出
+
+```typescript
+{
+  stage: 'dispatch',
+  domainResults: [DomainExecutionResult],
+  timestamp: 'ISO 时间戳'
+}
+```
+
+### 阶段四：汇总（Summary）
+
+接收 `DomainExecutionResult`，完成验证和交付，输出 `Deliverable`。
+
+读取 `references/verification-workflow.md` 核验真实变更范围、越权修改和统一验证结果。发现越权或污染修改时停止并请求用户决策，不得自动覆盖或回滚。
+
+读取 `references/shipping-workflow.md` 完成代码审查、最终 gate 和交付。
 
 在最终交付前必须调用 `ae-gate workflow:work checkpoint:final`，传入：
 
@@ -81,13 +138,23 @@ argument-hint: "[计划路径|交接文件路径|任务描述]"
 - `validation_results`（每条 `validation_commands` 对应的真实执行结果，包含 `command`、`exit_code`、`output`、`executed_at`；用于通过门禁的 `exit_code` 必须为 0）
 - `review_status`（代码审查状态；未运行时说明原因）
 - `git_operations`（本次会话执行过的 Git 写操作；没有则传空数组）
-- `worktree_decision`（创建、拒绝或不适用；`transferred`/`cancelled` 只能作为终止状态记录，不得作为最终功能交付 gate 的通过状态）
-- 如执行 Git 写操作，传入 `git_operation_args` 和 `git_authorization_evidence`；不能只依赖 `user_authorized_git_write`
-- 如 `review_status` 为 `passed` 或 `failed`，传入绑定当前 worktree、branch、HEAD 和状态摘要的 `review_evidence`
+- `worktree_decision`（创建、拒绝或不适用）
+- 如执行 Git 写操作，传入 `git_operation_args` 和 `git_authorization_evidence`
+- 如 `review_status` 为 `passed` 或 `failed`，传入 `review_evidence`
 
 最终回复必须包含以下分区：已完成、已验证、未验证/无法验证、Git 操作状态、门禁结果、剩余风险。
 
-例外：如果本轮创建了新 worktree 并已转移到 B worktree，A 会话不是功能交付会话，必须遵循 A→B 转移停点：不调用最终交付门禁，不输出普通交付分区，只输出继续提示词。
+#### Deliverable 输出
+
+```typescript
+{
+  stage: 'summary',
+  description: '交付物描述',
+  validationResults: ['验证结果'],
+  artifacts: ['变更文件列表', '审查报告路径'],
+  timestamp: 'ISO 时间戳'
+}
+```
 
 ## 核心原则
 

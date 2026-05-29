@@ -259,7 +259,9 @@ export function formatHelpCatalog(catalog: HelpCatalog, query?: string): string 
             ? '审查'
             : stage === 'workflow'
               ? '工作流'
-              : stage
+              : stage === 'domain'
+                ? '域代理'
+                : stage
       lines.push(`**${stageLabel}（${agents.length}）**`)
       lines.push('')
       lines.push('| 代理 | 说明 |')

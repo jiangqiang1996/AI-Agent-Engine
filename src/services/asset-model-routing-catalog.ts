@@ -78,7 +78,7 @@ export function getAssetModelRoutingEntries(manifest?: RuntimeAssetManifest): As
   }
 
   for (const agent of getAllAgentDefinitions()) {
-    const fullPath = join(manifest.agentsDir, agent.stage, `${agent.name}.md`)
+    const fullPath = join(manifest.agentsDir, agent.path)
     const content = readFileSync(fullPath, 'utf8')
     const parsed = parseFrontmatter(content)
     const modelReference = getFrontmatterString(parsed.data, 'model')

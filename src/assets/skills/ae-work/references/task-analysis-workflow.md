@@ -31,12 +31,12 @@
 | 策略 | 适用场景 |
 |------|----------|
 | 内联 | 1-2 个小任务，或并行组内没有可并发的多个任务 |
-| 串行子代理 | 3+ 有依赖的任务，或所有安全组都只有 1 个任务，无法获得并行收益 |
-| 并行子代理 | 任一 `is_parallel_safe=true` 的并行组包含 2 个及以上任务；同组任务可同轮派发，不同组按 `execution_order` 串行推进 |
+| 域代理串行 | 3+ 有依赖的任务，或所有安全组都只有 1 个任务，无法获得并行收益 |
+| 域代理并行 | 任一 `is_parallel_safe=true` 的并行组包含 2 个及以上任务；同组任务可由开发域代理并行调度，不同组按 `execution_order` 串行推进 |
 
 并行安全检查由 `ae-task-analyzer` 工具自动完成。若工具未被调用，必须手动构建“文件到任务单元”映射：若文件范围、状态、迁移、配置、公共契约、测试夹具或共享中间产物存在冲突，或任一任务依赖另一任务的未完成输出，则降级为串行。
 
-并行子代理约束由 `references/execution-workflow.md` 读取 `references/work-subagent-template.md` 后生效。
+并行安全检查结果作为 `DomainCallRequest.domainContext` 传入开发域代理。开发域代理内部负责专精代理调度；主代理不得再按旧模板自行二次派发。
 
 ## 输出契约
 
@@ -47,7 +47,7 @@
   "todo_units": ["任务单元"],
   "conflict_matrix": ["文件冲突矩阵或手动检查结果"],
   "parallel_groups": ["并行组"],
-  "execution_strategy": "inline|serial_subagent|parallel_subagent",
+  "execution_strategy": "inline|domain_serial|domain_parallel",
   "validation_command_candidates": ["候选验证命令"],
   "analysis_degradation_reason": "无降级时为 null"
 }

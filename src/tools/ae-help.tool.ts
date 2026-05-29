@@ -12,6 +12,7 @@ export const aeHelpTool = tool({
     '- 技能（如 ae:brainstorm、ae:plan 等）及其对应命令',
     '- 命令别名（-po 提示词优化、-pa 自动优化、-auto 自动模式）',
     '- 代理（@correctness-reviewer、@web-researcher 等，按类别分组）',
+    '- 域代理（@review-domain、@development-domain 等，由编排技能通过 Task 调度）',
     '- 自定义命令',
     '',
     '适用场景：',

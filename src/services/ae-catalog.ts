@@ -313,7 +313,31 @@ const PHASE_ONE_PA_ENTRIES: AeAssetEntry[] = PHASE_ONE_ENTRIES
     skillFile: `src/assets/skills/${skillDir(SKILL.PROMPT_OPTIMIZE)}/SKILL.md`,
   } satisfies AeAssetEntry))
 
-const REQUIRED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'], string]> = [
+const REVIEW_SPECIALIST_AGENT_NAMES = new Set<string>([
+  AGENT.COHERENCE_REVIEWER,
+  AGENT.FEASIBILITY_REVIEWER,
+  AGENT.PRODUCT_LENS_REVIEWER,
+  AGENT.ADVERSARIAL_REVIEWER,
+  AGENT.DESIGN_LENS_REVIEWER,
+  AGENT.SECURITY_REVIEWER,
+  AGENT.STEP_GRANULARITY_REVIEWER,
+  AGENT.TEST_CASE_REVIEWER,
+  AGENT.RESEARCH_REVIEWER,
+  AGENT.CORRECTNESS_REVIEWER,
+  AGENT.TESTING_REVIEWER,
+  AGENT.STANDARDS_REVIEWER,
+  AGENT.AGENT_NATIVE_REVIEWER,
+  AGENT.API_CONTRACT_REVIEWER,
+  AGENT.RELIABILITY_REVIEWER,
+  AGENT.MAINTAINABILITY_REVIEWER,
+  AGENT.PERFORMANCE_REVIEWER,
+  AGENT.ARCHITECTURE_STRATEGIST,
+  AGENT.PATTERN_RECOGNITION_SPECIALIST,
+  AGENT.DATA_MIGRATIONS_REVIEWER,
+  AGENT.PREVIOUS_COMMENTS_REVIEWER,
+])
+
+const REQUIRED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'], string, string?]> = [
   [AGENT.COHERENCE_REVIEWER, 'review', '审查文档的内部一致性'],
   [AGENT.FEASIBILITY_REVIEWER, 'review', '评估文档中提出的技术方法能否经受现实考验'],
   [AGENT.PRODUCT_LENS_REVIEWER, 'review', '以高级产品负责人的视角审查文档，质疑前提和范围对齐'],
@@ -321,7 +345,11 @@ const REQUIRED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'],
   [AGENT.DESIGN_LENS_REVIEWER, 'review', '审查文档中缺失的设计决策'],
   [AGENT.SECURITY_REVIEWER, 'review', '跨域安全审查：代码域漏洞审计，文档域安全缺口评估'],
   [AGENT.STEP_GRANULARITY_REVIEWER, 'review', '审查计划步骤粒度与批量操作可脚本化'],
-  [AGENT.TEST_CASE_REVIEWER, 'review', '审查测试用例文档的结构完整性、覆盖完备性、步骤可执行性、结果可验证性和需求对齐程度'],
+  [
+    AGENT.TEST_CASE_REVIEWER,
+    'review',
+    '审查测试用例文档的结构完整性、覆盖完备性、步骤可执行性、结果可验证性和需求对齐程度',
+  ],
   [AGENT.REPO_RESEARCH_ANALYST, 'research', '研究仓库结构与已有模式'],
   [AGENT.RESEARCH_REVIEWER, 'review', '提炼已有经验、搜索最佳实践与框架文档'],
   [AGENT.WEB_RESEARCHER, 'research', '搜索并总结网络信息'],
@@ -338,6 +366,12 @@ const REQUIRED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'],
   [AGENT.PATTERN_RECOGNITION_SPECIALIST, 'review', '分析代码中的设计模式、反模式、命名规范和重复代码'],
   [AGENT.DATA_MIGRATIONS_REVIEWER, 'review', '审查数据迁移方案与执行细节（含数据库审查）'],
   [AGENT.PREVIOUS_COMMENTS_REVIEWER, 'review', '复查历史审查评论处理情况'],
+  [AGENT.REVIEW_DOMAIN, 'domain', '审查域代理：选择审查者、并行调度、综合发现', 'domains/review/DOMAIN.md'],
+  [AGENT.DEVELOPMENT_DOMAIN, 'domain', '开发域代理：分析任务、选择专精、协调执行', 'domains/development/DOMAIN.md'],
+  [AGENT.FRONTEND_DEV, 'domain', '前端开发专精代理：处理 UI 组件、样式、交互逻辑和响应式设计', 'domains/development/specialists/frontend-dev.md'],
+  [AGENT.BACKEND_DEV, 'domain', '后端开发专精代理：处理 API、数据层、业务逻辑和中间件', 'domains/development/specialists/backend-dev.md'],
+  [AGENT.DEBUG_FIX, 'domain', '调试修复专精代理：处理错误分析、根因定位、修复实现和回归验证', 'domains/development/specialists/debug-fix.md'],
+  [AGENT.REFACTOR_DEV, 'domain', '重构改造专精代理（占位）：处理代码重构、架构优化和技术债清理', 'domains/development/specialists/refactor-dev.md'],
 ]
 
 const GILDED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'], string]> = [
@@ -346,11 +380,18 @@ const GILDED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'], s
 ]
 
 function buildAgentList(
-  tuples: ReadonlyArray<readonly [string, AgentDefinition['stage'], string]>,
+  tuples: ReadonlyArray<readonly [string, AgentDefinition['stage'], string, string?]>,
   tier: 'required' | 'gilded',
 ): AgentDefinition[] {
-  return tuples.map(([name, stage, desc]) =>
-    AgentDefinitionSchema.parse({ name, stage, tier, description: desc, path: `src/assets/agents/${stage}/${name}.md` }),
+  return tuples.map(([name, stage, desc, customPath]) =>
+    AgentDefinitionSchema.parse({
+      name,
+      stage,
+      tier,
+      description: desc,
+      path: customPath
+        ?? (REVIEW_SPECIALIST_AGENT_NAMES.has(name) ? `domains/review/specialists/${name}.md` : `${stage}/${name}.md`),
+    }),
   )
 }
 

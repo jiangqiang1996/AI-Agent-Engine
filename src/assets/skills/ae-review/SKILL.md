@@ -4,11 +4,11 @@ description: "统一审查技能。支持代码域（Git 差异、全量文件�
 argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full:<path>] [session] [plan:<path>] [文档路径]"
 ---
 
-# 统一审查
+# 统一审查（编排层）
 
 审查回答**质量如何（HOW WELL）**——代码是否正确、安全、可维护；文档是否一致、可行、完整。
 
-此技能的持久输出是一份**结构化审查报告**，包含按严重级别排序的发现、自动修复结果和覆盖范围。
+此技能采用四阶段编排协议，将审查调度委托给审查域代理。
 
 ## 核心原则
 
@@ -47,9 +47,13 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 2. 对话中明确提到"审查需求文档"或"审查计划文档"等语义等价表达
 3. `domain:document` 模式下确定性搜索机制（阶段 1）找到了文档——搜索成功等同于明确指定
 
-## 执行流程
+## 四阶段编排协议
 
-### 阶段 0：参数解析与模式检测
+### 阶段一：入口（Entry）
+
+解析参数，确定审查域和范围，输出 `TaskIntent`。
+
+#### 参数解析
 
 解析 `$ARGUMENTS` 中的可选标记。以 `mode:` 或 `domain:` 开头的标记是标志，不是 ref——从参数中移除它们。
 
@@ -60,7 +64,7 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 | `mode:autofix` | 自动修复模式 |
 | `mode:report-only` | 只读模式 |
 | `mode:headless` | 无头模式（程序调用） |
-| `from:<ref>` | 使用 Git diff 确定范围，以指定 ref 作为差异基准（`base:<ref>` 映射到 `from:<ref>` 保持兼容） |
+| `from:<ref>` | 使用 Git diff 确定范围，以指定 ref 作为差异基准 |
 | `recent:<N>` | 审查最近 N 次 Git 提交 |
 | `full` | 审查项目中所有文件（不依赖 Git） |
 | `full:<path>` | 审查指定路径下的所有文件（不依赖 Git） |
@@ -69,181 +73,130 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 
 **冲突检测：** 以下范围标记互斥，同时指定时停止并报错：`from:` / `recent:` / `full` / `full:<path>` / `session`。
 
-**`domain` 参数传递到后续所有阶段**（排除规则、审查者选择、综合流水线）。
-
-**退出条件：** 模式、域和范围标记解析完成，无冲突。
-
-### 阶段 1：确定范围
-
-#### 代码域（`domain:code`）
-
-审查范围通过以下方式确定，按参数优先级选择。在进入阶段 2 之前，**必须**完成文件收集、排除规则应用和用户确认。
-
-##### 1a：Git 差异模式（`from:<ref>` 或 `recent:<N>` 或自动检测）
+#### 范围确定
 
 阅读 `references/scope-detection.md` 获取完整的 Git 范围检测流程。
 
-检测完成后：
-- 展示基准 ref、变更文件数、变更量，让用户确认或修正
-- 未跟踪文件：始终检查。在无头/自动修复模式中仅继续跟踪变更并注明排除
+代码域范围确定：
 
-##### 1b：全量扫描模式（`full` 或 `full:<path>`）
+1. **Git 差异模式**（`from:<ref>` 或 `recent:<N>` 或自动检测）→ 按优先级检测，展示变更文件让用户确认
+2. **全量扫描模式**（`full` 或 `full:<path>`）→ 扫描项目文件，应用排除规则，让用户确认
+3. **会话变更模式**（`session`）→ 识别会话变更文件，让用户确认
+4. **自动检测**（无范围参数时）→ 按 Git 自动检测优先级尝试，非 Git 项目回退全量扫描
 
-不依赖 Git。扫描项目文件系统：
+文档域范围确定：
 
-1. 确定扫描根目录：`full` 使用项目根目录，`full:<path>` 使用指定路径
-2. 使用 glob 递归列出所有文件
-3. 应用排除规则（见上方"排除规则"章节）
-4. 排除 `node_modules/`、`.git/`、`dist/`、`build/` 等常见非审查目录
-5. 展示文件数和按类型的分布，让用户确认或修正
+- 指定文档路径 → 使用指定路径
+- 未指定路径 + 交互模式 → 搜索 `ae/brainstorms/` 和 `ae/plans/` 中最近修改的文件
+- 未指定路径 + 无头模式 → 输出错误，立即终止
 
-全量扫描模式下，子代理使用完整文件模式（`Full content:`），不区分主要/次要/预存。
+如果文档 frontmatter 包含 `sharded: true`，先调用 `ae-doc-extract` 构建分片审查上下文；上下文至少保留 `rootDocument`、`shards`、`missingShards`、`duplicateIds`、`parentMismatch`、`globalRelations` 和 `diagnostics` 语义。
 
-##### 1c：会话变更模式（`session`）
+#### 意图发现
 
-审查本次会话中变更的文件：
+- 代码域：结合对话上下文编写 2-3 行意图摘要；检查 `plan:` 参数或自动发现最近计划
+- 文档域：通过分析文档内容判断类型（requirements/plan/test/general）
 
-1. 回顾当前会话上下文，识别所有被创建、修改或删除的文件
-2. 对于已存在的文件，读取当前内容作为审查输入
-3. 如果会话上下文中包含变更前的 diff 信息，一并提供给子代理
-4. 展示变更文件列表，让用户确认或修正
+#### TaskIntent 输出
 
-##### 1d：自动检测（无范围参数时）
+```typescript
+{
+  stage: 'entry',
+  intent: '审查意图标签',
+  domain: 'code' | 'document',
+  constraints: ['排除规则', '模式约束'],
+  rawInput: '原始参数',
+  timestamp: 'ISO 时间戳'
+}
+```
 
-按优先级尝试：
+### 阶段二：交互（Interact）
 
-1. **Git 自动检测**：阅读 `references/scope-detection.md`，按优先级执行范围检测流程（状态文件 → 项目配置 → resolve-base.sh → 友好降级）
-2. **非 Git 项目**：如果项目不是 Git 仓库（无 `.git` 目录），回退到全量扫描模式
+确认审查范围和参数，输出 `ConfirmedContext`。
 
-**退出条件：** 文件列表已确定，排除规则已应用，用户已确认范围（无头/自动修复模式下跳过用户确认）。
+- 交互模式：展示范围、排除规则和审查团队预览，让用户确认或修正
+- 无头/自动修复模式：跳过用户确认，直接进入调度
 
-#### 文档域（`domain:document`）
+可使用 `ae-review-contract` 工具获取审查团队预览（仅供展示，实际调度由审查域代理决定）。
 
-- **指定文档路径**（参数中非标志标记视为路径）→ 使用指定路径
-- **未指定路径 + 交互模式** → 确定性搜索：在 `ae/brainstorms/` 和 `ae/plans/` 中查找最近修改的文件
-  - 搜索成功 → 纳入文档（等同于"明确指定"条件 3），展示搜索结果让用户确认（"找到最近修改的文档 X，是否审查此文档？"）
-  - **局限性：** 搜索按修改时间降序返回最新文件，不一定是用户意图审查的文件。交互模式下搜索结果需展示给用户确认
-  - 搜索无结果 → 询问用户要审查哪个文档
-- **未指定路径 + 无头模式** → 输出错误信息，**立即终止**
-- **未指定路径 + ae:lfg 管道模式**（disable-model-invocation）→ 确定性搜索；搜索失败输出错误并终止
+#### ConfirmedContext 输出
 
-如果文档 frontmatter 包含 `sharded: true`，或文档类型为 `*-shard`，先调用 `ae-doc-extract` 构建分片审查上下文；上下文至少保留 `rootDocument`、`shards`、`missingShards`、`duplicateIds`、`parentMismatch`、`globalRelations` 和 `diagnostics` 语义。缺失分片、重复 ID、父子引用不一致等确定性问题必须作为审查输入证据传递给子代理，不得静默降级为只审查主文件。
+```typescript
+{
+  stage: 'interact',
+  confirmedParams: { 审查范围、文件列表、模式等 },
+  exclusions: ['排除的文件和目录'],
+  boundaries: ['安全边界和操作限制'],
+  timestamp: 'ISO 时间戳'
+}
+```
 
-**退出条件：** 文档路径已确定；单文件文档已读取，或分片文档已读取主文件并构建分片审查上下文。
+### 阶段三：调度（Dispatch）
 
-### 阶段 2：意图发现与分类
+通过 Task 工具调用审查域代理（`@review-domain`），传入 `DomainCallRequest`。
 
-#### 代码域
+审查域代理负责：
+1. 根据审查域和条件标记选择审查者
+2. 并行调度审查专精代理
+3. 综合所有审查发现
+4. 返回 `DomainExecutionResult`
 
-**意图发现：** 结合对话上下文编写 2-3 行意图摘要，传递给每个审查者。
+传入审查域代理的 prompt 必须包含：
+- 审查任务描述（含范围、意图、域类型）
+- 已确认的参数和约束
+- 代码域：文件列表、diff/完整内容、意图摘要
+- 文档域：文档内容、文档类型、分片上下文
 
-**计划发现（需求验证）：** 按优先级检查：`plan:` 参数 → 自动发现 `ae/plans/` 中的最近计划。记录置信度标记（`explicit`/`inferred`）。
-
-#### 文档域
-
-通过分析文档内容（而非路径）判断类型：
-
-- **requirements** — 关注构建什么和为什么构建。特征：包含需求列表（R1、R2...编号）、问题框架、成功标准
-- **plan** — 关注如何构建。特征：包含实现步骤、架构决策、技术方案
-- **test** — 关注如何验证。特征：包含测试用例、验收标准、测试步骤与预期结果、边界与异常场景描述
-- **general** — 通用文档。不匹配以上三种时的默认分类
-
-分类信号（按优先级）：
-1. **frontmatter**：`topic` 字段暗示内容主题
-2. **标题结构**：包含"需求"、"问题框架"→ requirements；包含"实现步骤"、"架构"→ plan；包含"测试用例"、"验收标准"、"预期结果"→ test
-3. **路径提示**（辅助）：`ae/brainstorms/` → 倾向 requirements；`ae/plans/` → 倾向 plan
-
-**退出条件：** 代码域——意图摘要已编写，计划发现已完成；文档域——文档类型已分类。
-
-### 阶段 3：审查者选择
-
-调用 `ae-review-contract` 工具，传入阶段 2 确定的审查类型。
-
-- 代码域 → `kind: code`，代码域审查者阅读 `references/file-routing-table.md` 和 `references/persona-catalog.md`
-- 文档域 requirements → `kind: document`
-- 文档域 plan → `kind: plan`
-- 文档域 test → `kind: test`
-- 文档域 general → `kind: general`
-
-**不要在阶段 2 完成之前调用此工具。**
-
-#### 代码域审查者选择
-
-1. 每个文件按扩展名/文件名匹配路由（支持无扩展名文件按文件名 glob 匹配）
-2. **默认排除的文件**（需求文档和计划文档，且未满足"明确指定"条件）：从文件列表中移除，不参与任何审查
-3. **文档文件**（.md .rst .adoc .org .txt）：收集到文档文件列表，作为文档域发现单独调度
-4. **代码文件** → 匹配路由组 → 确定基础审查者和条件审查者
-5. **合并领域关注点：** 领域代理已合并到常驻/条件审查者中：
-    - 配置文件路由（.json/.yaml/.yml/.toml/.xml）→ `standards-reviewer`（含配置文件审查）
-    - 基础设施路由（Dockerfile/CI/Terraform/Makefile）→ `reliability-reviewer`（含基础设施审查）
-    - 数据库路由（*.sql/.prisma/迁移文件）→ `data-migrations-reviewer`（含数据库审查）
-    - 脚本路由（.sh/.bash/.ps1/.bat/.cmd）→ `maintainability-reviewer`（含脚本审查）
-6. 分析代码文件内容特征（大小、主题、深度）→ 代理判断激活条件审查者
-7. `has_typescript`、`has_config`、`has_script` 仅作为透明输入和路由上下文，不单独激活条件审查者；工具定义/代理配置变更使用 `has_tooling` 或 `has_agent_config` 激活 `agent-native-reviewer`
-8. 多个文件属于不同路由时，合并所有活跃审查者（含领域代理），去重后统一派发
-9. 在派发前公布团队并附理由
-
-为 `standards` 角色查找所有相关 AGENTS.md 文件路径。
-
-#### 文档域审查者选择
-
-始终包含：`coherence-reviewer`、`feasibility-reviewer`
-
-条件角色激活：
-- **product-lens** — 文档类型为 plan、需求/实现单元 >=5 个，或文档对构建什么和为什么构建做出可质疑的战略/产品主张
-- **design-lens** — 文档包含 UI/UX 内容、用户流程或交互描述
-- **security** — 文档包含认证/授权、公共 API、数据处理或第三方集成
-- **architecture-strategist** — 文档类型为 plan 且包含重要架构决策
-- **adversarial** — 文档包含 >=5 个独立需求、重要架构决策、高风险领域或新抽象提议
-- **test-case** — 文档类型为 test
-
-**退出条件：** 审查团队已确定并公布。
-
-### 阶段 4：并行调度
-
-使用中层模型。生成唯一运行 ID。
-
-阅读 `references/subagent-template.md` 构建每个子代理的提示。**不要在阶段 3 完成之前加载此文件。**
-
-#### 代码域变量
+代码域变量映射：
 
 | 变量 | 值 |
 |------|-----|
 | `{domain}` | `code` |
-| `{persona_file}` | 代理 markdown 文件完整内容 |
-| `{schema}` | 发现 schema 内容 |
-| `{intent_summary}` | 阶段 2 输出 |
+| `{intent_summary}` | 阶段一输出 |
 | `{file_list}` | 变更文件列表 |
-| `{content}` | diff 内容或完整文件内容或会话变更内容 |
-| `{content_mode_label}` | 增量审查时为 `Diff:`，全量审查时为 `Full content:`，会话变更模式时为 `Session changes:` |
+| `{content}` | diff 内容或完整文件内容 |
+| `{content_mode_label}` | 增量/全量/会话变更 |
 | `{run_id}` | 运行标识符 |
-| `{reviewer_name}` | 审查者名称 |
 
-#### 文档域变量
+文档域变量映射：
 
 | 变量 | 值 |
 |------|-----|
 | `{domain}` | `document` |
-| `{persona_file}` | 代理 markdown 文件完整内容 |
-| `{schema}` | 发现 schema 内容 |
-| `{document_type}` | "requirements"、"plan"、"test" 或 "general" |
+| `{document_type}` | requirements/plan/test/general |
 | `{document_path}` | 文档路径 |
-| `{document_content}` | 单文件文档完整文本；分片文档为主文件全文、分片摘要、子文件内容和 diagnostics 组成的统一审查上下文 |
-| `{sharded_review_context}` | 分片文档审查上下文；单文件文档为空。包含 rootDocument、shards、missingShards、duplicateIds、parentMismatch、globalRelations、diagnostics |
+| `{document_content}` | 完整文本或分片上下文 |
 | `{run_id}` | 运行标识符 |
-| `{reviewer_name}` | 审查者名称 |
 
-向每个文档域代理传递**完整文档集合**——单文件时传递完整文档；分片时传递主文件、相关子文件和确定性 diagnostics，不要按章节拆分。
+**错误处理：** 如果域代理返回 `failed` 或 `partial`，使用已完成的结果继续综合。
 
-所有角色子代理作为并行子代理生成。角色子代理相对于项目是**只读**的。每个代理将完整 JSON 写入 `ae/reviews/{run_id}/{reviewer_name}.json`，返回精简 JSON。
+#### DispatchResults 输出
 
-**错误处理：** 如果代理失败或超时，使用已完成代理的发现继续。在覆盖范围部分注明失败的代理。
+```typescript
+{
+  stage: 'dispatch',
+  domainResults: [DomainExecutionResult],
+  timestamp: 'ISO 时间戳'
+}
+```
 
-**退出条件：** 所有审查子代理已返回结果（或超时处理完成）。
+### 阶段四：汇总（Summary）
 
-### 阶段 5-7：综合、展示和审查后
+接收 `DomainExecutionResult`，格式化为用户可读的审查报告，输出 `Deliverable`。
 
-所有代理返回后，阅读 `references/synthesis-and-presentation.md` 了解综合流水线（校验、置信度门控、去重、共识提升、残余风险提升、解决分歧、autofix 提升、路由划分、排序）、展示和审查后流程。**不要在阶段 4 完成之前加载此文件。**
+阅读 `references/synthesis-and-presentation.md` 了解综合流水线（校验、置信度门控、去重、共识提升、残余风险提升、解决分歧、autofix 提升、路由划分、排序）、展示和审查后流程。
+
+#### Deliverable 输出
+
+```typescript
+{
+  stage: 'summary',
+  description: '审查报告描述',
+  validationResults: ['验证结果'],
+  artifacts: ['审查报告路径'],
+  timestamp: 'ISO 时间戳'
+}
+```
 
 ---
 
@@ -252,22 +205,6 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 ### 范围检测
 
 @./references/scope-detection.md
-
-### 文件路由表
-
-@./references/file-routing-table.md
-
-### 角色目录
-
-@./references/persona-catalog.md
-
-### 子代理模板
-
-@./references/subagent-template.md
-
-### 发现 Schema
-
-@./references/findings-schema.json
 
 ### 综合与展示
 

@@ -28,7 +28,8 @@ export function buildAgentConfig(
   const result: NonNullable<AgentConfigShape['agent']> = {}
 
   for (const agent of getAllAgentDefinitions()) {
-    const fullPath = join(manifest.agentsDir, agent.stage, `${agent.name}.md`)
+    const relativePath = agent.path
+    const fullPath = join(manifest.agentsDir, relativePath)
     const content = readFileSync(fullPath, 'utf8')
     const parsed = parseFrontmatter(content)
 

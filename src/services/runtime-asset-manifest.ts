@@ -39,8 +39,8 @@ export interface RuntimeAssetManifest {
 
 function buildRuntimeAgentFiles(agentsDir: string, runtimeAgentDir: string): Array<{ source: string; target: string }> {
   return getAllAgentDefinitions().map((agent) => ({
-    source: join(agentsDir, agent.stage, `${agent.name}.md`),
-    target: join(runtimeAgentDir, agent.stage, `${agent.name}.md`),
+    source: join(agentsDir, agent.path),
+    target: join(runtimeAgentDir, agent.path),
   }))
 }
 
