@@ -178,7 +178,7 @@ function buildExecutionBaselineSection(input: WorktreeHandoffInput, handoffRelPa
   lines.push(`- ${input.execution_baseline}`)
   lines.push(`- 验证命令：${input.verification_requirements}`)
   lines.push(`- 续执行入口：在目标 B worktree 中调用 ae:work，并把 ${handoffRelPath} 作为唯一任务输入。`)
-  lines.push(`- 实现完成后必须进行代码审查或记录无法审查原因，并调用 ae-gate workflow:work checkpoint:final。`)
+  lines.push(`- 实现完成后必须进行代码审查或记录无法审查原因，并在最终回复中列出验证、审查和 Git 操作状态。`)
   lines.push(`- 禁止回到 A worktree ${input.source_worktree} 写代码、配置、测试或文档；后续所有实现只在目标 B worktree 中进行。`)
   lines.push('')
   return lines.join('\n')

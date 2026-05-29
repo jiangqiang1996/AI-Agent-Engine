@@ -1,5 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { execFileSync } from 'node:child_process'
+import { createHash } from 'node:crypto'
 
 import { tool, type ToolDefinition } from '@opencode-ai/plugin/tool'
 import { Effect } from 'effect'
@@ -7,7 +9,7 @@ import { z } from 'zod'
 
 import { AGENT, COMMAND, SKILL } from '../schemas/ae-asset-schema.js'
 import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
-import { collectCurrentWorktreeFingerprint, hashReviewOutput, parseReviewOutputEvidence } from '../services/gate-service.js'
+import { toPosixPath } from '../utils/path-utils.js'
 
 const REVIEW_RUN_ID_PATTERN = /^[a-zA-Z0-9._-]+$/
 
@@ -42,6 +44,26 @@ const ReviewFindingSchema = z.object({
 }).passthrough()
 
 const BLOCKING_SEVERITY_PATTERN = /^(p0|p1|p2|critical|high|medium)$/i
+const HASH_ALGORITHM = 'sha256'
+
+interface WorktreeFingerprint {
+  worktreePath: string
+  branch?: string
+  head?: string
+  statusSummary?: string
+  available: boolean
+  degraded?: boolean
+  error?: string
+}
+
+interface ReviewOutputEvidence {
+  status: 'passed' | 'failed'
+  worktree?: string
+  branch?: string
+  head?: string
+  statusSummary?: string
+  hasBlockingFinding: boolean
+}
 
 function resolveWorktree(context: unknown): string {
   const worktree = (context as { worktree?: unknown }).worktree
@@ -60,6 +82,171 @@ function resolveSessionId(context: unknown): string | undefined {
 
 function hasBlockingFinding(findings: Array<z.infer<typeof ReviewFindingSchema>>): boolean {
   return findings.some((finding) => BLOCKING_SEVERITY_PATTERN.test(finding.severity))
+}
+
+function normalizePathForEvidence(path: string): string {
+  const normalized = toPosixPath(path)
+  return process.platform === 'win32' ? normalized.toLowerCase() : normalized
+}
+
+function normalizeStatusSummaryForEvidence(statusSummary: string): string {
+  return statusSummary
+    .split('\n')
+    .filter((line) => !line.startsWith('## '))
+    .filter((line) => line.trim())
+    .filter((line) => !isReviewRuntimePath(line.slice(3).trim()))
+    .map((line) => line.trim())
+    .join('\n')
+}
+
+function isReviewRuntimePath(filePath: string): boolean {
+  const normalized = toPosixPath(filePath)
+  return normalized.startsWith(`${docsAePath(DOCS_AE_SUBDIRS.EVIDENCE)}/`)
+    || normalized.startsWith(`${docsAePath(DOCS_AE_SUBDIRS.REVIEWS)}/`)
+    || normalized.startsWith(`${docsAePath(DOCS_AE_SUBDIRS.HANDOFFS)}/`)
+    || normalized === 'ae/agent-browser-proof.json'
+    || normalized.startsWith('ae/screenshot/')
+    || normalized.startsWith('ae/static-server/')
+}
+
+function normalizeReviewStatusSummary(statusSummary: string): string {
+  const normalized = statusSummary.trim().toLowerCase()
+  if (normalized === 'clean' || normalized === 'no changes' || normalized === 'no output') {
+    return ''
+  }
+  return normalizeStatusSummaryForEvidence(statusSummary)
+}
+
+function runGit(repoRoot: string, args: string[]): string {
+  return execFileSync('git', args, {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+    timeout: 30_000,
+  }).trim()
+}
+
+function parseBranchFromStatus(statusOutput: string): string | undefined {
+  const branchLine = statusOutput.split('\n').find((line) => line.startsWith('## '))
+  if (!branchLine) {
+    return undefined
+  }
+  const branch = branchLine.slice(3).split('...')[0]?.trim()
+  return branch && branch !== 'HEAD (no branch)' ? branch : undefined
+}
+
+function collectCurrentWorktreeFingerprint(repoRoot: string): WorktreeFingerprint {
+  try {
+    const worktreePath = normalizePathForEvidence(runGit(repoRoot, ['rev-parse', '--show-toplevel']))
+    const head = runGit(repoRoot, ['rev-parse', 'HEAD'])
+    const statusOutput = runGit(repoRoot, ['status', '--porcelain', '--branch'])
+    const branch = parseBranchFromStatus(statusOutput) ?? runGit(repoRoot, ['rev-parse', '--abbrev-ref', 'HEAD'])
+
+    return {
+      worktreePath,
+      branch,
+      head,
+      statusSummary: normalizeStatusSummaryForEvidence(statusOutput),
+      available: true,
+      degraded: false,
+    }
+  } catch (error) {
+    return {
+      worktreePath: normalizePathForEvidence(repoRoot),
+      available: false,
+      error: error instanceof Error ? error.message : String(error),
+    }
+  }
+}
+
+function extractLabeledTextField(output: string, labels: string[]): string | undefined {
+  const escapedLabels = labels.map((label) => label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  const labelPattern = escapedLabels.join('|')
+  const match = output.match(new RegExp(
+    `(?:^|\n)\\s*(?:[-*]\\s*)?(?:\\*\\*)?(?:${labelPattern})(?:\\*\\*)?\\s*[:：]\\s*(?:\\*\\*)?\\s*(.+)`,
+    'i',
+  ))
+  return match?.[1]?.replace(/^\*\*\s*/, '').replace(/\s*\*\*$/, '').trim()
+}
+
+function hasBlockingFindingInText(output: string): boolean {
+  return /^\s*(?:#{1,6}\s*)?(?:(?:[-*]|\d+[.)])\s*)?(?:\*\*)?\[?(?:P[0-2]|critical|high|medium)\]?(?:\b|\s|[-—:：])/im.test(output)
+}
+
+function extractJsonObject(output: string): string | undefined {
+  const taskResultMatch = /<task_result>\s*([\s\S]*?)\s*<\/task_result>/.exec(output)
+  const candidate = taskResultMatch?.[1] ?? output
+  const start = candidate.indexOf('{')
+  const end = candidate.lastIndexOf('}')
+  if (start < 0 || end <= start) {
+    return undefined
+  }
+  return candidate.slice(start, end + 1)
+}
+
+function hasBlockingFindingInUnknown(findings: unknown): boolean {
+  if (!Array.isArray(findings)) {
+    return false
+  }
+
+  return findings.some((finding) => {
+    if (!finding || typeof finding !== 'object') {
+      return false
+    }
+    const severity = (finding as { severity?: unknown }).severity
+    return typeof severity === 'string' && BLOCKING_SEVERITY_PATTERN.test(severity)
+  })
+}
+
+function parseReviewOutputEvidence(output: string): ReviewOutputEvidence | undefined {
+  const jsonText = extractJsonObject(output)
+  if (jsonText) {
+    try {
+      const parsed = JSON.parse(jsonText) as Record<string, unknown>
+      const rawStatus = parsed.reviewStatus ?? parsed.review_status ?? parsed.status ?? parsed.conclusion
+      const normalizedStatus = typeof rawStatus === 'string' ? rawStatus.toLowerCase() : undefined
+      if (normalizedStatus === 'passed' || normalizedStatus === 'pass'
+        || normalizedStatus === 'failed' || normalizedStatus === 'fail') {
+        return {
+          status: normalizedStatus === 'passed' || normalizedStatus === 'pass' ? 'passed' : 'failed',
+          worktree: typeof parsed.worktree === 'string' ? normalizePathForEvidence(parsed.worktree) : undefined,
+          branch: typeof parsed.branch === 'string' ? parsed.branch : undefined,
+          head: typeof parsed.head === 'string' ? parsed.head : typeof parsed.HEAD === 'string' ? parsed.HEAD : undefined,
+          statusSummary: typeof parsed.statusSummary === 'string'
+            ? normalizeReviewStatusSummary(parsed.statusSummary)
+            : undefined,
+          hasBlockingFinding: hasBlockingFindingInUnknown(parsed.findings),
+        }
+      }
+    } catch {
+      // ae:review 的最终输出可能是 Markdown/结构化文本；JSON 解析失败时继续按文本解析。
+    }
+  }
+
+  const rawStatus = extractLabeledTextField(output, ['reviewStatus', 'review_status', 'Review Status', 'status', 'Status'])
+  const normalizedStatus = rawStatus?.toLowerCase()
+  if (normalizedStatus !== 'passed' && normalizedStatus !== 'pass'
+    && normalizedStatus !== 'failed' && normalizedStatus !== 'fail') {
+    return undefined
+  }
+
+  const worktree = extractLabeledTextField(output, ['worktree', 'Worktree'])
+  const branch = extractLabeledTextField(output, ['branch', 'Branch'])
+  const head = extractLabeledTextField(output, ['head', 'HEAD'])
+  const statusSummary = extractLabeledTextField(output, ['statusSummary', 'Status Summary'])
+
+  return {
+    status: normalizedStatus === 'passed' || normalizedStatus === 'pass' ? 'passed' : 'failed',
+    worktree: worktree ? normalizePathForEvidence(worktree) : undefined,
+    branch,
+    head,
+    statusSummary: statusSummary === undefined ? undefined : normalizeReviewStatusSummary(statusSummary),
+    hasBlockingFinding: hasBlockingFindingInText(output),
+  }
+}
+
+export function hashReviewOutput(content: string): string {
+  return createHash(HASH_ALGORITHM).update(content, 'utf8').digest('hex')
 }
 
 function extractHistoryText(value: unknown): string {
@@ -180,19 +367,17 @@ function hasTrustedSourceReviewOutput(context: unknown, sourceReviewRef: string,
   })
 }
 
-/**
- * 写入 ae:review 的结构化审查证明，供 ae-gate 绑定当前 worktree 指纹复验。
- */
+/** 写入 ae:review 的结构化审查证明。 */
 export const aeReviewProofTool: ToolDefinition = tool({
   description: [
     '写入 ae:review 结构化审查证明。',
     '',
     '功能说明：',
     '- 在当前工作区写入 `ae/reviews/<run-id>/metadata.json`',
-    '- 返回传入的真实审查输出，metadata 中记录该输出的 SHA-256，供 ae-gate 复验报告未被篡改',
+    '- 返回传入的真实审查输出，metadata 中记录该输出的 SHA-256，便于后续审计报告是否被篡改',
     '',
     '适用场景：',
-    '- ae:review 完成真实审查后生成可被 ae-gate 验证的 report_path 证据',
+    '- ae:review 完成真实审查后生成可审计的结构化报告元数据',
     '',
     '不适用场景：',
     '- 不替代真实代码或文档审查',

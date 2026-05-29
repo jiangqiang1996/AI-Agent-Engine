@@ -47,4 +47,4 @@
 }
 ```
 
-`verification_result` 中的实际 `validation_commands` 和一一对应的 `validation_results` 必须传递给 `references/shipping-workflow.md`，也可供上游 `ae:lfg` before_review/final gate 消费。`validation_results` 的每条记录必须包含 `command`、`exit_code`、`output`、`executed_at`；每条 `command` 必须匹配 `validation_commands`，且用于通过门禁的 `exit_code` 必须为 0。
+`verification_result` 中的实际 `validation_commands` 和一一对应的 `validation_results` 必须传递给 `references/shipping-workflow.md`，也可供上游 `ae:lfg` 结果审查和最终交付消费。`validation_results` 的每条记录必须包含 `command`、`exit_code`、`output`、`executed_at`；每条 `command` 必须匹配 `validation_commands`，且正式交付所依赖的验证结果 `exit_code` 必须为 0。

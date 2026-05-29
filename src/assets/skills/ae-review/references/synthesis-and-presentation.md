@@ -137,7 +137,7 @@
 
 ### 步骤 2：写入运行产物
 
-调用 `ae-review-proof` 写入 `ae/reviews/<run-id>/metadata.json`。代码域 `metadata.json` 必须包含 `generatedBy: "ae:review"`、`reviewRunIdOrMessageRef`、`worktree`、`branch`、`head`、`statusSummary`、`reviewStatus`、`reviewOutputHash`，供 `ae-gate` 的 `review_evidence.type=report_path` 校验。`source_review_output` 必须来自当前会话中真实 `ae:review` 或审查子代理输出；该输出本身必须包含可解析的通过/失败状态、当前 worktree、branch、HEAD 和 statusSummary，不能只在 metadata 中声明结论。不得使用手写文本、普通 task 正文、任意工具输出或与本次审查无关的标识替代真实审查来源。
+调用 `ae-review-proof` 写入 `ae/reviews/<run-id>/metadata.json`。代码域 `metadata.json` 必须包含 `generatedBy: "ae:review"`、`reviewRunIdOrMessageRef`、`worktree`、`branch`、`head`、`statusSummary`、`reviewStatus`、`reviewOutputHash`，便于后续审计和交付引用。`source_review_output` 必须来自当前会话中真实 `ae:review` 或审查子代理输出；该输出本身必须包含可解析的通过/失败状态、当前 worktree、branch、HEAD 和 statusSummary，不能只在 metadata 中声明结论。不得使用手写文本、普通 task 正文、任意工具输出或与本次审查无关的标识替代真实审查来源。
 
 ### 步骤 3：最终下一步（仅交互模式）
 

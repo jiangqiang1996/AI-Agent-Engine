@@ -47,7 +47,7 @@ describe('ae:work worktree 启动文本契约', () => {
       'S4 多步骤实现',
       '10+ 文件',
       '推荐 `worktree`',
-      '最终 gate notes / Git 操作状态中记录推荐依据',
+      '最终交付说明 / Git 操作状态中记录推荐依据',
     ])
   })
 
@@ -90,7 +90,7 @@ describe('ae:work worktree 启动文本契约', () => {
       'execution_baseline',
       'verification_requirements',
       'worktree_decision: transferred',
-      '不得调用最终交付门禁',
+      '不得进入普通交付模板',
     ])
   })
 

@@ -22,4 +22,4 @@ subtask: false
 8. 进入 `ae:work` 后必须读取交接文件中的 A→B 启动证明、执行基线、`resume_entrypoint` 和验证要求。
 9. 对 `/ae-work-continue` 来说，交接文件是唯一必需文件；需求文档、计划文档、设计文档、图谱目录和 AE 项目配置只在交接文件明确引用且当前 B worktree 中真实存在时作为可选上下文。
 10. 如果交接文件引用的需求/计划/设计路径、图谱目录或 AE 项目配置不存在，不得把继续执行判定为失败，不得回到 A worktree 查找或补迁移；记录可选上下文缺失，并基于交接文件的启动证明、执行基线和验证要求整理待办，然后继续执行。
-11. 最终 `ae-gate workflow:work checkpoint:final` 无 `plan_path` 时，必须传入 `handoff_path` 指向本交接文件；`notes` 只能补充执行基线说明，不得把 B worktree 继续执行描述为无需计划。
+11. 最终交付说明必须引用本交接文件作为 B worktree 继续执行基线；不得把 B worktree 继续执行描述为无需计划。

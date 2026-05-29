@@ -8,7 +8,6 @@ import { matchGraphExcludePath, matchGraphPath, type GraphConfig } from './graph
 const DEFAULT_EXCLUDED_DIRS = new Set(['.git', '.ae'])
 const HARD_EXCLUDED_AE_RUNTIME_PATHS = [
   docsAePath(DOCS_AE_SUBDIRS.GRAPHS),
-  docsAePath(DOCS_AE_SUBDIRS.GATES),
   docsAePath(DOCS_AE_SUBDIRS.HANDOFFS),
   docsAePath(DOCS_AE_SUBDIRS.REVIEWS),
   'ae/agent-browser-proof.json',

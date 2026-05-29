@@ -35,7 +35,6 @@ describe('graph-filter-suggestion-service', () => {
   it('应该让安全硬排除优先于 include 规则', () => {
     expect(getGraphPathDecision('.env', { include: ['.env'], exclude: [] }).hardExcluded).toBe(true)
     expect(getGraphPathDecision('ae/graphs/graph.json', { include: ['ae/graphs/graph.json'], exclude: [] }).hardExcluded).toBe(true)
-    expect(getGraphPathDecision('ae/gates/proof.json', { include: ['ae/gates/proof.json'], exclude: [] }).hardExcluded).toBe(true)
     expect(getGraphPathDecision('ae/handoffs/test-worktree-handoff.md', { include: ['ae/handoffs/test-worktree-handoff.md'], exclude: [] }).hardExcluded).toBe(true)
     expect(getGraphPathDecision('ae/reviews/run/metadata.json', { include: ['ae/reviews/run/metadata.json'], exclude: [] }).hardExcluded).toBe(true)
     expect(getGraphPathDecision('ae/agent-browser-proof.json', { include: ['ae/agent-browser-proof.json'], exclude: [] }).hardExcluded).toBe(true)
@@ -123,14 +122,13 @@ describe('graph-filter-suggestion-service', () => {
 
   it('不应该让 ae 运行产物进入候选统计或可解析集合', () => {
     const root = createTempRoot()
-    write(root, 'ae/gates/proof.json', '{}')
     write(root, 'ae/handoffs/test-worktree-handoff.md', '# handoff')
     write(root, 'ae/reviews/run/metadata.json', '{}')
     write(root, 'ae/agent-browser-proof.json', '{}')
     write(root, 'ae/static-server/.static-server-info.json', '{}')
     write(root, 'ae/plans/test-plan.md', '# plan')
 
-    const summary = collectGraphFilterCandidateSummary(root, root, { include: ['ae/gates/proof.json'], exclude: [] })
+    const summary = collectGraphFilterCandidateSummary(root, root, { include: ['ae/handoffs/test-worktree-handoff.md'], exclude: [] })
 
     expect(summary.rawFileCount).toBe(2)
     expect(summary.hardExcludedFileCount).toBe(1)

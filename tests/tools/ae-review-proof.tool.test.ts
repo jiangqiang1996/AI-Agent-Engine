@@ -5,8 +5,7 @@ import { join } from 'node:path'
 import { Effect } from 'effect'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { aeReviewProofTool } from '../../src/tools/ae-review-proof.tool.js'
-import { hashReviewOutput } from '../../src/services/gate-service.js'
+import { aeReviewProofTool, hashReviewOutput } from '../../src/tools/ae-review-proof.tool.js'
 
 const tempRoots: string[] = []
 
@@ -79,7 +78,7 @@ afterEach(() => {
 })
 
 describe('ae-review-proof 工具', () => {
-  it('应该写入 metadata 并返回可由门禁复验的结构化输出', async () => {
+  it('应该写入 metadata 并返回结构化审查证明输出', async () => {
     const root = createRepoRoot()
     const sourceReviewOutput = createSourceReviewOutput({ worktree: root, ...getGitFingerprint(root) })
 

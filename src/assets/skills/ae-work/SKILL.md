@@ -18,7 +18,7 @@ argument-hint: "[计划路径|交接文件路径|任务描述]"
 
 ## 编排原则
 
-`ae:work` 是唯一公开工作执行入口。`references/` 下的子流程文件只是内部执行说明，不是独立技能，不提供命令，也不能绕过本入口、worktree 决策、验证、审查或最终门禁。
+`ae:work` 是唯一公开工作执行入口。`references/` 下的子流程文件只是内部执行说明，不是独立技能，不提供命令，也不能绕过本入口、worktree 决策、验证或审查。
 
 执行时必须按顺序读取并执行以下子流程：
 
@@ -27,7 +27,7 @@ argument-hint: "[计划路径|交接文件路径|任务描述]"
 3. `references/task-analysis-workflow.md`：分析任务、构建待办和选择执行策略。
 4. `references/execution-workflow.md`：执行前验证、失败处理、进度跟踪和主代理汇总职责。
 5. `references/verification-workflow.md`：核验真实变更范围、越权修改和统一验证结果。
-6. `references/shipping-workflow.md`：完成代码审查、最终 gate 和交付模板。
+6. `references/shipping-workflow.md`：完成代码审查、最终检查和交付模板。
 
 调度阶段只构造 `DomainCallRequest` 并委托 `@development-domain`；开发域代理内部负责选择和调度专精代理，主代理不得再按旧模板自行二次派发。
 
@@ -43,11 +43,11 @@ argument-hint: "[计划路径|交接文件路径|任务描述]"
 - 传入规范 worktree 交接文件路径时，必须把交接文件作为唯一必需输入，在当前可观察 worktree 中继续执行；不得按裸提示词处理，不得再次创建 worktree。
 - A 会话创建 B worktree 后，不得继续实现；只能按需迁移当前任务已确定、真实存在的需求/计划/设计产物、`ae/graphs/` 和 `.opencode/ae.jsonc` 可选上下文，并调用 `ae-worktree-handoff` 工具生成交接文件；存在性判断和复制必须使用文件系统视角，不能依赖 `git status`、`git ls-files` 或其他会受 `.gitignore` 影响的 Git 视角；未迁移的可选上下文不得出现在交接文件中，禁止自行拼接交接 Markdown。
 - `ae-worktree-handoff` 工具会按固定模板生成结构化交接文件并返回 A 会话最终回复使用的简短交接提示；B worktree 通过 `ae:work <交接文件>` 继续执行，`/ae-work-continue` 只是查找交接文件后调用 `ae:work` 的便捷包装。A→B 启动证明的结构由工具保证，AI 只需填值。
-- A 会话转移完成后必须记录 `worktree_decision: transferred`，不得调用最终交付门禁，不得进入普通交付模板。
+- A 会话转移完成后必须记录 `worktree_decision: transferred`，不得进入普通交付模板。
 - 执行后必须由主代理独立运行 Git diff/status 核验真实修改文件，不得只依赖域代理自报。
 - 使用知识图谱定位、拆解或评估影响范围时，必须读取 `freshness`；`freshness.status` 不是 `fresh` 时，图谱只能作为候选定位线索，不得作为无影响、无依赖、完整覆盖或无需修改的交付结论，必须刷新图谱或用真实文件、Git 状态和验证命令补证。
-- 正式交付前必须运行相关验证、完成代码审查或明确无法审查原因，并调用 `ae-gate workflow:work checkpoint:final`。
-- `ae-gate` 阻断时必须先补齐阻断项，不得宣称交付完成。
+- 正式交付前必须运行相关验证、完成代码审查或明确无法审查原因，并记录 Git 操作状态。
+- 验证或审查存在阻断项时必须先补齐阻断项，不得宣称交付完成。
 
 ## 四阶段编排协议
 
@@ -128,21 +128,21 @@ argument-hint: "[计划路径|交接文件路径|任务描述]"
 
 读取 `references/verification-workflow.md` 核验真实变更范围、越权修改和统一验证结果。发现越权或污染修改时停止并请求用户决策，不得自动覆盖或回滚。
 
-读取 `references/shipping-workflow.md` 完成代码审查、最终 gate 和交付。
+读取 `references/shipping-workflow.md` 完成代码审查、最终检查和交付。
 
-在最终交付前必须调用 `ae-gate workflow:work checkpoint:final`，传入：
+在最终交付前必须汇总以下证据：
 
-- `plan_path`（如果本次从计划文档执行）
-- `notes`（如果本次没有计划路径，必须说明任务为何无需计划，并记录定位证据和升级判断）
-- `validation_commands`（本次实际运行的测试、构建、类型检查、lint 等命令）
-- `validation_results`（每条 `validation_commands` 对应的真实执行结果，包含 `command`、`exit_code`、`output`、`executed_at`；用于通过门禁的 `exit_code` 必须为 0）
-- `review_status`（代码审查状态；未运行时说明原因）
-- `git_operations`（本次会话执行过的 Git 写操作；没有则传空数组）
-- `worktree_decision`（创建、拒绝或不适用）
-- 如执行 Git 写操作，传入 `git_operation_args` 和 `git_authorization_evidence`
-- 如 `review_status` 为 `passed` 或 `failed`，传入 `review_evidence`
+- 计划路径或交接文件路径（如有）
+- 无计划路径时的无需计划原因、定位证据和升级判断
+- 本次实际运行的测试、构建、类型检查、lint 等验证命令
+- 每条验证命令对应的真实执行结果，包含 `command`、`exit_code`、`output`、`executed_at`
+- 代码审查状态；未运行时说明原因
+- 本次会话执行过的 Git 写操作；没有则明确说明无
+- `worktree_decision`（创建、拒绝、不适用、转移或取消）
+- 如执行 Git 写操作，列出命令参数和授权证据
+- 如审查状态为通过或失败，列出审查证据来源
 
-最终回复必须包含以下分区：已完成、已验证、未验证/无法验证、Git 操作状态、门禁结果、剩余风险。
+最终回复必须包含以下分区：已完成、已验证、未验证/无法验证、Git 操作状态、审查状态、剩余风险。
 
 #### Deliverable 输出
 
@@ -163,4 +163,4 @@ argument-hint: "[计划路径|交接文件路径|任务描述]"
 - **持续测试** — 每次变更后测试，非最后
 - **质量内建** — 遵循模式、编写测试、推送前 lint
 - **交付完整功能** — 标记所有任务完成，不留 80% 功能
-- **证据交付** — 最终回复必须引用 `ae-gate` 的门禁结果或证明路径
+- **证据交付** — 最终回复必须引用验证命令、审查状态和 Git 操作状态

@@ -26,13 +26,13 @@ disable-model-invocation: true
 
 - **S1 简单问答**：直接回答；必要时只做只读搜索/读取。不进入 `ae:lfg` 管道。
 - **S2 模糊想法**：先澄清，或进入步骤 2 的 `ae:brainstorm`。需求仍模糊时不得直接编码。
-- **S3 小修复**：如果范围仍然轻量，可转 `ae:work` 轻路径；只有在正式代码交付时才要求最终 `ae-gate`。一旦命中升级停点，立即改走 S4。
+- **S3 小修复**：如果范围仍然轻量，可转 `ae:work` 轻路径；正式代码交付时必须记录验证、审查和 Git 操作状态。一旦命中升级停点，立即改走 S4。
 - **S4 多步骤任务**：这是 `ae:lfg` 的标准适用场景，必须走完整主管道。
 - **S5 只读审查**：改用 `ae:review mode:report-only`，默认保持只读，不进入 `ae:lfg` 管道。
 - **S6 提交请求**：改走 Git 安全流程或 `/ae-commit`，不自动开始实现。
 - **S7 混合意图**：先拆分阶段；实现与验证完成后，才允许进入提交流程。
 
-非软件任务不得被排除在主管道之外。若任务不涉及代码、测试或构建，将其作为文档、测试用例、设计、报告或通用产物交付处理，并在实施与门禁阶段使用产物路径、追溯关系、审查结论、人工可检查标准或用户确认作为证据。
+非软件任务不得被排除在主管道之外。若任务不涉及代码、测试或构建，将其作为文档、测试用例、设计、报告或通用产物交付处理，并在实施与交付阶段使用产物路径、追溯关系、审查结论、人工可检查标准或用户确认作为证据。
 
 ## 恢复策略
 
@@ -42,15 +42,15 @@ disable-model-invocation: true
 - 若存在多个候选，要求显式选择
 - 若没有产物，从步骤 2 开始
 
-## 门禁证明
+## 交付证据
 
-在关键阶段调用 `ae-gate` 工具，不能只用文字承诺替代门禁结果：
+关键阶段必须收集可复核证据，不能只用文字承诺替代真实检查：
 
-- 进入实现前：`ae-gate workflow:lfg checkpoint:before_work plan_path:<plan-path>` 必须通过
-- 进入结果审查前：`ae-gate workflow:lfg checkpoint:before_review plan_path:<plan-path> validation_commands:[...] validation_results:[...]` 必须通过；非代码任务也必须使用真实可执行的产物存在性、格式、一致性或人工可复核检查命令作为验证证据，不得伪造测试命令
-- 最终交付前：`ae-gate workflow:lfg checkpoint:final plan_path:<plan-path> validation_commands:[...] validation_results:[...] review_status:passed review_evidence:{...} git_operations:[...] worktree_decision:<created|rejected|not_applicable>` 必须通过并写入证明；若执行过 Git 写操作，还必须传入 `git_operation_args` 和可验证 `git_authorization_evidence`
+- 进入实现前：必须确认计划路径存在，或记录无需计划的定位证据和升级判断
+- 进入结果审查前：必须已实际运行验证，并记录 `validation_commands` 及一一对应的 `validation_results`；非代码任务也必须使用真实可执行的产物存在性、格式、一致性或人工可复核检查命令作为验证证据，不得伪造测试命令
+- 最终交付前：必须汇总计划路径、验证结果、审查状态、Git 操作状态、worktree 决策和剩余风险；若执行过 Git 写操作，还必须记录命令参数和可验证授权证据
 
-如果门禁返回 `status: block`，必须先补齐阻断项再继续，不得输出 `<promise>DONE</promise>`。
+如果验证、审查或授权证据存在阻断项，必须先补齐阻断项再继续，不得输出 `<promise>DONE</promise>`。
 
 ## 管道步骤
 
@@ -92,21 +92,21 @@ disable-model-invocation: true
 
 ### 步骤 6：执行实施
 
-先运行 `ae-gate workflow:lfg checkpoint:before_work plan_path:<plan-path-from-step-4>`。门禁通过后再继续。
+确认 `<plan-path-from-step-4>` 存在并记录为实施基线后再继续。
 
 在调用 `ae:work` 前应用 `ae:lfg` 固定当前工作区策略：不透传 `worktree` 或 `auto`，不询问 worktree 模式，不创建 worktree；若用户输入包含 `--no-worktree` 或“不使用 worktree”，按当前工作区执行记录。Git 写操作授权应尽量在前置澄清阶段一次性取得，执行前只校验实际命令仍落在已授权范围内，避免中途重复询问。
 
 运行 `ae:work`，并明确写明“来自 `ae:lfg`，固定当前工作区执行；不得询问 worktree 模式，不得创建 worktree”。
 
-如果 `ae:work` 在 `ae:lfg` 固定当前工作区策略下仍返回 `worktree_decision: transferred`，视为协议异常并立即停止主管道：报告 `ae:lfg` 不允许本次 `ae:work` 创建或转移 worktree，不得继续步骤 7、步骤 8 或最终功能交付 gate。
+如果 `ae:work` 在 `ae:lfg` 固定当前工作区策略下仍返回 `worktree_decision: transferred`，视为协议异常并立即停止主管道：报告 `ae:lfg` 不允许本次 `ae:work` 创建或转移 worktree，不得继续步骤 7、步骤 8 或最终功能交付。
 
-如果 `ae:work` 返回 `worktree_decision: cancelled`，当前主管道立即停止：只输出取消状态、已完成/未完成项和不运行后续步骤或最终功能交付 gate 的说明。
+如果 `ae:work` 返回 `worktree_decision: cancelled`，当前主管道立即停止：只输出取消状态、已完成/未完成项和不运行后续步骤或最终功能交付的说明。
 
 **门控：** 验证实施工作已执行——存在与计划执行范围一致的文件创建、修改、结构化交付摘要或用户确认来源，并确认没有未授权的范围外变更。代码或可执行逻辑变更必须按代码交付处理；非代码任务不得因没有代码 diff 被阻断，但必须提供可引用产物、追溯、审查或确认证据。
 
 ### 步骤 7：结果审查
 
-先运行 `ae-gate workflow:lfg checkpoint:before_review plan_path:<plan-path-from-step-4>`，并传入已实际运行的 `validation_commands` 及一一对应的 `validation_results`。如果尚未运行验证，先运行验证再审查；`validation_results` 的每条 `command` 必须匹配 `validation_commands`，且用于通过门禁的 `exit_code` 必须为 0。非代码产物的验证命令可以是读取产物路径、检查 Markdown/YAML 格式、比对计划验收清单、运行文档专用测试或其他真实可复核检查；不得填入未执行的测试命令。
+确认已实际运行验证，并记录 `validation_commands` 及一一对应的 `validation_results`。如果尚未运行验证，先运行验证再审查；`validation_results` 的每条 `command` 必须匹配 `validation_commands`，且正式交付所依赖的验证结果 `exit_code` 必须为 0。非代码产物的验证命令可以是读取产物路径、检查 Markdown/YAML 格式、比对计划验收清单、运行文档专用测试或其他真实可复核检查；不得填入未执行的测试命令。
 
 运行 `ae:review mode:autofix plan:<plan-path-from-step-4>`；若是非代码产物，明确传入产物路径或审查目标，避免按代码差异误判。
 
@@ -126,9 +126,9 @@ disable-model-invocation: true
 
 ### 步骤 9：完成
 
-运行 `ae-gate workflow:lfg checkpoint:final plan_path:<plan-path-from-step-4> validation_commands:[...] validation_results:[...] review_status:passed review_evidence:{...} git_operations:[...] worktree_decision:<created|rejected|not_applicable>`。`validation_results` 必须与 `validation_commands` 一一对应，每条包含 `command`、`exit_code`、`output`、`executed_at`，且用于通过门禁的 `exit_code` 必须为 0。`worktree_decision` 必须沿用步骤 6 的结果；若结果为 `transferred` 或 `cancelled`，不得进入最终功能交付 gate。`review_evidence` 必须绑定当前 worktree、branch、HEAD 和状态摘要；如执行过 Git 写操作，传入 `git_operation_args` 和可验证 `git_authorization_evidence`，不能只依赖 `user_authorized_git_write`。如有浏览器测试，传入 `browser_test_status`。门禁通过后，在最终回复中引用 `proofPath`。
+汇总最终交付证据：计划路径、`validation_commands`、一一对应的 `validation_results`、审查状态和证据、Git 操作状态、worktree 决策、浏览器测试状态（如有）和剩余风险。`validation_results` 每条必须包含 `command`、`exit_code`、`output`、`executed_at`，且正式交付所依赖的验证结果 `exit_code` 必须为 0。`worktree_decision` 必须沿用步骤 6 的结果；若结果为 `transferred` 或 `cancelled`，不得进入最终功能交付。审查证据必须绑定当前 worktree、branch、HEAD 和状态摘要；如执行过 Git 写操作，记录命令参数和可验证授权证据，不能只依赖用户授权声明。
 
-最终回复必须遵循 `ae:work` 交付参考中的最终模板分区：已完成、已验证、未验证/无法验证、Git 操作状态、门禁结果、剩余风险。
+最终回复必须遵循 `ae:work` 交付参考中的最终模板分区：已完成、已验证、未验证/无法验证、Git 操作状态、审查状态、剩余风险。
 
 输出 `<promise>DONE</promise>`
 

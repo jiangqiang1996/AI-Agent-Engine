@@ -13,7 +13,7 @@ tests/
 │   └── ae-prompt-optimize.tool.test.ts
 ├── services/
 │   ├── recovery-service.test.ts
-│   ├── gate-service.test.ts
+│   ├── graph-filter-suggestion-service.test.ts
 │   └── review-selector.test.ts
 └── schemas/
     └── artifact-schema.test.ts

@@ -12,7 +12,6 @@ describe('ae:work 产物与交付文本契约', () => {
   it('应该把产物迁移边界落在技能文本而非仅靠 rules', () => {
     expect(skillText).toContain('worktree_decision')
     expect(startupText).toContain('A→B 启动证明必须包含')
-    expect(skillText).toContain('不得调用最终交付门禁')
     expect(skillText).toContain('不得进入普通交付模板')
     expect(shippingText).toContain('A→B 产物迁移')
     expect(shippingText).toContain('不迁移 gate/review 运行时产物')
@@ -49,16 +48,15 @@ describe('ae:work 产物与交付文本契约', () => {
 
   it('应该要求最终交付记录 worktree 决策和结构化证据', () => {
     expect(shippingText).toContain('worktree_decision')
-    expect(shippingText).toContain('git_operation_args')
-    expect(shippingText).toContain('git_authorization_evidence')
-    expect(shippingText).toContain('user_authorized_git_write` 只是声明证据')
-    expect(shippingText).toContain('review_evidence')
-    expect(skillText).toContain('在最终交付前必须调用 `ae-gate workflow:work checkpoint:final`')
-    expect(skillText).toContain('`validation_results`（每条 `validation_commands` 对应的真实执行结果')
+    expect(shippingText).toContain('命令参数和授权证据')
+    expect(shippingText).toContain('用户授权声明不能替代具体命令参数证据')
+    expect(shippingText).toContain('审查证据')
+    expect(skillText).toContain('在最终交付前必须汇总以下证据')
+    expect(skillText).toContain('每条验证命令对应的真实执行结果')
     expect(skillText).toContain('包含 `command`、`exit_code`、`output`、`executed_at`')
     expect(shippingText).toContain('与 `validation_commands` 一一对应的 `validation_results`')
     expect(shippingText).toContain('每条包含 `command`、`exit_code`、`output`、`executed_at`')
-    expect(shippingText).toContain('用于通过门禁的 `exit_code` 必须为 0')
+    expect(shippingText).toContain('正式交付所依赖的验证结果 `exit_code` 必须为 0')
   })
 
   it('应该说明 rejected 表示当前工作区交付而不只是用户拒绝', () => {
@@ -85,7 +83,7 @@ describe('ae:work 产物与交付文本契约', () => {
     expect(shippingText).toContain('若当前可观察 worktree 匹配 A→B 交接文件或启动证明中的目标 B worktree')
     expect(shippingText).toContain('B 会话最终功能交付使用 `worktree_decision: created`')
     expect(shippingText).toContain('覆盖普通当前工作区场景的 `rejected`')
-    expect(shippingText).toContain('`transferred` 和 `cancelled` 不得通过最终功能交付 gate')
+    expect(shippingText).toContain('`transferred` 和 `cancelled` 不得作为最终功能交付状态')
   })
 
   it('应该说明单独使用 ae:work 不默认 auto', () => {
@@ -119,28 +117,25 @@ describe('ae:work 产物与交付文本契约', () => {
   it('应该声明 ae-work-continue 只有交接文件是必需输入', () => {
     expect(continueCommandText).toContain('交接文件是唯一必需文件')
     expect(continueCommandText).toContain('需求文档、计划文档、设计文档、图谱目录和 AE 项目配置只在交接文件明确引用且当前 B worktree 中真实存在时作为可选上下文')
-    expect(continueCommandText).toContain('如果交接文件引用的需求/计划/设计路径、图谱目录或 AE 项目配置不存在，不得把续执行判定为失败')
-    expect(inputRoutingText).toContain('交接文件是 B worktree 续执行路径的唯一必需输入')
+    expect(continueCommandText).toContain('如果交接文件引用的需求/计划/设计路径、图谱目录或 AE 项目配置不存在，不得把继续执行判定为失败')
+    expect(inputRoutingText).toContain('交接文件是 B worktree 继续执行路径的唯一必需输入')
     expect(inputRoutingText).toContain('需求/计划/设计产物、图谱目录和 AE 项目配置作为可选上下文')
     expect(inputRoutingText).toContain('需求、计划、设计路径、图谱目录或 AE 项目配置不存在')
     expect(inputRoutingText).toContain('optional_context_missing')
     expect(startupText).toContain('交接文件是唯一必需文件')
     expect(startupText).toContain('需求、计划、设计、图谱目录和 AE 项目配置只在交接文件引用且当前 B worktree 中真实存在时读取')
     expect(taskAnalysisText).toContain('无计划、计划路径不存在，或工具无法从计划提取单元时')
-    expect(taskAnalysisText).toContain('不得因为任务分析工具未识别计划格式而停止续执行')
-    expect(shippingText).toContain('对 B 续执行来说只有交接文件是必需输入')
+    expect(taskAnalysisText).toContain('不得因为任务分析工具未识别计划格式而停止继续执行')
+    expect(shippingText).toContain('对 B worktree 继续执行来说只有交接文件是必需输入')
     expect(shippingText).toContain('需求/计划/设计文档、图谱目录和 AE 项目配置只是可选上下文')
   })
 
-  it('应该要求 B 续执行最终门禁记录交接基线而非无需计划', () => {
-    expect(shippingText).toContain('handoff_path')
-    expect(shippingText).toContain('交接文件作为 B worktree 续执行基线')
+  it('应该要求 B 续执行最终交付引用交接基线而非无需计划', () => {
+    expect(shippingText).toContain('交接文件作为 B worktree 继续执行基线')
     expect(shippingText).toContain('不得写成无需计划')
-    expect(shippingText).toContain('不得把 A→B 续执行写成"任务无需计划"')
-    expect(continueCommandText).toContain('handoff_path')
-    expect(continueCommandText).toContain('不得把 B 续执行描述为无需计划')
-    expect(shippingText).toContain('B worktree 续执行且无 `plan_path` 时，必须传入 `handoff_path`')
-    expect(continueCommandText).toContain('必须传入 `handoff_path` 指向本交接文件')
+    expect(shippingText).toContain('不得把 A→B 继续执行写成"任务无需计划"')
+    expect(continueCommandText).toContain('最终交付说明必须引用本交接文件作为 B worktree 继续执行基线')
+    expect(continueCommandText).toContain('不得把 B worktree 继续执行描述为无需计划')
     expect(shippingText).not.toContain('B 续执行无需计划')
     expect(continueCommandText).not.toContain('B 续执行无需计划')
     expect(shippingText).not.toContain('或在 `notes` 中说明执行基线')
