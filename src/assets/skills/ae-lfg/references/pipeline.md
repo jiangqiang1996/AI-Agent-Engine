@@ -15,12 +15,12 @@
 
 ## 管道步骤
 
-1. （可选）`ae:agent-browser` — 浏览器环境验证
+1. （可选）`ae:chrome-devtools` — 浏览器 MCP 动态注册
 2. `ae:brainstorm` — 需求探索
 3. `ae:review mode:headless domain:document <requirements-doc-path>` — 需求审查（仅当需求文档存在；无需求文档时跳过，不做无路径文档搜索）
 4. `ae:plan` / `ae:refactor` — 创建计划
 5. `ae:review mode:headless domain:document <plan-path>` — 计划审查
 6. `ae:work` — 执行实现
 7. `ae:review mode:autofix plan:<path>` — 代码审查（含需求验证）
-8. `ae:agent-browser` → `ae:test-browser` — 浏览器测试（仅当项目有 UI 时；先完成环境验证，环境就绪后再测试）
+8. `ae:chrome-devtools` → `ae:test-browser` — 浏览器测试（仅当项目有 UI 时；先完成 MCP 动态注册，连接就绪后再测试）
 9. 输出 `<promise>DONE</promise>`

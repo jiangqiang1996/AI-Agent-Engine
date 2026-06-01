@@ -23,7 +23,6 @@ const ASSETS: ProtocolAsset[] = listMarkdownFiles(join(process.cwd(), 'src/asset
   content: readFileSync(path, 'utf8'),
 }))
 
-const AGENT_BROWSER_COMMAND = /agent-browser\s+(?:--headed\s+)?(?:open|snapshot|click|fill|type|press|screenshot|wait|back|close)\b/
 const GIT_WRITE_COMMAND = /git\s+(?:add|commit|push|reset|clean|switch|checkout|pull|worktree\s+add)\b/
 const DESTRUCTIVE_LOCAL_COMMAND = /(git\s+(?:reset\s+--hard|clean\b)|Remove-Item\s+.*(?:-Recurse|-Force)|rm\s+-rf\b)/
 const SKIP_VERIFICATION_COMMAND = /(--no-verify|--no-gpg-sign|跳过\s*(?:hooks|验证|审查)|skip\s+hooks)/i
@@ -38,7 +37,6 @@ const SOURCE_REPO_CONTEXT_EXEMPTIONS = new Set([
   'src/assets/skills/ae-update/SKILL.md',
   'src/assets/skills/ae-agent-creator/SKILL.md',
   'src/assets/skills/ae-agent-creator/references/opencode-agent-conventions.md',
-  'src/assets/skills/ae-agent-browser/references/agent-browser-cli-reference.md',
 ])
 
 function hasAll(content: string, phrases: string[]): boolean {
@@ -58,17 +56,18 @@ function stripNegativeContext(content: string): string {
 }
 
 describe('Markdown 协议测试', () => {
-  it('浏览器消费方必须在命令前声明 agent-browser 环境门禁和失败降级', () => {
-    const browserAssets = ASSETS.filter((asset) => AGENT_BROWSER_COMMAND.test(asset.content))
-    const required = ['ae:agent-browser', '不得执行', '环境证明', '不能替代']
+  it('浏览器消费方必须在命令前声明 chrome-devtools MCP 门禁和失败降级', () => {
+    const CHROME_DEVTOOLS_MCP = /chrome-devtools_\w+/
+    const browserAssets = ASSETS.filter((asset) => CHROME_DEVTOOLS_MCP.test(asset.content))
+    const required = ['ae:chrome-devtools', '不得执行', 'MCP 注册', '不能替代']
 
     for (const asset of browserAssets) {
-      const firstCommandIndex = asset.content.search(AGENT_BROWSER_COMMAND)
-      const gateIndex = asset.content.indexOf('ae:agent-browser')
+      const firstCommandIndex = asset.content.search(CHROME_DEVTOOLS_MCP)
+      const gateIndex = asset.content.indexOf('ae:chrome-devtools')
 
       expect(
         gateIndex >= 0 && gateIndex < firstCommandIndex && hasAll(asset.content, required) && /(失败|无法验证|停止)/.test(asset.content),
-        `protocol/browser-environment-gate/${relative(process.cwd(), asset.path)}: 缺少命令前 agent-browser 环境门禁、未完成停止、安装状态不能替代或失败降级语义`,
+        `protocol/chrome-devtools-mcp-gate/${relative(process.cwd(), asset.path)}: 缺少命令前 chrome-devtools MCP 门禁、未完成停止、MCP 注册不能替代或失败降级语义`,
       ).toBe(true)
     }
   })

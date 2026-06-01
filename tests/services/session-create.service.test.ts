@@ -104,7 +104,7 @@ describe('session-create.service', () => {
   })
 
   it('正常路径：自动执行时提交经过浏览器门禁处理的提示词', async () => {
-    const prompt = '使用 agent-browser open http://localhost:3000'
+    const prompt = '使用 chrome-devtools_navigate_page type=url url=http://localhost:3000'
     const result = await Effect.runPromise(createSessionFlow(client, {
       title: '测试会话',
       userPrompt: prompt,
@@ -113,21 +113,21 @@ describe('session-create.service', () => {
 
     expect(result.promptAttempted).toBe(true)
     expect(result.promptSubmitted).toBe(true)
-    expect(result.recoverablePrompt).toContain('ae-agent-browser-proof action=check')
+    expect(result.recoverablePrompt).toContain('ae-chrome-devtools-mcp action=check')
     expect(mockSubmitUserPrompt).toHaveBeenCalledWith(client, 'session-1', result.recoverablePrompt)
   })
 
   it('正常路径：自动执行时对 system 上下文中的浏览器要求应用门禁', async () => {
     const result = await Effect.runPromise(createSessionFlow(client, {
       title: '测试会话',
-      systemPrompt: '使用 agent-browser 打开页面并截图',
+      systemPrompt: '使用 chrome-devtools-mcp 打开页面并截图',
       userPrompt: '开始',
       autoExecute: true,
     }))
 
     expect(result.promptSubmitted).toBe(true)
-    expect(result.recoverablePrompt).toContain('ae-agent-browser-proof action=check')
-    expect(result.recoverablePrompt).toContain('使用 agent-browser 打开页面并截图')
+    expect(result.recoverablePrompt).toContain('ae-chrome-devtools-mcp action=check')
+    expect(result.recoverablePrompt).toContain('使用 chrome-devtools-mcp 打开页面并截图')
     expect(result.recoverablePrompt).toContain('开始')
   })
 

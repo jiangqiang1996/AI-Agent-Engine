@@ -9,9 +9,9 @@ description: "检测并修复 Web 实现与 Figma 设计之间的视觉差异。
 
 ## 截图保存路径
 
-在执行任何 `agent-browser` 命令前，必须先调用 `ae-agent-browser-proof action=check` 确认当前工作区已有合法环境证明；证明缺失或无效时先执行 `ae:agent-browser` / `/ae-agent-browser` 环境验证流程；未通过 proof 校验前不得执行任何 `agent-browser` 命令。
+在执行任何 chrome-devtools 工具调用前，必须先调用 `ae-chrome-devtools-mcp action=check` 确认当前工作区已有合法 chrome-devtools MCP 注册；注册缺失或无效时先执行 `ae:chrome-devtools` / `/ae-chrome-devtools` 动态注册流程；未通过 MCP 注册校验前不得执行任何 chrome-devtools 工具调用。
 
-所有 `agent-browser screenshot` 命令的输出文件必须保存到 opencode 启动目录下的 `ae/screenshot/` 目录中。例如在 `d:/test` 目录中启动 opencode，则截图保存到 `d:/test/ae/screenshot/`。截图前须确保目录存在：
+所有 `chrome-devtools_take_screenshot` 工具调用的输出文件必须保存到 opencode 启动目录下的 `ae/screenshot/` 目录中。例如在 `d:/test` 目录中启动 opencode，则截图保存到 `d:/test/ae/screenshot/`。截图前须确保目录存在：
 
 ```bash
 mkdir -p ae/screenshot
@@ -35,13 +35,13 @@ New-Item -ItemType Directory -Path ae/screenshot -Force | Out-Null
 
 ### 步骤 1.5：登录状态检测
 
-在执行任何 `agent-browser` 命令前，必须先调用 `ae-agent-browser-proof action=check` 确认当前工作区已有合法环境证明。未通过 proof 校验前不得执行任何 `agent-browser` 命令；CLI 已安装、用户声称已安装或本地可用性检查成功都不能替代环境证明。证明缺失或无效时先执行 `ae:agent-browser` / `/ae-agent-browser` 环境验证流程；验证失败、用户拒绝安装或环境无法安装时，停止浏览器流程并记录无法验证。
+在执行任何 chrome-devtools 工具调用前，必须先调用 `ae-chrome-devtools-mcp action=check` 确认当前工作区已有合法 chrome-devtools MCP 注册。未通过 MCP 注册校验前不得执行任何 chrome-devtools 工具调用；MCP 服务器已启动、用户声称已启动或本地可用性检查成功都不能替代 chrome-devtools MCP 注册。注册缺失或无效时先执行 `ae:chrome-devtools` / `/ae-chrome-devtools` 动态注册流程；MCP 注册失败、用户拒绝启动或当前环境无法启动时，停止浏览器流程并记录无法验证。
 
 在打开 Web 实现页面后、截图前，检测是否需要登录：
 
 **检测登录需求**
 
-打开 Web 实现页面后，使用 `agent-browser snapshot -i --json` 获取页面状态，检测以下信号：
+打开 Web 实现页面后，使用 `chrome-devtools_take_snapshot verbose=true` 获取页面状态，检测以下信号：
 - URL 包含 `/login`、`/signin`、`/auth`、`/oauth`
 - 存在 `input[type="password"]` 密码输入框
 - 存在包含"登录"、"Login"、"Sign In"文本的按钮
@@ -70,14 +70,14 @@ New-Item -ItemType Directory -Path ae/screenshot -Force | Out-Null
 
 ### 步骤 2：实现截图采集
 
-完成 agent-browser 环境门禁后，使用 agent-browser CLI 导航到指定的 Web 页面/组件 URL。导航后先执行步骤 1.5 的登录状态检测，确认页面可访问后再捕获当前实现的高质量屏幕截图。
+完成 chrome-devtools MCP 门禁后，使用 chrome-devtools 工具导航到指定的 Web 页面/组件 URL。导航后先执行步骤 1.5 的登录状态检测，确认页面可访问后再捕获当前实现的高质量屏幕截图。
 
-```bash
-agent-browser open [url]
-agent-browser snapshot -i --json  # 检测是否进入登录页
+```
+chrome-devtools_navigate_page type=url url="[url]"
+chrome-devtools_take_snapshot verbose=true  # 检测是否进入登录页
 # 如需要登录，执行步骤 1.5 的登录等待流程
-agent-browser snapshot -i
-agent-browser screenshot ae/screenshot/implementation.png
+chrome-devtools_take_snapshot
+chrome-devtools_take_screenshot filePath=ae/screenshot/implementation.png
 ```
 
 ### 步骤 3：系统化对比分析

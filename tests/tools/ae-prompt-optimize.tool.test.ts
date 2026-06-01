@@ -71,7 +71,7 @@ describe('ae-prompt-optimize 工具', () => {
 
   it('浏览器门禁由通用服务处理，工具层不提前改写提示词', async () => {
     const mockClient = { session: {} } as never
-    const prompt = '使用 agent-browser open http://localhost:3000'
+    const prompt = '使用 chrome-devtools_navigate_page type=url url=http://localhost:3000'
     mockGetGlobalClient.mockReturnValue(mockClient)
     mockExecutePromptSubmit.mockReturnValue(
       Effect.succeed({
@@ -125,12 +125,12 @@ describe('ae-prompt-optimize 工具', () => {
     mockGetGlobalClient.mockReturnValue(mockClient)
     const error = Object.assign(new Error('发送失败'), {
       name: 'PromptSessionCreateError',
-      recoverablePrompt: '必须先调用 ae-agent-browser-proof action=check\n\n使用 agent-browser open http://localhost:3000',
+      recoverablePrompt: '必须先调用 ae-chrome-devtools-mcp action=check\n\n使用 chrome-devtools_navigate_page type=url url=http://localhost:3000',
     })
     mockExecutePromptSubmit.mockImplementation(() => Effect.fail(error))
 
-    const result = await callTool({ optimized_prompt: '使用 agent-browser open http://localhost:3000' })
+    const result = await callTool({ optimized_prompt: '使用 chrome-devtools_navigate_page type=url url=http://localhost:3000' })
 
-    expect(result).toContain('ae-agent-browser-proof action=check')
+    expect(result).toContain('ae-chrome-devtools-mcp action=check')
   })
 })

@@ -129,15 +129,15 @@ describe('command-registration', () => {
     expect(config[paCommand]).toBeUndefined()
   })
 
-  it('应该为 ae:test-browser 命令保留 agent-browser 环境门禁顺序且不生成提示词优化变体', () => {
+  it('应该为 ae:test-browser 命令保留 chrome-devtools 环境门禁顺序且不生成提示词优化变体', () => {
     const config = buildCommandConfig('__missing_commands_dir__')
     const poCommand = `${COMMAND.TEST_BROWSER}${PO_SUFFIX}`
     const paCommand = `${COMMAND.TEST_BROWSER}${PA_SUFFIX}`
 
     const baseTemplate = config[COMMAND.TEST_BROWSER]?.template ?? ''
-    expect(baseTemplate).toContain(`先使用 \`${SKILL.AGENT_BROWSER}\` 技能完成 agent-browser 环境证明检查或当轮环境验证`)
-    expect(baseTemplate).toContain('未完成环境证明或当轮验证前不得执行任何 agent-browser 浏览器控制命令')
-    expect(baseTemplate.indexOf(SKILL.AGENT_BROWSER)).toBeLessThan(baseTemplate.indexOf(SKILL.TEST_BROWSER))
+    expect(baseTemplate).toContain(`先使用 \`${SKILL.CHROME_DEVTOOLS}\` 技能完成 chrome-devtools MCP 动态注册`)
+    expect(baseTemplate).toContain('未完成 MCP 注册前不得执行任何浏览器控制命令')
+    expect(baseTemplate.indexOf(SKILL.CHROME_DEVTOOLS)).toBeLessThan(baseTemplate.indexOf(SKILL.TEST_BROWSER))
 
     expect(config[poCommand]).toBeUndefined()
     expect(config[paCommand]).toBeUndefined()
@@ -184,18 +184,18 @@ describe('command-registration', () => {
     expect(frontmatter['argument-hint']).toBe(catalogEntry?.argumentHint)
   })
 
-  it('应该保持 ae:agent-browser 和 ae:test-browser catalog 与 SKILL.md frontmatter 语义一致', () => {
-    const agentBrowserContent = readFileSync('src/assets/skills/ae-agent-browser/SKILL.md', 'utf8')
+  it('应该保持 ae:chrome-devtools 和 ae:test-browser catalog 与 SKILL.md frontmatter 语义一致', () => {
+    const chromeDevtoolsContent = readFileSync('src/assets/skills/ae-chrome-devtools/SKILL.md', 'utf8')
     const testBrowserContent = readFileSync('src/assets/skills/ae-test-browser/SKILL.md', 'utf8')
-    const agentBrowserFrontmatter = parseFrontmatter(agentBrowserContent).data
+    const chromeDevtoolsFrontmatter = parseFrontmatter(chromeDevtoolsContent).data
     const testBrowserFrontmatter = parseFrontmatter(testBrowserContent).data
-    const agentBrowserEntry = getPhaseOneEntries().find((entry) => entry.skillName === SKILL.AGENT_BROWSER)
+    const chromeDevtoolsEntry = getPhaseOneEntries().find((entry) => entry.skillName === SKILL.CHROME_DEVTOOLS)
     const testBrowserEntry = getPhaseOneEntries().find((entry) => entry.skillName === SKILL.TEST_BROWSER)
 
-    expect(agentBrowserFrontmatter.description).toContain('agent-browser')
-    expect(agentBrowserEntry?.description).toContain('agent-browser 浏览器能力中枢')
-    expect(testBrowserFrontmatter.description).toContain('agent-browser')
-    expect(testBrowserEntry?.description).toContain(SKILL.AGENT_BROWSER)
+    expect(chromeDevtoolsFrontmatter.description).toContain('chrome-devtools')
+    expect(chromeDevtoolsEntry?.description).toContain('chrome-devtools-mcp')
+    expect(testBrowserFrontmatter.description).toContain('chrome-devtools-mcp')
+    expect(testBrowserEntry?.description).toContain(SKILL.CHROME_DEVTOOLS)
   })
 
   it('用户同名命令应覆盖插件内置命令', () => {

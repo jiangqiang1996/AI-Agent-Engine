@@ -9,7 +9,6 @@ import { aeCreateSessionTool } from './ae-create-session.tool.js'
 import { aePromptOptimizeTool } from './ae-prompt-optimize.tool.js'
 import { aeHelpTool } from './ae-help.tool.js'
 import { aeReviewProofTool } from './ae-review-proof.tool.js'
-import { aeAgentBrowserProofTool } from './ae-agent-browser-proof.tool.js'
 import { aeSwaggerParserTool } from './ae-swagger-parser.tool.js'
 import { aeHtmlBundleTool } from './ae-html-bundle.tool.js'
 import { aeGraphBuildTool } from './ae-graph-build.tool.js'
@@ -17,6 +16,7 @@ import { aeGraphQueryTool } from './ae-graph-query.tool.js'
 import { aeTaskAnalyzerTool } from './ae-task-analyzer.tool.js'
 import { aeDocExtractTool } from './ae-doc-extract.tool.js'
 import { aeDomainCatalogTool } from './ae-domain-catalog.tool.js'
+import { aeChromeDevtoolsMcpTool } from './ae-chrome-devtools-mcp.tool.js'
 
 export function createToolRegistry(): Record<string, ToolDefinition> {
   return {
@@ -28,7 +28,6 @@ export function createToolRegistry(): Record<string, ToolDefinition> {
     [TOOL.AE_PROMPT_OPTIMIZE]: aePromptOptimizeTool,
     [TOOL.AE_HELP]: aeHelpTool,
     [TOOL.AE_REVIEW_PROOF]: aeReviewProofTool,
-    [TOOL.AE_AGENT_BROWSER_PROOF]: aeAgentBrowserProofTool,
     [TOOL.AE_SWAGGER_PARSER]: aeSwaggerParserTool,
     [TOOL.AE_HTML_BUNDLE]: aeHtmlBundleTool,
     [TOOL.AE_GRAPH_BUILD]: aeGraphBuildTool,
@@ -36,5 +35,6 @@ export function createToolRegistry(): Record<string, ToolDefinition> {
     [TOOL.AE_TASK_ANALYZER]: aeTaskAnalyzerTool,
     [TOOL.AE_DOC_EXTRACT]: aeDocExtractTool,
     [TOOL.AE_DOMAIN_CATALOG]: aeDomainCatalogTool,
+    [TOOL.AE_CHROME_DEVTOOLS_MCP]: aeChromeDevtoolsMcpTool,
   }
 }

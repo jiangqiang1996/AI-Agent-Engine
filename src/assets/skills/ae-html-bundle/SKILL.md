@@ -56,4 +56,4 @@ argument-hint: "[entry:<HTML_PATH>] [output:<HTML_PATH>] [external:keep|fail]"
 
 - 工具返回 `complete` 且 warning 为空时，可认为静态资源闭包已收敛到输出文件。
 - 工具返回 `partial` 时，必须把 warning 作为剩余风险展示。
-- 如需使用 `agent-browser` 打开验证，必须先完成 `ae:agent-browser` / `/ae-agent-browser` 环境验证流程，未完成环境证明前不得执行任何 `agent-browser` 命令。
+- 如需使用 chrome-devtools-mcp 工具打开验证，必须先完成 `ae:chrome-devtools` / `/ae-chrome-devtools` 动态注册流程，未完成 MCP 注册前不得执行任何浏览器操作命令。

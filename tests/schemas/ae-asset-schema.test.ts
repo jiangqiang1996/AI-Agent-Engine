@@ -33,11 +33,11 @@ describe('ae-asset-schema', () => {
     expect(createToolRegistry()[TOOL.AE_HTML_BUNDLE]).toBeDefined()
   })
 
-  it('应该接受 agent-browser 指导技能和命令，并拒绝提示词优化变体', () => {
-    expect(AeSkillNameSchema.parse(SKILL.AGENT_BROWSER)).toBe('ae:agent-browser')
-    expect(AeCommandNameSchema.parse(COMMAND.AGENT_BROWSER)).toBe('ae-agent-browser')
-    expect(AeCommandNameSchema.safeParse(`${COMMAND.AGENT_BROWSER}${PO_SUFFIX}`).success).toBe(false)
-    expect(AeCommandNameSchema.safeParse(`${COMMAND.AGENT_BROWSER}${PA_SUFFIX}`).success).toBe(false)
+  it('应该接受 chrome-devtools 指导技能和命令，并拒绝提示词优化变体', () => {
+    expect(AeSkillNameSchema.parse(SKILL.CHROME_DEVTOOLS)).toBe('ae:chrome-devtools')
+    expect(AeCommandNameSchema.parse(COMMAND.CHROME_DEVTOOLS)).toBe('ae-chrome-devtools')
+    expect(AeCommandNameSchema.safeParse(`${COMMAND.CHROME_DEVTOOLS}${PO_SUFFIX}`).success).toBe(false)
+    expect(AeCommandNameSchema.safeParse(`${COMMAND.CHROME_DEVTOOLS}${PA_SUFFIX}`).success).toBe(false)
   })
 
   it('应该拒绝旧会话沉淀和资产纠偏入口', () => {
@@ -84,17 +84,6 @@ describe('ae-asset-schema', () => {
     expect(AeCommandNameSchema.parse(COMMAND.SKILL_CREATOR)).toBe('ae-skill-creator')
     expect(AeSkillNameSchema.safeParse('ae:skill-updater').success).toBe(false)
     expect(AeCommandNameSchema.safeParse('ae-skill-updater').success).toBe(false)
-  })
-
-  it('应该声明 agent-browser 环境证明工具名', () => {
-    expect(TOOL.AE_AGENT_BROWSER_PROOF).toBe('ae-agent-browser-proof')
-  })
-
-  it('工具注册表应该暴露 agent-browser 环境证明工具', () => {
-    const registry = createToolRegistry()
-
-    expect(registry[TOOL.AE_AGENT_BROWSER_PROOF]).toBeDefined()
-    expect(registry[TOOL.AE_AGENT_BROWSER_PROOF]).toHaveProperty('execute')
   })
 
   it('工具注册表应该暴露通用新会话创建工具', () => {

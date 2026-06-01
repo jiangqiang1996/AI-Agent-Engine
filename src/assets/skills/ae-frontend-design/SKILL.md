@@ -160,8 +160,8 @@ argument-hint: "[描述|路径]"
 
 ### 检测登录需求
 
-仅当视觉验证实际选择 `agent-browser` 时，必须先调用 `ae-agent-browser-proof action=check` 确认当前工作区已有合法环境证明；未通过 proof 校验前不得执行任何 `agent-browser` 命令，CLI 已安装、命令存在检查成功或用户声称已安装都不能替代环境证明。证明缺失或无效时先执行 `ae:agent-browser` / `/ae-agent-browser` 的环境验证流程；验证失败、用户拒绝安装或环境无法安装时，停止浏览器流程并记录无法验证。
-完成后再打开目标页面并使用 `agent-browser snapshot -i --json` 获取页面状态，检测以下信号：
+仅当视觉验证实际使用浏览器工具时，必须先调用 `ae-chrome-devtools-mcp action=check` 确认 MCP 已注册并连接就绪；未通过 MCP 注册校验前不得执行任何浏览器操作命令，配置中已有声明、命令存在检查成功或用户声称已配置都不能替代 MCP 注册校验。注册缺失或无效时先执行 `ae:chrome-devtools` / `/ae-chrome-devtools` 的动态注册流程；注册失败、用户拒绝启动或环境无法启动时，停止浏览器流程并记录无法验证。
+完成后再打开目标页面并使用 `chrome-devtools_take_snapshot verbose=true` 获取页面状态，检测以下信号：
 - URL 包含 `/login`、`/signin`、`/auth`、`/oauth`
 - 存在 `input[type="password"]` 密码输入框
 - 存在包含"登录"、"Login"、"Sign In"文本的按钮
@@ -193,11 +193,10 @@ argument-hint: "[描述|路径]"
 实现后，按工具优先级使用第一个可用选项：
 
 1. **项目已有的浏览器工具** — Playwright、Puppeteer 等
-2. **浏览器 MCP 工具**
-3. **agent-browser CLI** — 当前工作区未通过 `ae-agent-browser-proof action=check` 时，先执行 `ae:agent-browser` / `/ae-agent-browser` 环境验证流程；安装状态或命令存在检查不能替代环境证明；验证失败时停止浏览器流程并记录无法验证；完成后再使用 CLI
-4. **心理审查** — 无头 CI 等环境下降级
+2. **chrome-devtools-mcp 工具** — 当前工作区未通过 `ae-chrome-devtools-mcp action=check` 时，先执行 `ae:chrome-devtools` / `/ae-chrome-devtools` 动态注册流程；配置声明或命令存在检查不能替代 MCP 注册校验；注册失败时停止浏览器流程并记录无法验证；完成后再使用 MCP 工具
+3. **心理审查** — 无头 CI 等环境下降级
 
-无论使用哪种浏览器工具，打开目标页面后、截图前都必须执行等价的登录检测与等待流程。使用 Playwright、Puppeteer 或 MCP 时，按当前 URL、页面文本、登录表单和已登录态元素执行同等判断；使用 `agent-browser` 时，先完成 agent-browser 环境门禁，再按上文流程执行。
+无论使用哪种浏览器工具，打开目标页面后、截图前都必须执行等价的登录检测与等待流程。使用 Playwright、Puppeteer 或 MCP 时，按当前 URL、页面文本、登录表单和已登录态元素执行同等判断；使用 chrome-devtools-mcp 时，先完成 MCP 注册校验，再按上文流程执行。
 
 评估内容：是否匹配构建前规划的视觉主题？是否有明显视觉问题？是否符合目标上下文模块的感觉？
 

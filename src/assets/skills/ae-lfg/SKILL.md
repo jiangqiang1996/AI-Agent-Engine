@@ -1,4 +1,4 @@
----
+﻿---
 name: ae:lfg
 description: "核心流程组合技能：串联 ae:brainstorm → ae:plan → ae:work → ae:review 等阶段，一站式完成从需求到交付的全流程；各阶段技能也可独立使用"
 argument-hint: "[任务描述|已有产物路径]"
@@ -55,7 +55,7 @@ disable-model-invocation: true
 
 ### 步骤 1（可选）：浏览器能力依赖说明
 
-主管道开始时不无条件运行 `/ae-agent-browser`。只有步骤 8 检测到项目需要浏览器测试，或后续流程实际准备使用 `agent-browser` 时，才先运行 `ae:agent-browser` / `/ae-agent-browser` 环境验证流程。
+主管道开始时不无条件运行 `/ae-chrome-devtools`。只有步骤 8 检测到项目需要浏览器测试，或后续流程实际准备使用 chrome-devtools-mcp 工具时，才先运行 `ae:chrome-devtools` / `/ae-chrome-devtools` 动态注册流程。
 
 ### 步骤 2：需求探索
 
@@ -117,8 +117,8 @@ disable-model-invocation: true
 
 仅当任务产物包含需要浏览器验证的 UI、页面或 HTML 交付时检查浏览器测试需求：
 
-- 如果存在 UI 文件，先运行 `ae:agent-browser` / `/ae-agent-browser` 环境验证流程；环境就绪后再运行 `ae:test-browser`
-- 如果环境验证失败、用户拒绝安装或当前环境无法安装，记录“无法验证：浏览器测试未执行”，不得运行 `agent-browser` 命令
+- 如果存在 UI 文件，先运行 `ae:chrome-devtools` / `/ae-chrome-devtools` 动态注册流程；MCP 连接就绪后再运行 `ae:test-browser`
+- 如果MCP 注册失败、用户拒绝启动或当前环境无法启动，记录"无法验证：浏览器测试未执行"，不得执行浏览器操作命令
 - 如果项目无 UI 文件，跳过此步骤
 
 **门控：** 如果浏览器测试全部失败，输出警告但允许继续。

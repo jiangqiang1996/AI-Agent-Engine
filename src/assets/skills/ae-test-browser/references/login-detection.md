@@ -2,8 +2,7 @@
 
 本文档定义统一的登录检测流程，供所有浏览器截图能力复用。
 
-在执行本文档中的任何 `agent-browser` 命令前，必须先调用 `ae-agent-browser-proof action=check` 确认当前工作区已有合法环境证明。CLI 已安装、用户声称已安装或本地可用性检查成功都不能替代环境证明。未通过 proof 校验前不得执行任何 `agent-browser` 命令；证明缺失或无效时先执行 `ae:agent-browser` / `/ae-agent-browser` 环境验证流程，若验证失败、用户拒绝安装或当前环境无法安装，必须停止浏览器流程并记录无法验证原因。
-
+在执行本文档中的任何浏览器操作前，必须先调用 `ae-chrome-devtools-mcp action=check` 确认 MCP 注册并连接就绪。配置中已声明 MCP、用户声称已配置或本地进程检查成功都不能替代机器校验结果。未通过校验前不得执行任何浏览器操作命令；MCP 未就绪时先执行 `ae:chrome-devtools` / `/ae-chrome-devtools` 完成动态注册，若注册失败、用户拒绝启动或当前环境无法启动，必须停止浏览器流程并记录无法验证原因。
 
 ## 检测机制
 
@@ -29,8 +28,8 @@
 
 | 优先级 | 检测方式 | 命令 | 适用场景 |
 |--------|---------|------|---------|
-| 1 | URL 变化 | `snapshot -i --json` 解析 URL | 传统登录跳转 |
-| 2 | 用户元素出现 | 检测 `@user-avatar` 或 `@logout-button` | 通用检测 |
+| 1 | URL 变化 | `chrome-devtools_take_snapshot verbose=true` 解析 URL | 传统登录跳转 |
+| 2 | 用户元素出现 | 检测用户头像或登出按钮 uid | 通用检测 |
 | 3 | 登录元素全部消失 | 检测初始登录相关元素列表均不存在 | 表单提交场景 |
 | 4 | 截图人工判断 | 展示截图 + `question` 工具 | 兜底方案 |
 
@@ -48,23 +47,23 @@
 
 ### 自动识别条件
 
-通过 `agent-browser snapshot -i --json` 获取页面元素，检测以下信号：
+通过 `chrome-devtools_take_snapshot verbose=true` 获取页面元素，检测以下信号：
 
 | 信号类型 | 检测方式 | 权重 |
 |---------|---------|------|
 | URL 路径 | URL 包含 `/login`、`/signin`、`/auth`、`/oauth` | 高 |
 | 密码输入框 | 存在 `input[type="password"]` | 高 |
 | 登录按钮 | 按钮文本包含"登录"、"Login"、"Sign In" | 中 |
-| 表单标签 | 表单包含 `@login-form`、`@signin-form` | 中 |
+| 表单标签 | 表单包含登录相关 uid | 中 |
 | 页面标题 | 标题包含"登录"、"Sign In"、"Log In" | 低 |
 
 ### 识别流程
 
-1. 打开目标 URL 后运行 `agent-browser snapshot -i --json`。
+1. 打开目标 URL 后运行 `chrome-devtools_take_snapshot verbose=true`。
 2. 从快照中读取当前 URL、页面标题和可交互元素列表。
 3. 如 URL 命中登录路径或页面包含密码输入框，判定为需要登录。
 4. 如仅命中登录按钮或标题关键词，结合截图或上下文判断，避免把普通导航按钮误判为登录页。
-5. 如果 JSON 快照不可用，降级为普通快照 + 截图 + 用户确认。
+5. 如果详细快照不可用，降级为普通快照 + 截图 + 用户确认。
 
 ## 用户反馈提示
 
@@ -122,17 +121,17 @@
 
 ### 步骤 1：检测登录需求
 
-打开目标 URL 后运行 `agent-browser snapshot -i --json` 获取页面状态，并分析是否包含登录路径、密码输入框或登录按钮等信号。
+打开目标 URL 后运行 `chrome-devtools_take_snapshot verbose=true` 获取页面状态，并分析是否包含登录路径、密码输入框或登录按钮等信号。
 
 ### 步骤 2：记录初始状态
 
 记录以下信息，供后续轮询判断：
 
 - 初始 URL
-- 登录相关元素引用列表（密码输入框、登录按钮、登录表单）
+- 登录相关元素 uid 列表（密码输入框、登录按钮、登录表单）
 - 开始等待时间
 
-登录相关元素必须作为列表逐个比对，不能把多个元素引用拼接成一个字符串后做单值比较。
+登录相关元素必须作为列表逐个比对，不能把多个元素 uid 拼接成一个字符串后做单值比较。
 
 ### 步骤 3：输出反馈提示
 
@@ -166,8 +165,8 @@
 
 先保存当前页面截图，再使用 `question` 工具询问用户：
 
-```bash
-agent-browser screenshot ae/screenshot/login-timeout.png
+```
+chrome-devtools_take_screenshot filePath=ae/screenshot/login-timeout.png
 ```
 
 ```typescript
@@ -188,15 +187,15 @@ question({
 
 ### 在技能中集成
 
-未通过 `ae-agent-browser-proof action=check` 或实际完成 `ae:agent-browser` / `/ae-agent-browser` 环境验证流程前，不得执行下列示例中的 `agent-browser` 命令。
+未通过 `ae-chrome-devtools-mcp action=check` 或实际完成 `ae:chrome-devtools` / `/ae-chrome-devtools` 动态注册前，不得执行下列示例中的浏览器操作命令。
 
 ```markdown
 ### 前置检查：登录状态检测
 
 在打开目标页面后、截图前，检测是否需要登录：
 
-1. `agent-browser open [URL]`
-2. `agent-browser snapshot -i --json` 获取页面状态
+1. `chrome-devtools_navigate_page type=url url=[URL]`
+2. `chrome-devtools_take_snapshot verbose=true` 获取页面状态
 3. 分析是否包含登录信号（见 login-detection.md）
 4. 如检测到登录，执行登录等待流程
 5. 登录成功后继续执行
@@ -206,14 +205,14 @@ question({
 
 ### 在代理中集成
 
-未通过 `ae-agent-browser-proof action=check` 或实际完成 `ae:agent-browser` / `/ae-agent-browser` 环境验证流程前，不得执行下列示例中的 `agent-browser` 命令。
+未通过 `ae-chrome-devtools-mcp action=check` 或实际完成 `ae:chrome-devtools` / `/ae-chrome-devtools` 动态注册前，不得执行下列示例中的浏览器操作命令。
 
 ```markdown
 ## 步骤 0：前置检查
 
 **登录状态检测：**
 
-1. 使用 `agent-browser snapshot -i --json` 获取当前页面状态
+1. 使用 `chrome-devtools_take_snapshot verbose=true` 获取当前页面状态
 2. 检测 URL 是否包含登录路径，或页面是否包含密码输入框
 3. 如检测到登录页面：
    - 输出反馈提示："🔐 检测到登录页面，请完成登录..."
@@ -226,8 +225,8 @@ question({
 
 ## 注意事项
 
-1. **有头模式优先**：登录检测建议使用 `--headed` 模式，让用户能看到浏览器窗口
+1. **有头模式优先**：登录检测建议使用有头浏览器，让用户能看到浏览器窗口
 2. **无头模式边界**：如果无头模式下检测到登录页，停止无头流程并改用有头模式重新打开目标页面，人工登录必须在可见浏览器窗口中完成
 3. **超时配置**：根据项目实际情况调整 `max_wait`，复杂登录流程可能需要更长时间
-4. **元素选择器**：`@user-avatar`、`@logout-button` 等选择器可能需要根据实际项目调整
-5. **降级策略**：如果 `--json` 输出不可用，降级到固定时间等待 + 用户确认
+4. **元素选择器**：用户头像、登出按钮等元素 uid 可能需要根据实际项目调整
+5. **降级策略**：如果详细快照不可用，降级到固定时间等待 + 用户确认

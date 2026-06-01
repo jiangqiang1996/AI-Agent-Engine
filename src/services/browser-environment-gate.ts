@@ -1,46 +1,76 @@
-import { SKILL, COMMAND, AGENT, TOOL } from '../schemas/ae-asset-schema.js'
-
-const BROWSER_TRIGGER_PATTERNS = [
-  'agent-browser',
-  SKILL.TEST_BROWSER,
-  `/${COMMAND.TEST_BROWSER}`,
-  `@${AGENT.DESIGN_ITERATOR}`,
-  `@${AGENT.FIGMA_DESIGN_SYNC}`,
-  SKILL.FRONTEND_DESIGN,
-  `/${COMMAND.FRONTEND_DESIGN}`,
+const BROWSER_KEYWORDS = [
+  'chrome-devtools',
+  'ae:chrome-devtools',
+  '/ae-chrome-devtools',
+  'ae-chrome-devtools-mcp',
+  'chrome-devtools_navigate_page',
+  'chrome-devtools_take_snapshot',
+  'chrome-devtools_take_screenshot',
+  'chrome-devtools_click',
+  'chrome-devtools_fill',
+  'chrome-devtools_type_text',
+  'chrome-devtools_press_key',
+  'chrome-devtools_hover',
+  'chrome-devtools_wait_for',
+  'chrome-devtools_evaluate_script',
+  'chrome-devtools_lighthouse_audit',
+  'ae:test-browser',
+  '/ae-test-browser',
+  '@design-iterator',
+  '@figma-design-sync',
+  'ae:frontend-design',
+  '/ae-frontend-design',
 ]
 
-const BROWSER_PROOF_CHECK_RE = new RegExp(`(先|必须|调用|执行).*${TOOL.AE_AGENT_BROWSER_PROOF}\\s+action=check`)
-const BROWSER_ENVIRONMENT_FLOW_RE = new RegExp(`(先执行|先运行|完成).*(${SKILL.AGENT_BROWSER}|/${COMMAND.AGENT_BROWSER}).*(后|再)`)
-const NEGATED_ENVIRONMENT_GATE_RE = new RegExp(`(不要|无需|不用|不必|不需要).{0,20}(${TOOL.AE_AGENT_BROWSER_PROOF}\\s+action=check|${SKILL.AGENT_BROWSER}|/${COMMAND.AGENT_BROWSER})`)
+const GATE_PATTERNS = [
+  /ae-chrome-devtools-mcp\s+action=check/i,
+  /ae:chrome-devtools/i,
+  /\/ae-chrome-devtools/i,
+]
 
-const BROWSER_ENVIRONMENT_GATE_PROMPT = [
-  `必须先调用 ${TOOL.AE_AGENT_BROWSER_PROOF} action=check 检查当前工作区的 agent-browser 环境证明；`,
-  `若未完成，先执行 ${SKILL.AGENT_BROWSER} / /${COMMAND.AGENT_BROWSER} 的环境验证流程，得到环境就绪结果并写入证明后再执行浏览器流程。`,
-  'agent-browser 已安装或用户声称已安装都不能替代环境证明校验；连接已有浏览器前必须展示候选和风险并由用户确认目标。',
-].join('')
+const ANTI_GATE_PATTERNS = [
+  /chrome-devtools\s* MCP\s*(已注册|可用|已连接|就绪).{0,20}(无需|跳过|直接|即可).{0,10}(MCP|注册)/i,
+  /(command\s*-v|Get-Command|where)\s*chrome-devtools-mcp/i,
+]
 
-const FIRST_REFERENCE_RE = /^([@/][\w:-]+)\s*/
+const MCP_COMMAND_PATTERN = /chrome-devtools_\w+/g
 
-export function ensureBrowserEnvironmentGate(prompt: string): string {
-  const hasBrowserTrigger = BROWSER_TRIGGER_PATTERNS.some((p) => prompt.includes(p))
-  if (!hasBrowserTrigger) {
-    return prompt
+function containsBrowserKeyword(text: string): boolean {
+  return BROWSER_KEYWORDS.some((keyword) => text.toLowerCase().includes(keyword.toLowerCase()))
+}
+
+function containsGatePattern(text: string): boolean {
+  return GATE_PATTERNS.some((pattern) => pattern.test(text))
+}
+
+function containsAntiGatePattern(text: string): boolean {
+  return ANTI_GATE_PATTERNS.some((pattern) => pattern.test(text))
+}
+
+function extractMcpCommandSegments(text: string): string[] {
+  const matches = text.match(MCP_COMMAND_PATTERN)
+  return matches ? [...new Set(matches)] : []
+}
+
+const GATE_INJECTION_TEMPLATE = `\n\n[chrome-devtools MCP 门禁] 目标新会话先调用 \`ae-chrome-devtools-mcp action=check\` 检查当前工作区的 chrome-devtools MCP 注册状态；若未完成，则先执行 \`ae:chrome-devtools\` / \`/ae-chrome-devtools\` 动态注册流程，得到 MCP 连接就绪结果后再执行浏览器流程。chrome-devtools MCP 已在配置中声明、用户声称已配置或本地进程检查成功，都不能替代 MCP 注册校验。同一工作区的 chrome-devtools MCP 注册状态可以跨会话复用；MCP 未注册、注册失败或连接状态非 connected 时，目标新会话必须自行完成动态注册。`
+
+export function ensureBrowserEnvironmentGate(text: string): string {
+  if (!text.trim()) {
+    return text
   }
 
-  const hasEnvironmentMarker = !NEGATED_ENVIRONMENT_GATE_RE.test(prompt)
-    && BROWSER_PROOF_CHECK_RE.test(prompt)
-    && BROWSER_ENVIRONMENT_FLOW_RE.test(prompt)
-  if (hasEnvironmentMarker) {
-    return prompt
+  if (!containsBrowserKeyword(text)) {
+    return text
   }
 
-  const firstRefMatch = prompt.match(FIRST_REFERENCE_RE)
-  if (firstRefMatch) {
-    const firstRef = firstRefMatch[1]
-    const afterFirstRef = prompt.slice(firstRef.length).replace(/^\s+/, '')
-    return `${firstRef}\n\n${BROWSER_ENVIRONMENT_GATE_PROMPT}\n\n${afterFirstRef}`
+  if (containsGatePattern(text) && !containsAntiGatePattern(text)) {
+    return text
   }
 
-  return `${BROWSER_ENVIRONMENT_GATE_PROMPT}\n\n${prompt}`
+  const mcpCommands = extractMcpCommandSegments(text)
+  const gateBlock = mcpCommands.length > 0
+    ? `${GATE_INJECTION_TEMPLATE}\n\n目标新会话在未完成 MCP 注册校验前不得执行以下工具调用：${mcpCommands.map((cmd) => `\`${cmd}\``).join('、')}。`
+    : GATE_INJECTION_TEMPLATE
+
+  return `${gateBlock}\n\n${text}`
 }

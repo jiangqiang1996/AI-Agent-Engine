@@ -104,7 +104,6 @@ function isReviewRuntimePath(filePath: string): boolean {
   return normalized.startsWith(`${docsAePath(DOCS_AE_SUBDIRS.EVIDENCE)}/`)
     || normalized.startsWith(`${docsAePath(DOCS_AE_SUBDIRS.REVIEWS)}/`)
     || normalized.startsWith(`${docsAePath(DOCS_AE_SUBDIRS.HANDOFFS)}/`)
-    || normalized === 'ae/agent-browser-proof.json'
     || normalized.startsWith('ae/screenshot/')
     || normalized.startsWith('ae/static-server/')
 }

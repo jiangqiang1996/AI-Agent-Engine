@@ -12,7 +12,7 @@ export const SKILL = {
   MERGE_BRANCH: 'ae:merge-branch',
   REVIEW: 'ae:review',
   LFG: 'ae:lfg',
-  AGENT_BROWSER: 'ae:agent-browser',
+  CHROME_DEVTOOLS: 'ae:chrome-devtools',
   TEST_BROWSER: 'ae:test-browser',
   FRONTEND_DESIGN: 'ae:frontend-design',
   HANDOFF: 'ae:handoff',
@@ -41,7 +41,7 @@ export const PROMPT_OPTIMIZE_VARIANT_EXCLUDED_SKILLS = [
   SKILL.WORK_REPORT,
   SKILL.MERGE_BRANCH,
   SKILL.REVIEW,
-  SKILL.AGENT_BROWSER,
+  SKILL.CHROME_DEVTOOLS,
   SKILL.TEST_BROWSER,
   SKILL.HANDOFF,
   SKILL.PROMPT_OPTIMIZE,
@@ -120,7 +120,6 @@ export const TOOL = {
   AE_PROMPT_OPTIMIZE: 'ae-prompt-optimize',
   AE_HELP: 'ae-help',
   AE_REVIEW_PROOF: 'ae-review-proof',
-  AE_AGENT_BROWSER_PROOF: 'ae-agent-browser-proof',
   AE_SWAGGER_PARSER: 'ae-swagger-parser',
   AE_HTML_BUNDLE: 'ae-html-bundle',
   AE_GRAPH_BUILD: 'ae-graph-build',
@@ -128,6 +127,7 @@ export const TOOL = {
   AE_TASK_ANALYZER: 'ae-task-analyzer',
   AE_DOC_EXTRACT: 'ae-doc-extract',
   AE_DOMAIN_CATALOG: 'ae-domain-catalog',
+  AE_CHROME_DEVTOOLS_MCP: 'ae-chrome-devtools-mcp',
 } as const
 
 export const AeModeSchema = z
@@ -147,7 +147,7 @@ export const AeSkillNameSchema = z
     SKILL.MERGE_BRANCH,
     SKILL.REVIEW,
     SKILL.LFG,
-    SKILL.AGENT_BROWSER,
+    SKILL.CHROME_DEVTOOLS,
     SKILL.TEST_BROWSER,
     SKILL.FRONTEND_DESIGN,
     SKILL.HANDOFF,

@@ -54,9 +54,9 @@ argument-hint: "[auto] [提示词内容]"
 
 **浏览器能力门禁：**
 
-- 如果原始输入会引导目标新会话使用 `agent-browser`、`ae:test-browser`、`/ae-test-browser`、`@design-iterator`、`@figma-design-sync`、`ae:frontend-design` 或 `/ae-frontend-design`，优化后的提示词必须明确要求目标新会话先调用 `ae-agent-browser-proof action=check` 检查当前工作区的 agent-browser 环境证明；若未完成，则先执行 `ae:agent-browser` / `/ae-agent-browser` 环境验证流程，得到环境就绪结果并写入证明后再执行浏览器流程。
-- 同一工作区的合法 agent-browser 环境证明可以跨会话复用；证明缺失、损坏或结构不合法时，目标新会话必须自行完成环境验证。
-- `agent-browser` 已安装、用户声称已安装或本地 CLI 可用性检查成功，都不能替代环境证明校验。
+- 如果原始输入会引导目标新会话使用 `chrome-devtools-mcp`、`ae:test-browser`、`/ae-test-browser`、`@design-iterator`、`@figma-design-sync`、`ae:frontend-design` 或 `/ae-frontend-design`，优化后的提示词必须明确要求目标新会话先调用 `ae-chrome-devtools-mcp action=check` 检查当前工作区的 chrome-devtools MCP 注册状态；若未完成，则先执行 `ae:chrome-devtools` / `/ae-chrome-devtools` 动态注册流程，得到 MCP 连接就绪结果后再执行浏览器流程。
+- 同一工作区的 chrome-devtools MCP 注册状态可以跨会话复用；MCP 未注册、注册失败或连接状态非 connected 时，目标新会话必须自行完成动态注册。
+- chrome-devtools MCP 已在配置中声明、用户声称已配置或本地进程检查成功，都不能替代 MCP 注册校验。
 - 注入浏览器环境门禁时不得破坏“首个引用必须是第一个 token”的硬规则；如果优化后提示词以 `@agent` 或 `/command` 引用开头，浏览器环境约束必须放在该首引用之后。
 
 **自检清单（优化完成后逐项确认）：**

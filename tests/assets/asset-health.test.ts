@@ -142,8 +142,8 @@ describe('资产健康巡检', () => {
     expect(commandConfig[`${COMMAND.HTML_BUNDLE}-pa`], 'asset-health/prompt-variant/command/ae-html-bundle-pa').toBeUndefined()
     expect(commandConfig[`${COMMAND.GRAPH_QUERY}-po`], 'asset-health/prompt-variant/command/ae-graph-query-po').toBeUndefined()
     expect(commandConfig[`${COMMAND.GRAPH_QUERY}-pa`], 'asset-health/prompt-variant/command/ae-graph-query-pa').toBeUndefined()
-    expect(commandConfig[`${COMMAND.AGENT_BROWSER}-po`], 'asset-health/prompt-variant/command/ae-agent-browser-po').toBeUndefined()
-    expect(commandConfig[`${COMMAND.AGENT_BROWSER}-pa`], 'asset-health/prompt-variant/command/ae-agent-browser-pa').toBeUndefined()
+    expect(commandConfig[`${COMMAND.CHROME_DEVTOOLS}-po`], 'asset-health/prompt-variant/command/ae-chrome-devtools-po').toBeUndefined()
+    expect(commandConfig[`${COMMAND.CHROME_DEVTOOLS}-pa`], 'asset-health/prompt-variant/command/ae-chrome-devtools-pa').toBeUndefined()
     expect(buildCommandConfig(join(process.cwd(), 'src/assets/commands'))['ae-work-continue'], 'asset-health/disk-command/command/ae-work-continue').toBeDefined()
     expect(commandConfig['ae-work-continue'], 'asset-health/catalog-command/command/ae-work-continue').toBeUndefined()
     expect(commandConfig['ae-work-continue-po'], 'asset-health/prompt-variant/command/ae-work-continue-po').toBeUndefined()
@@ -174,33 +174,7 @@ describe('资产健康巡检', () => {
     }
   })
 
-  it('ae-agent-browser 应该提供环境证明、目标选择和 CLI 引用资产', () => {
-    const skillText = readFileSync('src/assets/skills/ae-agent-browser/SKILL.md', 'utf8')
-    const referenceFiles = [
-      'src/assets/skills/ae-agent-browser/references/environment-proof.md',
-      'src/assets/skills/ae-agent-browser/references/browser-target-selection.md',
-      'src/assets/skills/ae-agent-browser/references/agent-browser-cli-reference.md',
-      'src/assets/skills/ae-agent-browser/references/agent-browser-core-skill.md',
-      'src/assets/skills/ae-agent-browser/references/agent-browser-help-inventory.json',
-      'src/assets/skills/ae-agent-browser/scripts/collect-agent-browser-help.mjs',
-    ]
-
-    for (const file of referenceFiles) {
-      expect(existsSync(file), `asset-health/agent-browser-reference/${file}: 缺少引用资产`).toBe(true)
-    }
-
-    expect(skillText).toContain('references/environment-proof.md')
-    expect(skillText).toContain('references/browser-target-selection.md')
-    expect(skillText).toContain('references/agent-browser-cli-reference.md')
-    expect(skillText).toContain('references/agent-browser-core-skill.md')
-    expect(readFileSync('src/assets/skills/ae-agent-browser/references/environment-proof.md', 'utf8')).toContain('agentBrowserVersion')
-    expect(readFileSync('src/assets/skills/ae-agent-browser/references/browser-target-selection.md', 'utf8')).toContain('即使只有一个候选')
-    const cliReferenceText = readFileSync('src/assets/skills/ae-agent-browser/references/agent-browser-cli-reference.md', 'utf8')
-    const collectorText = readFileSync('src/assets/skills/ae-agent-browser/scripts/collect-agent-browser-help.mjs', 'utf8')
-
-    expect(cliReferenceText).toContain('scripts/collect-agent-browser-help.mjs')
-    expect(collectorText).toContain('agentBrowserVersion: summarizeOutput(version.stdout.trim())')
-  })
+  
 
   it('旧文档互转资产和等价转换代理不应该存在或注册', () => {
     const agentNames = getAllAgentDefinitions().map((entry) => entry.name)
@@ -344,7 +318,7 @@ describe('资产健康巡检', () => {
       COMMAND.REFACTOR,
       COMMAND.REVIEW,
       COMMAND.FRONTEND_DESIGN,
-      COMMAND.AGENT_BROWSER,
+      COMMAND.CHROME_DEVTOOLS,
       COMMAND.TEST_BROWSER,
       COMMAND.SWAGGER_PARSER,
       COMMAND.HTML_BUNDLE,
@@ -386,7 +360,7 @@ describe('资产健康巡检', () => {
     }
 
     expect(extractMarkdownCommandList(content, MODEL_SCENARIO.STANDARD, COMMAND.IDEATE)).toContain(COMMAND.SKILL_FROM_SESSION)
-    expect(extractMarkdownCommandList(content, MODEL_SCENARIO.VISION, COMMAND.TEST_BROWSER)).toContain(COMMAND.AGENT_BROWSER)
+    expect(extractMarkdownCommandList(content, MODEL_SCENARIO.VISION, COMMAND.TEST_BROWSER)).toContain(COMMAND.CHROME_DEVTOOLS)
     expect(content).not.toContain('/ae-save-session-flow')
     expect(content).not.toContain('/ae-asset-debug')
   })

@@ -10,7 +10,6 @@ const HARD_EXCLUDED_AE_RUNTIME_PATHS = [
   docsAePath(DOCS_AE_SUBDIRS.GRAPHS),
   docsAePath(DOCS_AE_SUBDIRS.HANDOFFS),
   docsAePath(DOCS_AE_SUBDIRS.REVIEWS),
-  'ae/agent-browser-proof.json',
   'ae/screenshot',
   'ae/static-server',
 ]

@@ -33,9 +33,9 @@ description: "通过 N 轮截图-分析-改进循环打磨已实现 UI。当初�
 
 ## 截图保存路径
 
-在执行任何 `agent-browser` 命令前，必须先调用 `ae-agent-browser-proof action=check` 确认当前工作区已有合法环境证明；证明缺失或无效时先执行 `ae:agent-browser` / `/ae-agent-browser` 环境验证流程；未通过 proof 校验前不得执行任何 `agent-browser` 命令。
+在执行任何 chrome-devtools 浏览器操作前，必须先调用 `ae-chrome-devtools-mcp action=check` 确认当前工作区已有合法 chrome-devtools MCP 注册；注册缺失或无效时先执行 `ae:chrome-devtools` / `/ae-chrome-devtools` 动态注册流程；未通过 MCP 注册校验前不得执行任何 chrome-devtools 浏览器操作。
 
-所有 `agent-browser screenshot` 命令的输出文件必须保存到 opencode 启动目录下的 `ae/screenshot/` 目录中。例如在 `d:/test` 目录中启动 opencode，则截图保存到 `d:/test/ae/screenshot/`。截图前须确保目录存在：
+所有 `chrome-devtools_take_screenshot` 命令的输出文件必须保存到 opencode 启动目录下的 `ae/screenshot/` 目录中。例如在 `d:/test` 目录中启动 opencode，则截图保存到 `d:/test/ae/screenshot/`。截图前须确保目录存在：
 
 ```bash
 mkdir -p ae/screenshot
@@ -51,12 +51,18 @@ New-Item -ItemType Directory -Path ae/screenshot -Force | Out-Null
 
 ### 准备：设置合适的窗口尺寸
 
-在执行任何 `agent-browser` 命令前，必须先调用 `ae-agent-browser-proof action=check` 确认当前工作区已有合法环境证明。CLI 已安装、用户声称已安装或本地可用性检查成功都不能替代环境证明。未通过 proof 校验前不得执行任何 `agent-browser` 命令；证明缺失或无效时先执行 `ae:agent-browser` / `/ae-agent-browser` 环境验证流程，若验证失败、用户拒绝安装或当前环境无法安装，必须停止浏览器流程并记录无法验证原因。
+在执行任何 chrome-devtools 浏览器操作前，必须先调用 `ae-chrome-devtools-mcp action=check` 确认当前工作区已有合法 chrome-devtools MCP 注册。MCP 已连接、用户声称已连接或本地可用性检查成功都不能替代 chrome-devtools MCP 注册。未通过 MCP 注册校验前不得执行任何 chrome-devtools 浏览器操作；注册缺失或无效时先执行 `ae:chrome-devtools` / `/ae-chrome-devtools` 动态注册流程，若注册失败、用户拒绝启动或当前环境无法启动，必须停止浏览器流程并记录无法验证原因。
 
 开始迭代前，以有头模式打开浏览器以便查看和调整大小：
 
 ```bash
-agent-browser --headed open [url]
+ae-chrome-devtools-mcp action=register-new
+```
+
+然后导航到目标页面：
+
+```bash
+chrome-devtools_navigate_page type=url url="[url]"
 ```
 
 打开目标页面后、任何截图前，先执行登录状态检测；如果页面需要登录，等待登录成功后再继续截图。
@@ -68,33 +74,33 @@ agent-browser --headed open [url]
 
 ### 元素截图
 
-1. 首先，使用 `agent-browser snapshot -i --json` 检测是否进入登录页
+1. 首先，使用 `chrome-devtools_take_snapshot verbose=true` 检测是否进入登录页
 2. 如需要登录，执行登录等待流程
-3. 使用 `agent-browser snapshot -i` 获取元素引用
-4. 找到目标元素的 ref（如 @e1、@e2）
-5. 使用 `agent-browser scrollintoview @e1` 聚焦到特定元素
-6. 截图：`agent-browser screenshot ae/screenshot/output.png`
+3. 使用 `chrome-devtools_take_snapshot` 获取元素引用
+4. 找到目标元素的 uid
+5. 使用 `chrome-devtools_hover uid=<uid>` 聚焦到特定元素
+6. 截图：`chrome-devtools_take_screenshot filePath=ae/screenshot/output.png`
 
 ### 视口截图
 
 聚焦截图时：
-1. 使用 `agent-browser snapshot -i --json` 检测是否进入登录页
+1. 使用 `chrome-devtools_take_snapshot verbose=true` 检测是否进入登录页
 2. 如需要登录，执行登录等待流程
-3. 使用 `agent-browser scrollintoview @e1` 将元素滚动到可视区域
-4. 截取视口截图：`agent-browser screenshot ae/screenshot/output.png`
+3. 使用 `chrome-devtools_hover uid=<uid>` 将元素滚动到可视区域
+4. 截取视口截图：`chrome-devtools_take_screenshot filePath=ae/screenshot/output.png`
 
 ### 示例工作流
 
 ```bash
-1. agent-browser open [url]
-2. agent-browser snapshot -i --json  # 检测是否进入登录页
+1. chrome-devtools_navigate_page type=url url="[url]"
+2. chrome-devtools_take_snapshot verbose=true  # 检测是否进入登录页
 3. [如需要登录，执行登录等待流程]
-4. agent-browser snapshot -i  # 获取引用
-5. agent-browser screenshot ae/screenshot/output.png
+4. chrome-devtools_take_snapshot  # 获取引用
+5. chrome-devtools_take_screenshot filePath=ae/screenshot/output.png
 6. [分析并实现变更]
-7. agent-browser snapshot -i --json  # 变更或刷新后重新检测登录状态
+7. chrome-devtools_take_snapshot verbose=true  # 变更或刷新后重新检测登录状态
 8. [如需要登录，执行登录等待流程]
-9. agent-browser screenshot ae/screenshot/output-v2.png
+9. chrome-devtools_take_screenshot filePath=ae/screenshot/output-v2.png
 10. [重复...]
 ```
 
@@ -208,15 +214,15 @@ agent-browser --headed open [url]
 
 ### 步骤 0：前置检查与设计技能加载
 
-**首先执行 agent-browser 环境门禁：**
+**首先执行 chrome-devtools MCP 门禁：**
 
-如果当前工作区尚未通过 `ae-agent-browser-proof action=check`，先执行 `ae:agent-browser` / `/ae-agent-browser` 环境验证流程。环境就绪并写入证明后，再执行任何 `agent-browser` 命令。若验证失败、用户拒绝安装或当前环境无法安装，停止截图迭代并报告无法验证原因。
+如果当前工作区尚未通过 `ae-chrome-devtools-mcp action=check`，先执行 `ae:chrome-devtools` / `/ae-chrome-devtools` 动态注册流程。MCP 连接就绪后，再执行任何 chrome-devtools 浏览器操作。若注册失败、用户拒绝启动或当前环境无法启动，停止截图迭代并报告无法验证原因。
 
 **登录状态检测：**
 
 在首次打开目标页面后、截图前，检测是否需要登录：
 
-1. 打开目标页面后，使用 `agent-browser snapshot -i --json` 获取页面状态
+1. 打开目标页面后，使用 `chrome-devtools_take_snapshot verbose=true` 获取页面状态
 2. 检测 URL 是否包含登录路径，或页面是否包含密码输入框
 3. 如检测到登录页面：
 
@@ -256,7 +262,7 @@ agent-browser --headed open [url]
 1. 确认目标组件/文件路径
 2. 确认请求的迭代次数（默认：10）
 3. 可选确认需要研究的竞品网站
-4. 使用 `agent-browser` 设置浏览器并调整到合适的视口；打开目标页面后执行登录状态检测
+4. 使用 chrome-devtools 设置浏览器并调整到合适的视口；打开目标页面后执行登录状态检测
 5. 以已加载的技能原则开始迭代循环
 
 先截取目标元素的初始截图建立基线，然后进行系统化改进。
