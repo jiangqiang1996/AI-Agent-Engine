@@ -62,7 +62,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 前端和浏览器验收：
 
 ```text
-/ae-agent-browser
+/ae-chrome-devtools
 /ae-frontend-design 实现登录页
 /ae-test-browser http://localhost:3000/login
 ```
@@ -94,7 +94,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 重构计划 | `/ae-refactor` |
 | 代码或文档审查 | `/ae-review` |
 | 前端初版 | `/ae-frontend-design` |
-| agent-browser 使用指导 | `/ae-agent-browser` |
+| chrome-devtools 浏览器能力 | `/ae-chrome-devtools` |
 | 浏览器验收 | `/ae-test-browser` |
 | Swagger/OpenAPI 摘要 | `/ae-swagger-parser` |
 | HTML 单文件打包 | `/ae-html-bundle` |
@@ -116,7 +116,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 需求不清先澄清 | 复杂实现前先产出需求或计划，避免直接编码 |
 | 审查先定范围 | 代码域和文档域分开处理，按范围选择审查代理 |
 | 交付必须验证 | `/ae-work` 和 `/ae-lfg` 交付前检查验证、审查和 Git 授权证据 |
-| 浏览器先验证环境 | 当前会话实际调用 `agent-browser` 前必须先完成 `/ae-agent-browser` 环境验证或通过 agent-browser 环境证明校验 |
+| 浏览器先注册 MCP | 当前会话使用 chrome-devtools-mcp 工具前必须先完成 `/ae-chrome-devtools` 动态注册或通过 MCP 注册状态校验 |
 | Git 写操作需授权 | 提交、拉取、重置、清理、变基、推送等都需要明确授权；`/ae-commit` 不等同于 push |
 | 远程写操作不默认提供 | 用户侧流程不提供 push、创建 PR、创建 Issue 或 Release 的可复制流程 |
 
