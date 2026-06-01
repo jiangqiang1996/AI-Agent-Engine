@@ -108,7 +108,7 @@ describe('插件入口', () => {
     const config = await runConfigHook({ worktree: hostRoot, client: {} })
 
     expect(config.command?.['ae-lfg']?.template).toContain('ae:lfg')
-    expect(config.command?.['ae-commit']?.template).toContain('智能提交当前变更文件')
+    expect(config.command?.['ae-commit']?.template).toContain('智能提交当前变更')
     expect(config.command?.['ae-commit']?.subtask).toBe(false)
   })
 

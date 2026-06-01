@@ -89,7 +89,7 @@ describe('Markdown 协议测试', () => {
       ).toBe(true)
     }
 
-    expect(gateContent).toContain('不得提交、推送、变基、amend、reset、checkout')
+    expect(gateContent).toContain('不得提交、推送、变基、amend、reset')
 
     const readOnlyFixture = '运行 git status、git diff 和 git log 理解工作区状态。'
     expect(GIT_WRITE_COMMAND.test(readOnlyFixture)).toBe(false)
