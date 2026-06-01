@@ -11,13 +11,13 @@ AE 不要求业务项目采用本仓库结构。面向用户的运行时能力�
 全局安装时，把这句话交给 opencode AI 代理执行：
 
 ```text
-Fetch and follow the global install instructions from https://gitee.com/jiangqiang1996/ai-agent-engine/raw/master/.opencode/INSTALL.md
+Fetch and follow the global install instructions from https://gitee.com/jiangqiang1996/ai-agent-engine/raw/master/docs/INSTALL.md
 ```
 
 项目级安装时，把这句话交给 opencode AI 代理执行：
 
 ```text
-Fetch and follow the project-level install instructions from https://gitee.com/jiangqiang1996/ai-agent-engine/raw/master/.opencode/INSTALL.md
+Fetch and follow the project-level install instructions from https://gitee.com/jiangqiang1996/ai-agent-engine/raw/master/docs/INSTALL.md
 ```
 
 安装前如果当前 opencode 环境已有 `oh-my-openagent`、`oh-my-opencode` 或 `superpowers`，先确认是否存在命令、规则或插件冲突。
@@ -184,11 +184,11 @@ AE 默认注入两个远程 MCP：
 卸载时，把对应指令交给 opencode AI 代理执行：
 
 ```text
-Fetch and follow the global uninstall instructions from https://gitee.com/jiangqiang1996/ai-agent-engine/raw/master/.opencode/INSTALL.md
+Fetch and follow the global uninstall instructions from https://gitee.com/jiangqiang1996/ai-agent-engine/raw/master/docs/INSTALL.md
 ```
 
 ```text
-Fetch and follow the project-level uninstall instructions from https://gitee.com/jiangqiang1996/ai-agent-engine/raw/master/.opencode/INSTALL.md
+Fetch and follow the project-level uninstall instructions from https://gitee.com/jiangqiang1996/ai-agent-engine/raw/master/docs/INSTALL.md
 ```
 
 ## 开发
@@ -220,5 +220,5 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 |--------------------------------------------------|----------------------------|
 | [docs/usage-guide.md](docs/usage-guide.md)       | 用户手册、经典用法、能力说明、代理、工具、产物路径  |
 | [docs/builtin-config.md](docs/builtin-config.md) | MCP、`ae.jsonc`、模型场景路由和覆盖规则 |
-| [.opencode/INSTALL.md](.opencode/INSTALL.md)     | 安装、更新、卸载代理执行说明             |
+| [docs/INSTALL.md](docs/INSTALL.md)                 | 安装、更新、卸载代理执行说明             |
 | `/ae-help`                                       | 当前运行时权威帮助                  |
