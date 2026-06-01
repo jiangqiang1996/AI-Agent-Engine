@@ -56,7 +56,7 @@ New-Item -ItemType Directory -Path ae/screenshot -Force | Out-Null
 开始迭代前，以有头模式打开浏览器以便查看和调整大小：
 
 ```bash
-ae-chrome-devtools-mcp action=register-new
+ae-chrome-devtools-mcp action=register
 ```
 
 然后导航到目标页面：

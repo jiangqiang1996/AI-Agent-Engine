@@ -20,6 +20,5 @@ ae/handoffs
 ae/reviews
 /.opencode/ae.jsonc
 /ae/graphs/
-/ae/agent-browser-proof.json
 /ae/screenshot/
 /ae/static-server/

@@ -2,7 +2,7 @@
 
 **本规则为全局硬约束，适用于任何会话、任何角色需要执行浏览器操作的场景。**
 
-无论通过技能、代理、命令、工具、bash 还是通过 prompt optimize 生成的新会话，只要需要使用 chrome-devtools-mcp 工具，就必须先确认 MCP 已通过 `ae-chrome-devtools-mcp` 动态注册并连接就绪；MCP 未注册或未连接时必须先完成 `ae:chrome-devtools` / `/ae-chrome-devtools` 动态注册流程。无例外。
+无论通过技能、代理、命令、工具、bash 还是通过 prompt optimize 生成的新会话，只要需要使用 chrome-devtools-mcp 工具，就必须先确认 MCP 已通过 `ae-chrome-devtools-mcp` 动态注册并连接就绪；MCP 未注册或未连接时必须先完成 `ae:chrome-devtools` / `/ae-chrome-devtools` 动态注册流程。chrome-devtools MCP 支持三种注册模式：autoConnect（自动发现已运行的 Chrome，无需调试端口，需 Chrome >= M144）、connect（通过浏览器类型和调试端口连接已有浏览器实例）、isolated（启动独立浏览器）。用户可在浏览器中手动调试的同时让编码代理连接同一会话，无需在手动和自动之间切换。无例外。
 
 ## 核心规则
 
