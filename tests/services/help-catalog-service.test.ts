@@ -84,20 +84,16 @@ describe('help-catalog-service', () => {
       vi.mocked(aeCatalog.getPhaseOneEntries).mockReturnValue([
         {
           skillName: 'ae:ideate',
-          skillSlug: 'ae-ideate',
           commandName: 'ae-ideate',
           description: '生成想法',
           argumentHint: '[主题]',
-          defaultEntry: false,
           skillFile: 'src/assets/skills/ae-ideate/SKILL.md',
         },
         {
           skillName: 'ae:work',
-          skillSlug: 'ae-work',
           commandName: 'ae-work',
           description: '执行工作',
           argumentHint: '[计划]',
-          defaultEntry: false,
           skillFile: 'src/assets/skills/ae-work/SKILL.md',
         },
       ] as ReturnType<typeof aeCatalog.getPhaseOneEntries>)
@@ -105,11 +101,9 @@ describe('help-catalog-service', () => {
       vi.mocked(aeCatalog.getPhaseOnePoEntries).mockReturnValue([
         {
           skillName: 'ae:prompt-optimize',
-          skillSlug: 'ae-prompt-optimize',
           commandName: 'ae-ideate-po',
           description: '先优化提示词，再用生成想法',
           argumentHint: '[主题]',
-          defaultEntry: false,
           skillFile: 'src/assets/skills/ae-prompt-optimize/SKILL.md',
         },
       ] as ReturnType<typeof aeCatalog.getPhaseOnePoEntries>)
@@ -117,11 +111,9 @@ describe('help-catalog-service', () => {
       vi.mocked(aeCatalog.getPhaseOnePaEntries).mockReturnValue([
         {
           skillName: 'ae:prompt-optimize',
-          skillSlug: 'ae-prompt-optimize',
           commandName: 'ae-ideate-pa',
           description: '先优化提示词（auto 模式），再用生成想法',
           argumentHint: '[主题]',
-          defaultEntry: false,
           skillFile: 'src/assets/skills/ae-prompt-optimize/SKILL.md',
         },
       ] as ReturnType<typeof aeCatalog.getPhaseOnePaEntries>)
@@ -177,20 +169,16 @@ describe('help-catalog-service', () => {
       vi.mocked(aeCatalog.getPhaseOneEntries).mockReturnValue([
         {
           skillName: 'ae:prompt-optimize',
-          skillSlug: 'ae-prompt-optimize',
           commandName: 'ae-prompt-optimize',
           description: '提示词优化',
           argumentHint: '',
-          defaultEntry: false,
           skillFile: 'src/assets/skills/ae-prompt-optimize/SKILL.md',
         },
         {
           skillName: 'ae:prompt-optimize',
-          skillSlug: 'ae-prompt-optimize',
           commandName: 'ae-prompt-optimize-auto',
           description: '提示词优化（auto）',
           argumentHint: '',
-          defaultEntry: false,
           skillFile: 'src/assets/skills/ae-prompt-optimize/SKILL.md',
         },
       ] as ReturnType<typeof aeCatalog.getPhaseOneEntries>)
@@ -245,8 +233,8 @@ describe('help-catalog-service', () => {
   describe('filterCatalog', () => {
     const catalog = {
       skills: [
-        { name: 'ae:brainstorm', description: '头脑风暴', argumentHint: '', commandName: 'ae-brainstorm', defaultEntry: false },
-        { name: 'ae:plan', description: '制定计划', argumentHint: '', commandName: 'ae-plan', defaultEntry: false },
+        { name: 'ae:brainstorm', description: '头脑风暴', argumentHint: '', commandName: 'ae-brainstorm' },
+        { name: 'ae:plan', description: '制定计划', argumentHint: '', commandName: 'ae-plan' },
       ],
       commands: [
         { name: 'ae-brainstorm', description: '头脑风暴', category: '基础命令' },
@@ -307,7 +295,6 @@ describe('help-catalog-service', () => {
               description: '为重构任务创建结构化计划',
               argumentHint: '[重构目标|计划路径|需求文档路径|旧机制描述]',
               commandName: COMMAND.REFACTOR,
-              defaultEntry: false,
             },
           ],
           commands: [
@@ -332,33 +319,27 @@ describe('help-catalog-service', () => {
       vi.mocked(aeCatalog.getPhaseOneEntries).mockReturnValue([
         {
           skillName: SKILL.REFACTOR,
-          skillSlug: skillDir(SKILL.REFACTOR),
           commandName: COMMAND.REFACTOR,
           description: '为重构任务创建结构化计划',
           argumentHint: '[重构目标|计划路径|需求文档路径|旧机制描述]',
-          defaultEntry: false,
           skillFile: `src/assets/skills/${skillDir(SKILL.REFACTOR)}/SKILL.md`,
         },
       ] as ReturnType<typeof aeCatalog.getPhaseOneEntries>)
       vi.mocked(aeCatalog.getPhaseOnePoEntries).mockReturnValue([
         {
           skillName: SKILL.PROMPT_OPTIMIZE,
-          skillSlug: skillDir(SKILL.PROMPT_OPTIMIZE),
           commandName: poCommand,
           description: '先优化提示词，再用为重构任务创建结构化计划',
           argumentHint: '[重构目标|计划路径|需求文档路径|旧机制描述]',
-          defaultEntry: false,
           skillFile: `src/assets/skills/${skillDir(SKILL.PROMPT_OPTIMIZE)}/SKILL.md`,
         },
       ] as ReturnType<typeof aeCatalog.getPhaseOnePoEntries>)
       vi.mocked(aeCatalog.getPhaseOnePaEntries).mockReturnValue([
         {
           skillName: SKILL.PROMPT_OPTIMIZE,
-          skillSlug: skillDir(SKILL.PROMPT_OPTIMIZE),
           commandName: paCommand,
           description: '先优化提示词（auto 模式），再用为重构任务创建结构化计划',
           argumentHint: '[重构目标|计划路径|需求文档路径|旧机制描述]',
-          defaultEntry: false,
           skillFile: `src/assets/skills/${skillDir(SKILL.PROMPT_OPTIMIZE)}/SKILL.md`,
         },
       ] as ReturnType<typeof aeCatalog.getPhaseOnePaEntries>)
@@ -385,7 +366,7 @@ describe('help-catalog-service', () => {
   describe('formatHelpCatalog', () => {
     it('应该生成包含技能、命令和代理的 Markdown', () => {
       const catalog = {
-        skills: [{ name: 'ae:ideate', description: '生成想法', argumentHint: '[主题|范围]', commandName: 'ae-ideate', defaultEntry: false }],
+        skills: [{ name: 'ae:ideate', description: '生成想法', argumentHint: '[主题|范围]', commandName: 'ae-ideate' }],
         commands: [
           { name: 'ae-ideate', description: '生成想法', category: '基础命令' },
           { name: 'ae-ideate-po', description: '先优化提示词', category: '提示词优化', baseCommand: 'ae-ideate' },
@@ -409,7 +390,7 @@ describe('help-catalog-service', () => {
 
     it('应该为空参数技能显示占位符', () => {
       const catalog = {
-        skills: [{ name: 'ae:help', description: '查看帮助', argumentHint: '', commandName: 'ae-help', defaultEntry: false }],
+        skills: [{ name: 'ae:help', description: '查看帮助', argumentHint: '', commandName: 'ae-help' }],
         commands: [],
         agents: [],
       }
@@ -421,7 +402,7 @@ describe('help-catalog-service', () => {
 
     it('应该显示 save-experience 且不显示旧 save-rules 入口', () => {
       const catalog = {
-        skills: [{ name: SKILL.SAVE_EXPERIENCE, description: '统一经验沉淀入口', argumentHint: '[经验摘要|保存目标]', commandName: COMMAND.SAVE_EXPERIENCE, defaultEntry: false }],
+        skills: [{ name: SKILL.SAVE_EXPERIENCE, description: '统一经验沉淀入口', argumentHint: '[经验摘要|保存目标]', commandName: COMMAND.SAVE_EXPERIENCE }],
         commands: [{ name: COMMAND.SAVE_EXPERIENCE, description: '统一经验沉淀入口', category: '基础命令' }],
         agents: [],
       }

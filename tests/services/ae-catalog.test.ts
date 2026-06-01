@@ -39,7 +39,7 @@ describe('AE catalog 一致性', () => {
     expect(entries.find((item) => item.skillName === SKILL.REFACTOR)?.description).toContain('重构计划阶段')
     expect(entries.find((item) => item.skillName === SKILL.WORK)?.description).toContain('实施阶段')
     expect(entries.find((item) => item.skillName === SKILL.REVIEW)?.description).toContain('审查阶段')
-    expect(entries.find((item) => item.skillName === SKILL.LFG)?.description).toContain('通用任务生命周期')
+    expect(entries.find((item) => item.skillName === SKILL.LFG)?.description).toContain('核心流程组合技能')
   })
 
   it('ae:merge-branch 的 catalog 应与 frontmatter 字面一致', () => {
@@ -65,14 +65,12 @@ describe('AE catalog 一致性', () => {
     expect(text).toContain('同名需求文档或设计文档')
   })
 
-  it('ae:agent-creator 应注册为非默认入口并可被帮助目录发现', () => {
+  it('ae:agent-creator 应注册为非组合入口并可被帮助目录发现', () => {
     const entry = getPhaseOneEntries().find((item) => item.skillName === SKILL.AGENT_CREATOR)
     const frontmatter = readFrontmatter('src/assets/skills/ae-agent-creator/SKILL.md')
 
     expect(entry).toBeDefined()
     expect(entry?.commandName).toBe('ae-agent-creator')
-    expect(entry?.skillSlug).toBe('ae-agent-creator')
-    expect(entry?.defaultEntry).toBe(false)
     expect(entry?.skillFile).toBe('src/assets/skills/ae-agent-creator/SKILL.md')
     expect(entry?.description).toBe(frontmatter.description)
     expect(entry?.description).toContain('创建或更新')
@@ -101,8 +99,6 @@ describe('AE catalog 一致性', () => {
 
     expect(entry).toBeDefined()
     expect(entry?.commandName).toBe('ae-html-bundle')
-    expect(entry?.skillSlug).toBe('ae-html-bundle')
-    expect(entry?.defaultEntry).toBe(false)
     expect(entry?.skillFile).toBe('src/assets/skills/ae-html-bundle/SKILL.md')
     expect(entry?.description).toBe(frontmatter.description)
     expect(entry?.argumentHint).toBe(frontmatter['argument-hint'])
@@ -117,8 +113,6 @@ describe('AE catalog 一致性', () => {
 
     expect(entry).toBeDefined()
     expect(entry?.commandName).toBe('ae-agent-browser')
-    expect(entry?.skillSlug).toBe('ae-agent-browser')
-    expect(entry?.defaultEntry).toBe(false)
     expect(entry?.skillFile).toBe('src/assets/skills/ae-agent-browser/SKILL.md')
     expect(entry?.description).toBe(frontmatter.description)
     expect(entry?.argumentHint).toBe(frontmatter['argument-hint'])
@@ -156,8 +150,6 @@ describe('AE catalog 一致性', () => {
 
     expect(entry).toBeDefined()
     expect(entry?.commandName).toBe('ae-work-report')
-    expect(entry?.skillSlug).toBe('ae-work-report')
-    expect(entry?.defaultEntry).toBe(false)
     expect(entry?.skillFile).toBe('src/assets/skills/ae-work-report/SKILL.md')
     expect(entry?.description).toBe(frontmatter.description)
     expect(entry?.argumentHint).toBe(frontmatter['argument-hint'])

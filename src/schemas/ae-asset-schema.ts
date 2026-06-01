@@ -188,11 +188,9 @@ export const AeCommandNameSchema = z
 
 export const AeAssetEntrySchema = z.object({
   skillName: AeSkillNameSchema.describe('技能名'),
-  skillSlug: z.string().min(1).describe('技能目录名'),
   commandName: AeCommandNameSchema.describe('命令名'),
   description: z.string().min(1).describe('功能描述'),
   argumentHint: z.string().optional().describe('参数提示'),
-  defaultEntry: z.boolean().default(false).describe('是否默认入口'),
   skillFile: z.string().describe('技能文件路径，无关联技能时为空字符串'),
   customTemplate: z.string().optional().describe('自定义命令模板，command-registration.ts 优先于默认模板使用'),
   allowPromptOptimizeVariant: z.boolean().optional().describe('是否生成 -po/-pa 命令变体'),

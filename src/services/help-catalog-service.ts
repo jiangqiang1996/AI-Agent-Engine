@@ -18,7 +18,6 @@ export interface SkillEntry {
   description: string
   argumentHint: string
   commandName: string
-  defaultEntry: boolean
 }
 
 /** 命令条目，包含名称、描述、分类和可选的基础命令名。 */
@@ -52,7 +51,6 @@ function buildSkillEntries(): SkillEntry[] {
       description: e.description,
       argumentHint: e.argumentHint || '',
       commandName: e.commandName,
-      defaultEntry: e.defaultEntry,
     })
   }
 
