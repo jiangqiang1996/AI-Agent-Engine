@@ -129,6 +129,7 @@ export const TOOL = {
   AE_TASK_ANALYZER: 'ae-task-analyzer',
   AE_DOC_EXTRACT: 'ae-doc-extract',
   AE_DOMAIN_CATALOG: 'ae-domain-catalog',
+  AE_DOMAIN_SELECT: 'ae-domain-select',
   AE_CHROME_DEVTOOLS_MCP: 'ae-chrome-devtools-mcp',
   AE_TIMER: 'ae-timer',
 } as const
@@ -238,6 +239,7 @@ export const DomainCallRequestSchema = z.object({
   intent: z.string().describe('任务意图标签'),
   constraints: z.array(z.string()).describe('约束条件'),
   domainContext: z.record(z.string(), z.unknown()).describe('域特有扩展上下文'),
+  selectedSpecialists: z.array(SpecialistDefSchema).optional().describe('预计算的专精代理列表，域代理优先使用'),
 })
 
 export const DomainFindingSchema = z.object({
@@ -246,12 +248,19 @@ export const DomainFindingSchema = z.object({
   evidence: z.string().optional().describe('发现证据摘要'),
 })
 
+export const DispatchManifestSchema = z.object({
+  dispatched: z.array(z.string()).describe('实际调度的专精代理名称列表'),
+  skipped: z.array(z.string()).describe('选中但未调度的专精代理名称列表'),
+  skipReasons: z.record(z.string(), z.string()).describe('跳过原因，key 为专精代理名称'),
+})
+
 export const DomainExecutionResultSchema = z.object({
   status: z.enum(['success', 'partial', 'failed']).describe('域执行状态'),
   summary: z.string().describe('域执行摘要'),
   evidence: z.array(z.string()).describe('执行证据列表'),
   artifacts: z.array(z.string()).describe('产出物路径列表'),
   findings: z.array(DomainFindingSchema).optional().describe('域内发现列表'),
+  dispatchManifest: DispatchManifestSchema.optional().describe('调度清单，域代理必须填写'),
 })
 
 export const SpecialistTaskSchema = z.object({

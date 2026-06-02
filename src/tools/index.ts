@@ -16,6 +16,7 @@ import { aeGraphQueryTool } from './ae-graph-query.tool.js'
 import { aeTaskAnalyzerTool } from './ae-task-analyzer.tool.js'
 import { aeDocExtractTool } from './ae-doc-extract.tool.js'
 import { aeDomainCatalogTool } from './ae-domain-catalog.tool.js'
+import { aeDomainSelectTool } from './ae-domain-select.tool.js'
 import { aeChromeDevtoolsMcpTool } from './ae-chrome-devtools-mcp.tool.js'
 import { aeTimerTool } from './ae-timer.tool.js'
 
@@ -36,6 +37,7 @@ export function createToolRegistry(): Record<string, ToolDefinition> {
     [TOOL.AE_TASK_ANALYZER]: aeTaskAnalyzerTool,
     [TOOL.AE_DOC_EXTRACT]: aeDocExtractTool,
     [TOOL.AE_DOMAIN_CATALOG]: aeDomainCatalogTool,
+    [TOOL.AE_DOMAIN_SELECT]: aeDomainSelectTool,
     [TOOL.AE_CHROME_DEVTOOLS_MCP]: aeChromeDevtoolsMcpTool,
     [TOOL.AE_TIMER]: aeTimerTool,
   }

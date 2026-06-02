@@ -21,13 +21,10 @@ steps: 30
 ## Workflow
 
 1. **解析输入** — 从编排层接收 `DomainCallRequest`，提取 `task`、`intent`、`constraints` 和 `domainContext`
-2. **选择审查者** — 根据审查类型（code/document）和条件标记选择审查专精代理：
-   - 代码审查常驻：correctness-reviewer、testing-reviewer、maintainability-reviewer、standards-reviewer、research-reviewer
-   - 文档审查常驻：coherence-reviewer、feasibility-reviewer
-   - 条件激活：根据 hasSecurity、hasApi、hasPerformance、hasReliability 等标记选择对应专精
+2. **选择审查者** — 优先使用 `DomainCallRequest.selectedSpecialists` 中预计算的专精列表；仅当该字段缺失或为空时，按 `references/selection-rules.md` 自行选择
 3. **并行调度** — 使用 Task 工具并行调用选中的审查专精代理，传入审查上下文
 4. **综合发现** — 收集所有专精代理结果，去重、按严重级别排序，生成统一审查报告
-5. **返回结果** — 以 `DomainExecutionResult` 格式返回
+5. **返回结果** — 以 `DomainExecutionResult` 格式返回，必须填写 `dispatchManifest`：`dispatched` 为实际调度的专精名列表，`skipped` 为选中但未调度的专精名列表，`skipReasons` 记录跳过原因
 
 ## Output
 
@@ -38,6 +35,11 @@ interface DomainExecutionResult {
   evidence: string[]
   artifacts: string[]
   findings?: DomainFinding[]
+  dispatchManifest?: {
+    dispatched: string[]
+    skipped: string[]
+    skipReasons: Record<string, string>
+  }
 }
 ```
 

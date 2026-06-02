@@ -1,8 +1,9 @@
 import { tool, type ToolDefinition } from '@opencode-ai/plugin/tool'
 import { Effect } from 'effect'
 
+import { selectSpecialists, getCoordinationStrategy } from '../services/domain-dispatch-service.js'
 import { selectReviewers, type ReviewSelectionInput } from '../services/review-selector.js'
-import { AeModeSchema } from '../schemas/ae-asset-schema.js'
+import { AeModeSchema, type SpecialistDef } from '../schemas/ae-asset-schema.js'
 
 function resolveKind(raw: string): ReviewSelectionInput['kind'] {
   return raw === 'code' ? 'code' : 'document'
@@ -66,6 +67,45 @@ export const aeReviewContractTool: ToolDefinition = tool({
           const kind = resolveKind(args.kind)
           const documentType = resolveDocumentType(args.kind)
 
+          const domainContext: Record<string, unknown> = {
+            kind: args.kind,
+            documentType,
+            hasSecurity: args.has_security,
+            hasPerformance: args.has_performance,
+            hasApi: args.has_api,
+            hasReliability: args.has_reliability,
+            hasCli: args.has_cli,
+            hasTooling: args.has_tooling,
+            hasAgentConfig: args.has_agent_config,
+            hasPrMetadata: args.has_pr_metadata,
+            hasTypescript: args.has_typescript,
+            hasMigrations: args.has_migrations,
+            hasConfig: args.has_config,
+            hasInfra: args.has_infra,
+            hasDatabase: args.has_database,
+            hasScript: args.has_script,
+            hasUi: args.has_ui,
+            changedLineCount: args.changed_lines,
+            requirementCount: args.requirement_count,
+            hasArchitectureDecision: args.has_architecture_decision,
+            hasProductClaim: args.has_product_claim,
+            isHighRiskDomain: args.is_high_risk_domain,
+            hasNewAbstraction: args.has_new_abstraction,
+            hasUpstream: args.has_upstream,
+          }
+
+          const taskIntent = {
+            stage: 'entry' as const,
+            intent: `${kind} review`,
+            domain: 'review',
+            constraints: [],
+            rawInput: `${kind} review`,
+            timestamp: new Date().toISOString(),
+          }
+
+          const selectedSpecialists: SpecialistDef[] = selectSpecialists('review', taskIntent, domainContext)
+          const selectedNames = selectedSpecialists.map((s) => s.name)
+
           const reviewers = selectReviewers({
             kind,
             documentType,
@@ -99,6 +139,8 @@ export const aeReviewContractTool: ToolDefinition = tool({
               documentType: kind === 'document' ? documentType : undefined,
               mode: args.mode,
               reviewers,
+              selectedSpecialists: selectedNames,
+              coordinationStrategy: getCoordinationStrategy('review'),
               nonSelectionInputs: ['has_typescript', 'has_config', 'has_script'],
               gate: kind === 'code' ? 'P0/P1 默认阻断；只读模式仅报告' : '文档与计划审查默认作为质量门控',
             },

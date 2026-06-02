@@ -78,4 +78,65 @@ describe('domain-dispatch-service', () => {
 
     expect(names).toContain(AGENT.BACKEND_DEV)
   })
+
+  it('应该在开发域零关键词匹配时兜底选中 debug-fix', () => {
+    const intent: TaskIntent = {
+      stage: 'entry',
+      intent: '添加日志到配置模块',
+      domain: 'development',
+      constraints: [],
+      rawInput: '添加日志到配置模块',
+      timestamp: '2026-06-02T00:00:00.000Z',
+    }
+    const names = selectSpecialists('development', intent, {}).map((s) => s.name)
+
+    expect(names).toContain(AGENT.DEBUG_FIX)
+  })
+
+  it('应该在开发域空任务描述时兜底选中 debug-fix', () => {
+    const intent: TaskIntent = {
+      stage: 'entry',
+      intent: '',
+      domain: 'development',
+      constraints: [],
+      rawInput: '',
+      timestamp: '2026-06-02T00:00:00.000Z',
+    }
+    const names = selectSpecialists('development', intent, {}).map((s) => s.name)
+
+    expect(names).toContain(AGENT.DEBUG_FIX)
+  })
+
+  it('应该在开发域关键词扩充命中时不触发兜底', () => {
+    const intent: TaskIntent = {
+      stage: 'entry',
+      intent: '重组模块架构',
+      domain: 'development',
+      constraints: [],
+      rawInput: '重组模块架构',
+      timestamp: '2026-06-02T00:00:00.000Z',
+    }
+    const names = selectSpecialists('development', intent, {}).map((s) => s.name)
+
+    expect(names).toContain(AGENT.REFACTOR_DEV)
+    expect(names).not.toContain(AGENT.DEBUG_FIX)
+  })
+
+  it('应该使用 hasApi 和 hasUi flags 匹配开发专精代理', () => {
+    const intent: TaskIntent = {
+      stage: 'entry',
+      intent: '实现功能',
+      domain: 'development',
+      constraints: [],
+      rawInput: '实现功能',
+      timestamp: '2026-06-02T00:00:00.000Z',
+    }
+    const names = selectSpecialists('development', intent, {
+      hasApi: true,
+      hasUi: true,
+    }).map((s) => s.name)
+
+    expect(names).toContain(AGENT.BACKEND_DEV)
+    expect(names).toContain(AGENT.FRONTEND_DEV)
+  })
 })

@@ -112,6 +112,14 @@ argument-hint: "[计划路径|交接文件路径|任务描述]"
 
 **错误处理：** 如果域代理返回 `failed` 或 `partial`，使用已完成的结果继续验证，记录失败原因。
 
+#### 调度一致性校验
+
+接收 `DomainExecutionResult` 后，检查 `dispatchManifest`：
+
+- 若 `dispatchManifest.dispatched` 数量少于 `selectedSpecialists` 数量，在汇总阶段报告不一致，列出被跳过的专精和跳过原因
+- 若 `dispatchManifest` 缺失，跳过校验并记录"无法校验"
+- 校验仅为报告性质，不阻断后续流程
+
 #### DispatchResults 输出
 
 ```typescript

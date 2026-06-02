@@ -21,16 +21,17 @@ steps: 30
 
 1. **解析输入** — 从编排层接收 `DomainCallRequest`，提取 `task`、`intent`、`constraints` 和 `domainContext`
 2. **分析任务** — 识别任务类型，拆分为可独立执行的子任务
-3. **选择专精代理** — 根据任务关键词和意图匹配专精代理：
+3. **选择专精代理** — 优先使用 `DomainCallRequest.selectedSpecialists` 中预计算的专精列表；仅当该字段缺失或为空时，按 `references/selection-rules.md` 自行选择：
    - "前端"/"UI"/"组件"/"样式" → frontend-dev
    - "API"/"数据库"/"服务"/"后端" → backend-dev
    - "调试"/"修复"/"Bug" → debug-fix
    - "重构"/"优化"/"技术债" → refactor-dev
+   - 无匹配时：按 hasUi/hasApi/hasDatabase 等 flags 匹配；仍无匹配时兜底选中 debug-fix
 4. **协调执行** — 按策略调度专精代理：
    - 并行组：独立的前端/后端子任务同时执行
    - 后续顺序步骤：集成、验证
 5. **聚合结果** — 合并各专精代理输出为完整交付物
-6. **返回结果** — 以 `DomainExecutionResult` 格式返回
+6. **返回结果** — 以 `DomainExecutionResult` 格式返回，必须填写 `dispatchManifest`：`dispatched` 为实际调度的专精名列表，`skipped` 为选中但未调度的专精名列表，`skipReasons` 记录跳过原因
 
 ## Output
 
@@ -41,6 +42,11 @@ interface DomainExecutionResult {
   evidence: string[]
   artifacts: string[]
   findings?: DomainFinding[]
+  dispatchManifest?: {
+    dispatched: string[]
+    skipped: string[]
+    skipReasons: Record<string, string>
+  }
 }
 ```
 
