@@ -26,6 +26,7 @@ export const SKILL = {
   SAVE_EXPERIENCE: 'ae:save-experience',
   SKILL_FROM_SESSION: 'ae:skill-from-session',
   SKILL_CREATOR: 'ae:skill-creator',
+  COURSE_AUTO_PLAYER: 'ae:course-auto-player',
   STATIC_SERVER: 'ae:static-server',
   HELP: 'ae:help',
   UPDATE: 'ae:update',
@@ -54,6 +55,7 @@ export const PROMPT_OPTIMIZE_VARIANT_EXCLUDED_SKILLS = [
   SKILL.SKILL_FROM_SESSION,
   SKILL.SKILL_CREATOR,
   SKILL.STATIC_SERVER,
+  SKILL.COURSE_AUTO_PLAYER,
   SKILL.HELP,
   SKILL.UPDATE,
 ] as const
@@ -128,6 +130,7 @@ export const TOOL = {
   AE_DOC_EXTRACT: 'ae-doc-extract',
   AE_DOMAIN_CATALOG: 'ae-domain-catalog',
   AE_CHROME_DEVTOOLS_MCP: 'ae-chrome-devtools-mcp',
+  AE_TIMER: 'ae-timer',
 } as const
 
 export const AeModeSchema = z
@@ -162,6 +165,7 @@ export const AeSkillNameSchema = z
     SKILL.SKILL_FROM_SESSION,
     SKILL.SKILL_CREATOR,
     SKILL.STATIC_SERVER,
+    SKILL.COURSE_AUTO_PLAYER,
     SKILL.HELP,
     SKILL.UPDATE,
   ])
