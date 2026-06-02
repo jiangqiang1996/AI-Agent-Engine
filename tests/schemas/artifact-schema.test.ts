@@ -14,10 +14,10 @@ describe('ArtifactStatusSchema', () => {
 })
 
 describe('ArtifactFrontmatterSchema', () => {
-  describe('brainstorm 类型', () => {
-    it('应该接受有效的 brainstorm frontmatter', () => {
+  describe('prd 类型', () => {
+    it('应该接受有效的 prd frontmatter', () => {
       const result = ArtifactFrontmatterSchema.safeParse({
-        type: 'brainstorm',
+        type: 'prd',
         status: 'drafted',
         date: '2026-04-27',
         topic: 'test-topic',
@@ -25,9 +25,9 @@ describe('ArtifactFrontmatterSchema', () => {
       expect(result.success).toBe(true)
     })
 
-    it('应该接受 review-passed 状态的 brainstorm', () => {
+    it('应该接受 review-passed 状态的 prd', () => {
       const result = ArtifactFrontmatterSchema.safeParse({
-        type: 'brainstorm',
+        type: 'prd',
         status: 'review-passed',
         date: '2026-04-27',
         topic: 'test-topic',
@@ -35,9 +35,9 @@ describe('ArtifactFrontmatterSchema', () => {
       expect(result.success).toBe(true)
     })
 
-    it('应该拒绝缺少 date 的 brainstorm', () => {
+    it('应该拒绝缺少 date 的 prd', () => {
       const result = ArtifactFrontmatterSchema.safeParse({
-        type: 'brainstorm',
+        type: 'prd',
         status: 'drafted',
         topic: 'test-topic',
       })
@@ -48,9 +48,9 @@ describe('ArtifactFrontmatterSchema', () => {
       }
     })
 
-    it('应该拒绝缺少 topic 的 brainstorm', () => {
+    it('应该拒绝缺少 topic 的 prd', () => {
       const result = ArtifactFrontmatterSchema.safeParse({
-        type: 'brainstorm',
+        type: 'prd',
         status: 'drafted',
         date: '2026-04-27',
       })
@@ -61,9 +61,9 @@ describe('ArtifactFrontmatterSchema', () => {
       }
     })
 
-    it('应该拒绝 status: review-needs-fix 的 brainstorm', () => {
+    it('应该拒绝 status: review-needs-fix 的 prd', () => {
       const result = ArtifactFrontmatterSchema.safeParse({
-        type: 'brainstorm',
+        type: 'prd',
         status: 'review-needs-fix',
         date: '2026-04-27',
         topic: 'test-topic',
@@ -75,13 +75,13 @@ describe('ArtifactFrontmatterSchema', () => {
       }
     })
 
-    it('应该接受含可选字段的 brainstorm', () => {
+    it('应该接受含可选字段的 prd', () => {
       const result = ArtifactFrontmatterSchema.safeParse({
-        type: 'brainstorm',
+        type: 'prd',
         status: 'drafted',
         date: '2026-04-27',
         topic: 'test-topic',
-        origin: 'ae/brainstorms/xxx.md',
+        origin: 'ae/prds/xxx.md',
         originFingerprint: '2026-04-27-xxx',
       })
       expect(result.success).toBe(true)
@@ -89,11 +89,11 @@ describe('ArtifactFrontmatterSchema', () => {
 
     it('应该拒绝 origin 与 originFingerprint 只填写一个', () => {
       const result = ArtifactFrontmatterSchema.safeParse({
-        type: 'brainstorm',
+        type: 'prd',
         status: 'drafted',
         date: '2026-04-27',
         topic: 'test-topic',
-        origin: 'ae/brainstorms/source.md',
+        origin: 'ae/prds/source.md',
       })
       expect(result.success).toBe(false)
       if (!result.success) {
@@ -104,7 +104,7 @@ describe('ArtifactFrontmatterSchema', () => {
 
     it('应该拒绝绝对 origin 路径', () => {
       const result = ArtifactFrontmatterSchema.safeParse({
-        type: 'brainstorm',
+        type: 'prd',
         status: 'drafted',
         date: '2026-04-27',
         topic: 'test-topic',
@@ -120,7 +120,7 @@ describe('ArtifactFrontmatterSchema', () => {
 
     it('应该拒绝包含路径穿越的 origin 路径', () => {
       const result = ArtifactFrontmatterSchema.safeParse({
-        type: 'brainstorm',
+        type: 'prd',
         status: 'drafted',
         date: '2026-04-27',
         topic: 'test-topic',
@@ -136,7 +136,7 @@ describe('ArtifactFrontmatterSchema', () => {
 
     it('应该拒绝非 plan 类型携带 depth', () => {
       const result = ArtifactFrontmatterSchema.safeParse({
-        type: 'brainstorm',
+        type: 'prd',
         status: 'drafted',
         date: '2026-04-27',
         topic: 'test-topic',
@@ -149,13 +149,24 @@ describe('ArtifactFrontmatterSchema', () => {
       }
     })
 
-    it('应该接受不含 supersededBy 的 brainstorm', () => {
+    it('应该接受不含 supersededBy 的 prd', () => {
       const result = ArtifactFrontmatterSchema.safeParse({
-        type: 'brainstorm',
+        type: 'prd',
         status: 'drafted',
         date: '2026-04-27',
         topic: 'test-topic',
       })
+      expect(result.success).toBe(true)
+    })
+
+    it('应该接受有效的 prd-shard frontmatter', () => {
+      const result = ArtifactFrontmatterSchema.safeParse({
+        type: 'prd-shard',
+        status: 'drafted',
+        parent: 'ae/prds/main.md',
+        module: 'auth',
+      })
+
       expect(result.success).toBe(true)
     })
   })
@@ -265,7 +276,7 @@ describe('ArtifactFrontmatterSchema', () => {
 
     it('应该拒绝缺少 parent 或 module 的分片 frontmatter', () => {
       const result = ArtifactFrontmatterSchema.safeParse({
-        type: 'brainstorm-shard',
+        type: 'prd-shard',
         status: 'drafted',
       })
 
@@ -295,7 +306,7 @@ describe('ArtifactFrontmatterSchema', () => {
     })
 
     it('应该识别分片产物类型', () => {
-      expect(isShardArtifactKind('brainstorm-shard')).toBe(true)
+      expect(isShardArtifactKind('prd-shard')).toBe(true)
       expect(isShardArtifactKind('plan-shard')).toBe(true)
       expect(isShardArtifactKind('design-shard')).toBe(true)
       expect(isShardArtifactKind('plan')).toBe(false)
@@ -303,9 +314,9 @@ describe('ArtifactFrontmatterSchema', () => {
   })
 
   describe('多字段缺失同时报告', () => {
-    it('brainstorm 缺少 date 和 topic 时应该报告两个错误', () => {
+    it('prd 缺少 date 和 topic 时应该报告两个错误', () => {
       const result = ArtifactFrontmatterSchema.safeParse({
-        type: 'brainstorm',
+        type: 'prd',
         status: 'drafted',
       })
       expect(result.success).toBe(false)

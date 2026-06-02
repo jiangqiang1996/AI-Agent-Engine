@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
 
-const brainstormCapture = readFileSync('src/assets/skills/ae-brainstorm/references/requirements-capture.md', 'utf8')
+const brainstormCapture = readFileSync('src/assets/skills/ae-prd/references/requirements-capture.md', 'utf8')
 const planTemplate = readFileSync('src/assets/skills/ae-plan/references/plan-template.md', 'utf8')
 const planSkill = readFileSync('src/assets/skills/ae-plan/SKILL.md', 'utf8')
 const reviewAgentPaths = [

@@ -124,7 +124,7 @@
 ### 受保护产物
 
 丢弃任何建议删除以下目录中文件的发现：
-- `ae/brainstorms/`
+- `ae/prds/`
 - `ae/plans/`
 - `ae/solutions/`
 - `.opencode/`

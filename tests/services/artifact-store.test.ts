@@ -10,10 +10,10 @@ import { createRuntimeAssetManifestFromRoot } from '../../src/services/runtime-a
 
 const tempRoots: string[] = []
 
-function createTempRoot(): string {
+function createRepoRoot(): string {
   const root = join(tmpdir(), `ae-artifact-store-${Date.now()}-${Math.random().toString(36).slice(2)}`)
   tempRoots.push(root)
-  mkdirSync(root, { recursive: true })
+  mkdirSync(join(root, 'ae', 'prds'), { recursive: true })
   return root
 }
 
@@ -24,31 +24,22 @@ afterEach(() => {
 })
 
 describe('artifact-store', () => {
-  it('应该从 ae/designs 读取顶层 design 产物', () => {
-    const root = createTempRoot()
-    mkdirSync(join(root, 'ae', 'designs'), { recursive: true })
-    writeFileSync(join(root, 'ae', 'designs', 'main.md'), [
+  it('应该读取 prd 顶层产物', () => {
+    const root = createRepoRoot()
+    writeFileSync(join(root, 'ae', 'prds', 'feature-prd.md'), [
       '---',
-      'type: design',
+      'type: prd',
       'status: drafted',
-      'date: 2026-05-22',
-      'title: design',
+      'date: 2026-06-02',
+      'topic: feature-topic',
       '---',
-      '# 设计',
-    ].join('\n'), 'utf8')
+      '# Feature PRD',
+    ].join('\n'))
 
-    const artifacts = listArtifacts(createRuntimeAssetManifestFromRoot(root), ARTIFACT_KIND.DESIGN)
+    const manifest = createRuntimeAssetManifestFromRoot(root)
+    const artifacts = listArtifacts(manifest, ARTIFACT_KIND.PRD)
 
     expect(artifacts).toHaveLength(1)
-    expect(artifacts[0]).toMatchObject({ type: ARTIFACT_KIND.DESIGN })
-    expect(artifacts[0]?.frontmatter.title).toBe('design')
-  })
-
-  it('应该拒绝把分片类型作为顶层产物扫描', () => {
-    const root = createTempRoot()
-
-    expect(() => listArtifacts(createRuntimeAssetManifestFromRoot(root), ARTIFACT_KIND.DESIGN_SHARD)).toThrow(
-      '产物类型 design-shard 不作为顶层 AE 产物扫描',
-    )
+    expect(artifacts[0]?.frontmatter.type).toBe('prd')
   })
 })

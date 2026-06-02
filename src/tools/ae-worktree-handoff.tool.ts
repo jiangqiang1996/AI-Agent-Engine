@@ -49,7 +49,7 @@ const WorktreeHandoffInputSchema = z.object({
   requirements_path: z
     .string()
     .optional()
-    .describe('可选需求文档相对路径，例如 ae/brainstorms/xxx.md；未迁移或不存在时不传'),
+    .describe('可选需求文档相对路径，例如 ae/prds/xxx.md；未迁移或不存在时不传'),
   design_path: z
     .string()
     .optional()

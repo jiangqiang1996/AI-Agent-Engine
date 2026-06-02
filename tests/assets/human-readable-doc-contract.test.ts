@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
 
-const requirementsCapture = readFileSync('src/assets/skills/ae-brainstorm/references/requirements-capture.md', 'utf8')
+const requirementsCapture = readFileSync('src/assets/skills/ae-prd/references/requirements-capture.md', 'utf8')
 const planTemplate = readFileSync('src/assets/skills/ae-plan/references/plan-template.md', 'utf8')
 const planSkill = readFileSync('src/assets/skills/ae-plan/SKILL.md', 'utf8')
 const reviewSkill = readFileSync('src/assets/skills/ae-review/SKILL.md', 'utf8')
@@ -35,7 +35,7 @@ describe('人读与机器可提取文档契约', () => {
   })
 
   it('应该声明分片子文件 parent 和 module 规则', () => {
-    expect(requirementsCapture).toContain('type: brainstorm-shard')
+    expect(requirementsCapture).toContain('type: prd-shard')
     expect(planTemplate).toContain('type: plan-shard')
     expect(planTemplate).toContain('type: design-shard')
     for (const text of [requirementsCapture, planTemplate]) {

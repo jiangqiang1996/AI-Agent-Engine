@@ -45,7 +45,7 @@
 | 动作 | 仓库模式默认 | 外部模式默认 |
 |---|---|---|
 | 保存 | `ae/ideation/YYYY-MM-DD-<topic>-ideation.md` | `ae/ideation/YYYY-MM-DD-<topic>-ideation.md` |
-| 头脑风暴交接 | `ae:brainstorm` | `ae:brainstorm` |
+| 需求定义交接 | `ae:prd` | `ae:prd` |
 | 结束 | 仅对话即可 | 仅对话即可 |
 
 ### 5.1 文件保存
@@ -97,7 +97,7 @@ mode: <repo-grounded | elsewhere-software | elsewhere-non-software>
 提供三个选项：
 
 1. **在对话中细化创意构思（或在此停止 — 不保存）** — 添加想法、重新评估或深化分析
-2. **将选定想法进入头脑风暴** — 加载 `ae:brainstorm`，以选定想法作为种子
+2. **将选定想法进入需求定义** — 加载 `ae:prd`，以选定想法作为种子
 3. **保存并结束** — 持久化创意构思然后结束
 
 ### 6.1 在对话中细化
@@ -107,11 +107,11 @@ mode: <repo-grounded | elsewhere-software | elsewhere-non-software>
 - `重新评估` → 返回阶段 3
 - `深入想法 #N` → 仅展开该想法
 
-### 6.2 将选定想法进入头脑风暴
+### 6.2 将选定想法进入需求定义
 
 - 按阶段 5 的模式默认写入或更新持久记录
 - 将选定想法标记为 `Explored`
-- 加载 `ae:brainstorm` 技能
+- 加载 `ae:prd` 技能
 
 **仓库模式：** 不要跳过头脑风暴直接从创意构思进入 `ae:plan`。
 
@@ -127,4 +127,4 @@ mode: <repo-grounded | elsewhere-software | elsewhere-non-software>
 - 每个被拒绝的想法都有理由
 - 入选想法明显优于天真的"给我想法"列表
 - 持久化遵循用户选择
-- 对想法采取行动路由到 `ae:brainstorm`
+- 对想法采取行动路由到 `ae:prd`

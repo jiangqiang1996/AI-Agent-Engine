@@ -31,7 +31,7 @@ describe('research-reviewer 经验库文本契约', () => {
     expect(reviewer).toContain('ae/solutions/patterns/critical-patterns.md')
     expect(reviewer).toContain('缺失、为空或没有相关命中')
     expect(reviewer).toContain('无组织经验可用')
-    expect(reviewer).toContain('继续技能、文档和外部研究')
+    expect(reviewer).toContain('继续查询技能、文档，并开展外部研究')
     expect(reviewer).toContain('不得失败')
   })
 })

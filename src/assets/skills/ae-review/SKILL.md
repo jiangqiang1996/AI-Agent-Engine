@@ -39,7 +39,7 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 - 受保护产物：`ae/reviews/*`、`ae/solutions/*`
 
 **全域默认排除（域安全需求 R4-R5）：**
-- `ae/brainstorms/` 下的文件
+- `ae/prds/` 下的文件
 - `ae/plans/` 下的文件
 
 **"明确指定"条件——满足任一则纳入：**
@@ -87,7 +87,7 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 文档域范围确定：
 
 - 指定文档路径 → 使用指定路径
-- 未指定路径 + 交互模式 → 搜索 `ae/brainstorms/` 和 `ae/plans/` 中最近修改的文件
+- 未指定路径 + 交互模式 → 搜索 `ae/prds/` 和 `ae/plans/` 中最近修改的文件
 - 未指定路径 + 无头模式 → 输出错误，立即终止
 
 如果文档 frontmatter 包含 `sharded: true`，先调用 `ae-doc-extract` 构建分片审查上下文；上下文至少保留 `rootDocument`、`shards`、`missingShards`、`duplicateIds`、`parentMismatch`、`globalRelations` 和 `diagnostics` 语义。

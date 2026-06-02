@@ -6,7 +6,7 @@ export const DOCS_AE_ROOT = 'ae'
 
 /** `ae/` 下的子目录名常量，供路径拼接和排除规则引用。 */
 export const DOCS_AE_SUBDIRS = {
-  BRAINSTORMS: 'brainstorms',
+  PRDS: 'prds',
   PLANS: 'plans',
   DESIGNS: 'designs',
   WORK: 'work',

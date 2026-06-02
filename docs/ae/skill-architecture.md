@@ -142,12 +142,12 @@ AE 技能采用 **SKILL.md 提示词 + TypeScript 服务代码** 双层模型：
 这些技能构成 AE 的核心工程流程管道，按阶段串联执行：
 
 ```
-ae:ideate → ae:brainstorm → ae:plan → ae:work → ae:review
-    │             │             │          │          │
-    │             │             │          │          │
-    ▼             ▼             ▼          ▼          ▼
- ae/ideates/  ae/brainstorms/ ae/plans/ ae/ 产出   ae/reviews/
- (候选方向)   (需求文档)     (计划文档)  (代码等)  (审查报告)
+ae:ideate → ae:prd → ae:plan → ae:work → ae:review
+    │           │          │          │          │
+    │           │          │          │          │
+    ▼           ▼          ▼          ▼          ▼
+ ae/ideates/  ae/prds/  ae/plans/ ae/ 产出   ae/reviews/
+ (候选方向)   (需求文档) (计划文档)  (代码等)  (审查报告)
 
 注：ae:lfg 是上述核心流程的组合技能，将各阶段串联为一站式执行管道；各阶段技能均可独立通过命令使用。
 ```
@@ -155,12 +155,13 @@ ae:ideate → ae:brainstorm → ae:plan → ae:work → ae:review
 | 技能 | 实现原理 | 产出 | 依赖工具 |
 |------|---------|------|---------|
 | ae:ideate | SKILL.md 引导 LLM 生成候选方向并批判评估 | 无强制产物 | 无 |
-| ae:brainstorm | SKILL.md + references/ 引导需求澄清与文档编写 | `ae/brainstorms/*-requirements.md` | ae-doc-extract (读取上游) |
+| ae:brainstorm | SKILL.md 引导通用讨论与发散 | 无强制产物 | 无 |
+| ae:prd | SKILL.md + references/ 引导需求澄清与文档编写 | `ae/prds/*-prd.md` | ae-doc-extract (读取上游) |
 | ae:plan | SKILL.md + references/ 引导结构化计划分解 | `ae/plans/*-plan.md` | ae-doc-extract, ae-graph-query |
 | ae:refactor | 复用 plan 结构 + 独立重构策略 | `ae/plans/*-plan.md` | ae-doc-extract |
 | ae:work | 四阶段编排协议 + 域代理委托 | 代码/文档/测试等 | ae-task-analyzer, ae-worktree-handoff, ae-graph-query, ae-doc-extract |
 | ae:review | 四阶段编排协议 + 审查域代理 | `ae/reviews/<run-id>/` | ae-review-contract, ae-review-proof, ae-graph-query, ae-doc-extract |
-| ae:lfg | **核心流程组合技能**，串联 ae:brainstorm → ae:plan → ae:work → ae:review；各阶段技能也可独立使用 | 依阶段而定 | ae-recovery |
+| ae:lfg | **核心流程组合技能**，串联 ae:prd → ae:plan → ae:work → ae:review；各阶段技能也可独立使用 | 依阶段而定 | ae-recovery |
 
 #### B. 浏览器能力技能
 
@@ -480,8 +481,8 @@ AE 通过 opencode 的 `instructions` glob 机制注入规则文件：
                          │
                          ▼
 ┌────────────────────────────────────────────────────────────┐
-│ 4. ae:brainstorm → 需求文档                               │
-│    产出: ae/brainstorms/2026-06-01-user-login-req.md      │
+│ 4. ae:prd → 需求文档                                    │
+│    产出: ae/prds/2026-06-01-user-login-req.md           │
 └────────────────────────┬───────────────────────────────────┘
                          │
                          ▼

@@ -5,8 +5,8 @@ import { z } from 'zod'
  * 供 recovery-service、artifact-store 等模块引用，避免硬编码字符串。
  */
 export const ARTIFACT_KIND = {
-  BRAINSTORM: 'brainstorm',
-  BRAINSTORM_SHARD: 'brainstorm-shard',
+  PRD: 'prd',
+  PRD_SHARD: 'prd-shard',
   PLAN: 'plan',
   PLAN_SHARD: 'plan-shard',
   DESIGN: 'design',
@@ -20,8 +20,8 @@ export type ArtifactKind = typeof ARTIFACT_KIND[keyof typeof ARTIFACT_KIND]
 
 export const ArtifactTypeSchema = z
   .enum([
-    ARTIFACT_KIND.BRAINSTORM,
-    ARTIFACT_KIND.BRAINSTORM_SHARD,
+    ARTIFACT_KIND.PRD,
+    ARTIFACT_KIND.PRD_SHARD,
     ARTIFACT_KIND.PLAN,
     ARTIFACT_KIND.PLAN_SHARD,
     ARTIFACT_KIND.DESIGN,
@@ -32,15 +32,19 @@ export const ArtifactTypeSchema = z
   .describe('产物类型')
 
 export const TOP_LEVEL_ARTIFACT_KINDS = [
-  ARTIFACT_KIND.BRAINSTORM,
+  ARTIFACT_KIND.PRD,
   ARTIFACT_KIND.PLAN,
   ARTIFACT_KIND.WORK,
   ARTIFACT_KIND.REVIEW,
 ] as const
 
 export function isShardArtifactKind(value: string): boolean {
-  return [ARTIFACT_KIND.BRAINSTORM_SHARD, ARTIFACT_KIND.PLAN_SHARD, ARTIFACT_KIND.DESIGN_SHARD].includes(
-    value as typeof ARTIFACT_KIND.BRAINSTORM_SHARD,
+  return [
+    ARTIFACT_KIND.PRD_SHARD,
+    ARTIFACT_KIND.PLAN_SHARD,
+    ARTIFACT_KIND.DESIGN_SHARD,
+  ].includes(
+    value as typeof ARTIFACT_KIND.PRD_SHARD,
   )
 }
 
@@ -51,7 +55,7 @@ export const ArtifactStatusSchema = z
   .enum(['drafted', 'review-passed', 'review-needs-fix', 'blocked', 'aborted', 'active', 'completed'])
   .describe('产物状态')
 
-const BRAINSTORM_ALLOWED_STATUSES = ['drafted', 'review-passed', 'completed'] as const
+const REQUIREMENTS_ALLOWED_STATUSES = ['drafted', 'review-passed', 'completed'] as const
 const PLAN_ALLOWED_STATUSES = ['drafted', 'active', 'completed'] as const
 
 function isRepositoryRelativePath(value: string): boolean {
@@ -121,25 +125,25 @@ export const ArtifactFrontmatterSchema = z.object({
     }
   }
 
-  if (data.type === 'brainstorm') {
+  if (data.type === 'prd') {
     if (!data.date) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'brainstorm 类型必须有 date 字段',
+        message: 'prd 类型必须有 date 字段',
         path: ['date'],
       })
     }
     if (!data.topic) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'brainstorm 类型必须有 topic 字段',
+        message: 'prd 类型必须有 topic 字段',
         path: ['topic'],
       })
     }
-    if (!BRAINSTORM_ALLOWED_STATUSES.includes(data.status as typeof BRAINSTORM_ALLOWED_STATUSES[number])) {
+    if (!REQUIREMENTS_ALLOWED_STATUSES.includes(data.status as typeof REQUIREMENTS_ALLOWED_STATUSES[number])) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: `brainstorm 的 status 必须为 ${BRAINSTORM_ALLOWED_STATUSES.join(' | ')}`,
+        message: `prd 的 status 必须为 ${REQUIREMENTS_ALLOWED_STATUSES.join(' | ')}`,
         path: ['status'],
       })
     }

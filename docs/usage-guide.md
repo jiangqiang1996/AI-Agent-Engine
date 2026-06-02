@@ -223,7 +223,7 @@
 
 | 路径 | 作用 |
 | --- | --- |
-| `ae/brainstorms/` | 需求文档 |
+| `ae/prds/` | 需求文档 |
 | `ae/plans/` | 计划文档 |
 | `ae/solutions/` | 历史方案、研究和经验沉淀 |
 | `.opencode/rules/` | 项目长期规则，可由经验沉淀流程写入 |

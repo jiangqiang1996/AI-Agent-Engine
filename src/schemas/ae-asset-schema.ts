@@ -3,6 +3,7 @@ import { z } from 'zod'
 export const SKILL = {
   IDEATE: 'ae:ideate',
   BRAINSTORM: 'ae:brainstorm',
+  PRD: 'ae:prd',
   DOCUMENT_REVIEW: 'ae:document-review',
   PLAN: 'ae:plan',
   REFACTOR: 'ae:refactor',
@@ -142,6 +143,7 @@ export const AeSkillNameSchema = z
   .enum([
     SKILL.IDEATE,
     SKILL.BRAINSTORM,
+    SKILL.PRD,
     SKILL.DOCUMENT_REVIEW,
     SKILL.PLAN,
     SKILL.REFACTOR,

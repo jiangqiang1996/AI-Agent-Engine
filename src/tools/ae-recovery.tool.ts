@@ -22,7 +22,7 @@ export const aeRecoveryTool: ToolDefinition = tool({
   ].join('\n'),
   args: {
     phase: tool.schema
-      .enum(['brainstorm', 'plan', 'work', 'review', 'lfg'])
+      .enum(['prd', 'plan', 'work', 'review', 'lfg'])
       .describe('需要恢复的阶段'),
     expected_origin_fingerprint: tool.schema.string().optional().describe('期望的上游指纹'),
   },

@@ -22,12 +22,10 @@ function invalidResult(phase: RecoveryResult['phase'], reason: string): Recovery
 
 function fallbackSkillForPhase(phase: RecoveryResult['phase']): string {
   switch (phase) {
-    case 'brainstorm':
+    case 'prd':
     case 'lfg':
-      return SKILL.BRAINSTORM
     case 'plan':
-      // plan 依赖需求产物；缺少可恢复计划时必须回到 brainstorm 补齐上游。
-      return SKILL.BRAINSTORM
+      return SKILL.PRD
     case 'work':
     case 'review':
       return SKILL.PLAN
@@ -36,33 +34,29 @@ function fallbackSkillForPhase(phase: RecoveryResult['phase']): string {
 
 function preferredArtifactTypes(phase: RecoveryResult['phase']): RecoverableArtifactKind[] {
   switch (phase) {
-    case 'brainstorm':
+    case 'prd':
       return []
     case 'plan':
-      return ['brainstorm']
+      return ['prd']
     case 'work':
-      // work 优先恢复未完成的执行上下文，否则退回可执行的计划。
       return ['work', 'plan']
     case 'review':
-      return ['review', 'work', 'plan']
+      return ['review', 'work', 'plan', 'prd']
     case 'lfg':
-      return ['review', 'work', 'plan', 'brainstorm']
+      return ['review', 'work', 'plan', 'prd']
   }
 }
 
 function nextSkillForArtifact(phase: RecoveryResult['phase'], artifactType: RecoverableArtifactKind): string {
   switch (phase) {
+    case 'prd':
+      return SKILL.PRD
     case 'plan':
       return SKILL.PLAN
     case 'work':
       return SKILL.WORK
     case 'review':
-      if (artifactType === 'plan' || artifactType === 'brainstorm') {
-        return SKILL.REVIEW
-      }
       return SKILL.REVIEW
-    case 'brainstorm':
-      return SKILL.BRAINSTORM
     case 'lfg':
       switch (artifactType) {
         case 'review':
@@ -70,10 +64,8 @@ function nextSkillForArtifact(phase: RecoveryResult['phase'], artifactType: Reco
         case 'work':
           return SKILL.WORK
         case 'plan':
-          // /ae-lfg 遇到既有计划时先进入审查，避免跳过交付前的质量门。
           return SKILL.REVIEW
-        case 'brainstorm':
-          // 需求文档同样先交给审查入口，由审查流程决定是否需要继续计划或执行。
+        case 'prd':
           return SKILL.REVIEW
       }
   }
@@ -84,7 +76,7 @@ function nextArgumentsForArtifact(
   artifactType: RecoverableArtifactKind,
   path?: string,
 ): string | undefined {
-  if ((phase === 'review' || phase === 'lfg') && (artifactType === 'plan' || artifactType === 'brainstorm')) {
+  if ((phase === 'review' || phase === 'lfg') && (artifactType === 'plan' || artifactType === 'prd')) {
     if (!path) {
       return undefined
     }
@@ -119,8 +111,7 @@ function resumePhaseForArtifact(
     case 'plan':
       // lfg 是入口阶段而非真实工作阶段；计划恢复后从审查阶段继续。
       return 'review'
-    case 'brainstorm':
-      // 需求恢复同样先进入审查阶段，保持与 lfg 的质量门语义一致。
+    case 'prd':
       return 'review'
   }
 }
@@ -219,14 +210,14 @@ export function resolveRecovery(
 ): RecoveryResult {
   const warnings: string[] = []
 
-  if (phase === 'brainstorm') {
+  if (phase === 'prd') {
     return {
       resolution: 'needs-upstream',
       phase,
-      resumePhase: 'brainstorm',
-      nextSkill: SKILL.BRAINSTORM,
-      fallbackSkill: SKILL.BRAINSTORM,
-      reason: '头脑风暴阶段应从新需求开始或显式指定已有文档。',
+      resumePhase: 'prd',
+      nextSkill: SKILL.PRD,
+      fallbackSkill: SKILL.PRD,
+      reason: 'PRD 阶段应从新需求开始或显式指定已有文档。',
       candidates: [],
     }
   }

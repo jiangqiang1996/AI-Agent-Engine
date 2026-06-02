@@ -12,7 +12,7 @@ const tempRoots: string[] = []
 function createRepoRoot(): string {
   const root = mkdtempSync(join(tmpdir(), 'ae-recovery-'))
   tempRoots.push(root)
-  mkdirSync(join(root, 'ae', 'brainstorms'), { recursive: true })
+  mkdirSync(join(root, 'ae', 'prds'), { recursive: true })
   mkdirSync(join(root, 'ae', 'plans'), { recursive: true })
   mkdirSync(join(root, 'ae', 'work'), { recursive: true })
   mkdirSync(join(root, 'ae', 'review'), { recursive: true })
@@ -27,9 +27,10 @@ function writePlan(root: string, fileName: string, frontmatter: string): void {
   )
 }
 
-function writeBrainstorm(root: string, fileName: string, frontmatter: string): void {
+
+function writePrd(root: string, fileName: string, frontmatter: string): void {
   writeFileSync(
-    join(root, 'ae', 'brainstorms', fileName),
+    join(root, 'ae', 'prds', fileName),
     `---\n${frontmatter.trim()}\n---\n\n# 测试需求\n`,
     'utf8',
   )
@@ -44,11 +45,11 @@ function writeLegacyPlan(root: string, fileName: string): void {
   )
 }
 
-function writeLegacyBrainstorm(root: string, fileName: string): void {
-  mkdirSync(join(root, 'docs', 'ae', 'brainstorms'), { recursive: true })
+function writeLegacyPrd(root: string, fileName: string): void {
+  mkdirSync(join(root, 'docs', 'ae', 'prds'), { recursive: true })
   writeFileSync(
-    join(root, 'docs', 'ae', 'brainstorms', fileName),
-    '---\ntype: brainstorm\nstatus: drafted\ndate: 2026-04-27\ntopic: legacy-brainstorm\n---\n\n# 旧需求\n',
+    join(root, 'docs', 'ae', 'prds', fileName),
+    '---\ntype: prd\nstatus: drafted\ndate: 2026-04-27\ntopic: legacy-prd\n---\n\n# 旧需求\n',
     'utf8',
   )
 }
@@ -77,7 +78,7 @@ title: missing-type
   it('应该拒绝 frontmatter type 与目录类型不一致的产物', () => {
     const root = createRepoRoot()
     writePlan(root, 'wrong-type.md', `
-type: brainstorm
+type: prd
 status: drafted
 date: 2026-04-27
 topic: source-topic
@@ -91,8 +92,8 @@ topic: source-topic
 
   it('originFingerprint 不匹配时应该返回警告但不阻断恢复', () => {
     const root = createRepoRoot()
-    writeBrainstorm(root, 'expected-source.md', `
-type: brainstorm
+    writePrd(root, 'expected-source.md', `
+type: prd
 status: drafted
 date: 2026-04-27
 topic: source-topic
@@ -102,7 +103,7 @@ type: plan
 status: active
 date: 2026-04-27
 title: fingerprint-mismatch
-origin: ae/brainstorms/expected-source.md
+origin: ae/prds/expected-source.md
 originFingerprint: 2026-04-27-source-topic
 `)
 
@@ -118,8 +119,8 @@ originFingerprint: 2026-04-27-source-topic
 
   it('应该根据 origin 上游文档计算 originFingerprint 并返回不阻断警告', () => {
     const root = createRepoRoot()
-    writeBrainstorm(root, 'source.md', `
-type: brainstorm
+    writePrd(root, 'source.md', `
+type: prd
 status: drafted
 date: 2026-04-27
 topic: source-topic
@@ -129,7 +130,7 @@ type: plan
 status: active
 date: 2026-04-27
 title: wrong-origin-fingerprint
-origin: ae/brainstorms/source.md
+origin: ae/prds/source.md
 originFingerprint: wrong-fingerprint
 `)
 
@@ -173,7 +174,7 @@ type: plan
 status: active
 date: 2026-04-27
 title: missing-origin
-origin: ae/brainstorms/missing.md
+origin: ae/prds/missing.md
 originFingerprint: 2026-04-27-missing
 `)
 
@@ -258,22 +259,22 @@ title: lfg-plan
     expect(result.nextCommand).toBe(`${SKILL.REVIEW} mode:headless domain:document ae/plans/lfg-plan.md`)
   })
 
-  it('lfg 阶段命中 brainstorm 产物时应该恢复到 ae:review 无头文档域', () => {
+  it('lfg 阶段命中 prd 产物时应该恢复到 ae:review 无头文档域', () => {
     const root = createRepoRoot()
-    writeBrainstorm(root, 'requirements.md', `
-type: brainstorm
+    writePrd(root, 'feature-prd.md', `
+type: prd
 status: drafted
 date: 2026-04-27
-topic: requirements
+topic: feature
 `)
 
     const result = resolveRecovery(createRuntimeAssetManifestFromRoot(root), 'lfg')
 
     expect(result.resolution).toBe('resolved')
     expect(result.nextSkill).toBe(SKILL.REVIEW)
-    expect(result.nextArguments).toBe('mode:headless domain:document ae/brainstorms/requirements.md')
+    expect(result.nextArguments).toBe('mode:headless domain:document ae/prds/feature-prd.md')
     expect(result.nextCommand).toBe(
-      `${SKILL.REVIEW} mode:headless domain:document ae/brainstorms/requirements.md`,
+      `${SKILL.REVIEW} mode:headless domain:document ae/prds/feature-prd.md`,
     )
   })
 
@@ -294,6 +295,25 @@ title: a-plan
     expect(JSON.stringify(result)).not.toContain('a-plan.md')
   })
 
+  it('lfg 阶段命中 prd 产物时应该优先恢复到 ae:review 无头文档域', () => {
+    const root = createRepoRoot()
+    writePrd(root, 'feature-prd.md', `
+type: prd
+status: drafted
+date: 2026-04-27
+topic: feature
+`)
+
+    const result = resolveRecovery(createRuntimeAssetManifestFromRoot(root), 'lfg')
+
+    expect(result.resolution).toBe('resolved')
+    expect(result.nextSkill).toBe(SKILL.REVIEW)
+    expect(result.nextArguments).toBe('mode:headless domain:document ae/prds/feature-prd.md')
+    expect(result.nextCommand).toBe(
+      `${SKILL.REVIEW} mode:headless domain:document ae/prds/feature-prd.md`,
+    )
+  })
+
   it('不应该从旧 docs/ae 计划路径恢复产物', () => {
     const root = createRepoRoot()
     writeLegacyPlan(root, 'legacy-plan.md')
@@ -306,12 +326,12 @@ title: a-plan
 
   it('不应该从旧 docs/ae 需求路径恢复产物', () => {
     const root = createRepoRoot()
-    writeLegacyBrainstorm(root, 'legacy-brainstorm.md')
+    writeLegacyPrd(root, 'legacy-prd.md')
 
     const result = resolveRecovery(createRuntimeAssetManifestFromRoot(root), 'lfg')
 
     expect(result.resolution).not.toBe('resolved')
-    expect(JSON.stringify(result)).not.toContain('docs/ae/brainstorms/legacy-brainstorm.md')
+    expect(JSON.stringify(result)).not.toContain('docs/ae/prds/legacy-prd.md')
   })
 
   it('当前 worktree 有自己的计划时不跨其他 worktree 恢复', () => {

@@ -38,7 +38,7 @@ function validInput(overrides?: Partial<WorktreeHandoffInput>): WorktreeHandoffI
     final_command_args: 'git worktree add "../worktrees/feat-xyz" -b "feat/xyz" HEAD',
     creation_result: 'Git worktree 创建成功',
     plan_path: 'ae/plans/test-plan.md',
-    requirements_path: 'ae/brainstorms/test-req.md',
+    requirements_path: 'ae/prds/test-req.md',
     design_borne_by_plan: true,
     execution_baseline: '必须从阶段 1 继续执行',
     verification_requirements: '交付前运行 Vitest 和 typecheck',

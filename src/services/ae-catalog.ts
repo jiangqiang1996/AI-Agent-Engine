@@ -25,9 +25,16 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   {
     skillName: SKILL.BRAINSTORM,
     commandName: COMMAND.BRAINSTORM,
-    description: getLifecycleCatalogDescription('brainstorm'),
-    argumentHint: '[目标描述|需求文档路径|构思结果]',
+    description: '头脑风暴：使用多个子代理从不同视角进行多轮讨论，汇总讨论结果',
+    argumentHint: '[讨论主题]',
     skillFile: `src/assets/skills/${skillDir(SKILL.BRAINSTORM)}/SKILL.md`,
+  },
+  {
+    skillName: SKILL.PRD,
+    commandName: COMMAND.PRD,
+    description: getLifecycleCatalogDescription('prd'),
+    argumentHint: '[目标描述|需求文档路径|构思结果]',
+    skillFile: `src/assets/skills/${skillDir(SKILL.PRD)}/SKILL.md`,
   },
   {
     skillName: SKILL.DOCUMENT_REVIEW,
@@ -89,7 +96,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   {
     skillName: SKILL.LFG,
     commandName: COMMAND.LFG,
-    description: '核心流程组合技能：串联 ae:brainstorm → ae:plan → ae:work → ae:review 等阶段，一站式完成从需求到交付的全流程；各阶段技能也可独立使用',
+    description: '核心流程组合技能：串联 ae:prd → ae:plan → ae:work → ae:review 等阶段，一站式完成从需求到交付的全流程；各阶段技能也可独立使用',
     argumentHint: '[任务描述|已有产物路径]',
     skillFile: `src/assets/skills/${skillDir(SKILL.LFG)}/SKILL.md`,
   },

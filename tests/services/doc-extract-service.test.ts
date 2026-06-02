@@ -81,16 +81,16 @@ describe('doc-extract-service', () => {
 
   it('应该报告缺失分片并继续返回可读取内容', () => {
     const root = createTempRoot()
-    mkdirSync(join(root, 'ae', 'brainstorms'), { recursive: true })
-    writeFileSync(join(root, 'ae', 'brainstorms', 'main.md'), [
+    mkdirSync(join(root, 'ae', 'prds'), { recursive: true })
+    writeFileSync(join(root, 'ae', 'prds', 'main.md'), [
       '---',
-      'type: brainstorm',
+      'type: prd',
       'status: drafted',
       'date: 2026-05-22',
       'topic: sharded-requirements',
       'sharded: true',
       'shards:',
-      '  - file: ae/brainstorms/missing.md',
+      '  - file: ae/prds/missing.md',
       '    module: auth',
       '    requirements: [R1]',
       '---',
@@ -99,7 +99,7 @@ describe('doc-extract-service', () => {
       '全局背景。',
     ].join('\n'), 'utf8')
 
-    const result = extractDoc({ repoRoot: root, path: 'ae/brainstorms/main.md', modules: ['auth'] })
+    const result = extractDoc({ repoRoot: root, path: 'ae/prds/main.md', modules: ['auth'] })
 
     expect(result.goals).toEqual([])
     expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain('missing-shard')
@@ -207,10 +207,10 @@ describe('doc-extract-service', () => {
 
   it('应该按稳定 ID 精确提取同一章节中的列表项', () => {
     const root = createTempRoot()
-    mkdirSync(join(root, 'ae', 'brainstorms'), { recursive: true })
-    writeFileSync(join(root, 'ae', 'brainstorms', 'main.md'), [
+    mkdirSync(join(root, 'ae', 'prds'), { recursive: true })
+    writeFileSync(join(root, 'ae', 'prds', 'main.md'), [
       '---',
-      'type: brainstorm',
+      'type: prd',
       'status: drafted',
       'date: 2026-05-22',
       'topic: requirements',
@@ -224,7 +224,7 @@ describe('doc-extract-service', () => {
       '- R3. 报表能力。',
     ].join('\n'), 'utf8')
 
-    const result = extractDoc({ repoRoot: root, path: 'ae/brainstorms/main.md', ids: ['R2'] })
+    const result = extractDoc({ repoRoot: root, path: 'ae/prds/main.md', ids: ['R2'] })
 
     expect(result.requirements).toHaveLength(1)
     expect(result.requirements[0]).toMatchObject({ id: 'R2', title: '功能需求' })
@@ -288,10 +288,10 @@ describe('doc-extract-service', () => {
 
   it('应该报告同一文档内重复稳定 ID', () => {
     const root = createTempRoot()
-    mkdirSync(join(root, 'ae', 'brainstorms'), { recursive: true })
-    writeFileSync(join(root, 'ae', 'brainstorms', 'main.md'), [
+    mkdirSync(join(root, 'ae', 'prds'), { recursive: true })
+    writeFileSync(join(root, 'ae', 'prds', 'main.md'), [
       '---',
-      'type: brainstorm',
+      'type: prd',
       'status: drafted',
       'date: 2026-05-22',
       'topic: requirements',
@@ -302,11 +302,11 @@ describe('doc-extract-service', () => {
       '- R2. 重复支付能力。',
     ].join('\n'), 'utf8')
 
-    const result = extractDoc({ repoRoot: root, path: 'ae/brainstorms/main.md', ids: ['R2'] })
+    const result = extractDoc({ repoRoot: root, path: 'ae/prds/main.md', ids: ['R2'] })
 
     expect(result.diagnostics).toContainEqual({
       code: 'duplicate-id',
-      message: '稳定 ID 重复：R2 出现在 ae/brainstorms/main.md',
+      message: '稳定 ID 重复：R2 出现在 ae/prds/main.md',
     })
   })
 

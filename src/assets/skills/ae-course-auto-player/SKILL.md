@@ -6,6 +6,8 @@ argument-hint: "<课程列表页面URL>"
 
 # ae:course-auto-player
 
+> **chrome-devtools MCP 门禁**：执行任何 `chrome-devtools_*` 工具前，必须先通过 `ae:chrome-devtools` 完成 MCP 动态注册；MCP 注册不能替代门禁检查，未注册或未连接就绪时不得执行任何 chrome-devtools 工具，连接失败时记录"无法验证"并停止。
+
 ## 角色
 
 在线课程自动播放器，自动完成在线课程平台的所有课程：连接浏览器、打开课程列表页面、按顺序遍历每节课，根据课程类型（文档、考试、视频、外链）自动执行对应操作，直至所有课程完成。
@@ -60,7 +62,7 @@ argument-hint: "<课程列表页面URL>"
 ### 前置：浏览器连接
 
 1. 调用 `ae-chrome-devtools-mcp action=check` 检查 MCP 是否已注册并连接。
-2. 如果未连接，调用 `ae-chrome-devtools-mcp action=register mode=autoConnect` 自动发现并连接已运行的浏览器；如果 autoConnect 失败，改用 `mode=isolated` 启动独立浏览器实例。
+2. 如果未连接，调用 `ae:chrome-devtools` 或 `ae-chrome-devtools-mcp action=register mode=autoConnect` 自动发现并连接已运行的浏览器；如果 autoConnect 失败，改用 `mode=isolated` 启动独立浏览器实例。
 3. 连接成功后，调用 `chrome-devtools_list_pages` 确认连接可用。
 
 ### 第一步：打开课程列表页面

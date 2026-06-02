@@ -1,7 +1,7 @@
 # AE LFG Pipeline
 
 - `/ae-lfg` 是默认用户入口
-- 无产物时回到 `ae:brainstorm`
+- 无产物时回到 `ae:prd`
 - 有产物时优先恢复，不重复创建新文档
 - 自动阶段推进遵循各 skill 的 gate 规则，而不是绕过审查
 - 每个步骤有 GATE 检查，验证前置条件满足后才推进
@@ -16,7 +16,7 @@
 ## 管道步骤
 
 1. （可选）`ae:chrome-devtools` — 浏览器 MCP 动态注册
-2. `ae:brainstorm` — 需求探索
+2. `ae:prd` — 需求探索
 3. `ae:review mode:headless domain:document <requirements-doc-path>` — 需求审查（仅当需求文档存在；无需求文档时跳过，不做无路径文档搜索）
 4. `ae:plan` / `ae:refactor` — 创建计划
 5. `ae:review mode:headless domain:document <plan-path>` — 计划审查

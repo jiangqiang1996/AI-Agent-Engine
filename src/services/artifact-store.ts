@@ -43,7 +43,7 @@ function readMarkdownFiles(dir: string): string[] {
 
 /** 产物类型到 AE 产物子目录名的映射，用于定位产物存储位置。 */
 const CONTEXT_DIR_TYPE_MAP: Partial<Record<ArtifactKind, string>> = {
-  [ARTIFACT_KIND.BRAINSTORM]: DOCS_AE_SUBDIRS.BRAINSTORMS,
+  [ARTIFACT_KIND.PRD]: DOCS_AE_SUBDIRS.PRDS,
   [ARTIFACT_KIND.PLAN]: DOCS_AE_SUBDIRS.PLANS,
   [ARTIFACT_KIND.DESIGN]: DOCS_AE_SUBDIRS.DESIGNS,
   [ARTIFACT_KIND.WORK]: DOCS_AE_SUBDIRS.WORK,
