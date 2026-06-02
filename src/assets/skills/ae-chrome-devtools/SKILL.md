@@ -32,24 +32,32 @@ chrome-devtools-mcp 不内置到插件 MCP 配置中，而是在技能运行时�
 
 ### 注册方式
 
-#### 方式一：autoConnect 自动发现（推荐，仅支持 Chrome）
+#### 方式一：autoConnect 自动发现（推荐）
 
-自动发现并连接已运行的 Chrome 浏览器实例，无需手动指定调试端口。
+自动发现并连接已运行的浏览器实例，无需手动指定调试端口。支持 Chrome、Edge、Brave、Vivaldi 等 Chromium 系浏览器。
 
 前置条件（推荐途径 A，也可用途径 B）：
 
-途径 A：在已运行的 Chrome 中启用远程调试（推荐，无需重启浏览器）：
-1. Chrome >= M144 已运行
-2. 在 Chrome 地址栏访问 `chrome://inspect/#remote-debugging`，启用远程调试功能
+途径 A：在已运行的浏览器中启用远程调试（推荐，无需重启浏览器）：
+1. 浏览器已运行
+2. 在浏览器地址栏访问对应页面启用远程调试：
+   - **Chrome**：访问 `chrome://inspect/#remote-debugging`
+   - **Edge**：访问 `edge://inspect/#remote-debugging`
+   - **Brave**：访问 `brave://inspect/#remote-debugging`
+   - **Vivaldi**：访问 `vivaldi://inspect/#remote-debugging`
 3. 页面显示调试服务地址和端口，例如 `Server running at: 127.0.0.1:9222`
 
-途径 B：以命令行参数启动 Chrome：
-1. 关闭已运行的 Chrome，然后运行 `chrome --remote-debugging-port=<端口>`（如 `chrome --remote-debugging-port=9222`）
+途径 B：以命令行参数启动浏览器：
+1. 关闭已运行的浏览器，然后运行对应的启动命令：
+   - **Chrome**：`chrome --remote-debugging-port=<端口>`
+   - **Edge**：`msedge --remote-debugging-port=<端口>`
+   - **Brave**：`brave --remote-debugging-port=<端口>`
+   - **Vivaldi**：`vivaldi --remote-debugging-port=<端口>`
 2. 如需保留已有配置和登录态，追加 `--user-data-dir` 参数指定用户数据目录
 
 注册步骤：
-1. 调用 `ae-chrome-devtools-mcp action=register mode=autoConnect`。
-2. Chrome 弹出对话框请求允许远程调试连接，点击"允许"。
+1. 调用 `ae-chrome-devtools-mcp action=register mode=autoConnect`（自动发现 Chrome）或 `ae-chrome-devtools-mcp action=register mode=autoConnect browser=Edge`（指定其他浏览器）。
+2. 浏览器弹出对话框请求允许远程调试连接，点击"允许"。
 3. 注册成功后，**必须**立即调用 `chrome-devtools_list_pages` 列出当前页面以验证连接可用；如果 list_pages 调用失败，说明注册未生效，需要排查或重试。
 
 #### 方式二：连接活跃浏览器
@@ -84,7 +92,7 @@ chrome-devtools-mcp 不内置到插件 MCP 配置中，而是在技能运行时�
 
 适用于需要干净环境或自动化测试的场景。
 
-1. 调用 `ae-chrome-devtools-mcp action=register mode=isolated`。
+1. 调用 `ae-chrome-devtools-mcp action=register mode=isolated`（默认启动 Chrome）或 `ae-chrome-devtools-mcp action=register mode=isolated browser=Edge`（启动指定浏览器）。
 2. MCP 会启动独立的新浏览器实例（专用配置文件）。
 3. 注册成功后，**必须**立即调用 `chrome-devtools_list_pages` 列出当前页面以验证连接可用；如果 list_pages 调用失败，说明注册未生效，需要排查或重试。
 
@@ -100,9 +108,9 @@ chrome-devtools-mcp 不内置到插件 MCP 配置中，而是在技能运行时�
 1. 调用 `ae-chrome-devtools-mcp action=check` 检查 MCP 连接状态。
 2. 已连接时，展示当前可用操作和已打开页面。
 3. 未连接时，提示用户选择注册方式：
-   - **autoConnect**（推荐）：`ae-chrome-devtools-mcp action=register mode=autoConnect`，自动发现已运行的 Chrome（需 Chrome >= M144）
+   - **autoConnect**（推荐）：`ae-chrome-devtools-mcp action=register mode=autoConnect`，自动发现已运行的浏览器；指定 `browser=Edge` 等可连接非 Chrome 浏览器
    - **connect**：`ae-chrome-devtools-mcp action=register browser=<浏览器> port=<端口>`，需先以 `--remote-debugging-port` 启动浏览器
-   - **isolated**：`ae-chrome-devtools-mcp action=register mode=isolated`，启动独立浏览器
+   - **isolated**：`ae-chrome-devtools-mcp action=register mode=isolated`，启动独立浏览器（指定 `browser=Edge` 等可启动非 Chrome 浏览器）
 4. 注册完成后，**必须**执行 `chrome-devtools_list_pages` 列出当前页面以验证连接可用；此步骤不可省略，list_pages 失败则说明注册未生效。
 5. 根据用户目标执行后续操作。
 

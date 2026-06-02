@@ -58,6 +58,56 @@ async function readDevToolsActivePort(userDataDir: string): Promise<{ port: numb
   return null
 }
 
+function getBrowserExecutablePaths(browser: string): string[] {
+  const platform = process.platform
+  const pf86 = process.env['ProgramFiles(x86)'] ?? ''
+  const pf = process.env['ProgramFiles'] ?? ''
+  const localAppData = process.env['LOCALAPPDATA'] ?? ''
+
+  const pathMap: Record<string, Record<string, string[]>> = {
+    win32: {
+      Edge: [
+        path.join(pf86, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+        path.join(pf, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+      ],
+      Brave: [
+        path.join(pf, 'BraveSoftware', 'Brave-Browser', 'Application', 'brave.exe'),
+        path.join(localAppData, 'BraveSoftware', 'Brave-Browser', 'Application', 'brave.exe'),
+      ],
+      Vivaldi: [
+        path.join(localAppData, 'Vivaldi', 'Application', 'vivaldi.exe'),
+        path.join(pf, 'Vivaldi', 'Application', 'vivaldi.exe'),
+      ],
+    },
+    darwin: {
+      Edge: ['/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge'],
+      Brave: ['/Applications/Brave Browser.app/Contents/MacOS/Brave Browser'],
+      Vivaldi: ['/Applications/Vivaldi.app/Contents/MacOS/Vivaldi'],
+    },
+    linux: {
+      Edge: ['/usr/bin/microsoft-edge-stable', '/usr/bin/microsoft-edge'],
+      Brave: ['/usr/bin/brave-browser-stable', '/usr/bin/brave-browser'],
+      Vivaldi: ['/usr/bin/vivaldi-stable', '/usr/bin/vivaldi'],
+    },
+  }
+
+  return pathMap[platform]?.[browser] ?? []
+}
+
+async function findBrowserExecutable(browser: string): Promise<string | null> {
+  if (browser === 'Chrome') return null
+  const candidates = getBrowserExecutablePaths(browser)
+  for (const p of candidates) {
+    try {
+      await fs.access(p)
+      return p
+    } catch {
+      // 继续检查下一个候选路径
+    }
+  }
+  return null
+}
+
 function resolveWorktree(context: unknown): string {
   const worktree = (context as { worktree?: unknown }).worktree
   return typeof worktree === 'string' && worktree.length > 0 ? worktree : process.cwd()
@@ -98,8 +148,8 @@ export const aeChromeDevtoolsMcpTool = tool({
     '',
     '注册模式：',
     '- mode=connect（默认）：通过用户指定的浏览器调试端口连接已有浏览器实例，需提供 browser 和 port 参数；自动检测 DevToolsActivePort 优先使用 WebSocket 连接，兼容浏览器内置 inspect#remote-debugging 模式',
-    '- mode=autoConnect：自动发现并连接已运行的浏览器实例，无需 --remote-debugging-port；指定 browser 参数可连接非 Chrome 浏览器（如 Edge）',
-    '- mode=isolated：启动独立的新浏览器实例（独立配置文件，适合自动化测试）',
+    '- mode=autoConnect：自动发现并连接已运行的浏览器实例，无需 --remote-debugging-port；指定 browser 参数可连接 Edge、Brave、Vivaldi 等非 Chrome 浏览器',
+    '- mode=isolated：启动独立的新浏览器实例（独立配置文件，适合自动化测试）；指定 browser 参数可启动非 Chrome 浏览器（如 Edge）',
     '',
     '连接活跃浏览器的步骤（connect 模式）：',
     '1. 在浏览器中访问 inspect#remote-debugging 页面启用远程调试（推荐），或以命令行参数启动：Chrome 运行 `chrome --remote-debugging-port=<端口>`，Edge 运行 `msedge --remote-debugging-port=<端口>`',
@@ -127,10 +177,10 @@ export const aeChromeDevtoolsMcpTool = tool({
       '操作类型：check 检查状态，register 注册 MCP，disconnect 断开连接',
     ),
     mode: z.enum(['connect', 'autoConnect', 'isolated']).default('connect').describe(
-      '注册模式：connect 连接已有浏览器（需指定 browser 和 port），autoConnect 自动发现已运行的 Chrome（无需调试端口），isolated 启动独立新浏览器',
+      '注册模式：connect 连接已有浏览器（需指定 browser 和 port），autoConnect 自动发现已运行的浏览器（无需调试端口，指定 browser 可连接非 Chrome 浏览器），isolated 启动独立新浏览器（指定 browser 可启动非 Chrome 浏览器）',
     ),
     browser: z.enum(BROWSER_NAMES).optional().describe(
-      '浏览器类型：mode=connect 时必填（Chrome、Edge、Brave 或 Vivaldi）；mode=autoConnect 时可选，指定后可连接非 Chrome 浏览器',
+      '浏览器类型：mode=connect 时必填（Chrome、Edge、Brave 或 Vivaldi）；mode=autoConnect 时可选，指定后可连接非 Chrome 浏览器；mode=isolated 时可选，指定后启动对应浏览器（未指定则默认启动 Chrome）',
     ),
     port: z.number().int().min(1).max(65535).optional().describe(
       '浏览器远程调试端口号（mode=connect 时必填），由用户以 --remote-debugging-port 启动浏览器后提供',
@@ -181,7 +231,16 @@ export const aeChromeDevtoolsMcpTool = tool({
       }
 
       if (args.mode === 'isolated') {
-        ctx.metadata({ title: '注册 chrome-devtools MCP（独立浏览器）...' })
+        const browserLabel = args.browser ?? 'Chrome'
+        ctx.metadata({ title: `注册 chrome-devtools MCP（独立 ${browserLabel}）...` })
+
+        let isolatedCommand: string[] = [...BASE_COMMAND]
+        if (args.browser && args.browser !== 'Chrome') {
+          const execPath = await findBrowserExecutable(args.browser)
+          if (execPath) {
+            isolatedCommand = [...BASE_COMMAND, '--executablePath', execPath]
+          }
+        }
 
         try {
           const result = await client.mcp.add({
@@ -189,7 +248,7 @@ export const aeChromeDevtoolsMcpTool = tool({
               name: MCP_NAME,
               config: {
                 type: 'local',
-                command: [...BASE_COMMAND],
+                command: isolatedCommand,
               },
             },
             query: { directory: worktree },
@@ -199,8 +258,8 @@ export const aeChromeDevtoolsMcpTool = tool({
           const newStatus = statuses?.[MCP_NAME]
           if (newStatus?.status === 'connected') {
             return {
-              output: '已注册 chrome-devtools MCP 并启动独立浏览器实例，工具可用。请立即调用 chrome-devtools_list_pages 验证连接。',
-              metadata: { connected: true, status: 'connected', mode: 'isolated' },
+              output: `已注册 chrome-devtools MCP 并启动独立 ${browserLabel} 实例，工具可用。请立即调用 chrome-devtools_list_pages 验证连接。`,
+              metadata: { connected: true, status: 'connected', mode: 'isolated', browser: args.browser },
             }
           }
 
@@ -268,8 +327,8 @@ export const aeChromeDevtoolsMcpTool = tool({
           return [
             `注册 chrome-devtools MCP（autoConnect）失败：${message}。`,
             '请确认：',
-            '  1. Chrome >= M144 已运行',
-            '  2. 已在 chrome://inspect#remote-debugging 启用远程调试',
+            `  1. ${args.browser ?? 'Chrome'} 已运行并启用远程调试`,
+            '  2. 已在浏览器内置 inspect#remote-debugging 页面启用远程调试',
             '  3. 网络环境可访问 npx',
             '如仍无法连接，可使用 action=register mode=connect 通过调试端口连接，或 mode=isolated 启动独立浏览器。',
           ].join('\n')
