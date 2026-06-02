@@ -124,11 +124,11 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 
 | 类型 | 当前快照 | 真源 |
 | --- | ---: | --- |
-| 技能 | 28 | `src/assets/skills/`、`src/services/ae-catalog.ts` |
-| 命令 | 48 | `src/services/command-registration.ts`、`src/assets/commands/` |
-| 代理 | 26 | `src/assets/agents/`、`src/services/agent-registration.ts` |
-| 工具 | 14 | `src/tools/` |
-| 规则 | 4 | `src/assets/rules/` |
+| 技能 | 29 | `src/assets/skills/`、`src/services/ae-catalog.ts` |
+| 命令 | 49 | `src/services/command-registration.ts`、`src/assets/commands/` |
+| 代理 | 32 | `src/assets/agents/`、`src/services/agent-registration.ts` |
+| 工具 | 18 | `src/tools/` |
+| 规则 | 5 | `src/assets/rules/` |
 | 内置配置 | 1 | `src/assets/config/ae.jsonc` |
 
 该表是文档快照，不替代 `/ae-help`。

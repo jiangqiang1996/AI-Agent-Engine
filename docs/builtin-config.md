@@ -205,7 +205,7 @@ model: $deep
 | `/ae-ideate`、`/ae-brainstorm`、`/ae-agent-creator`、`/ae-work-report`、`/ae-handoff`、`/ae-sql`、`/ae-swagger-parser`、`/ae-html-bundle`、`/ae-graph-build`、`/ae-save-experience`、`/ae-skill-from-session`、`/ae-skill-creator`、`/ae-static-server`、`/ae-update`、`/ae-ideate-po`、`/ae-brainstorm-po`、`/ae-ideate-pa`、`/ae-brainstorm-pa` | `standard` |
 | `/ae-document-review`、`/ae-plan`、`/ae-refactor`、`/ae-work`、`/ae-merge-branch`、`/ae-review`、`/ae-lfg`、`/ae-task-loop`、`/ae-plan-po`、`/ae-refactor-po`、`/ae-work-po`、`/ae-lfg-po`、`/ae-task-loop-po`、`/ae-plan-pa`、`/ae-refactor-pa`、`/ae-work-pa`、`/ae-lfg-pa`、`/ae-task-loop-pa` | `deep` |
 | `/ae-prompt-optimize`、`/ae-prompt-optimize-auto`、`/ae-graph-query`、`/ae-help` | `quick` |
-| `/ae-chrome-devtools`、`/ae-test-browser`、`/ae-frontend-design`、`/ae-frontend-design-po`、`/ae-frontend-design-pa` | `vision` |
+| `/ae-chrome-devtools`、`/ae-test-browser`、`/ae-course-auto-player`、`/ae-frontend-design`、`/ae-frontend-design-po`、`/ae-frontend-design-pa` | `vision` |
 | `@repo-research-analyst`、`@web-researcher` | `standard` |
 | `@design-iterator`、`@figma-design-sync` | `vision` |
 | 其他内置代理 | `deep`（默认） |
