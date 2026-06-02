@@ -44,10 +44,6 @@ function isBlockedV6(ip: string): boolean {
     || normalized.startsWith('fe9')
     || normalized.startsWith('fea')
     || normalized.startsWith('feb')
-    || normalized.startsWith('::ffff:127.')
-    || normalized.startsWith('::ffff:10.')
-    || normalized.startsWith('::ffff:192.168.')
-    || normalized.startsWith('::ffff:169.254.')
 }
 
 export function assertPublicRemoteAddress(address: string): void {

@@ -332,7 +332,7 @@ function suggestValidation(files: FileEntry[]): string[] {
     // 纯 markdown 变更不需要代码验证
   }
 
-  return commands.length > 0 ? commands : ['npm run typecheck']
+  return commands
 }
 
 // 计算文件冲突矩阵
@@ -501,7 +501,7 @@ async function extractUnitsFromPlan(planPath: string, worktree: string): Promise
       id: unitId,
       description: unitTitle,
       files,
-      suggested_validation: suggestedValidation.length > 0 ? suggestedValidation : ['npm run typecheck'],
+      suggested_validation: suggestedValidation,
       priority: parseInt(unitNum, 10),
     })
   }

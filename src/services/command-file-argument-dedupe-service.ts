@@ -55,7 +55,7 @@ function dedupeFileParts(parts: Part[]): void {
       i--
     } else if (!existingHasSource && currentHasSource) {
       parts.splice(existing, 1)
-      urlToFirstIndex.set(url, i)
+      urlToFirstIndex.set(url, i - 1)
       i--
     } else {
       parts.splice(i, 1)

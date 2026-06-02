@@ -1,5 +1,7 @@
 import type { Config, PluginModule } from '@opencode-ai/plugin'
-import { join, relative, resolve } from 'node:path'
+import { join, resolve } from 'node:path'
+
+import { isInsideRoot } from './utils/path-utils.js'
 
 import { registerAgents } from './services/agent-registration.js'
 import {
@@ -62,11 +64,6 @@ function isProjectPluginInstall(manifest: ReturnType<typeof createRuntimeAssetMa
 
 function isSamePath(left: string, right: string): boolean {
   return normalizePath(left) === normalizePath(right)
-}
-
-function isInsideRoot(root: string, filePath: string): boolean {
-  const rel = relative(resolve(root), resolve(filePath))
-  return rel === '' || (!rel.startsWith('..') && !rel.includes(':'))
 }
 
 function normalizePath(value: string): string {

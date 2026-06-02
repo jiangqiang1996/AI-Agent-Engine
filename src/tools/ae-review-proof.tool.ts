@@ -408,7 +408,7 @@ export const aeReviewProofTool: ToolDefinition = tool({
     }
 
     const fingerprint = collectCurrentWorktreeFingerprint(worktree)
-    if (!fingerprint.available || !fingerprint.branch || !fingerprint.head || fingerprint.statusSummary === undefined) {
+    if (!fingerprint.available || !fingerprint.branch || !fingerprint.head) {
       return `当前工作区指纹不可用，不能写入 ae:review 审查证明：${fingerprint.error ?? '未知错误'}`
     }
 
