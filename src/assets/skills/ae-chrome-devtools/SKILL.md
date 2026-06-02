@@ -32,25 +32,43 @@ chrome-devtools-mcp 不内置到插件 MCP 配置中，而是在技能运行时�
 
 ### 注册方式
 
-#### 方式一：autoConnect 自动发现（推荐）
+#### 方式一：autoConnect 自动发现（推荐，仅支持 Chrome）
 
-自动发现并连接已运行的 Chrome 浏览器实例，无需 `--remote-debugging-port` 启动参数。
+自动发现并连接已运行的 Chrome 浏览器实例，无需手动指定调试端口。
 
-前置条件：
+前置条件（推荐途径 A，也可用途径 B）：
+
+途径 A：在已运行的 Chrome 中启用远程调试（推荐，无需重启浏览器）：
 1. Chrome >= M144 已运行
-2. 在 Chrome 中访问 `chrome://inspect#remote-debugging`，启用远程调试功能
+2. 在 Chrome 地址栏访问 `chrome://inspect/#remote-debugging`，启用远程调试功能
+3. 页面显示调试服务地址和端口，例如 `Server running at: 127.0.0.1:9222`
+
+途径 B：以命令行参数启动 Chrome：
+1. 关闭已运行的 Chrome，然后运行 `chrome --remote-debugging-port=<端口>`（如 `chrome --remote-debugging-port=9222`）
+2. 如需保留已有配置和登录态，追加 `--user-data-dir` 参数指定用户数据目录
 
 注册步骤：
 1. 调用 `ae-chrome-devtools-mcp action=register mode=autoConnect`。
 2. Chrome 弹出对话框请求允许远程调试连接，点击"允许"。
-3. 注册成功后，`chrome-devtools_*` 工具可用。
+3. 注册成功后，**必须**立即调用 `chrome-devtools_list_pages` 列出当前页面以验证连接可用；如果 list_pages 调用失败，说明注册未生效，需要排查或重试。
 
 #### 方式二：连接活跃浏览器
 
 通过用户指定的浏览器类型和调试端口连接已有浏览器实例，复用登录态和已有会话。
 
-前置条件：
-1. 以远程调试模式启动浏览器：
+前置条件（推荐途径 A，也可用途径 B）：
+
+途径 A：在已运行的浏览器中启用远程调试（推荐，无需重启浏览器）：
+1. 在浏览器地址栏访问对应页面启用远程调试：
+   - **Chrome**：访问 `chrome://inspect/#remote-debugging`
+   - **Edge**：访问 `edge://inspect/#remote-debugging`
+   - **Brave**：访问 `brave://inspect/#remote-debugging`
+   - **Vivaldi**：访问 `vivaldi://inspect/#remote-debugging`
+2. 页面显示调试服务地址和端口，例如 `Server running at: 127.0.0.1:54522`
+3. 将该端口号告知注册步骤
+
+途径 B：以命令行参数启动浏览器：
+1. 关闭已运行的浏览器，然后以远程调试模式重新启动：
    - **Chrome**：运行 `chrome --remote-debugging-port=<端口>`（如 `chrome --remote-debugging-port=9222`）
    - **Edge**：运行 `msedge --remote-debugging-port=<端口>`（如 `msedge --remote-debugging-port=54522`）
    - **Brave**：运行 `brave --remote-debugging-port=<端口>`
@@ -60,7 +78,7 @@ chrome-devtools-mcp 不内置到插件 MCP 配置中，而是在技能运行时�
 注册步骤：
 1. 调用 `ae-chrome-devtools-mcp action=register browser=<浏览器> port=<端口号>`（例如 `action=register browser=Edge port=54522`）。
 2. 浏览器可能弹出对话框请求允许远程调试连接，点击"允许"。
-3. 注册成功后，`chrome-devtools_*` 工具可用。
+3. 注册成功后，**必须**立即调用 `chrome-devtools_list_pages` 列出当前页面以验证连接可用；如果 list_pages 调用失败，说明注册未生效，需要排查或重试。
 
 #### 方式三：独立浏览器
 
@@ -68,7 +86,7 @@ chrome-devtools-mcp 不内置到插件 MCP 配置中，而是在技能运行时�
 
 1. 调用 `ae-chrome-devtools-mcp action=register mode=isolated`。
 2. MCP 会启动独立的新浏览器实例（专用配置文件）。
-3. 注册成功后，`chrome-devtools_*` 工具可用。
+3. 注册成功后，**必须**立即调用 `chrome-devtools_list_pages` 列出当前页面以验证连接可用；如果 list_pages 调用失败，说明注册未生效，需要排查或重试。
 
 ## 输入处理
 
@@ -82,10 +100,10 @@ chrome-devtools-mcp 不内置到插件 MCP 配置中，而是在技能运行时�
 1. 调用 `ae-chrome-devtools-mcp action=check` 检查 MCP 连接状态。
 2. 已连接时，展示当前可用操作和已打开页面。
 3. 未连接时，提示用户选择注册方式：
-   - **autoConnect**（推荐）：`ae-chrome-devtools-mcp action=register mode=autoConnect`，无需调试端口（需 Chrome >= M144）
+   - **autoConnect**（推荐）：`ae-chrome-devtools-mcp action=register mode=autoConnect`，自动发现已运行的 Chrome（需 Chrome >= M144）
    - **connect**：`ae-chrome-devtools-mcp action=register browser=<浏览器> port=<端口>`，需先以 `--remote-debugging-port` 启动浏览器
    - **isolated**：`ae-chrome-devtools-mcp action=register mode=isolated`，启动独立浏览器
-4. 注册完成后，执行 `chrome-devtools_list_pages` 确认工具可用。
+4. 注册完成后，**必须**执行 `chrome-devtools_list_pages` 列出当前页面以验证连接可用；此步骤不可省略，list_pages 失败则说明注册未生效。
 5. 根据用户目标执行后续操作。
 
 ## 页面管理
@@ -183,7 +201,7 @@ chrome-devtools-mcp 不内置到插件 MCP 配置中，而是在技能运行时�
 
 1. `ae-chrome-devtools-mcp action=register mode=autoConnect` 自动发现并连接活跃浏览器。
 2. Chrome 弹出对话框时点击"允许"。
-3. `chrome-devtools_list_pages` 列出已打开页面。
+3. **必须** `chrome-devtools_list_pages` 列出已打开页面，验证连接可用（失败则排查或重试）。
 4. `chrome-devtools_select_page` 选择目标页面，或 `chrome-devtools_new_page` 打开新页面。
 5. `chrome-devtools_take_snapshot` 获取页面快照和元素 uid。
 6. 根据需要使用 `evaluate_script` 读取页面标题或 URL。
@@ -192,7 +210,7 @@ chrome-devtools-mcp 不内置到插件 MCP 配置中，而是在技能运行时�
 ### 连接活跃浏览器进行页面检查
 
 1. `ae-chrome-devtools-mcp action=register browser=<浏览器> port=<端口>` 注册并连接活跃浏览器。
-2. `chrome-devtools_list_pages` 列出已打开页面。
+2. **必须** `chrome-devtools_list_pages` 列出已打开页面，验证连接可用（失败则排查或重试）。
 3. `chrome-devtools_select_page` 选择目标页面，或 `chrome-devtools_new_page` 打开新页面。
 4. `chrome-devtools_take_snapshot` 获取页面快照和元素 uid。
 5. 根据需要使用 `evaluate_script` 读取页面标题或 URL。
@@ -201,10 +219,11 @@ chrome-devtools-mcp 不内置到插件 MCP 配置中，而是在技能运行时�
 ### 独立浏览器进行自动化测试
 
 1. `ae-chrome-devtools-mcp action=register mode=isolated` 启动独立浏览器。
-2. `chrome-devtools_new_page` 打开目标页面。
-3. `chrome-devtools_take_snapshot` 获取页面快照和元素 uid。
-4. 执行交互和验证操作。
-5. 必要时 `chrome-devtools_take_screenshot` 保存视觉证据。
+2. **必须** `chrome-devtools_list_pages` 列出已打开页面，验证连接可用（失败则排查或重试）。
+3. `chrome-devtools_new_page` 打开目标页面。
+4. `chrome-devtools_take_snapshot` 获取页面快照和元素 uid。
+5. 执行交互和验证操作。
+6. 必要时 `chrome-devtools_take_screenshot` 保存视觉证据。
 
 ### 表单填写与交互
 

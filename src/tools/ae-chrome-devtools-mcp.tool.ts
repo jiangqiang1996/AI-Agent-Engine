@@ -1,3 +1,6 @@
+import { promises as fs } from 'node:fs'
+import * as path from 'node:path'
+
 import { tool } from '@opencode-ai/plugin/tool'
 import { z } from 'zod'
 
@@ -8,6 +11,52 @@ const BASE_COMMAND = ['npx', '-y', 'chrome-devtools-mcp@latest'] as const
 const AUTOCONNECT_COMMAND = ['npx', '-y', 'chrome-devtools-mcp@latest', '--autoConnect'] as const
 
 const BROWSER_NAMES = ['Chrome', 'Edge', 'Brave', 'Vivaldi'] as const
+
+function getBrowserUserDataDir(browser: string): string | null {
+  const platform = process.platform
+  const home = process.env.HOME || process.env.USERPROFILE || ''
+
+  const dirMap: Record<string, Record<string, string>> = {
+    win32: {
+      Chrome: path.join(process.env.LOCALAPPDATA ?? '', 'Google', 'Chrome', 'User Data'),
+      Edge: path.join(process.env.LOCALAPPDATA ?? '', 'Microsoft', 'Edge', 'User Data'),
+      Brave: path.join(process.env.LOCALAPPDATA ?? '', 'BraveSoftware', 'Brave-Browser', 'User Data'),
+      Vivaldi: path.join(process.env.LOCALAPPDATA ?? '', 'Vivaldi', 'User Data'),
+    },
+    darwin: {
+      Chrome: path.join(home, 'Library', 'Application Support', 'Google', 'Chrome'),
+      Edge: path.join(home, 'Library', 'Application Support', 'Microsoft Edge'),
+      Brave: path.join(home, 'Library', 'Application Support', 'BraveSoftware', 'Brave-Browser'),
+      Vivaldi: path.join(home, 'Library', 'Application Support', 'Vivaldi'),
+    },
+    linux: {
+      Chrome: path.join(home, '.config', 'google-chrome'),
+      Edge: path.join(home, '.config', 'microsoft-edge'),
+      Brave: path.join(home, '.config', 'BraveSoftware', 'Brave-Browser'),
+      Vivaldi: path.join(home, '.config', 'vivaldi'),
+    },
+  }
+
+  return dirMap[platform]?.[browser] ?? null
+}
+
+async function readDevToolsActivePort(userDataDir: string): Promise<{ port: number; wsPath: string } | null> {
+  const filePath = path.join(userDataDir, 'DevToolsActivePort')
+  try {
+    const content = await fs.readFile(filePath, 'utf-8')
+    const lines = content.trim().split('\n')
+    if (lines.length >= 2) {
+      const port = parseInt(lines[0], 10)
+      const wsPath = lines[1]
+      if (!isNaN(port) && wsPath) {
+        return { port, wsPath }
+      }
+    }
+  } catch {
+    // 文件不存在或无法读取，静默降级
+  }
+  return null
+}
 
 function resolveWorktree(context: unknown): string {
   const worktree = (context as { worktree?: unknown }).worktree
@@ -48,18 +97,18 @@ export const aeChromeDevtoolsMcpTool = tool({
     '- disconnect：断开 chrome-devtools MCP 连接',
     '',
     '注册模式：',
-    '- mode=connect（默认）：通过用户指定的浏览器调试端口连接已有浏览器实例，需提供 browser 和 port 参数',
-    '- mode=autoConnect：自动发现并连接已运行的 Chrome 浏览器实例，无需 --remote-debugging-port（需 Chrome >= M144 且已在 chrome://inspect#remote-debugging 启用远程调试）',
+    '- mode=connect（默认）：通过用户指定的浏览器调试端口连接已有浏览器实例，需提供 browser 和 port 参数；自动检测 DevToolsActivePort 优先使用 WebSocket 连接，兼容浏览器内置 inspect#remote-debugging 模式',
+    '- mode=autoConnect：自动发现并连接已运行的浏览器实例，无需 --remote-debugging-port；指定 browser 参数可连接非 Chrome 浏览器（如 Edge）',
     '- mode=isolated：启动独立的新浏览器实例（独立配置文件，适合自动化测试）',
     '',
     '连接活跃浏览器的步骤（connect 模式）：',
-    '1. 先以远程调试模式启动浏览器：Chrome 运行 `chrome --remote-debugging-port=<端口>`，Edge 运行 `msedge --remote-debugging-port=<端口>`',
+    '1. 在浏览器中访问 inspect#remote-debugging 页面启用远程调试（推荐），或以命令行参数启动：Chrome 运行 `chrome --remote-debugging-port=<端口>`，Edge 运行 `msedge --remote-debugging-port=<端口>`',
     '2. 调用 register 并指定 browser 和 port，例如 `action=register browser=Edge port=54522`',
     '',
     '连接活跃浏览器的步骤（autoConnect 模式）：',
-    '1. 确保 Chrome >= M144 已运行，并在 chrome://inspect#remote-debugging 启用远程调试',
-    '2. 调用 `action=register mode=autoConnect`',
-    '3. Chrome 弹出对话框时点击"允许"',
+    '1. 确保浏览器已运行并启用了远程调试（浏览器内置 inspect#remote-debugging 页面或命令行 --remote-debugging-port）',
+    '2. 调用 `action=register mode=autoConnect`（Chrome）或 `action=register mode=autoConnect browser=Edge`（Edge 等非 Chrome 浏览器）',
+    '3. 浏览器弹出对话框时点击"允许"',
     '',
     '适用场景：',
     '- ae:chrome-devtools 技能在使用浏览器工具前确认或注册 MCP 服务',
@@ -68,6 +117,10 @@ export const aeChromeDevtoolsMcpTool = tool({
     '',
     '不适用场景：',
     '- 不负责直接执行浏览器操作，只管理 MCP 服务的生命周期',
+    '',
+    '注册后验证：',
+    '- register 成功后，必须立即调用 chrome-devtools_list_pages 列出当前页面以验证连接可用',
+    '- 如果 list_pages 调用失败，说明注册未生效，需要排查或重试',
   ].join('\n'),
   args: {
     action: z.enum(['check', 'register', 'disconnect']).describe(
@@ -77,7 +130,7 @@ export const aeChromeDevtoolsMcpTool = tool({
       '注册模式：connect 连接已有浏览器（需指定 browser 和 port），autoConnect 自动发现已运行的 Chrome（无需调试端口），isolated 启动独立新浏览器',
     ),
     browser: z.enum(BROWSER_NAMES).optional().describe(
-      '浏览器类型（mode=connect 时必填）：Chrome、Edge、Brave 或 Vivaldi',
+      '浏览器类型：mode=connect 时必填（Chrome、Edge、Brave 或 Vivaldi）；mode=autoConnect 时可选，指定后可连接非 Chrome 浏览器',
     ),
     port: z.number().int().min(1).max(65535).optional().describe(
       '浏览器远程调试端口号（mode=connect 时必填），由用户以 --remote-debugging-port 启动浏览器后提供',
@@ -146,7 +199,7 @@ export const aeChromeDevtoolsMcpTool = tool({
           const newStatus = statuses?.[MCP_NAME]
           if (newStatus?.status === 'connected') {
             return {
-              output: '已注册 chrome-devtools MCP 并启动独立浏览器实例，工具可用。',
+              output: '已注册 chrome-devtools MCP 并启动独立浏览器实例，工具可用。请立即调用 chrome-devtools_list_pages 验证连接。',
               metadata: { connected: true, status: 'connected', mode: 'isolated' },
             }
           }
@@ -161,9 +214,23 @@ export const aeChromeDevtoolsMcpTool = tool({
         }
       }
 
-      // mode === 'autoConnect': 自动发现并连接已运行的 Chrome
+      // mode === 'autoConnect': 自动发现并连接已运行的浏览器
       if (args.mode === 'autoConnect') {
         ctx.metadata({ title: '注册 chrome-devtools MCP（autoConnect 自动发现浏览器）...' })
+
+        // 非 Chrome 浏览器：从 DevToolsActivePort 读取 WebSocket 端点，兼容 inspect#remote-debugging 模式
+        let autoCommand: string[]
+        if (args.browser && args.browser !== 'Chrome') {
+          const udDir = getBrowserUserDataDir(args.browser)
+          const ap = udDir ? await readDevToolsActivePort(udDir) : null
+          if (ap) {
+            autoCommand = [...BASE_COMMAND, '--wsEndpoint', `ws://127.0.0.1:${ap.port}${ap.wsPath}`]
+          } else {
+            autoCommand = [...AUTOCONNECT_COMMAND]
+          }
+        } else {
+          autoCommand = [...AUTOCONNECT_COMMAND]
+        }
 
         try {
           const result = await client.mcp.add({
@@ -171,7 +238,7 @@ export const aeChromeDevtoolsMcpTool = tool({
               name: MCP_NAME,
               config: {
                 type: 'local',
-                command: [...AUTOCONNECT_COMMAND],
+                command: autoCommand,
               },
             },
             query: { directory: worktree },
@@ -181,14 +248,15 @@ export const aeChromeDevtoolsMcpTool = tool({
           const newStatus = statuses?.[MCP_NAME]
           if (newStatus?.status === 'connected') {
             return {
-              output: '已注册 chrome-devtools MCP 并通过 autoConnect 连接到活跃浏览器，工具可用。',
+              output: '已注册 chrome-devtools MCP 并通过 autoConnect 连接到活跃浏览器，工具可用。请立即调用 chrome-devtools_list_pages 验证连接。',
               metadata: { connected: true, status: 'connected', mode: 'autoConnect' },
             }
           }
 
           const needsAuthHint = newStatus?.status === 'needs_auth' || newStatus?.status === 'needs_client_registration'
+          const browserLabel = args.browser ?? 'Chrome'
           const hint = needsAuthHint
-            ? 'Chrome 可能未启用远程调试或拒绝了连接请求。请确认：1) Chrome >= M144 已运行；2) 已在 chrome://inspect#remote-debugging 启用远程调试；3) Chrome 弹出对话框时点击"允许"。'
+            ? `${browserLabel} 可能未启用远程调试或拒绝了连接请求。请确认：1) ${browserLabel} 已运行；2) 已在浏览器内置 inspect#remote-debugging 页面启用远程调试；3) 浏览器弹出对话框时点击"允许"。`
             : `当前状态：${newStatus?.status ?? '未知'}。如果状态不是 connected，请稍等或检查浏览器远程调试设置。`
 
           return {
@@ -218,8 +286,20 @@ export const aeChromeDevtoolsMcpTool = tool({
 
       ctx.metadata({ title: `注册 chrome-devtools MCP（连接 ${args.browser} 端口 ${args.port}）...` })
 
-      const browserUrl = `http://127.0.0.1:${args.port}`
-      const command = [...BASE_COMMAND, '--browserUrl', browserUrl]
+      // 优先从浏览器用户数据目录读取 DevToolsActivePort 构造 WebSocket 端点
+      // 浏览器内置 inspect#remote-debugging 仅暴露 WebSocket、不暴露 HTTP 端点，
+      // --browserUrl 会因 /json/version 返回 404 而失败；--wsEndpoint 可同时兼容两种调试模式
+      let command: string[]
+      const userDataDir = getBrowserUserDataDir(args.browser)
+      const activePort = userDataDir ? await readDevToolsActivePort(userDataDir) : null
+
+      if (activePort && activePort.port === args.port) {
+        const wsEndpoint = `ws://127.0.0.1:${activePort.port}${activePort.wsPath}`
+        command = [...BASE_COMMAND, '--wsEndpoint', wsEndpoint]
+      } else {
+        const browserUrl = `http://127.0.0.1:${args.port}`
+        command = [...BASE_COMMAND, '--browserUrl', browserUrl]
+      }
 
       try {
         const result = await client.mcp.add({
@@ -237,14 +317,14 @@ export const aeChromeDevtoolsMcpTool = tool({
         const newStatus = statuses?.[MCP_NAME]
         if (newStatus?.status === 'connected') {
           return {
-            output: `已注册 chrome-devtools MCP 并连接到 ${args.browser}（端口 ${args.port}），工具可用。`,
+            output: `已注册 chrome-devtools MCP 并连接到 ${args.browser}（端口 ${args.port}），工具可用。请立即调用 chrome-devtools_list_pages 验证连接。`,
             metadata: { connected: true, status: 'connected', mode: 'connect', browser: args.browser, port: args.port },
           }
         }
 
         const needsAuthHint = newStatus?.status === 'needs_auth' || newStatus?.status === 'failed'
         const hint = needsAuthHint
-          ? `${args.browser}（端口 ${args.port}）可能未启用远程调试或拒绝了连接请求。请确认：1) ${args.browser} 已以 --remote-debugging-port=${args.port} 参数启动；2) 浏览器弹出对话框时点击"允许"。`
+          ? `${args.browser}（端口 ${args.port}）可能未启用远程调试或拒绝了连接请求。请确认：1) 已在浏览器内置 inspect#remote-debugging 页面启用远程调试，或以 --remote-debugging-port=${args.port} 参数启动；2) 浏览器弹出对话框时点击"允许"。`
           : `当前状态：${newStatus?.status ?? '未知'}。如果状态不是 connected，请稍等或检查浏览器远程调试设置。`
 
         return {
