@@ -96,8 +96,8 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   {
     skillName: SKILL.LFG,
     commandName: COMMAND.LFG,
-    description: '核心流程组合技能：串联 ae:prd → ae:plan → ae:work → ae:review 等阶段，一站式完成从需求到交付的全流程；各阶段技能也可独立使用',
-    argumentHint: '[任务描述|已有产物路径]',
+    description: '自包含一站式管道技能：内联澄清需求、设计、实施，仅调用 ae:review 审查；一次澄清后静默执行到底；同时支持软件和非软件任务',
+    argumentHint: '[task] [--compatible=true|false]',
     skillFile: `src/assets/skills/${skillDir(SKILL.LFG)}/SKILL.md`,
   },
   {
