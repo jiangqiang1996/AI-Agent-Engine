@@ -8,6 +8,7 @@
 | --- | --- |
 | 不确定要做什么 | `/ae-ideate` |
 | 需求还模糊 | `/ae-brainstorm` |
+| 产出需求文档 | `/ae-prd` |
 | 想从需求一路做到交付 | `/ae-lfg` |
 | 已有需求，需要方案 | `/ae-plan` |
 | 已有计划，需要执行 | `/ae-work` |
@@ -18,9 +19,11 @@
 | 重构或技术债治理 | `/ae-refactor` |
 | 前端初版 | `/ae-frontend-design` |
 | 浏览器验收 | `/ae-test-browser` |
+| 自动播放课程 | `/ae-course-auto-player` |
 | 数据库查询或操作 | `/ae-sql` |
 | Swagger/OpenAPI 联调摘要 | `/ae-swagger-parser` |
 | HTML 单文件打包 | `/ae-html-bundle` |
+| 静态服务器 | `/ae-static-server` |
 | 构建或查询项目关系图谱 | `/ae-graph-build`、`/ae-graph-query` |
 | 提示词太散 | `/ae-prompt-optimize` |
 | 保存经验 | `/ae-save-experience` |
@@ -99,6 +102,7 @@
 | --- | --- | --- | --- |
 | `/ae-ideate` | `[功能、关注领域或约束]` | 生成并批判性评估多个可落地想法 | 不直接编码 |
 | `/ae-brainstorm` | `[需求描述\|需求文档路径]` | 澄清目标、范围、约束、用户流程和成功标准 | 产物是需求文档 |
+| `/ae-prd` | `[目标描述\|需求文档路径\|构思结果]` | 澄清目标、边界、约束、成功标准和待定问题，产出需求文档 | 产物是需求文档 |
 | `/ae-document-review` | `[mode:*] [文档路径]` | 兼容的文档审查入口 | 实际通过 `ae:review` 文档域执行 |
 | `/ae-plan` | `[计划路径\|需求文档路径\|需求描述]` | 把需求拆成技术计划 | 复杂实现前优先使用 |
 | `/ae-refactor` | `[重构目标\|计划路径\|需求文档路径\|代码异味描述]` | 以消除技术债为优先约束生成重构计划 | 强调保持外部行为和测试护栏 |
@@ -109,6 +113,7 @@
 | `/ae-lfg` | `[需求描述\|已有产物路径]` | 默认全流程入口 | 优先恢复已有产物；缺上游时回退到更早阶段 |
 | `/ae-chrome-devtools` | `[MCP 注册|浏览器目标|chrome-devtools 工具]` | 浏览器能力中枢，负责 MCP 动态注册、目标选择和浏览器控制 | 确认 chrome-devtools MCP 连接就绪 |
 | `/ae-test-browser` | `[URL\|路由]` | 浏览器端到端验收 | 先完成 chrome-devtools MCP 动态注册；不做审美设计 |
+| `/ae-course-auto-player` | `[浏览器类型] <课程列表页面URL>` | 自动播放在线课程列表 | 先完成 chrome-devtools MCP 动态注册 |
 | `/ae-frontend-design` | `[描述\|路径]` | 构建前端初版界面 | 不替代完整 E2E 或 Figma 对齐 |
 | `/ae-handoff` | `—` | 提取上下文并创建独立新会话 | 用于交接，不用于提示词优化 |
 | `/ae-prompt-optimize` | `[auto] [提示词内容]` | 优化提示词并可在新会话执行 | 需要注入历史上下文时用 `/ae-handoff` |
@@ -116,6 +121,7 @@
 | `/ae-sql` | `[SQL 语句]` | 通过 JDBC 连接数据库并执行 SQL | 执行前应确认目标库和语句风险 |
 | `/ae-swagger-parser` | `[source] [method:<HTTP_METHOD>] [path:<PATH>] [tag:<TAG>] [keyword:<TEXT>] [mode:overview\|detail]` | 解析 Swagger/OpenAPI 并输出联调摘要 | 不请求业务接口 |
 | `/ae-html-bundle` | `[entry:<HTML_PATH>] [output:<HTML_PATH>] [external:keep\|fail]` | 将显式入口 HTML 和本地静态资源打包为自包含 HTML | 不执行项目构建，不联网抓取外链 |
+| `/ae-static-server` | `<路径> [端口] [-k]` | 创建静态服务器，用于预览指定静态页面 | 只做本地预览服务 |
 | `/ae-graph-build` | `[target:<PATH>] [mode:auto\|full\|incremental] [depth:shallow] [include:<PATH>...] [exclude:<PATH>...]` | 构建或增量维护项目文件关系图谱 | `include` 优先于 `exclude`，但不覆盖安全硬排除 |
 | `/ae-graph-query` | `[mode:deps\|impact\|health\|filter\|path\|core\|stats\|pattern] [file:<PATH>] [target:<PATH>]` | 查询依赖、影响范围、核心模块和健康状态 | 图谱缺失时先构建 |
 | `/ae-save-experience` | `[经验摘要\|保存目标]` | 保存 solution，并按需提炼 rules | 不把临时结论直接当长期规则 |
@@ -131,6 +137,7 @@
 | --- | --- | --- |
 | `/ae-work-continue` | 在 B worktree 查找交接文件并继续执行 `ae:work` | 仅用于 A→B worktree 转移后的目标工作空间；多个交接文件时先让用户选择 |
 | `/ae-commit` | 智能提交当前变更 | 只做本地提交；不等同于 push、PR、跳过 hooks 或改 Git 配置 |
+| `/ae-prompt-optimize-auto` | 提示词优化（auto 模式）：优化后跳过确认直接执行 | 效果等同于 `/ae-prompt-optimize auto` |
 | `/remove-local-branch-worktree` | 安全清理本地分支、worktree 和对应本地目录 | 删除分支、worktree 或目录前必须确认目标和风险 |
 
 ## 命令变体
@@ -141,6 +148,7 @@
 | --- | --- | --- |
 | `/ae-ideate` | `/ae-ideate-po` | `/ae-ideate-pa` |
 | `/ae-brainstorm` | `/ae-brainstorm-po` | `/ae-brainstorm-pa` |
+| `/ae-prd` | `/ae-prd-po` | `/ae-prd-pa` |
 | `/ae-plan` | `/ae-plan-po` | `/ae-plan-pa` |
 | `/ae-refactor` | `/ae-refactor-po` | `/ae-refactor-pa` |
 | `/ae-work` | `/ae-work-po` | `/ae-work-pa` |
@@ -177,6 +185,7 @@
 | `@step-granularity-reviewer` | 计划步骤粒度、唯一产物和批量操作方式 |
 | `@test-case-reviewer` | 测试用例文档覆盖、步骤和可验证结果 |
 | `@research-reviewer` | 历史方案、外部最佳实践和框架文档 |
+| `@goal-alignment-reviewer` | 对照审查目标逐条校验代码变更或文档内容是否覆盖成功条件 |
 
 ## 研究与流程代理
 
@@ -187,6 +196,19 @@
 | `@spec-flow-analyzer` | 分析规格、计划或功能描述中的用户流程缺口 | 不直接写代码 |
 | `@design-iterator` | 对已有可运行 UI 做多轮截图、分析和审美优化 | 先完成 chrome-devtools MCP 动态注册；不从零创建完整页面 |
 | `@figma-design-sync` | 按 Figma 或设计图片修复 Web 实现视觉偏差 | 先完成 chrome-devtools MCP 动态注册；不自由发挥设计方向 |
+
+## 域代理
+
+域代理由 `ae:review` 或 `ae:work` 等技能自动调度，用户一般不需要手动指定。
+
+| 代理 | 用途 | 边界 |
+| --- | --- | --- |
+| `@review-domain` | 审查域代理：选择审查者、并行调度、综合审查发现 | 不直接执行审查，由 `/ae-review` 调度 |
+| `@development-domain` | 开发域代理：分析任务、选择专精代理、协调并行/流水线执行 | 不直接实现功能，由 `/ae-work` 调度 |
+| `@frontend-dev` | 前端开发专精代理：处理 UI 组件、样式、交互逻辑和响应式设计 | 由开发域代理调度 |
+| `@backend-dev` | 后端开发专精代理：处理 API、数据层、业务逻辑和中间件 | 由开发域代理调度 |
+| `@debug-fix` | 调试修复专精代理：处理错误分析、根因定位、修复实现和回归验证 | 由开发域代理调度 |
+| `@refactor-dev` | 重构改造专精代理：处理代码重构、架构优化和技术债清理 | 由开发域代理调度 |
 
 ## 工具层能力
 
@@ -207,6 +229,11 @@
 | `ae-task-analyzer` | 分析任务单元、文件范围和并行组 | 不修改项目文件 |
 | `ae-doc-extract` | 从人读需求、计划或设计文档及其分片中提取结构化上下文 | 不生成、转换或迁移文档 |
 | `ae-worktree-handoff` | 生成 A→B worktree 转移交接文件 | 不创建新会话 |
+| `ae-create-session` | 创建独立新会话，可选注入上下文或自动执行 | 不做会话级上下文交接 |
+| `ae-domain-catalog` | 查询域代理目录，获取域代理和专精代理信息 | 不执行域代理调度 |
+| `ae-domain-select` | 为指定域选择专精代理并返回协调策略 | 不执行域代理调度 |
+| `ae-review-proof` | 写入 ae:review 结构化审查证明 | 不替代真实代码或文档审查 |
+| `ae-timer` | 倒计时等待工具，暂停会话指定时长后继续 | 不用于轮询或精确毫秒级定时 |
 
 ## 前端能力怎么选
 
