@@ -95,6 +95,7 @@ export const AGENT = {
   STEP_GRANULARITY_REVIEWER: 'step-granularity-reviewer',
   DESIGN_LENS_REVIEWER: 'design-lens-reviewer',
   TEST_CASE_REVIEWER: 'test-case-reviewer',
+  GOAL_ALIGNMENT_REVIEWER: 'goal-alignment-reviewer',
   ARCHITECTURE_STRATEGIST: 'architecture-strategist',
   PATTERN_RECOGNITION_SPECIALIST: 'pattern-recognition-specialist',
   REPO_RESEARCH_ANALYST: 'repo-research-analyst',

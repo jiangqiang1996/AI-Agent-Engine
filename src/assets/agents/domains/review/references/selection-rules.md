@@ -43,3 +43,4 @@
 | step-granularity-reviewer | document | documentType=plan AND 需求>=5 |
 | design-lens-reviewer | document | hasUi=true |
 | test-case-reviewer | document | documentType=test |
+| goal-alignment-reviewer | both | hasGoalAlignment=true |
