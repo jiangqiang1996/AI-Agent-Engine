@@ -1,7 +1,7 @@
 ---
 name: ae:course-auto-player
 description: "自动完成在线课程：连接浏览器、遍历课程列表，自动处理文档/视频/外链课程，并对考试类课程进行多代理智能答题与错题修正"
-argument-hint: "<课程列表页面URL>"
+argument-hint: "[浏览器类型] <课程列表页面URL>"
 ---
 
 # ae:course-auto-player
@@ -48,21 +48,31 @@ argument-hint: "<课程列表页面URL>"
 
 ## 输入处理
 
-用户通过命令传入 URL 参数，格式为：
+用户通过命令传入参数，格式为：
 
 ```
-/ae-course-auto-player <课程列表页面URL>
+/ae-course-auto-player [浏览器类型] <课程列表页面URL>
 ```
 
+- 浏览器类型为可选参数，支持 `Chrome`、`Edge`、`Brave`、`Vivaldi`，默认为 `Chrome`
 - URL 为必填参数，必须是可访问的课程列表页面地址
 - 如果用户未提供 URL，必须先询问，不得自行假设
+- 如果用户提供的浏览器类型不在支持列表中，提示用户选择支持的类型
 
 ## 工作流程
 
 ### 前置：浏览器连接
 
-1. 调用 `ae-chrome-devtools-mcp action=check` 检查 MCP 是否已注册并连接。
-2. 如果未连接，调用 `ae:chrome-devtools` 或 `ae-chrome-devtools-mcp action=register mode=autoConnect` 自动发现并连接已运行的浏览器；如果 autoConnect 失败，改用 `mode=isolated` 启动独立浏览器实例。
+1. 使用 `ae:chrome-devtools` 技能完成浏览器 MCP 动态注册并确认连接就绪。`ae:chrome-devtools` 是浏览器 MCP 的唯一管理入口，不应直接调用 `ae-chrome-devtools-mcp` 工具。
+2. 传入 `browser` 参数（取自用户输入的浏览器类型，默认 `Chrome`）。如果 autoConnect 失败，使用 `--mode=isolated` 启动独立浏览器实例，同样传入 `browser` 参数。
+   - 如果用户希望连接已有浏览器（保留登录态），需先在浏览器中启用远程调试：在地址栏打开对应调试页面并勾选开关，不同浏览器的地址不同：
+
+     | 浏览器 | 远程调试页面 |
+     |--------|-------------|
+     | Chrome | `chrome://inspect/#remote-debugging` |
+     | Edge | `edge://inspect/#remote-debugging` |
+
+   - 如果用户未手动启用远程调试，autoConnect 模式可能会新开浏览器。
 3. 连接成功后，调用 `chrome-devtools_list_pages` 确认连接可用。
 
 ### 第一步：打开课程列表页面

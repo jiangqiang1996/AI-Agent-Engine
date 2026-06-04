@@ -103,8 +103,8 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   {
     skillName: SKILL.CHROME_DEVTOOLS,
     commandName: COMMAND.CHROME_DEVTOOLS,
-    description: 'chrome-devtools-mcp 浏览器能力中枢：动态 MCP 注册、页面导航、元素交互、调试诊断与性能分析',
-    argumentHint: '[目标页面|操作目标|排查场景]',
+    description: 'chrome-devtools-mcp 浏览器能力中枢：启动或接管浏览器，打开 URL，执行指定任务。ae:chrome-devtools 是 ae-chrome-devtools-mcp 工具的唯一管理入口，上层技能和代理不应直接调用 ae-chrome-devtools-mcp。',
+    argumentHint: '[url] [--task=<任务描述>] [--action=register|disconnect] [--mode=autoConnect|connect|isolated] [--browser=Chrome|Edge|Brave|Vivaldi] [--port=<端口号>]',
     skillFile: `src/assets/skills/${skillDir(SKILL.CHROME_DEVTOOLS)}/SKILL.md`,
   },
   {
@@ -114,7 +114,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     argumentHint: '[URL|路由]',
     skillFile: `src/assets/skills/${skillDir(SKILL.TEST_BROWSER)}/SKILL.md`,
     customTemplate: [
-      `先使用 \`${SKILL.CHROME_DEVTOOLS}\` 技能完成 chrome-devtools MCP 动态注册；`,
+      `先使用 \`${SKILL.CHROME_DEVTOOLS}\` 技能完成浏览器 MCP 动态注册；`,
       '未完成 MCP 注册前不得执行任何浏览器控制命令。',
       `MCP 就绪后，再使用 \`${SKILL.TEST_BROWSER}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`,
     ].join(''),
@@ -123,10 +123,10 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillName: SKILL.COURSE_AUTO_PLAYER,
     commandName: COMMAND.COURSE_AUTO_PLAYER,
     description: `通过 ${SKILL.CHROME_DEVTOOLS} 完成浏览器 MCP 注册后，自动播放在线课程列表`,
-    argumentHint: '<课程列表页面URL>',
+    argumentHint: '[浏览器类型] <课程列表页面URL>',
     skillFile: `src/assets/skills/${skillDir(SKILL.COURSE_AUTO_PLAYER)}/SKILL.md`,
     customTemplate: [
-      `先使用 \`${SKILL.CHROME_DEVTOOLS}\` 技能完成 chrome-devtools MCP 动态注册；`,
+      `先使用 \`${SKILL.CHROME_DEVTOOLS}\` 技能完成浏览器 MCP 动态注册；`,
       '未完成 MCP 注册前不得执行任何浏览器控制命令。',
       `MCP 就绪后，再使用 \`${SKILL.COURSE_AUTO_PLAYER}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`,
     ].join(''),

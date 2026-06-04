@@ -33,7 +33,7 @@ description: "通过 N 轮截图-分析-改进循环打磨已实现 UI。当初�
 
 ## 截图保存路径
 
-在执行任何 chrome-devtools 浏览器操作前，必须先调用 `ae-chrome-devtools-mcp action=check` 确认当前工作区已有合法 chrome-devtools MCP 注册；注册缺失或无效时先执行 `ae:chrome-devtools` / `/ae-chrome-devtools` 动态注册流程；未通过 MCP 注册校验前不得执行任何 chrome-devtools 浏览器操作。
+在执行任何 chrome-devtools 浏览器操作前，必须先使用 `ae:chrome-devtools` 技能完成浏览器 MCP 动态注册并确认连接就绪；`ae:chrome-devtools` 是浏览器 MCP 的唯一管理入口，不应直接调用 `ae-chrome-devtools-mcp` 工具。未通过注册确认前不得执行任何 chrome-devtools 浏览器操作。
 
 所有 `chrome-devtools_take_screenshot` 命令的输出文件必须保存到 opencode 启动目录下的 `ae/screenshot/` 目录中。例如在 `d:/test` 目录中启动 opencode，则截图保存到 `d:/test/ae/screenshot/`。截图前须确保目录存在：
 
@@ -51,13 +51,11 @@ New-Item -ItemType Directory -Path ae/screenshot -Force | Out-Null
 
 ### 准备：设置合适的窗口尺寸
 
-在执行任何 chrome-devtools 浏览器操作前，必须先调用 `ae-chrome-devtools-mcp action=check` 确认当前工作区已有合法 chrome-devtools MCP 注册。MCP 已连接、用户声称已连接或本地可用性检查成功都不能替代 chrome-devtools MCP 注册。未通过 MCP 注册校验前不得执行任何 chrome-devtools 浏览器操作；注册缺失或无效时先执行 `ae:chrome-devtools` / `/ae-chrome-devtools` 动态注册流程，若注册失败、用户拒绝启动或当前环境无法启动，必须停止浏览器流程并记录无法验证原因。
+在执行任何 chrome-devtools 浏览器操作前，必须先使用 `ae:chrome-devtools` 技能完成浏览器 MCP 动态注册并确认连接就绪；`ae:chrome-devtools` 是浏览器 MCP 的唯一管理入口，不应直接调用 `ae-chrome-devtools-mcp` 工具。未通过注册确认前不得执行任何 chrome-devtools 浏览器操作；注册失败、用户拒绝启动或当前环境无法启动时，必须停止浏览器流程并记录无法验证原因。
 
 开始迭代前，以有头模式打开浏览器以便查看和调整大小：
 
-```bash
-ae-chrome-devtools-mcp action=register
-```
+使用 `ae:chrome-devtools --action=register --mode=isolated` 启动有头浏览器。
 
 然后导航到目标页面：
 
@@ -216,7 +214,7 @@ chrome-devtools_navigate_page type=url url="[url]"
 
 **首先执行 chrome-devtools MCP 门禁：**
 
-如果当前工作区尚未通过 `ae-chrome-devtools-mcp action=check`，先执行 `ae:chrome-devtools` / `/ae-chrome-devtools` 动态注册流程。MCP 连接就绪后，再执行任何 chrome-devtools 浏览器操作。若注册失败、用户拒绝启动或当前环境无法启动，停止截图迭代并报告无法验证原因。
+如果当前工作区尚未完成浏览器 MCP 注册，先使用 `ae:chrome-devtools` 技能完成动态注册并确认连接就绪。MCP 连接就绪后，再执行任何 chrome-devtools 浏览器操作。若注册失败、用户拒绝启动或当前环境无法启动，停止截图迭代并报告无法验证原因。
 
 **登录状态检测：**
 

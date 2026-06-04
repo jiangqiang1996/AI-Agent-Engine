@@ -23,6 +23,7 @@ const BROWSER_KEYWORDS = [
 ]
 
 const GATE_PATTERNS = [
+  /ae:chrome-devtools\s+(技能|完成|注册)/i,
   /ae-chrome-devtools-mcp\s+action=check/i,
 ]
 
@@ -51,7 +52,7 @@ function extractMcpCommandSegments(text: string): string[] {
   return matches ? [...new Set(matches)] : []
 }
 
-const GATE_INJECTION_TEMPLATE = `\n\n[chrome-devtools MCP 门禁] 目标新会话先调用 \`ae-chrome-devtools-mcp action=check\` 检查当前工作区的 chrome-devtools MCP 注册状态；若未完成，则先执行 \`ae:chrome-devtools\` / \`/ae-chrome-devtools\` 动态注册流程（支持自动发现 Chrome、Edge、Brave、Vivaldi 等 Chromium 浏览器），得到 MCP 连接就绪结果后再执行浏览器流程。chrome-devtools MCP 已在配置中声明、用户声称已配置或本地进程检查成功，都不能替代 MCP 注册校验。同一工作区的 chrome-devtools MCP 注册状态可以跨会话复用；MCP 未注册、注册失败或连接状态非 connected 时，目标新会话必须自行完成动态注册。`
+const GATE_INJECTION_TEMPLATE = `\n\n[chrome-devtools MCP 门禁] 目标新会话先使用 \`ae:chrome-devtools\` 技能完成浏览器 MCP 动态注册并确认连接就绪；\`ae:chrome-devtools\` 是浏览器 MCP 的唯一管理入口，不应直接调用 \`ae-chrome-devtools-mcp\` 工具。chrome-devtools MCP 已在配置中声明、用户声称已配置或本地进程检查成功，都不能替代注册确认结果。同一工作区的 chrome-devtools MCP 注册状态可以跨会话复用；MCP 未注册、注册失败或连接状态非 connected 时，目标新会话必须自行通过 \`ae:chrome-devtools\` 完成动态注册。`
 
 export function ensureBrowserEnvironmentGate(text: string): string {
   if (!text.trim()) {

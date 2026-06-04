@@ -11,7 +11,7 @@ argument-hint: "[URL|路由]"
 ## 前提条件
 
 - 本地开发服务器已启动（如 `npm run dev`）
-- chrome-devtools MCP 已通过 `ae-chrome-devtools-mcp` 工具动态注册并连接就绪
+- chrome-devtools MCP 已通过 `ae:chrome-devtools` 技能完成动态注册并连接就绪
 - 项目为 Git 仓库
 
 ## 截图保存路径
@@ -45,15 +45,15 @@ New-Item -ItemType Directory -Path ae/screenshot -Force | Out-Null
 
 ## chrome-devtools MCP 门禁
 
-在执行任何浏览器操作前，先调用 `ae-chrome-devtools-mcp action=check` 确认 MCP 已注册并连接就绪。若未就绪，必须先执行 `ae:chrome-devtools` / `/ae-chrome-devtools` 完成动态注册；完成后再继续本技能流程。
+在执行任何浏览器操作前，必须先使用 `ae:chrome-devtools` 技能完成浏览器 MCP 动态注册并确认连接就绪；`ae:chrome-devtools` 是浏览器 MCP 的唯一管理入口，上层技能不应直接调用 `ae-chrome-devtools-mcp` 工具。MCP 未就绪时不得执行浏览器操作。
 
-MCP 已在配置中声明、用户声称已配置、或本地进程检查成功，都不能替代 `ae-chrome-devtools-mcp action=check` 的机器校验结果。只有当 MCP 注册失败、用户拒绝启动或当前环境无法启动时，才记录"无法验证"并停止浏览器验收，不得继续执行浏览器操作命令。
+MCP 已在配置中声明、用户声称已配置、或本地进程检查成功，都不能替代通过 `ae:chrome-devtools` 技能完成的注册确认。只有当 MCP 注册失败、用户拒绝启动或当前环境无法启动时，才记录"无法验证"并停止浏览器验收，不得继续执行浏览器操作命令。
 
 ## 工作流程
 
 ### 1. 执行 chrome-devtools MCP 门禁
 
-若当前工作区尚未通过 `ae-chrome-devtools-mcp action=check`，先执行 `ae:chrome-devtools` / `/ae-chrome-devtools` 完成动态注册。MCP 连接就绪后，才能进入后续步骤。
+若当前工作区尚未完成浏览器 MCP 注册，先使用 `ae:chrome-devtools` 技能完成动态注册。MCP 连接就绪后，才能进入后续步骤。
 
 ### 2. 选择浏览器模式
 
@@ -66,7 +66,7 @@ MCP 已在配置中声明、用户声称已配置、或本地进程检查成功�
 2. 无头模式（更快） - 在后台运行
 ```
 
-用户选择选项 1 时，使用 `ae-chrome-devtools-mcp action=register mode=isolated` 注册有头浏览器；选项 2 时使用无头模式。
+用户选择选项 1 时，使用 `ae:chrome-devtools --action=register --mode=isolated` 注册有头浏览器；选项 2 时使用无头模式。
 
 ### 3. 确定测试范围
 
@@ -293,7 +293,7 @@ chrome-devtools_take_screenshot filePath=ae/screenshot/页面名称-完整.png f
 
 ## chrome-devtools-mcp 工具参考
 
-未通过 `ae-chrome-devtools-mcp action=check` 或实际完成 `ae:chrome-devtools` / `/ae-chrome-devtools` 动态注册并得到连接就绪结果前，不得执行下列任何工具。
+未通过 `ae:chrome-devtools` 技能完成浏览器 MCP 动态注册并得到连接就绪结果前，不得执行下列任何工具。
 
 ```
 # 导航

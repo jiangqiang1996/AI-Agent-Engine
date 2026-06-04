@@ -2,7 +2,7 @@
 
 本文档定义统一的登录检测流程，供所有浏览器截图能力复用。
 
-在执行本文档中的任何浏览器操作前，必须先调用 `ae-chrome-devtools-mcp action=check` 确认 MCP 注册并连接就绪。配置中已声明 MCP、用户声称已配置或本地进程检查成功都不能替代机器校验结果。未通过校验前不得执行任何浏览器操作命令；MCP 未就绪时先执行 `ae:chrome-devtools` / `/ae-chrome-devtools` 完成动态注册，若注册失败、用户拒绝启动或当前环境无法启动，必须停止浏览器流程并记录无法验证原因。
+在执行本文档中的任何浏览器操作前，必须先通过 `ae:chrome-devtools` 技能完成浏览器 MCP 动态注册并确认连接就绪；`ae:chrome-devtools` 是浏览器 MCP 的唯一管理入口，不应直接调用 `ae-chrome-devtools-mcp` 工具。配置中已声明 MCP、用户声称已配置或本地进程检查成功都不能替代注册确认结果。未完成注册确认前不得执行任何浏览器操作命令；MCP 未就绪时使用 `ae:chrome-devtools` 完成注册，若注册失败、用户拒绝启动或当前环境无法启动，必须停止浏览器流程并记录无法验证原因。
 
 ## 检测机制
 
@@ -187,7 +187,7 @@ question({
 
 ### 在技能中集成
 
-未通过 `ae-chrome-devtools-mcp action=check` 或实际完成 `ae:chrome-devtools` / `/ae-chrome-devtools` 动态注册前，不得执行下列示例中的浏览器操作命令。
+未通过 `ae:chrome-devtools` 技能完成浏览器 MCP 动态注册并确认连接就绪前，不得执行下列示例中的浏览器操作命令。
 
 ```markdown
 ### 前置检查：登录状态检测
@@ -205,7 +205,7 @@ question({
 
 ### 在代理中集成
 
-未通过 `ae-chrome-devtools-mcp action=check` 或实际完成 `ae:chrome-devtools` / `/ae-chrome-devtools` 动态注册前，不得执行下列示例中的浏览器操作命令。
+未通过 `ae:chrome-devtools` 技能完成浏览器 MCP 动态注册并确认连接就绪前，不得执行下列示例中的浏览器操作命令。
 
 ```markdown
 ## 步骤 0：前置检查

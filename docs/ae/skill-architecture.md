@@ -174,8 +174,9 @@ ae:ideate → ae:prd → ae:plan → ae:work → ae:review
 │         │                                    │
 │         │ 证明就绪后                          │
 │         ▼                                    │
-│  ae:test-browser     (端到端验收)            │
-│  ae:frontend-design  (前端设计+视觉验证)     │
+│  ae:test-browser         (端到端验收)        │
+│  ae:frontend-design      (前端设计+视觉验证)  │
+│  ae:course-auto-player   (在线课程自动播放)   │
 └──────────────────────────────────────────────┘
 ```
 
@@ -184,6 +185,7 @@ ae:ideate → ae:prd → ae:plan → ae:work → ae:review
 | ae:chrome-devtools | SKILL.md 引导安装验证和目标选择 | 唯一环境验证入口，MCP 注册校验后才允许浏览器命令 |
 | ae:test-browser | SKILL.md + chrome-devtools-mcp 工具交互 | 强制先完成 chrome-devtools MCP 注册 |
 | ae:frontend-design | SKILL.md + 设计体系检测 + 视觉验证 | 视觉验证路径依赖 chrome-devtools MCP 注册 |
+| ae:course-auto-player | SKILL.md + chrome-devtools-mcp 工具交互 + ae-timer 轮询 | 强制先完成 chrome-devtools MCP 注册；可选指定浏览器类型透传给 MCP 注册 |
 
 #### C. 辅助与工具技能
 
@@ -593,7 +595,8 @@ ae-review-contract 工具调用
   │           浏览器能力链                       │
   │                                             │
   │  ae:chrome-devtools ──┬──▶ ae:test-browser    │
-  │  (环境验证)         └──▶ ae:frontend-design │
+  │  (环境验证)         ├──▶ ae:frontend-design │
+  │                     └──▶ ae:course-auto-player │
   └─────────────────────────────────────────────┘
 
   ┌─────────────────────────────────────────────┐
@@ -642,8 +645,9 @@ ae-review-contract 工具调用
 | ae-create-session | ae:handoff, ae:prompt-optimize | 创建独立新会话 |
 | ae-prompt-optimize | ae:prompt-optimize | 提交优化提示词到新会话 |
 | ae-worktree-handoff | ae:work | A→B worktree 交接文件生成 |
-| ae-chrome-devtools-proof | ae:chrome-devtools, ae:test-browser | chrome-devtools MCP 注册管理 |
+| ae-chrome-devtools-mcp | ae:chrome-devtools, ae:test-browser, ae:course-auto-player, ae:frontend-design | chrome-devtools MCP 动态注册 |
 | ae-swagger-parser | ae:swagger-parser | OpenAPI 规格解析 |
 | ae-html-bundle | ae:html-bundle | HTML 资源内联打包 |
 | ae-domain-catalog | ae:review, ae:work | 查询域代理与专精目录 |
+| ae-timer | ae:course-auto-player | 倒计时等待，防止长等待后上下文丢失 |
 | ae-help | ae:help | 列出所有技能/命令/代理 |
