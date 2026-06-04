@@ -1,7 +1,7 @@
 ---
 name: ae:graph-build
 description: 构建或增量维护项目文件关系图谱，写入当前工作区 ae/graphs/graph.json 并生成离线预览页
-argument-hint: "[target:<PATH>] [mode:auto|full|incremental] [depth:shallow] [include:<PATH>...] [exclude:<PATH>...]"
+argument-hint: "[target] [mode] [depth] [include=...] [exclude=...]"
 ---
 
 # Skill: ae:graph-build
@@ -15,6 +15,32 @@ argument-hint: "[target:<PATH>] [mode:auto|full|incremental] [depth:shallow] [in
 - Git diff 后希望只增量更新变更文件关系。
 - 图谱缺失、scope 不匹配、分片损坏、查询诊断提示需要 `recoverBy` 修复。
 - 在审查、计划、调试、重构或多文件改动前，需要为后续 `ae:graph-query` 提供最新结构快照。
+
+## 参数说明
+
+| 参数 | 必填 | 说明 |
+|------|------|------|
+| `target` | 否 | 目标目录，支持绝对路径和相对路径；省略时按当前会话启动路径解析。 |
+| `mode` | 否 | 构建模式：`auto`（默认）/ `full` / `incremental`；非 Git 项目会降级为全量构建。 |
+| `depth` | 否 | 解析深度，首版仅支持 `shallow`。 |
+| `include` | 否 | 额外包含的子路径或路径集合，优先于排除规则但不覆盖安全硬排除。 |
+| `exclude` | 否 | 额外排除的子路径或路径集合，优先与现有排除规则合并。 |
+
+参数解析规则（三级策略）：
+1. 显式命名：`key=value`、`key:value`、`--key=value` 直接绑定，优先级最高
+2. 值特征推断：按值的模式自动匹配参数类型（仅在参数意图上下文中生效）
+
+   | 值模式 | 推断为 |
+   |--------|--------|
+   | auto / full / incremental | mode |
+   | shallow | depth |
+   | 现有目录路径 | target |
+
+   ❌ 否定示例：`增量更新 src/lib 目录` 中的 src/lib 不推断为 target（因 incremental 已匹配 mode）
+
+3. 顺序兜底：值特征有交集时，按 `mode → depth → target → include → exclude` 顺序匹配
+
+**内部调用约定**：当本技能被其他技能自动调用时，所有参数必须使用显式命名格式（如 `mode=full target=./src`），不依赖值特征推断。
 
 ## 执行流程
 

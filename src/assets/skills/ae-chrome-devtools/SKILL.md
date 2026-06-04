@@ -1,7 +1,7 @@
 ---
 name: ae:chrome-devtools
 description: "chrome-devtools-mcp 浏览器能力中枢：启动或接管浏览器，打开 URL，执行指定任务。ae:chrome-devtools 是 ae-chrome-devtools-mcp 工具的唯一管理入口，上层技能和代理不应直接调用 ae-chrome-devtools-mcp。"
-argument-hint: "[url] [--task=<任务描述>] [--action=register|disconnect] [--mode=autoConnect|connect|isolated] [--browser=Chrome|Edge|Brave|Vivaldi] [--port=<端口号>]"
+argument-hint: "[url] [action] [mode] [browser] [port] [task=任务描述]"
 ---
 
 # chrome-devtools-mcp 浏览器能力中枢
@@ -34,32 +34,45 @@ argument-hint: "[url] [--task=<任务描述>] [--action=register|disconnect] [--
 
 ## 参数说明
 
-通过 `/ae-chrome-devtools` 命令调用时，支持以下参数（自由文本与 `--key=value` 混合使用）：
+通过 `/ae-chrome-devtools` 命令调用时，支持以下参数：
 
-| 参数 | 格式 | 必填 | 说明 |
-|------|------|------|------|
-| `url` | 自由文本（第一个非 `--` 开头的值） | 否 | 目标页面 URL。传入后，MCP 注册完成并验证连接可用时自动打开该页面。 |
-| `--task` | 自由文本 | 否 | 要在浏览器中执行的任务描述。可以是任何浏览器相关任务：页面交互、调试诊断、性能分析、设备模拟等。未提供时根据 url 或用户意图推断。 |
-| `--action` | `register` / `disconnect` | 否 | 指定对浏览器 MCP 的操作。`register` 注册浏览器连接，`disconnect` 断开连接。默认不指定时按输入处理流程自动推断（未连接则注册）。 |
-| `--mode` | `autoConnect` / `connect` / `isolated` | 否 | 注册模式，仅 `--action=register` 时有效。默认 `autoConnect`。 |
-| `--browser` | `Chrome` / `Edge` / `Brave` / `Vivaldi` | 否 | 浏览器类型。`--mode=connect` 时必填。 |
-| `--port` | 正整数（1-65535） | 否 | 远程调试端口号。`--mode=connect` 时必填。 |
+| 参数 | 必填 | 说明 |
+|------|------|------|
+| `url` | 否 | 目标页面 URL。传入后，MCP 注册完成并验证连接可用时自动打开该页面。 |
+| `task` | 否 | 要在浏览器中执行的任务描述。未提供时根据 url 或用户意图推断。 |
+| `action` | 否 | MCP 操作：`register` / `disconnect`。默认自动推断（未连接则注册）。 |
+| `mode` | 否 | 注册模式（仅 action=register 时有效）：`autoConnect` / `connect` / `isolated`。默认 `autoConnect`。 |
+| `browser` | 否 | 浏览器类型：`Chrome` / `Edge` / `Brave` / `Vivaldi`。mode=connect 时必填。 |
+| `port` | 否 | 远程调试端口号（1-65535）。mode=connect 时必填。 |
 
-参数解析规则：
-- 第一个非 `--` 开头的值作为 `url`。
-- `--task`、`--action`、`--mode`、`--browser`、`--port` 以 `--key=value` 格式解析。
-- 未提供 `--action` 时，由输入处理流程自动推断。
+参数解析规则（三级策略）：
+1. 显式命名：`key=value`、`key:value`、`--key=value` 直接绑定，优先级最高
+2. 值特征推断：按值的模式自动匹配参数类型（仅在参数意图上下文中生效）
+
+   | 值模式 | 推断为 |
+   |--------|--------|
+   | http:// 或 https:// 开头 | url |
+   | register / disconnect | action |
+   | autoConnect / connect / isolated | mode |
+   | Chrome / Edge / Brave / Vivaldi | browser |
+   | 独立纯数字 1-65535 | port |
+
+   ❌ 否定示例：`检查 connect 模块的性能` 中的 connect 不推断为 action
+
+3. 顺序兜底：值特征有交集时，按 `url → action → mode → browser → port → task` 顺序匹配
+
+**内部调用约定**：当本技能被其他技能自动调用时，所有参数必须使用显式命名格式（如 `action=register mode=autoConnect`），不依赖值特征推断。
 
 ## 输入处理
 
-1. 解析用户输入中的参数（url、task、action、mode、browser、port）。
-2. 根据 `--action` 参数或自动推断决定 MCP 操作：
-   - 若 `--action=disconnect`：调用 `ae-chrome-devtools-mcp action=disconnect` 断开连接。
-   - 若 `--action=register` 或 MCP 未连接：执行 MCP 注册流程，使用 `--mode`、`--browser`、`--port` 透传参数。
-   - 若未指定 `--action` 且 MCP 已连接：跳过注册，直接进入后续操作。
-3. MCP 注册流程中，若提供了 `--mode`，使用指定模式；否则默认 `autoConnect`。
-4. MCP 注册完成并验证连接可用后，若提供了 `url`，自动调用 `chrome-devtools_new_page` 打开目标页面。
-5. 若提供了 `--task` 或用户意图中包含浏览器任务，使用 `chrome-devtools_*` 工具执行任务。需要查阅工具用法时参考 `references/browser-tools.md`。
+1. 解析用户输入中的参数（url、task、action、mode、browser、port），按三级解析策略推断。
+2. 根据 action 参数或自动推断决定 MCP 操作：
+   - 若 `action=disconnect`：调用 `ae-chrome-devtools-mcp action=disconnect` 断开连接。
+   - 若 `action=register` 或 MCP 未连接：执行 MCP 注册流程，使用 mode、browser、port 透传参数。
+   - 若未指定 action 且 MCP 已连接：跳过注册，直接进入后续操作。
+3. MCP 注册流程中，若提供了 mode，使用指定模式；否则默认 `autoConnect`。
+4. MCP 注册完成并验证连接可用后，若提供了 url，自动调用 `chrome-devtools_new_page` 打开目标页面。
+5. 若提供了 task 或用户意图中包含浏览器任务，使用 `chrome-devtools_*` 工具执行任务。需要查阅工具用法时参考 `references/browser-tools.md`。
 6. 若用户只询问概念或工具选择，可基于本技能说明回答，但仍要提示实际执行前必须完成 MCP 注册。
 7. 对涉及登录、上传、下载、剪贴板、网络拦截、授权头或代理的请求，先说明敏感边界并避免要求用户暴露密钥或密码。
 
@@ -76,26 +89,28 @@ argument-hint: "[url] [--task=<任务描述>] [--action=register|disconnect] [--
 
 ## 带参数示例
 
-### 打开页面并执行任务
+### 打开页面并执行任务（简写）
 
 ```
-/ae-chrome-devtools https://example.com --task=检查页面加载性能
+/ae-chrome-devtools https://example.com 检查页面加载性能
 ```
 
 流程：自动检查 MCP → 未连接则默认 autoConnect 注册 → 验证连接 → 打开 `https://example.com` → 执行性能检查任务。
 
-### 指定浏览器和模式注册并执行任务
+### 指定浏览器和模式注册并执行任务（显式命名）
 
 ```
-/ae-chrome-devtools https://example.com --action=register --mode=connect --browser=Edge --port=9222 --task=填写登录表单
+/ae-chrome-devtools https://example.com action=register mode=connect browser=Edge port=9222 task=填写登录表单
 ```
 
 流程：使用 connect 模式注册 Edge（端口 9222）→ 验证连接 → 打开 `https://example.com` → 填写登录表单。
 
+> 旧写法 `--key=value` 仍然有效（如 `--action=register --mode=connect`）。
+
 ### 仅注册不执行任务
 
 ```
-/ae-chrome-devtools --action=register --mode=isolated --browser=Chrome
+/ae-chrome-devtools action=register mode=isolated browser=Chrome
 ```
 
 流程：启动独立 Chrome 实例 → 验证连接可用 → 等待后续指令。
@@ -103,7 +118,7 @@ argument-hint: "[url] [--task=<任务描述>] [--action=register|disconnect] [--
 ### 不指定 URL，仅执行调试任务
 
 ```
-/ae-chrome-devtools --task=排查当前页面的控制台错误
+/ae-chrome-devtools task=排查当前页面的控制台错误
 ```
 
 流程：检查 MCP → 未连接则注册 → 选择已有页面 → 查看控制台消息排查错误。
@@ -134,7 +149,7 @@ argument-hint: "[url] [--task=<任务描述>] [--action=register|disconnect] [--
 2. 如需保留已有配置和登录态，追加 `--user-data-dir` 参数指定用户数据目录
 
 注册步骤：
-1. 使用 `ae:chrome-devtools --action=register --mode=autoConnect`（自动发现 Chrome）或 `ae:chrome-devtools --action=register --mode=autoConnect --browser=Edge`（指定其他浏览器）。
+1. 使用 `ae:chrome-devtools action=register mode=autoConnect`（自动发现 Chrome）或 `ae:chrome-devtools action=register mode=autoConnect browser=Edge`（指定其他浏览器）。
 2. 浏览器弹出对话框请求允许远程调试连接，点击"允许"。
 3. 注册成功后，**必须**立即调用 `chrome-devtools_list_pages` 列出当前页面以验证连接可用；如果 list_pages 调用失败，说明注册未生效，需要排查或重试。
 
@@ -145,7 +160,7 @@ argument-hint: "[url] [--task=<任务描述>] [--action=register|disconnect] [--
 前置条件与 autoConnect 相同。
 
 注册步骤：
-1. 使用 `ae:chrome-devtools --action=register --mode=connect --browser=<浏览器> --port=<端口号>`（例如 `--browser=Edge --port=54522`）。
+1. 使用 `ae:chrome-devtools action=register mode=connect browser=<浏览器> port=<端口号>`（例如 `browser=Edge port=54522`）。
 2. 浏览器可能弹出对话框请求允许远程调试连接，点击"允许"。
 3. 注册成功后，**必须**立即调用 `chrome-devtools_list_pages` 列出当前页面以验证连接可用。
 
@@ -153,7 +168,7 @@ argument-hint: "[url] [--task=<任务描述>] [--action=register|disconnect] [--
 
 适用于需要干净环境或自动化测试的场景。
 
-1. 使用 `ae:chrome-devtools --action=register --mode=isolated`（默认启动 Chrome）或 `ae:chrome-devtools --action=register --mode=isolated --browser=Edge`（启动指定浏览器）。
+1. 使用 `ae:chrome-devtools action=register mode=isolated`（默认启动 Chrome）或 `ae:chrome-devtools action=register mode=isolated browser=Edge`（启动指定浏览器）。
 2. MCP 会启动独立的新浏览器实例（专用配置文件）。
 3. 注册成功后，**必须**立即调用 `chrome-devtools_list_pages` 列出当前页面以验证连接可用。
 

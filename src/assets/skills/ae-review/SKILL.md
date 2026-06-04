@@ -1,7 +1,7 @@
 ---
 name: ae:review
 description: "统一审查技能。支持代码域（Git 差异、全量文件、指定路径、会话变更等）和文档域（需求文档、计划文档、测试文档、通用文档）的分层角色审查。通过 domain 参数切换审查域。"
-argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full:<path>] [session] [plan:<path>] [goals:<text>] [文档路径]"
+argument-hint: "[mode] [domain] [from=<ref>] [full] [full=<path>] [session] [plan=<path>] [goals=<text>] [文档路径]"
 ---
 
 # 统一审查（编排层）
@@ -45,7 +45,7 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 **"明确指定"条件——满足任一则纳入：**
 1. 用户传入的文件路径指向这些目录下的文件
 2. 对话中明确提到"审查需求文档"或"审查计划文档"等语义等价表达
-3. `domain:document` 模式下确定性搜索机制（阶段 1）找到了文档——搜索成功等同于明确指定
+3. `domain=document` 模式下确定性搜索机制（阶段 1）找到了文档——搜索成功等同于明确指定
 
 ## 四阶段编排协议
 
@@ -55,24 +55,39 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 
 #### 参数解析
 
-解析 `$ARGUMENTS` 中的可选标记。以 `mode:` 或 `domain:` 开头的标记是标志，不是 ref——从参数中移除它们。
+解析 `$ARGUMENTS` 中的可选标记。以 `mode=` 或 `domain=` 开头的标记是标志，不是 ref——从参数中移除它们。
+
+参数解析规则（三级策略）：
+1. 显式命名：`key=value`、`key:value`、`--key=value` 直接绑定，优先级最高
+2. 值特征推断：按值的模式自动匹配参数类型（仅在参数意图上下文中生效）
+
+   | 值模式 | 推断为 |
+   |--------|--------|
+   | autofix / report-only / headless | mode |
+   | code / document | domain |
+
+   ❌ 否定示例：`审查 headless 模式的文档` 中的 headless 不推断为 mode
+
+3. 顺序兜底：仅 mode 和 domain 参与推断，其余参数（from/recent/plan/goals）必须显式命名
 
 | 标记 | 效果 |
 |------|------|
-| `domain:code` | 代码域审查（默认） |
-| `domain:document` | 文档域审查 |
-| `mode:autofix` | 自动修复模式 |
-| `mode:report-only` | 只读模式 |
-| `mode:headless` | 无头模式（程序调用） |
-| `from:<ref>` | 使用 Git diff 确定范围，以指定 ref 作为差异基准 |
-| `recent:<N>` | 审查最近 N 次 Git 提交 |
+| `domain=code` | 代码域审查（默认） |
+| `domain=document` | 文档域审查 |
+| `mode=autofix` | 自动修复模式 |
+| `mode=report-only` | 只读模式 |
+| `mode=headless` | 无头模式（程序调用） |
+| `from=<ref>` | 使用 Git diff 确定范围，以指定 ref 作为差异基准 |
+| `recent=<N>` | 审查最近 N 次 Git 提交 |
 | `full` | 审查项目中所有文件（不依赖 Git） |
-| `full:<path>` | 审查指定路径下的所有文件（不依赖 Git） |
+| `full=<path>` | 审查指定路径下的所有文件（不依赖 Git） |
 | `session` | 审查本次会话中变更的文件 |
-| `plan:<path>` | 加载计划用于需求验证 |
-| `goals:<text>` | 传入审查目标（成功条件列表），激活 goal-alignment-reviewer 逐条校验变更是否达成目标 |
+| `plan=<path>` | 加载计划用于需求验证 |
+| `goals=<text>` | 传入审查目标（成功条件列表），激活 goal-alignment-reviewer 逐条校验变更是否达成目标 |
 
-**冲突检测：** 以下范围标记互斥，同时指定时停止并报错：`from:` / `recent:` / `full` / `full:<path>` / `session`。
+**内部调用约定**：当本技能被其他技能自动调用时，所有参数必须使用显式命名格式（如 `mode=autofix domain=document`），不依赖值特征推断。
+
+**冲突检测：** 以下范围标记互斥，同时指定时停止并报错：`from=` / `recent=` / `full` / `full=<path>` / `session`。
 
 #### 范围确定
 
@@ -80,8 +95,8 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 
 代码域范围确定：
 
-1. **Git 差异模式**（`from:<ref>` 或 `recent:<N>` 或自动检测）→ 按优先级检测，展示变更文件让用户确认
-2. **全量扫描模式**（`full` 或 `full:<path>`）→ 扫描项目文件，应用排除规则，让用户确认
+1. **Git 差异模式**（`from=<ref>` 或 `recent=<N>` 或自动检测）→ 按优先级检测，展示变更文件让用户确认
+2. **全量扫描模式**（`full` 或 `full=<path>`）→ 扫描项目文件，应用排除规则，让用户确认
 3. **会话变更模式**（`session`）→ 识别会话变更文件，让用户确认
 4. **自动检测**（无范围参数时）→ 按 Git 自动检测优先级尝试，非 Git 项目回退全量扫描
 
@@ -95,8 +110,8 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 
 #### 意图发现
 
-- 代码域：结合对话上下文编写 2-3 行意图摘要；检查 `plan:` 参数或自动发现最近计划；`goals:` 参数内容作为审查目标注入子代理上下文
-- 文档域：通过分析文档内容判断类型（requirements/plan/test/general）；`goals:` 参数内容作为审查目标注入子代理上下文
+- 代码域：结合对话上下文编写 2-3 行意图摘要；检查 `plan=` 参数或自动发现最近计划；`goals=` 参数内容作为审查目标注入子代理上下文
+- 文档域：通过分析文档内容判断类型（requirements/plan/test/general）；`goals=` 参数内容作为审查目标注入子代理上下文
 
 #### TaskIntent 输出
 

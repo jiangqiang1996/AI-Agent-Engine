@@ -1,7 +1,7 @@
 ---
 name: ae:course-auto-player
 description: "自动完成在线课程：连接浏览器、遍历课程列表，自动处理文档/视频/外链课程，并对考试类课程进行多代理智能答题与错题修正"
-argument-hint: "[浏览器类型] <课程列表页面URL>"
+argument-hint: "[browser] <课程列表页面URL>"
 ---
 
 # ae:course-auto-player
@@ -52,10 +52,22 @@ argument-hint: "[浏览器类型] <课程列表页面URL>"
 用户通过命令传入参数，格式为：
 
 ```
-/ae-course-auto-player [浏览器类型] <课程列表页面URL>
+/ae-course-auto-player [browser] <课程列表页面URL>
 ```
 
-- 浏览器类型为可选参数，支持 `Chrome`、`Edge`、`Brave`、`Vivaldi`，默认为 `Chrome`
+参数解析规则（三级策略）：
+1. 显式命名：`key=value`、`key:value`、`--key=value` 直接绑定，优先级最高
+2. 值特征推断：按值的模式自动匹配参数类型（仅在参数意图上下文中生效）
+
+   | 值模式 | 推断为 |
+   |--------|--------|
+   | http:// 或 https:// 开头 | url |
+   | Chrome / Edge / Brave / Vivaldi | browser |
+
+3. 顺序兜底：`browser → url`
+
+**内部调用约定**：当本技能被其他技能自动调用时，所有参数必须使用显式命名格式（如 `url=https://example.com browser=Edge`），不依赖值特征推断。
+
 - URL 为必填参数，必须是可访问的课程列表页面地址
 - 如果用户未提供 URL，必须先询问，不得自行假设
 - 如果用户提供的浏览器类型不在支持列表中，提示用户选择支持的类型
@@ -65,7 +77,7 @@ argument-hint: "[浏览器类型] <课程列表页面URL>"
 ### 前置：浏览器连接
 
 1. 使用 `ae:chrome-devtools` 技能完成浏览器 MCP 动态注册并确认连接就绪。`ae:chrome-devtools` 是浏览器 MCP 的唯一管理入口，不应直接调用 `ae-chrome-devtools-mcp` 工具。
-2. 传入 `browser` 参数（取自用户输入的浏览器类型，默认 `Chrome`）。如果 autoConnect 失败，使用 `--mode=isolated` 启动独立浏览器实例，同样传入 `browser` 参数。
+2. 传入 `browser` 参数（取自用户输入的浏览器类型，默认 `Chrome`）。如果 autoConnect 失败，使用 `mode=isolated` 启动独立浏览器实例，同样传入 `browser` 参数。
    - 如果用户希望连接已有浏览器（保留登录态），需先在浏览器中启用远程调试：在地址栏打开对应调试页面并勾选开关，不同浏览器的地址不同：
 
      | 浏览器 | 远程调试页面 |

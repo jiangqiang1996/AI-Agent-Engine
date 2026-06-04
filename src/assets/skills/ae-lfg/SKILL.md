@@ -1,7 +1,7 @@
 ﻿---
 name: ae:lfg
 description: "自包含一站式管道技能：内联澄清需求、设计、实施，仅调用 ae:review 审查；一次澄清后静默执行到底；同时支持软件和非软件任务"
-argument-hint: "[task] [--compatible=true|false]"
+argument-hint: "[task] [compatible=true|false]"
 disable-model-invocation: true
 ---
 
@@ -9,14 +9,26 @@ disable-model-invocation: true
 
 自包含一站式管道技能。澄清需求、设计、实施均为内联逻辑，审查步骤调用 ae:review。一次澄清后静默执行到底，中途不再提问。同时支持软件和非软件任务。
 
-## 输入
+## 参数说明
 
-两个参数：
+| 参数 | 必填 | 说明 |
+|------|------|------|
+| `task` | 是 | 任务描述、步骤、目标、或已有 lfg 产物路径 |
+| `compatible` | 否 | 是否兼容历史版本：`true`（默认）/ `false`。false 时产物标记为不兼容更新 |
 
-- **task**（必填）：任务描述、步骤、目标、或已有 lfg 产物路径
-- **compatible**（可选，默认 true）：是否兼容历史版本；false 时产物标记为不兼容更新
+参数解析规则（三级策略）：
+1. 显式命名：`key=value`、`key:value`、`--key=value` 直接绑定，优先级最高
+2. 值特征推断：按值的模式自动匹配参数类型（仅在参数意图上下文中生效）
 
-`#$ARGUMENTS` 解析规则：第一个非标记参数为 task，`--compatible=false` 为不兼容模式。
+   | 值模式 | 推断为 |
+   |--------|--------|
+   | true / false | compatible |
+
+3. 顺序兜底：第一个非布尔值参数为 task
+
+**内部调用约定**：当本技能被其他技能自动调用时，所有参数必须使用显式命名格式（如 `task=重构登录模块 compatible=false`），不依赖值特征推断。
+
+`#$ARGUMENTS` 解析规则：第一个非标记参数为 task，`compatible=false` 为不兼容模式。
 
 **如果 task 为空，询问用户：** "你想完成什么任务？" 然后等待回复再继续。
 
@@ -25,7 +37,7 @@ disable-model-invocation: true
 在进入管道之前判断任务类型：
 
 - **简单问答**：直接回答，不进管道。判断信号："是什么""解释""命令含义""代码说明"等纯信息请求。
-- **只读审查**：直接调用 `ae:review mode:report-only`，不进管道。判断信号：用户明确要求"审查""review""不要修改"。
+- **只读审查**：直接调用 `ae:review mode=report-only`，不进管道。判断信号：用户明确要求"审查""review""不要修改"。
 - **提交请求**：走 Git 安全流程，不进管道。判断信号：用户明确要求"提交""commit""push"。
 - **单文件文字修改**：直接修改，不进管道。判断信号：范围限于单个文件的文字内容修改（如修正拼写、改写注释、更新文档段落）。
 - **其他所有场景**：走完整 6 步管道。
@@ -52,7 +64,7 @@ disable-model-invocation: true
 - 实施 → 方案落地（撰写文档、整理资料、生成报告等）
 - 审查结果 → 审查产出物文档
 
-非软件任务的审查步骤均使用 `ae:review mode:headless domain:document`（步骤 2、4）和 `ae:review mode:autofix domain:document`（步骤 6）。
+非软件任务的审查步骤均使用 `ae:review mode=headless domain=document`（步骤 2、4）和 `ae:review mode=autofix domain=document`（步骤 6）。
 
 ## 澄清原则
 
@@ -64,14 +76,14 @@ disable-model-invocation: true
 
 ## 不兼容更新
 
-当 `--compatible=false` 时：
+当 `compatible=false` 时：
 
 - 需求文档 frontmatter 含 `breakingChange: true`
 - 设计文档 frontmatter 含 `breakingChange: true`
 - 需求文档中明确记录"不兼容历史产物"
 - 设计文档中写明"清除历史技术债务，彻底重构，直接达成最终目标"
 
-默认 `--compatible=true` 时，以上内容不出现。
+默认 `compatible=true` 时，以上内容不出现。
 
 ## 管道步骤
 
@@ -85,7 +97,7 @@ disable-model-invocation: true
 
 ### 步骤 2：审查需求
 
-调用 `ae:review mode:headless domain:document <requirements-doc-path>`。
+调用 `ae:review mode=headless domain=document <requirements-doc-path>`。
 
 **门控：** ae:review 返回无 P0/P1 阻断发现。最多重试 3 次（根据审查发现自主修正文档后重新审查；修正时禁止向用户提问，仅依据审查发现和需求文档已有信息决策）。3 次后仍有 P0/P1 阻断发现则中止管道，报告已完成步骤、失败步骤、失败原因、已产出物路径。若 ae:review 执行失败（非审查发现），立即中止管道。
 
@@ -101,7 +113,7 @@ disable-model-invocation: true
 
 ### 步骤 4：审查设计
 
-调用 `ae:review mode:headless domain:document <design-doc-path>`。
+调用 `ae:review mode=headless domain=document <design-doc-path>`。
 
 **门控：** ae:review 返回无 P0/P1 阻断发现。最多重试 3 次（根据审查发现自主修正文档后重新审查；修正时禁止向用户提问，仅依据审查发现和需求文档已有信息决策）。3 次后仍有 P0/P1 阻断发现则中止管道，报告已完成步骤、失败步骤、失败原因、已产出物路径。若 ae:review 执行失败（非审查发现），立即中止管道。
 
@@ -116,10 +128,10 @@ disable-model-invocation: true
 
 ### 步骤 6：审查结果
 
-调用 `ae:review mode:autofix <产物路径或审查范围>`。
+调用 `ae:review mode=autofix <产物路径或审查范围>`。
 
-软件任务：`ae:review mode:autofix`（默认 domain:code）。
-非软件任务：`ae:review mode:autofix domain:document <产出物路径>`。
+软件任务：`ae:review mode=autofix`（默认 domain=code）。
+非软件任务：`ae:review mode=autofix domain=document <产出物路径>`。
 
 **门控：** ae:review 返回可合并结论。最多重试 3 次（根据审查发现自主修正后重新审查）。3 次后仍不可合并则中止管道，报告已完成步骤、失败步骤、失败原因、已产出物路径。若 ae:review 执行失败（非审查发现），立即中止管道。
 

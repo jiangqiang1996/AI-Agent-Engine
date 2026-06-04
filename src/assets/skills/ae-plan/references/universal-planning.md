@@ -46,4 +46,4 @@
 1. **保存到磁盘** — 写为 Markdown 文件（`ae/plans/` 或自定义位置）。以 YAML frontmatter 开始（`type: plan`、`status: drafted`、`date`、`title`），后跟 `# 标题`。
 2. **暂时完成** — 计划在聊天中呈现，不保存；此时只能生成摘要型下一步提示，不伪造路径。
 
-计划保存后提供稳定下一步选项：先审查计划 `/ae-review domain:document <plan-path>`，审查通过或用户明确选择继续后可执行 `/ae-work <plan-path>`。不得提供 Issue、PR 或其他远程写操作流程。
+计划保存后提供稳定下一步选项：先审查计划 `/ae-review domain=document <plan-path>`，审查通过或用户明确选择继续后可执行 `/ae-work <plan-path>`。不得提供 Issue、PR 或其他远程写操作流程。

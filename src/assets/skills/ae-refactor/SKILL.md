@@ -72,7 +72,7 @@ argument-hint: "[重构目标|计划路径|需求文档路径|旧机制描述]"
 `ae:plan` 产出计划后，本技能停止在计划交付阶段，不得自动触发 `ae:work` 或任何实现步骤。只提示用户可选择后续动作：
 
 ```text
-/ae-review domain:document <plan-path>
+/ae-review domain=document <plan-path>
 ```
 
 永远不要在 `ae:refactor` 中复制 `ae:plan` 的完整流程。`ae:refactor` 负责重构计划策略、清债约束和共享计划结构的正确使用，不是 `ae:plan` 的简单封装。

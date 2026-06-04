@@ -1,7 +1,7 @@
 ---
 name: ae:graph-query
 description: 查询项目文件关系图谱中的依赖、影响范围、核心模块和健康状态
-argument-hint: "[mode:deps|impact|health|filter|path|core|stats|pattern] [file:<PATH>] [target:<PATH>]"
+argument-hint: "[mode] [file=<PATH>] [target=<PATH>] [directory=<PATH>]"
 ---
 
 # Skill: ae:graph-query
@@ -16,6 +16,38 @@ argument-hint: "[mode:deps|impact|health|filter|path|core|stats|pattern] [file:<
 - 查找两个文件之间的最短依赖路径。
 - 开始阅读陌生项目、模块或目录前，先获取候选文件和关系分布。
 - 代码审查、计划拆解、调试定位和重构设计前，先用图谱收窄真实文件阅读范围。
+
+## 参数说明
+
+| 参数 | 必填 | 说明 |
+|------|------|------|
+| `mode` | 是 | 查询模式：`deps` / `impact` / `health` / `filter` / `path` / `core` / `stats` / `pattern` |
+| `file` | 否 | 目标文件路径，`deps`/`impact`/`path` 模式使用 |
+| `target` | 否 | 目标文件路径，`path` 模式使用 |
+| `directory` | 否 | 目录路径筛选 |
+| `scope` | 否 | 图谱范围，需与构建 target 对应 |
+| `relation_type` | 否 | 关系类型筛选 |
+| `file_type` | 否 | 文件类型筛选 |
+| `pattern_type` | 否 | `pattern` 模式：`cycle` / `long` / `all` |
+| `limit` | 否 | 结果数量上限，默认 50 |
+| `top` | 否 | Top N，`core` 模式使用，默认 10 |
+| `exclude` | 否 | 查询时额外排除的路径集合 |
+
+参数解析规则（三级策略）：
+1. 显式命名：`key=value`、`key:value`、`--key=value` 直接绑定，优先级最高
+2. 值特征推断：按值的模式自动匹配参数类型（仅在参数意图上下文中生效）
+
+   | 值模式 | 推断为 |
+   |--------|--------|
+   | deps / impact / health / filter / path / core / stats / pattern | mode |
+   | cycle / long / all | pattern_type |
+   | 现有文件路径 | file |
+
+   ❌ 否定示例：`查看 impact 范围` 中的 impact 不推断为 mode（因语义为查看，不是指定查询模式）
+
+3. 顺序兜底：值特征有交集时，按 `mode → pattern_type → file → target → directory` 顺序匹配
+
+**内部调用约定**：当本技能被其他技能自动调用时，所有参数必须使用显式命名格式（如 `mode=deps file=./src/index.ts`），不依赖值特征推断。
 
 ## 执行流程
 

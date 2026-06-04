@@ -13,8 +13,8 @@ steps: 30
 
 ## When To Use
 
-- 任何代码审查任务（`domain:code`）
-- 任何文档审查任务（`domain:document`）
+- 任何代码审查任务（`domain=code`）
+- 任何文档审查任务（`domain=document`）
 - 需要多审查者并行审查的场景
 - 编排层（ae:review 等）通过 Task 工具调用
 

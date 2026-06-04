@@ -68,7 +68,7 @@ breakingChange: true  # 仅 --compatible=false 时包含此行，否则删除
 
 ## breakingChange 字段
 
-当 `--compatible=false` 时，需求文档和设计文档的 frontmatter 均包含 `breakingChange: true`。需求文档正文"目标"章节中应明确记录"不兼容历史产物"，设计文档正文"实现步骤"中应写明"清除历史技术债务，彻底重构，直接达成最终目标"。
+当 `compatible=false` 时，需求文档和设计文档的 frontmatter 均包含 `breakingChange: true`。需求文档正文"目标"章节中应明确记录"不兼容历史产物"，设计文档正文"实现步骤"中应写明"清除历史技术债务，彻底重构，直接达成最终目标"。
 
 ## 与 ae:prd/ae:plan 的区别
 

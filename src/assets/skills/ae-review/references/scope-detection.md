@@ -1,6 +1,6 @@
 # 范围检测
 
-审查范围的确定流程。本文档描述 Git 差异模式的范围检测。全量扫描模式（`full`/`full:<path>`）和会话变更模式（`session`）不使用此流程，见 SKILL.md 阶段 1。
+审查范围的确定流程。本文档描述 Git 差异模式的范围检测。全量扫描模式（`full`/`full=<path>`）和会话变更模式（`session`）不使用此流程，见 SKILL.md 阶段 1。
 
 按以下优先级执行。
 
@@ -25,7 +25,7 @@
 
 ### 优先级 1：显式指定
 
-`from:<ref>` 参数存在时，直接使用指定 ref 作为基准，跳过所有检测。`base:<ref>` 映射到 `from:<ref>` 保持兼容。
+`from=<ref>` 参数存在时，直接使用指定 ref 作为基准，跳过所有检测。`base=<ref>` 映射到 `from=<ref>` 保持兼容。
 
 ### 优先级 2：状态文件
 
@@ -33,11 +33,11 @@
 
 | 条件 | 行为 |
 |------|------|
-| HEAD == lastReviewed 且无暂存/未暂存/未跟踪变更 | **审查最近 10 次提交**（`recent:10`） |
+| HEAD == lastReviewed 且无暂存/未暂存/未跟踪变更 | **审查最近 10 次提交**（`recent=10`） |
 | HEAD == lastReviewed 但有工作区变更 | 仅审查工作区变更 |
 | HEAD ≠ lastReviewed | `git diff lastReviewed..HEAD` + 工作区变更 |
 
-用户可通过 `from:<ref>` 或项目配置选择不触发全项目审查。
+用户可通过 `from=<ref>` 或项目配置选择不触发全项目审查。
 
 ### 优先级 3：首次运行
 
@@ -51,10 +51,10 @@
 
 支持外部传入范围参数，跳过自动检测：
 
-- `from:<ref>` — 从指定 commit hash 或分支名开始审查（`base:<ref>` 映射到 `from:` 保持兼容）。输入必须为合法 Git ref 格式，拒绝包含 shell 元字符（`;|&$\`` 等）的输入以防注入
-- `recent:<N>` — 审查最近 N 次提交。N 必须为正整数，无效输入回退到默认值 10 并提示用户
+- `from=<ref>` — 从指定 commit hash 或分支名开始审查（`base=<ref>` 映射到 `from=` 保持兼容）。输入必须为合法 Git ref 格式，拒绝包含 shell 元字符（`;|&$\`` 等）的输入以防注入
+- `recent=<N>` — 审查最近 N 次提交。N 必须为正整数，无效输入回退到默认值 10 并提示用户
 - `full` — 全量扫描项目中所有文件（不依赖 Git，见 SKILL.md 阶段 1b）
-- `full:<path>` — 全量扫描指定路径下所有文件（不依赖 Git，见 SKILL.md 阶段 1b）
+- `full=<path>` — 全量扫描指定路径下所有文件（不依赖 Git，见 SKILL.md 阶段 1b）
 - `session` — 审查本次会话中变更的文件（见 SKILL.md 阶段 1c）
 
 ## 非 Git 项目

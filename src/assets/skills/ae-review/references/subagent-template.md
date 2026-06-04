@@ -47,8 +47,8 @@
 - 完整产物中的每个发现必须包含至少一项基于实际代码/内容的证据。
 - 你在操作上是只读的。不要编辑项目文件或变更仓库状态。
 - 根据域设置特定字段：
-  - 代码域（domain: code）：设置 owner、requires_verification
-  - 文档域（domain: document）：可设置 deferred_questions（顶层）；为每个发现设置 finding_type：
+  - 代码域（domain=code）：设置 owner、requires_verification
+  - 文档域（domain=document）：可设置 deferred_questions（顶层）；为每个发现设置 finding_type：
     - `error`：文档所说的有误之处——矛盾、不正确的陈述、设计张力
     - `omission`：文档遗漏的内容——缺失的步骤、遗漏的条目
 - 准确设置 autofix_class——根据是否存在一个可由已知内容推断出的明确正确修复方案来设置，而非基于严重性：
@@ -124,7 +124,7 @@
 
 | 变量 | 来源 |
 |------|------|
-| `{success_criteria}` | `goals:` 参数提供的审查目标文本 |
+| `{success_criteria}` | `goals=` 参数提供的审查目标文本 |
 
 ## 输入模式
 

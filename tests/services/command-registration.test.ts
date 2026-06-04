@@ -135,7 +135,7 @@ describe('command-registration', () => {
     const paCommand = `${COMMAND.TEST_BROWSER}${PA_SUFFIX}`
 
     const baseTemplate = config[COMMAND.TEST_BROWSER]?.template ?? ''
-    expect(baseTemplate).toContain(`先使用 \`${SKILL.CHROME_DEVTOOLS}\` 技能完成 chrome-devtools MCP 动态注册`)
+    expect(baseTemplate).toContain(`先使用 \`${SKILL.CHROME_DEVTOOLS} action=register mode=autoConnect\` 技能完成浏览器 MCP 动态注册`)
     expect(baseTemplate).toContain('未完成 MCP 注册前不得执行任何浏览器控制命令')
     expect(baseTemplate.indexOf(SKILL.CHROME_DEVTOOLS)).toBeLessThan(baseTemplate.indexOf(SKILL.TEST_BROWSER))
 

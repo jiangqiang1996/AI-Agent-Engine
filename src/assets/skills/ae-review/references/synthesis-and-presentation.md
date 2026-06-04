@@ -86,7 +86,7 @@
 
 **降级标记：** 将缺少 `suggested_fix` 的 `auto` 发现降级为 `gated`，标记 `auto-downgraded-to-gated` 并统计数量。
 
-**无头推荐修复队列：** 在 `mode:headless` 中，将所有包含 `suggested_fix` 的 `gated`/`manual` 发现加入推荐修复队列，按审查者推荐方向应用。若发现缺少 `suggested_fix`、建议会删除受保护产物、建议要求外部事实、或多个建议互相冲突，则不应用并写入 `unresolved_recommended_fixes`。
+**无头推荐修复队列：** 在 `mode=headless` 中，将所有包含 `suggested_fix` 的 `gated`/`manual` 发现加入推荐修复队列，按审查者推荐方向应用。若发现缺少 `suggested_fix`、建议会删除受保护产物、建议要求外部事实、或多个建议互相冲突，则不应用并写入 `unresolved_recommended_fixes`。
 
 ### 5.9 补全问题队列
 
@@ -133,7 +133,7 @@
 
 ### 步骤 1：应用修复
 
-使用一个修复器和 `max_rounds: 2` 应用修复队列中的所有 `auto` 发现。`mode:headless` 还必须应用无头推荐修复队列；应用前复核每项都有 `suggested_fix` 且不触发受保护产物、安全边界或互斥建议。
+使用一个修复器和 `max_rounds=2` 应用修复队列中的所有 `auto` 发现。`mode=headless` 还必须应用无头推荐修复队列；应用前复核每项都有 `suggested_fix` 且不触发受保护产物、安全边界或互斥建议。
 
 ### 步骤 2：写入运行产物
 

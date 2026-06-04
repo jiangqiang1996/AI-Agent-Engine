@@ -77,5 +77,5 @@ fi
 if [ -n "$BASE" ]; then
   echo "BASE:$BASE"
 else
-  echo "ERROR:无法解析审查基准分支。建议：1) 使用 from:<ref> 指定基准 2) 仅审查工作区变更 3) 查看提交历史手动选择。"
+  echo "ERROR:无法解析审查基准分支。建议：1) 使用 from=<ref> 指定基准 2) 仅审查工作区变更 3) 查看提交历史手动选择。"
 fi

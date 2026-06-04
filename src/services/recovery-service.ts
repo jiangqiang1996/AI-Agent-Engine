@@ -81,7 +81,7 @@ function nextArgumentsForArtifact(
       return undefined
     }
     // 计划/需求产物属于文档审查范围，不能按默认代码审查契约恢复。
-    return phase === 'lfg' ? `mode:headless domain:document ${path}` : `domain:document ${path}`
+    return phase === 'lfg' ? `mode=headless domain=document ${path}` : `domain=document ${path}`
   }
   return undefined
 }

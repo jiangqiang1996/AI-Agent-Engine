@@ -4,13 +4,13 @@
 
 ## 5.3.8 文档审查
 
-针对计划文件运行 `ae:review mode:headless domain:document <plan-path>`。强制性的——即使信心检查已运行。
+针对计划文件运行 `ae:review mode=headless domain=document <plan-path>`。强制性的——即使信心检查已运行。
 
 信心检查和文档审查捕获不同类别的问题：
 - 信心检查加强理由、排序、风险处理
 - 文档审查检查一致性、可行性、范围对齐
 
-**管道模式：** 以 `mode:headless` 运行。无头模式静默应用自动修复并返回结构化发现。
+**管道模式：** 以 `mode=headless` 运行。无头模式静默应用自动修复并返回结构化发现。
 
 ## 5.3.9 最终检查和清理
 

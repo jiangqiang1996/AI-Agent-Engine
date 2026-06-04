@@ -1,7 +1,7 @@
 ---
 name: ae:html-bundle
 description: 将显式入口 HTML 及其本地静态资源收敛为自包含 bundle.html
-argument-hint: "[entry:<HTML_PATH>] [output:<HTML_PATH>] [external:keep|fail]"
+argument-hint: "[entry] [output] [external=keep|fail]"
 ---
 
 # ae:html-bundle
@@ -22,10 +22,33 @@ argument-hint: "[entry:<HTML_PATH>] [output:<HTML_PATH>] [external:keep|fail]"
 - 需要完整改写运行时 `fetch()`、动态 `import()`、WASM、远程 CDN 或复杂懒加载语义。
 - 输入是目录、通配符或需要自动猜测入口文件。
 
+## 参数说明
+
+| 参数 | 必填 | 说明 |
+|------|------|------|
+| `entry` | 是 | 入口 HTML 文件路径，必须位于当前工作区内。 |
+| `output` | 是 | 输出 HTML 文件路径，必须位于当前工作区内。 |
+| `external` | 否 | 外部 URL 处理策略：`keep`（默认）/ `fail`。 |
+
+参数解析规则（三级策略）：
+1. 显式命名：`key=value`、`key:value`、`--key=value` 直接绑定，优先级最高
+2. 值特征推断：按值的模式自动匹配参数类型（仅在参数意图上下文中生效）
+
+   | 值模式 | 推断为 |
+   |--------|--------|
+   | 以 .html 结尾的路径 | entry 或 output（按出现顺序） |
+   | keep / fail | external |
+
+   ❌ 否定示例：`keep 源文件不变` 中的 keep 不推断为 external
+
+3. 顺序兜底：值特征有交集时，按 `entry → output → external` 顺序匹配
+
+**内部调用约定**：当本技能被其他技能自动调用时，所有参数必须使用显式命名格式（如 `entry=./dist/index.html output=./bundle.html`），不依赖值特征推断。
+
 ## 执行流程
 
 1. 要求用户提供显式 `entry` HTML 文件和 `output` 输出文件；缺失时先询问。
-2. 调用 `ae-html-bundle` 工具执行打包，默认使用 `external:keep`。
+2. 调用 `ae-html-bundle` 工具执行打包，默认使用 `external=keep`。
 3. 阅读工具返回的 `complete`、`partial` 或 `failed` 状态。
 4. 如果是 `partial`，明确列出保留外链、仅运行时才能解析的构造或超预算资源，不得宣称产物完全离线自包含。
 5. 如果是 `failed`，按工具返回的中文原因让用户修正输入路径、资源闭包、预算或输出权限后重试。

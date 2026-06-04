@@ -17,7 +17,7 @@ argument-hint: "[一句话目标描述]"
 2. **成功条件锁死** — Phase 0 确认的成功条件列表不可在循环中修改；条件有误属于瓶颈退出
 3. **原始目标为真** — 用户原始目标文本作为实施依据
 4. **内联实施** — 所有变更由本会话直接执行（编辑文件、运行命令），禁止委派子代理实施
-5. **ae:review 审查闭环** — 每轮变更后调用 ae:review mode:autofix，审查发现驱动修复
+5. **ae:review 审查闭环** — 每轮变更后调用 ae:review mode=autofix，审查发现驱动修复
 6. **双重退出校验** — ae:review 无阻断发现 AND 成功条件全部达成，两者独立校验不互蕴含
 7. **遇到歧义自行决策** — 循环体中不确定情况自行选择最优解，不得暂停或退出
 
@@ -48,7 +48,7 @@ argument-hint: "[一句话目标描述]"
 
 ### Phase 2：内联实施 + ae:review 循环（禁止交互）
 
-**参数：** 上限 30 轮，瓶颈阈值连续 3 轮无新增达成的成功条件。一轮 = 一次完整的"内联变更 → ae:review mode:autofix"调用。
+**参数：** 上限 30 轮，瓶颈阈值连续 3 轮无新增达成的成功条件。一轮 = 一次完整的"内联变更 → ae:review mode=autofix"调用。
 
 #### Step 1：内联变更
 
@@ -59,12 +59,12 @@ argument-hint: "[一句话目标描述]"
 
 变更策略由 LLM 自主决策。禁止提问，禁止调用 ae:work。
 
-#### Step 2：ae:review mode:autofix
+#### Step 2：ae:review mode=autofix
 
-- **软件任务**（涉及代码文件变更）：`ae:review mode:autofix goals:<成功条件列表>`（默认 domain:code）
-- **非软件任务**（无代码变更）：`ae:review mode:autofix domain:document goals:<成功条件列表>`
+- **软件任务**（涉及代码文件变更）：`ae:review mode=autofix goals=<成功条件列表>`（默认 domain=code）
+- **非软件任务**（无代码变更）：`ae:review mode=autofix domain=document goals=<成功条件列表>`
 - **混合任务**：按软件任务处理，审查范围描述同时包含代码和文档质量方向
-- 成功条件列表通过 `goals:` 参数传入 ae:review，激活 goal-alignment-reviewer 逐条校验变更是否达成各项目标
+- 成功条件列表通过 `goals=` 参数传入 ae:review，激活 goal-alignment-reviewer 逐条校验变更是否达成各项目标
 
 **失败处理：** ae:review 整体失败（技能不可用等）时管道中止，报告已完成步骤、失败步骤和原因；部分专精代理失败时以已有审查发现继续，在最终报告标注未完成审查维度。
 
