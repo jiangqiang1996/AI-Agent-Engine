@@ -171,4 +171,11 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
     conditionGroups: [[{ field: 'documentType', operator: 'eq', value: 'test' }]],
     description: '审查测试用例文档的结构完整性、覆盖完备性、步骤可执行性、结果可验证性和需求对齐程度',
   },
+  {
+    name: AGENT.GOAL_ALIGNMENT_REVIEWER,
+    domain: 'both',
+    alwaysOn: false,
+    conditionGroups: [[{ field: 'hasGoalAlignment', operator: 'truthy' }]],
+    description: '对照显式审查目标逐条校验变更是否达成各项目标，识别未达成项和偏离',
+  },
 ]

@@ -59,6 +59,7 @@ export const aeReviewContractTool: ToolDefinition = tool({
     has_database: tool.schema.boolean().optional().describe('是否涉及数据库变更'),
     has_script: tool.schema.boolean().optional().describe('是否涉及脚本变更'),
     has_upstream: tool.schema.boolean().optional().describe('文档是否记录了 upstream/origin 等上游来源'),
+    has_goal_alignment: tool.schema.boolean().optional().describe('是否提供审查目标（成功条件列表），激活目标对齐审查'),
   },
   async execute(args) {
     return Effect.runPromise(
@@ -92,6 +93,7 @@ export const aeReviewContractTool: ToolDefinition = tool({
             isHighRiskDomain: args.is_high_risk_domain,
             hasNewAbstraction: args.has_new_abstraction,
             hasUpstream: args.has_upstream,
+            hasGoalAlignment: args.has_goal_alignment,
           }
 
           const taskIntent = {
@@ -131,6 +133,7 @@ export const aeReviewContractTool: ToolDefinition = tool({
             isHighRiskDomain: args.is_high_risk_domain,
             hasNewAbstraction: args.has_new_abstraction,
             hasUpstream: args.has_upstream,
+            hasGoalAlignment: args.has_goal_alignment,
           })
 
           return JSON.stringify(

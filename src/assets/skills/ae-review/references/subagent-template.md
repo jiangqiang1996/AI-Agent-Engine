@@ -78,6 +78,8 @@
 审查者名称：{reviewer_name}
 
 {domain_specific_context}
+
+{success_criteria_section}
 </review-context>
 ```
 
@@ -114,6 +116,15 @@
 
 - 代码域展开为：`意图：{intent_summary}\n\n变更文件：{file_list}\n\n{content_mode_label}\n{content}`
 - 文档域展开为：`文档类型：{document_type}\n文档路径：{document_path}\n\n文档内容：\n{document_content}`
+
+### 审查目标变量 `{success_criteria_section}`
+
+- 当 `{success_criteria}` 非空时展开为：`审查目标：\n{success_criteria}\n\n请逐条对照以上审查目标，校验变更内容是否达成各项目标。`
+- 当 `{success_criteria}` 为空时展开为空字符串
+
+| 变量 | 来源 |
+|------|------|
+| `{success_criteria}` | `goals:` 参数提供的审查目标文本 |
 
 ## 输入模式
 

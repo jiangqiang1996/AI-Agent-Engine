@@ -153,6 +153,13 @@ const REVIEW_SPECIALISTS: SpecialistDef[] = [
     inputContract: '文档内容',
     outputContract: '测试文档质量评估',
   },
+  {
+    name: AGENT.GOAL_ALIGNMENT_REVIEWER,
+    capabilities: ['目标达成校验', '成功条件逐条比对', '偏离识别', '未达成项标记'],
+    selectionCriteria: '提供审查目标时选中：hasGoalAlignment=true',
+    inputContract: '变更内容和审查目标（成功条件列表）',
+    outputContract: '逐条目标达成评估和未达成项发现',
+  },
 ]
 
 const DEVELOPMENT_SPECIALISTS: SpecialistDef[] = [

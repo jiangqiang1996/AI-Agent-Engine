@@ -1,7 +1,7 @@
 ---
 name: ae:review
 description: "统一审查技能。支持代码域（Git 差异、全量文件、指定路径、会话变更等）和文档域（需求文档、计划文档、测试文档、通用文档）的分层角色审查。通过 domain 参数切换审查域。"
-argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full:<path>] [session] [plan:<path>] [文档路径]"
+argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full:<path>] [session] [plan:<path>] [goals:<text>] [文档路径]"
 ---
 
 # 统一审查（编排层）
@@ -70,6 +70,7 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 | `full:<path>` | 审查指定路径下的所有文件（不依赖 Git） |
 | `session` | 审查本次会话中变更的文件 |
 | `plan:<path>` | 加载计划用于需求验证 |
+| `goals:<text>` | 传入审查目标（成功条件列表），激活 goal-alignment-reviewer 逐条校验变更是否达成目标 |
 
 **冲突检测：** 以下范围标记互斥，同时指定时停止并报错：`from:` / `recent:` / `full` / `full:<path>` / `session`。
 
@@ -94,8 +95,8 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 
 #### 意图发现
 
-- 代码域：结合对话上下文编写 2-3 行意图摘要；检查 `plan:` 参数或自动发现最近计划
-- 文档域：通过分析文档内容判断类型（requirements/plan/test/general）
+- 代码域：结合对话上下文编写 2-3 行意图摘要；检查 `plan:` 参数或自动发现最近计划；`goals:` 参数内容作为审查目标注入子代理上下文
+- 文档域：通过分析文档内容判断类型（requirements/plan/test/general）；`goals:` 参数内容作为审查目标注入子代理上下文
 
 #### TaskIntent 输出
 
@@ -156,6 +157,7 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 | `{file_list}` | 变更文件列表 |
 | `{content}` | diff 内容或完整文件内容 |
 | `{content_mode_label}` | 增量/全量/会话变更 |
+| `{success_criteria}` | `goals:` 参数提供的审查目标文本，无 `goals:` 时为空 |
 | `{run_id}` | 运行标识符 |
 
 文档域变量映射：
@@ -166,9 +168,12 @@ argument-hint: "[mode:*] [domain:code|domain:document] [from:<ref>] [full] [full
 | `{document_type}` | requirements/plan/test/general |
 | `{document_path}` | 文档路径 |
 | `{document_content}` | 完整文本或分片上下文 |
+| `{success_criteria}` | `goals:` 参数提供的审查目标文本，无 `goals:` 时为空 |
 | `{run_id}` | 运行标识符 |
 
 **错误处理：** 如果域代理返回 `failed` 或 `partial`，使用已完成的结果继续综合。
+
+**标志映射规则：** `goals:` 参数存在时，`ae-review-contract` 的 `has_goal_alignment` 和 `DomainCallRequest.domainContext` 的 `hasGoalAlignment` 必须设为 `true`，以激活 goal-alignment-reviewer。
 
 #### 调度一致性校验
 

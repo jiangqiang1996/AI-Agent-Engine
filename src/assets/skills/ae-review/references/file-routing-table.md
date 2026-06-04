@@ -30,6 +30,7 @@
 | 审查者 | 关注点 |
 |--------|--------|
 | `research-reviewer` | 搜索历史方案、最佳实践和框架文档 |
+| `goal-alignment-reviewer` | 对照审查目标逐条校验变更是否达成（仅当 goals: 参数提供审查目标时激活） |
 
 以下输入仅作为透明上下文，不单独激活条件审查者：`has_typescript`、`has_config`、`has_script`。工具定义、工具参数、工具注册、代理配置、代理注册和技能 frontmatter 变更应使用 `has_tooling` 或 `has_agent_config` 激活 `agent-native-reviewer`。
 

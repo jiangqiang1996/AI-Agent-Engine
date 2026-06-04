@@ -98,6 +98,7 @@ function toReviewSelectionInput(
     ['isHighRiskDomain', domainContext.isHighRiskDomain ?? domainContext.is_high_risk_domain],
     ['hasNewAbstraction', domainContext.hasNewAbstraction ?? domainContext.has_new_abstraction],
     ['hasUpstream', domainContext.hasUpstream ?? domainContext.has_upstream],
+    ['hasGoalAlignment', domainContext.hasGoalAlignment ?? domainContext.has_goal_alignment],
   ]
 
   const dispatchedFlags: Record<string, boolean> = {}
@@ -130,6 +131,7 @@ function toReviewSelectionInput(
     isHighRiskDomain: getBoolean(flagEntries.find(([k]) => k === 'isHighRiskDomain')![1]),
     hasNewAbstraction: getBoolean(flagEntries.find(([k]) => k === 'hasNewAbstraction')![1]),
     hasUpstream: getBoolean(flagEntries.find(([k]) => k === 'hasUpstream')![1]),
+    hasGoalAlignment: getBoolean(flagEntries.find(([k]) => k === 'hasGoalAlignment')![1]),
     dispatchedFlags,
   }
 }
