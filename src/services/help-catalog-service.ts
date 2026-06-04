@@ -7,10 +7,7 @@ import {
 import { buildCommandConfig } from './command-registration.js'
 import { buildAgentConfig } from './agent-registration.js'
 import { getAssetModelRoutingEntries, type AssetModelRoutingEntry } from './asset-model-routing-catalog.js'
-import { createRuntimeAssetManifest } from './runtime-asset-manifest.js'
-import { createRuntimeAssetManifestFromRoot } from './runtime-asset-manifest.js'
-import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
-import { resolvePluginRootFromModuleUrl } from '../utils/path-utils.js'
+import { createRuntimeAssetManifest, createRuntimeAssetManifestFromRoot, type RuntimeAssetManifest } from './runtime-asset-manifest.js'
 
 /** 技能条目，包含名称、描述、参数提示和关联命令。 */
 export interface SkillEntry {
@@ -33,10 +30,6 @@ export interface AgentEntry {
   name: string
   stage: string
   description: string
-}
-
-function getRepoRoot(): string {
-  return resolvePluginRootFromModuleUrl(import.meta.url)
 }
 
 function buildSkillEntries(): SkillEntry[] {
@@ -250,16 +243,7 @@ export function formatHelpCatalog(catalog: HelpCatalog, query?: string): string 
     }
 
     for (const [stage, agents] of agentsByStage) {
-      const stageLabel =
-        stage === 'research'
-          ? '研究'
-          : stage === 'review'
-            ? '审查'
-            : stage === 'workflow'
-              ? '工作流'
-              : stage === 'domain'
-                ? '域代理'
-                : stage
+      const stageLabel = STAGE_LABELS[stage] || stage
       lines.push(`**${stageLabel}（${agents.length}）**`)
       lines.push('')
       lines.push('| 代理 | 说明 |')
@@ -295,6 +279,230 @@ export function formatHelpCatalog(catalog: HelpCatalog, query?: string): string 
   return lines.join('\n')
 }
 
+/** 详情条目类型 */
+export type DetailEntryType = 'skill' | 'command' | 'agent' | 'modelRoute'
+
+/** 详情条目，包含主条目信息和关联元素。 */
+export interface DetailEntry {
+  type: DetailEntryType
+  name: string
+  description: string
+  properties: Array<{ label: string; value: string }>
+  related: Array<{ type: DetailEntryType; name: string; description: string }>
+}
+
+const STAGE_LABELS: Record<string, string> = {
+  research: '研究',
+  review: '审查',
+  workflow: '工作流',
+  domain: '域代理',
+}
+
+/** 根据精确名称在帮助目录中查找详情条目，聚合关联元素。 */
+export function resolveDetail(catalog: HelpCatalog, name: string): DetailEntry | null {
+  const normalized = normalizeLookupName(name)
+
+  const skill = catalog.skills.find(
+    (s) => s.name === normalized || s.commandName === normalized,
+  )
+  if (skill) {
+    return buildSkillDetail(catalog, skill)
+  }
+
+  const command = catalog.commands.find((c) => c.name === normalized)
+  if (command) {
+    return buildCommandDetail(catalog, command)
+  }
+
+  const agent = catalog.agents.find((a) => a.name === normalized)
+  if (agent) {
+    return buildAgentDetail(catalog, agent)
+  }
+
+  const route = catalog.modelRoutes?.find(
+    (r) => r.name === normalized,
+  )
+  if (route) {
+    return buildModelRouteDetail(catalog, route)
+  }
+
+  return null
+}
+
+function normalizeLookupName(name: string): string {
+  let result = name.trim()
+  if (result.startsWith('/')) result = result.slice(1)
+  if (result.startsWith('@')) result = result.slice(1)
+  return result
+}
+
+function buildSkillDetail(catalog: HelpCatalog, skill: SkillEntry): DetailEntry {
+  const related: DetailEntry['related'] = []
+
+  const commands = catalog.commands.filter(
+    (c) => c.name === skill.commandName || c.baseCommand === skill.commandName,
+  )
+  for (const cmd of commands) {
+    related.push({ type: 'command', name: cmd.name, description: cmd.description })
+  }
+
+  const routes = catalog.modelRoutes?.filter((r) => r.name === skill.commandName)
+  if (routes) {
+    for (const route of routes) {
+      related.push({ type: 'modelRoute', name: route.name, description: route.reason })
+    }
+  }
+
+  return {
+    type: 'skill',
+    name: skill.name,
+    description: skill.description,
+    properties: [
+      { label: '命令', value: `/${skill.commandName}` },
+      { label: '参数', value: skill.argumentHint || '无' },
+    ],
+    related,
+  }
+}
+
+function buildCommandDetail(catalog: HelpCatalog, command: CommandEntry): DetailEntry {
+  const related: DetailEntry['related'] = []
+
+  const skill = catalog.skills.find((s) => s.commandName === command.name || s.commandName === command.baseCommand)
+  if (skill) {
+    related.push({ type: 'skill', name: skill.name, description: skill.description })
+  }
+
+  if (command.baseCommand) {
+    const baseCmd = catalog.commands.find((c) => c.name === command.baseCommand && c.name !== command.name)
+    if (baseCmd) {
+      related.push({ type: 'command', name: baseCmd.name, description: baseCmd.description })
+    }
+  }
+
+  const variantCommands = catalog.commands.filter(
+    (c) => c.baseCommand === (command.baseCommand ?? command.name) && c.name !== command.name,
+  )
+  for (const vc of variantCommands) {
+    related.push({ type: 'command', name: vc.name, description: vc.description })
+  }
+
+  const routes = catalog.modelRoutes?.filter((r) => r.name === command.name)
+  if (routes) {
+    for (const route of routes) {
+      related.push({ type: 'modelRoute', name: route.name, description: route.reason })
+    }
+  }
+
+  const properties: Array<{ label: string; value: string }> = [
+    { label: '命令', value: `/${command.name}` },
+    { label: '分类', value: command.category },
+  ]
+  if (command.baseCommand) {
+    properties.push({ label: '基础命令', value: `/${command.baseCommand}` })
+  }
+
+  return {
+    type: 'command',
+    name: command.name,
+    description: command.description,
+    properties,
+    related,
+  }
+}
+
+function buildAgentDetail(catalog: HelpCatalog, agent: AgentEntry): DetailEntry {
+  const routes = catalog.modelRoutes?.filter((r) => r.name === agent.name)
+  const related: DetailEntry['related'] = []
+  if (routes) {
+    for (const route of routes) {
+      related.push({ type: 'modelRoute', name: route.name, description: route.reason })
+    }
+  }
+
+  return {
+    type: 'agent',
+    name: agent.name,
+    description: agent.description,
+    properties: [
+      { label: '调用方式', value: `@${agent.name}` },
+      { label: '阶段', value: STAGE_LABELS[agent.stage] || agent.stage },
+    ],
+    related,
+  }
+}
+
+function buildModelRouteDetail(
+  catalog: HelpCatalog,
+  route: AssetModelRoutingEntry,
+): DetailEntry {
+  const related: DetailEntry['related'] = []
+
+  if (route.type === 'command') {
+    const skill = catalog.skills.find((s) => s.commandName === route.name)
+    if (skill) {
+      related.push({ type: 'skill', name: skill.name, description: skill.description })
+    }
+    const cmd = catalog.commands.find((c) => c.name === route.name)
+    if (cmd) {
+      related.push({ type: 'command', name: cmd.name, description: cmd.description })
+    }
+  } else if (route.type === 'agent') {
+    const agent = catalog.agents.find((a) => a.name === route.name)
+    if (agent) {
+      related.push({ type: 'agent', name: agent.name, description: agent.description })
+    }
+  }
+
+  return {
+    type: 'modelRoute',
+    name: route.name,
+    description: route.reason,
+    properties: [
+      { label: '类型', value: route.type === 'command' ? '命令' : '代理' },
+      { label: '场景', value: route.scenario ?? '继承默认' },
+      { label: '应用方式', value: route.applyMode === 'direct' ? '直接声明' : '继承默认' },
+    ],
+    related,
+  }
+}
+
+const DETAIL_TYPE_LABELS: Record<DetailEntryType, string> = {
+  skill: '技能',
+  command: '命令',
+  agent: '代理',
+  modelRoute: '模型路由',
+}
+
+/** 将详情条目格式化为 Markdown 文本。 */
+export function formatDetailEntry(entry: DetailEntry): string {
+  const lines: string[] = []
+  const typeLabel = DETAIL_TYPE_LABELS[entry.type]
+
+  lines.push(`# ${typeLabel}：${entry.name}`)
+  lines.push('')
+  lines.push(entry.description)
+  lines.push('')
+
+  for (const prop of entry.properties) {
+    lines.push(`- **${prop.label}**：${prop.value}`)
+  }
+  lines.push('')
+
+  if (entry.related.length > 0) {
+    lines.push('## 关联')
+    lines.push('')
+    for (const rel of entry.related) {
+      const relLabel = DETAIL_TYPE_LABELS[rel.type]
+      const namePrefix = rel.type === 'command' ? '/' : rel.type === 'agent' ? '@' : ''
+      lines.push(`- **${relLabel}** \`${namePrefix}${rel.name}\` — ${rel.description}`)
+    }
+    lines.push('')
+  }
+
+  return lines.join('\n')
+}
+
 function escapeMarkdownTableCell(value: string): string {
   return value.replace(/\|/g, '\\|')
 }
@@ -302,6 +510,14 @@ function escapeMarkdownTableCell(value: string): string {
 /** 构建帮助目录、过滤并格式化为 Markdown 文本的便捷入口。 */
 export function generateHelpText(query?: string, repoRoot?: string): string {
   const catalog = buildHelpCatalog(repoRoot)
+
+  if (query && query.trim() !== '') {
+    const detail = resolveDetail(catalog, query.trim())
+    if (detail) {
+      return formatDetailEntry(detail)
+    }
+  }
+
   const filtered = filterCatalog(catalog, query)
   return formatHelpCatalog(filtered, query)
 }

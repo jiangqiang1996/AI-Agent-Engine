@@ -20,13 +20,17 @@ export const aeHelpTool = tool({
     '- 用户查询特定技能、命令或代理（传入 query 参数过滤）',
     '- 用户询问有哪些技能、命令或代理可用',
     '',
+    '详情查询：',
+    '- 传入完整元素名（如 ae:plan、/ae-plan、@correctness-reviewer）可查看该元素的详细说明和关联信息',
+    '- 元素名精确匹配时返回详情视图，否则返回子串匹配的列表视图',
+    '',
     '禁止手动扫描文件系统来列举，必须使用本工具获取权威列表。',
   ].join('\n'),
   args: {
     query: z
       .string()
       .optional()
-      .describe('过滤关键词，支持技能名、代理名、命令名或描述中的关键词。为空时展示全部。'),
+      .describe('过滤关键词或精确元素名。传入完整元素名（如 ae:plan、/ae-plan、@correctness-reviewer）返回详情视图；传入关键词返回子串匹配的列表。为空时展示全部。'),
   },
   execute: async (args, ctx) => {
     ctx.metadata({ title: args.query ? `搜索 AE 帮助: ${args.query}` : '生成 AE 帮助信息...' })

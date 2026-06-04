@@ -1,6 +1,6 @@
 ---
 name: ae:help
-description: "列出 AE 插件中所有可主动调用的技能、命令和代理。"
+description: "列出 AE 插件中所有可主动调用的技能、命令和代理，或查询指定元素的详情。"
 argument-hint: "[技能名或关键词]"
 ---
 
@@ -13,9 +13,10 @@ argument-hint: "[技能名或关键词]"
 
 **必须调用 `ae-help` 工具**，将结果原样返回给用户。
 
-- 无参数：调用 `ae-help` 工具，不传入 `query`
-- 有参数：调用 `ae-help` 工具，将用户输入传入 `query`
-- 查询模型路由：调用 `ae-help` 工具，将 `model`、场景名或资产名传入 `query`
+- 无参数：调用 `ae-help` 工具，不传入 `query`，返回完整列表
+- 有关键词：调用 `ae-help` 工具，将用户输入传入 `query`，返回子串匹配的过滤列表
+- 有元素名：传入完整元素名（如 `ae:plan`、`/ae-plan`、`ae-plan-po`、`@correctness-reviewer`），精确匹配时返回该元素的详情视图，包含描述、属性和关联元素
+- 查询模型路由：将 `model`、场景名或资产名传入 `query`
 
 **禁止手动列举或扫描文件**，列表内容只能来自 `ae-help` 工具的返回值。
 
