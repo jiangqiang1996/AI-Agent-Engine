@@ -1,4 +1,5 @@
 import { promises as fs } from 'node:fs'
+import * as os from 'node:os'
 import * as path from 'node:path'
 
 import { tool } from '@opencode-ai/plugin/tool'
@@ -14,7 +15,7 @@ const BROWSER_NAMES = ['Chrome', 'Edge', 'Brave', 'Vivaldi'] as const
 
 function getBrowserUserDataDir(browser: string): string | null {
   const platform = process.platform
-  const home = process.env.HOME || process.env.USERPROFILE || ''
+  const home = process.env.HOME || process.env.USERPROFILE || os.homedir() || ''
 
   const dirMap: Record<string, Record<string, string>> = {
     win32: {

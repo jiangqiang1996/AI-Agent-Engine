@@ -76,7 +76,21 @@ function checkPortInUse(port) {
       }
       return null
     }
-    const result = execSync(`lsof -i :${port} -t`, { encoding: 'utf-8' })
+    let result
+    try {
+      result = execSync(`lsof -i :${port} -t`, { encoding: 'utf-8' })
+    } catch {
+      try {
+        result = execSync(`ss -tlnp 'sport = :${port}'`, { encoding: 'utf-8' })
+        const match = result.match(/pid=(\d+)/)
+        if (match) {
+          return { pid: parseInt(match[1], 10), line: `PID: ${match[1]}` }
+        }
+        return null
+      } catch {
+        return null
+      }
+    }
     if (result.trim()) {
       const pids = result.trim().split('\n').map(Number).filter(n => !isNaN(n))
       if (pids.length > 0) {
@@ -268,6 +282,15 @@ function startServer(rootPath, port, skipPortScan, killPort) {
       res.writeHead(200, { 'Content-Type': mimeType })
       res.end(data)
     })
+  })
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`错误: 端口 ${selectedPort} 已被占用`)
+    } else {
+      console.error(`服务器错误: ${err.message}`)
+    }
+    process.exit(1)
   })
 
   server.listen(selectedPort, () => {
