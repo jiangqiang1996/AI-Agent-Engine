@@ -10,6 +10,7 @@
 | 需求还模糊 | `/ae-brainstorm` |
 | 产出需求文档 | `/ae-prd` |
 | 想从需求一路做到交付 | `/ae-lfg` |
+| 业务复杂、多模块、数据一致性要求高，需要先设计再动手 | `/ae-g1-invariants`（GALV 流程入口） |
 | 已有需求，需要方案 | `/ae-plan` |
 | 已有计划，需要执行 | `/ae-work` |
 | 合并分支或 worktree | `/ae-merge-branch` |
@@ -92,7 +93,48 @@
 /ae-task-loop 修复所有 TypeScript 编译错误
 ```
 
-适合“执行、观察、修复、再验证”的问题。需求定义不清、范围很大的产品功能，不适合直接丢给 task-loop。
+适合"执行、观察、修复、再验证"的问题。需求定义不清、范围很大的产品功能，不适合直接丢给 task-loop。
+
+### GALV 结构化设计流程
+
+**什么时候用 GALV 而不是 `/ae-prd` + `/ae-plan`？** 当业务规则复杂、多模块协作、数据一致性要求高时，`ae:prd` + `ae:plan` 的需求→计划路径可能不够——你需要先提取不变量、推导数据模型、定义跨模块契约、完成模块级设计再动手。GALV 就是在需求文档之后、编码之前，用结构化设计替代笼统计划的路径。当需求简单或目标明确时，直接用 `/ae-prd` + `/ae-plan` 即可。
+
+GALV 产出从需求到设计的自闭环产物，任何 AI 代理可据此生成确定性一致的软件。四个字母对应四个阶段：
+
+| 阶段 | 含义 | 技能 | 作用 |
+| --- | --- | --- | --- |
+| **G** Global | 全局基础 | `/ae-g1-invariants` | 从需求提取业务不变量、划定系统边界、识别模块拆分点 |
+| | | `/ae-g2-data-model` | 从不变量推导实体、字段、关系、约束和状态机 |
+| | | `/ae-g3-global-trace` | 用测试数据代入数据模型和状态机走通核心业务流程 |
+| **A** Association | 跨模块关联 | `/ae-a1-contracts` | 定义模块间数据契约、数据流、共享状态和冲突解决策略 |
+| | | `/ae-a2-assoc-trace` | 用具体数据走通跨模块数据流，验证契约自洽 |
+| **L** Local | 局部设计 | `/ae-l1-ui-spec` | 生成结构化界面文档描述并验证可还原性（纯后端项目跳过） |
+| | | `/ae-l2-module-design` | 为指定模块完成内部逻辑设计，产出设计文档和 DDL |
+| | | `/ae-l3-module-verify` | 验证指定模块的数据推演、DDL 落地和文档可还原性 |
+| **V** Verification | 终局验证 | `/ae-v1-e2e-verify` | 端到端走通跨模块全链路，验证数据流转和契约闭合 |
+| | | `/ae-v2-completeness` | 逐条不变量追踪从声明到实现的证据链，识别断裂和遗漏 |
+
+完整执行顺序：
+
+```text
+/ae-g1-invariants 需求文档路径
+/ae-g2-data-model
+/ae-g3-global-trace
+/ae-a1-contracts
+/ae-a2-assoc-trace
+/ae-l1-ui-spec
+/ae-l2-module-design module=订单
+/ae-l3-module-verify module=订单
+/ae-v1-e2e-verify
+/ae-v2-completeness
+```
+
+执行约束：
+
+- 按 G→A→L→V 固定顺序执行，每个技能只读取紧邻前序技能产物，对更上游产物只读
+- 先执行技能禁止读取或引用后续技能产物
+- 跨技能持续编辑的共享索引 `galv-manifest.yaml` 所有技能都有权限
+- 产物根目录默认 `docs/ae/galv/<项目名>/`，自包含可移植
 
 ## 技能命令
 
@@ -111,6 +153,16 @@
 | `/ae-merge-branch` | `[来源分支名\|本地 worktree 路径]` | 合并来源分支或 worktree 变更 | 本地 Git 写操作需明确授权 |
 | `/ae-review` | `[mode:*] [domain:code\|domain:document] [from:<ref>] [full] [full:<path>] [session] [plan:<path>] [文档路径]` | 审查代码、文档、计划、全量路径或会话变更 | 代码域和文档域分开处理 |
 | `/ae-lfg` | `[需求描述\|已有产物路径]` | 默认全流程入口 | 优先恢复已有产物；缺上游时回退到更早阶段 |
+| `/ae-g1-invariants` | `[需求描述\|需求文档路径]` | 提取业务不变量、划定系统边界、识别模块拆分点 | GALV G 阶段；无上游产物时可独立启动 |
+| `/ae-g2-data-model` | `[不变量文档路径]` | 从不变量推导实体、字段、关系、约束和状态机 | GALV G 阶段；依赖 G1 产物 |
+| `/ae-g3-global-trace` | `[数据模型文档路径]` | 用测试数据代入数据模型和状态机走通核心业务流程 | GALV G 阶段；依赖 G2 产物 |
+| `/ae-a1-contracts` | `[数据模型路径] [推演路径]` | 定义模块间数据契约、数据流、共享状态和冲突解决策略 | GALV A 阶段；依赖 G3 产物 |
+| `/ae-a2-assoc-trace` | `[契约文档路径]` | 用具体数据走通跨模块数据流，验证契约自洽 | GALV A 阶段；依赖 A1 产物 |
+| `/ae-l1-ui-spec` | `[上游产物路径]` | 生成结构化界面文档描述并验证可还原性 | GALV L 阶段；依赖 A2 产物；纯后端项目跳过 |
+| `/ae-l2-module-design` | `module=<模块名> [契约文档路径]` | 为指定模块完成内部逻辑设计，产出设计文档和 DDL | GALV L 阶段；依赖 A1+A2 产物；可按模块并行 |
+| `/ae-l3-module-verify` | `module=<模块名> [设计文档路径]` | 验证指定模块的数据推演、DDL 落地和文档可还原性 | GALV L 阶段；依赖 L2 产物；按模块并行 |
+| `/ae-v1-e2e-verify` | `[关联推演路径] [模块设计路径]` | 端到端走通跨模块全链路，验证数据流转和契约闭合 | GALV V 阶段；依赖 L3 产物 |
+| `/ae-v2-completeness` | `[全局产物目录]` | 逐条不变量追踪从声明到实现的证据链，识别断裂和遗漏 | GALV V 阶段；依赖全部上游产物 |
 | `/ae-chrome-devtools` | `[MCP 注册|浏览器目标|chrome-devtools 工具]` | 浏览器能力中枢，负责 MCP 动态注册、目标选择和浏览器控制 | 确认 chrome-devtools MCP 连接就绪 |
 | `/ae-test-browser` | `[URL\|路由]` | 浏览器端到端验收 | 先完成 chrome-devtools MCP 动态注册；不做审美设计 |
 | `/ae-course-auto-player` | `[浏览器类型] <课程列表页面URL>` | 自动播放在线课程列表 | 先完成 chrome-devtools MCP 动态注册 |
@@ -253,6 +305,7 @@
 | `ae/prds/` | 需求文档 |
 | `ae/plans/` | 计划文档 |
 | `ae/solutions/` | 历史方案、研究和经验沉淀 |
+| `docs/ae/galv/<项目名>/` | GALV 结构化设计产物（不变量、数据模型、契约、设计、验证） |
 | `.opencode/rules/` | 项目长期规则，可由经验沉淀流程写入 |
 | `.opencode/ae.jsonc` | 项目级 AE 配置 |
 

@@ -163,6 +163,52 @@ ae:ideate → ae:prd → ae:plan → ae:work → ae:review
 | ae:review | 四阶段编排协议 + 审查域代理 | `ae/reviews/<run-id>/` | ae-review-contract, ae-review-proof, ae-graph-query, ae-doc-extract |
 | ae:lfg | **核心流程组合技能**，串联 ae:prd → ae:plan → ae:work → ae:review；各阶段技能也可独立使用 | 依阶段而定 | ae-recovery |
 
+#### B. GALV 结构化设计技能（G→A→L→V 编排型）
+
+GALV 是从需求到设计的自闭环技能组，产出可审查、可移植的结构化设计产物。四个字母对应四个阶段：
+
+| 阶段 | 含义 | 技能 | 作用 | 产物 |
+|------|------|------|------|------|
+| **G** Global | 全局基础 | ae:g1-invariants | 从需求提取业务不变量、划定系统边界、识别模块拆分点 | `galv/<项目>/g1-invariants.md` |
+| | | ae:g2-data-model | 从不变量推导实体、字段、关系、约束和状态机 | `galv/<项目>/g2-data-model.md` |
+| | | ae:g3-global-trace | 用测试数据代入数据模型和状态机走通核心业务流程 | `galv/<项目>/g3-global-trace.md` |
+| **A** Association | 跨模块关联 | ae:a1-contracts | 定义模块间数据契约、数据流、共享状态和冲突解决策略 | `galv/<项目>/a1-contracts.md` |
+| | | ae:a2-assoc-trace | 用具体数据走通跨模块数据流，验证契约自洽 | `galv/<项目>/a2-assoc-trace.md` |
+| **L** Local | 局部设计 | ae:l1-ui-spec | 生成结构化界面文档描述并验证可还原性（纯后端跳过） | `galv/<项目>/l1-ui-spec.md` |
+| | | ae:l2-module-design | 为指定模块完成内部逻辑设计，产出设计文档和 DDL | `galv/<项目>/l2-<模块名>-design.md` |
+| | | ae:l3-module-verify | 验证指定模块的数据推演、DDL 落地和文档可还原性 | `galv/<项目>/l3-<模块名>-verify.md` |
+| **V** Verification | 终局验证 | ae:v1-e2e-verify | 端到端走通跨模块全链路，验证数据流转和契约闭合 | `galv/<项目>/v1-e2e-verify.md` |
+| | | ae:v2-completeness | 逐条不变量追踪从声明到实现的证据链，识别断裂和遗漏 | `galv/<项目>/v2-completeness.md` |
+
+```
+G Global（全局基础）
+├─ ae:g1-invariants ─── 提取不变量、划定边界
+├─ ae:g2-data-model ─── 推导实体、字段、状态机
+└─ ae:g3-global-trace ── 测试数据走通核心流程
+      │
+A Association（跨模块关联）
+├─ ae:a1-contracts ──── 定义跨模块契约
+└─ ae:a2-assoc-trace ─── 走通跨模块数据流
+      │
+L Local（局部设计）
+├─ ae:l1-ui-spec ────── 界面规格（纯后端跳过）
+├─ ae:l2-module-design ─ 模块内部设计 + DDL（可并行）
+└─ ae:l3-module-verify ─ 模块推演验证（可并行）
+      │
+V Verification（终局验证）
+├─ ae:v1-e2e-verify ─── 端到端全链路验证
+└─ ae:v2-completeness ── 不变量完整性回溯
+```
+
+执行约束：
+
+- 按 G→A→L→V 固定顺序，每个技能只读取紧邻前序技能产物，对更上游产物只读
+- 先执行技能禁止读取后续技能产物
+- 共享索引 `galv-manifest.yaml` 所有技能可读写
+- 产物根目录默认 `docs/ae/galv/<项目名>/`
+
+**与主流程的关系**：GALV 和 `ae:prd` + `ae:plan` 是需求文档之后的两条路径。GALV 适合业务规则复杂、多模块协作、数据一致性要求高的场景，用结构化设计（不变量→数据模型→契约→模块设计→验证）替代笼统计划；`ae:prd` + `ae:plan` 适合需求简单或目标明确的场景。GALV 产物可作为 `ae:work` 的上游输入。
+
 #### B. 浏览器能力技能
 
 ```
@@ -627,6 +673,25 @@ ae-review-contract 工具调用
   │           维护技能                           │
   │                                             │
   │  ae:help            ae:update               │
+  └─────────────────────────────────────────────┘
+
+  ┌─────────────────────────────────────────────┐
+  │           GALV 结构化设计链                   │
+  │                                             │
+  │  G Global  ─ g1-invariants → g2-data-model  │
+  │             → g3-global-trace               │
+  │                    │                        │
+  │  A Association ─ a1-contracts               │
+  │             → a2-assoc-trace                │
+  │                    │                        │
+  │  L Local ─ l1-ui-spec → l2-module-design    │
+  │             → l3-module-verify              │
+  │                    │                        │
+  │  V Verification ─ v1-e2e-verify             │
+  │             → v2-completeness               │
+  │                                             │
+  │  产物: docs/ae/galv/<项目名>/               │
+  │  可作为 ae:plan / ae:work 的上游输入         │
   └─────────────────────────────────────────────┘
 ```
 
