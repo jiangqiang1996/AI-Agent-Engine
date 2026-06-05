@@ -8,7 +8,7 @@ argument-hint: "[mode] [domain] [from=<ref>] [full] [full=<path>] [session] [pla
 
 审查回答**质量如何（HOW WELL）**——代码是否正确、安全、可维护；文档是否一致、可行、完整。
 
-此技能采用四阶段编排协议，将审查调度委托给审查域代理。
+此技能采用四阶段编排协议，通过代码化调度直接并行调用审查专精代理。
 
 ## 核心原则
 
@@ -133,7 +133,7 @@ argument-hint: "[mode] [domain] [from=<ref>] [full] [full=<path>] [session] [pla
 - 交互模式：展示范围、排除规则和审查团队预览，让用户确认或修正
 - 无头/自动修复模式：跳过用户确认，直接进入调度
 
-可使用 `ae-review-contract` 工具获取审查团队预览（仅供展示，实际调度由审查域代理决定）。
+可使用 `ae-review-contract` 或 `ae-domain-dispatch-prepare` 工具获取审查团队预览。`ae-domain-dispatch-prepare` 同时返回每个专精的 prompt 模板，供阶段三直接调度使用。
 
 #### ConfirmedContext 输出
 
@@ -149,19 +149,32 @@ argument-hint: "[mode] [domain] [from=<ref>] [full] [full=<path>] [session] [pla
 
 ### 阶段三：调度（Dispatch）
 
-通过 Task 工具调用审查域代理（`@review-domain`），传入 `DomainCallRequest`。
+采用代码化调度：编排层直接通过 Task 工具并行调用审查专精代理，不经过 @review-domain 中转。**禁止在 specialistCount > 0 时直接调用 @review-domain**——此时必须走代码化调度路径（步骤 3.1 → 3.2 → 3.3）。
 
-审查域代理负责：
-1. 根据审查域和条件标记选择审查者
-2. 并行调度审查专精代理
-3. 综合所有审查发现
-4. 返回 `DomainExecutionResult`
+#### 步骤 3.1：准备调度
 
-传入审查域代理的 prompt 必须包含：
-- 审查任务描述（含范围、意图、域类型）
-- 已确认的参数和约束
-- 代码域：文件列表、diff/完整内容、意图摘要
-- 文档域：文档内容、文档类型、分片上下文
+调用 `ae-domain-dispatch-prepare` 工具，传入 domain、intent、constraints 和 domainContext。工具返回：
+- `tasks`：每个选中专精代理的 agent 名、prompt 模板和能力描述
+- `strategy`：协调策略（review 域为 parallel + union）
+- `specialistCount`：选中数量
+
+如果 `specialistCount` 为 0，退化为通过 Task 调用 `@review-domain`，构造 `DomainCallRequest` 传入。
+
+#### 步骤 3.2：并行调度专精代理
+
+在同一轮回复中，使用 Task 工具并行调用 `tasks` 数组中的每个专精代理。
+
+**并行调度硬约束**：你必须在同一轮回复中一次性发出所有 Task 工具调用，禁止等上一个 Task 返回后再发出下一个。
+
+**平台并行行为说明**：OpenCode Task 工具支持在同一条消息中发出多个调用时并行执行。如果你的回复仅包含一个 Task 调用，它将串行执行——这是导致"伪并行"的常见原因。务必在同一条回复中包含所有 Task 调用。如果因上下文窗口限制无法一次发出所有调用，优先发出独立的子集，在下一轮继续发出剩余调用，但绝不跳过任何一个专精代理。
+
+**退化策略**：如果因上下文窗口限制确实无法在同一轮发出所有 Task 调用，且剩余专精超过 3 个，退化为通过 Task 调用 `@review-domain` 并构造 `DomainCallRequest`，将 `selectedSpecialists` 传入。
+
+每个 Task 调用的 prompt 必须包含：
+
+1. 专精代理的 prompt 模板（来自 prepare 工具的 `tasks[].prompt`）
+2. 代理 markdown 文件内容（通过 `@{reviewer_name}` 引用对应代理）
+3. 审查上下文（变量替换后的 subagent-template 内容）：
 
 代码域变量映射：
 
@@ -186,15 +199,26 @@ argument-hint: "[mode] [domain] [from=<ref>] [full] [full=<path>] [session] [pla
 | `{success_criteria}` | `goals:` 参数提供的审查目标文本，无 `goals:` 时为空 |
 | `{run_id}` | 运行标识符 |
 
-**错误处理：** 如果域代理返回 `failed` 或 `partial`，使用已完成的结果继续综合。
+**标志映射规则：** `goals:` 参数存在时，`DomainCallRequest.domainContext` 的 `hasGoalAlignment` 必须设为 `true`，以激活 goal-alignment-reviewer。
 
-**标志映射规则：** `goals:` 参数存在时，`ae-review-contract` 的 `has_goal_alignment` 和 `DomainCallRequest.domainContext` 的 `hasGoalAlignment` 必须设为 `true`，以激活 goal-alignment-reviewer。
+#### 步骤 3.3：聚合结果
+
+所有专精代理返回后，调用 `ae-domain-dispatch-aggregate` 工具，传入：
+- `strategy`：`union`（审查域固定）
+- `results`：每个专精代理的执行结果（status、output、evidence）
+- `dispatchedAgents`：实际调度的专精代理名称列表
+- `skippedAgents`：选中但未调度的专精代理名称列表（通常为空）
+- `skipReasons`：跳过原因
+
+工具返回 `DomainExecutionResult`，包含聚合后的发现、证据和 dispatchManifest。
+
+**错误处理：** 如果某个专精代理返回 `failed` 或 `partial`，使用已完成的结果继续聚合，记录失败原因。
 
 #### 调度一致性校验
 
 接收 `DomainExecutionResult` 后，检查 `dispatchManifest`：
 
-- 若 `dispatchManifest.dispatched` 数量少于 `selectedSpecialists` 数量，在汇总阶段报告不一致，列出被跳过的专精和跳过原因
+- 若 `dispatchManifest.dispatched` 数量少于 prepare 工具返回的 `specialistCount`，在汇总阶段报告不一致，列出被跳过的专精和跳过原因
 - 若 `dispatchManifest` 缺失，跳过校验并记录"无法校验"
 - 校验仅为报告性质，不阻断后续流程
 

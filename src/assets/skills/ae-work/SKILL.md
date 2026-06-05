@@ -29,7 +29,7 @@ argument-hint: "[计划路径|交接文件路径|任务描述]"
 5. `references/verification-workflow.md`：核验真实变更范围、越权修改和统一验证结果。
 6. `references/shipping-workflow.md`：完成代码审查、最终检查和交付模板。
 
-调度阶段只构造 `DomainCallRequest` 并委托 `@development-domain`；开发域代理内部负责选择和调度专精代理，主代理不得再按旧模板自行二次派发。
+调度阶段通过 `ae-domain-dispatch-prepare` 预计算专精列表，编排层直接并行调度专精代理，最后通过 `ae-domain-dispatch-aggregate` 聚合结果；仅当预计算返回空列表时退化为通过 `@development-domain` 中转。
 
 ## 硬性门禁
 
@@ -96,29 +96,54 @@ argument-hint: "[计划路径|交接文件路径|任务描述]"
 
 ### 阶段三：调度（Dispatch）
 
-通过 Task 工具调用开发域代理（`@development-domain`），传入 `DomainCallRequest`。
+采用代码化调度：编排层直接通过 Task 工具并行调用开发专精代理，不经过 @development-domain 中转。**禁止在 specialistCount > 0 时直接调用 @development-domain**——此时必须走代码化调度路径（步骤 3.1 → 3.2 → 3.3 → 3.4）。
 
-开发域代理负责：
-1. 根据任务类型选择专精代理（frontend-dev / backend-dev / debug-fix / refactor-dev）
-2. 并行调度选中的专精代理执行实现
-3. 综合所有专精代理的实现结果
-4. 返回 `DomainExecutionResult`
+#### 步骤 3.1：准备调度
 
-传入开发域代理的 prompt 必须包含：
+调用 `ae-domain-dispatch-prepare` 工具，传入 domain=development、intent、constraints 和 domainContext。工具返回：
+- `tasks`：每个选中专精代理的 agent 名、prompt 模板和能力描述
+- `strategy`：协调策略（development 域为 parallel-then-sequential + merge）
+- `specialistCount`：选中数量
+
+如果 `specialistCount` 为 0，退化为通过 Task 调用 `@development-domain`，构造 `DomainCallRequest` 传入。
+
+#### 步骤 3.2：并行调度专精代理
+
+在同一轮回复中，使用 Task 工具并行调用 `tasks` 数组中的每个专精代理。
+
+**并行调度硬约束**：你必须在同一轮回复中一次性发出所有 Task 工具调用，禁止等上一个 Task 返回后再发出下一个。
+
+**平台并行行为说明**：OpenCode Task 工具支持在同一条消息中发出多个调用时并行执行。如果你的回复仅包含一个 Task 调用，它将串行执行——这是导致"伪并行"的常见原因。务必在同一条回复中包含所有 Task 调用。如果因上下文窗口限制无法一次发出所有调用，优先发出独立的子集，在下一轮继续发出剩余调用，但绝不跳过任何一个专精代理。
+
+**退化策略**：如果因上下文窗口限制确实无法在同一轮发出所有 Task 调用，且剩余专精超过 3 个，退化为通过 Task 调用 `@development-domain` 并构造 `DomainCallRequest`，将 `selectedSpecialists` 传入。
+
+每个 Task 调用的 prompt 必须包含：
+- 专精代理的 prompt 模板（来自 prepare 工具的 `tasks[].prompt`）
+- 代理 markdown 文件内容（通过 `@{agent_name}` 引用对应代理）
 - 任务描述（含待办单元、文件范围、实现要求）
 - 已确认的参数和约束
 - 计划文档内容（如有）
 - 验证要求
 
-**错误处理：** 如果域代理返回 `failed` 或 `partial`，使用已完成的结果继续验证，记录失败原因。
+#### 步骤 3.3：顺序集成（parallel-then-sequential 策略）
 
-#### 调度一致性校验
+并行阶段完成后，如果 strategy 为 `parallel-then-sequential` 且存在需要集成的跨专精产出：
+1. 检查并行结果中是否有跨代理文件冲突
+2. 如有冲突，使用 Task 调用 `@debug-fix` 或相关专精代理解决集成问题
+3. 如无冲突，跳过此步骤
 
-接收 `DomainExecutionResult` 后，检查 `dispatchManifest`：
+#### 步骤 3.4：聚合结果
 
-- 若 `dispatchManifest.dispatched` 数量少于 `selectedSpecialists` 数量，在汇总阶段报告不一致，列出被跳过的专精和跳过原因
-- 若 `dispatchManifest` 缺失，跳过校验并记录"无法校验"
-- 校验仅为报告性质，不阻断后续流程
+调用 `ae-domain-dispatch-aggregate` 工具，传入：
+- `strategy`：`merge`（开发域固定）
+- `results`：每个专精代理的执行结果（status、output、evidence）
+- `dispatchedAgents`：实际调度的专精代理名称列表
+- `skippedAgents`：选中但未调度的专精代理名称列表
+- `skipReasons`：跳过原因
+
+工具返回 `DomainExecutionResult`，包含聚合后的输出、证据和 dispatchManifest。
+
+**错误处理：** 如果某个专精代理返回 `failed` 或 `partial`，使用已完成的结果继续聚合，记录失败原因。
 
 #### DispatchResults 输出
 

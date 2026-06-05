@@ -155,9 +155,10 @@ export const TOOL = {
   AE_TASK_ANALYZER: 'ae-task-analyzer',
   AE_DOC_EXTRACT: 'ae-doc-extract',
   AE_DOMAIN_CATALOG: 'ae-domain-catalog',
-  AE_DOMAIN_SELECT: 'ae-domain-select',
   AE_CHROME_DEVTOOLS_MCP: 'ae-chrome-devtools-mcp',
   AE_TIMER: 'ae-timer',
+  AE_DOMAIN_DISPATCH_PREPARE: 'ae-domain-dispatch-prepare',
+  AE_DOMAIN_DISPATCH_AGGREGATE: 'ae-domain-dispatch-aggregate',
 } as const
 
 export const AeModeSchema = z
@@ -282,8 +283,8 @@ export const DomainCallRequestSchema = z.object({
 })
 
 export const DomainFindingSchema = z.object({
-  severity: z.string().describe('发现严重级别'),
-  title: z.string().describe('发现标题'),
+  severity: z.string().min(1).describe('发现严重级别'),
+  title: z.string().min(1).describe('发现标题'),
   evidence: z.string().optional().describe('发现证据摘要'),
 })
 

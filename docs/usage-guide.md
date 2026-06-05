@@ -289,7 +289,8 @@ GALV 产出从需求到设计的自闭环产物，任何 AI 代理可据此生�
 | `ae-worktree-handoff` | 生成 A→B worktree 转移交接文件 | 不创建新会话 |
 | `ae-create-session` | 创建独立新会话，可选注入上下文或自动执行 | 不做会话级上下文交接 |
 | `ae-domain-catalog` | 查询域代理目录，获取域代理和专精代理信息 | 不执行域代理调度 |
-| `ae-domain-select` | 为指定域选择专精代理并返回协调策略 | 不执行域代理调度 |
+| `ae-domain-dispatch-prepare` | 预计算专精代理列表、协调策略和 prompt 模板 | 不执行域代理调度 |
+| `ae-domain-dispatch-aggregate` | 将专精代理结果按策略聚合为 DomainExecutionResult | 单一代理执行无需聚合 |
 | `ae-review-proof` | 写入 ae:review 结构化审查证明 | 不替代真实代码或文档审查 |
 | `ae-timer` | 倒计时等待工具，暂停会话指定时长后继续 | 不用于轮询或精确毫秒级定时 |
 
