@@ -82,7 +82,7 @@ function extractMarkdownSkillList(content: string): string[] {
     throw new Error('asset-health/readme-skill-list: 找不到常用入口区块')
   }
 
-  return Array.from(lines.slice(startIndex, endIndex).join('\n').matchAll(/`\/(ae-[^`]+)`/g)).map((match) => match[1])
+  return Array.from(lines.slice(startIndex, endIndex).join('\n').matchAll(/`\/(ae-[^`]+)`/g)).map((match) => match[1].split(/\s/)[0])
 }
 
 describe('资产健康巡检', () => {
@@ -310,6 +310,7 @@ describe('资产健康巡检', () => {
       COMMAND.HELP,
       COMMAND.IDEATE,
       COMMAND.BRAINSTORM,
+      COMMAND.PRD,
       COMMAND.PLAN,
       COMMAND.WORK,
       'ae-work-continue',
@@ -320,11 +321,25 @@ describe('资产健康巡检', () => {
       COMMAND.FRONTEND_DESIGN,
       COMMAND.CHROME_DEVTOOLS,
       COMMAND.TEST_BROWSER,
+      COMMAND.COURSE_AUTO_PLAYER,
       COMMAND.SWAGGER_PARSER,
       COMMAND.HTML_BUNDLE,
+      COMMAND.STATIC_SERVER,
       COMMAND.GRAPH_BUILD,
       COMMAND.GRAPH_QUERY,
       COMMAND.TASK_LOOP,
+      COMMAND.G1_INVARIANTS,
+      COMMAND.G2_BUSINESS_SCENARIOS,
+      COMMAND.G3_ARCHITECTURE,
+      COMMAND.G4_DATA_MODEL,
+      COMMAND.G5_GLOBAL_TRACE,
+      COMMAND.A1_CONTRACTS,
+      COMMAND.A2_ASSOC_TRACE,
+      COMMAND.L1_UI_SPEC,
+      COMMAND.L2_MODULE_DESIGN,
+      COMMAND.L3_MODULE_VERIFY,
+      COMMAND.V1_E2E_VERIFY,
+      COMMAND.V2_COMPLETENESS,
       COMMAND.SQL,
       COMMAND.HANDOFF,
       COMMAND.PROMPT_OPTIMIZE,

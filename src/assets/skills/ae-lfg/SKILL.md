@@ -1,7 +1,7 @@
 ﻿---
 name: ae:lfg
 description: "自包含一站式管道技能：内联澄清需求、设计、实施，仅调用 ae:review 审查；一次澄清后静默执行到底；同时支持软件和非软件任务"
-argument-hint: "[task] [compatible=true|false]"
+argument-hint: "[task] [--compatible=true|false]"
 disable-model-invocation: true
 ---
 

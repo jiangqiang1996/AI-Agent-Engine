@@ -169,22 +169,26 @@ GALV 是从需求到设计的自闭环技能组，产出可审查、可移植的
 
 | 阶段 | 含义 | 技能 | 作用 | 产物 |
 |------|------|------|------|------|
-| **G** Global | 全局基础 | ae:g1-invariants | 从需求提取业务不变量、划定系统边界、识别模块拆分点 | `galv/<项目>/g1-invariants.md` |
-| | | ae:g2-data-model | 从不变量推导实体、字段、关系、约束和状态机 | `galv/<项目>/g2-data-model.md` |
-| | | ae:g3-global-trace | 用测试数据代入数据模型和状态机走通核心业务流程 | `galv/<项目>/g3-global-trace.md` |
-| **A** Association | 跨模块关联 | ae:a1-contracts | 定义模块间数据契约、数据流、共享状态和冲突解决策略 | `galv/<项目>/a1-contracts.md` |
-| | | ae:a2-assoc-trace | 用具体数据走通跨模块数据流，验证契约自洽 | `galv/<项目>/a2-assoc-trace.md` |
-| **L** Local | 局部设计 | ae:l1-ui-spec | 生成结构化界面文档描述并验证可还原性（纯后端跳过） | `galv/<项目>/l1-ui-spec.md` |
-| | | ae:l2-module-design | 为指定模块完成内部逻辑设计，产出设计文档和 DDL | `galv/<项目>/l2-<模块名>-design.md` |
-| | | ae:l3-module-verify | 验证指定模块的数据推演、DDL 落地和文档可还原性 | `galv/<项目>/l3-<模块名>-verify.md` |
-| **V** Verification | 终局验证 | ae:v1-e2e-verify | 端到端走通跨模块全链路，验证数据流转和契约闭合 | `galv/<项目>/v1-e2e-verify.md` |
-| | | ae:v2-completeness | 逐条不变量追踪从声明到实现的证据链，识别断裂和遗漏 | `galv/<项目>/v2-completeness.md` |
+| **G** Global | 全局基础 | ae:g1-invariants | 从需求提取业务不变量、NFR、划定系统边界、识别模块拆分点 | `galv/<项目>/g1/` |
+| | | ae:g2-business-scenarios | 从不变量推导业务场景、角色、操作序列和字段目录 | `galv/<项目>/g2/` |
+| | | ae:g3-architecture | 定义系统架构、安全约束和非功能性策略 | `galv/<项目>/g3/` |
+| | | ae:g4-data-model | 从不变量和业务场景推导实体、字段、关系、约束和状态机（禁止 FK） | `galv/<项目>/g4/` |
+| | | ae:g5-global-trace | 用测试数据代入数据模型和状态机走通核心业务流程 | `galv/<项目>/g5/` |
+| **A** Association | 跨模块关联 | ae:a1-contracts | 定义模块间数据契约、数据流、外部系统集成和冲突解决策略 | `galv/<项目>/a1/` |
+| | | ae:a2-assoc-trace | 用具体数据走通跨模块数据流，验证契约自洽 | `galv/<项目>/a2/` |
+| **L** Local | 局部设计 | ae:l1-ui-spec | 生成结构化界面文档描述并验证可还原性（纯后端跳过） | `galv/<项目>/l1/` |
+| | | ae:l2-module-design | 为指定模块完成内部逻辑设计，产出设计文档和 DDL | `galv/<项目>/l2/` |
+| | | ae:l3-module-verify | 验证指定模块的数据推演、DDL 落地（逻辑引用一致性）和文档可还原性 | `galv/<项目>/l3/` |
+| **V** Verification | 终局验证 | ae:v1-e2e-verify | 端到端走通跨模块全链路，验证数据流转和契约闭合 | `galv/<项目>/v1/` |
+| | | ae:v2-completeness | 逐条不变量追踪从声明到实现的证据链（7 列矩阵），识别断裂和遗漏 | `galv/<项目>/v2/` |
 
 ```
 G Global（全局基础）
-├─ ae:g1-invariants ─── 提取不变量、划定边界
-├─ ae:g2-data-model ─── 推导实体、字段、状态机
-└─ ae:g3-global-trace ── 测试数据走通核心流程
+├─ ae:g1-invariants ─────── 提取不变量、NFR、划定边界
+├─ ae:g2-business-scenarios ─ 推导业务场景、角色、操作序列
+├─ ae:g3-architecture ───── 定义架构、安全约束
+├─ ae:g4-data-model ─────── 推导实体、字段、状态机（禁止 FK）
+└─ ae:g5-global-trace ───── 测试数据走通核心流程
       │
 A Association（跨模块关联）
 ├─ ae:a1-contracts ──── 定义跨模块契约
@@ -678,8 +682,11 @@ ae-review-contract 工具调用
   ┌─────────────────────────────────────────────┐
   │           GALV 结构化设计链                   │
   │                                             │
-  │  G Global  ─ g1-invariants → g2-data-model  │
-  │             → g3-global-trace               │
+  │  G Global  ─ g1-invariants                  │
+  │             → g2-business-scenarios         │
+  │             → g3-architecture               │
+  │             → g4-data-model                 │
+  │             → g5-global-trace               │
   │                    │                        │
   │  A Association ─ a1-contracts               │
   │             → a2-assoc-trace                │
