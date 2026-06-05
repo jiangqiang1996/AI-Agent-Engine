@@ -11,13 +11,13 @@ description: 从不变量推导实体、字段、关系、约束和状态机，�
 
 ## 适用场景
 
-- G1 产物（invariants/、boundary.md、ambiguities.md）已就绪
+- 前序技能 ae:g1-invariants 产物（invariants/、boundary.md、ambiguities.md）已就绪
 - 需要定义实体、字段、关系、约束和状态机
 - 需要生成可验证的 DDL
 
 ## 不适用场景
 
-- G1 产物未就绪（应先执行 G1）
+- 前序技能 ae:g1-invariants 产物未就绪时不得执行
 - 仅需调整已有数据模型的局部字段（无需完整推导）
 - 不涉及数据约束的纯 UI 或纯流程设计
 
@@ -36,7 +36,7 @@ description: 从不变量推导实体、字段、关系、约束和状态机，�
 
 ## 产物与独占权
 
-本技能独占拥有以下产物，只有本技能可以修改（路径相对于产物根目录）：
+**独占产物**：只有本技能可以创建或修改（路径相对于产物根目录）：
 
 | 产物 | 格式 | 行数上限 |
 |------|------|---------|
@@ -44,15 +44,19 @@ description: 从不变量推导实体、字段、关系、约束和状态机，�
 | `g2/state-machines/`（≤2 状态机时可单文件 `g2/state-machines.md`） | YAML Frontmatter + 正文 | 500 |
 | `g2/ddl-verify.sql` | SQL | 500 |
 
+**共享产物**：`galv-manifest.yaml`（首次创建时由当前执行的技能负责，后续技能可读取和追加信息）
+
 **禁止修改**上游技能产物（G1 的 `g1/invariants/`、`g1/boundary.md`、`g1/ambiguities.md`）和下游技能产物。
 
 ## 上游依赖（只读）
 
-| 产物 | 用途 |
-|------|------|
-| `g1/invariants/` | 遍历提取实体、字段、约束 |
-| `g1/boundary.md` | 确定模型边界 |
-| `g1/ambiguities.md` | 识别需澄清的建模歧义 |
+紧邻前序技能：**ae:g1-invariants**
+
+| 上游技能 | 产物 | 用途 |
+|---------|------|------|
+| ae:g1-invariants | `g1/invariants/` | 遍历提取实体、字段、约束 |
+| ae:g1-invariants | `g1/boundary.md` | 确定模型边界 |
+| ae:g1-invariants | `g1/ambiguities.md` | 识别需澄清的建模歧义 |
 
 ## 执行流程
 
@@ -257,6 +261,7 @@ state_machines:
 
 - 只读访问 G1 产物，不得修改
 - 不得修改下游技能产物
+- 本技能禁止读取或引用执行顺序在本技能之后的任何技能产物（G3/A1/A2/L1/L2/L3/V1/V2），以保证回退时后续产物不可见
 - DDL 验证使用独立测试环境，不得在生产环境执行
 - 发现歧义时记录但不直接修改上游原文
 

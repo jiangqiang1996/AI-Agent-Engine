@@ -11,13 +11,13 @@ description: 全局数据推演：用测试数据代入数据模型和状态机�
 
 ## 适用场景
 
-- G1 不变量和 G2 数据模型已完成，需要验证其在业务流程中是否始终成立
+- 前序技能 ae:g1-invariants 不变量和 ae:g2-data-model 数据模型已完成，需要验证其在业务流程中是否始终成立
 - 需要确认状态机迁移路径在真实数据流下可行
 - 需要量化不变量和状态迁移的覆盖程度
 
 ## 不适用场景
 
-- G1 或 G2 产物尚未就绪
+- 前序技能 ae:g1-invariants 或 ae:g2-data-model 产物未就绪时不得执行
 - 仅需局部逻辑验证而非全局端到端推演
 - 不涉及状态机或不变量的简单查询类需求
 
@@ -36,16 +36,18 @@ description: 全局数据推演：用测试数据代入数据模型和状态机�
 
 ## 输入
 
+前序技能：**ae:g1-invariants**、**ae:g2-data-model**（紧邻前序为 ae:g2-data-model）
+
 本技能**只读**以下上游产物，**禁止修改**：
 
-| 上游 | 产物路径 | 用途 |
-|------|---------|------|
-| G1 | `g1/invariants/` 或 `g1/invariants.md` | 不变量定义，推演检查点来源 |
-| G1 | `g1/boundary.md` | 边界约束，测试数据边界值来源 |
-| G1 | `g1/ambiguities.md` | 歧义记录，推演需额外关注的风险点 |
-| G2 | `g2/data-model/` 或 `g2/data-model.md` | 数据模型，实体关系和约束来源 |
-| G2 | `g2/state-machines/` 或 `g2/state-machines.md` | 状态机定义，状态迁移验证来源 |
-| G2 | `g2/ddl-verify.sql` | DDL 约束，关系约束验证依据 |
+| 上游技能 | 产物路径 | 用途 |
+|---------|---------|------|
+| ae:g1-invariants | `g1/invariants/` 或 `g1/invariants.md` | 不变量定义，推演检查点来源 |
+| ae:g1-invariants | `g1/boundary.md` | 边界约束，测试数据边界值来源 |
+| ae:g1-invariants | `g1/ambiguities.md` | 歧义记录，推演需额外关注的风险点 |
+| ae:g2-data-model | `g2/data-model/` 或 `g2/data-model.md` | 数据模型，实体关系和约束来源 |
+| ae:g2-data-model | `g2/state-machines/` 或 `g2/state-machines.md` | 状态机定义，状态迁移验证来源 |
+| ae:g2-data-model | `g2/ddl-verify.sql` | DDL 约束，关系约束验证依据 |
 
 ## 执行流程
 
@@ -101,10 +103,12 @@ description: 全局数据推演：用测试数据代入数据模型和状态机�
 
 ## 产物独占
 
-本技能独占拥有以下产物，只有本技能可以修改（路径相对于产物根目录）：
+**独占产物**：只有本技能可以创建或修改（路径相对于产物根目录）：
 
 - `g3/data-trace/` 或 `g3/data-trace.md`
 - `g3/trace-coverage.md`
+
+**共享产物**：`galv-manifest.yaml`（首次创建时由当前执行的技能负责，后续技能可读取和追加信息）
 
 ## 产物规格
 
@@ -212,6 +216,7 @@ scenario_summary:
 - **只读上游**：禁止修改 G1、G2 的任何产物文件
 - **独占产物**：只有本技能可修改 `g3/data-trace/`（或 `g3/data-trace.md`）和 `g3/trace-coverage.md`
 - **禁止修改下游**：不修改后续步骤的产物
+- **禁止读取后续产物**：本技能禁止读取或引用执行顺序在本技能之后的任何技能产物（A1/A2/L1/L2/L3/V1/V2），以保证回退时后续产物不可见
 - **幂等性**：重复执行时覆盖本技能独占产物，不破坏上游产物
 
 ## 完成标准
