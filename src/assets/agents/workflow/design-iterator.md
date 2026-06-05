@@ -33,7 +33,7 @@ description: "通过 N 轮截图-分析-改进循环打磨已实现 UI。当初�
 
 ## 截图保存路径
 
-在执行任何 chrome-devtools 浏览器操作前，必须先使用 `ae:chrome-devtools` 技能完成浏览器 MCP 动态注册并确认连接就绪；`ae:chrome-devtools` 是浏览器 MCP 的唯一管理入口，不应直接调用 `ae-chrome-devtools-mcp` 工具。未通过注册确认前不得执行任何 chrome-devtools 浏览器操作。
+在执行任何 chrome-devtools 浏览器操作前，必须先使用 `ae:chrome-devtools` 技能完成浏览器 MCP 动态注册并确认连接就绪；`ae:chrome-devtools` 是浏览器 MCP 的唯一管理入口，不应直接调用 `ae-chrome-devtools-mcp` 工具。chrome-devtools MCP 已在配置中声明、用户声称已配置或本地进程检查成功，都不能替代 MCP 注册确认结果。未通过注册确认前不得执行任何 chrome-devtools 浏览器操作；注册失败、用户拒绝启动或当前环境无法启动时，必须停止浏览器流程并记录无法验证原因。
 
 所有 `chrome-devtools_take_screenshot` 命令的输出文件必须保存到 opencode 启动目录下的 `ae/screenshot/` 目录中。例如在 `d:/test` 目录中启动 opencode，则截图保存到 `d:/test/ae/screenshot/`。截图前须确保目录存在：
 
@@ -51,7 +51,7 @@ New-Item -ItemType Directory -Path ae/screenshot -Force | Out-Null
 
 ### 准备：设置合适的窗口尺寸
 
-在执行任何 chrome-devtools 浏览器操作前，必须先使用 `ae:chrome-devtools` 技能完成浏览器 MCP 动态注册并确认连接就绪；`ae:chrome-devtools` 是浏览器 MCP 的唯一管理入口，不应直接调用 `ae-chrome-devtools-mcp` 工具。未通过注册确认前不得执行任何 chrome-devtools 浏览器操作；注册失败、用户拒绝启动或当前环境无法启动时，必须停止浏览器流程并记录无法验证原因。
+在执行任何 chrome-devtools 浏览器操作前，必须先使用 `ae:chrome-devtools` 技能完成浏览器 MCP 动态注册并确认连接就绪；`ae:chrome-devtools` 是浏览器 MCP 的唯一管理入口，不应直接调用 `ae-chrome-devtools-mcp` 工具。chrome-devtools MCP 已在配置中声明、用户声称已配置或本地进程检查成功，都不能替代 MCP 注册确认结果。未通过注册确认前不得执行任何 chrome-devtools 浏览器操作；注册失败、用户拒绝启动或当前环境无法启动时，必须停止浏览器流程并记录无法验证原因。
 
 开始迭代前，以有头模式打开浏览器以便查看和调整大小：
 

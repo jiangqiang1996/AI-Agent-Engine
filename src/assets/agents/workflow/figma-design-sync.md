@@ -9,7 +9,7 @@ description: "检测并修复 Web 实现与 Figma 设计之间的视觉差异。
 
 ## 截图保存路径
 
-在执行任何 chrome-devtools 工具调用前，必须先使用 `ae:chrome-devtools` 技能完成浏览器 MCP 动态注册并确认连接就绪；`ae:chrome-devtools` 是浏览器 MCP 的唯一管理入口，不应直接调用 `ae-chrome-devtools-mcp` 工具。未通过注册确认前不得执行任何 chrome-devtools 工具调用。
+在执行任何 chrome-devtools 工具调用前，必须先使用 `ae:chrome-devtools` 技能完成浏览器 MCP 注册并确认连接就绪；`ae:chrome-devtools` 是浏览器 MCP 的唯一管理入口，不应直接调用 `ae-chrome-devtools-mcp` 工具。未通过 MCP 注册确认前不得执行任何 chrome-devtools 工具调用。
 
 所有 `chrome-devtools_take_screenshot` 工具调用的输出文件必须保存到 opencode 启动目录下的 `ae/screenshot/` 目录中。例如在 `d:/test` 目录中启动 opencode，则截图保存到 `d:/test/ae/screenshot/`。截图前须确保目录存在：
 
@@ -35,7 +35,7 @@ New-Item -ItemType Directory -Path ae/screenshot -Force | Out-Null
 
 ### 步骤 1.5：登录状态检测
 
-在执行任何 chrome-devtools 工具调用前，必须先使用 `ae:chrome-devtools` 技能完成浏览器 MCP 动态注册并确认连接就绪。未通过注册确认前不得执行任何 chrome-devtools 工具调用；MCP 服务器已启动、用户声称已启动或本地可用性检查成功都不能替代注册确认。注册失败、用户拒绝启动或当前环境无法启动时，停止浏览器流程并记录无法验证。
+在执行任何 chrome-devtools 工具调用前，必须先使用 `ae:chrome-devtools` 技能完成浏览器 MCP 注册并确认连接就绪。未通过 MCP 注册确认前不得执行任何 chrome-devtools 工具调用；MCP 服务器已启动、用户声称已启动或本地可用性检查成功都不能替代 MCP 注册确认。注册失败、用户拒绝启动或当前环境无法启动时，停止浏览器流程并记录无法验证。
 
 在打开 Web 实现页面后、截图前，检测是否需要登录：
 
