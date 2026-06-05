@@ -31,6 +31,16 @@ export const SKILL = {
   STATIC_SERVER: 'ae:static-server',
   HELP: 'ae:help',
   UPDATE: 'ae:update',
+  G1_INVARIANTS: 'ae:g1-invariants',
+  G2_DATA_MODEL: 'ae:g2-data-model',
+  G3_GLOBAL_TRACE: 'ae:g3-global-trace',
+  A1_CONTRACTS: 'ae:a1-contracts',
+  A2_ASSOC_TRACE: 'ae:a2-assoc-trace',
+  L1_UI_SPEC: 'ae:l1-ui-spec',
+  L2_MODULE_DESIGN: 'ae:l2-module-design',
+  L3_MODULE_VERIFY: 'ae:l3-module-verify',
+  V1_E2E_VERIFY: 'ae:v1-e2e-verify',
+  V2_COMPLETENESS: 'ae:v2-completeness',
 } as const
 
 export const PO_SUFFIX = '-po'
@@ -59,6 +69,16 @@ export const PROMPT_OPTIMIZE_VARIANT_EXCLUDED_SKILLS = [
   SKILL.COURSE_AUTO_PLAYER,
   SKILL.HELP,
   SKILL.UPDATE,
+  SKILL.G1_INVARIANTS,
+  SKILL.G2_DATA_MODEL,
+  SKILL.G3_GLOBAL_TRACE,
+  SKILL.A1_CONTRACTS,
+  SKILL.A2_ASSOC_TRACE,
+  SKILL.L1_UI_SPEC,
+  SKILL.L2_MODULE_DESIGN,
+  SKILL.L3_MODULE_VERIFY,
+  SKILL.V1_E2E_VERIFY,
+  SKILL.V2_COMPLETENESS,
 ] as const
 
 export function hasPromptOptimizeVariant(skillName: string): boolean {
@@ -172,6 +192,16 @@ export const AeSkillNameSchema = z
     SKILL.COURSE_AUTO_PLAYER,
     SKILL.HELP,
     SKILL.UPDATE,
+    SKILL.G1_INVARIANTS,
+    SKILL.G2_DATA_MODEL,
+    SKILL.G3_GLOBAL_TRACE,
+    SKILL.A1_CONTRACTS,
+    SKILL.A2_ASSOC_TRACE,
+    SKILL.L1_UI_SPEC,
+    SKILL.L2_MODULE_DESIGN,
+    SKILL.L3_MODULE_VERIFY,
+    SKILL.V1_E2E_VERIFY,
+    SKILL.V2_COMPLETENESS,
   ])
   .describe('AE 技能名')
 
