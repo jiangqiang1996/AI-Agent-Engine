@@ -214,8 +214,8 @@ title: review-plan
 
     expect(result.resolution).toBe('resolved')
     expect(result.nextSkill).toBe(SKILL.REVIEW)
-    expect(result.nextArguments).toBe('domain:document ae/plans/review-plan.md')
-    expect(result.nextCommand).toBe(`${SKILL.REVIEW} domain:document ae/plans/review-plan.md`)
+    expect(result.nextArguments).toBe('domain=document ae/plans/review-plan.md')
+    expect(result.nextCommand).toBe(`${SKILL.REVIEW} domain=document ae/plans/review-plan.md`)
   })
 
   it('review 阶段命中多个 plan 产物时不应返回可直接执行的无路径命令', () => {
@@ -255,8 +255,8 @@ title: lfg-plan
     expect(result.resolution).toBe('resolved')
     expect(result.resumePhase).toBe('review')
     expect(result.nextSkill).toBe(SKILL.REVIEW)
-    expect(result.nextArguments).toBe('mode:headless domain:document ae/plans/lfg-plan.md')
-    expect(result.nextCommand).toBe(`${SKILL.REVIEW} mode:headless domain:document ae/plans/lfg-plan.md`)
+    expect(result.nextArguments).toBe('mode=headless domain=document ae/plans/lfg-plan.md')
+    expect(result.nextCommand).toBe(`${SKILL.REVIEW} mode=headless domain=document ae/plans/lfg-plan.md`)
   })
 
   it('lfg 阶段命中 prd 产物时应该恢复到 ae:review 无头文档域', () => {
@@ -272,9 +272,9 @@ topic: feature
 
     expect(result.resolution).toBe('resolved')
     expect(result.nextSkill).toBe(SKILL.REVIEW)
-    expect(result.nextArguments).toBe('mode:headless domain:document ae/prds/feature-prd.md')
+    expect(result.nextArguments).toBe('mode=headless domain=document ae/prds/feature-prd.md')
     expect(result.nextCommand).toBe(
-      `${SKILL.REVIEW} mode:headless domain:document ae/prds/feature-prd.md`,
+      `${SKILL.REVIEW} mode=headless domain=document ae/prds/feature-prd.md`,
     )
   })
 
@@ -308,9 +308,9 @@ topic: feature
 
     expect(result.resolution).toBe('resolved')
     expect(result.nextSkill).toBe(SKILL.REVIEW)
-    expect(result.nextArguments).toBe('mode:headless domain:document ae/prds/feature-prd.md')
+    expect(result.nextArguments).toBe('mode=headless domain=document ae/prds/feature-prd.md')
     expect(result.nextCommand).toBe(
-      `${SKILL.REVIEW} mode:headless domain:document ae/prds/feature-prd.md`,
+      `${SKILL.REVIEW} mode=headless domain=document ae/prds/feature-prd.md`,
     )
   })
 

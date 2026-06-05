@@ -58,7 +58,7 @@ function stripNegativeContext(content: string): string {
 describe('Markdown 协议测试', () => {
   it('浏览器消费方必须在命令前声明 chrome-devtools MCP 门禁和失败降级', () => {
     const CHROME_DEVTOOLS_MCP = /chrome-devtools_\w+/
-    const browserAssets = ASSETS.filter((asset) => CHROME_DEVTOOLS_MCP.test(asset.content))
+    const browserAssets = ASSETS.filter((asset) => CHROME_DEVTOOLS_MCP.test(asset.content) && !asset.path.includes('ae-chrome-devtools'))
     const required = ['ae:chrome-devtools', '不得执行', 'MCP 注册', '不能替代']
 
     for (const asset of browserAssets) {

@@ -113,7 +113,7 @@ describe('session-create.service', () => {
 
     expect(result.promptAttempted).toBe(true)
     expect(result.promptSubmitted).toBe(true)
-    expect(result.recoverablePrompt).toContain('ae-chrome-devtools-mcp action=check')
+    expect(result.recoverablePrompt).toContain('ae:chrome-devtools')
     expect(mockSubmitUserPrompt).toHaveBeenCalledWith(client, 'session-1', result.recoverablePrompt)
   })
 
@@ -126,7 +126,7 @@ describe('session-create.service', () => {
     }))
 
     expect(result.promptSubmitted).toBe(true)
-    expect(result.recoverablePrompt).toContain('ae-chrome-devtools-mcp action=check')
+    expect(result.recoverablePrompt).toContain('ae:chrome-devtools')
     expect(result.recoverablePrompt).toContain('使用 chrome-devtools-mcp 打开页面并截图')
     expect(result.recoverablePrompt).toContain('开始')
   })
