@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, realpathSync, type Dirent } from 'node:fs'
+import { copyFileSync, existsSync, lstatSync, mkdirSync, readdirSync, realpathSync, writeFileSync, type Dirent } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
 
@@ -34,6 +34,9 @@ import {
 } from '../services/graph-filter-suggestion-service.js'
 import { isInsideRoot, pathContainsSymlink, resolvePathWithBase, toPosixPath } from '../utils/path-utils.js'
 import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
+import { ARTIFACT_STAGE } from '../services/graph/build-stage.js'
+import { detectToolchain } from '../services/graph/toolchain-profile.js'
+import { generateQueryIndex } from '../services/graph/graph-query-index.js'
 
 interface GraphFilterDecisions {
   include?: string[]
@@ -77,6 +80,19 @@ function copyGraphPreview(worktree: string): void {
   }
 
   copyDir(refDir, targetDir)
+}
+
+function writeQueryIndex(worktree: string, scopeRoot: string, storage: ReturnType<typeof createGraphStorage>): void {
+  const active = storage.getActiveVersion(worktree, scopeRoot)
+  if (!active) {
+    return
+  }
+  const index = generateQueryIndex(active.files, active.relations)
+  const targetDir = join(worktree, docsAePath(DOCS_AE_SUBDIRS.GRAPHS))
+  if (!existsSync(targetDir)) {
+    mkdirSync(targetDir, { recursive: true })
+  }
+  writeFileSync(join(targetDir, 'query-index.json'), JSON.stringify(index, null, 2))
 }
 
 function isGraphRuntimeFile(filePath: string): boolean {
@@ -311,7 +327,7 @@ export const aeGraphBuildTool = tool({
   args: {
     target: z.string().optional().describe('目标目录，支持绝对路径或相对路径；默认相对于 opencode 启动路径解析。'),
     mode: z.enum(['auto', 'full', 'incremental']).optional().describe('构建模式：auto/full/incremental。默认 auto。'),
-    depth: z.enum(['shallow']).optional().describe('解析深度。首版仅支持 shallow。'),
+    depth: z.enum(['shallow', 'medium']).optional().describe('解析深度。shallow 仅浅层引用，medium 额外解析制品依赖。'),
     include: z.array(z.string()).optional().describe('额外包含的子路径或路径集合，优先于排除规则但不覆盖安全硬排除。'),
     exclude: z.array(z.string()).optional().describe('额外排除的子路径或路径集合，优先与现有排除规则合并。'),
     filterDecisions: z.object({
@@ -405,6 +421,7 @@ export const aeGraphBuildTool = tool({
         })
         if (freshness.status === 'fresh') {
           copyGraphPreview(worktree)
+          writeQueryIndex(worktree, scopeRoot, storage)
           storage.closeDatabase()
           storage = undefined
           return JSON.stringify({
@@ -474,6 +491,28 @@ export const aeGraphBuildTool = tool({
       const parsed = await parseFileRelations(worktree, parseFiles, config)
       storage.insertFiles(versionId, parsed.files)
       storage.insertRelations(versionId, parsed.relations)
+
+      // depth=medium 时额外解析制品依赖
+      let artifactNodeCount = 0
+      let artifactRelationCount = 0
+      const actualDepth = args.depth ?? 'shallow'
+      if (actualDepth === 'medium') {
+        try {
+          const toolchain = await detectToolchain(worktree)
+          const artifactResult = await ARTIFACT_STAGE.extract(worktree, toolchain)
+          if (artifactResult.nodes.length > 0) {
+            storage.insertFiles(versionId, artifactResult.nodes)
+            artifactNodeCount = artifactResult.nodes.length
+          }
+          if (artifactResult.relations.length > 0) {
+            storage.insertRelations(versionId, artifactResult.relations)
+            artifactRelationCount = artifactResult.relations.length
+          }
+        } catch {
+          // 制品依赖解析失败不阻断主流程
+        }
+      }
+
       const endInput = normalizeGraphBuildInput({
         worktree,
         scopeRoot,
@@ -494,20 +533,21 @@ export const aeGraphBuildTool = tool({
       storage.activateVersion(versionId)
       writeGraphBuildState(worktree, markBuildCompleted(buildState, versionId))
       copyGraphPreview(worktree)
+      writeQueryIndex(worktree, scopeRoot, storage)
       const activeSummary = storage.getActiveVersionSummary(worktree, scopeRoot)
 
       return JSON.stringify({
         mode: effectiveMode,
         modeReason: effectiveMode === 'full' ? (diff.warning ?? (rulesChanged ? '图谱过滤规则变化，已全量重建' : (diff.hasStructuralChange ? '检测到新增、删除、重命名或未跟踪文件，已保守全量构建' : '未找到可复用 active version 或用户请求 full'))) : '仅检测到可安全增量刷新的修改文件',
-        depth: args.depth ?? 'shallow',
+        depth: actualDepth,
         scopeRoot,
         versionId,
-        parsedNodes: parsed.files.length,
+        parsedNodes: parsed.files.length + artifactNodeCount,
         activeFiles: activeSummary?.fileCount ?? parsed.files.length,
         activeNodes: activeSummary?.nodeCount ?? parsed.files.length,
         activeRelations: activeSummary?.relationCount ?? parsed.relations.length,
-        relations: parsed.relations.length,
-        parserStats: [],
+        relations: parsed.relations.length + artifactRelationCount,
+        parserStats: actualDepth === 'medium' ? [{ parser: 'artifact', nodes: artifactNodeCount, relations: artifactRelationCount }] : [],
         failedFiles: parsed.failedFiles.length,
         failedFileDetails: parsed.failedFiles,
         skippedFiles: parsed.skippedFiles.length,

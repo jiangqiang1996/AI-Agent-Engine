@@ -2,6 +2,7 @@ import type { GraphFileNode, GraphRelation } from './graph-storage-service.js'
 import { createGraphStorage } from './graph-storage-service.js'
 import { loadGraphConfig } from './graph-config-service.js'
 import { evaluateGraphFreshnessBasis, readGraphBuildState, type GraphFreshness } from './graph-freshness-service.js'
+import { filterGraph, isInDirectory, isFileLevelRelation, getRelationType } from './graph/graph-filter.js'
 
 type QueryMode = 'deps' | 'impact' | 'health' | 'filter' | 'path' | 'core' | 'stats' | 'pattern'
 
@@ -35,14 +36,6 @@ function appendMapValue(map: Map<string, string[]>, key: string, value: string):
 
 function clampLimit(value: number | undefined): number {
   return Math.min(Math.max(value ?? DEFAULT_LIMIT, 1), MAX_RESULT_ITEMS)
-}
-
-function isInDirectory(filePath: string, directory: string | undefined): boolean {
-  if (!directory || directory === '.') {
-    return true
-  }
-  const normalized = directory.replace(/\/$/, '')
-  return filePath === normalized || filePath.startsWith(`${normalized}/`)
 }
 
 function findCycles(relations: GraphRelation[], files: string[], limit: number): string[][] {
@@ -213,14 +206,6 @@ function countRelationsByType(relations: GraphRelation[]): Record<string, number
   }, {})
 }
 
-function getRelationType(relation: GraphRelation): string {
-  return relation.type ?? (relation.relationType === 'external' ? 'external_reference' : relation.relationType)
-}
-
-function isFileLevelRelation(relation: GraphRelation): boolean {
-  return getRelationType(relation) !== 'contains'
-}
-
 function topInDegreeFromRelations(
   relations: GraphRelation[],
   files: { relativePath: string; fileType: string }[],
@@ -237,16 +222,6 @@ function topInDegreeFromRelations(
     .map(([path, count]) => ({ path, count }))
     .sort((a, b) => b.count - a.count || a.path.localeCompare(b.path))
     .slice(0, top)
-}
-
-function filterRelationsByDirectory(relations: GraphRelation[], directory: string | undefined): GraphRelation[] {
-  if (!directory || directory === '.') {
-    return relations
-  }
-  const normalized = directory.replace(/\/$/, '')
-  return relations.filter((relation) =>
-    isInDirectory(relation.sourcePath, directory) || isInDirectory(relation.targetPath, directory),
-  )
 }
 
 function formatOkResult(params: {
@@ -485,27 +460,15 @@ export function executeGraphQuery(request: GraphQueryRequest): unknown {
     }
 
     if (request.mode === 'filter') {
-      const filteredFiles = files.filter(
-        (file) => (!request.fileType || file.fileType === request.fileType) && isInDirectory(file.relativePath, request.directory),
-      )
-      let filteredRelations = allRelations.filter((relation) => {
-        if (request.relationType && getRelationType(relation) !== request.relationType) {
-          return false
-        }
-        if (request.directory && request.directory !== '.') {
-          if (!isInDirectory(relation.sourcePath, request.directory) && !isInDirectory(relation.targetPath, request.directory)) {
-            return false
-          }
-        }
-        return true
+      const filtered = filterGraph(files, allRelations, {
+        directory: request.directory,
+        relationTypes: request.relationType ? [request.relationType] : undefined,
+        fileType: request.fileType,
+        includeSymbolNodes: true,
       })
-      const filteredFileSet = new Set(filteredFiles.map((file) => file.relativePath))
-      filteredRelations = filteredRelations.filter((relation) =>
-        filteredFileSet.has(relation.sourcePath) || filteredFileSet.has(relation.targetPath),
-      )
-      const limitedFiles = takeLimited(filteredFiles, limit)
+      const limitedFiles = takeLimited(filtered.files, limit)
       const limitedFileSet = new Set(limitedFiles.items.map((file) => file.relativePath))
-      const coherentRelations = filteredRelations.filter((relation) =>
+      const coherentRelations = filtered.relations.filter((relation) =>
         limitedFileSet.has(relation.sourcePath) || limitedFileSet.has(relation.targetPath),
       )
       const limitedRelations = takeLimited(coherentRelations, limit)

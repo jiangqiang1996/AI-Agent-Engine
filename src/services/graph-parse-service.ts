@@ -2,7 +2,7 @@ import { existsSync, lstatSync, readdirSync, readFileSync, realpathSync, statSyn
 import { dirname, extname, join, relative, resolve } from 'node:path'
 
 import { makeExternalNodeId, makeFileNodeId, makeSymbolNodeId, makeUnresolvedNodeId } from './graph/graph-schema.js'
-import type { GraphSymbolKind } from './graph/graph-schema.js'
+import type { GraphCompleteness, GraphLayer, GraphRelationSource, GraphSymbolKind } from './graph/graph-schema.js'
 import type { GraphConfig } from './graph-config-service.js'
 import type { GraphFileNode, GraphRelation, GraphRelationType } from './graph-storage-service.js'
 import { loadTreeSitterLanguage } from './graph/tree-sitter-loader.js'
@@ -435,7 +435,7 @@ async function parseByLanguage(
   pushFallbackReferences(relations, worktree, file, lines, markdownReferences, config)
 }
 
-function pushMarkdownLinkReferences(
+export function pushMarkdownLinkReferences(
   relations: GraphRelation[],
   worktree: string,
   file: CollectedGraphFile,
@@ -445,19 +445,31 @@ function pushMarkdownLinkReferences(
 ): void {
   lines.forEach((lineContent, index) => {
     const line = index + 1
+    // HTML comment include 指令从原始行内容解析，不受注释过滤影响
+    for (const match of lineContent.matchAll(/<!--\s*include\s+(.+?)\s*-->/g)) {
+      pushDocumentReference(relations, worktree, file.relativePath, match[1], 'include', line, config)
+    }
     if (isCommentOnlyLine(lines, index, file.language)) {
       return
     }
     const content = stripTrailingComment(lineContent, file.language)
+    // 行内链接
     for (const match of content.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)) {
-      if (!/^https?:\/\//i.test(match[1])) {
-        pushReference(relations, worktree, file.relativePath, match[1], 'link', line, config)
+      if (!/^https?:\/\//i.test(match[1]) && !match[1].startsWith('#')) {
+        pushDocumentReference(relations, worktree, file.relativePath, match[1], 'link', line, config)
       }
     }
+    // 引用式链接
     for (const match of content.matchAll(/\[[^\]]+\]\[([^\]]+)\]/g)) {
       const target = markdownReferences.get(match[1].toLowerCase())
-      if (target && !/^https?:\/\//i.test(target)) {
-        pushReference(relations, worktree, file.relativePath, target, 'link', line, config)
+      if (target && !/^https?:\/\//i.test(target) && !target.startsWith('#')) {
+        pushDocumentReference(relations, worktree, file.relativePath, target, 'link', line, config)
+      }
+    }
+    // 图片引用
+    for (const match of content.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)) {
+      if (!/^https?:\/\//i.test(match[1]) && !match[1].startsWith('#')) {
+        pushDocumentReference(relations, worktree, file.relativePath, match[1], 'image_reference', line, config)
       }
     }
   })
@@ -582,8 +594,11 @@ function pushReference(
   line: number,
   config: GraphConfig,
   parser = 'regex-shallow',
+  extraFields?: { layer?: GraphLayer; source?: GraphRelationSource; completeness?: GraphCompleteness },
 ): void {
-  const targetPath = resolveRelativeReference(worktree, sourcePath, rawTarget, relationType === 'link')
+  // 文档层关系允许裸相对路径（如 image.png），与 link 行为一致
+  const allowBareRelative = relationType === 'link' || relationType === 'image_reference' || extraFields?.layer === 'document'
+  const targetPath = resolveRelativeReference(worktree, sourcePath, rawTarget, allowBareRelative)
   const sourceId = makeFileNodeId(sourcePath)
   if (targetPath && shouldExclude(targetPath, config)) {
     const targetId = makeUnresolvedNodeId(sourceId, relationType, stableReferenceIndex(sourcePath, rawTarget, relationType, line))
@@ -601,6 +616,10 @@ function pushReference(
       evidence: rawTarget,
       reason: '目标被图谱排除规则过滤',
       metadata: { line, raw: rawTarget, confidence: 'unresolved' },
+      layer: extraFields?.layer,
+      source: extraFields?.source,
+      // 被排除的目标视为未解析，覆盖为 incomplete
+      completeness: extraFields?.completeness != null ? 'incomplete' : undefined,
     })
     return
   }
@@ -621,6 +640,29 @@ function pushReference(
     evidence: rawTarget,
     reason: resolved ? undefined : '无法解析为工作区内文件',
     metadata: { line, raw: rawTarget, confidence: resolved ? 'resolved' : 'unresolved' },
+    layer: extraFields?.layer,
+    source: extraFields?.source,
+    // 未解析时覆盖为 incomplete，已解析时保留调用方传入的 completeness
+    completeness: extraFields?.completeness != null
+      ? (resolved ? extraFields.completeness : 'incomplete')
+      : undefined,
+  })
+}
+
+/** 文档层关系推送：自动设置 layer=document, source=regex, completeness 根据解析状态决定 */
+export function pushDocumentReference(
+  relations: GraphRelation[],
+  worktree: string,
+  sourcePath: string,
+  rawTarget: string,
+  relationType: GraphRelationType,
+  line: number,
+  config: GraphConfig,
+): void {
+  pushReference(relations, worktree, sourcePath, rawTarget, relationType, line, config, 'regex-shallow', {
+    layer: 'document',
+    source: 'regex',
+    completeness: 'full',
   })
 }
 

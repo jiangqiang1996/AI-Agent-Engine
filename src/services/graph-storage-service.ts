@@ -12,7 +12,7 @@ import type {
 } from './graph/graph-schema.js'
 
 export type GraphFileType = 'source' | 'document' | 'config' | 'directory'
-export type GraphRelationType = Extract<GraphSchemaRelationType, 'contains' | 'import' | 'require' | 'include' | 'link' | 'directory'> | 'external'
+export type GraphRelationType = Extract<GraphSchemaRelationType, 'contains' | 'import' | 'require' | 'include' | 'link' | 'directory' | 'call' | 'construct' | 'extends' | 'implements' | 'type_reference' | 'field_reference' | 'variable_reference' | 'export' | 'dependency' | 'image_reference'> | 'external'
 
 export interface GraphFileNode {
   id?: string
@@ -28,6 +28,16 @@ export interface GraphFileNode {
   parser?: string
   status?: string
   symbolKind?: GraphSymbolKind
+  /** external-package 节点所属包生态 */
+  ecosystem?: 'maven' | 'npm' | 'gomod' | 'pip' | 'cargo' | 'gradle'
+  /** Maven groupId 等 */
+  groupId?: string
+  /** Maven artifactId 等 */
+  artifactId?: string
+  /** 包版本 */
+  version?: string
+  /** Maven scope 等 */
+  scope?: string
 }
 
 export interface GraphRelation {
@@ -44,6 +54,12 @@ export interface GraphRelation {
   evidence?: string
   reason?: string
   metadata?: Record<string, unknown>
+  /** 关系所属层级，未标注时默认 code */
+  layer?: 'code' | 'document' | 'artifact' | 'inferred'
+  /** 关系来源解析器 */
+  source?: 'tree-sitter' | 'regex' | 'maven-cli' | 'npm-ls' | 'go-mod' | 'pipdeptree' | 'cargo-tree' | 'gradle-deps' | 'user-override'
+  /** 关系完整性 */
+  completeness?: 'full' | 'partial' | 'incomplete'
 }
 
 export interface ActiveGraph {

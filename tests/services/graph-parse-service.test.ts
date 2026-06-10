@@ -4,7 +4,8 @@ import { basename, join } from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { collectGraphFiles, parseFileRelations } from '../../src/services/graph-parse-service.js'
+import { collectGraphFiles, parseFileRelations, pushDocumentReference, pushMarkdownLinkReferences } from '../../src/services/graph-parse-service.js'
+import type { GraphRelation, GraphRelationType } from '../../src/services/graph-storage-service.js'
 
 const tempRoots: string[] = []
 
@@ -507,5 +508,155 @@ describe('graph-parse-service', () => {
     const files = collectGraphFiles(root, root, { include: ['.env', 'ae/graphs/graph.json', 'src/logo.png'], exclude: [] })
 
     expect(files).toEqual([])
+  })
+})
+
+describe('文档引用解析增强', () => {
+  it('应该解析 Markdown 中的链接、图片和 include 指令', async () => {
+    const root = createTempRoot()
+    write(root, 'docs/guide.md', [
+      '[Next](next.md)',
+      '![Logo](logo.svg)',
+      '<!-- include shared/header.md -->',
+    ].join('\n'))
+    write(root, 'docs/next.md', '# next')
+    write(root, 'docs/logo.svg', '<svg/>')
+    write(root, 'docs/shared/header.md', '# header')
+
+    const files = collectGraphFiles(root, root, { exclude: [] })
+    const parsed = await parseFileRelations(root, files, { exclude: [] })
+
+    expect(parsed.relations.some((r) => r.relationType === 'link' && r.sourcePath === 'docs/guide.md' && r.targetPath === 'docs/next.md')).toBe(true)
+    expect(parsed.relations.some((r) => r.relationType === 'image_reference' && r.sourcePath === 'docs/guide.md' && r.targetPath === 'docs/logo.svg')).toBe(true)
+    expect(parsed.relations.some((r) => r.relationType === 'include' && r.sourcePath === 'docs/guide.md' && r.targetPath === 'docs/shared/header.md')).toBe(true)
+  })
+
+  it('应该为所有 Markdown 文档关系设置 layer=document, source=regex', async () => {
+    const root = createTempRoot()
+    write(root, 'docs/guide.md', '[Next](next.md)\n![Img](img.svg)\n<!-- include part.md -->')
+    write(root, 'docs/next.md', '# next')
+    write(root, 'docs/img.svg', '<svg/>')
+    write(root, 'docs/part.md', '# part')
+
+    const files = collectGraphFiles(root, root, { exclude: [] })
+    const parsed = await parseFileRelations(root, files, { exclude: [] })
+
+    const docRelations = parsed.relations.filter((r) => r.sourcePath === 'docs/guide.md' && (r.relationType === 'link' || r.relationType === 'image_reference' || r.relationType === 'include'))
+    for (const r of docRelations) {
+      expect(r.layer).toBe('document')
+      expect(r.source).toBe('regex')
+    }
+  })
+
+  it('应该为已解析的文档关系设置 completeness=full，未解析的设置 completeness=incomplete', async () => {
+    const root = createTempRoot()
+    write(root, 'docs/guide.md', '[Exists](exists.md)\n[Missing](missing.md)\n![Found](found.svg)\n![Lost](lost.svg)')
+    write(root, 'docs/exists.md', '# exists')
+    write(root, 'docs/found.svg', '<svg/>')
+
+    const files = collectGraphFiles(root, root, { exclude: [] })
+    const parsed = await parseFileRelations(root, files, { exclude: [] })
+
+    const resolved = parsed.relations.find((r) => r.sourcePath === 'docs/guide.md' && r.relationType === 'link' && r.targetPath === 'docs/exists.md')
+    expect(resolved?.completeness).toBe('full')
+
+    const unresolved = parsed.relations.find((r) => r.sourcePath === 'docs/guide.md' && r.targetPath === 'missing.md' && r.confidence === 'unresolved')
+    expect(unresolved?.completeness).toBe('incomplete')
+
+    const resolvedImg = parsed.relations.find((r) => r.sourcePath === 'docs/guide.md' && r.relationType === 'image_reference' && r.targetPath === 'docs/found.svg')
+    expect(resolvedImg?.completeness).toBe('full')
+
+    const unresolvedImg = parsed.relations.find((r) => r.sourcePath === 'docs/guide.md' && r.targetPath === 'lost.svg' && r.confidence === 'unresolved')
+    expect(unresolvedImg?.completeness).toBe('incomplete')
+  })
+
+  it('应该跳过锚点链接和外部 URL', async () => {
+    const root = createTempRoot()
+    write(root, 'docs/guide.md', '[Section](#intro)\n[External](https://example.com)\n![Remote](http://img.com/a.png)')
+
+    const files = collectGraphFiles(root, root, { exclude: [] })
+    const parsed = await parseFileRelations(root, files, { exclude: [] })
+
+    const docRelations = parsed.relations.filter((r) => r.sourcePath === 'docs/guide.md' && r.relationType !== 'contains' && r.relationType !== 'directory')
+    expect(docRelations).toEqual([])
+  })
+
+  it('应该处理空 Markdown 和无链接文件', async () => {
+    const root = createTempRoot()
+    write(root, 'docs/empty.md', '')
+    write(root, 'docs/plain.md', 'Just plain text, no links at all.')
+
+    const files = collectGraphFiles(root, root, { exclude: [] })
+    const parsed = await parseFileRelations(root, files, { exclude: [] })
+
+    const linkRelations = parsed.relations.filter((r) => r.relationType === 'link' || r.relationType === 'image_reference' || r.relationType === 'include')
+    expect(linkRelations).toEqual([])
+  })
+
+  it('应该从 HTML comment 中提取 include 指令即使行是注释行', async () => {
+    const root = createTempRoot()
+    write(root, 'docs/guide.md', '<!-- include shared.md -->')
+    write(root, 'docs/shared.md', '# shared')
+
+    const files = collectGraphFiles(root, root, { exclude: [] })
+    const parsed = await parseFileRelations(root, files, { exclude: [] })
+
+    expect(parsed.relations.some((r) => r.relationType === 'include' && r.sourcePath === 'docs/guide.md' && r.targetPath === 'docs/shared.md')).toBe(true)
+  })
+
+  it('应该解析引用式链接并标记为 document 层', async () => {
+    const root = createTempRoot()
+    write(root, 'docs/guide.md', '[Next][next]\n\n[next]: next.md')
+    write(root, 'docs/next.md', '# next')
+
+    const files = collectGraphFiles(root, root, { exclude: [] })
+    const parsed = await parseFileRelations(root, files, { exclude: [] })
+
+    const ref = parsed.relations.find((r) => r.sourcePath === 'docs/guide.md' && r.relationType === 'link' && r.targetPath === 'docs/next.md')
+    expect(ref).toBeDefined()
+    expect(ref?.layer).toBe('document')
+    expect(ref?.source).toBe('regex')
+    expect(ref?.completeness).toBe('full')
+  })
+
+  it('格式错误的链接应该静默跳过', async () => {
+    const root = createTempRoot()
+    write(root, 'docs/guide.md', [
+      '[Broken',
+      '![Missing paren](img.svg',
+      '<!-- include -->',
+    ].join('\n'))
+
+    const files = collectGraphFiles(root, root, { exclude: [] })
+    const parsed = await parseFileRelations(root, files, { exclude: [] })
+
+    expect(parsed.relations.some((r) => r.relationType === 'image_reference')).toBe(false)
+    expect(parsed.relations.some((r) => r.relationType === 'include')).toBe(false)
+  })
+
+  it('TS 文件中的 Markdown 链接也应标记为 document 层', async () => {
+    const root = createTempRoot()
+    write(root, 'src/a.ts', "[Doc](../docs/doc.md)\n[doc]: ../docs/doc.md")
+    write(root, 'docs/doc.md', '# doc')
+
+    const files = collectGraphFiles(root, root, { exclude: [] })
+    const parsed = await parseFileRelations(root, files, { exclude: [] })
+
+    const link = parsed.relations.find((r) => r.sourcePath === 'src/a.ts' && r.relationType === 'link' && r.targetPath === 'docs/doc.md')
+    expect(link).toBeDefined()
+    expect(link?.layer).toBe('document')
+    expect(link?.source).toBe('regex')
+    expect(link?.completeness).toBe('full')
+  })
+
+  it('图片引用支持裸相对路径', async () => {
+    const root = createTempRoot()
+    write(root, 'docs/guide.md', '![Logo](logo.svg)')
+    write(root, 'docs/logo.svg', '<svg/>')
+
+    const files = collectGraphFiles(root, root, { exclude: [] })
+    const parsed = await parseFileRelations(root, files, { exclude: [] })
+
+    expect(parsed.relations.some((r) => r.relationType === 'image_reference' && r.sourcePath === 'docs/guide.md' && r.targetPath === 'docs/logo.svg')).toBe(true)
   })
 })
