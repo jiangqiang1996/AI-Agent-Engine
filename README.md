@@ -83,8 +83,10 @@ GALV 结构化设计流程：
 
 ```text
 /ae-g1-invariants 需求文档路径
-/ae-g2-data-model
-/ae-g3-global-trace
+/ae-g2-business-scenarios
+/ae-g3-architecture
+/ae-g4-data-model
+/ae-g5-global-trace
 /ae-a1-contracts
 /ae-a2-assoc-trace
 /ae-l1-ui-spec
@@ -100,14 +102,16 @@ GALV 产出从需求到设计的自闭环产物，任何 AI 代理可据此生�
 
 | 阶段 | 含义 | 技能 | 作用 |
 | --- | --- | --- | --- |
-| **G** Global | 全局基础 | `/ae-g1-invariants` | 从需求提取业务不变量、划定系统边界、识别模块拆分点 |
-| | | `/ae-g2-data-model` | 从不变量推导实体、字段、关系、约束和状态机 |
-| | | `/ae-g3-global-trace` | 用测试数据代入数据模型和状态机走通核心业务流程 |
-| **A** Association | 跨模块关联 | `/ae-a1-contracts` | 定义模块间数据契约、数据流、共享状态和冲突解决策略 |
+| **G** Global | 全局基础 | `/ae-g1-invariants` | 从需求提取业务不变量、NFR、划定系统边界、识别模块拆分点 |
+| | | `/ae-g2-business-scenarios` | 从不变量推导业务场景、角色、操作序列和字段目录 |
+| | | `/ae-g3-architecture` | 定义系统架构、安全约束和非功能性策略 |
+| | | `/ae-g4-data-model` | 从不变量和业务场景推导实体、字段、关系、约束和状态机（禁止 FK） |
+| | | `/ae-g5-global-trace` | 用测试数据代入数据模型和状态机走通核心业务流程 |
+| **A** Association | 跨模块关联 | `/ae-a1-contracts` | 定义模块间数据契约、数据流、外部系统集成和冲突解决策略 |
 | | | `/ae-a2-assoc-trace` | 用具体数据走通跨模块数据流，验证契约自洽 |
 | **L** Local | 局部设计 | `/ae-l1-ui-spec` | 生成结构化界面文档描述并验证可还原性（纯后端项目跳过） |
-| | | `/ae-l2-module-design` | 为指定模块完成内部逻辑设计，产出设计文档和 DDL |
-| | | `/ae-l3-module-verify` | 验证指定模块的数据推演、DDL 落地和文档可还原性 |
+| | | `/ae-l2-module-design` | 为指定模块完成内部逻辑设计，产出设计文档和 DDL（禁止 FK） |
+| | | `/ae-l3-module-verify` | 验证指定模块的数据推演、DDL 落地（逻辑引用一致性）和文档可还原性 |
 | **V** Verification | 终局验证 | `/ae-v1-e2e-verify` | 端到端走通跨模块全链路，验证数据流转和契约闭合 |
 | | | `/ae-v2-completeness` | 逐条不变量追踪从声明到实现的证据链，识别断裂和遗漏 |
 
@@ -138,8 +142,10 @@ GALV 产出从需求到设计的自闭环产物，任何 AI 代理可据此生�
 | 项目关系图谱 | `/ae-graph-build`、`/ae-graph-query` |
 | 探索性修复 | `/ae-task-loop` |
 | GALV 不变量提取 | `/ae-g1-invariants` |
-| GALV 数据模型 | `/ae-g2-data-model` |
-| GALV 全局推演 | `/ae-g3-global-trace` |
+| GALV 业务场景 | `/ae-g2-business-scenarios` |
+| GALV 架构与安全 | `/ae-g3-architecture` |
+| GALV 数据模型 | `/ae-g4-data-model` |
+| GALV 全局推演 | `/ae-g5-global-trace` |
 | GALV 跨模块契约 | `/ae-a1-contracts` |
 | GALV 关联推演 | `/ae-a2-assoc-trace` |
 | GALV 界面规格 | `/ae-l1-ui-spec` |
@@ -171,8 +177,8 @@ GALV 产出从需求到设计的自闭环产物，任何 AI 代理可据此生�
 
 | 类型 | 当前快照 | 真源 |
 | --- | ---: | --- |
-| 技能 | 30 | `src/assets/skills/`、`src/services/ae-catalog.ts` |
-| 命令 | 52 | `src/services/command-registration.ts`、`src/assets/commands/` |
+| 技能 | 32 | `src/assets/skills/`、`src/services/ae-catalog.ts` |
+| 命令 | 64 | `src/services/command-registration.ts`、`src/assets/commands/` |
 | 代理 | 33 | `src/assets/agents/`、`src/services/agent-registration.ts` |
 | 工具 | 18 | `src/tools/` |
 | 规则 | 5 | `src/assets/rules/` |

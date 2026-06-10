@@ -4,44 +4,38 @@ import { describe, expect, it } from 'vitest'
 const skillText = readFileSync('src/assets/skills/ae-task-loop/SKILL.md', 'utf8')
 
 describe('ae:task-loop worktree 文本契约', () => {
-  it('应该在 ae:work 前缀下固定当前工作区执行', () => {
-    expect(skillText).toContain('当前缀为 `ae:work` 时')
-    expect(skillText).toContain('后续委派固定当前工作区执行')
-    expect(skillText).toContain('禁止询问 worktree 模式')
-    expect(skillText).toContain('禁止创建 worktree')
-    expect(skillText).toContain('禁止把缺省模式补齐为 `auto`')
+  it('应该排除 ae:work 技能委派', () => {
+    expect(skillText).toContain('ae:work 排除规则')
+    expect(skillText).toContain('输入解析时无视 `ae:work` 或 `/ae-work` 前缀')
+    expect(skillText).toContain('全流程禁止调用 ae:work 技能')
   })
 
-  it('应该在 Phase 0 扫描 worktree 与 Git 授权风险节点', () => {
-    expect(skillText).toContain('如果执行技能前缀为 `ae:work`')
-    expect(skillText).toContain('如果执行技能前缀为 `ae:work`，必须额外扫描 Git 写授权、默认分支、脏工作区和 detached HEAD 风险节点')
-    expect(skillText).toContain('worktree 模式固定为当前工作区，不作为交互节点')
+  it('应该在 Phase 0 收集所有交互后进入禁言期', () => {
+    expect(skillText).toContain('交互全部前置')
+    expect(skillText).toContain('Phase 0 解决所有用户问题')
+    expect(skillText).toContain('此后直至 Phase 3 禁止 `question` 工具或任何形式提问')
   })
 
-  it('应该禁止禁言期补问 Git 写授权', () => {
-    expect(skillText).toContain('Phase 1/2 禁言期不得执行未授权 Git 写操作')
-    expect(skillText).toContain('只能瓶颈退出或采用 Phase 0 已确认的无需 Git 写操作降级策略')
-    expect(skillText).toContain('不得因 worktree 选择或 Git 授权向用户提问')
-    expect(skillText).toContain('授权不足时瓶颈退出或按 Phase 0 已确认策略安全降级')
-    expect(skillText).toContain('Phase 0 已确认的 Git 命令参数数组与授权证据')
-    expect(skillText).toContain('允许的无 Git 写降级策略')
-    expect(skillText).toContain('若需要未授权 Git 写操作或交互确认，必须立即瓶颈退出')
+  it('应该要求循环体禁止交互和委派', () => {
+    expect(skillText).toContain('变更策略由 LLM 自主决策。禁止提问，禁止调用 ae:work。')
+    expect(skillText).toContain('遇到歧义自行决策')
+    expect(skillText).toContain('循环体中不确定情况自行选择最优解，不得暂停或退出')
   })
 
-  it('应该把禁言期授权约束写入 ae:work 委派文本', () => {
-    expect(skillText).toContain('若执行技能为 `ae:work`，同时附加“固定当前工作区执行；不得询问 worktree 模式；不得创建 worktree”')
-    expect(skillText).toContain('Phase 0 已确认的 Git 命令参数数组与授权证据')
-    expect(skillText).toContain('允许的无 Git 写降级策略')
-    expect(skillText).toContain('Phase 1/2 禁言期不得向用户提问')
-    expect(skillText).toContain('若需要未授权 Git 写操作或交互确认，必须立即瓶颈退出')
+  it('应该要求双重退出校验', () => {
+    expect(skillText).toContain('ae:review 无阻断发现 AND 成功条件全部达成')
+    expect(skillText).toContain('两者独立校验不互蕴含')
   })
 
-  it('应该把禁言期授权约束写入 Phase 2 修复委派文本', () => {
-    expect(skillText).toContain('Phase 2 修复委派必须继续附加“固定当前工作区执行；不得询问 worktree 模式；不得创建 worktree”')
-    expect(skillText).toContain('Phase 0 已确认的 Git 命令参数数组与授权证据')
-    expect(skillText).toContain('允许的无 Git 写降级策略')
-    expect(skillText).toContain('Phase 1/2 禁言期不得向用户提问')
-    expect(skillText).toContain('若需要未授权 Git 写操作或交互确认，必须立即瓶颈退出')
+  it('应该在 Phase 2 禁止交互和委派', () => {
+    expect(skillText).toContain('禁止提问，禁止调用 ae:work')
+    expect(skillText).toContain('变更策略由 LLM 自主决策')
+    expect(skillText).toContain('禁止委派子代理实施')
+  })
+
+  it('应该在 Phase 2 内联实施中禁止交互', () => {
+    expect(skillText).toContain('Phase 2：内联实施 + ae:review 循环（禁止交互）')
+    expect(skillText).toContain('禁止提问，禁止调用 ae:work')
   })
 
   it('不应该保留旧的默认创建 worktree 语义', () => {
@@ -52,9 +46,9 @@ describe('ae:task-loop worktree 文本契约', () => {
     expect(skillText).not.toContain('未显式禁用 worktree')
   })
 
-  it('应该要求 Phase 0 确认清单记录 Git 授权证据字段', () => {
-    expect(skillText).toContain('确认清单必须包含命令参数数组、授权消息引用、源 worktree、目标 worktree、branch 和 HEAD')
-    expect(skillText).toContain('git_authorization_evidence')
-    expect(skillText).toContain('worktree 模式固定为当前工作区，不作为交互节点')
+  it('应该要求 Phase 0 推导成功条件并锁死', () => {
+    expect(skillText).toContain('推导 3-8 条可客观验证的成功条件')
+    expect(skillText).toContain('成功条件锁死')
+    expect(skillText).toContain('用户确认后锁死')
   })
 })

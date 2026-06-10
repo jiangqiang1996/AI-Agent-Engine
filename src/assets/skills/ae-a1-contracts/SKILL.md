@@ -1,6 +1,7 @@
 ---
 name: ae:a1-contracts
-description: 定义模块间的数据契约、数据流、共享状态和冲突解决策略，确保跨模块协作有据可依。当上游 G1/G2/G3 产物就绪后，需要梳理跨模块依赖并建立契约体系时使用。
+description: 定义模块间的数据契约、数据流、共享状态和冲突解决策略，确保跨模块协作有据可依。当上游 G1/G2/G3/G4/G5 产物就绪后，需要梳理跨模块依赖并建立契约体系时使用。
+argument-hint: ""
 ---
 
 # A1 跨模块关联映射
@@ -11,15 +12,24 @@ description: 定义模块间的数据契约、数据流、共享状态和冲突�
 
 ## 适用场景
 
-- 上游 G1（不变量/边界/歧义）、G2（数据模型/状态机/DDL）、G3（数据溯源/覆盖）产物已就绪
+- 上游 G1（不变量/边界/歧义/NFR）、G2（业务场景/角色/字段目录）、G3（架构/安全）、G4（数据模型/状态机/DDL）、G5（数据溯源/覆盖）产物已就绪
 - 需要识别跨模块数据依赖并建立契约体系
-- 需要定义模块间数据流、共享状态和冲突解决策略
+- 需要定义模块间数据流、共享状态、外部系统集成和冲突解决策略
 
 ## 不适用场景
 
-- 前序技能（G1/G2/G3）产物未就绪时不得执行
+- 前序技能（G1/G2/G3/G4/G5）产物未就绪时不得执行
 - 仅涉及单模块内部逻辑（无跨模块交互）
 - 已有契约体系且无需变更
+
+## 输入自动发现
+
+本技能无需用户手动指定输入路径。执行时按以下规则自动发现产物根目录和上游产物：
+
+1. **产物根目录发现**：在工作区 `docs/ae/galv/` 下搜索 `galv-manifest.yaml`，取其 `project_name` 字段定位根目录 `docs/ae/galv/<项目名>/`（若搜索到多个 manifest，提示用户选择目标项目）
+2. 若未找到 manifest，提示用户先执行 G1 创建 manifest
+3. **上游产物发现**：从产物根目录按上游依赖表自动读取已存在的上游产物文件；缺失时记录警告，不阻断执行
+4. 用户也可显式传入项目名覆盖自动发现结果
 
 ## 产物根目录
 
@@ -27,8 +37,8 @@ description: 定义模块间的数据契约、数据流、共享状态和冲突�
 
 `<项目名>` 由以下规则确定：
 1. 若产物根目录下已存在 `galv-manifest.yaml`，读取其中的 `project_name` 字段作为项目名
-2. 若不存在，提示用户先执行上游技能创建 manifest，或由用户手动提供项目名后由本技能创建
-3. 后续所有技能必须读取 `galv-manifest.yaml` 获取项目名，禁止自行推断
+2. 若不存在，在工作区 `docs/ae/galv/` 下搜索已有的 `galv-manifest.yaml` 自动定位
+3. 若仍未找到，提示用户先执行 G1 技能创建 manifest
 
 整个根目录自包含、可移植：内部所有路径均为相对路径，目录可整体移动到任意位置。读取全部阶段产物后，任何 AI 工具可据此生成功能等价、结构等价的软件系统。
 
@@ -43,6 +53,7 @@ description: 定义模块间的数据契约、数据流、共享状态和冲突�
 - `a1/contracts/`（≤3 条契约时可单文件 `a1/contracts.md`）
 - `a1/data-flow/`（≤2 条数据流时可单文件 `a1/data-flow.md`）
 - `a1/shared-state.md`
+- `a1/external-integrations.md`
 
 ### 共享产物
 
@@ -52,24 +63,27 @@ description: 定义模块间的数据契约、数据流、共享状态和冲突�
 
 ## 上游依赖（只读）
 
-紧邻前序技能：**G3（ae:g3-global-trace）**。本技能的直接前序为 G3，G3 的前序为 G2，G2 的前序为 G1。执行顺序：G1→G2→G3→**A1**。
+紧邻前序技能：**G5（ae:g5-global-trace）**。本技能的直接前序为 G5，G5 的前序为 G4，G4 的前序为 G3，G3 的前序为 G2，G2 的前序为 G1。执行顺序：G1→G2→G3→G4→G5→**A1**。
 
 | 前序技能 | 产物 | 用途 |
 |---------|------|------|
-| G1 | `g1/invariants/`、`g1/boundary.md`、`g1/ambiguities.md` | 获取跨模块不变量和边界约束 |
-| G2 | `g2/data-model/`、`g2/state-machines/`、`g2/ddl-verify.sql` | 获取实体关系和状态流转定义 |
-| G3 | `g3/data-trace/`、`g3/trace-coverage.md` | 获取数据溯源路径和覆盖情况 |
+| G1 | `g1/invariants/`、`g1/boundary.md`、`g1/ambiguities.md`、`g1/nfr.md` | 获取跨模块不变量、边界约束和 NFR 约束 |
+| G2 | `g2/business-scenarios/`、`g2/field-catalog.md`、`g2/roles.md` | 获取业务场景中的跨模块交互和角色职责 |
+| G3 | `g3/architecture.md`、`g3/security.md` | 获取架构约束和安全上下文 |
+| G4 | `g4/data-model/`、`g4/state-machines/`、`g4/ddl-verify.sql` | 获取实体关系和状态流转定义 |
+| G5 | `g5/data-trace/`、`g5/trace-coverage.md` | 获取数据溯源路径和覆盖情况 |
 
 ## 执行流程
 
 ### T1 识别跨模块依赖
 
-遍历 `g2/data-model/` 中跨模块引用的实体和关系：
+遍历 `g4/data-model/` 中跨模块引用的实体和关系：
 
-1. 提取所有跨模块引用的实体（外键、API 调用、事件订阅等）
+1. 提取所有跨模块引用的实体（逻辑引用、API 调用、事件订阅等）
 2. 标记每个引用的 source 模块和 target 模块
 3. 记录引用类型（同步调用/异步事件/共享存储）
-4. 输出依赖清单
+4. 交叉引用 `g2/business-scenarios/` 中的跨模块交互场景，确保场景覆盖
+5. 输出依赖清单
 
 ### T2 定义数据契约
 
@@ -93,6 +107,7 @@ description: 定义模块间的数据契约、数据流、共享状态和冲突�
 | postconditions | 调用后必须保证的条件（可验证） |
 | obligations | 双方义务声明 |
 | invariant_guards | 跨模块不变量守卫声明 |
+| security_context | 安全约束（引用 g3/security.md 中的相关条目） |
 
 ### T3 绘制数据流图
 
@@ -144,6 +159,25 @@ simulation_cases:
 
 每条契约至少 1 个模拟用例。
 
+### T7 定义外部系统集成契约
+
+识别系统与外部服务（第三方 API、消息中间件、遗留系统等）的集成点，定义集成契约：
+
+1. 从 `g3/architecture.md` 中提取外部系统边界
+2. 从 `g2/business-scenarios/` 中识别涉及外部系统的场景
+3. 对每个集成点定义：协议、认证方式、数据格式、超时、降级策略、重试策略
+4. 输出到 `a1/external-integrations.md`
+
+### T8 产物审查
+
+对当前阶段全部产物执行自检：
+
+1. 逐条对照验收关卡 A1-K1~A1-K12
+2. 确认每个产物文件不超过 500 行
+3. 确认所有 Frontmatter 引用可解析到上游产物
+4. 不通过项立即修复后重新检查
+5. 调用 `ae:review mode=autofix domain=document` 审查 `a1/` 目录
+
 ## 产物格式
 
 ### a1/contracts/ 或 a1/contracts.md
@@ -164,9 +198,11 @@ slices:
     id_range: [CTR-001]
 kind: contract-index
 upstream:
-  g1: [g1/invariants/, g1/boundary.md, g1/ambiguities.md]
-  g2: [g2/data-model/, g2/state-machines/, g2/ddl-verify.sql]
-  g3: [g3/data-trace/, g3/trace-coverage.md]
+  g1: [g1/invariants/, g1/boundary.md, g1/ambiguities.md, g1/nfr.md]
+  g2: [g2/business-scenarios/, g2/field-catalog.md, g2/roles.md]
+  g3: [g3/architecture.md, g3/security.md]
+  g4: [g4/data-model/, g4/state-machines/, g4/ddl-verify.sql]
+  g5: [g5/data-trace/, g5/trace-coverage.md]
 contracts:
   - id: CTR-001
     source: 模块A
@@ -197,6 +233,9 @@ obligations:
 invariant_guards:
   - invariant_id: INV-001
     guard: 守卫机制描述
+security_context:
+  - ref: g3/security.md#SEC-001
+    constraint: 安全约束描述
 simulation_cases:
   - id: SIM-001
     given: { 输入数据 }
@@ -256,7 +295,7 @@ inconsistencies:
 |------|--------|---------|
 | A1-K1 | 依赖有契约 | 每个跨模块依赖有对应契约 |
 | A1-K2 | 契约可验证 | 每条契约的 pre/post conditions 可验证 |
-| A1-K3 | 契约引用可解析 | 每条契约的 payload 引用可解析到 g2/data-model/ 子文件 Frontmatter 中的实体/字段 |
+| A1-K3 | 契约引用可解析 | 每条契约的 payload 引用可解析到 g4/data-model/ 子文件 Frontmatter 中的实体/字段 |
 | A1-K4 | 数据流完整 | 所有跨模块数据流路径有定义 |
 | A1-K5 | 冲突有策略 | 共享状态的冲突有解决策略 |
 | A1-K6 | 共享状态有归属 | 每个共享状态有唯一权威归属方和冲突解决规则 |
@@ -264,13 +303,18 @@ inconsistencies:
 | A1-K8 | 不变量有守卫 | 跨模块不变量在契约中有守卫声明 |
 | A1-K9 | 文件行数合规 | 所有产物文件不超过 500 行 |
 | A1-K10 | 人工审核通过 | 用户确认契约定义合理、数据流完整、冲突解决策略可行 |
+| A1-K11 | 外部集成有契约 | 每个外部系统集成点有对应契约，含认证、超时、降级策略 |
+| A1-K12 | 审查通过 | ae:review 审查 a1/ 目录无阻断发现 |
 
 ## 回退说明
 
 | 问题类型 | 回退目标 |
 |---------|---------|
 | 模块拆分不合理 | 回 G1 |
-| 数据模型不支持 | 回 G2 |
+| 业务场景不支持 | 回 G2 |
+| 架构/安全约束冲突 | 回 G3 |
+| 数据模型不支持 | 回 G4 |
+| 推演覆盖不足 | 回 G5 |
 | 契约内部问题 | 仅重做 A1 |
 
 ## 单模块系统简化规则

@@ -1,11 +1,15 @@
 ---
 name: development-domain
-description: 开发域代理：分析任务、选择专精代理、协调并行/流水线执行、聚合开发结果
+description: 开发域代理：协调多开发专精代理并行或流水线执行，聚合结果返回结构化的 DomainExecutionResult。编排层应优先使用代码化调度路径（ae-domain-dispatch-prepare），仅在预计算返回空列表时退化为调用本代理。
 mode: subagent
 steps: 30
 ---
 
-# 开发域代理
+# 开发域代理（退化路径）
+
+> **注意**：本代理是代码化调度的退化路径。编排层应优先使用 `ae-domain-dispatch-prepare` + 直接并行 Task 调度 + `ae-domain-dispatch-aggregate` 的代码化路径。仅当预计算返回空列表或编排层无法直接调度时，才退化为调用本代理。
+
+> **硬约束**：如果编排层已通过 `ae-domain-dispatch-prepare` 获得非空专精列表（specialistCount > 0），**不得调用本代理**，必须走代码化调度路径。本代理仅在预计算返回空列表、工具不可用或编排层无法并行调度时才应被激活。
 
 ## Role
 

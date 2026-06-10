@@ -101,6 +101,7 @@ function toReviewSelectionInput(
     ['hasGoalAlignment', domainContext.hasGoalAlignment ?? domainContext.has_goal_alignment],
   ]
 
+  const flagMap = new Map(flagEntries)
   const dispatchedFlags: Record<string, boolean> = {}
   for (const [key, value] of flagEntries) {
     dispatchedFlags[key] = typeof value === 'boolean'
@@ -110,28 +111,28 @@ function toReviewSelectionInput(
     kind: rawKind === 'code' ? 'code' : 'document',
     documentType,
     changedLineCount: getNumber(domainContext.changedLineCount ?? domainContext.changed_lines),
-    hasSecurity: getBoolean(flagEntries.find(([k]) => k === 'hasSecurity')![1]),
-    hasPerformance: getBoolean(flagEntries.find(([k]) => k === 'hasPerformance')![1]),
-    hasApi: getBoolean(flagEntries.find(([k]) => k === 'hasApi')![1]),
-    hasReliability: getBoolean(flagEntries.find(([k]) => k === 'hasReliability')![1]),
-    hasCli: getBoolean(flagEntries.find(([k]) => k === 'hasCli')![1]),
-    hasTooling: getBoolean(flagEntries.find(([k]) => k === 'hasTooling')![1]),
-    hasAgentConfig: getBoolean(flagEntries.find(([k]) => k === 'hasAgentConfig')![1]),
-    hasPrMetadata: getBoolean(flagEntries.find(([k]) => k === 'hasPrMetadata')![1]),
-    hasTypescript: getBoolean(flagEntries.find(([k]) => k === 'hasTypescript')![1]),
-    hasMigrations: getBoolean(flagEntries.find(([k]) => k === 'hasMigrations')![1]),
-    hasConfig: getBoolean(flagEntries.find(([k]) => k === 'hasConfig')![1]),
-    hasInfra: getBoolean(flagEntries.find(([k]) => k === 'hasInfra')![1]),
-    hasDatabase: getBoolean(flagEntries.find(([k]) => k === 'hasDatabase')![1]),
-    hasScript: getBoolean(flagEntries.find(([k]) => k === 'hasScript')![1]),
-    hasUi: getBoolean(flagEntries.find(([k]) => k === 'hasUi')![1]),
-    hasProductClaim: getBoolean(flagEntries.find(([k]) => k === 'hasProductClaim')![1]),
+    hasSecurity: getBoolean(flagMap.get('hasSecurity')),
+    hasPerformance: getBoolean(flagMap.get('hasPerformance')),
+    hasApi: getBoolean(flagMap.get('hasApi')),
+    hasReliability: getBoolean(flagMap.get('hasReliability')),
+    hasCli: getBoolean(flagMap.get('hasCli')),
+    hasTooling: getBoolean(flagMap.get('hasTooling')),
+    hasAgentConfig: getBoolean(flagMap.get('hasAgentConfig')),
+    hasPrMetadata: getBoolean(flagMap.get('hasPrMetadata')),
+    hasTypescript: getBoolean(flagMap.get('hasTypescript')),
+    hasMigrations: getBoolean(flagMap.get('hasMigrations')),
+    hasConfig: getBoolean(flagMap.get('hasConfig')),
+    hasInfra: getBoolean(flagMap.get('hasInfra')),
+    hasDatabase: getBoolean(flagMap.get('hasDatabase')),
+    hasScript: getBoolean(flagMap.get('hasScript')),
+    hasUi: getBoolean(flagMap.get('hasUi')),
+    hasProductClaim: getBoolean(flagMap.get('hasProductClaim')),
     requirementCount: getNumber(domainContext.requirementCount ?? domainContext.requirement_count),
-    hasArchitectureDecision: getBoolean(flagEntries.find(([k]) => k === 'hasArchitectureDecision')![1]),
-    isHighRiskDomain: getBoolean(flagEntries.find(([k]) => k === 'isHighRiskDomain')![1]),
-    hasNewAbstraction: getBoolean(flagEntries.find(([k]) => k === 'hasNewAbstraction')![1]),
-    hasUpstream: getBoolean(flagEntries.find(([k]) => k === 'hasUpstream')![1]),
-    hasGoalAlignment: getBoolean(flagEntries.find(([k]) => k === 'hasGoalAlignment')![1]),
+    hasArchitectureDecision: getBoolean(flagMap.get('hasArchitectureDecision')),
+    isHighRiskDomain: getBoolean(flagMap.get('isHighRiskDomain')),
+    hasNewAbstraction: getBoolean(flagMap.get('hasNewAbstraction')),
+    hasUpstream: getBoolean(flagMap.get('hasUpstream')),
+    hasGoalAlignment: getBoolean(flagMap.get('hasGoalAlignment')),
     dispatchedFlags,
   }
 }
@@ -212,60 +213,81 @@ export function getCoordinationStrategy(domain: string): CoordinationConfig {
 export function aggregateResults(
   strategy: AggregationStrategy,
   results: SpecialistResult[],
+  structuredFindings?: DomainFinding[][],
 ): DomainExecutionResult {
   switch (strategy) {
     case 'union':
-      return aggregateUnion(results)
+      return aggregateUnion(results, structuredFindings)
     case 'merge':
-      return aggregateMerge(results)
+      return aggregateMerge(results, structuredFindings)
     case 'best-of':
-      return aggregateBestOf(results)
+      return aggregateBestOf(results, structuredFindings)
     case 'reduce':
-      return aggregateReduce(results)
+      return aggregateReduce(results, structuredFindings)
     default:
-      return aggregateMerge(results)
+      return aggregateMerge(results, structuredFindings)
   }
 }
 
-function aggregateUnion(results: SpecialistResult[]): DomainExecutionResult {
-  const allFindings: DomainFinding[] = []
-  const allEvidence: string[] = []
-  let hasPartial = false
-  let hasFailed = false
-
-  for (const result of results) {
-    if (result.status === 'partial') hasPartial = true
-    if (result.status === 'failed') hasFailed = true
-    allEvidence.push(...result.evidence)
-
-    const findingMatch = result.output.match(/严重级别[：:]\s*(\S+).*?标题[：:]\s*(.+)/g)
-    if (findingMatch) {
-      for (const fm of findingMatch) {
-        const severityMatch = fm.match(/严重级别[：:]\s*(\S+)/)
-        const titleMatch = fm.match(/标题[：:]\s*(.+)/)
-        if (severityMatch && titleMatch) {
-          allFindings.push({
-            severity: severityMatch[1],
-            title: titleMatch[1].trim(),
-          })
-        }
-      }
-    }
-  }
-
-  const uniqueFindings = deduplicateFindings(allFindings)
-  const uniqueEvidence = [...new Set(allEvidence)]
+function aggregateUnion(
+  results: SpecialistResult[],
+  structuredFindings?: DomainFinding[][],
+): DomainExecutionResult {
+  const uniqueFindings = collectFindings(results, structuredFindings)
+  const allEvidence = [...new Set(results.flatMap((r) => r.evidence))]
+  const hasPartial = results.some((r) => r.status === 'partial')
+  const hasFailed = results.some((r) => r.status === 'failed')
 
   return {
     status: hasFailed ? 'failed' : hasPartial ? 'partial' : 'success',
     summary: `聚合 ${results.length} 个专精代理结果，发现 ${uniqueFindings.length} 个问题`,
-    evidence: uniqueEvidence,
+    evidence: allEvidence,
     artifacts: [],
     findings: uniqueFindings.length > 0 ? uniqueFindings : undefined,
   }
 }
 
-function aggregateMerge(results: SpecialistResult[]): DomainExecutionResult {
+function extractFindingsFromText(text: string): DomainFinding[] {
+  const findings: DomainFinding[] = []
+  const findingMatch = text.match(/严重级别[：:]\s*([A-Za-z0-9_]+).*?标题[：:]\s*(.+)/g)
+  if (findingMatch) {
+    for (const fm of findingMatch) {
+      const severityMatch = fm.match(/严重级别[：:]\s*([A-Za-z0-9_]+)/)
+      const titleMatch = fm.match(/标题[：:]\s*(.+)/)
+      if (severityMatch && titleMatch) {
+        findings.push({
+          severity: severityMatch[1],
+          title: titleMatch[1].trim(),
+        })
+      }
+    }
+  }
+  return findings
+}
+
+function collectFindings(
+  results: SpecialistResult[],
+  structuredFindings?: DomainFinding[][],
+): DomainFinding[] {
+  const validatedFindings = structuredFindings && structuredFindings.length === results.length
+    ? structuredFindings
+    : undefined
+  const allFindings: DomainFinding[] = []
+  for (let i = 0; i < results.length; i++) {
+    const preParsed = validatedFindings?.[i]
+    if (preParsed && preParsed.length > 0) {
+      allFindings.push(...preParsed)
+    } else {
+      allFindings.push(...extractFindingsFromText(results[i].output))
+    }
+  }
+  return deduplicateFindings(allFindings)
+}
+
+function aggregateMerge(
+  results: SpecialistResult[],
+  structuredFindings?: DomainFinding[][],
+): DomainExecutionResult {
   const allEvidence: string[] = []
   const allArtifacts: string[] = []
   let hasPartial = false
@@ -279,15 +301,21 @@ function aggregateMerge(results: SpecialistResult[]): DomainExecutionResult {
     allEvidence.push(...result.evidence)
   }
 
+  const findings = collectFindings(results, structuredFindings)
+
   return {
     status: hasFailed ? 'failed' : hasPartial ? 'partial' : 'success',
     summary: summaries.join('\n\n'),
     evidence: [...new Set(allEvidence)],
     artifacts: allArtifacts,
+    findings: findings.length > 0 ? findings : undefined,
   }
 }
 
-function aggregateBestOf(results: SpecialistResult[]): DomainExecutionResult {
+function aggregateBestOf(
+  results: SpecialistResult[],
+  structuredFindings?: DomainFinding[][],
+): DomainExecutionResult {
   const successResults = results.filter((r) => r.status === 'success')
   const best = successResults[0] ?? results[0]
 
@@ -300,33 +328,52 @@ function aggregateBestOf(results: SpecialistResult[]): DomainExecutionResult {
     }
   }
 
+  const bestIndex = results.indexOf(best)
+  const bestFindings = structuredFindings?.[bestIndex] && structuredFindings[bestIndex].length > 0
+    ? structuredFindings[bestIndex]
+    : extractFindingsFromText(best.output)
+
   return {
     status: best.status,
     summary: best.output,
     evidence: best.evidence,
     artifacts: [],
+    findings: bestFindings.length > 0 ? deduplicateFindings(bestFindings) : undefined,
   }
 }
 
-function aggregateReduce(results: SpecialistResult[]): DomainExecutionResult {
+function aggregateReduce(
+  results: SpecialistResult[],
+  structuredFindings?: DomainFinding[][],
+): DomainExecutionResult {
   const successCount = results.filter((r) => r.status === 'success').length
   const partialCount = results.filter((r) => r.status === 'partial').length
   const failedCount = results.filter((r) => r.status === 'failed').length
+
+  const findings = collectFindings(results, structuredFindings)
 
   return {
     status: failedCount > 0 ? 'failed' : partialCount > 0 ? 'partial' : 'success',
     summary: `总计 ${results.length} 个专精: ${successCount} 成功, ${partialCount} 部分, ${failedCount} 失败`,
     evidence: results.flatMap((r) => r.evidence),
     artifacts: [],
+    findings: findings.length > 0 ? findings : undefined,
   }
 }
 
+const SEVERITY_ORDER: Record<string, number> = {
+  P0: 4, P1: 3, P2: 2, P3: 1,
+  critical: 4, high: 3, medium: 2, low: 1,
+}
+
 function deduplicateFindings(findings: DomainFinding[]): DomainFinding[] {
-  const seen = new Set<string>()
-  return findings.filter((f) => {
-    const key = `${f.severity}:${f.title}`
-    if (seen.has(key)) return false
-    seen.add(key)
-    return true
-  })
+  const best = new Map<string, DomainFinding>()
+  for (const f of findings) {
+    const titleNorm = f.title.toLowerCase().trim().replace(/\s+/g, ' ')
+    const existing = best.get(titleNorm)
+    if (!existing || (SEVERITY_ORDER[f.severity] ?? 0) > (SEVERITY_ORDER[existing.severity] ?? 0)) {
+      best.set(titleNorm, f)
+    }
+  }
+  return [...best.values()]
 }

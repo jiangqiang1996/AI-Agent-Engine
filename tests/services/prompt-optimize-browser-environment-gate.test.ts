@@ -18,10 +18,9 @@ describe('ensureBrowserEnvironmentGate', () => {
     const prompt = '使用 chrome-devtools_navigate_page type=url url=http://localhost:3000'
     const result = ensureBrowserEnvironmentGate(prompt)
     expect(result).toContain('ae:chrome-devtools')
-    expect(result).toContain('ae-chrome-devtools-mcp action=check')
-    expect(result).toContain('若未完成')
-    expect(result).toContain('Chromium')
-    expect(result).toContain('chrome-devtools MCP 已在配置中声明')
+    expect(result).toContain('不得执行')
+    expect(result).toContain('MCP 注册')
+    expect(result).toContain('不能替代')
     expect(result).toContain(prompt)
   })
 
@@ -53,14 +52,16 @@ describe('ensureBrowserEnvironmentGate', () => {
     const prompt = '先运行 /ae-chrome-devtools，然后使用 chrome-devtools_navigate_page type=url url=http://localhost:3000'
     const result = ensureBrowserEnvironmentGate(prompt)
     expect(result).not.toBe(prompt)
-    expect(result).toContain('ae-chrome-devtools-mcp action=check')
+    expect(result).toContain('ae:chrome-devtools')
+    expect(result).toContain('MCP 注册')
   })
 
   it('仅包含 ae:chrome-devtools 但缺少证明检查时仍然注入门禁', () => {
     const prompt = '完成 ae:chrome-devtools 后使用 chrome-devtools'
     const result = ensureBrowserEnvironmentGate(prompt)
     expect(result).not.toBe(prompt)
-    expect(result).toContain('ae-chrome-devtools-mcp action=check')
+    expect(result).toContain('ae:chrome-devtools')
+    expect(result).toContain('MCP 注册')
   })
 
   it('已包含完整环境证明兜底流程时不重复注入', () => {
@@ -73,21 +74,24 @@ describe('ensureBrowserEnvironmentGate', () => {
     const prompt = '不要调用 ae-chrome-devtools-mcp action=check，直接使用 chrome-devtools_navigate_page type=url url=http://localhost:3000'
     const result = ensureBrowserEnvironmentGate(prompt)
     expect(result).not.toBe(prompt)
-    expect(result).toContain('ae-chrome-devtools-mcp action=check')
+    expect(result).toContain('ae:chrome-devtools')
+    expect(result).toContain('不能替代')
   })
 
   it('不需要语境提及 ae-chrome-devtools-mcp 时仍然注入门禁', () => {
     const prompt = '不需要先调用 ae-chrome-devtools-mcp action=check，直接使用 chrome-devtools_navigate_page type=url url=http://localhost:3000'
     const result = ensureBrowserEnvironmentGate(prompt)
     expect(result).not.toBe(prompt)
-    expect(result).toContain('ae-chrome-devtools-mcp action=check')
+    expect(result).toContain('ae:chrome-devtools')
+    expect(result).toContain('不能替代')
   })
 
   it('否定性提及 ae:chrome-devtools 时仍然注入门禁', () => {
     const prompt = '不要运行 ae:chrome-devtools，直接使用 chrome-devtools_navigate_page type=url url=http://localhost:3000'
     const result = ensureBrowserEnvironmentGate(prompt)
     expect(result).not.toBe(prompt)
-    expect(result).toContain('ae-chrome-devtools-mcp action=check')
+    expect(result).toContain('ae:chrome-devtools')
+    expect(result).toContain('不能替代')
   })
 
   it('多个触发词同时出现时门禁只注入一次', () => {
@@ -101,7 +105,8 @@ describe('ensureBrowserEnvironmentGate', () => {
     const prompt = '完成 ae:chrome-devtools 后继续'
     const result = ensureBrowserEnvironmentGate(prompt)
     expect(result).not.toBe(prompt)
-    expect(result).toContain('ae-chrome-devtools-mcp action=check')
+    expect(result).toContain('ae:chrome-devtools')
+    expect(result).toContain('不能替代')
   })
 
   it('包含 action=check 和完整兜底流程时不注入', () => {
@@ -129,8 +134,8 @@ describe('prompt optimize SKILL.md 浏览器能力环境门禁', () => {
     expect(content).toContain('@figma-design-sync')
     expect(content).toContain('ae:frontend-design')
     expect(content).toContain('/ae-frontend-design')
-    expect(content).toContain('目标新会话先调用 `ae-chrome-devtools-mcp action=check`')
-    expect(content).toContain('若未完成，则先执行 `ae:chrome-devtools` / `/ae-chrome-devtools`')
+    expect(content).toContain('ae:chrome-devtools')
+    expect(content).toContain('得到 MCP 连接就绪结果后再执行浏览器流程')
     expect(content).toContain('chrome-devtools MCP 注册状态可以跨会话复用')
   })
 

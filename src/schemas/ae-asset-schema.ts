@@ -32,8 +32,10 @@ export const SKILL = {
   HELP: 'ae:help',
   UPDATE: 'ae:update',
   G1_INVARIANTS: 'ae:g1-invariants',
-  G2_DATA_MODEL: 'ae:g2-data-model',
-  G3_GLOBAL_TRACE: 'ae:g3-global-trace',
+  G2_BUSINESS_SCENARIOS: 'ae:g2-business-scenarios',
+  G3_ARCHITECTURE: 'ae:g3-architecture',
+  G4_DATA_MODEL: 'ae:g4-data-model',
+  G5_GLOBAL_TRACE: 'ae:g5-global-trace',
   A1_CONTRACTS: 'ae:a1-contracts',
   A2_ASSOC_TRACE: 'ae:a2-assoc-trace',
   L1_UI_SPEC: 'ae:l1-ui-spec',
@@ -70,8 +72,10 @@ export const PROMPT_OPTIMIZE_VARIANT_EXCLUDED_SKILLS = [
   SKILL.HELP,
   SKILL.UPDATE,
   SKILL.G1_INVARIANTS,
-  SKILL.G2_DATA_MODEL,
-  SKILL.G3_GLOBAL_TRACE,
+  SKILL.G2_BUSINESS_SCENARIOS,
+  SKILL.G3_ARCHITECTURE,
+  SKILL.G4_DATA_MODEL,
+  SKILL.G5_GLOBAL_TRACE,
   SKILL.A1_CONTRACTS,
   SKILL.A2_ASSOC_TRACE,
   SKILL.L1_UI_SPEC,
@@ -151,9 +155,10 @@ export const TOOL = {
   AE_TASK_ANALYZER: 'ae-task-analyzer',
   AE_DOC_EXTRACT: 'ae-doc-extract',
   AE_DOMAIN_CATALOG: 'ae-domain-catalog',
-  AE_DOMAIN_SELECT: 'ae-domain-select',
   AE_CHROME_DEVTOOLS_MCP: 'ae-chrome-devtools-mcp',
   AE_TIMER: 'ae-timer',
+  AE_DOMAIN_DISPATCH_PREPARE: 'ae-domain-dispatch-prepare',
+  AE_DOMAIN_DISPATCH_AGGREGATE: 'ae-domain-dispatch-aggregate',
 } as const
 
 export const AeModeSchema = z
@@ -193,8 +198,10 @@ export const AeSkillNameSchema = z
     SKILL.HELP,
     SKILL.UPDATE,
     SKILL.G1_INVARIANTS,
-    SKILL.G2_DATA_MODEL,
-    SKILL.G3_GLOBAL_TRACE,
+    SKILL.G2_BUSINESS_SCENARIOS,
+    SKILL.G3_ARCHITECTURE,
+    SKILL.G4_DATA_MODEL,
+    SKILL.G5_GLOBAL_TRACE,
     SKILL.A1_CONTRACTS,
     SKILL.A2_ASSOC_TRACE,
     SKILL.L1_UI_SPEC,
@@ -276,8 +283,8 @@ export const DomainCallRequestSchema = z.object({
 })
 
 export const DomainFindingSchema = z.object({
-  severity: z.string().describe('发现严重级别'),
-  title: z.string().describe('发现标题'),
+  severity: z.string().min(1).describe('发现严重级别'),
+  title: z.string().min(1).describe('发现标题'),
   evidence: z.string().optional().describe('发现证据摘要'),
 })
 

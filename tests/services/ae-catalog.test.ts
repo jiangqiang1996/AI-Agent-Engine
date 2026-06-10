@@ -40,7 +40,7 @@ describe('AE catalog 一致性', () => {
     expect(entries.find((item) => item.skillName === SKILL.REFACTOR)?.description).toContain('重构计划阶段')
     expect(entries.find((item) => item.skillName === SKILL.WORK)?.description).toContain('实施阶段')
     expect(entries.find((item) => item.skillName === SKILL.REVIEW)?.description).toContain('审查阶段')
-    expect(entries.find((item) => item.skillName === SKILL.LFG)?.description).toContain('核心流程组合技能')
+    expect(entries.find((item) => item.skillName === SKILL.LFG)?.description).toContain('自包含一站式管道技能')
   })
 
   it('ae:prd 的 catalog 应与 frontmatter 字面一致', () => {

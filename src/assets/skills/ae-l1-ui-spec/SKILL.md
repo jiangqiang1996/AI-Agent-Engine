@@ -1,6 +1,7 @@
 ---
 name: ae:l1-ui-spec
 description: 基于上游产物生成结构化界面文档描述，定义视图、布局、数据绑定、交互行为、状态显示与校验规则，并执行可还原性验证。仅当系统有图形界面时执行；纯后端/CLI/嵌入式系统跳过本步。
+argument-hint: ""
 ---
 
 # L1 界面文档描述
@@ -11,14 +12,23 @@ description: 基于上游产物生成结构化界面文档描述，定义视图�
 
 ## 适用场景
 
-- 上游产物（G1/G2/G3/A1/A2）已就绪，紧邻前序技能为 A2（关联追踪）
+- 上游产物（G1/G2/G3/G4/G5/A1/A2）已就绪，紧邻前序技能为 A2（关联追踪）
 - 系统包含图形界面（Web/App/桌面）
 - 需要为前端实现提供无歧义的界面规格
 
 ## 不适用场景
 
 - 纯后端服务、命令行工具、嵌入式系统 → 跳过本步，直接进入 L2
-- 前序技能产物（G1/G2/G3/A1/A2）未就绪时不得执行本技能
+- 前序技能产物（G1/G2/G3/G4/G5/A1/A2）未就绪时不得执行本技能
+
+## 输入自动发现
+
+本技能无需用户手动指定输入路径。执行时按以下规则自动发现产物根目录和上游产物：
+
+1. **产物根目录发现**：在工作区 `docs/ae/galv/` 下搜索 `galv-manifest.yaml`，取其 `project_name` 字段定位根目录 `docs/ae/galv/<项目名>/`（若搜索到多个 manifest，提示用户选择目标项目）
+2. 若未找到 manifest，提示用户先执行 G1 创建 manifest
+3. **上游产物发现**：从产物根目录按上游依赖表自动读取已存在的上游产物文件；缺失时记录警告，不阻断执行
+4. 用户也可显式传入项目名覆盖自动发现结果
 
 ## 产物根目录
 
@@ -26,8 +36,8 @@ description: 基于上游产物生成结构化界面文档描述，定义视图�
 
 `<项目名>` 由以下规则确定：
 1. 若产物根目录下已存在 `galv-manifest.yaml`，读取其中的 `project_name` 字段作为项目名
-2. 若不存在，提示用户先执行上游技能创建 manifest，或由用户手动提供项目名后由本技能创建
-3. 后续所有技能必须读取 `galv-manifest.yaml` 获取项目名，禁止自行推断
+2. 若不存在，在工作区 `docs/ae/galv/` 下搜索已有的 `galv-manifest.yaml` 自动定位
+3. 若仍未找到，提示用户先执行 G1 技能创建 manifest
 
 整个根目录自包含、可移植：内部所有路径均为相对路径，目录可整体移动到任意位置。读取全部阶段产物后，任何 AI 工具可据此生成功能等价、结构等价的软件系统。
 
@@ -45,15 +55,17 @@ description: 基于上游产物生成结构化界面文档描述，定义视图�
 
 **共享产物**：`galv-manifest.yaml`（首次创建时由当前执行的技能负责，后续技能可读取和追加信息）
 
-**禁止修改**上游技能产物（G1/G2/G3/A1/A2），对上游产物只读。同时禁止修改下游技能产物（L2/L3/V1/V2）。
+**禁止修改**上游技能产物（G1/G2/G3/G4/G5/A1/A2），对上游产物只读。同时禁止修改下游技能产物（L2/L3/V1/V2）。
 
 ## 上游依赖（只读）
 
 | 上游 | 产物 | 引用目的 |
 |------|------|---------|
 | G1 | `g1/invariants/`、`g1/boundary.md`、`g1/ambiguities.md` | 不变量→校验规则，边界→进入条件 |
-| G2 | `g2/data-model/`、`g2/state-machines/`、`g2/ddl-verify.sql` | 数据绑定、状态相关显示 |
-| G3 | `g3/data-trace/`、`g3/trace-coverage.md` | 数据流→交互目标 |
+| G2 | `g2/business-scenarios/`、`g2/field-catalog.md`、`g2/roles.md` | 业务场景→视图和交互驱动，角色→目标用户 |
+| G3 | `g3/architecture.md`、`g3/security.md` | 架构约束→技术选型，安全→认证授权 |
+| G4 | `g4/data-model/`、`g4/state-machines/`、`g4/ddl-verify.sql` | 数据绑定、状态相关显示 |
+| G5 | `g5/data-trace/`、`g5/trace-coverage.md` | 数据流→交互目标 |
 | A1 | `a1/contracts/`、`a1/data-flow/`、`a1/shared-state.md` | 跨模块交互→契约引用 |
 | A2 | `a2/assoc-trace/`、`a2/assoc-coverage.md` | 关联追踪→联动校验 |
 
@@ -62,16 +74,16 @@ description: 基于上游产物生成结构化界面文档描述，定义视图�
 ### 前置检查
 
 1. 确认系统包含图形界面；若为纯后端/CLI/嵌入式，输出跳过说明后结束
-2. 读取上游产物，确认 G1/G2/G3/A1/A2 关键文件存在
+2. 读取上游产物，确认 G1/G2/G3/G4/G5/A1/A2 关键文件存在
 3. 若上游产物缺失，按回退说明处理，不自行补写
 
 ### T1 列出所有视图
 
-遍历业务场景，列出每个视图并标注：
+遍历 `g2/business-scenarios/` 中的业务场景，列出每个视图并标注：
 
 - 归属模块/端
 - 目标用户角色
-- 进入条件（引用 g1/boundary.md 或 g2/state-machines/）
+- 进入条件（引用 g1/boundary.md 或 g4/state-machines/）
 
 写入 `l1/ui-spec/index.md` 的视图总清单。
 
@@ -87,7 +99,7 @@ description: 基于上游产物生成结构化界面文档描述，定义视图�
 
 为每个可显示/可编辑元素定义：
 
-- `source`：绑定到 `g2/data-model/` 的实体.字段 或 `a1/contracts/` 的响应字段
+- `source`：绑定到 `g4/data-model/` 的实体.字段 或 `a1/contracts/` 的响应字段
 - `display`：显示格式
 - `editable`：可编辑 / 只读
 
@@ -95,14 +107,14 @@ description: 基于上游产物生成结构化界面文档描述，定义视图�
 ```yaml
 bindings:
   - element: order-amount
-    source: g2/data-model/Order.totalAmount
+    source: g4/data-model/Order.totalAmount
     display: '#,##0.00'
     editable: false
 ```
 
 ### T4 定义交互行为
 
-为每个可交互元素定义：
+引用 `g2/business-scenarios/` 中的操作序列定义交互：
 
 - `trigger`：触发条件
 - `action`：动作类型（导航/提交/校验/弹窗/刷新）
@@ -110,25 +122,28 @@ bindings:
 
 ### T5 定义状态相关显示
 
-引用 `g2/state-machines/` 的状态，定义元素可见性：
+引用 `g4/state-machines/` 的状态，定义元素可见性：
 
 ```yaml
 state-displays:
   - element: approve-btn
-    state-ref: g2/state-machines/OrderFlow.pending
+    state-ref: g4/state-machines/OrderFlow.pending
     visible: true
     disabled: false
 ```
 
 ### T6 定义校验规则
 
-引用 `g1/invariants/` 的不变量，定义字段级和联动校验：
+引用 `g1/invariants/` 的不变量，定义字段级和联动校验。补充引用 `g3/security.md` 认证授权约束：
 
 ```yaml
 validations:
   - element: email-input
     rule: required
     invariant-ref: g1/invariants/UserContact.emailRequired
+  - element: admin-panel
+    rule: role-required
+    security-ref: g3/security.md#SEC-003
 ```
 
 ### T7 生成还原验证产物
@@ -150,6 +165,16 @@ validations:
 达标阈值：**R ≥ 0.9**
 
 将评分写入 `l1/restore-score.md`。
+
+### T9 产物审查
+
+对当前阶段全部产物执行自检：
+
+1. 逐条对照验收关卡 L1-K1~L1-K8
+2. 确认每个产物文件不超过 500 行
+3. 确认所有 Frontmatter 引用可解析到上游产物
+4. 不通过项立即修复后重新检查
+5. 调用 `ae:review mode=autofix domain=document` 审查 `l1/` 目录
 
 ## 产物格式
 
@@ -191,19 +216,20 @@ YAML Frontmatter 为唯一真源，正文为人类阐释。
 
 | 编号 | 检查项 | 通过标准 | 失败处理 |
 |------|--------|---------|---------|
-| L1-K1 | 数据绑定可解析 | `source` 可解析到 `g2/data-model/` 或 `a1/contracts/` | 回退 G2 |
+| L1-K1 | 数据绑定可解析 | `source` 可解析到 `g4/data-model/` 或 `a1/contracts/` | 回退 G4 |
 | L1-K2 | 交互目标可解析 | `target` 可解析到已有视图或外部动作 | 回退 A1 或重做 L1 |
-| L1-K3 | 状态引用存在 | `g2/state-machines/` 状态在 G2 产物中存在 | 回退 G2 |
+| L1-K3 | 状态引用存在 | `g4/state-machines/` 状态在 G4 产物中存在 | 回退 G4 |
 | L1-K4 | 不变量有 UI 约束 | `g1/invariants/` 不变量在 UI 层有对应约束 | 仅重做 L1 的 T6 |
 | L1-K5 | 还原度达标 | R ≥ 0.9 | 重做薄弱维度对应的任务 |
 | L1-K6 | 文件行数合规 | 所有产物文件 ≤ 500 行 | 拆分文件 |
-| L1-K7 | 人工审核通过 | 用户确认界面描述无歧义、数据绑定正确、交互定义完整 | 用户明确确认 |
+| L1-K7 | 人工审核通过 | 用户确认界面描述无歧义、数据绑定正确、交互定义完整 |
+| L1-K8 | 审查通过 | ae:review 审查 l1/ 目录无阻断发现 | 用户明确确认 |
 
 ## 回退说明
 
 | 问题 | 回退目标 |
 |------|---------|
-| 数据绑定错误 | → 回 G2 |
+| 数据绑定错误 | → 回 G4 |
 | 交互跨模块未定义契约 | → 回 A1 |
 | 纯 UI 描述不清 | → 仅重做 L1 |
 
