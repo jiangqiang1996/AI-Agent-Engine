@@ -26,6 +26,17 @@ if (!since) {
   process.exit(1);
 }
 
+// Git on Windows may fail to match date-only YYYY-MM-DD in --since/--until;
+// append a minimal time component to make it a valid datetime literal.
+function ensureDatetime(raw) {
+  if (!raw) return raw;
+  const trimmed = raw.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed + " 00:00:00";
+  return trimmed;
+}
+since = ensureDatetime(since);
+until = ensureDatetime(until);
+
 const now = new Date();
 let isUpToNow = !until;
 if (until) {
