@@ -80,6 +80,13 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillFile: `src/assets/skills/${skillDir(SKILL.WORK_REPORT)}/SKILL.md`,
   },
   {
+    skillName: SKILL.MY_CODE_CHANGES,
+    commandName: COMMAND.MY_CODE_CHANGES,
+    description: '获取指定时间内本人提交的所有代码变更（含本机未提交的），只取最终状态，不输出中间过程',
+    argumentHint: 'since=<date> [until=<date>]',
+    skillFile: `src/assets/skills/${skillDir(SKILL.MY_CODE_CHANGES)}/SKILL.md`,
+  },
+  {
     skillName: SKILL.MERGE_BRANCH,
     commandName: COMMAND.MERGE_BRANCH,
     description: '将来源分支或本地 worktree 的变更合并到接收分支，并用来源分支的 AE 交接、需求和计划验证合并结果',
