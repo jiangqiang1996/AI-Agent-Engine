@@ -58,6 +58,8 @@ if ($ARCH -eq "arm64" -or $ARCH -eq "aarch64") {
 }
 ```
 
+> 输出乱码时，尝试通过 `JAVA_TOOL_OPTIONS=-Dfile.encoding=UTF-8` 设置 JVM 编码解决。
+
 ### 1.2 JRE 检查
 
 检查 `scripts/jre/bin/java[.exe]` 是否存在：
