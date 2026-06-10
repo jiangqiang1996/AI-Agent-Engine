@@ -188,6 +188,13 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillFile: `src/assets/skills/${skillDir(SKILL.SWAGGER_PARSER)}/SKILL.md`,
   },
   {
+    skillName: SKILL.API_TESTER,
+    commandName: COMMAND.API_TESTER,
+    description: '以真实业务流程编排为主、接口边界测试为辅的自动化接口测试，支持登录认证与接口请求脚本生成',
+    argumentHint: '[接口文档|接口描述|已有脚本路径|业务流程描述]',
+    skillFile: `src/assets/skills/${skillDir(SKILL.API_TESTER)}/SKILL.md`,
+  },
+  {
     skillName: SKILL.HTML_BUNDLE,
     commandName: COMMAND.HTML_BUNDLE,
     description: '将显式入口 HTML 及其本地静态资源收敛为自包含 bundle.html',
