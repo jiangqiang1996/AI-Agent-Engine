@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdirSync, readdirSync, statSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -32,6 +32,13 @@ function copyDir(src, dest) {
       console.log(`Copied: ${relative(projectRoot, srcPath)} -> ${relative(projectRoot, destPath)}`)
     }
   }
+}
+
+const assetsTargetDir = join(targetDir, 'assets')
+
+if (existsSync(assetsTargetDir)) {
+  rmSync(assetsTargetDir, { recursive: true, force: true })
+  console.log(`Cleared: ${relative(projectRoot, assetsTargetDir)}`)
 }
 
 console.log('Copying graph preview build to references...')
