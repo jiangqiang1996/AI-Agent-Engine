@@ -5,11 +5,14 @@ import Toolbar from './components/Toolbar.vue'
 import DirectoryTree from './components/DirectoryTree.vue'
 import GraphCanvas from './components/GraphCanvas.vue'
 import DetailPanel from './components/DetailPanel.vue'
-import type { CyData, CyNodeData, GraphFileNode, GraphIndex, GraphRelation, LoadedGraph } from './graph-types'
+import type { CyData, CyNodeData, GraphFileNode, GraphIndex, GraphRelation, GraphSelectedLayer, LoadedGraph } from './graph-types'
+import { LAYER_DEFS } from './graph-types'
 import {
   loadGraphData,
   buildDirectoryStats,
   buildCyData,
+  getAvailableRelationTypes,
+  layerStats,
 } from './graph-service'
 
 const allNodes = ref<GraphFileNode[]>([])
@@ -19,6 +22,7 @@ const loaded = ref(false)
 const loading = ref(false)
 const error = ref('')
 
+const selectedLayer = ref<GraphSelectedLayer>('full')
 const dirFilter = ref('')
 const relationSearch = ref('')
 const granularity = ref('file')
@@ -39,6 +43,16 @@ let renderFrame = 0
 const directoryStats = computed(() => buildDirectoryStats(allNodes.value, allRelations.value))
 
 const graphCanvasRef = ref<InstanceType<typeof GraphCanvas>>()
+
+const relationTypeOptions = computed(() => {
+  if (!graphIndex.value) return []
+  return getAvailableRelationTypes(graphIndex.value, selectedLayer.value, granularity.value)
+})
+
+const layerRelCounts = computed(() => {
+  if (!graphIndex.value) return { full: 0, code: 0, document: 0, artifact: 0 }
+  return layerStats(graphIndex.value)
+})
 
 async function init() {
   loading.value = true
@@ -63,11 +77,22 @@ async function init() {
   }
 }
 
+function onLayerChange(layer: GraphSelectedLayer) {
+  selectedLayer.value = layer
+  typeFilter.value = ''
+  doRender()
+}
+
+function onGranularityChange() {
+  typeFilter.value = ''
+  doRender()
+}
+
 function renderNow() {
-  if (!loaded.value) return
-  if (!graphIndex.value) return
+  if (!loaded.value || !graphIndex.value) return
   const data = buildCyData({
     index: graphIndex.value,
+    selectedLayer: selectedLayer.value,
     fileFilter: dirFilter.value.trim().replace(/\/+$/, ''),
     typeFilter: typeFilter.value,
     nodeLimit: nodeLimit.value,
@@ -76,13 +101,13 @@ function renderNow() {
     unselectedDirs: unselectedDirs.value,
   })
   cyData.value = data
-  statusText.value = `已渲染: ${data.stats.nodes} 节点 / ${data.stats.edges} 边 | 候选: ${data.stats.filteredFiles} 文件 / ${data.stats.filteredRelations} 关系 | 已取消目录: ${unselectedDirs.value.size}`
+  const layerLabel = LAYER_DEFS.find((l) => l.id === selectedLayer.value)?.label ?? selectedLayer.value
+  const granLabel = granularity.value === 'symbol' ? '元素' : granularity.value === 'mixed' ? '混合' : '文件'
+  statusText.value = `${layerLabel} · ${granLabel} | ${data.stats.nodes} 节点 / ${data.stats.edges} 边 | 候选: ${data.stats.filteredFiles} 文件 / ${data.stats.filteredRelations} 关系`
 }
 
 function doRender() {
-  if (renderFrame) {
-    cancelAnimationFrame(renderFrame)
-  }
+  if (renderFrame) cancelAnimationFrame(renderFrame)
   renderFrame = requestAnimationFrame(() => {
     renderFrame = 0
     renderNow()
@@ -133,14 +158,19 @@ onMounted(() => {
 <template>
   <div class="app">
     <Toolbar
+      v-model:selected-layer="selectedLayer"
       v-model:dir-filter="dirFilter"
       v-model:relation-search="relationSearch"
       v-model:granularity="granularity"
       v-model:type-filter="typeFilter"
       v-model:layout-mode="layoutMode"
       v-model:node-limit="nodeLimit"
+      :relation-type-options="relationTypeOptions"
+      :layer-rel-counts="layerRelCounts"
       :status-text="statusText"
       :status-type="statusType"
+      @layer-change="onLayerChange"
+      @granularity-change="onGranularityChange"
       @render="doRender"
       @fit="fitGraph"
       @clear-dir="clearUnselected"
@@ -196,7 +226,7 @@ onMounted(() => {
 
 @media (max-width: 1180px) {
   .main {
-    grid-template-columns: 240px minmax(0, 1fr) auto;
+    grid-template-columns: 240px minmax(0, 1fr);
     gap: 10px;
     padding: 10px;
   }
@@ -205,7 +235,6 @@ onMounted(() => {
 @media (max-width: 980px) {
   .main {
     grid-template-columns: 220px minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr);
   }
 }
 

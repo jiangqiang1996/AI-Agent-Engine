@@ -23,27 +23,55 @@ const tooltipVisible = ref(false)
 const tooltipText = ref('')
 const tooltipPos = ref({ left: 0, top: 0 })
 let focusedElements: cytoscape.CollectionReturnValue | null = null
+let labelsHidden = false
+
+const SHOW_LABELS_THRESHOLD = 60
+const SIMPLE_LAYOUT_THRESHOLD = 250
+
+function isLargeGraph(nodes: number): boolean {
+  return nodes > SHOW_LABELS_THRESHOLD
+}
 
 function graphLayout(mode: string, count: number): cytoscape.LayoutOptions {
-  if (mode === 'grid' || count > 250) {
+  if (mode === 'grid' || (mode === 'cose' && count > SIMPLE_LAYOUT_THRESHOLD)) {
     return {
       name: 'grid',
       animate: false,
       padding: 60,
       avoidOverlap: true,
       avoidOverlapPadding: 18,
+      fit: true,
     } as cytoscape.LayoutOptions
   }
   if (mode === 'cose') {
+    const repulsion = Math.min(22000 + Math.max(0, count - 80) * 60, 40000)
+    const edgeLen = Math.max(200 - Math.max(0, count - 80) * 0.8, 80)
+    const numIter = Math.max(800, Math.round(count * 3))
     return {
       name: 'cose',
       animate: false,
-      nodeRepulsion: () => 22000,
-      idealEdgeLength: () => 200,
+      nodeRepulsion: repulsion,
+      idealEdgeLength: edgeLen,
       nodeOverlap: 20,
-      numIter: 800,
+      numIter,
       padding: 90,
       randomize: true,
+    } as cytoscape.LayoutOptions
+  }
+  if (mode === 'circle') {
+    return {
+      name: 'circle',
+      animate: false,
+      padding: 60,
+      fit: true,
+    } as cytoscape.LayoutOptions
+  }
+  if (mode === 'concentric') {
+    return {
+      name: 'concentric',
+      animate: false,
+      padding: 60,
+      fit: true,
     } as cytoscape.LayoutOptions
   }
   return {
@@ -51,14 +79,14 @@ function graphLayout(mode: string, count: number): cytoscape.LayoutOptions {
     directed: true,
     animate: false,
     padding: 100,
-    spacingFactor: 2.4,
+    spacingFactor: count > 80 ? 1.8 : 2.4,
     avoidOverlap: true,
     nodeDimensionsIncludeLabels: true,
   } as cytoscape.LayoutOptions
 }
 
 function graphStylesheet(): cytoscape.StylesheetCSS[] {
-  const stylesheet = [
+  return [
     {
       selector: 'node',
       style: {
@@ -163,9 +191,13 @@ function graphStylesheet(): cytoscape.StylesheetCSS[] {
         'z-index': 999,
       },
     },
+    {
+      selector: 'node.hide-label',
+      style: {
+        'font-size': '0px',
+      },
+    },
   ] as unknown as cytoscape.StylesheetCSS[]
-
-  return stylesheet
 }
 
 function bindGraphEvents(cy: cytoscape.Core) {
@@ -189,14 +221,28 @@ function bindGraphEvents(cy: cytoscape.Core) {
       emit('canvasTap')
     }
   })
+
+  cy.on('zoom', () => {
+    if (!cyInstance.value) return
+    const zoom = cyInstance.value.zoom()
+    const nodeCount = cyInstance.value.nodes().length
+    if (nodeCount <= SHOW_LABELS_THRESHOLD) return
+    const shouldHide = zoom < 0.6
+    if (shouldHide !== labelsHidden) {
+      labelsHidden = shouldHide
+      if (shouldHide) {
+        cyInstance.value.nodes().addClass('hide-label')
+      } else {
+        cyInstance.value.nodes().removeClass('hide-label')
+      }
+    }
+  })
 }
 
 function renderGraph(data: CyData) {
-  focusedElements = null
+  if (!containerRef.value || data.cyNodes.length === 0) return
 
-  if (!containerRef.value || data.cyNodes.length === 0) {
-    return
-  }
+  focusedElements = null
 
   if (!cyInstance.value) {
     const cy = cytoscape({
@@ -206,22 +252,35 @@ function renderGraph(data: CyData) {
       wheelSensitivity: 0.25,
       minZoom: 0.08,
       maxZoom: 5,
+      pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
     })
     bindGraphEvents(cy)
     cyInstance.value = cy
   }
 
   const cy = cyInstance.value
-  cy.batch(() => {
-    cy.elements().remove()
-    cy.add([...data.cyNodes, ...data.cyEdges])
-  })
-  cy.layout(graphLayout(props.layoutMode, data.stats.nodes)).run()
+  const large = isLargeGraph(data.stats.nodes)
 
-  setTimeout(() => {
-    const n = cy.nodes().length
-    cy.fit(undefined, n > 120 ? 140 : 80)
-  }, 120)
+  cy.startBatch()
+  cy.elements().remove()
+  cy.add([...data.cyNodes, ...data.cyEdges])
+
+  if (large) {
+    cy.nodes().addClass('hide-label')
+    labelsHidden = true
+  }
+  cy.endBatch()
+
+  if (large && cy.zoom() >= 0.6) {
+    cy.nodes().removeClass('hide-label')
+    labelsHidden = false
+  }
+
+  const layout = cy.layout(graphLayout(props.layoutMode, data.stats.nodes))
+  layout.pon('layoutstop').then(() => {
+    cy.fit(undefined, data.stats.nodes > 200 ? 120 : data.stats.nodes > 80 ? 60 : 40)
+  })
+  layout.run()
 }
 
 function focusNode(node: cytoscape.NodeSingular) {
@@ -273,6 +332,7 @@ watch(
       cyInstance.value.destroy()
       cyInstance.value = null
       focusedElements = null
+      labelsHidden = false
     }
   },
 )
@@ -288,6 +348,7 @@ onUnmounted(() => {
     cyInstance.value.destroy()
     cyInstance.value = null
     focusedElements = null
+    labelsHidden = false
   }
 })
 
@@ -309,7 +370,7 @@ defineExpose({ fit })
     <div ref="containerRef" id="cy"></div>
     <div v-if="!cyData || cyData.cyNodes.length === 0" class="empty-state">
       <strong>当前筛选没有可渲染节点</strong><br />
-      请放宽目录/关系筛选，或点击左侧“全选”恢复目录选择。
+      请切换层级、放宽筛选或点击"全选"恢复目录选择。
     </div>
     <div
       ref="tooltipRef"
@@ -336,19 +397,6 @@ defineExpose({ fit })
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   background: #fff;
   flex: 1;
-}
-
-#cyWrap::after {
-  content: 'GRAPH';
-  position: absolute;
-  right: 14px;
-  bottom: 12px;
-  font-size: 10px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: #b0b8c4;
-  pointer-events: none;
-  font-weight: 700;
 }
 
 #cy {

@@ -1,5 +1,36 @@
+export type GraphLayer = 'code' | 'document' | 'artifact' | 'inferred'
+
+export type GraphSelectedLayer = 'full' | 'code' | 'document' | 'artifact'
+
+export interface LayerDef {
+  id: GraphSelectedLayer
+  label: string
+  description: string
+}
+
+export const LAYER_DEFS: LayerDef[] = [
+  { id: 'full', label: '完整', description: '全部层级关系' },
+  { id: 'code', label: '代码', description: 'import / call / extends 等代码关系' },
+  { id: 'document', label: '文档', description: 'link / include / image 引用' },
+  { id: 'artifact', label: '制品', description: '外部包依赖 (npm / maven / pip 等)' },
+]
+
 export type GraphFileType = 'source' | 'document' | 'config' | 'directory' | 'asset' | 'external'
-export type GraphNodeKind = 'file' | 'directory' | 'symbol' | 'external' | 'unresolved'
+export type GraphNodeKind = 'file' | 'directory' | 'symbol' | 'external' | 'unresolved' | 'external-package'
+export type GraphSymbolKind =
+  | 'module'
+  | 'package'
+  | 'class'
+  | 'interface'
+  | 'enum'
+  | 'function'
+  | 'method'
+  | 'constructor'
+  | 'field'
+  | 'variable'
+  | 'struct'
+  | 'type'
+  | 'section'
 
 export interface SourceRange {
   startLine: number
@@ -20,7 +51,13 @@ export interface GraphFileNode {
   parser?: string
   range?: SourceRange
   sizeBytes?: number
-  symbolKind?: string
+  symbolKind?: GraphSymbolKind
+  ecosystem?: string
+  groupId?: string
+  artifactId?: string
+  version?: string
+  scope?: string
+  status?: string
 }
 
 export interface GraphRelation {
@@ -37,6 +74,9 @@ export interface GraphRelation {
   parser?: string
   range?: SourceRange
   reason?: string
+  layer?: GraphLayer
+  source?: string
+  completeness?: string
 }
 
 export interface GraphVersionRecord {
@@ -83,6 +123,7 @@ export interface CyNodeData {
   symbolKind: string
   range: SourceRange | null
   language: string
+  ecosystem: string
 }
 
 export interface CyEdgeData {
@@ -121,6 +162,7 @@ export interface IndexedGraphRelation {
   source: string
   target: string
   type: string
+  layer: GraphLayer
   searchText: string
 }
 
