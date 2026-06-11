@@ -65,6 +65,7 @@ const relations: GraphRelation[] = [
 function buildData(options: Partial<Parameters<typeof buildCyData>[0]> = {}) {
   return buildCyData({
     index: buildGraphIndex(files, relations),
+    selectedLayer: 'full',
     fileFilter: '',
     typeFilter: '',
     nodeLimit: 0,

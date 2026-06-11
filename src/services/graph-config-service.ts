@@ -1,7 +1,9 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
 import stripJsonComments from 'strip-json-comments'
+
+import { isRegularFile } from '../utils/path-utils.js'
 
 import {
   mergeBuiltinOpencodeConfig,
@@ -69,7 +71,7 @@ export function resolveGraphConfigPath(worktree: string): string {
 }
 
 function readProjectConfig(configPath: string): AeProjectConfig {
-  if (!existsSync(configPath)) {
+  if (!isRegularFile(configPath)) {
     return {}
   }
 
@@ -87,7 +89,7 @@ function readProjectConfig(configPath: string): AeProjectConfig {
 }
 
 function readGraphConfigLayer(path: string, label: ConfigLayer['label'], required: boolean): BuiltinOpencodeConfig | undefined {
-  if (!existsSync(path)) {
+  if (!isRegularFile(path)) {
     if (required) {
       throw new Error(`${label} ae.jsonc 不存在：${path}`)
     }
@@ -525,7 +527,7 @@ export function updateGraphRulesInProjectConfig(
   }
 
   mkdirSync(dirname(configPath), { recursive: true })
-  if (!existsSync(configPath)) {
+  if (!isRegularFile(configPath)) {
     const graph: { include?: string[]; exclude?: string[] } = {}
     if (normalized.appendInclude.length > 0) {
       graph.include = normalized.appendInclude

@@ -1,9 +1,11 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
 import type { Config } from '@opencode-ai/plugin'
 import stripJsonComments from 'strip-json-comments'
+
+import { isRegularFile } from '../utils/path-utils.js'
 
 import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
 
@@ -98,7 +100,7 @@ function validateRemoteMcpUrl(name: string, url: unknown): void {
 }
 
 function readBuiltinOpencodeConfigLayer(layer: ConfigLayer): BuiltinOpencodeConfig | undefined {
-  if (!existsSync(layer.path)) {
+  if (!isRegularFile(layer.path)) {
     if (layer.required) {
       throw new Error(`${layer.label} builtin-opencode 配置文件不存在: ${layer.path}`)
     }

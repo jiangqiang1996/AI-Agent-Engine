@@ -14,7 +14,7 @@ import {
   type EvidenceRecord,
   type EvidenceState,
 } from '../schemas/evidence-ledger-schema.js'
-import { isInsideRoot, pathContainsSymlink, toPosixPath, toRepoRelativePath } from '../utils/path-utils.js'
+import { isInsideRoot, isRegularFile, pathContainsSymlink, toPosixPath, toRepoRelativePath } from '../utils/path-utils.js'
 
 const HASH_ALGORITHM = 'sha256'
 const LEDGER_FILE = 'ledger.jsonl'
@@ -145,7 +145,7 @@ export function writeEvidenceRecord(repoRoot: string, input: EvidenceRecordInput
 /** 读取并复验证据账本，返回可用记录与所有可恢复诊断。 */
 export function readEvidenceLedger(repoRoot: string): EvidenceReadResult {
   const paths = getEvidenceLedgerPaths(repoRoot)
-  if (!existsSync(paths.ledger)) {
+  if (!isRegularFile(paths.ledger)) {
     return { records: [], diagnostics: ['ledger.jsonl 不存在。'], state: 'missing' }
   }
   if (pathContainsSymlink(repoRoot, paths.ledger)) {
@@ -182,7 +182,7 @@ export function readEvidenceLedger(repoRoot: string): EvidenceReadResult {
       : toPosixPath(event.artifactPath)
     const artifactDomain = toPosixPath(join(docsAePath(DOCS_AE_SUBDIRS.EVIDENCE), ARTIFACTS_DIR, event.evidenceKind))
 
-    if (!existsSync(artifactAbsPath)) {
+    if (!isRegularFile(artifactAbsPath)) {
       diagnostics.push(`artifact 缺失：${event.artifactPath}`)
       continue
     }
@@ -243,7 +243,7 @@ export function rebuildEvidenceIndex(repoRoot: string): EvidenceIndex {
   assertNoSymlinkPath(repoRoot, paths.ledger, 'ledger 文件')
   assertNoSymlinkPath(repoRoot, paths.index, 'index 文件')
   const diagnostics: string[] = []
-  const events = existsSync(paths.ledger) ? readLedgerEvents(paths.ledger, diagnostics) : []
+  const events = isRegularFile(paths.ledger) ? readLedgerEvents(paths.ledger, diagnostics) : []
   if (diagnostics.length > 0) {
     throw new Error(`无法重建 evidence index：${diagnostics.join('；')}`)
   }
@@ -271,12 +271,12 @@ function assertNoSymlinkPath(repoRoot: string, target: string, label: string): v
 
 function appendLedgerEvent(path: string, event: EvidenceLedgerEvent): void {
   mkdirSync(dirname(path), { recursive: true })
-  const existing = existsSync(path) ? readFileSync(path, 'utf8') : ''
+  const existing = isRegularFile(path) ? readFileSync(path, 'utf8') : ''
   writeFileSync(path, `${existing}${JSON.stringify(event)}\n`, 'utf8')
 }
 
 function readLastLedgerEvent(path: string): EvidenceLedgerEvent | undefined {
-  if (!existsSync(path)) {
+  if (!isRegularFile(path)) {
     return undefined
   }
   const lines = readFileSync(path, 'utf8').split('\n').map((line) => line.trim()).filter(Boolean)

@@ -1,9 +1,10 @@
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 
 import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
+import { isRegularFile } from '../utils/path-utils.js'
 
 import type { GraphConfig } from './graph-config-service.js'
 import { getGraphPathDecision } from './graph-filter-suggestion-service.js'
@@ -123,10 +124,17 @@ function parseChangedPaths(nameStatus: string, untracked: string): string[] {
 
 function hashWorktreeFile(worktree: string, path: string): string {
   const absolutePath = join(worktree, path)
-  if (!existsSync(absolutePath)) {
+  if (!isRegularFile(absolutePath)) {
     return stableHash({ missing: true })
   }
-  return createHash('sha256').update(readFileSync(absolutePath)).digest('hex')
+  try {
+    return createHash('sha256').update(readFileSync(absolutePath)).digest('hex')
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && (error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return stableHash({ missing: true })
+    }
+    throw error
+  }
 }
 
 export function createGraphInputDigest(worktree: string): {
@@ -198,7 +206,7 @@ export function resolveGraphBuildStatePath(worktree: string, scopeRoot = '.'): s
 
 export function readGraphBuildState(worktree: string, scopeRoot = '.'): GraphBuildState | undefined {
   const path = resolveGraphBuildStatePath(worktree, scopeRoot)
-  if (!existsSync(path)) {
+  if (!isRegularFile(path)) {
     return undefined
   }
   try {

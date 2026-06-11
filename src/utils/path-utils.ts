@@ -1,6 +1,10 @@
-import { existsSync, lstatSync } from 'node:fs'
+import { existsSync, lstatSync, statSync } from 'node:fs'
 import { basename, dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+
+export function isRegularFile(path: string): boolean {
+  return statSync(path, { throwIfNoEntry: false })?.isFile() ?? false
+}
 
 export function toPosixPath(p: string): string {
   return p.replaceAll('\\', '/')
