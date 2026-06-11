@@ -112,7 +112,7 @@
 | `/ae-merge-branch` | `[来源分支名\|本地 worktree 路径]` | 合并来源分支或 worktree 变更 | 本地 Git 写操作需明确授权 |
 | `/ae-review` | `[mode:*] [domain:code\|domain:document] [from:<ref>] [full] [full:<path>] [session] [plan:<path>] [文档路径]` | 审查代码、文档、计划、全量路径或会话变更 | 代码域和文档域分开处理 |
 | `/ae-lfg` | `[需求描述\|已有产物路径]` | 默认全流程入口 | 优先恢复已有产物；缺上游时回退到更早阶段 |
-| `/ae-sql` | `[MCP 注册|浏览器目标|chrome-devtools 工具]` | 浏览器能力中枢，负责 MCP 动态注册、目标选择和浏览器控制 | 确认 chrome-devtools MCP 连接就绪 |
+| `/ae-chrome-devtools` | `[浏览器类型]` | 浏览器能力中枢，负责 MCP 动态注册、目标选择和浏览器控制 | 确认 chrome-devtools MCP 连接就绪 |
 | `/ae-test-browser` | `[URL\|路由]` | 浏览器端到端验收 | 先完成 chrome-devtools MCP 动态注册；不做审美设计 |
 | `/ae-course-auto-player` | `[浏览器类型] <课程列表页面URL>` | 自动播放在线课程列表 | 先完成 chrome-devtools MCP 动态注册 |
 | `/ae-frontend-design` | `[描述\|路径]` | 构建前端初版界面 | 不替代完整 E2E 或 Figma 对齐 |
@@ -144,6 +144,8 @@
 ## 命令变体
 
 `-po` 表示 prompt optimize：先优化提示词，确认后执行。`-pa` 表示 prompt auto：优化后跳过确认直接执行。
+
+**注意**：并非所有命令都支持 `-po`/`-pa` 变体，下表列出了所有支持的变体命令。未列出的命令不提供变体。
 
 | 基础命令 | 确认执行 | 自动执行 |
 | --- | --- | --- |
@@ -219,7 +221,7 @@
 | --- | --- | --- |
 | `ae-recovery` | 根据 AE 产物判断恢复阶段、后续技能和回退技能 | 不修改产物 |
 | `ae-review-contract` | 根据审查类型、范围特征和模式生成审查团队 | 不执行审查代理 |
-| `ae-chrome-devtools-mcp` | 检查或动态注册 chrome-devtools MCP | 不安装 chrome-devtools-mcp，不替代真实 MCP 注册 |
+| `ae-chrome-devtools-mcp` | 检查或动态注册 chrome-devtools MCP（内部工具） | 用户应通过 `/ae-chrome-devtools` 命令操作浏览器能力；不安装 chrome-devtools-mcp，不替代真实 MCP 注册 |
 | `ae-help` | 生成当前运行时帮助 | 不修改配置 |
 | `ae-handoff` | 创建独立新会话并注入上下文 | 不做普通提示词优化 |
 | `ae-prompt-optimize` | 把优化后的提示词提交到新会话执行 | 不注入系统级历史上下文 |
