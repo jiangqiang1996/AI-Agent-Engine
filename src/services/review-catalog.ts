@@ -1,6 +1,6 @@
 import { AGENT } from '../schemas/ae-asset-schema.js'
 
-export type PredicateOperator = 'truthy' | 'eq' | 'oneOf'
+export type PredicateOperator = 'truthy' | 'eq' | 'oneOf' | 'contains'
 
 export interface ActivationPredicate {
   field: string
@@ -57,6 +57,8 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
       [{ field: 'hasUi', operator: 'truthy' }],
       [{ field: 'hasTooling', operator: 'truthy' }],
       [{ field: 'hasAgentConfig', operator: 'truthy' }],
+      [{ field: 'targetTypes', operator: 'contains', value: 'asset' }],
+      [{ field: 'reviewScenes', operator: 'contains', value: 'asset' }],
     ],
     description: '审查代理、CLI、工具配置或 UI 能力是否让代理具备与用户对等的操作能力',
   },
@@ -142,6 +144,8 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
     alwaysOn: false,
     conditionGroups: [
       [{ field: 'documentType', operator: 'eq', value: 'plan' }],
+      [{ field: 'targetTypes', operator: 'contains', value: 'plan' }],
+      [{ field: 'reviewScenes', operator: 'contains', value: 'plan' }],
       [{ field: 'requirementCountGte5', operator: 'truthy' }],
       [{ field: 'hasProductClaim', operator: 'truthy' }],
     ],
@@ -153,6 +157,8 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
     alwaysOn: false,
     conditionGroups: [
       [{ field: 'documentType', operator: 'eq', value: 'plan' }],
+      [{ field: 'targetTypes', operator: 'contains', value: 'plan' }],
+      [{ field: 'reviewScenes', operator: 'contains', value: 'plan' }],
       [{ field: 'requirementCountGte5', operator: 'truthy' }],
     ],
     description: '审查计划步骤粒度与批量操作可脚本化',
@@ -161,15 +167,58 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
     name: AGENT.DESIGN_LENS_REVIEWER,
     domain: 'document',
     alwaysOn: false,
-    conditionGroups: [[{ field: 'hasUi', operator: 'truthy' }]],
+    conditionGroups: [
+      [{ field: 'hasUi', operator: 'truthy' }],
+      [{ field: 'documentType', operator: 'eq', value: 'design' }],
+      [{ field: 'targetTypes', operator: 'contains', value: 'design' }],
+      [{ field: 'reviewScenes', operator: 'contains', value: 'design' }],
+    ],
     description: '审查文档中缺失的设计决策',
   },
   {
     name: AGENT.TEST_CASE_REVIEWER,
     domain: 'document',
     alwaysOn: false,
-    conditionGroups: [[{ field: 'documentType', operator: 'eq', value: 'test' }]],
+    conditionGroups: [
+      [{ field: 'documentType', operator: 'eq', value: 'test' }],
+      [{ field: 'targetTypes', operator: 'contains', value: 'test-case' }],
+      [{ field: 'reviewScenes', operator: 'contains', value: 'test-case' }],
+    ],
     description: '审查测试用例文档的结构完整性、覆盖完备性、步骤可执行性、结果可验证性和需求对齐程度',
+  },
+  {
+    name: AGENT.REQUIREMENTS_REVIEWER,
+    domain: 'document',
+    alwaysOn: false,
+    conditionGroups: [
+      [{ field: 'documentType', operator: 'eq', value: 'requirements' }],
+      [{ field: 'targetTypes', operator: 'contains', value: 'requirements' }],
+      [{ field: 'reviewScenes', operator: 'contains', value: 'requirements' }],
+    ],
+    description: '审查需求文档的目标清晰度、范围边界、验收标准可验证性、用户/角色完整性和未决问题',
+  },
+  {
+    name: AGENT.PROTOTYPE_REVIEWER,
+    domain: 'document',
+    alwaysOn: false,
+    conditionGroups: [
+      [{ field: 'documentType', operator: 'eq', value: 'prototype' }],
+      [{ field: 'targetTypes', operator: 'contains', value: 'prototype' }],
+      [{ field: 'reviewScenes', operator: 'contains', value: 'prototype' }],
+    ],
+    description: '审查原型/线框/高保真说明文档的交互完整性、状态覆盖、与需求的一致性以及实现可行性提示',
+  },
+  {
+    name: AGENT.EVIDENCE_REVIEWER,
+    domain: 'document',
+    alwaysOn: false,
+    conditionGroups: [
+      [{ field: 'documentType', operator: 'eq', value: 'general' }],
+      [{ field: 'targetTypes', operator: 'contains', value: 'document' }],
+      [{ field: 'reviewScenes', operator: 'contains', value: 'general-document' }],
+      [{ field: 'hasEvidenceClaim', operator: 'truthy' }],
+    ],
+    description: '审查文档或交付说明中的事实性证据：可观察的工作区状态、命令输出、引用与外部声明是否真实可核验',
   },
   {
     name: AGENT.GOAL_ALIGNMENT_REVIEWER,
@@ -177,5 +226,15 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
     alwaysOn: false,
     conditionGroups: [[{ field: 'hasGoalAlignment', operator: 'truthy' }]],
     description: '对照显式审查目标逐条校验变更是否达成各项目标，识别未达成项和偏离',
+  },
+  {
+    name: AGENT.TRACEABILITY_REVIEWER,
+    domain: 'both',
+    alwaysOn: false,
+    conditionGroups: [
+      [{ field: 'hasMixedTargets', operator: 'truthy' }],
+      [{ field: 'kind', operator: 'eq', value: 'general' }],
+    ],
+    description: '审查需求/设计/原型/计划/测试用例之间的追溯一致性，识别孤儿条目、断裂引用和未声明的延期',
   },
 ]

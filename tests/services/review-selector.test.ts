@@ -139,9 +139,10 @@ describe('selectReviewers — 文档域', () => {
     expect(new Set(selected).size).toBe(selected.length)
   })
 
-  it('文档域 general 类型应仅包含 alwaysOn 代理', () => {
+  it('文档域 general 类型应在 alwaysOn 基础上激活 evidence-reviewer', () => {
     const selected = selectReviewers({ kind: 'document', documentType: 'general' })
-    expect(selected).toHaveLength(2)
+    expect(selected).toContain(AGENT.EVIDENCE_REVIEWER)
+    expect(selected.length).toBeGreaterThanOrEqual(3)
   })
 
   it('文档域 hasUi 应激活 design-lens-reviewer', () => {
@@ -200,5 +201,32 @@ describe('selectReviewers — 派生字段', () => {
     expect(selected).not.toContain(AGENT.ADVERSARIAL_REVIEWER)
     expect(selected).not.toContain(AGENT.ARCHITECTURE_STRATEGIST)
     expect(selected).not.toContain(AGENT.PATTERN_RECOGNITION_SPECIALIST)
+  })
+})
+
+describe('selectReviewers — 通用混合域', () => {
+  it('targetTypes 应激活对应专一审查者', () => {
+    const selected = selectReviewers({
+      kind: 'general',
+      targetTypes: ['requirements', 'prototype', 'test-case', 'asset'],
+    })
+
+    expect(selected).toContain(AGENT.REQUIREMENTS_REVIEWER)
+    expect(selected).toContain(AGENT.PROTOTYPE_REVIEWER)
+    expect(selected).toContain(AGENT.TEST_CASE_REVIEWER)
+    expect(selected).toContain(AGENT.AGENT_NATIVE_REVIEWER)
+    expect(selected).toContain(AGENT.TRACEABILITY_REVIEWER)
+  })
+
+  it('reviewScenes 应激活对应专一审查者', () => {
+    const selected = selectReviewers({
+      kind: 'general',
+      reviewScenes: ['design', 'plan', 'general-document'],
+    })
+
+    expect(selected).toContain(AGENT.DESIGN_LENS_REVIEWER)
+    expect(selected).toContain(AGENT.PRODUCT_LENS_REVIEWER)
+    expect(selected).toContain(AGENT.STEP_GRANULARITY_REVIEWER)
+    expect(selected).toContain(AGENT.EVIDENCE_REVIEWER)
   })
 })

@@ -15,6 +15,6 @@ describe('lifecycle-contract 服务', () => {
     const reviewEntry = entries.find((entry) => entry.skillName === SKILL.REVIEW)
 
     expect(workEntry?.description).toBe(getLifecycleCatalogDescription('work'))
-    expect(reviewEntry?.description).toBe(getLifecycleCatalogDescription('outcome-review'))
+    expect(reviewEntry?.description.startsWith(getLifecycleCatalogDescription('outcome-review'))).toBe(true)
   })
 })

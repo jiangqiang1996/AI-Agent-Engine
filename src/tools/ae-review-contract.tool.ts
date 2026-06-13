@@ -2,18 +2,102 @@ import { tool, type ToolDefinition } from '@opencode-ai/plugin/tool'
 import { Effect } from 'effect'
 
 import { selectSpecialists, getCoordinationStrategy } from '../services/domain-dispatch-service.js'
-import { selectReviewers, type ReviewSelectionInput } from '../services/review-selector.js'
+import {
+  selectReviewers,
+  type ReviewSelectionInput,
+  type ReviewKind,
+  type ReviewDocumentType,
+  type ReviewSceneType,
+  type ReviewTargetType,
+} from '../services/review-selector.js'
 import { AeModeSchema, type SpecialistDef } from '../schemas/ae-asset-schema.js'
 
-function resolveKind(raw: string): ReviewSelectionInput['kind'] {
-  return raw === 'code' ? 'code' : 'document'
+const SCENE_VALUES: ReviewSceneType[] = [
+  'code',
+  'requirements',
+  'design',
+  'prototype',
+  'test-case',
+  'plan',
+  'config',
+  'asset',
+  'general-document',
+]
+
+const TARGET_VALUES: ReviewTargetType[] = [
+  'code',
+  'requirements',
+  'design',
+  'prototype',
+  'test-case',
+  'plan',
+  'config',
+  'asset',
+  'document',
+]
+
+function resolveKind(raw: string): ReviewKind {
+  if (raw === 'code') return 'code'
+  if (raw === 'general' || raw === 'mixed' || raw === 'hybrid') return 'general'
+  return 'document'
 }
 
-function resolveDocumentType(raw: string): ReviewSelectionInput['documentType'] {
+function resolveDocumentType(raw: string): ReviewDocumentType | undefined {
   if (raw === 'plan') return 'plan'
   if (raw === 'test') return 'test'
+  if (raw === 'design') return 'design'
+  if (raw === 'prototype') return 'prototype'
   if (raw === 'general') return 'general'
+  if (raw === 'document') return 'requirements'
+  if (raw === 'code') return undefined
+  if (raw === 'mixed' || raw === 'hybrid') return undefined
   return 'requirements'
+}
+
+function parseList<T extends string>(value: string | undefined, allowed: T[]): T[] | undefined {
+  if (!value) return undefined
+  const parts = value
+    .split(',')
+    .map((part) => part.trim().toLowerCase())
+    .filter((part) => part.length > 0)
+  if (parts.length === 0) return undefined
+  const filtered = parts.filter((part): part is T => (allowed as string[]).includes(part))
+  return filtered.length > 0 ? filtered : undefined
+}
+
+const TARGET_TO_REVIEWERS: Record<ReviewTargetType, string[]> = {
+  code: [
+    'correctness-reviewer',
+    'testing-reviewer',
+    'maintainability-reviewer',
+    'standards-reviewer',
+  ],
+  requirements: ['requirements-reviewer'],
+  design: ['design-lens-reviewer'],
+  prototype: ['prototype-reviewer'],
+  'test-case': ['test-case-reviewer'],
+  plan: ['step-granularity-reviewer', 'product-lens-reviewer'],
+  config: ['standards-reviewer'],
+  asset: ['agent-native-reviewer'],
+  document: ['coherence-reviewer', 'feasibility-reviewer', 'evidence-reviewer'],
+}
+
+function computeTargetCoverage(
+  targetTypes: ReviewTargetType[] | undefined,
+  selectedReviewers: string[],
+): Record<string, { status: 'covered' | 'uncovered'; reviewers: string[] }> | undefined {
+  if (!targetTypes || targetTypes.length === 0) return undefined
+  const selected = new Set(selectedReviewers)
+  const coverage: Record<string, { status: 'covered' | 'uncovered'; reviewers: string[] }> = {}
+  for (const target of targetTypes) {
+    const candidates = TARGET_TO_REVIEWERS[target] ?? []
+    const matched = candidates.filter((name) => selected.has(name))
+    coverage[target] = {
+      status: matched.length > 0 ? 'covered' : 'uncovered',
+      reviewers: matched,
+    }
+  }
+  return coverage
 }
 
 export const aeReviewContractTool: ToolDefinition = tool({
@@ -23,8 +107,9 @@ export const aeReviewContractTool: ToolDefinition = tool({
     '功能说明：',
     '- 根据审查类型与模式生成审查团队',
     '- 代码审查（kind=code）：支持 Git 差异、全量扫描、会话变更等多种范围确定方式',
-    '- 文档审查（kind=document/plan/test/general）：面向文档，与 Git 无强关联',
-    '- 返回门控规则和模式边界',
+    '- 文档审查（kind=document/plan/test/general/design/prototype）：面向文档，与 Git 无强关联',
+    '- 通用混合审查（kind=general/mixed/hybrid）：同一次审查覆盖多种产出物类型，按 scenes/targets 分桶',
+    '- 返回门控规则、模式边界与目标覆盖摘要',
     '',
     '适用场景：',
     '- markdown 技能需要先确定审查团队再并行派发时',
@@ -35,8 +120,26 @@ export const aeReviewContractTool: ToolDefinition = tool({
     '- 不负责写入审查发现或审查产物',
   ].join('\n'),
   args: {
-    kind: tool.schema.enum(['document', 'plan', 'test', 'general', 'code']).describe('审查类型'),
+    kind: tool.schema
+      .enum(['document', 'plan', 'test', 'general', 'code', 'design', 'prototype', 'mixed', 'hybrid'])
+      .describe('审查类型'),
     mode: AeModeSchema.describe('审查模式'),
+    scenes: tool.schema
+      .string()
+      .optional()
+      .describe('审查场景列表，逗号分隔，可选值：code/requirements/design/prototype/test-case/plan/config/asset/general-document'),
+    reviewScenes: tool.schema
+      .string()
+      .optional()
+      .describe('scenes 的别名；审查场景列表，逗号分隔'),
+    targets: tool.schema
+      .string()
+      .optional()
+      .describe('目标产出物类型列表，逗号分隔，可选值：code/requirements/design/prototype/test-case/plan/config/asset/document'),
+    targetTypes: tool.schema
+      .string()
+      .optional()
+      .describe('targets 的别名；目标产出物类型列表，逗号分隔'),
     has_ui: tool.schema.boolean().optional().describe('是否涉及 UI'),
     has_security: tool.schema.boolean().optional().describe('是否涉及安全边界'),
     has_cli: tool.schema.boolean().optional().describe('是否涉及 CLI'),
@@ -60,6 +163,7 @@ export const aeReviewContractTool: ToolDefinition = tool({
     has_script: tool.schema.boolean().optional().describe('是否涉及脚本变更'),
     has_upstream: tool.schema.boolean().optional().describe('文档是否记录了 upstream/origin 等上游来源'),
     has_goal_alignment: tool.schema.boolean().optional().describe('是否提供审查目标（成功条件列表），激活目标对齐审查'),
+    has_evidence_claim: tool.schema.boolean().optional().describe('文档是否包含事实性声明、外部引用或交付证据，需要 evidence-reviewer 校验'),
   },
   async execute(args) {
     return Effect.runPromise(
@@ -67,10 +171,17 @@ export const aeReviewContractTool: ToolDefinition = tool({
         try: () => {
           const kind = resolveKind(args.kind)
           const documentType = resolveDocumentType(args.kind)
+          const reviewScenes = parseList<ReviewSceneType>(args.scenes ?? args.reviewScenes, SCENE_VALUES)
+          const targetTypes = parseList<ReviewTargetType>(args.targets ?? args.targetTypes, TARGET_VALUES)
+          const hasMixedTargets = kind === 'general' || (targetTypes?.length ?? 0) >= 2
 
           const domainContext: Record<string, unknown> = {
             kind: args.kind,
+            normalizedKind: kind,
             documentType,
+            reviewScenes,
+            targetTypes,
+            hasMixedTargets,
             hasSecurity: args.has_security,
             hasPerformance: args.has_performance,
             hasApi: args.has_api,
@@ -94,6 +205,7 @@ export const aeReviewContractTool: ToolDefinition = tool({
             hasNewAbstraction: args.has_new_abstraction,
             hasUpstream: args.has_upstream,
             hasGoalAlignment: args.has_goal_alignment,
+            hasEvidenceClaim: args.has_evidence_claim,
           }
 
           const taskIntent = {
@@ -111,6 +223,10 @@ export const aeReviewContractTool: ToolDefinition = tool({
           const reviewers = selectReviewers({
             kind,
             documentType,
+            reviewScenes,
+            targetTypes,
+            hasMixedTargets,
+            hasEvidenceClaim: args.has_evidence_claim,
             hasSecurity: args.has_security,
             hasPerformance: args.has_performance,
             hasApi: args.has_api,
@@ -139,13 +255,23 @@ export const aeReviewContractTool: ToolDefinition = tool({
           return JSON.stringify(
             {
               kind: args.kind,
-              documentType: kind === 'document' ? documentType : undefined,
+              normalizedKind: kind,
+              documentType: kind === 'code' ? undefined : documentType,
+              reviewScenes,
+              targetTypes,
+              hasMixedTargets,
+              targetCoverage: computeTargetCoverage(targetTypes, reviewers),
               mode: args.mode,
               reviewers,
               selectedSpecialists: selectedNames,
               coordinationStrategy: getCoordinationStrategy('review'),
               nonSelectionInputs: ['has_typescript', 'has_config', 'has_script'],
-              gate: kind === 'code' ? 'P0/P1 默认阻断；只读模式仅报告' : '文档与计划审查默认作为质量门控',
+              gate:
+                kind === 'code'
+                  ? 'P0/P1 默认阻断；只读模式仅报告'
+                  : kind === 'general'
+                    ? '通用域：按目标类型分别评估；任一目标类型存在 P0/P1 默认阻断；未覆盖目标类型必须显式标注原因'
+                    : '文档与计划审查默认作为质量门控',
             },
             null,
             2,

@@ -105,6 +105,27 @@ describe('ae-review-proof 工具', () => {
     expect(output).toBe(sourceReviewOutput)
   })
 
+  it('应该把可选 targetCoverage 写入 metadata 且不影响输出哈希', async () => {
+    const root = createRepoRoot()
+    const sourceReviewOutput = createSourceReviewOutput({ worktree: root, ...getGitFingerprint(root) })
+    const targetCoverage = { requirements: { status: 'covered', reviewers: ['requirements-reviewer'] } }
+
+    await aeReviewProofTool.execute({
+      review_run_id: 'review-target-coverage',
+      review_status: 'passed',
+      summary: '审查通过',
+      findings: [],
+      targetCoverage,
+      source_review_output: sourceReviewOutput,
+    }, createToolContext(root, sourceReviewOutput, 'review-target-coverage'))
+
+    const metadataPath = join(root, 'ae', 'reviews', 'review-target-coverage', 'metadata.json')
+    const metadata = JSON.parse(readFileSync(metadataPath, 'utf8')) as Record<string, unknown>
+
+    expect(metadata.targetCoverage).toEqual(targetCoverage)
+    expect(metadata.reviewOutputHash).toBe(hashReviewOutput(sourceReviewOutput))
+  })
+
   it('应该记录独立的原始审查来源 ref', async () => {
     const root = createRepoRoot()
     const sourceReviewOutput = createSourceReviewOutput({ worktree: root, ...getGitFingerprint(root) })

@@ -8,7 +8,7 @@ import {
   type DomainFinding,
 } from '../schemas/ae-asset-schema.js'
 import { getDomainCatalog } from './domain-catalog-service.js'
-import { selectReviewers, type ReviewSelectionInput } from './review-selector.js'
+import { selectReviewers, type ReviewSelectionInput, type ReviewKind, type ReviewSceneType, type ReviewTargetType } from './review-selector.js'
 
 export type CoordinationStrategy = 'parallel' | 'pipeline' | 'parallel-then-sequential' | 'conditional'
 
@@ -76,6 +76,14 @@ function toReviewSelectionInput(
 ): ReviewSelectionInput & { dispatchedFlags: Record<string, boolean> } {
   const rawKind = domainContext.kind ?? domainContext.reviewType ?? domainContext.domain ?? taskIntent.domain
   const documentType = normalizeDocumentType(domainContext.documentType ?? domainContext.kind ?? domainContext.reviewType)
+  const reviewScenes = normalizeStringList<ReviewSceneType>(
+    domainContext.reviewScenes ?? domainContext.scenes,
+    ['code', 'requirements', 'design', 'prototype', 'test-case', 'plan', 'config', 'asset', 'general-document'],
+  )
+  const targetTypes = normalizeStringList<ReviewTargetType>(
+    domainContext.targetTypes ?? domainContext.targets,
+    ['code', 'requirements', 'design', 'prototype', 'test-case', 'plan', 'config', 'asset', 'document'],
+  )
 
   const flagEntries: [string, unknown][] = [
     ['hasSecurity', domainContext.hasSecurity ?? domainContext.has_security],
@@ -99,6 +107,7 @@ function toReviewSelectionInput(
     ['hasNewAbstraction', domainContext.hasNewAbstraction ?? domainContext.has_new_abstraction],
     ['hasUpstream', domainContext.hasUpstream ?? domainContext.has_upstream],
     ['hasGoalAlignment', domainContext.hasGoalAlignment ?? domainContext.has_goal_alignment],
+    ['hasEvidenceClaim', domainContext.hasEvidenceClaim ?? domainContext.has_evidence_claim],
   ]
 
   const flagMap = new Map(flagEntries)
@@ -107,9 +116,25 @@ function toReviewSelectionInput(
     dispatchedFlags[key] = typeof value === 'boolean'
   }
 
+  const kind: ReviewKind =
+    rawKind === 'code'
+      ? 'code'
+      : rawKind === 'general' || rawKind === 'mixed' || rawKind === 'hybrid'
+        ? 'general'
+        : 'document'
+
+  const hasMixedTargets =
+    getBoolean(domainContext.hasMixedTargets ?? domainContext.has_mixed_targets) ||
+    kind === 'general' ||
+    (targetTypes?.length ?? 0) >= 2
+
   return {
-    kind: rawKind === 'code' ? 'code' : 'document',
+    kind,
     documentType,
+    reviewScenes,
+    targetTypes,
+    hasMixedTargets,
+    hasEvidenceClaim: getBoolean(flagMap.get('hasEvidenceClaim')),
     changedLineCount: getNumber(domainContext.changedLineCount ?? domainContext.changed_lines),
     hasSecurity: getBoolean(flagMap.get('hasSecurity')),
     hasPerformance: getBoolean(flagMap.get('hasPerformance')),
@@ -138,7 +163,14 @@ function toReviewSelectionInput(
 }
 
 function normalizeDocumentType(value: unknown): ReviewSelectionInput['documentType'] {
-  if (value === 'requirements' || value === 'plan' || value === 'test' || value === 'general') {
+  if (
+    value === 'requirements' ||
+    value === 'plan' ||
+    value === 'test' ||
+    value === 'general' ||
+    value === 'design' ||
+    value === 'prototype'
+  ) {
     return value
   }
 
@@ -147,6 +179,19 @@ function normalizeDocumentType(value: unknown): ReviewSelectionInput['documentTy
   }
 
   return undefined
+}
+
+function normalizeStringList<T extends string>(value: unknown, allowed: T[]): T[] | undefined {
+  if (!value) return undefined
+  const raw: string[] = Array.isArray(value)
+    ? value.filter((v): v is string => typeof v === 'string')
+    : typeof value === 'string'
+      ? value.split(',')
+      : []
+  const parts = raw.map((p) => p.trim().toLowerCase()).filter((p) => p.length > 0)
+  if (parts.length === 0) return undefined
+  const filtered = parts.filter((p): p is T => (allowed as string[]).includes(p))
+  return filtered.length > 0 ? filtered : undefined
 }
 
 function getBoolean(value: unknown): boolean {

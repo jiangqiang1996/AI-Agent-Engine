@@ -4,7 +4,9 @@ import { AGENT } from '../../src/schemas/ae-asset-schema.js'
 
 interface ReviewContractResult {
   kind: string
+  normalizedKind?: string
   documentType?: string
+  targetCoverage?: Record<string, { status: string; reviewers: string[] }>
   mode: string
   reviewers: string[]
   nonSelectionInputs: string[]
@@ -12,8 +14,12 @@ interface ReviewContractResult {
 }
 
 async function callTool(args: {
-  kind: 'document' | 'plan' | 'test' | 'general' | 'code'
+  kind: 'document' | 'plan' | 'test' | 'general' | 'code' | 'mixed' | 'hybrid'
   mode?: string
+  targets?: string
+  targetTypes?: string
+  scenes?: string
+  reviewScenes?: string
   has_architecture_decision?: boolean
   has_new_abstraction?: boolean
   has_product_claim?: boolean
@@ -105,6 +111,8 @@ describe('ae-review-contract 工具', () => {
     expect(definition.args).toHaveProperty('has_tooling')
     expect(definition.args).toHaveProperty('has_agent_config')
     expect(definition.args).toHaveProperty('has_product_claim')
+    expect(definition.args).toHaveProperty('reviewScenes')
+    expect(definition.args).toHaveProperty('targetTypes')
   })
 
   it('has_ui、has_tooling 和 has_agent_config 应激活 agent-native-reviewer', async () => {
@@ -115,5 +123,27 @@ describe('ae-review-contract 工具', () => {
     expect(uiResult.reviewers).toContain(AGENT.AGENT_NATIVE_REVIEWER)
     expect(toolingResult.reviewers).toContain(AGENT.AGENT_NATIVE_REVIEWER)
     expect(agentConfigResult.reviewers).toContain(AGENT.AGENT_NATIVE_REVIEWER)
+  })
+
+  it('general 类型 targets 应激活对应审查者并返回目标覆盖', async () => {
+    const result = await callTool({ kind: 'general', targets: 'requirements,prototype,test-case,asset' })
+
+    expect(result.normalizedKind).toBe('general')
+    expect(result.reviewers).toContain(AGENT.REQUIREMENTS_REVIEWER)
+    expect(result.reviewers).toContain(AGENT.PROTOTYPE_REVIEWER)
+    expect(result.reviewers).toContain(AGENT.TEST_CASE_REVIEWER)
+    expect(result.reviewers).toContain(AGENT.AGENT_NATIVE_REVIEWER)
+    expect(result.targetCoverage?.requirements.status).toBe('covered')
+    expect(result.targetCoverage?.prototype.status).toBe('covered')
+    expect(result.targetCoverage?.['test-case'].status).toBe('covered')
+    expect(result.targetCoverage?.asset.reviewers).toEqual([AGENT.AGENT_NATIVE_REVIEWER])
+  })
+
+  it('应兼容 reviewScenes 和 targetTypes 别名', async () => {
+    const result = await callTool({ kind: 'mixed', reviewScenes: 'design', targetTypes: 'design' })
+
+    expect(result.normalizedKind).toBe('general')
+    expect(result.reviewers).toContain(AGENT.DESIGN_LENS_REVIEWER)
+    expect(result.targetCoverage?.design.status).toBe('covered')
   })
 })

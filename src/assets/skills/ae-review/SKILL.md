@@ -1,14 +1,20 @@
 ---
 name: ae:review
-description: "统一审查技能。支持代码域（Git 差异、全量文件、指定路径、会话变更等）和文档域（需求文档、计划文档、测试文档、通用文档）的分层角色审查。通过 domain 参数切换审查域。"
-argument-hint: "[mode] [domain] [from=<ref>] [full] [full=<path>] [session] [plan=<path>] [goals=<text>] [文档路径]"
+description: "通用审查入口。默认自动识别审查场景，支持单一类型（代码、需求、设计、原型、计划、配置、技能、命令、测试用例等）以及多类型混合范围；按场景与目标类型组合专一审查者，分层并行执行。"
+argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [full] [full=<path>] [session] [plan=<path>] [goals=<text>] [路径...]"
 ---
 
-# 统一审查（编排层）
+# 通用审查（编排层）
 
-审查回答**质量如何（HOW WELL）**——代码是否正确、安全、可维护；文档是否一致、可行、完整。
+审查回答**质量如何（HOW WELL）**——代码是否正确、安全、可维护；需求/设计/原型/计划/测试用例/配置/资产是否一致、可行、可追溯、可验证。
 
-此技能采用四阶段编排协议，通过代码化调度直接并行调用审查专精代理。
+此技能是 AE 通用核心流程的审查入口：
+
+- 用户只给一个产出物（如一份需求、一份设计、一份原型说明、一段代码 diff、一组测试用例、一个配置或一个技能/命令文件）时也能直接审查；
+- 用户一次性传入多类型混合范围时，按目标类型分类并合并对应专一审查者；
+- 默认 `domain` 自动识别为 `code`、`document` 或 `general`（混合）；用户可显式覆盖 `domain=general` 或通过 `scenes=` / `targets=` 强制场景。
+
+此技能采用四阶段编排协议，通过代码化调度直接并行调用审查专精代理。所有审查任务都必须由专一子代理执行；编排层只负责范围确认、场景归类、调度和聚合。
 
 ## 核心原则
 
@@ -19,7 +25,7 @@ argument-hint: "[mode] [domain] [from=<ref>] [full] [full=<path>] [session] [pla
 5. **排除规则不可绕过** — 敏感文件和 `.opencode/` 始终排除。需求/计划文档默认排除，仅在满足"明确指定"条件时纳入。
 6. **auto vs present 的判断标准是可推断确定性** — 判断标准不是"这个修复重要吗？"，而是"能否根据已知内容推断出唯一最小修复"。可由同一文档、同一计划、项目既有规范、稳定模板或明确用户意图推断出的修复 → `auto`；需要选择目标、范围、取舍或新增立场 → `gated`/`manual`。
 7. **无法推断时提出补全建议** — `gated`/`manual` 发现不得只停留在问题报告；必须给出可选建议和一个面向用户的补全问题。交互模式下先询问用户，得到明确选择后再修复；自动修复模式只记录问题和建议，不替用户决策；无头模式按审查者推荐方向修复所有带 `suggested_fix` 且不触发安全边界的发现。
-8. **域互斥** — 不支持混合域审查。`domain` 参数为互斥值：`code` 或 `document`。
+8. **域协同而非互斥** — `domain` 仅描述审查对象域：`code`、`document` 或 `general`（混合）。`general` 表示同一次审查覆盖多种产出物类型，由编排层按 `targetTypes` 与 `reviewScenes` 分别选择对应专一审查者并合并发现，但不得让任何一个审查者跨域包办；每种识别出的目标类型至少有一个专一审查者被调度，否则必须显式记录"未覆盖原因"。
 9. **图谱新鲜度门控** — 使用 `ae:graph-query` 确定范围或影响面时必须读取 `freshness`；`freshness.status` 不是 `fresh` 时，图谱结果只能辅助定位，不得作为无影响、无依赖、完整覆盖或无需审查的结论证据；需要这类高影响结论时必须刷新图谱，或用真实文件、源码搜索、Git 状态和验证命令补证。
 
 ## 模式规则
@@ -46,6 +52,7 @@ argument-hint: "[mode] [domain] [from=<ref>] [full] [full=<path>] [session] [pla
 1. 用户传入的文件路径指向这些目录下的文件
 2. 对话中明确提到"审查需求文档"或"审查计划文档"等语义等价表达
 3. `domain=document` 模式下确定性搜索机制（阶段 1）找到了文档——搜索成功等同于明确指定
+4. `domain=general` 模式下用户提供的混合范围中显式包含 `ae/prds/` 或 `ae/plans/` 路径——纳入对应目标类型的审查者
 
 ## 四阶段编排协议
 
@@ -64,16 +71,19 @@ argument-hint: "[mode] [domain] [from=<ref>] [full] [full=<path>] [session] [pla
    | 值模式 | 推断为 |
    |--------|--------|
    | autofix / report-only / headless | mode |
-   | code / document | domain |
+   | code / document / general | domain |
 
    ❌ 否定示例：`审查 headless 模式的文档` 中的 headless 不推断为 mode
 
-3. 顺序兜底：仅 mode 和 domain 参与推断，其余参数（from/recent/plan/goals）必须显式命名
+3. 顺序兜底：仅 mode 和 domain 参与推断，其余参数（from/recent/plan/goals/scenes/targets）必须显式命名
 
 | 标记 | 效果 |
 |------|------|
-| `domain=code` | 代码域审查（默认） |
-| `domain=document` | 文档域审查 |
+| `domain=code` | 强制代码域审查 |
+| `domain=document` | 强制文档域审查 |
+| `domain=general` | 强制混合范围审查（多类型协同）；省略 `domain` 时由编排层根据范围自动识别 |
+| `scenes=<list>` / `reviewScenes=<list>` | 显式覆盖审查场景，逗号分隔，可选值：`code`、`requirements`、`design`、`prototype`、`test-case`、`plan`、`config`、`asset`、`general-document` |
+| `targets=<list>` / `targetTypes=<list>` | 显式覆盖目标产出物类型，逗号分隔，可选值：`code`、`requirements`、`design`、`prototype`、`test-case`、`plan`、`config`、`asset`、`document` |
 | `mode=autofix` | 自动修复模式 |
 | `mode=report-only` | 只读模式 |
 | `mode=headless` | 无头模式（程序调用） |
@@ -93,6 +103,15 @@ argument-hint: "[mode] [domain] [from=<ref>] [full] [full=<path>] [session] [pla
 
 阅读 `references/scope-detection.md` 获取完整的 Git 范围检测流程。
 
+##### 自动域识别
+
+未显式指定 `domain` 时，按以下顺序识别：
+
+1. 若用户传入路径仅包含 `ae/prds/`、`ae/plans/` 或其他 `.md` 文档 → `domain=document`。
+2. 若范围仅含代码、配置、脚本或基础设施文件，且不含上述文档类型 → `domain=code`。
+3. 若同一次范围内既包含代码/配置/资产，又包含需求、计划、设计、原型或测试用例文档 → `domain=general`。
+4. 自动识别失败或证据不足时回退到 `domain=code`，并在交互模式下提示用户确认。
+
 代码域范围确定：
 
 1. **Git 差异模式**（`from=<ref>` 或 `recent=<N>` 或自动检测）→ 按优先级检测，展示变更文件让用户确认
@@ -106,12 +125,28 @@ argument-hint: "[mode] [domain] [from=<ref>] [full] [full=<path>] [session] [pla
 - 未指定路径 + 交互模式 → 搜索 `ae/prds/` 和 `ae/plans/` 中最近修改的文件
 - 未指定路径 + 无头模式 → 输出错误，立即终止
 
+通用域（`domain=general`）范围确定：
+
+- 必须显式提供路径或显式范围标记（`from=`、`recent=`、`full`、`full=<path>`、`session`），不进行无路径的盲扫
+- 路径列表按文件特征分桶为不同 `targetTypes` 与 `reviewScenes`：
+  - `ae/prds/**`、`requirements`、`prd` 命名 → `requirements`
+  - `ae/plans/**`、`plan` 命名 → `plan`
+  - `design`、`spec` 命名或 frontmatter `type: design` → `design`
+  - `prototype`、`mock` 命名 → `prototype`
+  - `tests/**`、`test-case`、frontmatter `type: test` → `test-case`
+  - `*.json(c)`、`*.yaml`、`*.toml`、`.env.example`、`.env.template` → `config`；`.opencode/` 与真实 `.env*` 仍按排除规则处理
+  - 内置技能/代理/命令资产目录（如 OpenCode 项目内的 `assets/skills/**`、`assets/agents/**`、`assets/commands/**`） → `asset`
+  - 其余源码、脚本、基础设施 → `code`
+  - 其余 `.md` → `general-document`
+- 用户通过 `scenes=` / `targets=` 显式覆盖时优先使用用户提供的归类，但必须保留实际范围内确实存在的目标类型；不存在的类型必须在汇总阶段记录"未覆盖原因"。
+
 如果文档 frontmatter 包含 `sharded: true`，先调用 `ae-doc-extract` 构建分片审查上下文；上下文至少保留 `rootDocument`、`shards`、`missingShards`、`duplicateIds`、`parentMismatch`、`globalRelations` 和 `diagnostics` 语义。
 
 #### 意图发现
 
 - 代码域：结合对话上下文编写 2-3 行意图摘要；检查 `plan=` 参数或自动发现最近计划；`goals=` 参数内容作为审查目标注入子代理上下文
 - 文档域：通过分析文档内容判断类型（requirements/plan/test/general）；`goals=` 参数内容作为审查目标注入子代理上下文
+- 通用域（`domain=general`）：分别为每种识别出的目标类型生成意图摘要；调度阶段按 `reviewScenes` 与 `targetTypes` 分别选择审查者，最终在汇总阶段统一聚合发现并按目标类型声明覆盖
 
 #### TaskIntent 输出
 
@@ -119,7 +154,9 @@ argument-hint: "[mode] [domain] [from=<ref>] [full] [full=<path>] [session] [pla
 {
   stage: 'entry',
   intent: '审查意图标签',
-  domain: 'code' | 'document',
+  domain: 'code' | 'document' | 'general',
+  reviewScenes?: Array<'code' | 'requirements' | 'design' | 'prototype' | 'test-case' | 'plan' | 'config' | 'asset' | 'general-document'>,
+  targetTypes?: Array<'code' | 'requirements' | 'design' | 'prototype' | 'test-case' | 'plan' | 'config' | 'asset' | 'document'>,
   constraints: ['排除规则', '模式约束'],
   rawInput: '原始参数',
   timestamp: 'ISO 时间戳'
@@ -199,6 +236,25 @@ argument-hint: "[mode] [domain] [from=<ref>] [full] [full=<path>] [session] [pla
 | `{success_criteria}` | `goals:` 参数提供的审查目标文本，无 `goals:` 时为空 |
 | `{run_id}` | 运行标识符 |
 
+通用域变量映射（`domain=general`）：
+
+| 变量 | 值 |
+|------|-----|
+| `{domain}` | `general` |
+| `{review_scene}` | 当前专精所属审查场景：code/requirements/design/prototype/test-case/plan/config/asset/general-document |
+| `{target_type}` | 当前专精负责的目标产出物类型 |
+| `{intent_summary}` | 该目标类型对应的意图摘要 |
+| `{file_list}` | 该目标类型对应的文件列表 |
+| `{content}` | 该目标类型对应的内容片段（diff、源码或文档文本） |
+| `{success_criteria}` | `goals:` 参数提供的审查目标文本，无 `goals:` 时为空 |
+| `{run_id}` | 运行标识符 |
+
+通用域调度规则：
+
+- 同一目标类型可以有多个专一审查者并行；不同目标类型之间互相独立调度
+- 每种识别出的 `targetTypes` 至少调度一个对应专一审查者；缺失映射时记录 `skipReasons`
+- 不允许任何单一审查者跨目标类型综述发现，必须由编排层在阶段四聚合
+
 **标志映射规则：** `goals:` 参数存在时，`DomainCallRequest.domainContext` 的 `hasGoalAlignment` 必须设为 `true`，以激活 goal-alignment-reviewer。
 
 #### 步骤 3.3：聚合结果
@@ -238,6 +294,14 @@ argument-hint: "[mode] [domain] [from=<ref>] [full] [full=<path>] [session] [pla
 
 阅读 `references/synthesis-and-presentation.md` 了解综合流水线（校验、置信度门控、去重、共识提升、残余风险提升、解决分歧、autofix 提升、路由划分、排序）、展示和审查后流程。
 
+通用域（`domain=general`）汇总规则：
+
+- 调用 `ae-review-contract` 时传入 `targets=` 即可获得 `targetCoverage` 字段（每个目标类型对应 `{ status, reviewers[] }`）
+- 按 `targetTypes` 分组展示发现，确保每种类型都有"已覆盖 / 未发现问题 / 未覆盖原因"的明确声明；`status='uncovered'` 时必须给出未覆盖原因
+- 任何一个被调度的子审查 `status='failed'` 时整体审查必须为 `failed`；存在 `partial` 时整体为 `partial`，其余情况为 `success`
+- 跨目标类型出现同标题发现时按聚合策略 `union` 去重，保留最高严重级别
+- `source_review_output` 必须包含可解析的 `targetCoverage` 摘要，便于 `ae-review-proof` 解析
+
 #### Deliverable 输出
 
 ```typescript
@@ -246,6 +310,7 @@ argument-hint: "[mode] [domain] [from=<ref>] [full] [full=<path>] [session] [pla
   description: '审查报告描述',
   validationResults: ['验证结果'],
   artifacts: ['审查报告路径'],
+  targetCoverage?: Record<string, { status: 'covered' | 'uncovered', reviewers: string[], reason?: string }>,
   timestamp: 'ISO 时间戳'
 }
 ```

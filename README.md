@@ -117,7 +117,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 规则 | 说明 |
 | --- | --- |
 | 需求不清先澄清 | 复杂实现前先产出需求或计划，避免直接编码 |
-| 审查先定范围 | 代码域和文档域分开处理，按范围选择审查代理 |
+| 审查先定范围 | 代码、文档或通用混合范围按目标类型选择审查代理 |
 | 交付必须验证 | `/ae-work` 和 `/ae-lfg` 交付前检查验证、审查和 Git 授权证据 |
 | 浏览器先注册 MCP | 当前会话使用 chrome-devtools-mcp 工具前必须先完成 `/ae-chrome-devtools` 动态注册或通过 MCP 注册状态校验 |
 | Git 写操作需授权 | 提交、拉取、重置、清理、变基、推送等都需要明确授权；`/ae-commit` 不等同于 push |
@@ -128,7 +128,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 类型 | 当前快照 | 真源 |
 | --- | ---: | --- |
 | 技能 | 32 | `src/assets/skills/`、`src/services/ae-catalog.ts` |
-| 命令 | 64 | `src/services/command-registration.ts`、`src/assets/commands/` |
+| 命令 | 54 | `src/services/command-registration.ts`、`src/assets/commands/` |
 | 代理 | 33 | `src/assets/agents/`、`src/services/agent-registration.ts` |
 | 工具 | 18 | `src/tools/` |
 | 规则 | 5 | `src/assets/rules/` |

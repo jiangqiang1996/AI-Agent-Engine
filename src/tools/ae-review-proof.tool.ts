@@ -22,19 +22,24 @@ const REVIEW_SUBAGENT_TYPES: ReadonlySet<string> = new Set([
   AGENT.CORRECTNESS_REVIEWER,
   AGENT.DATA_MIGRATIONS_REVIEWER,
   AGENT.DESIGN_LENS_REVIEWER,
+  AGENT.EVIDENCE_REVIEWER,
   AGENT.FEASIBILITY_REVIEWER,
+  AGENT.GOAL_ALIGNMENT_REVIEWER,
   AGENT.MAINTAINABILITY_REVIEWER,
   AGENT.PATTERN_RECOGNITION_SPECIALIST,
   AGENT.PERFORMANCE_REVIEWER,
   AGENT.PREVIOUS_COMMENTS_REVIEWER,
   AGENT.PRODUCT_LENS_REVIEWER,
+  AGENT.PROTOTYPE_REVIEWER,
   AGENT.RELIABILITY_REVIEWER,
+  AGENT.REQUIREMENTS_REVIEWER,
   AGENT.RESEARCH_REVIEWER,
   AGENT.SECURITY_REVIEWER,
   AGENT.STANDARDS_REVIEWER,
   AGENT.STEP_GRANULARITY_REVIEWER,
   AGENT.TEST_CASE_REVIEWER,
   AGENT.TESTING_REVIEWER,
+  AGENT.TRACEABILITY_REVIEWER,
 ])
 
 const ReviewFindingSchema = z.object({
@@ -388,7 +393,8 @@ export const aeReviewProofTool: ToolDefinition = tool({
     review_status: z.enum(['passed', 'failed']).describe('审查结论；passed 表示无阻断发现，failed 表示存在阻断发现或审查失败'),
     summary: z.string().min(1).describe('审查结论摘要'),
     findings: z.array(ReviewFindingSchema).default([]).describe('审查发现列表；passed 时不得包含 P0/P1/P2/high/medium 级别发现'),
-    source_review_output: z.string().min(1).describe('当前会话中真实 ae:review 或审查子代理输出的完整文本；必须包含可解析的状态、worktree、branch、HEAD 和 statusSummary'),
+    targetCoverage: z.record(z.string(), z.unknown()).optional().describe('通用域混合审查的目标覆盖摘要；不参与 source_review_output 哈希，作为 metadata 可选审计字段写入'),
+    source_review_output: z.string().min(1).describe('当前会话中真实 ae:review 或审查子代理输出的完整文本；必须包含可解析的状态、worktree、branch、HEAD 和 statusSummary；通用域（混合审查）输出还应包含 targetCoverage 摘要供审计'),
   },
   execute: async (args, ctx) => {
     ctx.metadata({ title: '写入 ae:review 审查证明...' })
@@ -446,6 +452,7 @@ export const aeReviewProofTool: ToolDefinition = tool({
       statusSummary: fingerprint.statusSummary,
       reviewStatus: args.review_status,
       hasBlockingFinding: parsedOutput.hasBlockingFinding,
+      ...(args.targetCoverage ? { targetCoverage: args.targetCoverage } : {}),
       reviewOutputHash,
     }
     const metadataPath = `${docsAePath(DOCS_AE_SUBDIRS.REVIEWS)}/${args.review_run_id}/metadata.json`
