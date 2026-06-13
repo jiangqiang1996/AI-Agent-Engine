@@ -85,11 +85,10 @@ describe('ae-review-contract 工具', () => {
     expect(result.reviewers).not.toContain(AGENT.TEST_CASE_REVIEWER)
   })
 
-  it('code 类型 has_new_abstraction 应激活架构和模式审查者', async () => {
+  it('code 类型 has_new_abstraction 应激活架构审查者', async () => {
     const result = await callTool({ kind: 'code', has_new_abstraction: true })
 
     expect(result.reviewers).toContain(AGENT.ARCHITECTURE_STRATEGIST)
-    expect(result.reviewers).toContain(AGENT.PATTERN_RECOGNITION_SPECIALIST)
   })
 
   it('document 类型 has_product_claim 应激活 product-lens-reviewer', async () => {

@@ -469,6 +469,58 @@ describe('ae-review-proof 工具', () => {
     expect(result).toBe('source_review_output 必须来自当前会话历史中匹配 source_review_ref 的真实 ae:review 或审查子代理输出。')
   })
 
+  it('应该拒绝已删除审查子代理的历史输出', async () => {
+    const root = createRepoRoot()
+    const sourceReviewOutput = createSourceReviewOutput({ worktree: root, ...getGitFingerprint(root) })
+    const ctx = {
+      ...createToolContext(root),
+      history: [{
+        task_id: 'task-review-deleted-agent',
+        role: 'tool',
+        command: 'ae:review',
+        subagent_type: 'pattern-recognition-specialist',
+        content: sourceReviewOutput,
+      }],
+    } as Parameters<typeof aeReviewProofTool.execute>[1]
+
+    const result = await aeReviewProofTool.execute({
+      review_run_id: 'proof-deleted-agent',
+      source_review_ref: 'task-review-deleted-agent',
+      review_status: 'passed',
+      summary: '审查通过',
+      findings: [],
+      source_review_output: sourceReviewOutput,
+    }, ctx)
+
+    expect(result).toBe('source_review_output 必须来自当前会话历史中匹配 source_review_ref 的真实 ae:review 或审查子代理输出。')
+  })
+
+  it('应该接受 review-domain 退化路径的历史输出', async () => {
+    const root = createRepoRoot()
+    const sourceReviewOutput = createSourceReviewOutput({ worktree: root, ...getGitFingerprint(root) })
+    const ctx = {
+      ...createToolContext(root),
+      history: [{
+        task_id: 'task-review-domain',
+        role: 'tool',
+        command: 'ae:review',
+        subagent_type: 'review-domain',
+        content: sourceReviewOutput,
+      }],
+    } as Parameters<typeof aeReviewProofTool.execute>[1]
+
+    const result = await aeReviewProofTool.execute({
+      review_run_id: 'proof-review-domain',
+      source_review_ref: 'task-review-domain',
+      review_status: 'passed',
+      summary: '审查通过',
+      findings: [],
+      source_review_output: sourceReviewOutput,
+    }, ctx)
+
+    expect(typeof result).toBe('object')
+  })
+
   it('应该拒绝只在历史包裹外层出现的 source_review_output', async () => {
     const root = createRepoRoot()
     const sourceReviewOutput = createSourceReviewOutput({ worktree: root, ...getGitFingerprint(root) })

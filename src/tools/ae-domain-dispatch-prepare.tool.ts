@@ -21,8 +21,7 @@ const SPECIALIST_PROMPT_TEMPLATES: Record<string, string> = {
   [AGENT.SECURITY_REVIEWER]: '你是一位安全审查者。审查可利用漏洞、认证授权和数据暴露风险。',
   [AGENT.ADVERSARIAL_REVIEWER]: '你是一位对抗式审查者。构造故障场景来破坏实现，质疑前提假设。',
   [AGENT.AGENT_NATIVE_REVIEWER]: '你是一位代理就绪度审查者。审查代理操作、CLI 就绪度和工具配置。',
-  [AGENT.ARCHITECTURE_STRATEGIST]: '你是一位架构策略师。从架构视角分析变更，检查模式合规性和设计完整性。',
-  [AGENT.PATTERN_RECOGNITION_SPECIALIST]: '你是一位模式识别专家。分析设计模式、反模式和代码重复。',
+  [AGENT.ARCHITECTURE_STRATEGIST]: '你是一位架构策略师。从架构视角分析变更，检查架构边界、跨模块依赖和系统级抽象。',
   [AGENT.PERFORMANCE_REVIEWER]: '你是一位性能审查者。审查运行时性能和可扩展性问题。',
   [AGENT.API_CONTRACT_REVIEWER]: '你是一位 API 契约审查者。审查破坏性契约变更和兼容性。',
   [AGENT.RELIABILITY_REVIEWER]: '你是一位可靠性审查者。审查错误处理、重试和故障模式。',
@@ -32,6 +31,10 @@ const SPECIALIST_PROMPT_TEMPLATES: Record<string, string> = {
   [AGENT.STEP_GRANULARITY_REVIEWER]: '你是一位步骤粒度审查者。审查计划步骤是否拆解至最小不可再分单元。',
   [AGENT.DESIGN_LENS_REVIEWER]: '你是一位设计视角审查者。审查缺失的设计决策、信息架构和交互状态。',
   [AGENT.TEST_CASE_REVIEWER]: '你是一位测试用例审查者。审查测试文档的结构完整性和覆盖完备性。',
+  [AGENT.REQUIREMENTS_REVIEWER]: '你是一位需求审查者。审查目标清晰度、范围边界、验收标准可验证性和未决问题。',
+  [AGENT.PROTOTYPE_REVIEWER]: '你是一位原型审查者。审查交互完整性、状态覆盖、与需求一致性和实现可行性提示。',
+  [AGENT.TRACEABILITY_REVIEWER]: '你是一位追溯审查者。审查需求、设计、原型、计划、测试和代码之间的链路断裂。',
+  [AGENT.EVIDENCE_REVIEWER]: '你是一位证据审查者。审查事实性声明、命令输出、引用和交付证据是否可核验。',
   [AGENT.GOAL_ALIGNMENT_REVIEWER]: '你是一位目标对齐审查者。逐条校验变更是否达成审查目标。',
   [AGENT.FRONTEND_DEV]: '你是一位前端开发专精代理。处理 UI 组件、样式、交互逻辑和响应式设计。',
   [AGENT.BACKEND_DEV]: '你是一位后端开发专精代理。处理 API、数据层、业务逻辑和中间件。',
@@ -62,8 +65,8 @@ export const aeDomainDispatchPrepareTool = tool({
   ].join('\n'),
   args: {
     domain: z
-      .enum(['review', 'development'])
-      .describe('目标域名'),
+      .enum(['review', 'development', 'general'])
+      .describe('目标域名；general 表示 ae:review 混合范围审查，使用 review 域专精代理'),
     intent: z
       .string()
       .min(1)
@@ -91,7 +94,8 @@ export const aeDomainDispatchPrepareTool = tool({
       }
 
       const specialists = selectSpecialists(args.domain, taskIntent, args.domainContext)
-      const strategy: CoordinationConfig = getCoordinationStrategy(args.domain)
+      const strategyDomain = args.domain === 'general' ? 'review' : args.domain
+      const strategy: CoordinationConfig = getCoordinationStrategy(strategyDomain)
 
       if (specialists.length === 0) {
         return JSON.stringify({

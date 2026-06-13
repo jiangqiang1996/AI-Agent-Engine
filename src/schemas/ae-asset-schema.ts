@@ -105,7 +105,6 @@ export const AGENT = {
   EVIDENCE_REVIEWER: 'evidence-reviewer',
   GOAL_ALIGNMENT_REVIEWER: 'goal-alignment-reviewer',
   ARCHITECTURE_STRATEGIST: 'architecture-strategist',
-  PATTERN_RECOGNITION_SPECIALIST: 'pattern-recognition-specialist',
   REPO_RESEARCH_ANALYST: 'repo-research-analyst',
   WEB_RESEARCHER: 'web-researcher',
   SPEC_FLOW_ANALYZER: 'spec-flow-analyzer',

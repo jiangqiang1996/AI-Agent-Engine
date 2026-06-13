@@ -76,11 +76,9 @@ describe('REVIEW_MATRIX', () => {
     expect(reviewer!.alwaysOn).toBe(false)
   })
 
-  it('pattern-recognition-specialist 应存在于代码域条件条目', () => {
-    const reviewer = REVIEW_MATRIX.find((r) => r.name === AGENT.PATTERN_RECOGNITION_SPECIALIST)
-    expect(reviewer).toBeDefined()
-    expect(reviewer!.domain).toBe('code')
-    expect(reviewer!.alwaysOn).toBe(false)
+  it('审查矩阵和代理目录不应注册已删除的 pattern-recognition-specialist', () => {
+    expect(REVIEW_MATRIX.map((r) => r.name)).not.toContain('pattern-recognition-specialist')
+    expect(getAllAgentDefinitions().map((agent) => agent.name)).not.toContain('pattern-recognition-specialist')
   })
 
   it('agent-native-reviewer 应为代码域条件条目', () => {

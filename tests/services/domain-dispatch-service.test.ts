@@ -75,6 +75,29 @@ describe('domain-dispatch-service', () => {
     expect(names).toContain(AGENT.DATA_MIGRATIONS_REVIEWER)
   })
 
+  it('应该将 general 域映射到审查域并选择混合审查者', () => {
+    const names = selectedNames('general', {
+      kind: 'general',
+      targetTypes: ['requirements', 'prototype', 'asset'],
+    })
+
+    expect(names).toContain(AGENT.REQUIREMENTS_REVIEWER)
+    expect(names).toContain(AGENT.PROTOTYPE_REVIEWER)
+    expect(names).toContain(AGENT.AGENT_NATIVE_REVIEWER)
+    expect(names).toContain(AGENT.TRACEABILITY_REVIEWER)
+  })
+
+  it('应该优先使用 normalizedKind 保留混合审查语义', () => {
+    const names = selectedNames('review', {
+      kind: 'plan',
+      normalizedKind: 'general',
+      targetTypes: ['requirements', 'plan'],
+    })
+
+    expect(names).toContain(AGENT.REQUIREMENTS_REVIEWER)
+    expect(names).toContain(AGENT.TRACEABILITY_REVIEWER)
+  })
+
   it('应该使用 domainContext 文本辅助匹配开发专精代理', () => {
     const names = selectedNames('development', {
       taskArea: '后端 API 数据库',

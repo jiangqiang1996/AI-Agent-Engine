@@ -30,7 +30,7 @@
 - 需求/未解决问题 → `spec-flow-analyzer`、`repo-research-analyst`
 - 上下文/研究空白 → `research-reviewer`
 - 关键技术决策 → `architecture-strategist`
-- 实现单元 → `repo-research-analyst`、`pattern-recognition-specialist`
+- 实现单元 → `repo-research-analyst`
 - 系统范围影响 → `architecture-strategist` + 风险匹配的专家
 - 风险/运维 → 安全/数据/部署/性能专家
 

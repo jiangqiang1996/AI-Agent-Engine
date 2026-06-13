@@ -44,10 +44,10 @@ describe('selectReviewers — 代码域', () => {
     expect(selected).toContain(AGENT.ARCHITECTURE_STRATEGIST)
   })
 
-  it('代码域 hasNewAbstraction 应激活 architecture-strategist 和 pattern-recognition-specialist', () => {
+  it('代码域 hasNewAbstraction 应激活 architecture-strategist', () => {
     const selected = selectReviewers({ kind: 'code', hasNewAbstraction: true })
     expect(selected).toContain(AGENT.ARCHITECTURE_STRATEGIST)
-    expect(selected).toContain(AGENT.PATTERN_RECOGNITION_SPECIALIST)
+    expect(selected).not.toContain('pattern-recognition-specialist')
   })
 
   it('代码域 hasSecurity 应激活 security-reviewer', () => {
@@ -79,7 +79,7 @@ describe('selectReviewers — 代码域', () => {
     const selected = selectReviewers({ kind: 'code', changedLineCount: 50 })
     expect(selected).toContain(AGENT.ADVERSARIAL_REVIEWER)
     expect(selected).toContain(AGENT.ARCHITECTURE_STRATEGIST)
-    expect(selected).toContain(AGENT.PATTERN_RECOGNITION_SPECIALIST)
+    expect(selected).not.toContain('pattern-recognition-specialist')
   })
 
   it('代码域结果不应有重复代理', () => {
@@ -200,7 +200,7 @@ describe('selectReviewers — 派生字段', () => {
     const selected = selectReviewers({ kind: 'code', changedLineCount: 49 })
     expect(selected).not.toContain(AGENT.ADVERSARIAL_REVIEWER)
     expect(selected).not.toContain(AGENT.ARCHITECTURE_STRATEGIST)
-    expect(selected).not.toContain(AGENT.PATTERN_RECOGNITION_SPECIALIST)
+    expect(selected).not.toContain('pattern-recognition-specialist')
   })
 })
 

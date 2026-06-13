@@ -48,7 +48,6 @@
 - api-contract — 路由、类型签名、版本
 - reliability — 错误处理、重试、超时
 - architecture-strategist — 架构决策、新抽象或 >=50 行代码变更
-- pattern-recognition — 新抽象或 >=50 行代码变更
 - adversarial — >=50 行可执行代码、高风险或新抽象
 - agent-native — CLI 命令定义或 UI/工具能力影响代理可操作性
 - previous-comments — 仅 PR 模式

@@ -29,29 +29,30 @@ export function selectSpecialists(
   taskIntent: TaskIntent,
   domainContext: DomainCallRequest['domainContext'] = {},
 ): SpecialistDef[] {
-  const catalogs = getDomainCatalog(domain)
+  const catalogDomain = domain === 'general' ? 'review' : domain
+  const catalogs = getDomainCatalog(catalogDomain)
   if (catalogs.length === 0) return []
 
   const catalog = catalogs[0]
 
-  if (domain === 'review') {
+  if (catalogDomain === 'review') {
     return selectReviewSpecialists(catalog.specialists, taskIntent, domainContext)
   }
 
   const selected: SpecialistDef[] = []
 
   for (const specialist of catalog.specialists) {
-    if (isAlwaysOn(specialist, domain, domainContext)) {
+    if (isAlwaysOn(specialist, catalogDomain, domainContext)) {
       selected.push(specialist)
       continue
     }
 
-    if (matchesCriteria(specialist, taskIntent, domainContext, domain)) {
+    if (matchesCriteria(specialist, taskIntent, domainContext, catalogDomain)) {
       selected.push(specialist)
     }
   }
 
-  if (domain === 'development' && selected.length === 0) {
+  if (catalogDomain === 'development' && selected.length === 0) {
     const debugFix = catalog.specialists.find((s) => s.name === AGENT.DEBUG_FIX)
     if (debugFix) {
       selected.push({ ...debugFix, selectionCriteria: `${debugFix.selectionCriteria}（兜底选中）` })
@@ -74,7 +75,7 @@ function toReviewSelectionInput(
   taskIntent: TaskIntent,
   domainContext: DomainCallRequest['domainContext'],
 ): ReviewSelectionInput & { dispatchedFlags: Record<string, boolean> } {
-  const rawKind = domainContext.kind ?? domainContext.reviewType ?? domainContext.domain ?? taskIntent.domain
+  const rawKind = domainContext.normalizedKind ?? domainContext.kind ?? domainContext.reviewType ?? domainContext.domain ?? taskIntent.domain
   const documentType = normalizeDocumentType(domainContext.documentType ?? domainContext.kind ?? domainContext.reviewType)
   const reviewScenes = normalizeStringList<ReviewSceneType>(
     domainContext.reviewScenes ?? domainContext.scenes,

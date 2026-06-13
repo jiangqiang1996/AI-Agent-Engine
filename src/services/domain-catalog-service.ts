@@ -78,17 +78,10 @@ const REVIEW_SPECIALISTS: SpecialistDef[] = [
   },
   {
     name: AGENT.ARCHITECTURE_STRATEGIST,
-    capabilities: ['架构分析', '模式合规', '设计完整性', '架构决策'],
+    capabilities: ['架构分析', '架构边界', '跨模块依赖', '系统级抽象'],
     selectionCriteria: '代码变更涉及架构决策/新抽象/>=50行，或文档为含架构决策的计划时选中',
     inputContract: '代码差异或文档内容和架构标记',
-    outputContract: '架构评估和模式合规性发现',
-  },
-  {
-    name: AGENT.PATTERN_RECOGNITION_SPECIALIST,
-    capabilities: ['设计模式', '反模式', '命名规范', '重复代码'],
-    selectionCriteria: '涉及新抽象或变更>=50行时选中',
-    inputContract: '代码差异和文件列表',
-    outputContract: '模式识别和代码重复分析',
+    outputContract: '架构边界、跨模块依赖和系统级抽象评估',
   },
   {
     name: AGENT.PERFORMANCE_REVIEWER,
@@ -135,7 +128,7 @@ const REVIEW_SPECIALISTS: SpecialistDef[] = [
   {
     name: AGENT.STEP_GRANULARITY_REVIEWER,
     capabilities: ['步骤粒度', '批量操作', '脚本化执行'],
-    selectionCriteria: '文档为计划且需求>=5 时选中',
+    selectionCriteria: '文档为计划、目标类型包含计划、审查场景包含计划，或需求>=5 时选中',
     inputContract: '文档内容和步骤列表',
     outputContract: '步骤粒度评估和脚本化建议',
   },

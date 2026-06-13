@@ -25,7 +25,6 @@
 | `data-migrations` | 迁移、schema 变更、回填、数据库变更 |
 | `reliability` | 错误处理、重试、超时、后台任务、基础设施定义 |
 | `architecture-strategist` | 架构决策、新抽象或较大结构性变更 |
-| `pattern-recognition` | 新抽象、设计模式、反模式、命名规范和重复代码 |
 | `adversarial` | >=50 行可执行代码变更、高风险领域或新抽象 |
 | `goal-alignment` | 提供了审查目标（goals= 参数），对照成功条件逐条校验变更是否达成，识别未达成项和偏离 |
 | `previous-comments` | **仅限 PR** — 有先前审查评论的 PR |

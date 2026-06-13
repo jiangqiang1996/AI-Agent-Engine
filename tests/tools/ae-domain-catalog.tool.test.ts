@@ -33,6 +33,7 @@ describe('ae-domain-catalog 工具', () => {
       },
     })
     expect((result as { output: string }).output).toContain('**域代理**: review-domain')
+    expect((result as { output: string }).output).not.toContain('pattern-recognition-specialist')
   })
 
   it('应该在未知 domain 时返回空列表而非错误', async () => {

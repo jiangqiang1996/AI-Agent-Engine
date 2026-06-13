@@ -26,7 +26,6 @@ const REVIEW_SUBAGENT_TYPES: ReadonlySet<string> = new Set([
   AGENT.FEASIBILITY_REVIEWER,
   AGENT.GOAL_ALIGNMENT_REVIEWER,
   AGENT.MAINTAINABILITY_REVIEWER,
-  AGENT.PATTERN_RECOGNITION_SPECIALIST,
   AGENT.PERFORMANCE_REVIEWER,
   AGENT.PREVIOUS_COMMENTS_REVIEWER,
   AGENT.PRODUCT_LENS_REVIEWER,
@@ -34,6 +33,7 @@ const REVIEW_SUBAGENT_TYPES: ReadonlySet<string> = new Set([
   AGENT.RELIABILITY_REVIEWER,
   AGENT.REQUIREMENTS_REVIEWER,
   AGENT.RESEARCH_REVIEWER,
+  AGENT.REVIEW_DOMAIN,
   AGENT.SECURITY_REVIEWER,
   AGENT.STANDARDS_REVIEWER,
   AGENT.STEP_GRANULARITY_REVIEWER,
@@ -359,6 +359,7 @@ function hasTrustedSourceReviewOutput(context: unknown, sourceReviewRef: string,
     const id = candidate.id ?? candidate.message?.id
     const taskId = candidate.task_id ?? candidate.message?.task_id
     const subagentTypes = [candidate.subagent_type, candidate.message?.subagent_type]
+    const hasSubagentTypeMarker = subagentTypes.some((subagentType) => typeof subagentType === 'string')
     const isReviewTool = isTrustedReviewToolName(candidate)
     const isReviewSubagent = subagentTypes.some((subagentType) => typeof subagentType === 'string'
       && REVIEW_SUBAGENT_TYPES.has(subagentType))
@@ -366,7 +367,7 @@ function hasTrustedSourceReviewOutput(context: unknown, sourceReviewRef: string,
 
     return role === 'tool'
       && (id === sourceReviewRef || taskId === sourceReviewRef)
-      && (isReviewTool || isReviewSubagent)
+      && (hasSubagentTypeMarker ? isReviewSubagent : isReviewTool)
       && isSameTrustedReviewOutput(content, sourceReviewOutput)
   })
 }

@@ -176,7 +176,6 @@
 | `@reliability-reviewer` | 错误处理、重试、超时、后台任务和异步处理 |
 | `@performance-reviewer` | 数据库查询、循环密集转换、缓存和 I/O 路径 |
 | `@architecture-strategist` | 架构模式、设计完整性和结构性重构 |
-| `@pattern-recognition-specialist` | 设计模式、反模式、命名规范和重复代码 |
 | `@data-migrations-reviewer` | 迁移、schema 变更、数据转换和回填脚本 |
 | `@previous-comments-reviewer` | 已有 PR 评论或审查讨论是否处理 |
 | `@agent-native-reviewer` | UI、工具或代理配置是否支持代理对等操作 |

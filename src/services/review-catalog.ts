@@ -85,17 +85,7 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
         { field: 'hasArchitectureDecision', operator: 'truthy' },
       ],
     ],
-    description: '从架构视角分析代码变更和计划中的架构决策，检查模式合规性和设计完整性',
-  },
-  {
-    name: AGENT.PATTERN_RECOGNITION_SPECIALIST,
-    domain: 'code',
-    alwaysOn: false,
-    conditionGroups: [
-      [{ field: 'hasNewAbstraction', operator: 'truthy' }],
-      [{ field: 'changedLineCountGte50', operator: 'truthy' }],
-    ],
-    description: '分析代码中的设计模式、反模式、命名规范和重复代码',
+    description: '从架构视角分析代码变更和计划中的架构决策，检查架构边界、跨模块依赖和系统级抽象',
   },
   {
     name: AGENT.PERFORMANCE_REVIEWER,
