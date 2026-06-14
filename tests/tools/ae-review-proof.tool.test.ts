@@ -576,4 +576,70 @@ describe('ae-review-proof 工具', () => {
 
     expect(result).toContain('未获得文件授权：denied')
   })
+
+  it('lsmEvidenceMissing=true + passed 应硬拒绝并返回 V-* 提示', async () => {
+    const root = createRepoRoot()
+    const sourceReviewOutput = createSourceReviewOutput({ worktree: root, ...getGitFingerprint(root) })
+
+    const result = await aeReviewProofTool.execute({
+      review_run_id: 'review-lsm-missing-v',
+      review_status: 'passed',
+      summary: '审查通过',
+      findings: [],
+      lsmEvidenceMissing: true,
+      source_review_output: sourceReviewOutput,
+    }, createToolContext(root, sourceReviewOutput, 'review-lsm-missing-v'))
+
+    expect(result).toContain('LSM')
+    expect(result).toContain('V-*')
+    expect(result).toContain('traceTable.outputs')
+    const metadataPath = join(root, 'ae', 'reviews', 'review-lsm-missing-v', 'metadata.json')
+    expect(existsSync(metadataPath)).toBe(false)
+  })
+
+  it('lsmEvidenceMissing=true + failed 应允许写入并保留 metadata 标记', async () => {
+    const root = createRepoRoot()
+    const fingerprint = getGitFingerprint(root)
+    const sourceReviewOutput = JSON.stringify({
+      reviewStatus: 'failed',
+      worktree: process.platform === 'win32' ? root.replaceAll('\\', '/').toLowerCase() : root,
+      branch: fingerprint.branch,
+      head: fingerprint.head,
+      statusSummary: fingerprint.statusSummary,
+      findings: [{ severity: 'P1', title: 'LSM acceptance traceTable.outputs 缺 V-*' }],
+      summary: '审查失败',
+    }, null, 2)
+
+    const result = await aeReviewProofTool.execute({
+      review_run_id: 'review-lsm-missing-failed',
+      review_status: 'failed',
+      summary: '审查失败',
+      findings: [{ severity: 'P1', title: 'LSM acceptance traceTable.outputs 缺 V-*' }],
+      lsmEvidenceMissing: true,
+      source_review_output: sourceReviewOutput,
+    }, createToolContext(root, sourceReviewOutput, 'review-lsm-missing-failed'))
+
+    expect(typeof result).toBe('object')
+    const metadataPath = join(root, 'ae', 'reviews', 'review-lsm-missing-failed', 'metadata.json')
+    const metadata = JSON.parse(readFileSync(metadataPath, 'utf8')) as Record<string, unknown>
+    expect(metadata.lsmEvidenceMissing).toBe(true)
+    expect(metadata.reviewStatus).toBe('failed')
+  })
+
+  it('lsmEvidenceMissing 缺省或为 false 时不应注入 metadata 字段', async () => {
+    const root = createRepoRoot()
+    const sourceReviewOutput = createSourceReviewOutput({ worktree: root, ...getGitFingerprint(root) })
+
+    await aeReviewProofTool.execute({
+      review_run_id: 'review-lsm-not-set',
+      review_status: 'passed',
+      summary: '审查通过',
+      findings: [],
+      source_review_output: sourceReviewOutput,
+    }, createToolContext(root, sourceReviewOutput, 'review-lsm-not-set'))
+
+    const metadataPath = join(root, 'ae', 'reviews', 'review-lsm-not-set', 'metadata.json')
+    const metadata = JSON.parse(readFileSync(metadataPath, 'utf8')) as Record<string, unknown>
+    expect(metadata).not.toHaveProperty('lsmEvidenceMissing')
+  })
 })

@@ -8,7 +8,11 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 
 审查回答**质量如何（HOW WELL）**——代码是否正确、安全、可维护；需求/设计/原型/计划/测试用例/配置/资产是否一致、可行、可追溯、可验证。
 
-此技能是 AE 通用核心流程的审查入口：
+此技能是 AE 通用核心流程的审查入口。对于 Living Spec Mesh 这类完整产物链，只有输入同时包含显式 LSM 产物路径或模板元数据、上游路径链，以及 `R-*` → `U-*` → `TC-*` → `V-*` 追踪表时，才按通用混合范围审查并触发追溯与证据审查；仅有 ID 字面形态不得触发 LSM 产物链审查。
+
+LSM 产物链识别策略：优先解析模板首部 YAML frontmatter 中的 `lsmKind`、`upstreamRefs`、`traceTable.inputs/outputs` 机读字段；frontmatter 缺失或不完整时降级为字面 ID 兜底，仅 ID 字面形态不得触发产物链审查。识别到 LSM 完整产物链后，调用方 LLM 必须读取 acceptance 模板 frontmatter 校验 `traceTable.outputs` 至少含一个 `V-*` ID；缺失时调用 `ae-review-proof` 时显式传 `lsmEvidenceMissing=true`，由 proof 层硬拒绝 `review_status=passed` 写入。
+
+此技能支持：
 
 - 用户只给一个产出物（如一份需求、一份设计、一份原型说明、一段代码 diff、一组测试用例、一个配置或一个技能/命令文件）时也能直接审查；
 - 用户一次性传入多类型混合范围时，按目标类型分类并合并对应专一审查者；

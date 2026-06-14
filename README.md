@@ -45,12 +45,15 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 
 ```text
 /ae-brainstorm 设计一个多租户数据隔离方案
+/ae-prd
 /ae-review domain:document
 /ae-plan
 /ae-review domain:document
 /ae-work
 /ae-review
 ```
+
+`/ae-brainstorm` 仅做多视角发散讨论与汇总，不产出文档；当讨论结果需要沉淀为正式需求文档时，由 `/ae-prd` 接续。
 
 只做代码或文档审查：
 
@@ -85,9 +88,10 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | --- | --- |
 | 查看当前能力 | `/ae-help` |
 | 想法生成 | `/ae-ideate` |
-| 需求澄清 | `/ae-brainstorm` |
-| 需求文档 | `/ae-prd` |
+| 多视角发散讨论 | `/ae-brainstorm` |
+| 需求澄清与需求文档 | `/ae-prd` |
 | 计划生成 | `/ae-plan` |
+| LSM 完整软件工程交付链 | `/ae-lsm-spec`、`/ae-lsm-design`、`/ae-lsm-prototype`、`/ae-lsm-test`、`/ae-lsm-build`、`/ae-lsm-acceptance` |
 | 计划执行 | `/ae-work` |
 | Worktree 续执行 | `/ae-work-continue` |
 | 分支或 worktree 合并 | `/ae-merge-branch` |
@@ -119,7 +123,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 需求不清先澄清 | 复杂实现前先产出需求或计划，避免直接编码 |
 | 审查先定范围 | 代码、文档或通用混合范围按目标类型选择审查代理 |
 | 交付必须验证 | `/ae-work` 和 `/ae-lfg` 交付前检查验证、审查和 Git 授权证据 |
-| 浏览器先注册 MCP | 当前会话使用 chrome-devtools-mcp 工具前必须先完成 `/ae-chrome-devtools` 动态注册或通过 MCP 注册状态校验 |
+| 浏览器先注册 MCP | 当前会话使用 chrome-devtools-mcp 工具前必须先通过 `/ae-chrome-devtools` 完成动态注册或连接状态确认 |
 | Git 写操作需授权 | 提交、拉取、重置、清理、变基、推送等都需要明确授权；`/ae-commit` 不等同于 push |
 | 远程写操作不默认提供 | 用户侧流程不提供 push、创建 PR、创建 Issue 或 Release 的可复制流程 |
 
@@ -127,8 +131,8 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 
 | 类型 | 当前快照 | 真源 |
 | --- | ---: | --- |
-| 技能 | 32 | `src/assets/skills/`、`src/services/ae-catalog.ts` |
-| 命令 | 54 | `src/services/command-registration.ts`、`src/assets/commands/` |
+| 技能 | 38 | `src/assets/skills/`、`src/services/ae-catalog.ts` |
+| 命令 | 66 | `src/services/command-registration.ts`、`src/assets/commands/` |
 | 代理 | 33 | `src/assets/agents/`、`src/services/agent-registration.ts` |
 | 工具 | 18 | `src/tools/` |
 | 规则 | 5 | `src/assets/rules/` |

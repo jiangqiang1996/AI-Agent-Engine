@@ -218,6 +218,21 @@ describe('selectReviewers — 通用混合域', () => {
     expect(selected).toContain(AGENT.TRACEABILITY_REVIEWER)
   })
 
+  it('LSM 产物链应通过通用混合审查激活追溯和证据审查', () => {
+    const selected = selectReviewers({
+      kind: 'general',
+      targetTypes: ['requirements', 'design', 'prototype', 'test-case', 'document'],
+      hasEvidenceClaim: true,
+    })
+
+    expect(selected).toContain(AGENT.REQUIREMENTS_REVIEWER)
+    expect(selected).toContain(AGENT.DESIGN_LENS_REVIEWER)
+    expect(selected).toContain(AGENT.PROTOTYPE_REVIEWER)
+    expect(selected).toContain(AGENT.TEST_CASE_REVIEWER)
+    expect(selected).toContain(AGENT.TRACEABILITY_REVIEWER)
+    expect(selected).toContain(AGENT.EVIDENCE_REVIEWER)
+  })
+
   it('reviewScenes 应激活对应专一审查者', () => {
     const selected = selectReviewers({
       kind: 'general',
@@ -228,5 +243,54 @@ describe('selectReviewers — 通用混合域', () => {
     expect(selected).toContain(AGENT.PRODUCT_LENS_REVIEWER)
     expect(selected).toContain(AGENT.STEP_GRANULARITY_REVIEWER)
     expect(selected).toContain(AGENT.EVIDENCE_REVIEWER)
+  })
+})
+
+describe('selectReviewers — LSM 产物链', () => {
+  it('hasLsmArtifactChain=true + general 应强制激活 traceability-reviewer 和 evidence-reviewer', () => {
+    const selected = selectReviewers({
+      kind: 'general',
+      targetTypes: ['requirements', 'design'],
+      hasLsmArtifactChain: true,
+    })
+    expect(selected).toContain(AGENT.TRACEABILITY_REVIEWER)
+    expect(selected).toContain(AGENT.EVIDENCE_REVIEWER)
+  })
+
+  it('hasLsmArtifactChain=true + hasMixedTargets=true 应强制激活 traceability-reviewer 和 evidence-reviewer', () => {
+    const selected = selectReviewers({
+      kind: 'document',
+      hasMixedTargets: true,
+      hasLsmArtifactChain: true,
+    })
+    expect(selected).toContain(AGENT.TRACEABILITY_REVIEWER)
+    expect(selected).toContain(AGENT.EVIDENCE_REVIEWER)
+  })
+
+  it('hasLsmArtifactChain=true 但单一目标不应劫持普通 code 流程', () => {
+    const selected = selectReviewers({
+      kind: 'code',
+      hasLsmArtifactChain: true,
+    })
+    expect(selected).not.toContain(AGENT.TRACEABILITY_REVIEWER)
+  })
+
+  it('hasLsmArtifactChain 缺省时不应触发 LSM 强制注入分支', () => {
+    const withoutFlag = selectReviewers({
+      kind: 'code',
+      hasMixedTargets: false,
+    })
+    expect(withoutFlag).not.toContain(AGENT.TRACEABILITY_REVIEWER)
+    expect(withoutFlag).not.toContain(AGENT.EVIDENCE_REVIEWER)
+  })
+
+  it('hasLsmArtifactChain=true 不应导致重复代理', () => {
+    const selected = selectReviewers({
+      kind: 'general',
+      targetTypes: ['requirements', 'design', 'prototype', 'test-case', 'document'],
+      hasEvidenceClaim: true,
+      hasLsmArtifactChain: true,
+    })
+    expect(new Set(selected).size).toBe(selected.length)
   })
 })

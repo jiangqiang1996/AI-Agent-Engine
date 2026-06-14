@@ -28,6 +28,9 @@ async function callTool(args: {
   has_tooling?: boolean
   has_agent_config?: boolean
   has_config?: boolean
+  has_evidence_claim?: boolean
+  has_lsm_artifact_chain?: boolean
+  lsm_id_only?: boolean
 }) {
   const { aeReviewContractTool: tool } = await import('../../src/tools/ae-review-contract.tool.js')
   const definition = tool as unknown as {
@@ -109,9 +112,11 @@ describe('ae-review-contract 工具', () => {
 
     expect(definition.args).toHaveProperty('has_tooling')
     expect(definition.args).toHaveProperty('has_agent_config')
-    expect(definition.args).toHaveProperty('has_product_claim')
-    expect(definition.args).toHaveProperty('reviewScenes')
-    expect(definition.args).toHaveProperty('targetTypes')
+      expect(definition.args).toHaveProperty('has_product_claim')
+      expect(definition.args).toHaveProperty('reviewScenes')
+      expect(definition.args).toHaveProperty('targetTypes')
+      expect(definition.args).toHaveProperty('has_lsm_artifact_chain')
+      expect(definition.args).toHaveProperty('lsm_id_only')
   })
 
   it('has_ui、has_tooling 和 has_agent_config 应激活 agent-native-reviewer', async () => {
@@ -144,5 +149,71 @@ describe('ae-review-contract 工具', () => {
     expect(result.normalizedKind).toBe('general')
     expect(result.reviewers).toContain(AGENT.DESIGN_LENS_REVIEWER)
     expect(result.targetCoverage?.design.status).toBe('covered')
+  })
+
+  it('LSM 混合产物链应返回追溯和证据审查覆盖', async () => {
+    const result = await callTool({
+      kind: 'hybrid',
+      targetTypes: 'requirements,design,prototype,test-case,document',
+      has_evidence_claim: true,
+    })
+
+    expect(result.normalizedKind).toBe('general')
+    expect(result.reviewers).toContain(AGENT.TRACEABILITY_REVIEWER)
+    expect(result.reviewers).toContain(AGENT.EVIDENCE_REVIEWER)
+    expect(result.targetCoverage?.requirements.status).toBe('covered')
+    expect(result.targetCoverage?.design.status).toBe('covered')
+    expect(result.targetCoverage?.prototype.status).toBe('covered')
+    expect(result.targetCoverage?.['test-case'].status).toBe('covered')
+    expect(result.targetCoverage?.document.status).toBe('covered')
+  })
+
+  it('显式 LSM 产物链应补齐混合目标，仅有 ID 字面形态不触发', async () => {
+    const chainResult = await callTool({ kind: 'hybrid', has_lsm_artifact_chain: true })
+    const idOnlyResult = await callTool({ kind: 'hybrid', has_lsm_artifact_chain: true, lsm_id_only: true })
+
+    expect(chainResult.reviewers).toContain(AGENT.TRACEABILITY_REVIEWER)
+    expect(chainResult.reviewers).toContain(AGENT.EVIDENCE_REVIEWER)
+    expect(chainResult.targetCoverage?.requirements.status).toBe('covered')
+    expect(chainResult.targetCoverage?.['test-case'].status).toBe('covered')
+    expect(idOnlyResult.targetCoverage).toBeUndefined()
+  })
+})
+
+describe('ae-review-contract 工具 — LSM 提示与远程写边界', () => {
+  it('显式 LSM 产物链应在结果中返回 gateBlocked=true', async () => {
+    const result = await callTool({ kind: 'hybrid', has_lsm_artifact_chain: true })
+    const raw = result as unknown as { gateBlocked?: unknown }
+    expect(raw.gateBlocked).toBe(true)
+  })
+
+  it('仅 ID 字面形态时应返回 gateBlocked=false', async () => {
+    const idOnly = await callTool({ kind: 'hybrid', has_lsm_artifact_chain: true, lsm_id_only: true })
+    const raw = idOnly as unknown as { gateBlocked?: unknown }
+    expect(raw.gateBlocked).toBe(false)
+  })
+
+  it('未识别 LSM 链时应返回 gateBlocked=false', async () => {
+    const plain = await callTool({ kind: 'document' })
+    const raw = plain as unknown as { gateBlocked?: unknown }
+    expect(raw.gateBlocked).toBe(false)
+  })
+
+  it('description 不得引导 GitHub 远程写操作', async () => {
+    const definition = await getToolDefinition()
+    const description = (definition as unknown as { description?: string }).description ?? ''
+    const forbiddenPatterns = [
+      /创建\s*Issue/i,
+      /创建\s*Pull\s*Request/i,
+      /创建\s*PR/i,
+      /创建\s*Release/i,
+      /push\s+remote/i,
+      /git\s+push/i,
+      /gh\s+pr\s+create/i,
+      /gh\s+issue\s+create/i,
+    ]
+    for (const pattern of forbiddenPatterns) {
+      expect(description).not.toMatch(pattern)
+    }
   })
 })
