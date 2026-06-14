@@ -133,8 +133,8 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | --- | ---: | --- |
 | 技能 | 38 | `src/assets/skills/`、`src/services/ae-catalog.ts` |
 | 命令 | 66 | `src/services/command-registration.ts`、`src/assets/commands/` |
-| 代理 | 33 | `src/assets/agents/`、`src/services/agent-registration.ts` |
-| 工具 | 18 | `src/tools/` |
+| 代理 | 36 | `src/assets/agents/`、`src/services/agent-registration.ts` |
+| 工具 | 19 | `src/tools/` |
 | 规则 | 5 | `src/assets/rules/` |
 | 内置配置 | 1 | `src/assets/config/ae.jsonc` |
 
@@ -212,7 +212,6 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 | 路径 | 作用 |
 | --- | --- |
 | `src/index.ts` | server 插件入口 |
-| `src/tui.ts` | TUI 插件入口 |
 | `src/assets/skills/` | 技能提示词和参考文件 |
 | `src/assets/commands/` | Markdown 命令 |
 | `src/assets/agents/` | 子代理提示词 |
