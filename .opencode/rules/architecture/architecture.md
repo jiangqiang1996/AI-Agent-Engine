@@ -10,7 +10,6 @@
 ## 模块边界
 
 - `src/index.ts` 只负责插件注册和依赖组装，不承载业务逻辑。
-- `src/tui.ts` 是 TUI 插件入口。
 - `src/tools/` 是最接近用户的工具边界，负责参数 Schema、调用服务、捕获错误并返回可恢复中文提示。
 - `src/services/` 封装业务逻辑和运行时注册逻辑。
 - `src/schemas/` 集中管理 Zod Schema 与资产常量。
@@ -18,14 +17,14 @@
 
 ## 依赖方向
 
-- 允许方向：`index.ts` / `tui.ts` / `tools` → `services` → `schemas` / `utils`。
-- 下层不要依赖工具层、TUI 层或 UI toast。
+- 允许方向：`index.ts` / `tools` → `services` → `schemas` / `utils`。
+- 下层不要依赖工具层或 UI toast。
 - 同层之间保持最小依赖，禁止循环依赖。
 
 ## 构建与运行时资产
 
-- `scripts/postbuild.mjs` 会 bundle `dist/src/index.js` 和 `dist/src/tui.js`。
-- postbuild 会写入 `.opencode/plugins/ae-server.js` 与 `.opencode/plugins/ae-tui.js` 包装文件，供本仓库快速调试当前开发中插件。
+- `scripts/postbuild.mjs` 会 bundle `dist/src/index.js`，并清理历史 TUI 残留文件。
+- postbuild 会写入 `.opencode/plugins/ae-server.js` 包装文件，供本仓库快速调试当前开发中插件。
 - postbuild 会把 `src/assets/` 复制到 `dist/src/assets/`。
 - 插件注册流程在 `src/index.ts`：技能路径、命令、代理、MCP、规则注入和工具注册都从 runtime manifest 派生。
 - 运行时资产定位细则见 `runtime-independence.md`，核心要求是支持“桥接文件 + dist”场景。
