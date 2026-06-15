@@ -6,16 +6,15 @@ traceTable:
   outputs: []
 ---
 
-# LSM Build Report Template
+# LSM Build Report
 
 - 上游路径：
-- 输入 ID：
+- 输入 ID：U-*
 - 输出 ID：
 - 追溯表：
-- 跳过理由：
 - 验证证据：
 - 未验证项：
-- 下一步入口：
+- 下一步入口：ae:lsm-verify
 
 ## 构建摘要
 
@@ -25,9 +24,3 @@ traceTable:
 - 结果：
 - Git 操作状态：
 - 残余风险：
-
-## 验收证据
-
-- V-*
-- 证据来源：
-- 验证时间：

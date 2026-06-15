@@ -108,9 +108,10 @@ describe('AE catalog 一致性', () => {
     const lsmSkills = [
       SKILL.LSM_SPEC,
       SKILL.LSM_DESIGN,
-      SKILL.LSM_PROTOTYPE,
-      SKILL.LSM_TEST,
+      SKILL.LSM_MOCKUP,
       SKILL.LSM_BUILD,
+      SKILL.LSM_TEST,
+      SKILL.LSM_VERIFY,
     ] as const
 
     for (const skillName of lsmSkills) {

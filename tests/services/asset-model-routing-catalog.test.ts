@@ -37,9 +37,10 @@ describe('asset-model-routing-catalog', () => {
   it('LSM 命令应该使用指定模型场景', () => {
     expect(getCommandModelScenario(COMMAND.LSM_SPEC)).toBe(MODEL_SCENARIO.DEEP)
     expect(getCommandModelScenario(COMMAND.LSM_DESIGN)).toBe(MODEL_SCENARIO.DEEP)
-    expect(getCommandModelScenario(COMMAND.LSM_TEST)).toBe(MODEL_SCENARIO.DEEP)
+    expect(getCommandModelScenario(COMMAND.LSM_MOCKUP)).toBe(MODEL_SCENARIO.VISION)
     expect(getCommandModelScenario(COMMAND.LSM_BUILD)).toBe(MODEL_SCENARIO.DEEP)
-    expect(getCommandModelScenario(COMMAND.LSM_PROTOTYPE)).toBe(MODEL_SCENARIO.VISION)
+    expect(getCommandModelScenario(COMMAND.LSM_TEST)).toBe(MODEL_SCENARIO.DEEP)
+    expect(getCommandModelScenario(COMMAND.LSM_VERIFY)).toBe(MODEL_SCENARIO.VISION)
     expect(getCommandModelScenario(`${COMMAND.LSM_SPEC}${PO_SUFFIX}`)).toBe(MODEL_SCENARIO.DEEP)
   })
 

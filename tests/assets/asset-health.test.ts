@@ -147,8 +147,9 @@ describe('资产健康巡检', () => {
     expect(commandConfig[`${COMMAND.LSM_SPEC}-po`], 'asset-health/prompt-variant/command/ae-lsm-spec-po').toBeDefined()
     expect(commandConfig[`${COMMAND.LSM_DESIGN}-pa`], 'asset-health/prompt-variant/command/ae-lsm-design-pa').toBeDefined()
     expect(commandConfig[`${COMMAND.LSM_TEST}-po`], 'asset-health/prompt-variant/command/ae-lsm-test-po').toBeDefined()
-    expect(commandConfig[`${COMMAND.LSM_PROTOTYPE}-po`], 'asset-health/prompt-variant/command/ae-lsm-prototype-po').toBeUndefined()
+    expect(commandConfig[`${COMMAND.LSM_MOCKUP}-po`], 'asset-health/prompt-variant/command/ae-lsm-mockup-po').toBeUndefined()
     expect(commandConfig[`${COMMAND.LSM_BUILD}-pa`], 'asset-health/prompt-variant/command/ae-lsm-build-pa').toBeUndefined()
+    expect(commandConfig[`${COMMAND.LSM_VERIFY}-po`], 'asset-health/prompt-variant/command/ae-lsm-verify-po').toBeUndefined()
     expect(buildCommandConfig(join(process.cwd(), 'src/assets/commands'))['ae-work-continue'], 'asset-health/disk-command/command/ae-work-continue').toBeDefined()
     expect(commandConfig['ae-work-continue'], 'asset-health/catalog-command/command/ae-work-continue').toBeUndefined()
     expect(commandConfig['ae-work-continue-po'], 'asset-health/prompt-variant/command/ae-work-continue-po').toBeUndefined()
@@ -247,9 +248,10 @@ describe('资产健康巡检', () => {
     const lsmSkills = [
       [SKILL.LSM_SPEC, COMMAND.LSM_SPEC, 'spec-template.md'],
       [SKILL.LSM_DESIGN, COMMAND.LSM_DESIGN, 'design-template.md'],
-      [SKILL.LSM_PROTOTYPE, COMMAND.LSM_PROTOTYPE, 'prototype-template.md'],
-      [SKILL.LSM_TEST, COMMAND.LSM_TEST, 'test-template.md'],
+      [SKILL.LSM_MOCKUP, COMMAND.LSM_MOCKUP, 'mockup-template.md'],
       [SKILL.LSM_BUILD, COMMAND.LSM_BUILD, 'build-report-template.md'],
+      [SKILL.LSM_TEST, COMMAND.LSM_TEST, 'test-template.md'],
+      [SKILL.LSM_VERIFY, COMMAND.LSM_VERIFY, 'verify-template.md'],
     ] as const
     const entries = getPhaseOneEntries()
     const commandConfig = buildCommandConfig('__missing_commands_dir__')
@@ -279,8 +281,9 @@ describe('资产健康巡检', () => {
       expect(templateFrontmatter, `asset-health/lsm-template-frontmatter-trace/${skillName}`).toHaveProperty('traceTable')
     }
 
-    expect(getCommandModelScenario(COMMAND.LSM_PROTOTYPE)).toBe(MODEL_SCENARIO.VISION)
+    expect(getCommandModelScenario(COMMAND.LSM_MOCKUP)).toBe(MODEL_SCENARIO.VISION)
     expect(getCommandModelScenario(COMMAND.LSM_BUILD)).toBe(MODEL_SCENARIO.DEEP)
+    expect(getCommandModelScenario(COMMAND.LSM_VERIFY)).toBe(MODEL_SCENARIO.VISION)
   })
 
   it('ae:review SKILL 应包含 LSM frontmatter 优先识别策略', () => {
@@ -368,9 +371,10 @@ describe('资产健康巡检', () => {
       COMMAND.PLAN,
       COMMAND.LSM_SPEC,
       COMMAND.LSM_DESIGN,
-      COMMAND.LSM_PROTOTYPE,
-      COMMAND.LSM_TEST,
+      COMMAND.LSM_MOCKUP,
       COMMAND.LSM_BUILD,
+      COMMAND.LSM_TEST,
+      COMMAND.LSM_VERIFY,
       COMMAND.WORK,
       'ae-work-continue',
       COMMAND.MERGE_BRANCH,

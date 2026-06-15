@@ -28,6 +28,6 @@ describe('ae-help 工具', () => {
 
     expect(text).toContain(`# 技能：${SKILL.LSM_SPEC}`)
     expect(text).toContain(`/${COMMAND.LSM_SPEC}`)
-    expect(text).toContain('Living Spec Mesh')
+    expect(text).toContain('需求')
   })
 })
