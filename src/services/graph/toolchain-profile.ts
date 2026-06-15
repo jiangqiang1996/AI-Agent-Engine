@@ -56,6 +56,7 @@ function detectCommandVersion(command: string, versionArg: string): string | und
     const output = execSync(`${command} ${versionArg}`, {
       timeout: 5000,
       encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
     })
     // 取第一行作为版本摘要
     const firstLine = output.trim().split('\n')[0]
