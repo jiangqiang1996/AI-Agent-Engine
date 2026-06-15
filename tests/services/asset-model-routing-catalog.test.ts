@@ -39,7 +39,6 @@ describe('asset-model-routing-catalog', () => {
     expect(getCommandModelScenario(COMMAND.LSM_DESIGN)).toBe(MODEL_SCENARIO.DEEP)
     expect(getCommandModelScenario(COMMAND.LSM_TEST)).toBe(MODEL_SCENARIO.DEEP)
     expect(getCommandModelScenario(COMMAND.LSM_BUILD)).toBe(MODEL_SCENARIO.DEEP)
-    expect(getCommandModelScenario(COMMAND.LSM_ACCEPTANCE)).toBe(MODEL_SCENARIO.DEEP)
     expect(getCommandModelScenario(COMMAND.LSM_PROTOTYPE)).toBe(MODEL_SCENARIO.VISION)
     expect(getCommandModelScenario(`${COMMAND.LSM_SPEC}${PO_SUFFIX}`)).toBe(MODEL_SCENARIO.DEEP)
   })

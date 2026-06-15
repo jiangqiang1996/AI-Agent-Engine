@@ -85,14 +85,12 @@ describe('ae-asset-schema', () => {
     expect(AeSkillNameSchema.parse(SKILL.LSM_PROTOTYPE)).toBe('ae:lsm-prototype')
     expect(AeSkillNameSchema.parse(SKILL.LSM_TEST)).toBe('ae:lsm-test')
     expect(AeSkillNameSchema.parse(SKILL.LSM_BUILD)).toBe('ae:lsm-build')
-    expect(AeSkillNameSchema.parse(SKILL.LSM_ACCEPTANCE)).toBe('ae:lsm-acceptance')
     expect(AeCommandNameSchema.parse(COMMAND.LSM_PROTOTYPE)).toBe('ae-lsm-prototype')
     expect(AeCommandNameSchema.safeParse(`${COMMAND.LSM_SPEC}${PO_SUFFIX}`).success).toBe(true)
     expect(AeCommandNameSchema.safeParse(`${COMMAND.LSM_DESIGN}${PA_SUFFIX}`).success).toBe(true)
     expect(AeCommandNameSchema.safeParse(`${COMMAND.LSM_TEST}${PO_SUFFIX}`).success).toBe(true)
     expect(AeCommandNameSchema.safeParse(`${COMMAND.LSM_PROTOTYPE}${PO_SUFFIX}`).success).toBe(false)
     expect(AeCommandNameSchema.safeParse(`${COMMAND.LSM_BUILD}${PA_SUFFIX}`).success).toBe(false)
-    expect(AeCommandNameSchema.safeParse(`${COMMAND.LSM_ACCEPTANCE}${PO_SUFFIX}`).success).toBe(false)
   })
 
   it('应该保留 skill-creator 单一入口并拒绝 skill-updater', () => {

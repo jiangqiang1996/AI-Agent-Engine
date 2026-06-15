@@ -34,7 +34,9 @@ argument-hint: "[实现范围|上游路径|验证要求]"
 1. 读取实现范围、上游路径和验证要求
 2. 必须调用 `ae:work` 执行代码或文件修改，本技能只传递 LSM 上游约束并汇总报告
 3. 记录变更文件、验证命令和 Git 状态
-4. 输出构建报告供验收阶段使用
+4. 输出构建报告，包含 `V-*` 验收证据和残余风险
+5. 调用 `ae:review domain=document kind=document targets=document` 对 build 产物进行审查
+6. 审查通过后，向用户推荐下一步技能
 
 ## 产物要求
 
@@ -52,4 +54,5 @@ argument-hint: "[实现范围|上游路径|验证要求]"
 
 - 构建报告包含验证命令和结果
 - Git 操作状态可复核
-- 下一步入口指向 `ae:lsm-acceptance`
+- build 已通过 `ae:review` 审查，审查结论为 passed 或有明确的未阻断发现
+- 下一步入口：审查通过后推荐 `ae:review domain=general kind=general mode=interactive`（确认整个 LSM 链路完整性）

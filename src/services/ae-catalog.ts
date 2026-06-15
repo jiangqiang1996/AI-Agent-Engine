@@ -94,13 +94,6 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillFile: `src/assets/skills/${skillDir(SKILL.LSM_BUILD)}/SKILL.md`,
   },
   {
-    skillName: SKILL.LSM_ACCEPTANCE,
-    commandName: COMMAND.LSM_ACCEPTANCE,
-    description: '汇总 Living Spec Mesh 验收证据、未验证项与残余风险，并交给通用审查入口',
-    argumentHint: '[构建报告路径|上游路径|验收证据]',
-    skillFile: `src/assets/skills/${skillDir(SKILL.LSM_ACCEPTANCE)}/SKILL.md`,
-  },
-  {
     skillName: SKILL.AGENT_CREATOR,
     commandName: COMMAND.AGENT_CREATOR,
     description: '创建或更新 OpenCode 原生代理，默认项目级，支持显式全局级和可选同级命令',

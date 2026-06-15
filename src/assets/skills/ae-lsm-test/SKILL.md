@@ -34,6 +34,8 @@ argument-hint: "[spec 路径|design 路径|需求路径|测试输入]"
 2. 生成测试场景、边界条件和失败路径
 3. 固化 `TC-*` 映射和验证证据要求
 4. 输出供实现与验收复用的测试资产
+5. 调用 `ae:review domain=document kind=document targets=document` 对 test 产物进行审查
+6. 审查通过后，向用户推荐下一步技能
 
 ## 产物要求
 
@@ -50,4 +52,5 @@ argument-hint: "[spec 路径|design 路径|需求路径|测试输入]"
 
 - 产物包含 `TC-*` 测试用例
 - 覆盖 `R-*` 与 `U-*` 的追溯关系
-- 可交给 `ae:review` 做通用混合审查
+- test 已通过 `ae:review` 审查，审查结论为 passed 或有明确的未阻断发现
+- 下一步入口：审查通过后推荐 `ae:lsm-build`（执行实现并汇总构建报告）

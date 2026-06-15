@@ -34,7 +34,9 @@ argument-hint: "[设计路径|需求路径|原型输入|跳过理由]"
 1. 读取设计与 UI 约束
 2. 生成原型草图、状态说明和跳过理由
 3. 固化受影响的测试与验收 ID
-4. 输出供 `ae:lsm-test` 和 `ae:lsm-acceptance` 使用的原型资产
+4. 输出供 `ae:lsm-test` 和 `ae:lsm-build` 使用的原型资产
+5. 调用 `ae:review domain=document kind=document targets=document` 对 prototype 产物进行审查
+6. 审查通过后，向用户推荐下一步技能
 
 ## 产物要求
 
@@ -50,5 +52,6 @@ argument-hint: "[设计路径|需求路径|原型输入|跳过理由]"
 ## 完成标准
 
 - UI 任务有原型资产或明确跳过理由
+- prototype 已通过 `ae:review` 审查，审查结论为 passed 或有明确的未阻断发现
 - 浏览器验证未执行时记录未验证项和残余风险
-- 可交给 `ae:review` 做通用混合审查
+- 下一步入口：审查通过后推荐 `ae:lsm-test`（生成测试用例）；若原型被跳过，直接推荐 `ae:lsm-test` 和 `ae:lsm-build`

@@ -127,7 +127,6 @@ describe('command-registration', () => {
     expect(config[`${COMMAND.LSM_TEST}${PO_SUFFIX}`]).toBeDefined()
     expect(config[`${COMMAND.LSM_PROTOTYPE}${PO_SUFFIX}`]).toBeUndefined()
     expect(config[`${COMMAND.LSM_BUILD}${PA_SUFFIX}`]).toBeUndefined()
-    expect(config[`${COMMAND.LSM_ACCEPTANCE}${PO_SUFFIX}`]).toBeUndefined()
   })
 
   it('应该为 ae:swagger-parser 只生成基础命令', () => {

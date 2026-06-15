@@ -149,7 +149,6 @@ describe('资产健康巡检', () => {
     expect(commandConfig[`${COMMAND.LSM_TEST}-po`], 'asset-health/prompt-variant/command/ae-lsm-test-po').toBeDefined()
     expect(commandConfig[`${COMMAND.LSM_PROTOTYPE}-po`], 'asset-health/prompt-variant/command/ae-lsm-prototype-po').toBeUndefined()
     expect(commandConfig[`${COMMAND.LSM_BUILD}-pa`], 'asset-health/prompt-variant/command/ae-lsm-build-pa').toBeUndefined()
-    expect(commandConfig[`${COMMAND.LSM_ACCEPTANCE}-po`], 'asset-health/prompt-variant/command/ae-lsm-acceptance-po').toBeUndefined()
     expect(buildCommandConfig(join(process.cwd(), 'src/assets/commands'))['ae-work-continue'], 'asset-health/disk-command/command/ae-work-continue').toBeDefined()
     expect(commandConfig['ae-work-continue'], 'asset-health/catalog-command/command/ae-work-continue').toBeUndefined()
     expect(commandConfig['ae-work-continue-po'], 'asset-health/prompt-variant/command/ae-work-continue-po').toBeUndefined()
@@ -251,7 +250,6 @@ describe('资产健康巡检', () => {
       [SKILL.LSM_PROTOTYPE, COMMAND.LSM_PROTOTYPE, 'prototype-template.md'],
       [SKILL.LSM_TEST, COMMAND.LSM_TEST, 'test-template.md'],
       [SKILL.LSM_BUILD, COMMAND.LSM_BUILD, 'build-report-template.md'],
-      [SKILL.LSM_ACCEPTANCE, COMMAND.LSM_ACCEPTANCE, 'acceptance-template.md'],
     ] as const
     const entries = getPhaseOneEntries()
     const commandConfig = buildCommandConfig('__missing_commands_dir__')
@@ -290,7 +288,7 @@ describe('资产健康巡检', () => {
 
     expect(reviewSkillText, 'asset-health/review-lsm-frontmatter-strategy').toMatch(/LSM[\s\S]{0,200}frontmatter/)
     expect(reviewSkillText, 'asset-health/review-lsm-evidence-call').toContain('lsmEvidenceMissing')
-    expect(reviewSkillText, 'asset-health/review-lsm-acceptance-trace').toContain('traceTable')
+    expect(reviewSkillText, 'asset-health/review-lsm-trace').toContain('traceTable')
     expect(reviewSkillText, 'asset-health/review-lsm-v-id').toContain('V-')
   })
 
@@ -373,7 +371,6 @@ describe('资产健康巡检', () => {
       COMMAND.LSM_PROTOTYPE,
       COMMAND.LSM_TEST,
       COMMAND.LSM_BUILD,
-      COMMAND.LSM_ACCEPTANCE,
       COMMAND.WORK,
       'ae-work-continue',
       COMMAND.MERGE_BRANCH,

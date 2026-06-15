@@ -91,7 +91,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 多视角发散讨论 | `/ae-brainstorm` |
 | 需求澄清与需求文档 | `/ae-prd` |
 | 计划生成 | `/ae-plan` |
-| LSM 完整软件工程交付链 | `/ae-lsm-spec`、`/ae-lsm-design`、`/ae-lsm-prototype`、`/ae-lsm-test`、`/ae-lsm-build`、`/ae-lsm-acceptance` |
+| LSM 完整软件工程交付链 | `/ae-lsm-spec`、`/ae-lsm-design`、`/ae-lsm-prototype`、`/ae-lsm-test`、`/ae-lsm-build` |
 | 计划执行 | `/ae-work` |
 | Worktree 续执行 | `/ae-work-continue` |
 | 分支或 worktree 合并 | `/ae-merge-branch` |
@@ -131,8 +131,8 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 
 | 类型 | 当前快照 | 真源 |
 | --- | ---: | --- |
-| 技能 | 38 | `src/assets/skills/`、`src/services/ae-catalog.ts` |
-| 命令 | 66 | `src/services/command-registration.ts`、`src/assets/commands/` |
+| 技能 | 37 | `src/assets/skills/`、`src/services/ae-catalog.ts` |
+| 命令 | 65 | `src/services/command-registration.ts`、`src/assets/commands/` |
 | 代理 | 36 | `src/assets/agents/`、`src/services/agent-registration.ts` |
 | 工具 | 19 | `src/tools/` |
 | 规则 | 5 | `src/assets/rules/` |

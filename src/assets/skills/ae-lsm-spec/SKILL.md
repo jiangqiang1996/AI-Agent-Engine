@@ -34,6 +34,8 @@ argument-hint: "[目标描述|需求路径|上游交接路径]"
 2. 固化范围、成功标准、非目标和依赖
 3. 生成 `R-*` 需求 ID 与上游追溯表
 4. 输出供 `ae:lsm-design` 使用的 spec 资产
+5. 调用 `ae:review domain=document kind=document targets=document` 对 spec 产物进行审查
+6. 审查通过后，向用户推荐下一步技能
 
 ## 产物要求
 
@@ -49,5 +51,5 @@ argument-hint: "[目标描述|需求路径|上游交接路径]"
 ## 完成标准
 
 - 产物包含 `R-*` 需求 ID
-- 下游入口指向 `ae:lsm-design`
-- 可交给 `ae:review` 做通用文档或混合审查
+- spec 已通过 `ae:review` 审查，审查结论为 passed 或有明确的未阻断发现
+- 下一步入口：审查通过后推荐 `ae:lsm-design`（将规格转为设计）

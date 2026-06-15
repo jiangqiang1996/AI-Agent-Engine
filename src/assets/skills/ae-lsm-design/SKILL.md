@@ -34,6 +34,8 @@ argument-hint: "[spec 路径|需求路径|设计输入]"
 2. 生成设计决策、接口边界和实现单元
 3. 固化 `U-*` 映射和风险说明
 4. 输出供 `ae:lsm-prototype`、`ae:lsm-test` 和 `ae:lsm-build` 使用的设计资产
+5. 调用 `ae:review domain=document kind=document targets=document` 对 design 产物进行审查
+6. 审查通过后，根据需求类型推荐下一步技能
 
 ## 产物要求
 
@@ -49,5 +51,5 @@ argument-hint: "[spec 路径|需求路径|设计输入]"
 ## 完成标准
 
 - 产物包含 `U-*` 实现映射
-- 下游入口清晰指向原型、测试或构建阶段
-- 可交给 `ae:review` 做通用混合审查
+- design 已通过 `ae:review` 审查，审查结论为 passed 或有明确的未阻断发现
+- 下一步入口：审查通过后，若需求涉及 UI 或交互，推荐 `ae:lsm-prototype`；若无非 UI 需求，推荐 `ae:lsm-test` 和 `ae:lsm-build`

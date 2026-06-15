@@ -17,7 +17,7 @@ describe('ae-help 工具', () => {
     const text = await callHelp('lsm')
 
     expect(text).toContain(SKILL.LSM_SPEC)
-    expect(text).toContain(SKILL.LSM_ACCEPTANCE)
+    expect(text).toContain(SKILL.LSM_BUILD)
     expect(text).toContain(`/${COMMAND.LSM_SPEC}`)
     expect(text).toContain(`/${COMMAND.LSM_TEST}-po`)
     expect(text).not.toContain(`/${COMMAND.LSM_BUILD}-po`)
