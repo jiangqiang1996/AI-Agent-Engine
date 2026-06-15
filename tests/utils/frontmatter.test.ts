@@ -28,6 +28,28 @@ describe('frontmatter 工具', () => {
     expect(parsed.body).toBe('# 正文')
   })
 
+  it('非行首分隔符不应被当作 frontmatter', () => {
+    const parsed = parseFrontmatter('前言 ---\n---\nname: demo\n---\n正文')
+
+    expect(parsed.data).toEqual({})
+    expect(parsed.body).toContain('前言 ---')
+  })
+
+  it('不应解析第二段 frontmatter 为 data', () => {
+    const parsed = parseFrontmatter('---\nname: first\n---\n---\nname: second\n---\n正文')
+
+    expect(parsed.data).toMatchObject({ name: 'first' })
+    expect(parsed.data).not.toHaveProperty('name', 'second')
+    expect(parsed.body.trim()).toContain('正文')
+  })
+
+  it('仅分隔符行无内容时应返回空元数据', () => {
+    const parsed = parseFrontmatter('---\n---\n正文')
+
+    expect(parsed.data).toEqual({})
+    expect(parsed.body.trim()).toBe('正文')
+  })
+
   it('应该保留 YAML frontmatter 的原始值类型', () => {
     const parsed = parseFrontmatter('---\nsubtask: true\nsteps: 3\ndate: 2026-05-09\nmetadata:\n  audience: maintainer\n---\n正文')
 

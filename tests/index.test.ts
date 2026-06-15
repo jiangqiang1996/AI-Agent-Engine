@@ -270,53 +270,29 @@ describe('插件入口', () => {
     expect(config.agent?.['correctness-reviewer']?.model).toBe('project/deep')
   })
 
-  it('用户配置的模型场景变量未配置时应该原样透传', async () => {
+  it.each([
+    { label: '用户配置命令和代理', commandKey: 'ae-custom', agentKey: 'custom-agent', isOverride: false },
+    { label: '用户覆盖内置命令和代理', commandKey: 'ae-plan', agentKey: 'correctness-reviewer', isOverride: true },
+  ] as const)('模型场景变量未配置时应该原样透传（$label）', async ({ commandKey, agentKey, isOverride }) => {
     const hostRoot = createTempRoot()
     isolateHome(createTempRoot())
-    writeModelScenariosConfig(hostRoot)
+    if (!isOverride) {
+      writeModelScenariosConfig(hostRoot)
+    }
     const server = await plugin.server({ worktree: hostRoot, client: {} } as never)
     const config: RuntimeConfigShape = {
       command: {
-        'ae-custom': {
-          template: 'custom template',
-          model: '$missing',
-        },
+        [commandKey]: { template: `${commandKey} template`, model: '$missing' },
       },
       agent: {
-        'custom-agent': {
-          model: '$missing',
-        },
+        [agentKey]: { model: '$missing' },
       },
     }
 
     await server.config?.(config as never)
 
-    expect(config.command?.['ae-custom']?.model).toBe('$missing')
-    expect(config.agent?.['custom-agent']?.model).toBe('$missing')
-  })
-
-  it('用户覆盖内置资产时模型场景变量未配置也应该原样透传', async () => {
-    const hostRoot = createTempRoot()
-    isolateHome(createTempRoot())
-    const server = await plugin.server({ worktree: hostRoot, client: {} } as never)
-    const config: RuntimeConfigShape = {
-      command: {
-        'ae-plan': {
-          template: 'user plan',
-          model: '$missing',
-        },
-      },
-      agent: {
-        'correctness-reviewer': {
-          model: '$missing',
-        },
-      },
-    }
-
-    await server.config?.(config as never)
-
-    expect(config.command?.['ae-plan']?.model).toBe('$missing')
-    expect(config.agent?.['correctness-reviewer']?.model).toBe('$missing')
+    expect(config.command?.[commandKey]?.model).toBe('$missing')
+    expect(config.agent?.[agentKey]?.model).toBe('$missing')
   })
 
   it('用户配置的不带 $ 模型常量名应该直接透传且不记录为缺失场景变量', async () => {

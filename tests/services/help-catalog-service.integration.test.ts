@@ -35,13 +35,22 @@ describe('help-catalog-service 集成', () => {
     expect(text).toContain('[来源分支名\\|本地 worktree 路径]')
   })
 
-  it('真实帮助目录不应该暴露旧会话沉淀和资产纠偏入口', () => {
-    const text = generateHelpText()
+  it('真实帮助目录不应该暴露已下线的旧入口', () => {
+    const deprecatedEntries = [
+      'ae:save-session-flow', '/ae-save-session-flow',
+      'ae:asset-debug', '/ae-asset-debug',
+      'ae:doc-humanize', '/ae-doc-humanize',
+      'ae:doc-structure', '/ae-doc-structure',
+    ]
 
-    expect(text).not.toContain('ae:save-session-flow')
-    expect(text).not.toContain('/ae-save-session-flow')
-    expect(text).not.toContain('ae:asset-debug')
-    expect(text).not.toContain('/ae-asset-debug')
+    for (const query of [undefined, 'save-session-flow', 'asset-debug', 'doc-humanize', 'doc-structure']) {
+      const text = generateHelpText(query)
+      for (const deprecated of deprecatedEntries) {
+        expect(text, `查询 "${query}" 不应包含 "${deprecated}"`).not.toContain(deprecated)
+      }
+      expect(text, `查询 "${query}" 不应包含旧入口模板占位符`).not.toContain('[目标技能名\\|流程关注点]')
+      expect(text, `查询 "${query}" 不应包含旧入口模板占位符`).not.toContain('[资产名\\|纠偏摘要]')
+    }
   })
 
   it('应该在真实帮助目录中暴露 ae:work-report 入口', () => {
@@ -53,28 +62,6 @@ describe('help-catalog-service 集成', () => {
     expect(text).not.toContain(`/${COMMAND.WORK_REPORT}${PA_SUFFIX}`)
     expect(text).toContain('[日报\\|周报\\|时间段\\|提交范围]')
     expect(text).toContain('生成日报、周报或指定时间段工作总结')
-  })
-
-  it('真实帮助目录不应该暴露旧文档互转入口', () => {
-    const text = generateHelpText()
-
-    expect(text).not.toContain('ae:doc-humanize')
-    expect(text).not.toContain('/ae-doc-humanize')
-    expect(text).not.toContain('ae:doc-structure')
-    expect(text).not.toContain('/ae-doc-structure')
-  })
-
-  it('按旧入口查询时不应该暴露旧会话沉淀和资产纠偏入口', () => {
-    for (const query of ['save-session-flow', 'asset-debug']) {
-      const text = generateHelpText(query)
-
-      expect(text).not.toContain('ae:save-session-flow')
-      expect(text).not.toContain('/ae-save-session-flow')
-      expect(text).not.toContain('[目标技能名\\|流程关注点]')
-      expect(text).not.toContain('ae:asset-debug')
-      expect(text).not.toContain('/ae-asset-debug')
-      expect(text).not.toContain('[资产名\\|纠偏摘要]')
-    }
   })
 
   it('应该在真实帮助目录中展示 ae:test-browser 的 chrome-devtools MCP 门禁语义', () => {
