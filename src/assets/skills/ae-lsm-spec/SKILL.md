@@ -35,16 +35,17 @@ argument-hint: "[目标描述|需求路径|上游交接路径]"
 2. 与用户澄清需求范围、成功标准、非目标和约束
 3. 拆分需求为可追溯的 `R-*` 需求条目，每条包含描述、验收标准、优先级、约束与假设、下游映射
 4. 生成需求文档；文档过大时按模块或功能域拆分为多个子需求文件，主文件建立索引
-5. 不包含人员分工等通用模板内容，只聚焦软件工程需求
-6. 调用 `ae:review domain=document scenes=requirements` 对 spec 产物进行审查
-7. 审查通过后，向用户推荐下一步：`ae:lsm-design`
+5. 不包含人员分工等 AI 不关注的通用模板内容，只聚焦软件工程需求
+6. 根据项目实际情况动态裁剪模板可选字段，裁剪标记使用 `<!-- trimmed: 原因 -->`
+7. 调用 `ae:review domain=document scenes=requirements` 对 spec 产物进行审查
+8. 审查通过后，向用户推荐下一步：`ae:lsm-design`
 
 ## 产物要求
 
 - 产物路径：`ae/lsm/spec/`
-- 使用 `references/spec-template.md` 作为结构参考
-- 主文件包含上游路径、输入 ID、输出 ID、追溯表、验证证据、未验证项和下一步入口
-- 每个需求条目包含 `R-*` ID、描述、验收标准、优先级、约束与假设、下游映射
+- 使用 `references/spec-template.md` 作为结构参考，裁剪指引见 `references/lsm-trimming-guide.md`
+- 元数据（上游路径、输入 ID、输出 ID、追溯表、验证证据、未验证项）全部由 frontmatter 承载，正文不含"元信息"章节
+- 每个需求条目包含 `R-*` ID、描述、验收标准、优先级、约束与假设、下游映射；可选字段按模板 trimmingGuide 裁剪
 - 需求文档过大时拆分为多个子需求文件，主文件建立索引指向子文件
 
 ## 安全边界

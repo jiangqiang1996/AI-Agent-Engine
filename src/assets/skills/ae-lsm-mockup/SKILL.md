@@ -35,16 +35,17 @@ argument-hint: "[design 路径|mockup 输入]"
 2. 根据 UI 设计生成 HTML 原型文件
 3. 固化 `M-*` mockup 追溯 ID，记录 UI 设计与 HTML 原型的映射关系
 4. 生成 mockup 报告，记录视觉还原程度、偏差和未还原项
-5. 调用 `ae:review domain=document scenes=prototype` 对 mockup 产物进行审查
-6. 审查通过后，向用户推荐下一步技能
+5. 根据项目实际情况动态裁剪模板可选字段，裁剪标记使用 `<!-- trimmed: 原因 -->`
+6. 调用 `ae:review domain=document scenes=prototype` 对 mockup 产物进行审查
+7. 审查通过后，向用户推荐下一步技能
 
 ## 产物要求
 
 - 产物路径：`ae/lsm/mockup/`
-- 使用 `references/mockup-template.md` 作为结构参考
+- 使用 `references/mockup-template.md` 作为结构参考，裁剪指引见 spec 的 `references/lsm-trimming-guide.md`
 - HTML 原型文件放在产物路径下
-- 主文件包含上游路径、输入 ID、输出 ID、追溯表、验证证据、未验证项和下一步入口
-- mockup 报告记录每个 UI 组件的还原程度
+- 元数据（上游路径、输入 ID、输出 ID、追溯表、验证证据、未验证项）全部由 frontmatter 承载，正文不含"元信息"章节
+- mockup 报告记录每个 UI 组件的还原程度；可选字段按模板 trimmingGuide 裁剪
 
 ## 安全边界
 

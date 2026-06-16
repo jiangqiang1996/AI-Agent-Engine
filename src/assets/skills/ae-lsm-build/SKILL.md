@@ -34,16 +34,16 @@ argument-hint: "[design 路径|实现范围|上游路径]"
 2. 分析实现范围、接口边界和约束
 3. 内联编码实现：直接编辑文件、运行命令，所有变更由本技能执行
 4. 记录变更文件、验证命令和 Git 状态
-5. 生成构建报告
+5. 生成构建报告，根据项目实际情况动态裁剪模板可选字段，裁剪标记使用 `<!-- trimmed: 原因 -->`
 6. 调用 `ae:review domain=document scenes=code` 对 build 产物进行审查
 7. 审查通过后，向用户推荐下一步技能
 
 ## 产物要求
 
 - 产物路径：`ae/lsm/build/`
-- 使用 `references/build-report-template.md` 作为结构参考
-- 记录执行范围、变更文件、验证命令、结果、未完成项和 Git 操作状态
-- 包含上游路径、输入 ID、追溯表、验证证据、未验证项和下一步入口
+- 使用 `references/build-report-template.md` 作为结构参考，裁剪指引见 spec 的 `references/lsm-trimming-guide.md`
+- 元数据（上游路径、输入 ID、追溯表、验证证据、未验证项）全部由 frontmatter 承载，正文不含"元信息"章节
+- 记录执行范围、变更文件、验证命令、结果；可选字段按模板 trimmingGuide 裁剪
 
 ## 安全边界
 

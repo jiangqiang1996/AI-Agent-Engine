@@ -36,15 +36,16 @@ argument-hint: "[spec 路径|设计输入]"
 3. 固化 `U-*` 实现映射和风险说明，每个 `U-*` 映射到对应的 `R-*` 需求
 4. 生成设计文档；文档过大时按模块或功能域拆分为多个子设计文件，主文件建立索引
 5. 设计中必须明确区分 UI 相关部分和非 UI 部分，供 `ae:lsm-mockup` 判断
-6. 调用 `ae:review domain=document scenes=design` 对 design 产物进行审查
-7. 审查通过后，根据需求类型推荐下一步技能
+6. 根据项目实际情况动态裁剪模板可选字段，裁剪标记使用 `<!-- trimmed: 原因 -->`
+7. 调用 `ae:review domain=document scenes=design` 对 design 产物进行审查
+8. 审查通过后，根据需求类型推荐下一步技能
 
 ## 产物要求
 
 - 产物路径：`ae/lsm/design/`
-- 使用 `references/design-template.md` 作为结构参考
-- 主文件包含上游路径、输入 ID、输出 ID、追溯表、验证证据、未验证项和下一步入口
-- 每个实现单元包含 `U-*` ID、需求映射、设计决策、接口边界、数据模型、风险说明、下游映射
+- 使用 `references/design-template.md` 作为结构参考，裁剪指引见 `ae:lsm-spec` 的 `references/lsm-trimming-guide.md`
+- 元数据（上游路径、输入 ID、输出 ID、追溯表、验证证据、未验证项）全部由 frontmatter 承载，正文不含"元信息"章节
+- 每个实现单元包含 `U-*` ID、需求映射、设计决策、接口边界及可选字段；可选字段按模板 trimmingGuide 裁剪
 - 设计文档过大时拆分为多个子设计文件，主文件建立索引指向子文件
 - 设计中明确标注哪些实现单元涉及 UI，哪些不涉及
 

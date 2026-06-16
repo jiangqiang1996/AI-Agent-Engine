@@ -36,16 +36,16 @@ argument-hint: "[test 路径] [build 产物路径]"
 3. 执行测试脚本
 4. 修复测试脚本中的问题（脚本错误、环境问题等），重新执行
 5. 汇总测试结果，固化 `V-*` 验收 ID
-6. 生成验收报告
+6. 生成验收报告，根据项目实际情况动态裁剪模板可选字段，裁剪标记使用 `<!-- trimmed: 原因 -->`
 7. 调用 `ae:review domain=document scenes=code` 对 verify 产物进行审查
 8. 审查通过后，向用户推荐后续操作
 
 ## 产物要求
 
 - 产物路径：`ae/lsm/verify/`
-- 使用 `references/verify-template.md` 作为结构参考
-- 包含上游路径、输入 ID、输出 ID、追溯表、验证证据、未验证项和后续建议
-- 验收报告记录每个 `TC-*` 的执行结果
+- 使用 `references/verify-template.md` 作为结构参考，裁剪指引见 spec 的 `references/lsm-trimming-guide.md`
+- 元数据（上游路径、输入 ID、输出 ID、追溯表、验证证据、未验证项）全部由 frontmatter 承载，正文不含"元信息"章节
+- 验收报告记录每个 `TC-*` 的执行结果；可选字段按模板 trimmingGuide 裁剪
 - 包含测试脚本路径和执行日志
 
 ## 安全边界

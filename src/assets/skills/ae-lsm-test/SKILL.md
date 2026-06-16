@@ -36,17 +36,18 @@ argument-hint: "[spec 路径] [design 路径|测试输入]"
 1. 读取 spec、design 和需求追溯表
 2. 生成测试场景，覆盖正常路径、边界条件、异常路径和集成场景
 3. 固化 `TC-*` 测试用例映射，每条映射到对应的 `R-*` 和 `U-*`
-4. 生成测试用例文档
-5. 调用 `ae:review domain=document scenes=test-case` 对 test 产物进行审查
-6. 审查通过后，向用户推荐下一步技能
+4. 生成测试用例文档，测试步骤使用结构化表格格式
+5. 根据项目实际情况动态裁剪模板可选字段，裁剪标记使用 `<!-- trimmed: 原因 -->`
+6. 调用 `ae:review domain=document scenes=test-case` 对 test 产物进行审查
+7. 审查通过后，向用户推荐下一步技能
 
 ## 产物要求
 
 - 产物路径：`ae/lsm/test/`
-- 使用 `references/test-template.md` 作为结构参考
-- 包含上游路径、输入 ID、输出 ID、追溯表、验证证据、未验证项和下一步入口
+- 使用 `references/test-template.md` 作为结构参考，裁剪指引见 spec 的 `references/lsm-trimming-guide.md`
+- 元数据（上游路径、输入 ID、输出 ID、追溯表、验证证据、未验证项）全部由 frontmatter 承载，正文不含"元信息"章节
 - 覆盖 `R-*` 与 `U-*` 的追溯关系
-- 测试用例需覆盖正常路径、边界条件和异常路径
+- 测试用例需覆盖正常路径、边界条件和异常路径；可选字段按模板 trimmingGuide 裁剪
 
 ## 安全边界
 
