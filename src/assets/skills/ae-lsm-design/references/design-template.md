@@ -4,10 +4,21 @@ upstreamRefs: []
 traceTable:
   inputs: []
   outputs: []
+splittingGuide:
+  maxLines: 800
+  strategy: 按模块或功能域分组 U-* 条目；索引文件保留设计概述和子文件索引；UI 设计子文件独立，超 800 行时按页面进一步拆分
+  indexFile:
+    required:
+      - 概述
+      - 子文件索引
+    optional:
+      - 现有架构约束
+      - 技术选型决策
+splittingRef: references/lsm-splitting-guide.md
 trimmingGuide:
   required:
     - 设计概述
-    - 实现映射（U-*，至少含需求映射+设计决策+接口边界+UI标记+下游映射）
+    - 实现映射（U-*，至少含需求映射+设计决策+接口边界+UI标记+UI设计引用+下游映射）
     - frontmatter.traceTable
   optional:
     - field: 现有架构约束
@@ -26,6 +37,8 @@ trimmingGuide:
       condition: 实现单元涉及持久化或复杂数据结构时保留
     - field: 风险说明
       condition: 存在已知风险时保留
+    - field: UI 设计子文件
+      condition: 存在任意 U-* 标记为"涉及 UI"时保留；UI 子文件使用 references/ui-design-template.md 模板
 ---
 
 # LSM Design: [项目/模块名称]
@@ -112,6 +125,8 @@ trimmingGuide:
 
 **UI 标记：** 涉及 UI / 不涉及 UI
 
+**UI 设计引用：** [若 UI 标记为"涉及 UI"，填写 UI 子文件中的页面/组件映射 ID，如 P-001；若"不涉及 UI"则留空]
+
 **下游映射：** TC-* / M-*
 
 ---
@@ -134,4 +149,17 @@ trimmingGuide:
 
 **UI 标记：**
 
+**UI 设计引用：**
+
 **下游映射：**
+
+## 子文件索引
+
+<!-- 当设计文档拆分为子文件时，索引文件在此列出子文件；未拆分时删除本节 -->
+<!-- 拆分规范见 references/lsm-splitting-guide.md，800 行硬限制 -->
+
+| 文件名 | 范围 | 作用 |
+|--------|------|------|
+| <module>.md | [U-* ID 范围或模块名] | [该子文件承载的实现单元和作用] |
+| ui-design.md | UI 设计体系与页面映射 | 存在 U-* 标记为"涉及 UI"时生成；使用 references/ui-design-template.md 模板 |
+| ui-<scope>.md | [P-* ID 范围] | UI 设计超 800 行时按页面拆分；设计令牌在 index.md 定义，子文件引用 |

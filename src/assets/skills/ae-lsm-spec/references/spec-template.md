@@ -4,6 +4,15 @@ upstreamRefs: []
 traceTable:
   inputs: []
   outputs: []
+splittingGuide:
+  maxLines: 800
+  strategy: 按功能域或模块分组 R-* 条目；索引文件保留需求概述和子文件索引
+  indexFile:
+    required:
+      - 概述
+      - 子文件索引
+    optional: []
+splittingRef: references/lsm-splitting-guide.md
 trimmingGuide:
   required:
     - 需求概述

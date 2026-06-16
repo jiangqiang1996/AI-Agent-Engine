@@ -4,6 +4,15 @@ upstreamRefs: []
 traceTable:
   inputs: []
   outputs: []
+splittingGuide:
+  maxLines: 800
+  strategy: 按页面或功能域分组 M-* 条目；索引文件保留视觉还原概述和子文件索引
+  indexFile:
+    required:
+      - 概述
+      - 子文件索引
+    optional: []
+splittingRef: references/lsm-splitting-guide.md
 trimmingGuide:
   required:
     - 视觉还原概述

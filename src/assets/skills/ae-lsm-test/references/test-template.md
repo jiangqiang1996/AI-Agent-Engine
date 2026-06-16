@@ -4,6 +4,15 @@ upstreamRefs: []
 traceTable:
   inputs: []
   outputs: []
+splittingGuide:
+  maxLines: 800
+  strategy: 按功能域或测试类型分组 TC-* 条目；索引文件保留测试概述和子文件索引
+  indexFile:
+    required:
+      - 概述
+      - 子文件索引
+    optional: []
+splittingRef: references/lsm-splitting-guide.md
 trimmingGuide:
   required:
     - 测试概述
