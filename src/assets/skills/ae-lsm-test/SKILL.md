@@ -1,6 +1,6 @@
 ---
 name: ae:lsm-test
-description: 基于 spec 和 design 生成测试用例文档
+description: 生成 Living Spec Mesh 测试用例，并追踪需求、设计与实现映射
 argument-hint: "[spec 路径] [design 路径|测试输入]"
 ---
 
@@ -8,7 +8,7 @@ argument-hint: "[spec 路径] [design 路径|测试输入]"
 
 ## 角色
 
-基于 spec 和 design 生成测试用例文档，建立 `TC-*` 追踪。
+基于 spec 和 design 生成测试用例文档，建立 `TC-*` 追踪，覆盖 `R-*` 与 `U-*` 的追溯关系。
 
 ## 适用场景
 
@@ -18,10 +18,10 @@ argument-hint: "[spec 路径] [design 路径|测试输入]"
 
 ## 不适用场景
 
-- 普通测试修复或已有测试失败排查
 - 没有 spec/design 且用户未选择 LSM
+- 没有设计文档，应先执行 `ae:lsm-design`
+- 没有需求文档，应先执行 `ae:lsm-spec`
 - 需要执行测试脚本，应使用 `ae:lsm-verify`
-- 仅需要编码实现，应使用 `ae:lsm-build`
 
 ## 输入处理
 
@@ -34,10 +34,10 @@ argument-hint: "[spec 路径] [design 路径|测试输入]"
 ## 执行流程
 
 1. 读取 spec、design 和需求追溯表
-2. 生成测试场景、边界条件、失败路径和验收标准
-3. 固化 `TC-*` 测试用例映射
+2. 生成测试场景，覆盖正常路径、边界条件、异常路径和集成场景
+3. 固化 `TC-*` 测试用例映射，每条映射到对应的 `R-*` 和 `U-*`
 4. 生成测试用例文档
-5. 调用 `ae:review domain=document kind=document targets=document` 对 test 产物进行审查
+5. 调用 `ae:review domain=document scenes=test-case` 对 test 产物进行审查
 6. 审查通过后，向用户推荐下一步技能
 
 ## 产物要求
@@ -50,14 +50,15 @@ argument-hint: "[spec 路径] [design 路径|测试输入]"
 
 ## 安全边界
 
-- 不默认从历史目录挑选测试模板
-- 不新增远程 GitHub 写操作流程
-- 不引用 `ae:review` 之外的任何非 LSM 技能
 - 返工时仅修改本技能产物（test），不修改上游 spec/design 和下游产物
+- 不新增远程写操作流程
 
 ## 完成标准
 
 - 产物包含 `TC-*` 测试用例
 - 覆盖 `R-*` 与 `U-*` 的追溯关系
 - test 已通过 `ae:review` 审查，审查结论为 passed 或有明确的未阻断发现
-- 下一步推荐：`ae:lsm-verify`（执行测试脚本并验收）
+- 下一步推荐：
+  - 若 `ae:lsm-build` 已完成 → `ae:lsm-verify`
+  - 若 `ae:lsm-build` 未完成 → `ae:lsm-build`
+  - 或重新执行 `ae:lsm-test` 返工

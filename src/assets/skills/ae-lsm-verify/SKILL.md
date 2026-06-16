@@ -8,7 +8,7 @@ argument-hint: "[test 路径] [build 产物路径]"
 
 ## 角色
 
-基于测试用例文档编写测试脚本，执行测试脚本，修复测试脚本中的问题，产出验收报告，固定 `V-*` 验收 ID。
+基于测试用例文档和构建产物，编写测试脚本、执行测试脚本、修复测试脚本中的问题，产出验收报告，固定 `V-*` 验收 ID。
 
 ## 适用场景
 
@@ -18,10 +18,9 @@ argument-hint: "[test 路径] [build 产物路径]"
 
 ## 不适用场景
 
-- 没有测试用例文档且用户未选择 LSM
+- 没有测试用例文档，应先执行 `ae:lsm-test`
 - 没有构建产物（代码未实现），应先执行 `ae:lsm-build`
 - 仅需要生成测试用例文档，应使用 `ae:lsm-test`
-- 探索性调试，应使用 `ae:task-loop`
 
 ## 输入处理
 
@@ -33,12 +32,12 @@ argument-hint: "[test 路径] [build 产物路径]"
 ## 执行流程
 
 1. 读取测试用例文档和构建报告
-2. 根据测试用例编写测试脚本（接口测试、UI 测试等）
+2. 根据测试用例编写测试脚本
 3. 执行测试脚本
 4. 修复测试脚本中的问题（脚本错误、环境问题等），重新执行
 5. 汇总测试结果，固化 `V-*` 验收 ID
 6. 生成验收报告
-7. 调用 `ae:review domain=document kind=document targets=document` 对 verify 产物进行审查
+7. 调用 `ae:review domain=document scenes=code` 对 verify 产物进行审查
 8. 审查通过后，向用户推荐后续操作
 
 ## 产物要求
@@ -51,11 +50,11 @@ argument-hint: "[test 路径] [build 产物路径]"
 
 ## 安全边界
 
-- 不引用 `ae:review` 之外的任何非 LSM 技能
 - 浏览器相关测试必须先通过 `ae:chrome-devtools` 完成 MCP 注册
 - 不直接调用 chrome-devtools MCP 工具
 - 返工时仅修改本技能产物（verify），不修改上游 test/build 和其他产物
 - 修复测试脚本时只修脚本问题，不修改被测代码（被测代码问题记录在验收报告中）
+- 不新增远程写操作流程
 
 ## 完成标准
 
@@ -65,3 +64,4 @@ argument-hint: "[test 路径] [build 产物路径]"
 - 下一步推荐：
   - 全部通过 → LSM 流程完成
   - 存在失败 → 建议返工对应阶段（`ae:lsm-build` 修复代码 或 `ae:lsm-test` 补充用例）
+  - 或重新执行 `ae:lsm-verify` 返工

@@ -118,13 +118,13 @@ describe('command-registration', () => {
     expect(config[`${COMMAND.TASK_LOOP}${PA_SUFFIX}`]?.template).toContain('auto 模式')
   })
 
-  it('应该为规划型 LSM 技能生成变体，并排除执行与验收阶段', () => {
+  it('应该为 LSM 技能只生成基础命令，全部排除提示词优化变体', () => {
     const config = buildCommandConfig('__missing_commands_dir__')
 
     expect(config[COMMAND.LSM_SPEC]).toBeDefined()
-    expect(config[`${COMMAND.LSM_SPEC}${PO_SUFFIX}`]).toBeDefined()
-    expect(config[`${COMMAND.LSM_DESIGN}${PA_SUFFIX}`]).toBeDefined()
-    expect(config[`${COMMAND.LSM_TEST}${PO_SUFFIX}`]).toBeDefined()
+    expect(config[`${COMMAND.LSM_SPEC}${PO_SUFFIX}`]).toBeUndefined()
+    expect(config[`${COMMAND.LSM_DESIGN}${PA_SUFFIX}`]).toBeUndefined()
+    expect(config[`${COMMAND.LSM_TEST}${PO_SUFFIX}`]).toBeUndefined()
     expect(config[`${COMMAND.LSM_MOCKUP}${PO_SUFFIX}`]).toBeUndefined()
     expect(config[`${COMMAND.LSM_BUILD}${PA_SUFFIX}`]).toBeUndefined()
     expect(config[`${COMMAND.LSM_VERIFY}${PO_SUFFIX}`]).toBeUndefined()

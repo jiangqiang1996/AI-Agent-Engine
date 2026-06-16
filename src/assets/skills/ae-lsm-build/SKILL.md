@@ -1,6 +1,6 @@
 ---
 name: ae:lsm-build
-description: 基于设计文档内联编码实现，产出代码与构建报告
+description: 执行 Living Spec Mesh 构建流程，汇总实现、验证与 Git 状态证据
 argument-hint: "[design 路径|实现范围|上游路径]"
 ---
 
@@ -18,9 +18,8 @@ argument-hint: "[design 路径|实现范围|上游路径]"
 
 ## 不适用场景
 
-- 探索性调试或环境修复，应使用 `ae:task-loop`
-- 缺少设计文档且用户未选择 LSM
-- 仅需要测试用例，应使用 `ae:lsm-test`
+- 缺少设计文档且用户未选择 LSM，应先执行 `ae:lsm-design`
+- 仅需要测试用例文档，应使用 `ae:lsm-test`
 
 ## 输入处理
 
@@ -36,7 +35,7 @@ argument-hint: "[design 路径|实现范围|上游路径]"
 3. 内联编码实现：直接编辑文件、运行命令，所有变更由本技能执行
 4. 记录变更文件、验证命令和 Git 状态
 5. 生成构建报告
-6. 调用 `ae:review domain=document kind=document targets=document` 对 build 产物进行审查
+6. 调用 `ae:review domain=document scenes=code` 对 build 产物进行审查
 7. 审查通过后，向用户推荐下一步技能
 
 ## 产物要求
@@ -44,13 +43,12 @@ argument-hint: "[design 路径|实现范围|上游路径]"
 - 产物路径：`ae/lsm/build/`
 - 使用 `references/build-report-template.md` 作为结构参考
 - 记录执行范围、变更文件、验证命令、结果、未完成项和 Git 操作状态
-- 包含上游路径、输入 ID、输出 ID、追溯表、验证证据、未验证项和下一步入口
+- 包含上游路径、输入 ID、追溯表、验证证据、未验证项和下一步入口
 
 ## 安全边界
 
-- 不调用 `ae:work` 或其他非 LSM 技能（`ae:review` 除外）
 - 不隐藏未验证项
-- 不新增远程 GitHub 写操作流程
+- 不新增远程写操作流程
 - 返工时仅修改本技能产物（build），不修改上游 design 和下游产物
 - 编码实现时遵守项目已有代码风格和架构约定
 
@@ -59,4 +57,6 @@ argument-hint: "[design 路径|实现范围|上游路径]"
 - 构建报告包含验证命令和结果
 - Git 操作状态可复核
 - build 已通过 `ae:review` 审查，审查结论为 passed 或有明确的未阻断发现
-- 下一步推荐：`ae:lsm-verify`（验收测试）
+- 下一步推荐：
+  - `ae:lsm-test`（生成测试用例）或 `ae:lsm-verify`（若 test 已完成）
+  - 或重新执行 `ae:lsm-build` 返工

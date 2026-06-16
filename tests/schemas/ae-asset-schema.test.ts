@@ -79,7 +79,7 @@ describe('ae-asset-schema', () => {
     expect(AeCommandNameSchema.safeParse('ae-agent-updater').success).toBe(false)
   })
 
-  it('应该接受 LSM 技能和命令，并按阶段控制提示词优化变体', () => {
+  it('应该接受 LSM 技能和命令，并排除全部提示词优化变体', () => {
     expect(AeSkillNameSchema.parse(SKILL.LSM_SPEC)).toBe('ae:lsm-spec')
     expect(AeSkillNameSchema.parse(SKILL.LSM_DESIGN)).toBe('ae:lsm-design')
     expect(AeSkillNameSchema.parse(SKILL.LSM_MOCKUP)).toBe('ae:lsm-mockup')
@@ -87,9 +87,9 @@ describe('ae-asset-schema', () => {
     expect(AeSkillNameSchema.parse(SKILL.LSM_TEST)).toBe('ae:lsm-test')
     expect(AeSkillNameSchema.parse(SKILL.LSM_VERIFY)).toBe('ae:lsm-verify')
     expect(AeCommandNameSchema.parse(COMMAND.LSM_MOCKUP)).toBe('ae-lsm-mockup')
-    expect(AeCommandNameSchema.safeParse(`${COMMAND.LSM_SPEC}${PO_SUFFIX}`).success).toBe(true)
-    expect(AeCommandNameSchema.safeParse(`${COMMAND.LSM_DESIGN}${PA_SUFFIX}`).success).toBe(true)
-    expect(AeCommandNameSchema.safeParse(`${COMMAND.LSM_TEST}${PO_SUFFIX}`).success).toBe(true)
+    expect(AeCommandNameSchema.safeParse(`${COMMAND.LSM_SPEC}${PO_SUFFIX}`).success).toBe(false)
+    expect(AeCommandNameSchema.safeParse(`${COMMAND.LSM_DESIGN}${PA_SUFFIX}`).success).toBe(false)
+    expect(AeCommandNameSchema.safeParse(`${COMMAND.LSM_TEST}${PO_SUFFIX}`).success).toBe(false)
     expect(AeCommandNameSchema.safeParse(`${COMMAND.LSM_MOCKUP}${PO_SUFFIX}`).success).toBe(false)
     expect(AeCommandNameSchema.safeParse(`${COMMAND.LSM_BUILD}${PA_SUFFIX}`).success).toBe(false)
     expect(AeCommandNameSchema.safeParse(`${COMMAND.LSM_VERIFY}${PO_SUFFIX}`).success).toBe(false)

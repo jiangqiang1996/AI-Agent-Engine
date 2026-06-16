@@ -1,7 +1,7 @@
 ---
 name: ae:lsm-design
-description: 基于 spec 生成全方面详细设计，固定实现映射与追溯链
-argument-hint: "[spec 路径|需求路径|设计输入]"
+description: 基于 spec 生成 Living Spec Mesh 设计，保持实现映射与追溯链
+argument-hint: "[spec 路径|设计输入]"
 ---
 
 # LSM 设计
@@ -19,8 +19,8 @@ argument-hint: "[spec 路径|需求路径|设计输入]"
 ## 不适用场景
 
 - 没有 spec 且用户未选择 LSM
-- 普通功能计划，应使用 `ae:plan`
-- 仅需要编码实现，应使用 `ae:lsm-build`
+- 需求尚未明确，应先执行 `ae:lsm-spec`
+- 仅需要编码实现且无需设计决策时，可直接使用 `ae:lsm-build`
 
 ## 输入处理
 
@@ -33,30 +33,33 @@ argument-hint: "[spec 路径|需求路径|设计输入]"
 
 1. 读取 spec 和需求追溯表
 2. 生成设计决策、接口边界、数据模型和实现单元
-3. 固化 `U-*` 实现映射和风险说明
-4. 生成设计文档；文档过大时按模块或功能域拆分为多个子设计文件
-5. 调用 `ae:review domain=document kind=document targets=document` 对 design 产物进行审查
-6. 审查通过后，根据需求类型推荐下一步技能
+3. 固化 `U-*` 实现映射和风险说明，每个 `U-*` 映射到对应的 `R-*` 需求
+4. 生成设计文档；文档过大时按模块或功能域拆分为多个子设计文件，主文件建立索引
+5. 设计中必须明确区分 UI 相关部分和非 UI 部分，供 `ae:lsm-mockup` 判断
+6. 调用 `ae:review domain=document scenes=design` 对 design 产物进行审查
+7. 审查通过后，根据需求类型推荐下一步技能
 
 ## 产物要求
 
 - 产物路径：`ae/lsm/design/`
 - 使用 `references/design-template.md` 作为结构参考
-- 包含上游路径、输入 ID、输出 ID、追溯表、验证证据、未验证项和下一步入口
-- 设计文档过大时拆分为多个子设计文件，主文件建立索引
-- 设计中必须明确区分 UI 相关部分和非 UI 部分，供 `ae:lsm-mockup` 判断
+- 主文件包含上游路径、输入 ID、输出 ID、追溯表、验证证据、未验证项和下一步入口
+- 每个实现单元包含 `U-*` ID、需求映射、设计决策、接口边界、数据模型、风险说明、下游映射
+- 设计文档过大时拆分为多个子设计文件，主文件建立索引指向子文件
+- 设计中明确标注哪些实现单元涉及 UI，哪些不涉及
 
 ## 安全边界
 
-- 不默认扫历史目录找 spec
-- 不新增远程 GitHub 写操作流程
-- 不引用 `ae:review` 之外的任何非 LSM 技能
+- 不默认扫描历史目录找 spec
 - 返工时仅修改本技能产物（design），不修改上游 spec 和下游产物
+- 不新增远程写操作流程
 
 ## 完成标准
 
 - 产物包含 `U-*` 实现映射
+- 每个 `U-*` 映射到对应的 `R-*` 需求
 - design 已通过 `ae:review` 审查，审查结论为 passed 或有明确的未阻断发现
 - 下一步推荐：
   - 若需求涉及 UI → `ae:lsm-mockup`（视觉还原验证）
   - 若无 UI 需求 → `ae:lsm-test` 或 `ae:lsm-build`
+  - 或重新执行 `ae:lsm-design` 返工
