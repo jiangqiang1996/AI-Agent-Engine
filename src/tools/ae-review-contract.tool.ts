@@ -1,4 +1,4 @@
-import { tool, type ToolDefinition } from '@opencode-ai/plugin/tool'
+import { tool, type ToolDefinition } from '@opencode-ai/plugin'
 import { Effect } from 'effect'
 
 import { selectSpecialists, getCoordinationStrategy } from '../services/domain-dispatch-service.js'

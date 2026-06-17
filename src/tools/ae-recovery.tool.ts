@@ -1,4 +1,4 @@
-import { tool, type ToolDefinition } from '@opencode-ai/plugin/tool'
+import { tool, type ToolDefinition } from '@opencode-ai/plugin'
 import { Effect } from 'effect'
 
 import { createRuntimeAssetManifestFromRoot } from '../services/runtime-asset-manifest.js'

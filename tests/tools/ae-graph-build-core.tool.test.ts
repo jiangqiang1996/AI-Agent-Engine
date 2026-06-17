@@ -3,7 +3,7 @@ import { execFileSync } from 'node:child_process'
 import { join } from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
-import type { ToolContext } from '@opencode-ai/plugin/tool'
+import type { ToolContext } from '@opencode-ai/plugin'
 
 import { aeGraphBuildTool } from '../../src/tools/ae-graph-build.tool.js'
 import { aeGraphQueryTool } from '../../src/tools/ae-graph-query.tool.js'

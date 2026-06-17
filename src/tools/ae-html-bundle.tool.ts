@@ -1,4 +1,4 @@
-import { tool } from '@opencode-ai/plugin/tool'
+import { tool } from '@opencode-ai/plugin'
 import { resolve } from 'node:path'
 import { z } from 'zod'
 

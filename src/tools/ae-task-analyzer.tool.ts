@@ -1,7 +1,7 @@
 import { readdir, readFile, stat } from 'node:fs/promises'
 import { extname, isAbsolute, join, normalize, posix, relative, resolve, win32 } from 'node:path'
 
-import { tool, type ToolDefinition } from '@opencode-ai/plugin/tool'
+import { tool, type ToolDefinition } from '@opencode-ai/plugin'
 import { Effect } from 'effect'
 
 import { toPosixPath } from '../utils/path-utils.js'

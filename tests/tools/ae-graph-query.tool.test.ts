@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
-import type { ToolContext } from '@opencode-ai/plugin/tool'
+import type { ToolContext } from '@opencode-ai/plugin'
 
 import { createGraphStorage } from '../../src/services/graph-storage-service.js'
 import {

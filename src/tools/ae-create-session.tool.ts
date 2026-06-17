@@ -1,5 +1,5 @@
 import { Effect } from 'effect'
-import { tool, type ToolDefinition } from '@opencode-ai/plugin/tool'
+import { tool, type ToolDefinition } from '@opencode-ai/plugin'
 import { z } from 'zod'
 
 import { TOOL } from '../schemas/ae-asset-schema.js'

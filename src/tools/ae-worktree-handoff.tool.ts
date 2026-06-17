@@ -1,4 +1,4 @@
-import { tool, type ToolDefinition } from '@opencode-ai/plugin/tool'
+import { tool, type ToolDefinition } from '@opencode-ai/plugin'
 import { z } from 'zod'
 
 import { writeHandoffFile } from '../services/worktree-handoff-generator.js'

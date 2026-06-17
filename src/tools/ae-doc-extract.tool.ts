@@ -1,6 +1,6 @@
 import { isAbsolute, resolve } from 'node:path'
 
-import { tool, type ToolDefinition } from '@opencode-ai/plugin/tool'
+import { tool, type ToolDefinition } from '@opencode-ai/plugin'
 import { Effect } from 'effect'
 
 import { extractDoc } from '../services/doc-extract-service.js'

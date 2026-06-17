@@ -1,6 +1,6 @@
 import { resolve } from 'node:path'
 
-import { tool } from '@opencode-ai/plugin/tool'
+import { tool } from '@opencode-ai/plugin'
 import { z } from 'zod'
 
 import { TOOL } from '../schemas/ae-asset-schema.js'

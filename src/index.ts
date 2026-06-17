@@ -1,4 +1,4 @@
-import type {Config, PluginModule} from '@opencode-ai/plugin'
+import type {Config, Plugin} from '@opencode-ai/plugin'
 import {join, resolve} from 'node:path'
 
 import {isInsideRoot} from './utils/path-utils.js'
@@ -23,9 +23,6 @@ import {registerSkillsPath} from './services/skills-path-service.js'
 import {createToolRegistry} from './tools/index.js'
 import {setGlobalClient} from './services/client-holder.js'
 import {dedupeCommandFileArgumentParts} from './services/command-file-argument-dedupe-service.js'
-
-/** 插件注册 ID，对应 opencode 配置中的插件标识。 */
-const PLUGIN_ID = 'ae-server'
 
 interface RuntimeConfigShape {
     command?: Record<string, {
@@ -116,34 +113,31 @@ function resolveConfiguredModelReferences(
     }
 }
 
-const plugin: PluginModule = {
-    id: PLUGIN_ID,
-    server: async (input) => {
-        const manifest = createRuntimeAssetManifest(import.meta.url)
-        const hostWorktree = resolveHostWorktree(input)
-        setGlobalClient(input.client)
+const plugin: Plugin = async (input) => {
+    const manifest = createRuntimeAssetManifest(import.meta.url)
+    const hostWorktree = resolveHostWorktree(input)
+    setGlobalClient(input.client)
 
-        return {
-            config: async (config) => {
-                await registerSkillsPath(config as RuntimeConfigShape, manifest, hostWorktree)
-                mergeCommandConfigWithRouting(
-                    config as RuntimeConfigShape,
-                    manifest,
-                    hostWorktree,
-                )
-                registerMcp(config as RuntimeConfigShape, manifest, hostWorktree)
-                registerRulesInstructions(config as RuntimeConfigShape, manifest)
-                registerReferences(config as RuntimeConfigShape, manifest)
-            },
-            'experimental.chat.system.transform': async (_input, output) => {
-                await injectBuiltinRulesIntoSystem(manifest, output)
-            },
-            'command.execute.before': async (_input, output) => {
-                dedupeCommandFileArgumentParts(output.parts)
-            },
-            tool: createToolRegistry(),
-        }
-    },
+    return {
+        config: async (config) => {
+            await registerSkillsPath(config as RuntimeConfigShape, manifest, hostWorktree)
+            mergeCommandConfigWithRouting(
+                config as RuntimeConfigShape,
+                manifest,
+                hostWorktree,
+            )
+            registerMcp(config as RuntimeConfigShape, manifest, hostWorktree)
+            registerRulesInstructions(config as RuntimeConfigShape, manifest)
+            registerReferences(config as RuntimeConfigShape, manifest)
+        },
+        'experimental.chat.system.transform': async (_input, output) => {
+            await injectBuiltinRulesIntoSystem(manifest, output)
+        },
+        'command.execute.before': async (_input, output) => {
+            dedupeCommandFileArgumentParts(output.parts)
+        },
+        tool: createToolRegistry(),
+    }
 }
 
 export default plugin

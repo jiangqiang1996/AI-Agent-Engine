@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, 
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import type { ToolContext } from '@opencode-ai/plugin/tool'
+import type { ToolContext } from '@opencode-ai/plugin'
 import { Effect } from 'effect'
 
 export const GRAPH_BUILD_STATE_BASE = {

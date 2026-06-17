@@ -2,7 +2,7 @@ import { promises as fs } from 'node:fs'
 import * as os from 'node:os'
 import * as path from 'node:path'
 
-import { tool } from '@opencode-ai/plugin/tool'
+import { tool } from '@opencode-ai/plugin'
 import { z } from 'zod'
 
 import { getGlobalClient } from '../services/client-holder.js'

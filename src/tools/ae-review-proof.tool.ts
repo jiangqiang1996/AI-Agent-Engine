@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 
-import { tool, type ToolDefinition } from '@opencode-ai/plugin/tool'
+import { tool, type ToolDefinition } from '@opencode-ai/plugin'
 import { z } from 'zod'
 
 import { AGENT, COMMAND, SKILL } from '../schemas/ae-asset-schema.js'

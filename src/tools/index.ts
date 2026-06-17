@@ -1,4 +1,4 @@
-import type { ToolDefinition } from '@opencode-ai/plugin/tool'
+import type { ToolDefinition } from '@opencode-ai/plugin'
 
 import { TOOL } from '../schemas/ae-asset-schema.js'
 import { aeRecoveryTool } from './ae-recovery.tool.js'
