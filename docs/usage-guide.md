@@ -1,4 +1,4 @@
-# AE 用户手册
+﻿# AE 用户手册
 
 本手册说明 AI Agent Engine（AE）的常用流程、命令参数、命令变体、代理分工、工具边界和产物路径。当前运行时实际可用能力以 `/ae-help` 为准。
 
@@ -18,8 +18,7 @@
 | 只看风险，不改文件 | `/ae-review mode:report-only` |
 | 审查文档 | `/ae-review domain:document <文档路径>` |
 | 重构或技术债治理 | `/ae-refactor` |
-| 前端初版 | `/ae-frontend-design` |
-| 浏览器验收 | `/ae-test-browser` |
+| 前端设计、还原、交互或验收 | `/ae-web-forge` |
 | 自动播放课程 | `/ae-course-auto-player` |
 | 数据库查询或操作 | `/ae-sql` |
 | Swagger/OpenAPI 联调摘要 | `/ae-swagger-parser` |
@@ -74,11 +73,11 @@
 
 ```text
 /ae-chrome-devtools
-/ae-frontend-design 实现一个移动端优先的登录页
-/ae-test-browser http://localhost:3000/login
+/ae-web-forge 实现一个移动端优先的登录页
+/ae-web-forge --inspect http://localhost:3000/login
 ```
 
-只要实际使用 chrome-devtools-mcp 工具，必须先通过 `ae-chrome-devtools-mcp action=check` 校验当前工作区的 chrome-devtools MCP 注册状态；注册缺失或无效时先完成 `/ae-chrome-devtools` MCP 动态注册流程。`/ae-frontend-design` 负责初版界面，`/ae-test-browser` 负责真实浏览器验收；需要贴合 Figma 时使用 `@figma-design-sync`，需要多轮审美打磨时使用 `@design-iterator`。
+只要实际使用 chrome-devtools-mcp 工具，必须先通过 `ae-chrome-devtools-mcp action=check` 校验当前工作区的 chrome-devtools MCP 注册状态；注册缺失或无效时先完成 `/ae-chrome-devtools` MCP 动态注册流程。`/ae-web-forge` 是统一前端能力入口，通过子代理 `@ui-architect`（自由设计）、`@ui-matcher`（设计还原）、`@logic-weaver`（交互逻辑）、`@browser-inspector`（浏览器验收）交错执行。
 
 ### Swagger/OpenAPI
 
@@ -114,9 +113,7 @@
 | `/ae-review` | `[mode:*] [domain:code\|domain:document] [from:<ref>] [full] [full:<path>] [session] [plan:<path>] [文档路径]` | 审查代码、文档、计划、全量路径或会话变更 | 代码域和文档域分开处理 |
 | `/ae-lfg` | `[需求描述\|已有产物路径]` | 默认全流程入口 | 优先恢复已有产物；缺上游时回退到更早阶段 |
 | `/ae-chrome-devtools` | `[浏览器类型]` | 浏览器能力中枢，负责 MCP 动态注册、目标选择和浏览器控制 | 确认 chrome-devtools MCP 连接就绪 |
-| `/ae-test-browser` | `[URL\|路由]` | 浏览器端到端验收 | 先完成 chrome-devtools MCP 动态注册；不做审美设计 |
-| `/ae-course-auto-player` | `[浏览器类型] <课程列表页面URL>` | 自动播放在线课程列表 | 先完成 chrome-devtools MCP 动态注册 |
-| `/ae-frontend-design` | `[描述\|路径]` | 构建前端初版界面 | 不替代完整 E2E 或 Figma 对齐 |
+| `/ae-web-forge` | `[描述\|Figma URL\|截图\|路由]` | 统一前端能力入口：自由设计、设计还原、交互逻辑、浏览器验收 | 先完成 chrome-devtools MCP 动态注册 |
 | `/ae-handoff` | `—` | 提取上下文并创建独立新会话 | 用于交接，不用于提示词优化 |
 | `/ae-prompt-optimize` | `[auto] [提示词内容]` | 优化提示词并可在新会话执行 | 需要注入历史上下文时用 `/ae-handoff` |
 | `/ae-task-loop` | `[一句话目标描述]` | 循环执行和验证直到目标达成 | 不适合需求不清的大型功能 |
@@ -158,7 +155,7 @@
 | `/ae-work` | `/ae-work-po` | `/ae-work-pa` |
 | `/ae-lfg` | `/ae-lfg-po` | `/ae-lfg-pa` |
 | `/ae-task-loop` | `/ae-task-loop-po` | `/ae-task-loop-pa` |
-| `/ae-frontend-design` | `/ae-frontend-design-po` | `/ae-frontend-design-pa` |
+
 
 没有列出的命令不提供 `-po` 或 `-pa` 变体。
 
@@ -197,8 +194,10 @@
 | `@repo-research-analyst` | 研究仓库结构、文档、约定和实现模式 | 只做仓库研究，不替代实现 |
 | `@web-researcher` | 做外部网络研究、竞品扫描和跨领域类比 | 用于外部上下文，不读取本地私有代码 |
 | `@spec-flow-analyzer` | 分析规格、计划或功能描述中的用户流程缺口 | 不直接写代码 |
-| `@design-iterator` | 对已有可运行 UI 做多轮截图、分析和审美优化 | 先完成 chrome-devtools MCP 动态注册；不从零创建完整页面 |
-| `@figma-design-sync` | 按 Figma 或设计图片修复 Web 实现视觉偏差 | 先完成 chrome-devtools MCP 动态注册；不自由发挥设计方向 |
+| `@ui-architect` | 无 Figma 约束的自由 UI 设计实现与一轮视觉验证 | 先完成 chrome-devtools MCP 动态注册；不负责设计还原 |
+| `@ui-matcher` | 以 Figma 设计稿或截图为准同步视觉差异 | 先完成 chrome-devtools MCP 动态注册；不自由发挥设计方向 |
+| `@logic-weaver` | 前端交互逻辑实现与 API 集成 | 不负责视觉设计 |
+| `@browser-inspector` | 端到端浏览器测试与回归验证 | 先完成 chrome-devtools MCP 动态注册；不做审美设计迭代 |
 
 ## 域代理
 
@@ -243,10 +242,10 @@
 
 | 场景 | 顺序 |
 | --- | --- |
-| 有设计稿但没有页面 | `/ae-frontend-design` → `@figma-design-sync` → `/ae-test-browser` |
-| 已有页面，需要贴合 Figma | `@figma-design-sync` → `/ae-test-browser` |
-| 没有设计稿，但要提升视觉质量 | `/ae-frontend-design` → `@design-iterator` → `/ae-test-browser` |
-| 只验证功能流程 | `/ae-test-browser` |
+| 有设计稿但没有页面 | `/ae-web-forge --match` |
+| 已有页面，需要贴合 Figma | `/ae-web-forge --match` → `/ae-web-forge --inspect` |
+| 没有设计稿，但要提升视觉质量 | `/ae-web-forge --design` → `/ae-web-forge --inspect` |
+| 只验证功能流程 | `/ae-web-forge --inspect` |
 
 浏览器相关路径都必须先校验当前工作区 chrome-devtools MCP 注册状态；注册缺失或无效时先完成 `/ae-chrome-devtools` MCP 动态注册流程。
 

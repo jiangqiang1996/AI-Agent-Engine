@@ -66,8 +66,8 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 
 ```text
 /ae-chrome-devtools
-/ae-frontend-design 实现登录页
-/ae-test-browser http://localhost:3000/login
+/ae-web-forge 实现登录页
+/ae-web-forge --inspect http://localhost:3000/login
 ```
 
 解析 Swagger/OpenAPI：
@@ -98,9 +98,8 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 工作总结 | `/ae-work-report` |
 | 重构计划 | `/ae-refactor` |
 | 代码或文档审查 | `/ae-review` |
-| 前端初版 | `/ae-frontend-design` |
+| 前端设计、还原、交互或验收 | `/ae-web-forge` |
 | chrome-devtools 浏览器能力 | `/ae-chrome-devtools` |
-| 浏览器验收 | `/ae-test-browser` |
 | 自动播放课程 | `/ae-course-auto-player` |
 | Swagger/OpenAPI 摘要 | `/ae-swagger-parser` |
 | HTML 单文件打包 | `/ae-html-bundle` |
@@ -132,8 +131,8 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 类型 | 当前快照 | 真源 |
 | --- | ---: | --- |
 | 技能 | 37 | `src/assets/skills/`、`src/services/ae-catalog.ts` |
-| 命令 | 60 | `src/services/command-registration.ts`、`src/assets/commands/` |
-| 代理 | 36 | `src/assets/agents/`、`src/services/agent-registration.ts` |
+| 命令 | 57 | `src/services/command-registration.ts`、`src/assets/commands/` |
+| 代理 | 39 | `src/assets/agents/`、`src/services/agent-registration.ts` |
 | 工具 | 19 | `src/tools/` |
 | 规则 | 5 | `src/assets/rules/` |
 | 内置配置 | 1 | `src/assets/config/ae.jsonc` |
