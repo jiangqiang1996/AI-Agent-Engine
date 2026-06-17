@@ -1,5 +1,4 @@
 import { tool } from '@opencode-ai/plugin/tool'
-import { Effect } from 'effect'
 import { resolve } from 'node:path'
 import { z } from 'zod'
 
@@ -67,12 +66,12 @@ export const aeHtmlBundleTool = tool({
           metadata: { tool: TOOL.AE_HTML_BUNDLE, status: 'failed' },
         }
       }
-      await Effect.runPromise(ctx.ask({
+      await ctx.ask({
         permission: 'file',
         patterns: [resolve(baseDirectory, args.output)],
         always: [],
         metadata: { action: '写入自包含 HTML bundle 输出文件', output: args.output },
-      }))
+      })
 
       const result = bundleHtml({
         entry: args.entry,

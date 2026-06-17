@@ -4,7 +4,6 @@ import { execFileSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 
 import { tool, type ToolDefinition } from '@opencode-ai/plugin/tool'
-import { Effect } from 'effect'
 import { z } from 'zod'
 
 import { AGENT, COMMAND, SKILL } from '../schemas/ae-asset-schema.js'
@@ -469,7 +468,7 @@ export const aeReviewProofTool: ToolDefinition = tool({
     }
 
     try {
-      await Effect.runPromise(ctx.ask({
+      await ctx.ask({
         permission: 'file',
         patterns: [metadataPath],
         always: [],
@@ -477,7 +476,7 @@ export const aeReviewProofTool: ToolDefinition = tool({
           action: '写入 ae:review 审查证明',
           target: metadataPath,
         },
-      }))
+      })
     } catch (error) {
       const reason = error instanceof Error && error.message ? `：${error.message}` : ''
       return `写入 ae:review 审查证明未获得文件授权${reason}。请确认当前工作区允许写入 ${metadataPath} 后重试。`

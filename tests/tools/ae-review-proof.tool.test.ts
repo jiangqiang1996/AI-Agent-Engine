@@ -2,7 +2,6 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { execFileSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { Effect } from 'effect'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { aeReviewProofTool, hashReviewOutput } from '../../src/tools/ae-review-proof.tool.js'
@@ -47,7 +46,7 @@ function createToolContext(
 ): Parameters<typeof aeReviewProofTool.execute>[1] {
   return {
     metadata: () => undefined,
-    ask: () => Effect.succeed(undefined),
+    ask: () => Promise.resolve(),
     worktree: root,
     directory: root,
     sessionID: 'test-session',
@@ -571,7 +570,7 @@ describe('ae-review-proof 工具', () => {
       source_review_output: sourceReviewOutput,
     }, {
       ...createToolContext(root, sourceReviewOutput, 'review-denied'),
-      ask: () => Effect.fail(new Error('denied')) as unknown as Effect.Effect<void>,
+      ask: () => Promise.reject(new Error('denied')),
     })
 
     expect(result).toContain('未获得文件授权：denied')

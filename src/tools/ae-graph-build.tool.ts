@@ -3,7 +3,6 @@ import { join, relative, resolve } from 'node:path'
 import { execFileSync } from 'node:child_process'
 
 import { tool } from '@opencode-ai/plugin/tool'
-import { Effect } from 'effect'
 import { z } from 'zod'
 
 import { TOOL } from '../schemas/ae-asset-schema.js'
@@ -219,7 +218,7 @@ async function persistGraphFilterDecisions(
   }
 
   try {
-    await Effect.runPromise(ctx.ask({
+    await ctx.ask({
       permission: 'file',
       patterns: [resolve(worktree, '.opencode', 'ae.jsonc')],
       always: [],
@@ -228,7 +227,7 @@ async function persistGraphFilterDecisions(
         include: normalized.include,
         exclude: normalized.exclude,
       },
-    }))
+    })
     updateGraphRulesInProjectConfig(worktree, {
       appendInclude: normalized.include,
       appendExclude: normalized.exclude,
@@ -253,7 +252,7 @@ async function collectFilterDecisionWarnings(
 
   if (typeof ctx.ask === 'function') {
     try {
-      await Effect.runPromise(ctx.ask({
+      await ctx.ask({
         permission: 'file',
         patterns: [resolve(worktree, '.opencode', 'ae.jsonc')],
         always: [],
@@ -270,7 +269,7 @@ async function collectFilterDecisionWarnings(
             reason: suggestion.reason,
           })),
         },
-      }))
+      })
     } catch {
       return []
     }
@@ -290,7 +289,7 @@ async function confirmStaleLockRecovery(worktree: string, scopeRoot: string, ctx
   }
 
   try {
-    await Effect.runPromise(ctx.ask({
+    await ctx.ask({
       permission: 'file',
       patterns: [resolve(worktree, docsAePath(DOCS_AE_SUBDIRS.GRAPHS), 'graph.json.lock')],
       always: [],
@@ -298,7 +297,7 @@ async function confirmStaleLockRecovery(worktree: string, scopeRoot: string, ctx
         action: '检测到图谱锁文件存在；确认上次构建已意外终止后，将清理残留锁并重新构建',
         suggestion: '仅在确认没有其他 ae-graph-build 正在运行时继续；否则取消并稍后重试',
       },
-    }))
+    })
     return true
   } catch {
     return false

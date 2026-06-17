@@ -1,5 +1,4 @@
 import { tool } from '@opencode-ai/plugin/tool'
-import { Effect } from 'effect'
 import { z } from 'zod'
 
 import { TOOL } from '../schemas/ae-asset-schema.js'
@@ -51,7 +50,7 @@ export const aeSwaggerParserTool = tool({
 
     try {
       if (/^https?:\/\//i.test(args.source)) {
-        await Effect.runPromise(ctx.ask({
+        await ctx.ask({
           permission: 'network',
           patterns: [displaySource],
           always: [],
@@ -59,7 +58,7 @@ export const aeSwaggerParserTool = tool({
             action: '读取远程 Swagger/OpenAPI JSON/YAML',
             source: displaySource,
           },
-        }))
+        })
       }
 
       const output = await parseSwaggerSource(args.source, ctx.worktree, {

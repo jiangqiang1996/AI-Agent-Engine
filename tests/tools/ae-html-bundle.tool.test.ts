@@ -2,7 +2,6 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { Effect } from 'effect'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 const roots: string[] = []
@@ -19,7 +18,7 @@ afterEach(() => {
   }
 })
 
-async function callTool(root: string, args: Record<string, unknown>, ask?: () => Effect.Effect<void, Error>) {
+async function callTool(root: string, args: Record<string, unknown>, ask?: () => Promise<void>) {
   const { aeHtmlBundleTool: tool } = await import('../../src/tools/ae-html-bundle.tool.js')
   const definition = tool as unknown as {
     execute: (args: Record<string, unknown>, ctx: Record<string, unknown>) => Promise<string | { output: string }>
@@ -42,7 +41,7 @@ describe('ae-html-bundle 工具', () => {
     writeFileSync(join(root, 'assets', 'app.js'), 'console.log("ok")')
     writeFileSync(join(root, 'index.html'), '<script src="assets/app.js"></script>')
 
-    const output = await callTool(root, { entry: 'index.html', output: 'bundle.html' }, () => Effect.void)
+    const output = await callTool(root, { entry: 'index.html', output: 'bundle.html' }, () => Promise.resolve())
 
     expect(output).toContain('# HTML Bundle 结果：complete')
     expect(output).toContain('已内联资源：1')
@@ -52,7 +51,7 @@ describe('ae-html-bundle 工具', () => {
   it('应该返回可恢复的中文错误', async () => {
     const root = createRoot()
 
-    const output = await callTool(root, { entry: 'missing.html', output: 'bundle.html' }, () => Effect.void)
+    const output = await callTool(root, { entry: 'missing.html', output: 'bundle.html' }, () => Promise.resolve())
 
     expect(output).toContain('# HTML Bundle 结果：failed')
     expect(output).toContain('入口 HTML 不存在或无法访问')
@@ -73,7 +72,7 @@ describe('ae-html-bundle 工具', () => {
     const root = createRoot()
     writeFileSync(join(root, 'index.html'), '<html></html>')
 
-    const output = await callTool(root, { entry: 'index.html', output: 'bundle.html' }, () => Effect.fail(new Error('拒绝写入')))
+    const output = await callTool(root, { entry: 'index.html', output: 'bundle.html' }, () => Promise.reject(new Error('拒绝写入')))
 
     expect(output).toContain('# HTML Bundle 结果：failed')
     expect(output).toContain('拒绝写入')
