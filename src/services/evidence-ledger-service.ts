@@ -182,13 +182,17 @@ export function readEvidenceLedger(repoRoot: string): EvidenceReadResult {
       : toPosixPath(event.artifactPath)
     const artifactDomain = toPosixPath(join(docsAePath(DOCS_AE_SUBDIRS.EVIDENCE), ARTIFACTS_DIR, event.evidenceKind))
 
+    if (pathContainsSymlink(repoRoot, artifactAbsPath)) {
+      diagnostics.push(`artifact 路径越界或跨域：${event.id}`)
+      continue
+    }
+
     if (!isRegularFile(artifactAbsPath)) {
       diagnostics.push(`artifact 缺失：${event.artifactPath}`)
       continue
     }
 
     const artifactIsSafe = isInsideRoot(repoRoot, artifactAbsPath)
-      && !pathContainsSymlink(repoRoot, artifactAbsPath)
       && isInsideRoot(realpathSync(repoRoot), realpathSync(artifactAbsPath))
       && artifactRelPath.startsWith(`${artifactDomain}/`)
     if (!artifactIsSafe) {
