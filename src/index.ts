@@ -1,149 +1,149 @@
-import type { Config, PluginModule } from '@opencode-ai/plugin'
-import { join, resolve } from 'node:path'
+import type {Config, PluginModule} from '@opencode-ai/plugin'
+import {join, resolve} from 'node:path'
 
-import { isInsideRoot } from './utils/path-utils.js'
+import {isInsideRoot} from './utils/path-utils.js'
 
-import { registerAgents } from './services/agent-registration.js'
+import {registerAgents} from './services/agent-registration.js'
 import {
-  buildCommandConfig,
-  mergeDynamicCommands,
-  mergeProjectCommandOverrides,
+    buildCommandConfig,
+    mergeDynamicCommands,
+    mergeProjectCommandOverrides,
 } from './services/command-registration.js'
-import { registerMcp } from './services/mcp-registration.js'
+import {registerMcp} from './services/mcp-registration.js'
 import {
-  collectModelScenarioSources,
-  resolveBuiltinOpencodeConfigPaths,
+    collectModelScenarioSources,
+    resolveBuiltinOpencodeConfigPaths,
 } from './services/builtin-opencode-config-service.js'
-import {
-  createModelScenarioRoutingContext,
-  resolveModelReference,
-} from './services/model-scenario-routing-service.js'
-import { registerRulesInstructions } from './services/rules-instructions-service.js'
-import { injectBuiltinRulesIntoSystem } from './services/rules-system-transform-service.js'
-import { createRuntimeAssetManifest } from './services/runtime-asset-manifest.js'
-import { registerSkillsPath } from './services/skills-path-service.js'
-import { createToolRegistry } from './tools/index.js'
-import { setGlobalClient } from './services/client-holder.js'
-import { dedupeCommandFileArgumentParts } from './services/command-file-argument-dedupe-service.js'
+import {createModelScenarioRoutingContext, resolveModelReference,} from './services/model-scenario-routing-service.js'
+import {registerRulesInstructions} from './services/rules-instructions-service.js'
+import {injectBuiltinRulesIntoSystem} from './services/rules-system-transform-service.js'
+import {createRuntimeAssetManifest} from './services/runtime-asset-manifest.js'
+import {registerReferences} from './services/references-registration-service.js'
+import {registerSkillsPath} from './services/skills-path-service.js'
+import {createToolRegistry} from './tools/index.js'
+import {setGlobalClient} from './services/client-holder.js'
+import {dedupeCommandFileArgumentParts} from './services/command-file-argument-dedupe-service.js'
 
 /** 插件注册 ID，对应 opencode 配置中的插件标识。 */
 const PLUGIN_ID = 'ae-server'
 
 interface RuntimeConfigShape {
-  command?: Record<string, {
-    template: string
-    description?: string
-    model?: string
-    [key: string]: unknown
-  }>
-  agent?: Record<string, {
-    description?: string
-    prompt?: string
-    mode?: 'subagent' | 'primary' | 'all'
-    model?: string
-    [key: string]: unknown
-  } | undefined>
-  skills?: {
-    paths?: string[]
-  }
-  mcp?: Config['mcp']
-  instructions?: string[]
+    command?: Record<string, {
+        template: string
+        description?: string
+        model?: string
+        [key: string]: unknown
+    }>
+    agent?: Record<string, {
+        description?: string
+        prompt?: string
+        mode?: 'subagent' | 'primary' | 'all'
+        model?: string
+        [key: string]: unknown
+    } | undefined>
+    skills?: {
+        paths?: string[]
+    }
+    mcp?: Config['mcp']
+    instructions?: string[]
+    references?: Record<string, unknown>
 }
 
 function resolveHostWorktree(input: unknown): string {
-  const maybeInput = input as { worktree?: unknown }
-  return typeof maybeInput.worktree === 'string' && maybeInput.worktree ? maybeInput.worktree : process.cwd()
+    const maybeInput = input as { worktree?: unknown }
+    return typeof maybeInput.worktree === 'string' && maybeInput.worktree ? maybeInput.worktree : process.cwd()
 }
 
 function isProjectPluginInstall(manifest: ReturnType<typeof createRuntimeAssetManifest>, hostWorktree: string): boolean {
-  const pluginRoot = resolve(manifest.repoRoot)
-  const worktree = resolve(hostWorktree)
+    const pluginRoot = resolve(manifest.repoRoot)
+    const worktree = resolve(hostWorktree)
 
-  return isSamePath(pluginRoot, worktree) || isInsideRoot(join(worktree, '.opencode', 'plugins'), pluginRoot)
+    return isSamePath(pluginRoot, worktree) || isInsideRoot(join(worktree, '.opencode', 'plugins'), pluginRoot)
 }
 
 function isSamePath(left: string, right: string): boolean {
-  return normalizePath(left) === normalizePath(right)
+    return normalizePath(left) === normalizePath(right)
 }
 
 function normalizePath(value: string): string {
-  return resolve(value).replace(/\\/g, '/').toLowerCase()
+    return resolve(value).replace(/\\/g, '/').toLowerCase()
 }
 
 function mergeCommandConfigWithRouting(
-  config: RuntimeConfigShape,
-  manifest: ReturnType<typeof createRuntimeAssetManifest>,
-  hostWorktree: string,
+    config: RuntimeConfigShape,
+    manifest: ReturnType<typeof createRuntimeAssetManifest>,
+    hostWorktree: string,
 ): void {
-  const routingContext = createModelScenarioRoutingContext(
-    collectModelScenarioSources(resolveBuiltinOpencodeConfigPaths(manifest, hostWorktree)),
-  )
-  const dynamicHasPriority = isProjectPluginInstall(manifest, hostWorktree)
-  config.command = mergeProjectCommandOverrides(
-    mergeDynamicCommands(buildCommandConfig(manifest.commandsDir, routingContext), config.command, dynamicHasPriority),
-    hostWorktree,
-    routingContext,
-  )
-  registerAgents(config, manifest, hostWorktree, dynamicHasPriority, routingContext)
-  resolveConfiguredModelReferences(config, routingContext)
+    const routingContext = createModelScenarioRoutingContext(
+        collectModelScenarioSources(resolveBuiltinOpencodeConfigPaths(manifest, hostWorktree)),
+    )
+    const dynamicHasPriority = isProjectPluginInstall(manifest, hostWorktree)
+    config.command = mergeProjectCommandOverrides(
+        mergeDynamicCommands(buildCommandConfig(manifest.commandsDir, routingContext), config.command, dynamicHasPriority),
+        hostWorktree,
+        routingContext,
+    )
+    registerAgents(config, manifest, hostWorktree, dynamicHasPriority, routingContext)
+    resolveConfiguredModelReferences(config, routingContext)
 }
 
 function resolveConfiguredModelReferences(
-  config: RuntimeConfigShape,
-  routingContext: ReturnType<typeof createModelScenarioRoutingContext>,
+    config: RuntimeConfigShape,
+    routingContext: ReturnType<typeof createModelScenarioRoutingContext>,
 ): void {
-  for (const [commandName, command] of Object.entries(config.command ?? {})) {
-    if (!command.model) {
-      continue
+    for (const [commandName, command] of Object.entries(config.command ?? {})) {
+        if (!command.model) {
+            continue
+        }
+        const resolvedModel = resolveModelReference(routingContext, command.model)
+        if (resolvedModel) {
+            command.model = resolvedModel
+        } else {
+            delete command.model
+        }
     }
-    const resolvedModel = resolveModelReference(routingContext, command.model)
-    if (resolvedModel) {
-      command.model = resolvedModel
-    } else {
-      delete command.model
-    }
-  }
 
-  for (const [agentName, agent] of Object.entries(config.agent ?? {})) {
-    if (!agent?.model) {
-      continue
+    for (const [agentName, agent] of Object.entries(config.agent ?? {})) {
+        if (!agent?.model) {
+            continue
+        }
+        const resolvedModel = resolveModelReference(routingContext, agent.model)
+        if (resolvedModel) {
+            agent.model = resolvedModel
+        } else {
+            delete agent.model
+        }
     }
-    const resolvedModel = resolveModelReference(routingContext, agent.model)
-    if (resolvedModel) {
-      agent.model = resolvedModel
-    } else {
-      delete agent.model
-    }
-  }
 }
 
 const plugin: PluginModule = {
-  id: PLUGIN_ID,
-  server: async (input) => {
-    const manifest = createRuntimeAssetManifest(import.meta.url)
-    const hostWorktree = resolveHostWorktree(input)
-    setGlobalClient(input.client)
+    id: PLUGIN_ID,
+    server: async (input) => {
+        const manifest = createRuntimeAssetManifest(import.meta.url)
+        const hostWorktree = resolveHostWorktree(input)
+        setGlobalClient(input.client)
 
-    return {
-      config: async (config) => {
-        await registerSkillsPath(config as RuntimeConfigShape, manifest, hostWorktree)
-        mergeCommandConfigWithRouting(
-          config as RuntimeConfigShape,
-          manifest,
-          hostWorktree,
-        )
-        registerMcp(config as RuntimeConfigShape, manifest, hostWorktree)
-        registerRulesInstructions(config as RuntimeConfigShape, manifest)
-      },
-      'experimental.chat.system.transform': async (_input, output) => {
-        await injectBuiltinRulesIntoSystem(manifest, output)
-      },
-'command.execute.before': async (_input, output) => {
-        dedupeCommandFileArgumentParts(output.parts)
-      },
-      tool: createToolRegistry(),
-    }
-  },
+        return {
+            config: async (config) => {
+                await registerSkillsPath(config as RuntimeConfigShape, manifest, hostWorktree)
+                mergeCommandConfigWithRouting(
+                    config as RuntimeConfigShape,
+                    manifest,
+                    hostWorktree,
+                )
+                registerMcp(config as RuntimeConfigShape, manifest, hostWorktree)
+                registerRulesInstructions(config as RuntimeConfigShape, manifest)
+                registerReferences(config as RuntimeConfigShape, manifest)
+            },
+            'experimental.chat.system.transform': async (_input, output) => {
+                await injectBuiltinRulesIntoSystem(manifest, output)
+            },
+            'command.execute.before': async (_input, output) => {
+                dedupeCommandFileArgumentParts(output.parts)
+            },
+            tool: createToolRegistry(),
+        }
+    },
 }
 
 export default plugin
