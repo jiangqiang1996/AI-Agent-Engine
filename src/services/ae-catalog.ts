@@ -68,36 +68,36 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   {
     skillName: SKILL.LSM_DESIGN,
     commandName: COMMAND.LSM_DESIGN,
-    description: '基于 spec 生成 Living Spec Mesh 设计，保持实现映射与追溯链',
-    argumentHint: '[spec 路径|设计输入]',
+    description: '基于 spec 或目标描述生成 Living Spec Mesh 设计，保持实现映射与追溯链',
+    argumentHint: '[目标描述|spec 路径|设计输入]',
     skillFile: `src/assets/skills/${skillDir(SKILL.LSM_DESIGN)}/SKILL.md`,
   },
   {
     skillName: SKILL.LSM_MOCKUP,
     commandName: COMMAND.LSM_MOCKUP,
     description: '在需要 UI 或交互时生成 Living Spec Mesh 原型资产',
-    argumentHint: '[design 路径|mockup 输入]',
+    argumentHint: '[目标描述|design 路径|mockup 输入]',
     skillFile: `src/assets/skills/${skillDir(SKILL.LSM_MOCKUP)}/SKILL.md`,
   },
   {
     skillName: SKILL.LSM_BUILD,
     commandName: COMMAND.LSM_BUILD,
     description: '执行 Living Spec Mesh 构建流程，汇总实现、验证与 Git 状态证据',
-    argumentHint: '[design 路径|实现范围|上游路径]',
+    argumentHint: '[目标描述|design 路径|实现范围|上游路径]',
     skillFile: `src/assets/skills/${skillDir(SKILL.LSM_BUILD)}/SKILL.md`,
   },
   {
     skillName: SKILL.LSM_TEST,
     commandName: COMMAND.LSM_TEST,
     description: '生成 Living Spec Mesh 测试用例，并追踪需求、设计与实现映射',
-    argumentHint: '[spec 路径] [design 路径|测试输入]',
+    argumentHint: '[目标描述|spec 路径] [design 路径|测试输入]',
     skillFile: `src/assets/skills/${skillDir(SKILL.LSM_TEST)}/SKILL.md`,
   },
   {
     skillName: SKILL.LSM_VERIFY,
     commandName: COMMAND.LSM_VERIFY,
-    description: '编写测试脚本、执行测试脚本、修复测试脚本，产出验收报告',
-    argumentHint: '[test 路径] [build 产物路径]',
+    description: '根据测试用例或目标描述执行测试，得出测试结果',
+    argumentHint: '[目标描述|test 路径] [build 产物路径]',
     skillFile: `src/assets/skills/${skillDir(SKILL.LSM_VERIFY)}/SKILL.md`,
   },
   {
@@ -157,15 +157,15 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillFile: `src/assets/skills/${skillDir(SKILL.CHROME_DEVTOOLS)}/SKILL.md`,
   },
   {
-    skillName: SKILL.TEST_BROWSER,
-    commandName: COMMAND.TEST_BROWSER,
-    description: `通过 ${SKILL.CHROME_DEVTOOLS} 完成浏览器 MCP 注册后，执行浏览器端到端验收`,
-    argumentHint: '[URL|路由]',
-    skillFile: `src/assets/skills/${skillDir(SKILL.TEST_BROWSER)}/SKILL.md`,
+    skillName: SKILL.WEB_FORGE,
+    commandName: COMMAND.WEB_FORGE,
+    description: `统一前端能力入口：自由设计、设计还原、交互逻辑与浏览器验收。需先完成 ${SKILL.CHROME_DEVTOOLS} MCP 注册，再通过子代理 @ui-architect、@ui-matcher、@logic-weaver、@browser-inspector 交错执行`,
+    argumentHint: '[描述|Figma URL|截图路径|页面路由] [--design|--match|--logic|--inspect]',
+    skillFile: `src/assets/skills/${skillDir(SKILL.WEB_FORGE)}/SKILL.md`,
     customTemplate: [
       `先使用 \`${SKILL.CHROME_DEVTOOLS} action=register mode=autoConnect\` 技能完成浏览器 MCP 动态注册；`,
       '未完成 MCP 注册前不得执行任何浏览器控制命令。',
-      `MCP 就绪后，再使用 \`${SKILL.TEST_BROWSER}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`,
+      `MCP 就绪后，再使用 \`${SKILL.WEB_FORGE}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`,
     ].join(''),
   },
   {
@@ -179,13 +179,6 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
       '未完成 MCP 注册前不得执行任何浏览器控制命令。',
       `MCP 就绪后，再使用 \`${SKILL.COURSE_AUTO_PLAYER}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`,
     ].join(''),
-  },
-  {
-    skillName: SKILL.FRONTEND_DESIGN,
-    commandName: COMMAND.FRONTEND_DESIGN,
-    description: '构建设计质量更高的前端初版界面，并做一轮视觉验证',
-    argumentHint: '[描述|路径]',
-    skillFile: `src/assets/skills/${skillDir(SKILL.FRONTEND_DESIGN)}/SKILL.md`,
   },
   {
     skillName: SKILL.HANDOFF,
@@ -391,8 +384,10 @@ const REQUIRED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'],
 ]
 
 const GILDED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'], string]> = [
-  [AGENT.DESIGN_ITERATOR, 'workflow', '对已实现 UI 做多轮小步审美打磨'],
-  [AGENT.FIGMA_DESIGN_SYNC, 'workflow', '以 Figma 为准同步设计稿与代码实现'],
+  [AGENT.UI_ARCHITECT, 'workflow', '自由设计：无 Figma 约束的初版 UI 设计实现与视觉验证'],
+  [AGENT.UI_MATCHER, 'workflow', '设计还原：以 Figma 设计稿或截图为准同步视觉差异'],
+  [AGENT.LOGIC_WEAVER, 'workflow', '交互逻辑：前端交互实现与 API 集成'],
+  [AGENT.BROWSER_INSPECTOR, 'workflow', '浏览器验收：端到端浏览器测试与回归验证'],
 ]
 
 function buildAgentList(

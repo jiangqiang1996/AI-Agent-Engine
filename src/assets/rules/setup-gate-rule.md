@@ -23,9 +23,9 @@
 
 | 场景类型 | 示例 |
 |---------|------|
-| 内置技能 | `ae:test-browser`、`ae:frontend-design` 视觉验证路径 |
-| 工作流代理 | `@design-iterator`、`@figma-design-sync` |
-| 命令 | `/ae-test-browser`、任何生成 chrome-devtools-mcp 工具调用的自定义命令 |
+| 内置技能 | `ae:web-forge` 视觉验证路径 |
+| 工作流代理 | `@ui-architect`、`@ui-matcher`、`@logic-weaver`、`@browser-inspector` |
+| 命令 | `/ae-web-forge`、任何生成 chrome-devtools-mcp 工具调用的自定义命令 |
 | prompt optimize | 优化后的提示词引导目标新会话使用浏览器能力 |
 | 直接工具调用 | `chrome-devtools_navigate_page`、`chrome-devtools_take_snapshot`、`chrome-devtools_click`、`chrome-devtools_fill`、`chrome-devtools_take_screenshot` 等 |
 | 子代理 | 任何代理在其工作流中调用 chrome-devtools-mcp 工具 |

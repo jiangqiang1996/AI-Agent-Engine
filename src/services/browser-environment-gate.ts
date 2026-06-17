@@ -14,12 +14,12 @@ const BROWSER_KEYWORDS = [
   'chrome-devtools_wait_for',
   'chrome-devtools_evaluate_script',
   'chrome-devtools_lighthouse_audit',
-  'ae:test-browser',
-  '/ae-test-browser',
-  '@design-iterator',
-  '@figma-design-sync',
-  'ae:frontend-design',
-  '/ae-frontend-design',
+  'ae:web-forge',
+  '/ae-web-forge',
+  '@ui-architect',
+  '@ui-matcher',
+  '@logic-weaver',
+  '@browser-inspector',
 ]
 
 const GATE_PATTERNS = [

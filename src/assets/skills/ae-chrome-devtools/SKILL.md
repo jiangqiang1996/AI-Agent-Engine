@@ -27,7 +27,7 @@ argument-hint: "[url] [action] [mode] [browser] [port] [task=任务描述]"
 
 ## 不适用场景
 
-- 不替代 `ae:test-browser` 的完整端到端验收流程。
+- 不替代 `ae:web-forge` 的完整端到端验收流程。
 - 不负责视觉审美打磨、Figma 对齐或多轮 UI 设计迭代。
 - 不替代领域技能的验收、视觉判断或 Figma 对齐职责。
 - 不保存、展示或编造用户凭证、Cookie、Token 或认证状态。
