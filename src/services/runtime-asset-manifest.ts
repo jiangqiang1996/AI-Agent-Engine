@@ -12,7 +12,6 @@ const ASSET_DIRS = {
   CONFIG: 'config',
   AGENTS: 'agents',
   ASSETS: 'assets',
-  REFERENCES: 'references',
 } as const
 
 const RUNTIME_DIRS = {
@@ -33,7 +32,6 @@ export interface RuntimeAssetManifest {
   builtinConfigFile: string
   toolsDir: string
   agentsDir: string
-  referencesDir: string
   runtimeAgentDir: string
   runtimePluginDir: string
   runtimeAgentFiles: Array<{ source: string; target: string }>
@@ -83,7 +81,6 @@ export function createRuntimeAssetManifestFromRoot(repoRoot: string): RuntimeAss
     builtinConfigFile: join(assetsDir, ASSET_DIRS.CONFIG, CONFIG_FILENAME),
     toolsDir: join(root, 'tools'),
     agentsDir,
-    referencesDir: join(assetsDir, ASSET_DIRS.REFERENCES),
     runtimeAgentDir,
     runtimePluginDir: join(root, RUNTIME_DIRS.OPENCODE, RUNTIME_DIRS.PLUGINS),
     runtimeAgentFiles: buildRuntimeAgentFiles(agentsDir, runtimeAgentDir),
@@ -109,7 +106,6 @@ export function createRuntimeAssetManifest(moduleUrl: string): RuntimeAssetManif
     builtinConfigFile: join(assetsDir, ASSET_DIRS.CONFIG, CONFIG_FILENAME),
     toolsDir: join(root, 'tools'),
     agentsDir,
-    referencesDir: join(assetsDir, ASSET_DIRS.REFERENCES),
     runtimeAgentDir,
     runtimePluginDir: join(root, RUNTIME_DIRS.OPENCODE, RUNTIME_DIRS.PLUGINS),
     runtimeAgentFiles: buildRuntimeAgentFiles(agentsDir, runtimeAgentDir),

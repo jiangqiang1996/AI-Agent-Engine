@@ -18,7 +18,6 @@ import {createModelScenarioRoutingContext, resolveModelReference,} from './servi
 import {registerRulesInstructions} from './services/rules-instructions-service.js'
 import {injectBuiltinRulesIntoSystem} from './services/rules-system-transform-service.js'
 import {createRuntimeAssetManifest} from './services/runtime-asset-manifest.js'
-import {registerReferences} from './services/references-registration-service.js'
 import {registerSkillsPath} from './services/skills-path-service.js'
 import {createToolRegistry} from './tools/index.js'
 import {setGlobalClient} from './services/client-holder.js'
@@ -43,7 +42,6 @@ interface RuntimeConfigShape {
     }
     mcp?: Config['mcp']
     instructions?: string[]
-    references?: Record<string, unknown>
 }
 
 function isProjectPluginInstall(manifest: ReturnType<typeof createRuntimeAssetManifest>, hostWorktree: string): boolean {
@@ -123,7 +121,6 @@ const plugin: Plugin = async (input) => {
             )
             registerMcp(config as RuntimeConfigShape, manifest, hostWorktree)
             registerRulesInstructions(config as RuntimeConfigShape, manifest)
-            registerReferences(config as RuntimeConfigShape, manifest)
         },
         'experimental.chat.system.transform': async (_input, output) => {
             await injectBuiltinRulesIntoSystem(manifest, output)
