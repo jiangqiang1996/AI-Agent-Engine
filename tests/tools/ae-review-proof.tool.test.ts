@@ -22,9 +22,13 @@ function createSourceReviewOutput(evidence: { worktree: string; branch: string; 
 }
 
 function createRepoRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), 'ae-review-proof-'))
-  tempRoots.push(root)
-  execFileSync('git', ['init'], { cwd: root, stdio: 'ignore' })
+  const tempRoot = mkdtempSync(join(tmpdir(), 'ae-review-proof-'))
+  execFileSync('git', ['init'], { cwd: tempRoot, stdio: 'ignore' })
+  // 使用 git 解析的 toplevel 作为仓库根路径，确保与工具内部 collectCurrentWorktreeFingerprint
+  // 通过 `git rev-parse --show-toplevel` 获取的路径一致；避免 Windows 短路径(如 ADMINI~1)与
+  // 长路径不匹配导致指纹校验失败
+  const root = execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd: tempRoot, encoding: 'utf8' }).trim()
+  tempRoots.push(tempRoot)
   execFileSync('git', ['config', 'user.email', 'test@example.com'], { cwd: root, stdio: 'ignore' })
   execFileSync('git', ['config', 'user.name', 'Test User'], { cwd: root, stdio: 'ignore' })
   writeFileSync(join(root, 'README.md'), '# test\n', 'utf8')
