@@ -202,7 +202,7 @@ model: $deep
 
 | 资产 | 场景 |
 | --- | --- |
-| `/ae-ideate`、`/ae-brainstorm`、`/ae-prd`、`/ae-agent-creator`、`/ae-work-report`、`/ae-my-code-changes`、`/ae-handoff`、`/ae-sql`、`/ae-swagger-parser`、`/ae-api-tester`、`/ae-html-bundle`、`/ae-graph-build`、`/ae-save-experience`、`/ae-skill-from-session`、`/ae-skill-creator`、`/ae-static-server`、`/ae-update`、`/ae-ideate-po`、`/ae-brainstorm-po`、`/ae-prd-po`、`/ae-ideate-pa`、`/ae-brainstorm-pa`、`/ae-prd-pa` | `standard` |
+| `/ae-ideate`、`/ae-brainstorm`、`/ae-prd`、`/ae-agent-creator`、`/ae-work-report`、`/ae-my-code-changes`、`/ae-handoff`、`/ae-sql`、`/ae-swagger-parser`、`/ae-api-tester`、`/ae-html-bundle`、`/ae-markitdown`、`/ae-graph-build`、`/ae-save-experience`、`/ae-skill-from-session`、`/ae-skill-creator`、`/ae-static-server`、`/ae-update`、`/ae-ideate-po`、`/ae-brainstorm-po`、`/ae-prd-po`、`/ae-ideate-pa`、`/ae-brainstorm-pa`、`/ae-prd-pa` | `standard` |
 | `/ae-document-review`、`/ae-plan`、`/ae-refactor`、`/ae-lsm-spec`、`/ae-lsm-design`、`/ae-lsm-build`、`/ae-lsm-test`、`/ae-work`、`/ae-merge-branch`、`/ae-review`、`/ae-lfg`、`/ae-web-forge`、`/ae-task-loop`、`/ae-plan-po`、`/ae-refactor-po`、`/ae-work-po`、`/ae-lfg-po`、`/ae-task-loop-po`、`/ae-plan-pa`、`/ae-refactor-pa`、`/ae-work-pa`、`/ae-lfg-pa`、`/ae-task-loop-pa` | `deep` |
 | `/ae-prompt-optimize`、`/ae-prompt-optimize-auto`、`/ae-graph-query`、`/ae-help` | `quick` |
 | `/ae-lsm-mockup`、`/ae-lsm-verify`、`/ae-chrome-devtools`、`/ae-course-auto-player` | `vision` |
