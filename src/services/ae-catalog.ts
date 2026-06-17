@@ -237,6 +237,13 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillFile: `src/assets/skills/${skillDir(SKILL.HTML_BUNDLE)}/SKILL.md`,
   },
   {
+    skillName: SKILL.MARKITDOWN,
+    commandName: COMMAND.MARKITDOWN,
+    description: '将本地文件转换为 Markdown，支持 HTML/CSV/JSON/XML/YAML/文本/Markdown/DOCX/XLSX/PDF/IPYNB',
+    argumentHint: '[file] [format]',
+    skillFile: `src/assets/skills/${skillDir(SKILL.MARKITDOWN)}/SKILL.md`,
+  },
+  {
     skillName: SKILL.GRAPH_BUILD,
     commandName: COMMAND.GRAPH_BUILD,
     description: '构建或增量维护项目文件关系图谱',

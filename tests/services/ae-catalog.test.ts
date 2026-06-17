@@ -137,6 +137,19 @@ describe('AE catalog 一致性', () => {
     expect(getPhaseOnePaEntries().some((item) => item.commandName === 'ae-html-bundle-pa')).toBe(false)
   })
 
+  it('ae:markitdown 应注册为本地文件转 Markdown 入口', () => {
+    const entry = getPhaseOneEntries().find((item) => item.skillName === SKILL.MARKITDOWN)
+    const frontmatter = readFrontmatter('src/assets/skills/ae-markitdown/SKILL.md')
+
+    expect(entry).toBeDefined()
+    expect(entry?.commandName).toBe('ae-markitdown')
+    expect(entry?.skillFile).toBe('src/assets/skills/ae-markitdown/SKILL.md')
+    expect(entry?.description).toBe(frontmatter.description)
+    expect(entry?.argumentHint).toBe(frontmatter['argument-hint'])
+    expect(getPhaseOnePoEntries().some((item) => item.commandName === 'ae-markitdown-po')).toBe(false)
+    expect(getPhaseOnePaEntries().some((item) => item.commandName === 'ae-markitdown-pa')).toBe(false)
+  })
+
   it('ae:chrome-devtools 应注册为浏览器能力中枢入口', () => {
     const entry = getPhaseOneEntries().find((item) => item.skillName === SKILL.CHROME_DEVTOOLS)
     const frontmatter = readFrontmatter('src/assets/skills/ae-chrome-devtools/SKILL.md')
