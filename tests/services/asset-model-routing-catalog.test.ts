@@ -60,8 +60,10 @@ describe('asset-model-routing-catalog', () => {
 
   it('视觉相关命令应该引用 vision 场景', () => {
     expect(getCommandModelScenario(COMMAND.CHROME_DEVTOOLS)).toBe(MODEL_SCENARIO.VISION)
-    expect(getCommandModelScenario(COMMAND.TEST_BROWSER)).toBe(MODEL_SCENARIO.VISION)
-    expect(getCommandModelScenario(COMMAND.FRONTEND_DESIGN)).toBe(MODEL_SCENARIO.VISION)
+  })
+
+  it('web-forge 命令应该引用 deep 场景', () => {
+    expect(getCommandModelScenario(COMMAND.WEB_FORGE)).toBe(MODEL_SCENARIO.DEEP)
   })
 
   it('应该从 agent frontmatter 读取模型路由状态', () => {
@@ -71,9 +73,9 @@ describe('asset-model-routing-catalog', () => {
     }
 
     const entries = getAssetModelRoutingEntries(manifest).filter((entry) => entry.type === 'agent')
-    const figmaRoute = entries.find((entry) => entry.name === 'figma-design-sync')
+    const uiArchitectRoute = entries.find((entry) => entry.name === 'ui-architect')
 
-    expect(figmaRoute?.scenario).toBe(MODEL_SCENARIO.VISION)
+    expect(uiArchitectRoute?.scenario).toBe(MODEL_SCENARIO.VISION)
   })
 
   it('内置 agent 路由状态应该与 frontmatter model 保持一致', () => {

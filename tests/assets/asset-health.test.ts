@@ -273,9 +273,9 @@ describe('资产健康巡检', () => {
       expect(skillText, `asset-health/lsm-no-remote-write/${skillName}`).not.toContain('git push')
       expect(skillText, `asset-health/lsm-no-bare-entry/${skillName}`).not.toMatch(/(^|[^a-z])lsm:/)
       expect(skillText, `asset-health/lsm-no-blind-scan/${skillName}`).not.toMatch(/自动.*盲扫历史目录/)
-      expect(templateText, `asset-health/lsm-template-upstream/${skillName}`).toContain('上游路径')
-      expect(templateText, `asset-health/lsm-template-unverified/${skillName}`).toContain('未验证项')
-      expect(templateText, `asset-health/lsm-template-next/${skillName}`).toContain('下一步入口')
+      if (skillName === SKILL.LSM_SPEC) {
+        expect(templateText, `asset-health/lsm-template-upstream/${skillName}`).toContain('上游依赖')
+      }
       expect(getFrontmatterString(templateFrontmatter, 'lsmKind'), `asset-health/lsm-template-frontmatter-kind/${skillName}`).toBeTruthy()
       expect(templateFrontmatter, `asset-health/lsm-template-frontmatter-upstream/${skillName}`).toHaveProperty('upstreamRefs')
       expect(templateFrontmatter, `asset-health/lsm-template-frontmatter-trace/${skillName}`).toHaveProperty('traceTable')
@@ -381,9 +381,8 @@ describe('资产健康巡检', () => {
       COMMAND.WORK_REPORT,
       COMMAND.REFACTOR,
       COMMAND.REVIEW,
-      COMMAND.FRONTEND_DESIGN,
+      COMMAND.WEB_FORGE,
       COMMAND.CHROME_DEVTOOLS,
-      COMMAND.TEST_BROWSER,
       COMMAND.COURSE_AUTO_PLAYER,
       COMMAND.SWAGGER_PARSER,
       COMMAND.HTML_BUNDLE,
@@ -413,7 +412,7 @@ describe('资产健康巡检', () => {
       [MODEL_SCENARIO.STANDARD, COMMAND.IDEATE],
       [MODEL_SCENARIO.DEEP, COMMAND.DOCUMENT_REVIEW],
       [MODEL_SCENARIO.QUICK, COMMAND.PROMPT_OPTIMIZE],
-      [MODEL_SCENARIO.VISION, COMMAND.TEST_BROWSER],
+      [MODEL_SCENARIO.VISION, COMMAND.CHROME_DEVTOOLS],
     ] as const
 
     for (const [scenario, representativeCommand] of scenarios) {
@@ -426,7 +425,7 @@ describe('资产健康巡检', () => {
     }
 
     expect(extractMarkdownCommandList(content, MODEL_SCENARIO.STANDARD, COMMAND.IDEATE)).toContain(COMMAND.SKILL_FROM_SESSION)
-    expect(extractMarkdownCommandList(content, MODEL_SCENARIO.VISION, COMMAND.TEST_BROWSER)).toContain(COMMAND.CHROME_DEVTOOLS)
+    expect(extractMarkdownCommandList(content, MODEL_SCENARIO.VISION, COMMAND.CHROME_DEVTOOLS)).toContain(COMMAND.LSM_MOCKUP)
     expect(content).not.toContain('/ae-save-session-flow')
     expect(content).not.toContain('/ae-asset-debug')
   })

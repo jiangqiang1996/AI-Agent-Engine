@@ -24,26 +24,26 @@ describe('ensureBrowserEnvironmentGate', () => {
     expect(result).toContain(prompt)
   })
 
-  it('包含 @design-iterator 但无环境标记时注入门禁', () => {
-    const prompt = '@design-iterator 帮我迭代首页设计'
+  it('包含 @ui-architect 但无环境标记时注入门禁', () => {
+    const prompt = '@ui-architect 帮我设计首页'
     const result = ensureBrowserEnvironmentGate(prompt)
     expect(result).toContain('ae:chrome-devtools')
   })
 
-  it('包含 @figma-design-sync 但无环境标记时注入门禁', () => {
-    const prompt = '@figma-design-sync 对齐按钮样式'
+  it('包含 @ui-matcher 但无环境标记时注入门禁', () => {
+    const prompt = '@ui-matcher 对齐按钮样式'
     const result = ensureBrowserEnvironmentGate(prompt)
     expect(result).toContain('ae:chrome-devtools')
   })
 
-  it('包含 ae:test-browser 但无环境标记时注入门禁', () => {
-    const prompt = '运行 ae:test-browser http://localhost:3000'
+  it('包含 ae:web-forge 但无环境标记时注入门禁', () => {
+    const prompt = '运行 ae:web-forge http://localhost:3000'
     const result = ensureBrowserEnvironmentGate(prompt)
     expect(result).toContain('ae:chrome-devtools')
   })
 
-  it('包含 ae:frontend-design 但无环境标记时注入门禁', () => {
-    const prompt = '使用 ae:frontend-design 做视觉验证'
+  it('包含 /ae-web-forge 但无环境标记时注入门禁', () => {
+    const prompt = '使用 /ae-web-forge 做视觉验证'
     const result = ensureBrowserEnvironmentGate(prompt)
     expect(result).toContain('ae:chrome-devtools')
   })
@@ -95,7 +95,7 @@ describe('ensureBrowserEnvironmentGate', () => {
   })
 
   it('多个触发词同时出现时门禁只注入一次', () => {
-    const prompt = '使用 chrome-devtools 和 @design-iterator'
+    const prompt = '使用 chrome-devtools 和 @ui-architect'
     const result = ensureBrowserEnvironmentGate(prompt)
     const gateCount = (result.match(/chrome-devtools MCP 门禁/g) ?? []).length
     expect(gateCount).toBe(1)
@@ -128,12 +128,10 @@ describe('prompt optimize SKILL.md 浏览器能力环境门禁', () => {
   it('应该要求目标新会话为浏览器任务注入环境门禁', () => {
     expect(content).toContain('浏览器能力门禁')
     expect(content).toContain('chrome-devtools')
-    expect(content).toContain('ae:test-browser')
-    expect(content).toContain('/ae-test-browser')
-    expect(content).toContain('@design-iterator')
-    expect(content).toContain('@figma-design-sync')
-    expect(content).toContain('ae:frontend-design')
-    expect(content).toContain('/ae-frontend-design')
+    expect(content).toContain('ae:web-forge')
+    expect(content).toContain('/ae-web-forge')
+    expect(content).toContain('@ui-architect')
+    expect(content).toContain('@ui-matcher')
     expect(content).toContain('ae:chrome-devtools')
     expect(content).toContain('得到 MCP 连接就绪结果后再执行浏览器流程')
     expect(content).toContain('chrome-devtools MCP 注册状态可以跨会话复用')

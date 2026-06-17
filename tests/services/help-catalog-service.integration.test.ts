@@ -64,13 +64,13 @@ describe('help-catalog-service 集成', () => {
     expect(text).toContain('生成日报、周报或指定时间段工作总结')
   })
 
-  it('应该在真实帮助目录中展示 ae:test-browser 的 chrome-devtools MCP 门禁语义', () => {
-    const text = generateHelpText('test-browser')
+  it('应该在真实帮助目录中展示 ae:web-forge 的 chrome-devtools MCP 门禁语义', () => {
+    const text = generateHelpText('web-forge')
 
-    expect(text).toContain(SKILL.TEST_BROWSER)
-    expect(text).toContain(`/${COMMAND.TEST_BROWSER}`)
-    expect(text).not.toContain(`/${COMMAND.TEST_BROWSER}${PO_SUFFIX}`)
-    expect(text).not.toContain(`/${COMMAND.TEST_BROWSER}${PA_SUFFIX}`)
+    expect(text).toContain(SKILL.WEB_FORGE)
+    expect(text).toContain(`/${COMMAND.WEB_FORGE}`)
+    expect(text).not.toContain(`/${COMMAND.WEB_FORGE}${PO_SUFFIX}`)
+    expect(text).not.toContain(`/${COMMAND.WEB_FORGE}${PA_SUFFIX}`)
     expect(text).toContain(SKILL.CHROME_DEVTOOLS)
     expect(text).toContain('MCP 注册')
     expect(text).not.toContain('chrome-devtools 可用')

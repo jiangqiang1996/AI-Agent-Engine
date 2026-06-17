@@ -141,15 +141,15 @@ describe('command-registration', () => {
     expect(config[paCommand]).toBeUndefined()
   })
 
-  it('应该为 ae:test-browser 命令保留 chrome-devtools 环境门禁顺序且不生成提示词优化变体', () => {
+  it('应该为 ae:web-forge 命令保留 chrome-devtools 环境门禁顺序且不生成提示词优化变体', () => {
     const config = buildCommandConfig('__missing_commands_dir__')
-    const poCommand = `${COMMAND.TEST_BROWSER}${PO_SUFFIX}`
-    const paCommand = `${COMMAND.TEST_BROWSER}${PA_SUFFIX}`
+    const poCommand = `${COMMAND.WEB_FORGE}${PO_SUFFIX}`
+    const paCommand = `${COMMAND.WEB_FORGE}${PA_SUFFIX}`
 
-    const baseTemplate = config[COMMAND.TEST_BROWSER]?.template ?? ''
+    const baseTemplate = config[COMMAND.WEB_FORGE]?.template ?? ''
     expect(baseTemplate).toContain(`先使用 \`${SKILL.CHROME_DEVTOOLS} action=register mode=autoConnect\` 技能完成浏览器 MCP 动态注册`)
     expect(baseTemplate).toContain('未完成 MCP 注册前不得执行任何浏览器控制命令')
-    expect(baseTemplate.indexOf(SKILL.CHROME_DEVTOOLS)).toBeLessThan(baseTemplate.indexOf(SKILL.TEST_BROWSER))
+    expect(baseTemplate.indexOf(SKILL.CHROME_DEVTOOLS)).toBeLessThan(baseTemplate.indexOf(SKILL.WEB_FORGE))
 
     expect(config[poCommand]).toBeUndefined()
     expect(config[paCommand]).toBeUndefined()
@@ -196,18 +196,18 @@ describe('command-registration', () => {
     expect(frontmatter['argument-hint']).toBe(catalogEntry?.argumentHint)
   })
 
-  it('应该保持 ae:chrome-devtools 和 ae:test-browser catalog 与 SKILL.md frontmatter 语义一致', () => {
+  it('应该保持 ae:chrome-devtools 和 ae:web-forge catalog 与 SKILL.md frontmatter 语义一致', () => {
     const chromeDevtoolsContent = readFileSync('src/assets/skills/ae-chrome-devtools/SKILL.md', 'utf8')
-    const testBrowserContent = readFileSync('src/assets/skills/ae-test-browser/SKILL.md', 'utf8')
+    const webForgeContent = readFileSync('src/assets/skills/ae-web-forge/SKILL.md', 'utf8')
     const chromeDevtoolsFrontmatter = parseFrontmatter(chromeDevtoolsContent).data
-    const testBrowserFrontmatter = parseFrontmatter(testBrowserContent).data
+    const webForgeFrontmatter = parseFrontmatter(webForgeContent).data
     const chromeDevtoolsEntry = getPhaseOneEntries().find((entry) => entry.skillName === SKILL.CHROME_DEVTOOLS)
-    const testBrowserEntry = getPhaseOneEntries().find((entry) => entry.skillName === SKILL.TEST_BROWSER)
+    const webForgeEntry = getPhaseOneEntries().find((entry) => entry.skillName === SKILL.WEB_FORGE)
 
     expect(chromeDevtoolsFrontmatter.description).toContain('chrome-devtools')
     expect(chromeDevtoolsEntry?.description).toContain('chrome-devtools-mcp')
-    expect(testBrowserFrontmatter.description).toContain('chrome-devtools-mcp')
-    expect(testBrowserEntry?.description).toContain(SKILL.CHROME_DEVTOOLS)
+    expect(webForgeFrontmatter.description).toContain('ui-architect')
+    expect(webForgeEntry?.description).toContain('@ui-architect')
   })
 
   it('用户同名命令应覆盖插件内置命令', () => {
