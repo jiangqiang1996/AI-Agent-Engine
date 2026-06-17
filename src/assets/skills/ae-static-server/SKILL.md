@@ -56,6 +56,12 @@ argument-hint: "<路径> [port=端口号] [-k]"
 
 ## 执行流程
 
+### 执行入口约束
+
+> 必须通过 `ae-background-exec` 工具调用 `scripts/serve.mjs` 启动，禁止使用 bash 工具或 `node -e` 等方式（会阻塞会话）。完整约束见下方"防阻塞约束"。
+
+### 启动步骤
+
 1. **验证输入参数**
    - 检查是否提供了路径参数
    - 验证路径是否存在
@@ -113,6 +119,15 @@ argument-hint: "<路径> [port=端口号] [-k]"
 - 不支持 WebSocket
 - 不支持热重载
 - 大文件可能影响性能
+
+### 防阻塞约束（硬性）
+
+- **必须通过 `ae-background-exec` 工具启动 `scripts/serve.mjs`**，这是唯一允许的启动方式
+- **禁止使用 bash 工具直接执行 `node scripts/serve.mjs`**——bash 工具会等待子进程 stdio 管道关闭，可能导致会话阻塞
+- **禁止使用 `node -e`、`python -m http.server`、`npx serve` 等临时前台命令**——这些方式会阻塞当前会话窗口
+- `ae-background-exec` 以 detached 子进程启动，立即返回 PID，不阻塞会话
+- 启动方式：调用 `ae-background-exec` 工具，参数 `command="node <技能目录>/scripts/serve.mjs <路径> [端口] [-k]"`，`logPath="ae/static-server/static-server.log"`
+- 启动后读取 `ae/static-server/.static-server-info.json` 获取实际端口和访问 URL
 
 ## 验证方式
 

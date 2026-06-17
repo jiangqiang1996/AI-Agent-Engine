@@ -155,6 +155,7 @@ export const TOOL = {
   AE_TIMER: 'ae-timer',
   AE_DOMAIN_DISPATCH_PREPARE: 'ae-domain-dispatch-prepare',
   AE_DOMAIN_DISPATCH_AGGREGATE: 'ae-domain-dispatch-aggregate',
+  AE_BACKGROUND_EXEC: 'ae-background-exec',
 } as const
 
 export const AeModeSchema = z

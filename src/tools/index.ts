@@ -20,6 +20,7 @@ import { aeChromeDevtoolsMcpTool } from './ae-chrome-devtools-mcp.tool.js'
 import { aeTimerTool } from './ae-timer.tool.js'
 import { aeDomainDispatchPrepareTool } from './ae-domain-dispatch-prepare.tool.js'
 import { aeDomainDispatchAggregateTool } from './ae-domain-dispatch-aggregate.tool.js'
+import { aeBackgroundExecTool } from './ae-background-exec.tool.js'
 
 export function createToolRegistry(): Record<string, ToolDefinition> {
   return {
@@ -42,5 +43,6 @@ export function createToolRegistry(): Record<string, ToolDefinition> {
     [TOOL.AE_TIMER]: aeTimerTool,
     [TOOL.AE_DOMAIN_DISPATCH_PREPARE]: aeDomainDispatchPrepareTool,
     [TOOL.AE_DOMAIN_DISPATCH_AGGREGATE]: aeDomainDispatchAggregateTool,
+    [TOOL.AE_BACKGROUND_EXEC]: aeBackgroundExecTool,
   }
 }
