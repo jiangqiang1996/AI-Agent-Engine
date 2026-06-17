@@ -69,21 +69,6 @@ interface ReviewOutputEvidence {
   hasBlockingFinding: boolean
 }
 
-function resolveWorktree(context: unknown): string {
-  const worktree = (context as { worktree?: unknown }).worktree
-  return typeof worktree === 'string' && worktree.length > 0 ? worktree : process.cwd()
-}
-
-function resolveSessionId(context: unknown): string | undefined {
-  const sessionID = (context as { sessionID?: unknown }).sessionID
-  if (typeof sessionID === 'string' && sessionID.length > 0) {
-    return sessionID
-  }
-
-  const sessionId = (context as { sessionId?: unknown }).sessionId
-  return typeof sessionId === 'string' && sessionId.length > 0 ? sessionId : undefined
-}
-
 function hasBlockingFinding(findings: Array<z.infer<typeof ReviewFindingSchema>>): boolean {
   return findings.some((finding) => BLOCKING_SEVERITY_PATTERN.test(finding.severity))
 }
@@ -412,8 +397,8 @@ export const aeReviewProofTool: ToolDefinition = tool({
       return 'LSM 完整产物链场景下 acceptance 模板 frontmatter traceTable.outputs 缺 V-* 验证 ID，不能以 passed 写入审查证明。请补全 V-* 验证条目或将 review_status 改为 failed。'
     }
 
-    const worktree = resolveWorktree(ctx)
-    const sessionId = resolveSessionId(ctx)
+    const worktree = ctx.worktree
+    const sessionId = ctx.sessionID
     if (!sessionId) {
       return '无法获取当前会话 ID，不能写入 ae:review 审查证明。请在支持 sessionID 的 opencode 运行时中重试。'
     }

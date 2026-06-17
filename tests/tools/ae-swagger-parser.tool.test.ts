@@ -1,5 +1,4 @@
 import { describe, expect, it, vi } from 'vitest'
-import { Effect } from 'effect'
 
 async function callTool(args: Record<string, unknown>) {
   const { aeSwaggerParserTool: tool } = await import('../../src/tools/ae-swagger-parser.tool.js')
@@ -8,7 +7,7 @@ async function callTool(args: Record<string, unknown>) {
   }
   const result = await definition.execute(args, {
     metadata: vi.fn(),
-    ask: () => Effect.void,
+    ask: () => Promise.resolve(),
     worktree: process.cwd(),
     directory: process.cwd(),
     sessionID: 'test-session',

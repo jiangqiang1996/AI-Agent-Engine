@@ -55,16 +55,9 @@ export const aeCreateSessionTool: ToolDefinition = tool({
 
     const willAutoExecute = args.auto_execute === true
 
-    if (args.require_confirmation && typeof ctx.ask !== 'function') {
-      return {
-        output: '当前运行环境无法请求新会话创建确认，已停止执行。',
-        metadata: { tool: TOOL.AE_CREATE_SESSION, success: false },
-      }
-    }
-
-    if (args.require_confirmation && typeof ctx.ask === 'function') {
+    if (args.require_confirmation) {
       try {
-        await runAskResult(ctx.ask({
+        await ctx.ask({
           permission: 'session',
           patterns: [willAutoExecute ? 'create-session-and-prompt' : 'create-session'],
           always: [],
@@ -77,7 +70,7 @@ export const aeCreateSessionTool: ToolDefinition = tool({
             context_message: summarizePayload(args.context_message),
             user_prompt: summarizePayload(args.user_prompt),
           },
-        }))
+        })
       } catch (error) {
         const message = formatAskError(error)
         if (!isUserCancelError(message)) {
@@ -130,10 +123,6 @@ function formatAskError(error: unknown): string {
   return message || '未知错误'
 }
 
-function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
-  return typeof value === 'object' && value !== null && 'then' in value && typeof value.then === 'function'
-}
-
 function summarizePayload(value: string | undefined): { present: boolean; length: number; preview: string } {
   const text = value?.trim() ?? ''
   const normalized = text.replace(/\s+/g, ' ')
@@ -142,15 +131,6 @@ function summarizePayload(value: string | undefined): { present: boolean; length
     length: text.length,
     preview: normalized.length > 120 ? `${normalized.slice(0, 120)}...` : normalized,
   }
-}
-
-async function runAskResult(result: unknown): Promise<void> {
-  if (isPromiseLike(result)) {
-    await result
-    return
-  }
-
-  await Effect.runPromise(result as Effect.Effect<unknown, unknown>)
 }
 
 function isUserCancelError(message: string): boolean {

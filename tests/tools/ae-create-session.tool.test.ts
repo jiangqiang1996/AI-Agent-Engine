@@ -17,7 +17,7 @@ const mockCreateSessionFlow = vi.mocked(createSessionFlow)
 
 async function callTool(
   args: Record<string, unknown>,
-  ask: (input: unknown) => Effect.Effect<unknown, unknown> | Promise<unknown> = () => Effect.succeed(undefined),
+  ask: (input: unknown) => Promise<void> = () => Promise.resolve(),
 ) {
   return callToolWithContext(args, { ask })
 }
@@ -66,7 +66,7 @@ describe('ae-create-session 工具', () => {
   })
 
   it('require_confirmation=false 时普通创建不需要 ask 授权', async () => {
-    const ask = vi.fn(() => Effect.fail(new Error('should not ask')))
+    const ask = vi.fn(() => Promise.reject(new Error('should not ask')))
     mockGetGlobalClient.mockReturnValue({} as never)
     mockCreateSessionFlow.mockReturnValue(Effect.succeed({
       success: true,
@@ -93,7 +93,7 @@ describe('ae-create-session 工具', () => {
 
     const result = await callTool(
       { title: '测试', user_prompt: '提示词', auto_execute: true, require_confirmation: true },
-      () => Effect.fail(new Error('denied')),
+      () => Promise.reject(new Error('denied')),
     )
 
     expect(result.output).toContain('用户已取消新会话创建')
@@ -105,7 +105,7 @@ describe('ae-create-session 工具', () => {
 
     const result = await callTool(
       { title: '测试', user_prompt: '提示词', auto_execute: true, require_confirmation: true },
-      () => Effect.fail(new Error('unsupported permission: session')),
+      () => Promise.reject(new Error('unsupported permission: session')),
     )
 
     expect(result.output).toContain('新会话创建确认请求失败')
@@ -115,18 +115,18 @@ describe('ae-create-session 工具', () => {
     expect(mockCreateSessionFlow).not.toHaveBeenCalled()
   })
 
-  it('require_confirmation=true 但运行环境缺少 ask 时不创建会话', async () => {
+  it('require_confirmation=true 但 ctx.ask 缺失时进入 catch 返回失败提示', async () => {
     mockGetGlobalClient.mockReturnValue({} as never)
 
     const result = await callToolWithContext({ title: '测试', require_confirmation: true }, {})
 
-    expect(result.output).toContain('当前运行环境无法请求新会话创建确认')
-    expect(result.metadata.success).toBe(false)
+    expect(result.output).toContain('新会话创建确认请求失败')
+    expect(result.metadata?.authorizationFailed).toBe(true)
     expect(mockCreateSessionFlow).not.toHaveBeenCalled()
   })
 
   it('正常路径：创建新会话并返回地址', async () => {
-    const ask = vi.fn(() => Effect.succeed(undefined))
+    const ask = vi.fn(() => Promise.resolve())
     mockGetGlobalClient.mockReturnValue({} as never)
     mockCreateSessionFlow.mockReturnValue(Effect.succeed({
       success: true,
@@ -153,7 +153,7 @@ describe('ae-create-session 工具', () => {
   })
 
   it('普通独立工具调用不依赖运行时 ask', async () => {
-    const ask = vi.fn(() => Promise.resolve(undefined))
+    const ask = vi.fn(() => Promise.resolve())
     mockGetGlobalClient.mockReturnValue({} as never)
     mockCreateSessionFlow.mockReturnValue(Effect.succeed({
       success: true,
@@ -180,7 +180,7 @@ describe('ae-create-session 工具', () => {
   })
 
   it('require_confirmation=true 时请求确认并调用通用服务', async () => {
-    const ask = vi.fn(() => Effect.succeed(undefined))
+    const ask = vi.fn(() => Promise.resolve())
     mockGetGlobalClient.mockReturnValue({} as never)
     mockCreateSessionFlow.mockReturnValue(Effect.succeed({
       success: true,
@@ -215,7 +215,7 @@ describe('ae-create-session 工具', () => {
   })
 
   it('自动执行授权兼容运行时 ask 返回 Promise', async () => {
-    const ask = vi.fn(() => Promise.resolve(undefined))
+    const ask = vi.fn(() => Promise.resolve())
     mockGetGlobalClient.mockReturnValue({} as never)
     mockCreateSessionFlow.mockReturnValue(Effect.succeed({
       success: true,
@@ -243,7 +243,7 @@ describe('ae-create-session 工具', () => {
   })
 
   it('require_confirmation=false 时 auto_execute=true 不额外请求确认', async () => {
-    const ask = vi.fn(() => Effect.fail(new Error('should not ask')))
+    const ask = vi.fn(() => Promise.reject(new Error('should not ask')))
     mockGetGlobalClient.mockReturnValue({} as never)
     mockCreateSessionFlow.mockReturnValue(Effect.succeed({
       success: true,

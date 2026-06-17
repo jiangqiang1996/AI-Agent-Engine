@@ -80,27 +80,6 @@ describe('插件入口', () => {
     })
   })
 
-  it('缺少 input.worktree 时应该受控降级到 process.cwd()', async () => {
-    const originalCwd = process.cwd()
-    const hostRoot = createTempRoot()
-    isolateHome(createTempRoot())
-    writeBuiltinConfig(hostRoot)
-
-    try {
-      process.chdir(hostRoot)
-      const config = await runConfigHook({ client: {} })
-
-      expect(config.mcp?.context7).toEqual({
-        type: 'remote',
-        url: 'https://mcp.context7.com/mcp',
-        enabled: false,
-        timeout: 1234,
-      })
-    } finally {
-      process.chdir(originalCwd)
-    }
-  })
-
   it('应该通过 server config 注册 catalog 命令和磁盘命令', async () => {
     const hostRoot = createTempRoot()
     isolateHome(createTempRoot())

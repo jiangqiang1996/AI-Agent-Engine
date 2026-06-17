@@ -602,7 +602,7 @@ export const aeTaskAnalyzerTool: ToolDefinition = tool({
     worktree: tool.schema.string().optional().describe('工作区根目录，默认为当前目录'),
   },
   async execute(args, context) {
-    const worktree = args.worktree || (context as { worktree?: string }).worktree || process.cwd()
+    const worktree = args.worktree || context.worktree
 
     return Effect.runPromise(
       Effect.tryPromise({

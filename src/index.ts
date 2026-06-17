@@ -46,11 +46,6 @@ interface RuntimeConfigShape {
     references?: Record<string, unknown>
 }
 
-function resolveHostWorktree(input: unknown): string {
-    const maybeInput = input as { worktree?: unknown }
-    return typeof maybeInput.worktree === 'string' && maybeInput.worktree ? maybeInput.worktree : process.cwd()
-}
-
 function isProjectPluginInstall(manifest: ReturnType<typeof createRuntimeAssetManifest>, hostWorktree: string): boolean {
     const pluginRoot = resolve(manifest.repoRoot)
     const worktree = resolve(hostWorktree)
@@ -115,7 +110,7 @@ function resolveConfiguredModelReferences(
 
 const plugin: Plugin = async (input) => {
     const manifest = createRuntimeAssetManifest(import.meta.url)
-    const hostWorktree = resolveHostWorktree(input)
+    const hostWorktree = input.worktree
     setGlobalClient(input.client)
 
     return {

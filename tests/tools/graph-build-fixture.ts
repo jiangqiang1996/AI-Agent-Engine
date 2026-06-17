@@ -3,7 +3,6 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import type { ToolContext } from '@opencode-ai/plugin'
-import { Effect } from 'effect'
 
 export const GRAPH_BUILD_STATE_BASE = {
   schemaVersion: 1,
@@ -51,7 +50,7 @@ export function createMockContext(worktree: string) {
       if (input.patterns?.some((pattern) => pattern.endsWith(join('.opencode', 'ae.jsonc')))) {
         throw new Error('denied')
       }
-      return Effect.succeed(undefined)
+      return Promise.resolve()
     },
   } as unknown as ToolContext
 }
@@ -59,7 +58,7 @@ export function createMockContext(worktree: string) {
 export function createAllowExcludeContext(worktree: string) {
   return {
     ...createMockContext(worktree),
-    ask: () => Effect.succeed(undefined),
+    ask: () => Promise.resolve(),
   } as unknown as ToolContext
 }
 
@@ -68,7 +67,7 @@ export function createCaptureAskContext(worktree: string, asked: unknown[]) {
     ...createMockContext(worktree),
     ask: (input: unknown) => {
       asked.push(input)
-      return Effect.succeed(undefined)
+      return Promise.resolve()
     },
   } as unknown as ToolContext
 }

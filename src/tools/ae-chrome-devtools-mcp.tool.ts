@@ -109,11 +109,6 @@ async function findBrowserExecutable(browser: string): Promise<string | null> {
   return null
 }
 
-function resolveWorktree(context: unknown): string {
-  const worktree = (context as { worktree?: unknown }).worktree
-  return typeof worktree === 'string' && worktree.length > 0 ? worktree : process.cwd()
-}
-
 async function checkMcpStatus(name: string, worktree: string): Promise<{ connected: boolean; status: string; error?: string }> {
   const client = getGlobalClient()
   if (!client) {
@@ -188,7 +183,7 @@ export const aeChromeDevtoolsMcpTool = tool({
     ),
   },
   execute: async (args, ctx) => {
-    const worktree = resolveWorktree(ctx)
+    const worktree = ctx.worktree
     const client = getGlobalClient()
 
     if (args.action === 'check') {

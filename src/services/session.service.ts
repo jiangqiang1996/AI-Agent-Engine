@@ -97,10 +97,11 @@ export function createNewSession(
     const res = await client.session.create({
       body: { title: options.title },
     })
-    const payload = res as unknown as Record<string, unknown>
-    // SDK 与服务端版本返回形状不完全一致，兼容 data 包裹和直接返回两种结构。
-    const session = (payload.data ?? payload) as { id: string; title?: string } | undefined
-    if (!session || !session.id) {
+    if (res.error) {
+      throw new Error(`创建新会话失败: ${res.error.data?.message ?? res.error.name ?? '未知错误'}`)
+    }
+    const session = res.data
+    if (!session?.id) {
       throw new Error(`创建新会话失败: 返回数据为空或缺少 id 字段`)
     }
     return {
@@ -111,26 +112,12 @@ export function createNewSession(
   })
 }
 
-interface SessionPromptClient {
-  session: {
-    prompt: (args: {
-      path: { id: string }
-      body: { noReply?: boolean; system?: string; parts: Array<{ type: 'text'; text: string }> }
-    }) => Promise<unknown>
-  }
-}
-
-interface TuiPublishClient {
-  tui: {
-    publish: (args: {
-      body: { type: 'tui.session.select'; properties: { sessionID: string } }
-    }) => Promise<unknown>
-  }
-}
+/** SDK v1 类型未声明 tui.session.select 事件，但 opencode 服务端支持该事件 */
+type TuiPublishBody = NonNullable<NonNullable<Parameters<OpencodeClient['tui']['publish']>[0]>['body']>
 
 /** 将交接上下文以普通消息形式注入到指定会话（降级路径，不需要 system prompt 支持）。 */
 export function injectContextAsMessage(
-  client: unknown,
+  client: OpencodeClient,
   sessionId: string,
   extractResult: SessionExtractResult,
 ): Effect.Effect<void, Error> {
@@ -140,14 +127,12 @@ export function injectContextAsMessage(
 
 /** 将字符串上下文以 noReply 普通消息注入指定会话。 */
 export function injectNoReplyMessage(
-  client: unknown,
+  client: OpencodeClient,
   sessionId: string,
   text: string,
 ): Effect.Effect<void, Error> {
-  const promptClient = client as SessionPromptClient
-
   return Effect.tryPromise(async () => {
-    await promptClient.session.prompt({
+    await client.session.prompt({
       path: { id: sessionId },
       body: {
         noReply: true,
@@ -159,14 +144,12 @@ export function injectNoReplyMessage(
 
 /** 优先以 system 字段注入上下文，失败时由调用方决定是否降级。 */
 export function injectSystemPrompt(
-  client: unknown,
+  client: OpencodeClient,
   sessionId: string,
   systemPrompt: string,
 ): Effect.Effect<void, Error> {
-  const promptClient = client as SessionPromptClient
-
   return Effect.tryPromise(async () => {
-    await promptClient.session.prompt({
+    await client.session.prompt({
       path: { id: sessionId },
       body: {
         noReply: true,
@@ -179,14 +162,12 @@ export function injectSystemPrompt(
 
 /** 向指定会话提交用户提示词并触发回复。 */
 export function submitUserPrompt(
-  client: unknown,
+  client: OpencodeClient,
   sessionId: string,
   text: string,
 ): Effect.Effect<void, Error> {
-  const promptClient = client as SessionPromptClient
-
   return Effect.tryPromise(async () => {
-    await promptClient.session.prompt({
+    await client.session.prompt({
       path: { id: sessionId },
       body: {
         parts: [{ type: 'text', text }],
@@ -197,18 +178,17 @@ export function submitUserPrompt(
 
 /** 通过 TUI 发布事件导航到指定会话。 */
 export function navigateToSession(
-  client: unknown,
+  client: OpencodeClient,
   sessionId: string,
 ): Effect.Effect<void, Error> {
-  const tuiClient = client as TuiPublishClient
   return Effect.tryPromise(async () => {
-    await tuiClient.tui.publish({
+    await client.tui.publish({
       body: {
         type: 'tui.session.select',
         properties: {
           sessionID: sessionId,
         },
-      },
+      } as unknown as TuiPublishBody,
     })
   })
 }
