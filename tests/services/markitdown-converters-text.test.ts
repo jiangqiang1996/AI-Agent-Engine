@@ -28,7 +28,7 @@ async function makeInput(file: string, format: string): Promise<ConverterInput> 
   }
 }
 
-describe('markitdown-converters-text', () => {
+describe('markitdown-converters-text (aligned with Python reference behavior)', () => {
   describe('HtmlConverter', () => {
     it('应该将 HTML 转换为 Markdown', async () => {
       const input = await makeInput('sample.html', 'html')
@@ -45,14 +45,17 @@ describe('markitdown-converters-text', () => {
       expect(converter.accept('a.txt', 'text')).toBe(false)
     })
 
-    it('应该拒绝空 HTML 内容', async () => {
+    it('空 HTML 应返回空 markdown（不抛异常，匹配参考行为）', async () => {
       const input: ConverterInput = {
         filePath: 'empty.html',
         textContent: '<html></html>',
         binaryContent: Buffer.from(''),
         format: 'html',
       }
-      await expect(new HtmlConverter().convert(input)).rejects.toThrow(MarkitdownError)
+      const result = await new HtmlConverter().convert(input)
+      // Reference strips and returns; does not throw on empty
+      expect(result).toHaveProperty('markdown')
+      expect(typeof result.markdown).toBe('string')
     })
   })
 
@@ -83,14 +86,29 @@ describe('markitdown-converters-text', () => {
       expect(result.markdown).toContain('Hello, World')
     })
 
-    it('应该拒绝空 CSV', async () => {
+    it('空 CSV 应返回空 markdown（不抛异常，匹配参考行为）', async () => {
       const input: ConverterInput = {
         filePath: 'empty.csv',
         textContent: '',
         binaryContent: Buffer.from(''),
         format: 'csv',
       }
-      await expect(new CsvConverter().convert(input)).rejects.toThrow(MarkitdownError)
+      const result = await new CsvConverter().convert(input)
+      // Reference returns empty markdown for empty rows
+      expect(result).toHaveProperty('markdown')
+      expect(result.markdown).toBe('')
+    })
+
+    it('短行应填充空列以匹配表头长度（匹配参考行为）', async () => {
+      const input: ConverterInput = {
+        filePath: 'short.csv',
+        textContent: 'a,b,c\n1,2\nx,y,z',
+        binaryContent: Buffer.from(''),
+        format: 'csv',
+      }
+      const result = await new CsvConverter().convert(input)
+      // Reference pads short rows with empty strings
+      expect(result.markdown).toContain('| 1 | 2 |  |')
     })
   })
 

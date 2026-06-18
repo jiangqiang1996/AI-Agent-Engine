@@ -60,3 +60,7 @@
 **提交格式（约定基线，项目可覆盖）：**
 
 - `type(scope): 中文描述`，type 包括 feat/fix/docs/refactor/test/chore/perf/ci，scope 可省略
+
+## 7. 文档查询
+
+当你需要查阅编程库或框架的最新文档与代码示例时，请使用 Context7。
