@@ -73,7 +73,7 @@ describe('Markdown 协议测试', () => {
   })
 
   it('Git 写操作协议必须绑定授权粒度，且只读命令不触发失败', () => {
-    const gateContent = readFileSync('src/assets/rules/ai-execution-guardrails.md', 'utf8')
+    const gateContent = readFileSync('src/assets/rules/ai-core-guidelines.md', 'utf8')
     const required = ['目标仓库', '目标分支', '工作区', '完整命令参数', '授权来源']
 
     for (const asset of ASSETS) {
