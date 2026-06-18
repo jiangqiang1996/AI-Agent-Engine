@@ -10,6 +10,10 @@ export type SupportedFormat =
   | 'xlsx'
   | 'pdf'
   | 'ipynb'
+  | 'pptx'
+  | 'zip'
+  | 'jpg'
+  | 'rss'
 
 export interface ConverterInput {
   filePath: string
@@ -58,6 +62,13 @@ const EXTENSION_FORMAT_MAP: Record<string, SupportedFormat> = {
   '.xls': 'xlsx',
   '.pdf': 'pdf',
   '.ipynb': 'ipynb',
+  '.pptx': 'pptx',
+  '.zip': 'zip',
+  '.jpg': 'jpg',
+  '.jpeg': 'jpg',
+  '.png': 'jpg',
+  '.rss': 'rss',
+  '.atom': 'rss',
 }
 
 export function detectFormat(filePath: string): SupportedFormat | undefined {
@@ -78,4 +89,8 @@ export const ALL_SUPPORTED_FORMATS: readonly SupportedFormat[] = [
   'xlsx',
   'pdf',
   'ipynb',
+  'pptx',
+  'zip',
+  'jpg',
+  'rss',
 ]

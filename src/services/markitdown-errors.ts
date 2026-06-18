@@ -15,6 +15,10 @@ export type MarkitdownErrorCode =
   | 'xlsx_convert_failed'
   | 'pdf_convert_failed'
   | 'ipynb_convert_failed'
+  | 'pptx_convert_failed'
+  | 'zip_convert_failed'
+  | 'rss_convert_failed'
+  | 'image_convert_failed'
   | 'no_converter_matched'
 
 export class MarkitdownError extends Error {
