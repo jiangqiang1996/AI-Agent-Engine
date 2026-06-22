@@ -1,10 +1,19 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 
+import { detectAndDecode } from './markitdown/encoding-detector.js'
 import { MarkitdownError } from './markitdown-errors.js'
 import { detectFormat, type MarkitdownSourceResult } from './markitdown-types.js'
 
-const MAX_LOCAL_BYTES = 10 * 1024 * 1024
+const DEFAULT_MAX_LOCAL_BYTES = 100 * 1024 * 1024
+
+function resolveMaxBytes(): number {
+  const envValue = process.env.AE_MARKITDOWN_MAX_BYTES
+  if (!envValue) return DEFAULT_MAX_LOCAL_BYTES
+  const parsed = Number.parseInt(envValue, 10)
+  if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_MAX_LOCAL_BYTES
+  return parsed
+}
 
 function rejectWindowsSpecialPath(source: string): void {
   if (
@@ -44,10 +53,11 @@ export async function loadMarkitdownSource(
   if (!stat.isFile()) {
     throw new MarkitdownError('path_not_file', '路径不是文件：请提供文件路径而非目录。')
   }
-  if (stat.size > MAX_LOCAL_BYTES) {
+  const maxBytes = resolveMaxBytes()
+  if (stat.size > maxBytes) {
     throw new MarkitdownError(
       'file_too_large',
-      `文件过大（${(stat.size / 1024 / 1024).toFixed(1)} MB）：仅支持 10 MB 以内的文件。`,
+      `文件过大（${(stat.size / 1024 / 1024).toFixed(1)} MB）：当前上限为 ${(maxBytes / 1024 / 1024).toFixed(0)} MB。如需转换更大文件，可设置环境变量 AE_MARKITDOWN_MAX_BYTES。`,
     )
   }
 
@@ -55,7 +65,7 @@ export async function loadMarkitdownSource(
   if (!format) {
     throw new MarkitdownError(
       'unsupported_format',
-      `不支持的文件格式：${path.extname(realTarget) || '无扩展名'}。支持的格式包括 HTML、CSV、JSON、XML、YAML、TXT、MD、DOCX、XLSX、PDF、IPYNB。`,
+      `不支持的文件格式：${path.extname(realTarget) || '无扩展名'}。支持的格式包括 HTML、CSV、TSV、JSON、XML、YAML、TXT、MD、DOCX、XLSX、PDF、IPYNB、PPTX、ZIP、JPG/PNG、RSS/Atom、EPUB、MSG。`,
     )
   }
 
@@ -67,9 +77,7 @@ export async function loadMarkitdownSource(
   const isTextFormat = ['html', 'csv', 'json', 'xml', 'yaml', 'text', 'markdown', 'ipynb'].includes(
     format,
   )
-  const textContent = isTextFormat
-    ? binaryContent.toString('utf8').replace(/^\uFEFF/, '')
-    : ''
+  const textContent = isTextFormat ? detectAndDecode(binaryContent) : ''
 
   return {
     filePath: realTarget,

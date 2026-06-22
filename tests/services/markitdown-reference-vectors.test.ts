@@ -5,18 +5,24 @@ import { describe, expect, it } from 'vitest'
 
 import {
   DocxConverter,
-  HtmlConverter,
+  EpubConverter,
   ImageConverter,
   IpynbConverter,
-  JsonConverter,
+  OutlookMsgConverter,
   PdfConverter,
   PptxConverter,
-  RssConverter,
   XlsxConverter,
-  XmlConverter,
   ZipConverter,
-} from '../../src/services/markitdown-utilities.js'
+} from '../../src/services/markitdown-converters-binary.js'
+import {
+  HtmlConverter,
+  JsonConverter,
+  RssConverter,
+  XmlConverter,
+} from '../../src/services/markitdown-converters-text.js'
+import { detectAndDecode } from '../../src/services/markitdown/encoding-detector.js'
 import type { ConverterInput, SupportedFormat } from '../../src/services/markitdown-types.js'
+import { createBinaryConverters, createTextConverters } from '../../src/services/markitdown/converters/converter-registry.js'
 
 const REF_DIR = path.resolve(process.cwd(), 'tests/fixtures/markitdown/reference')
 
@@ -34,7 +40,7 @@ async function loadFile(filename: string, format: SupportedFormat): Promise<Conv
   const isTextFormat = ['html', 'csv', 'json', 'xml', 'yaml', 'text', 'markdown', 'ipynb', 'rss'].includes(
     format,
   )
-  const textContent = isTextFormat ? binaryContent.toString('utf8').replace(/^\uFEFF/, '') : ''
+  const textContent = isTextFormat ? detectAndDecode(binaryContent) : ''
   return { filePath, textContent, binaryContent, format }
 }
 
@@ -88,7 +94,7 @@ const REFERENCE_VECTORS: FileTestVector[] = [
       '![This phrase of the caption is Human-written.](Picture4.jpg)',
     ],
     mustNotInclude: ['data:image/jpeg;base64,/9j/4AAQSkZJRgABAQE'],
-    skip: 'Chart extraction not yet implemented; chart title and value assertions pending',
+    // skip: 'Chart extraction not yet implemented; chart title and value assertions pending',
   },
   {
     filename: 'test.pdf',
@@ -118,7 +124,6 @@ const REFERENCE_VECTORS: FileTestVector[] = [
       '154 languages',
       'move to sidebar',
     ],
-    skip: 'HTML-to-markdown library behavior differences: turndown includes link titles, button text, and span content that Python markdownify strips; core content extraction verified in must_include',
   },
   {
     filename: 'test_serp.html',
@@ -129,7 +134,6 @@ const REFERENCE_VECTORS: FileTestVector[] = [
     mustNotInclude: [
       'https://www.bing.com/ck/a?!&&p=',
     ],
-    skip: 'HTML-to-markdown library behavior differences: Bing SERP tracking URL handling and cite element conversion differ between turndown and Python markdownify',
   },
   {
     filename: 'test.json',
@@ -184,7 +188,6 @@ const REFERENCE_VECTORS: FileTestVector[] = [
       'affc7dad-52dc-4b98-9b5d-51e65d8a8ad0',
     ],
     mustNotInclude: [],
-    skip: 'ZIP converter recursively converts files; large test may timeout',
   },
   {
     filename: 'test.jpg',
@@ -207,7 +210,7 @@ const REFERENCE_VECTORS: FileTestVector[] = [
       'AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation',
     ],
     mustNotInclude: [],
-    skip: 'mammoth does not extract DOCX comments; comment-specific assertions skipped',
+    // skip: 'mammoth does not extract DOCX comments; comment-specific assertions skipped',
   },
   {
     filename: 'rlink.docx',
@@ -224,14 +227,43 @@ const REFERENCE_VECTORS: FileTestVector[] = [
       '$m=1$',
     ],
     mustNotInclude: [],
-    skip: 'mammoth does not convert OMML equations to LaTeX; equation assertions skipped',
+    // skip: 'mammoth does not convert OMML equations to LaTeX; equation assertions skipped',
+  },
+  {
+    filename: 'test.epub',
+    format: 'epub',
+    mustInclude: [
+      '**Authors:** Test Author',
+      'A test EPUB document for MarkItDown testing',
+      '# Chapter 1: Test Content',
+      'This is a **test** paragraph with some formatting',
+      // turndown 使用 "-   " 前缀（Python markdownify 使用 "* "）；用子串匹配兼容两者
+      'A bullet point',
+      'Another point',
+      '# Chapter 2: More Content',
+      '*different* style',
+      '> This is a blockquote for testing',
+    ],
+    mustNotInclude: [],
+  },
+  {
+    filename: 'test_outlook_msg.msg',
+    format: 'msg',
+    mustInclude: [
+      '# Email Message',
+      '**From:** test.sender@example.com',
+      '**To:** test.recipient@example.com',
+      '**Subject:** Test Email Message',
+      '## Content',
+      'This is the body of the test email message',
+    ],
+    mustNotInclude: [],
   },
   {
     filename: 'random.bin',
     format: 'text',
     mustInclude: [],
     mustNotInclude: [],
-    skip: 'Binary file with no converter; test validates graceful handling only',
   },
   {
     filename: 'test_mskanji.csv',
@@ -242,7 +274,6 @@ const REFERENCE_VECTORS: FileTestVector[] = [
       '| 佐藤太郎 | 30 | 東京 |',
     ],
     mustNotInclude: [],
-    skip: 'cp932/Shift-JIS encoding not supported without iconv-lite dependency',
   },
 ]
 
@@ -276,7 +307,7 @@ describe('markitdown reference test vectors (from markitdown/packages/markitdown
           result = await DocxConverter.convertDocx(input.binaryContent)
           break
         case 'xlsx':
-          result = XlsxConverter.convertXlsx(input.binaryContent)
+          result = await XlsxConverter.convertXlsx(input.binaryContent)
           break
         case 'pdf':
           result = await PdfConverter.convertPdf(input.binaryContent)
@@ -288,10 +319,26 @@ describe('markitdown reference test vectors (from markitdown/packages/markitdown
           result = await PptxConverter.convertPptx(input.binaryContent)
           break
         case 'zip':
-          result = await ZipConverter.convertZip(input.binaryContent, input.filePath)
+          result = await ZipConverter.convertZip(
+            input.binaryContent,
+            input.filePath,
+            [...createTextConverters(), ...createBinaryConverters()],
+          )
           break
         case 'jpg':
-          result = ImageConverter.convertImage(input.binaryContent, input.filePath)
+          result = await ImageConverter.convertImage(input.binaryContent, input.filePath)
+          break
+        case 'epub':
+          result = await EpubConverter.convertEpub(input.binaryContent)
+          break
+        case 'msg':
+          result = await OutlookMsgConverter.convertMsg(input.binaryContent)
+          break
+        case 'csv':
+          result = await new (await import('../../src/services/markitdown/converters/csv-converter.js')).CsvConverter().convert(input)
+          break
+        case 'text':
+          result = { markdown: input.textContent }
           break
         default:
           throw new Error(`Unsupported format: ${vector.format}`)
@@ -325,7 +372,7 @@ describe('markitdown reference test vectors (from markitdown/packages/markitdown
           result = await DocxConverter.convertDocx(input.binaryContent)
           break
         case 'xlsx':
-          result = XlsxConverter.convertXlsx(input.binaryContent)
+          result = await XlsxConverter.convertXlsx(input.binaryContent)
           break
         case 'pdf':
           result = await PdfConverter.convertPdf(input.binaryContent)
@@ -337,10 +384,26 @@ describe('markitdown reference test vectors (from markitdown/packages/markitdown
           result = await PptxConverter.convertPptx(input.binaryContent)
           break
         case 'zip':
-          result = await ZipConverter.convertZip(input.binaryContent, input.filePath)
+          result = await ZipConverter.convertZip(
+            input.binaryContent,
+            input.filePath,
+            [...createTextConverters(), ...createBinaryConverters()],
+          )
           break
         case 'jpg':
-          result = ImageConverter.convertImage(input.binaryContent, input.filePath)
+          result = await ImageConverter.convertImage(input.binaryContent, input.filePath)
+          break
+        case 'epub':
+          result = await EpubConverter.convertEpub(input.binaryContent)
+          break
+        case 'msg':
+          result = await OutlookMsgConverter.convertMsg(input.binaryContent)
+          break
+        case 'csv':
+          result = await new (await import('../../src/services/markitdown/converters/csv-converter.js')).CsvConverter().convert(input)
+          break
+        case 'text':
+          result = { markdown: input.textContent }
           break
         default:
           throw new Error(`Unsupported format: ${vector.format}`)
@@ -357,57 +420,19 @@ describe('markitdown reference test vectors (from markitdown/packages/markitdown
 })
 
 // DATA_URI_TEST_VECTORS: tests keep_data_uris=True behavior
-// Our JS implementation always truncates data URIs (keep_data_uris not yet supported)
-// These tests are skipped until keep_data_uris parameter is implemented
-describe.skip('markitdown DATA_URI test vectors (keep_data_uris=True)', () => {
+// DOCX: mammoth embeds images as data URIs in HTML; keepDataUris prevents turndown truncation.
+// PPTX: image embedding as data URIs not yet implemented; PPTX test remains skipped.
+describe('markitdown DATA_URI test vectors (keep_data_uris=True)', () => {
   it('test.docx with keep_data_uris should retain full base64 data URIs', async () => {
     const input = await loadFile('test.docx', 'docx')
-    const result = await DocxConverter.convertDocx(input.binaryContent)
+    const result = await DocxConverter.convertDocx(input.binaryContent, { keepDataUris: true })
     expect(result.markdown).toContain('data:image/png;base64,iVBORw0KGgoAAAANSU')
     expect(result.markdown).not.toContain('data:image/png;base64...')
   })
 
   it('test.pptx with keep_data_uris should retain full base64 data URIs', async () => {
     const input = await loadFile('test.pptx', 'pptx')
-    const result = await PptxConverter.convertPptx(input.binaryContent)
-    expect(result.markdown).toContain('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQE')
-    expect(result.markdown).not.toContain(
-      '![This phrase of the caption is Human-written.](Picture4.jpg)',
-    )
-  })
-})
-
-// DATA_URI_TEST_VECTORS: tests keep_data_uris=True behavior
-// Our JS implementation does not yet support the keep_data_uris parameter;
-// data URIs are always truncated to match the default Python behavior.
-describe.skip('markitdown DATA_URI test vectors (keep_data_uris=True)', () => {
-  it('test.docx with keep_data_uris should include full base64 data URIs', () => {
-    // Requires keep_data_uris parameter support
-    // mustInclude: 'data:image/png;base64,iVBORw0KGgoAAAANSU'
-    // mustNotInclude: 'data:image/png;base64...'
-  })
-
-  it('test.pptx with keep_data_uris should include full base64 data URIs', () => {
-    // Requires keep_data_uris parameter support
-    // mustInclude: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQE'
-    // mustNotInclude: '![This phrase of the caption is Human-written.](Picture4.jpg)'
-  })
-})
-
-// DATA_URI_TEST_VECTORS: tests keep_data_uris=True behavior
-// Our JS implementation always truncates data URIs (no keep_data_uris parameter yet).
-// These tests are skipped until the parameter is implemented.
-describe.skip('markitdown DATA_URI test vectors (keep_data_uris=True)', () => {
-  it('test.docx with keep_data_uris=True should keep full base64 data URIs', async () => {
-    const input = await loadFile('test.docx', 'docx')
-    const result = await DocxConverter.convertDocx(input.binaryContent)
-    expect(result.markdown).toContain('data:image/png;base64,iVBORw0KGgoAAAANSU')
-    expect(result.markdown).not.toContain('data:image/png;base64...')
-  })
-
-  it('test.pptx with keep_data_uris=True should keep full base64 data URIs', async () => {
-    const input = await loadFile('test.pptx', 'pptx')
-    const result = await PptxConverter.convertPptx(input.binaryContent)
+    const result = await PptxConverter.convertPptx(input.binaryContent, { keepDataUris: true })
     expect(result.markdown).toContain('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQE')
     expect(result.markdown).not.toContain(
       '![This phrase of the caption is Human-written.](Picture4.jpg)',

@@ -19,6 +19,8 @@ export type MarkitdownErrorCode =
   | 'zip_convert_failed'
   | 'rss_convert_failed'
   | 'image_convert_failed'
+  | 'epub_convert_failed'
+  | 'outlook_msg_convert_failed'
   | 'no_converter_matched'
 
 export class MarkitdownError extends Error {

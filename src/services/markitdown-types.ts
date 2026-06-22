@@ -14,6 +14,8 @@ export type SupportedFormat =
   | 'zip'
   | 'jpg'
   | 'rss'
+  | 'epub'
+  | 'msg'
 
 export interface ConverterInput {
   filePath: string
@@ -69,6 +71,8 @@ const EXTENSION_FORMAT_MAP: Record<string, SupportedFormat> = {
   '.png': 'jpg',
   '.rss': 'rss',
   '.atom': 'rss',
+  '.epub': 'epub',
+  '.msg': 'msg',
 }
 
 export function detectFormat(filePath: string): SupportedFormat | undefined {
@@ -93,4 +97,6 @@ export const ALL_SUPPORTED_FORMATS: readonly SupportedFormat[] = [
   'zip',
   'jpg',
   'rss',
+  'epub',
+  'msg',
 ]

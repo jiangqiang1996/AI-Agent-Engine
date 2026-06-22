@@ -9,6 +9,7 @@ import {
   HtmlConverter,
   JsonConverter,
   MarkdownConverter,
+  RssConverter,
   TextConverter,
   XmlConverter,
   YamlConverter,
@@ -56,6 +57,24 @@ describe('markitdown-converters-text (aligned with Python reference behavior)', 
       // Reference strips and returns; does not throw on empty
       expect(result).toHaveProperty('markdown')
       expect(typeof result.markdown).toBe('string')
+    })
+
+    it('应该剥离 script 和 style 标签内容（匹配参考行为）', async () => {
+      const input: ConverterInput = {
+        filePath: 'script-style.html',
+        textContent:
+          '<html><head><style>body{color:red}</style></head>' +
+          '<body><script>alert("xss")</script><h1>Title</h1><p>Content</p></body></html>',
+        binaryContent: Buffer.from(''),
+        format: 'html',
+      }
+      const result = await new HtmlConverter().convert(input)
+      expect(result.markdown).toContain('Title')
+      expect(result.markdown).toContain('Content')
+      expect(result.markdown).not.toContain('alert')
+      expect(result.markdown).not.toContain('color:red')
+      expect(result.markdown).not.toContain('<script')
+      expect(result.markdown).not.toContain('<style')
     })
   })
 
@@ -186,6 +205,78 @@ describe('markitdown-converters-text (aligned with Python reference behavior)', 
       const result = await new MarkdownConverter().convert(input)
       expect(result.markdown).toContain('# Sample Markdown')
       expect(result.markdown).toContain('**markdown**')
+    })
+  })
+
+  describe('RssConverter (P1 - independent unit test)', () => {
+    it('静态方法 convertRss 应接收字符串', () => {
+      expect(typeof RssConverter.convertRss).toBe('function')
+    })
+
+    it('应该只接受 rss 格式', () => {
+      const converter = new RssConverter()
+      expect(converter.accept('a.xml', 'rss')).toBe(true)
+      expect(converter.accept('a.html', 'html')).toBe(false)
+      expect(converter.accept('a.xml', 'xml')).toBe(false)
+    })
+
+    it('应该解析 RSS 2.0 格式（channel + item）', () => {
+      const rss = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Test Feed</title>
+    <description>A test RSS feed</description>
+    <item>
+      <title>First Item</title>
+      <description>First description</description>
+      <link>https://example.com/1</link>
+    </item>
+    <item>
+      <title>Second Item</title>
+      <link>https://example.com/2</link>
+    </item>
+  </channel>
+</rss>`
+      const result = RssConverter.convertRss(rss)
+      expect(result.markdown).toContain('# Test Feed')
+      expect(result.markdown).toContain('## First Item')
+      expect(result.markdown).toContain('## Second Item')
+      expect(result.markdown).not.toContain('<rss')
+      expect(result.markdown).not.toContain('<channel')
+    })
+
+    it('应该解析 Atom 格式（feed + entry）- P0 分支覆盖', () => {
+      const atom = `<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Atom Test Feed</title>
+  <subtitle>An atom feed for testing</subtitle>
+  <entry>
+    <title>Atom Entry One</title>
+    <summary>Summary of entry one</summary>
+    <link href="https://example.com/atom/1"/>
+  </entry>
+  <entry>
+    <title>Atom Entry Two</title>
+    <link href="https://example.com/atom/2"/>
+  </entry>
+</feed>`
+      const result = RssConverter.convertRss(atom)
+      expect(result.markdown).toContain('Atom Test Feed')
+      expect(result.markdown).toContain('Atom Entry One')
+      expect(result.markdown).toContain('Atom Entry Two')
+      expect(result.markdown).not.toContain('<feed')
+      expect(result.markdown).not.toContain('<entry')
+    })
+
+    it('非 RSS/Atom XML 应返回空 markdown（不抛异常）', () => {
+      const plainXml = '<?xml version="1.0"?><root><item>data</item></root>'
+      const result = RssConverter.convertRss(plainXml)
+      expect(result.markdown).toBe('')
+    })
+
+    it('空 XML 应返回空 markdown（不抛异常）', () => {
+      const result = RssConverter.convertRss('')
+      expect(result.markdown).toBe('')
     })
   })
 })

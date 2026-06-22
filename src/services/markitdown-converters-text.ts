@@ -1,4 +1,4 @@
-// Re-export all converters and factory functions from markitdown-utilities
+// Re-export all converters and factory functions from the new modular structure
 // for backward compatibility with existing imports
 
 export {
@@ -17,6 +17,8 @@ export {
   ZipConverter,
   ImageConverter,
   RssConverter,
+  EpubConverter,
+  OutlookMsgConverter,
   createTextConverters,
   createBinaryConverters,
-} from './markitdown-utilities.js'
+} from './markitdown/converters/index.js'

@@ -78,4 +78,41 @@ describe('markitdown-source-loader', () => {
       MarkitdownError,
     )
   })
+
+  it('应该支持通过环境变量 AE_MARKITDOWN_MAX_BYTES 调整大小上限', async () => {
+    const oversizedFile = path.join(FIXTURES_DIR, 'oversized.txt')
+    const payload = Buffer.alloc(64, 0x41)
+    await fs.writeFile(oversizedFile, payload)
+    const previous = process.env.AE_MARKITDOWN_MAX_BYTES
+    try {
+      const rel = path.relative(process.cwd(), oversizedFile)
+      process.env.AE_MARKITDOWN_MAX_BYTES = '32'
+      await expect(loadMarkitdownSource(rel, process.cwd())).rejects.toThrow(
+        /文件过大/,
+      )
+      process.env.AE_MARKITDOWN_MAX_BYTES = '128'
+      const result = await loadMarkitdownSource(rel, process.cwd())
+      expect(result.fileSize).toBe(64)
+    } finally {
+      if (previous === undefined) delete process.env.AE_MARKITDOWN_MAX_BYTES
+      else process.env.AE_MARKITDOWN_MAX_BYTES = previous
+      await fs.unlink(oversizedFile)
+    }
+  })
+
+  it('应该在环境变量非法时回退到默认上限', async () => {
+    const previous = process.env.AE_MARKITDOWN_MAX_BYTES
+    try {
+      process.env.AE_MARKITDOWN_MAX_BYTES = 'not-a-number'
+      const result = await loadMarkitdownSource(
+        path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.txt')),
+        process.cwd(),
+      )
+      expect(result.format).toBe('text')
+    } finally {
+      if (previous === undefined) delete process.env.AE_MARKITDOWN_MAX_BYTES
+      else process.env.AE_MARKITDOWN_MAX_BYTES = previous
+    }
+  })
 })
+
