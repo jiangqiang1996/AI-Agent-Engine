@@ -6,8 +6,7 @@ import { z } from 'zod'
 
 import { TOOL } from '../schemas/ae-asset-schema.js'
 import { formatMarkitdownError } from '../services/markitdown-errors.js'
-import { convertToMarkdown } from '../services/markitdown-service.js'
-import { isInsideRoot, resolvePathWithBase } from '../utils/path-utils.js'
+import { convertToMarkdown, generateMarkitdownOutputPath } from '../services/markitdown-service.js'
 
 export const aeMarkitdownTool = tool({
   description: [
@@ -29,9 +28,15 @@ export const aeMarkitdownTool = tool({
     '- EPUB 提取章节内容',
     '- MSG 提取 Outlook 邮件内容',
     '',
-    '可选输出：',
-    '- 提供 outputPath 参数时，转换结果会同时写入指定 .md 文件；路径必须位于当前工作区内',
-    '- 未提供 outputPath 时，转换结果仅通过 output 字段返回',
+    '输出：',
+    '- 转换结果自动写入当前工作区 `ae/markitdown/` 子目录',
+    '- 文件名规则：`<原始文件名>-<时间戳>-<随机串>.md`，保留原始文件名便于追溯，时间戳与随机串确保反复转换不冲突',
+    '- 写入路径通过 metadata.outputPath 返回',
+    '',
+    '调用纪律：',
+    '- 本工具针对同一文件参数在一次响应中只调用一次，收到返回值后任务即完成',
+    '- 禁止在未收到用户新指令的情况下，再次发起相同参数的工具调用',
+    '- 如需展示结果，直接使用已返回的 output 和 outputPath，不要重复调用',
     '',
     '适用场景：',
     '- 需要将本地文档统一为 Markdown 格式',
@@ -41,6 +46,11 @@ export const aeMarkitdownTool = tool({
     '- 不支持远程 URL，仅处理当前工作区内本地文件',
     '- 不支持音频、视频等非文档格式',
     '- 单文件默认上限 100 MB，可通过环境变量 AE_MARKITDOWN_MAX_BYTES 调整',
+    '',
+    '调用纪律：',
+    '- 同一文件在一次会话中只调用一次；重复调用会产生冗余产物文件',
+    '- 返回值 metadata.existingOutputs 列出本次之前已有的同源产物路径，非空时说明已转换过，不应再次调用',
+    '- 如需保留多次转换历史（例如源文件已修改），可显式再次调用，工具不会去重',
   ].join('\n'),
   args: {
     file: z
@@ -69,11 +79,6 @@ export const aeMarkitdownTool = tool({
       ])
       .optional()
       .describe('显式指定文件格式；省略时根据文件扩展名自动推断。'),
-    outputPath: z
-      .string()
-      .min(1)
-      .optional()
-      .describe('可选的输出 .md 文件路径，支持绝对路径或相对于工作区的相对路径；指定后转换结果将写入该文件。'),
   },
   execute: async (args, ctx) => {
     ctx.metadata({ title: `转换文件为 Markdown: ${args.file}` })
@@ -82,24 +87,15 @@ export const aeMarkitdownTool = tool({
       const result = await convertToMarkdown({
         file: args.file,
         worktree: ctx.worktree,
+        format: args.format,
       })
 
       const header = result.title ? `# ${result.title}\n\n` : ''
       const output = header + result.markdown
 
-      let savedPath: string | undefined
-      if (args.outputPath) {
-        const baseDirectory = path.resolve(ctx.directory ?? ctx.worktree)
-        const resolved = resolvePathWithBase(baseDirectory, args.outputPath)
-        if (!isInsideRoot(ctx.worktree, resolved)) {
-          return formatMarkitdownError(
-            new Error('outputPath 路径越界：输出路径必须位于当前工作区内。'),
-          )
-        }
-        mkdirSync(path.dirname(resolved), { recursive: true })
-        writeFileSync(resolved, output, 'utf8')
-        savedPath = resolved
-      }
+      const outputPath = generateMarkitdownOutputPath(ctx.worktree, result.filePath)
+      mkdirSync(path.dirname(outputPath), { recursive: true })
+      writeFileSync(outputPath, output, 'utf8')
 
       return {
         output,
@@ -109,7 +105,7 @@ export const aeMarkitdownTool = tool({
           filePath: result.filePath,
           fileSize: result.fileSize,
           title: result.title,
-          outputPath: savedPath,
+          outputPath,
         },
       }
     } catch (error) {

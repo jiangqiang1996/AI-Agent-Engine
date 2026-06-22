@@ -3,9 +3,26 @@ import path from 'node:path'
 
 import { detectAndDecode } from './markitdown/encoding-detector.js'
 import { MarkitdownError } from './markitdown-errors.js'
-import { detectFormat, type MarkitdownSourceResult } from './markitdown-types.js'
+import { detectFormat, type MarkitdownSourceResult, type SupportedFormat } from './markitdown-types.js'
 
 const DEFAULT_MAX_LOCAL_BYTES = 100 * 1024 * 1024
+
+/**
+ * 归一化用户输入的文件路径。
+ * 容错处理 opencode @file 引用前缀、首尾配对的引号与反引号，避免 LLM 透传时残留包裹字符导致路径解析失败。
+ */
+export function normalizeUserFilePath(file: string): string {
+  let normalized = file.trim()
+  if (normalized.startsWith('@')) normalized = normalized.slice(1)
+  const wrappers = [['"', '"'], ["'", "'"], ['`', '`']] as const
+  for (const [open, close] of wrappers) {
+    if (normalized.length >= 2 && normalized.startsWith(open) && normalized.endsWith(close)) {
+      normalized = normalized.slice(1, -1)
+      break
+    }
+  }
+  return normalized.trim()
+}
 
 function resolveMaxBytes(): number {
   const envValue = process.env.AE_MARKITDOWN_MAX_BYTES
@@ -28,15 +45,17 @@ function rejectWindowsSpecialPath(source: string): void {
 export async function loadMarkitdownSource(
   file: string,
   worktree: string,
+  formatOverride?: SupportedFormat,
 ): Promise<MarkitdownSourceResult> {
-  if (!file.trim()) {
+  const rawFile = normalizeUserFilePath(file)
+  if (!rawFile) {
     throw new MarkitdownError('input_empty', '输入为空：请提供要转换的本地文件路径。')
   }
 
-  rejectWindowsSpecialPath(file)
+  rejectWindowsSpecialPath(rawFile)
 
   const root = await fs.realpath(worktree)
-  const target = path.resolve(root, file)
+  const target = path.resolve(root, rawFile)
   let realTarget: string
   try {
     realTarget = await fs.realpath(target)
@@ -61,7 +80,7 @@ export async function loadMarkitdownSource(
     )
   }
 
-  const format = detectFormat(realTarget)
+  const format = formatOverride ?? detectFormat(realTarget)
   if (!format) {
     throw new MarkitdownError(
       'unsupported_format',

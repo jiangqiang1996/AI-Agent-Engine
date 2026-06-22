@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, sep } from 'node:path'
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
@@ -40,7 +40,7 @@ async function callTool(
 }
 
 describe('ae-markitdown 工具', () => {
-  it('未提供 outputPath 时仅返回 output 字段', async () => {
+  it('转换后应自动写入 ae/markitdown 并返回 outputPath', async () => {
     const root = createRoot()
     writeFileSync(join(root, 'note.md'), '# 标题\n\n正文内容')
 
@@ -48,42 +48,61 @@ describe('ae-markitdown 工具', () => {
     const obj = result as { output: string; metadata: Record<string, unknown> }
 
     expect(obj.output).toContain('标题')
-    expect(obj.metadata.outputPath).toBeUndefined()
+
+    const outputPath = obj.metadata.outputPath as string
+    expect(outputPath).toBeTruthy()
+    // 输出路径位于 ae/markitdown 子目录下
+    expect(outputPath).toContain(join('ae', 'markitdown') + sep)
+    // 文件名保留原始文件名
+    expect(outputPath).toContain('note.md-')
+    // 以 .md 结尾
+    expect(outputPath.endsWith('.md')).toBe(true)
+    // 文件真实写入
+    expect(existsSync(outputPath)).toBe(true)
+    expect(readFileSync(outputPath, 'utf8')).toContain('标题')
   })
 
-  it('提供 outputPath 时应写入 .md 文件并返回路径', async () => {
+  it('ae/markitdown 目录不存在时应自动创建', async () => {
     const root = createRoot()
-    mkdirSync(join(root, 'docs'))
-    writeFileSync(join(root, 'note.md'), '# 原始标题\n\n正文')
+    writeFileSync(join(root, 'data.json'), '{"a":1}')
 
-    const result = await callTool(root, { file: 'note.md', outputPath: 'docs/out.md' })
+    const result = await callTool(root, { file: 'data.json' })
     const obj = result as { output: string; metadata: Record<string, unknown> }
 
-    expect(obj.output).toContain('原始标题')
-    expect(obj.metadata.outputPath).toBe(join(root, 'docs', 'out.md'))
-    expect(readFileSync(join(root, 'docs', 'out.md'), 'utf8')).toContain('原始标题')
+    const outputPath = obj.metadata.outputPath as string
+    expect(existsSync(outputPath)).toBe(true)
+    expect(existsSync(join(root, 'ae', 'markitdown'))).toBe(true)
   })
 
-  it('outputPath 目录不存在时应自动创建', async () => {
+  it('同一文件反复转换时文件名不得冲突', async () => {
     const root = createRoot()
-    writeFileSync(join(root, 'note.md'), '简单文本')
+    writeFileSync(join(root, 'a.json'), '{"key":"value"}')
 
-    const result = await callTool(root, { file: 'note.md', outputPath: 'nested/dir/out.md' })
+    const r1 = await callTool(root, { file: 'a.json' })
+    const r2 = await callTool(root, { file: 'a.json' })
+
+    const p1 = (r1 as { metadata: Record<string, unknown> }).metadata.outputPath as string
+    const p2 = (r2 as { metadata: Record<string, unknown> }).metadata.outputPath as string
+
+    expect(p1).not.toBe(p2)
+    expect(existsSync(p1)).toBe(true)
+    expect(existsSync(p2)).toBe(true)
+    // 两个文件名都保留原始文件名
+    expect(p1).toContain('a.json-')
+    expect(p2).toContain('a.json-')
+  })
+
+  it('嵌套路径文件应取 basename 作为输出文件名前缀', async () => {
+    const root = createRoot()
+    mkdirSync(join(root, 'docs', 'sub'), { recursive: true })
+    writeFileSync(join(root, 'docs', 'sub', 'report.md'), '# 报告')
+
+    const result = await callTool(root, { file: 'docs/sub/report.md' })
     const obj = result as { output: string; metadata: Record<string, unknown> }
 
-    expect(existsSync(join(root, 'nested', 'dir', 'out.md'))).toBe(true)
-    expect(obj.metadata.outputPath).toBe(join(root, 'nested', 'dir', 'out.md'))
-  })
-
-  it('outputPath 越界时应返回错误且不写文件', async () => {
-    const root = createRoot()
-    writeFileSync(join(root, 'note.md'), '内容')
-
-    const result = await callTool(root, { file: 'note.md', outputPath: '../escape.md' })
-    const output = typeof result === 'string' ? result : result.output
-
-    expect(output).toContain('路径越界')
-    expect(existsSync(join(root, '..', 'escape.md'))).toBe(false)
+    const outputPath = obj.metadata.outputPath as string
+    expect(outputPath).toContain('report.md-')
+    expect(existsSync(outputPath)).toBe(true)
   })
 
   it('文件不存在时应返回可恢复的中文错误', async () => {

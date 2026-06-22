@@ -80,4 +80,13 @@ describe('markitdown-service', () => {
       }),
     ).rejects.toThrow(MarkitdownError)
   })
+
+  it('应该支持 format 覆盖扩展名推断', async () => {
+    const result = await convertToMarkdown({
+      file: path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.txt')),
+      worktree: process.cwd(),
+      format: 'markdown',
+    })
+    expect(result.format).toBe('markdown')
+  })
 })

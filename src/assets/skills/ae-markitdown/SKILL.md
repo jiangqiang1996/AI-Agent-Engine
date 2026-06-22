@@ -1,57 +1,43 @@
 ---
 name: ae:markitdown
 description: 将本地文件转换为 Markdown，支持 HTML/CSV/TSV/JSON/XML/YAML/文本/Markdown/DOCX/XLSX/PDF/IPYNB/PPTX/ZIP/JPG/RSS/EPUB/MSG
-argument-hint: "[file] [format] [outputPath=路径]"
+argument-hint: "file=路径 [format=格式]"
 ---
 
 # Skill: ae:markitdown
 
-将当前工作区内的本地文件统一转换为 Markdown 格式，便于阅读、归档或作为 LLM 输入。
+将当前工作区内的本地文件转换为 Markdown，便于阅读、归档或作为 LLM 输入。
 
-## 使用场景
+## 何时使用
 
-- 用户需要将 HTML、CSV、TSV、JSON、XML、YAML、TXT 等文本格式文件转为 Markdown。
-- 用户需要读取 DOCX、XLSX、PDF、IPYNB、PPTX 等二进制文档格式文件的内容。
-- 用户需要提取 ZIP、EPUB、RSS/Atom、Outlook MSG 等容器或聚合格式的内容。
-- 用户需要提取 JPG/PNG 图片的 EXIF 元数据（尺寸、GPS、拍摄时间等）。
-- 用户希望将转换结果直接写入 .md 文件以便归档或后续处理。
-- 用户说"转成 Markdown"、"读取这个文件"、"把 DOCX 转成文本"、"提取图片元数据"等。
+- 用户需要把 HTML、CSV、JSON、XML、YAML、TXT、Markdown、DOCX、XLSX、PDF、IPYNB、PPTX、ZIP、JPG/PNG、RSS/Atom、EPUB、MSG 等文件转为 Markdown。
+- 用户需要读取二进制文档（DOCX、XLSX、PDF、PPTX 等）的内容。
+- Read 工具提示不支持某格式输入（如 PDF、DOCX、XLSX、PPTX 等二进制文档）时，改用本技能读取。
+- 用户说"转成 Markdown"、"读取这个文件"、"提取图片元数据"等。
 
-## 参数
+## 如何使用
 
-- `file`：必填，当前工作区内的本地文件路径，支持绝对路径或相对路径。
-- `format`：可选，显式指定文件格式。取值：`html`、`csv`、`json`、`xml`、`yaml`、`text`、`markdown`、`docx`、`xlsx`、`pdf`、`ipynb`、`pptx`、`zip`、`jpg`、`rss`、`epub`、`msg`。省略时根据扩展名自动推断（`.tsv`/`.atom`/`.jpeg`/`.png` 等会映射到对应格式）。
-- `outputPath`：可选，输出 .md 文件路径，支持绝对路径或相对路径。指定后转换结果会写入该文件；路径必须位于当前工作区内。
+**不要用 Read 工具读取 PDF、DOCX、XLSX、PPTX 等二进制文档**——Read 工具会把文件作为模型输入，而这些格式模型不支持。`ae-markitdown` 是读取这类文件的唯一正确方式。
 
-参数解析规则：
-1. 显式命名：`key=value`、`key:value`、`--key=value` 直接绑定。
-2. 顺序兜底：`file → format`（`outputPath` 必须显式命名，不参与顺序兜底）。
+直接调用 `ae-markitdown` 工具，按工具参数说明传参即可：
 
-**内部调用约定**：当本技能被其他技能自动调用时，所有参数必须使用显式命名格式（如 `file=./doc/report.docx`），不依赖值特征推断。
+- `file`（必填）：本地文件路径。
+- `format`（可选）：显式指定格式；省略时由工具根据扩展名推断。
 
-## 行为边界
+工具内部完成路径解析、格式识别、内容读取、转换，并将结果自动写入当前工作区 `ae/markitdown/` 子目录。输出文件名规则：`<原始文件名>-<时间戳>-<随机串>.md`，保留原始文件名便于追溯来源，时间戳与随机串确保同一文件反复转换不会冲突。转换完毕后通过 `metadata.outputPath` 返回写入的绝对路径。转换失败时按工具返回的中文提示让用户修正路径、格式或权限后重试。
 
-- 仅处理当前工作区内的本地文件，不支持远程 URL。
+## 调用纪律
+
+**核心规则：一次技能触发只调用一次工具。**
+
+- 加载本技能后，针对用户指定的文件参数，只调用一次 `ae-markitdown` 工具。
+- 收到工具返回值后，任务即完成。直接使用返回的 `output` 和 `metadata.outputPath` 向用户汇报结果。
+- **禁止在未收到用户新指令的情况下，再次发起相同参数的工具调用。** 这包括：不要因为想"确认结果"、想"再读一次"、想"验证写入"而重复调用。
+- 如果用户在同一会话中再次明确要求转换同一文件（例如源文件已修改），可再次调用，每次调用都会生成独立产物文件。
+- 工具调用是一次性的：发起 → 等待返回 → 汇报结果 → 结束。不要在单次响应中循环或重复发起。
+
+## 边界
+
+- 仅处理当前工作区内本地文件，不支持远程 URL。
+- 不支持音频、视频等非文档格式。
 - 单文件默认上限 100 MB，可通过环境变量 `AE_MARKITDOWN_MAX_BYTES` 调整。
-- 路径安全：输入文件和输出路径都必须位于工作区内，禁止目录穿越。
-- 不支持的格式：音频、视频等非文档格式。
-- HTML 通过 turndown 转为 GFM Markdown（标题、列表、表格、链接、删除线）。
-- CSV/TSV 转为 Markdown 表格，最多 5000 行、50 列。
-- JSON 对象数组转为表格，其他 JSON 在代码块中格式化输出。
-- XML/YAML/纯文本在代码块中输出。
-- Markdown 文件原样返回。
-- DOCX 通过 mammoth 提取 HTML 后转 Markdown；OMML 数学公式转为 LaTeX 行内公式。
-- XLSX 逐工作表转为 Markdown 表格，多工作表时以二级标题分隔。
-- PDF 提取纯文本并识别表格/表单结构；扫描件或纯图片 PDF 可能无法提取文本。
-- IPYNB 按单元格类型输出：代码单元格输出为带语言标签的代码块，Markdown 单元格原样输出。
-- PPTX 提取幻灯片文本和图片引用，按幻灯片编号分节。
-- ZIP 递归转换内部文件，按目录结构组织输出。
-- JPG/PNG 提取 EXIF 元数据（尺寸、GPS、拍摄时间、描述等），PNG 额外解析 tEXt/zTXt/iTXt 文本块。
-- RSS/Atom 提取频道信息和条目列表。
-- EPUB 提取章节内容，按章节标题分节。
-- MSG 提取 Outlook 邮件（发件人、收件人、主题、正文、附件列表）。
-- 提供 `outputPath` 时，转换结果同时写入指定 .md 文件；未提供时仅通过工具返回值输出。
-
-## 工具调用
-
-使用 `ae-markitdown` 工具，并传入结构化参数。不要把自然语言解析作为唯一入口。

@@ -4,7 +4,7 @@ import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 import { MarkitdownError } from '../../src/services/markitdown-errors.js'
-import { loadMarkitdownSource } from '../../src/services/markitdown-source-loader.js'
+import { loadMarkitdownSource, normalizeUserFilePath } from '../../src/services/markitdown-source-loader.js'
 import { detectFormat } from '../../src/services/markitdown-types.js'
 
 const FIXTURES_DIR = path.resolve(process.cwd(), 'tests/fixtures/markitdown')
@@ -112,6 +112,241 @@ describe('markitdown-source-loader', () => {
     } finally {
       if (previous === undefined) delete process.env.AE_MARKITDOWN_MAX_BYTES
       else process.env.AE_MARKITDOWN_MAX_BYTES = previous
+    }
+  })
+})
+
+describe('normalizeUserFilePath', () => {
+  it('应该剥离 @ 前缀', () => {
+    expect(normalizeUserFilePath('@tests/fixtures/sample.txt')).toBe('tests/fixtures/sample.txt')
+  })
+
+  it('应该剥离双引号包裹', () => {
+    expect(normalizeUserFilePath('"tests/fixtures/sample.txt"')).toBe('tests/fixtures/sample.txt')
+  })
+
+  it('应该剥离单引号包裹', () => {
+    expect(normalizeUserFilePath("'tests/fixtures/sample.txt'")).toBe('tests/fixtures/sample.txt')
+  })
+
+  it('应该剥离反引号包裹', () => {
+    expect(normalizeUserFilePath('`tests/fixtures/sample.txt`')).toBe('tests/fixtures/sample.txt')
+  })
+
+  it('应该剥离 @ 前缀加引号的组合', () => {
+    expect(normalizeUserFilePath('@"tests/fixtures/sample.txt"')).toBe('tests/fixtures/sample.txt')
+  })
+
+  it('应该剥离首尾空白', () => {
+    expect(normalizeUserFilePath('  tests/fixtures/sample.txt  ')).toBe('tests/fixtures/sample.txt')
+  })
+
+  it('应该保留路径内部的空格和特殊字符', () => {
+    expect(normalizeUserFilePath('my folder/file name.txt')).toBe('my folder/file name.txt')
+  })
+
+  it('应该拒绝纯空白输入', () => {
+    expect(normalizeUserFilePath('   ')).toBe('')
+    expect(normalizeUserFilePath('')).toBe('')
+  })
+
+  it('不应剥离不配对的引号', () => {
+    expect(normalizeUserFilePath('"tests/fixtures/sample.txt')).toBe('"tests/fixtures/sample.txt')
+  })
+})
+
+describe('markitdown-source-loader format 覆盖', () => {
+  it('应该支持 format 覆盖扩展名推断', async () => {
+    const rel = path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.txt'))
+    const result = await loadMarkitdownSource(rel, process.cwd(), 'markdown')
+    expect(result.format).toBe('markdown')
+  })
+
+  it('应该在未提供 format 时回退到扩展名推断', async () => {
+    const rel = path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.txt'))
+    const result = await loadMarkitdownSource(rel, process.cwd())
+    expect(result.format).toBe('text')
+  })
+})
+
+describe('normalizeUserFilePath', () => {
+  it('应该剥离 @ 前缀', () => {
+    expect(normalizeUserFilePath('@/path/to/file.pdf')).toBe('/path/to/file.pdf')
+    expect(normalizeUserFilePath('@relative/file.txt')).toBe('relative/file.txt')
+  })
+
+  it('应该剥离配对的引号和反引号', () => {
+    expect(normalizeUserFilePath('"path/with spaces.md"')).toBe('path/with spaces.md')
+    expect(normalizeUserFilePath("'path/file.csv'")).toBe('path/file.csv')
+    expect(normalizeUserFilePath('`path/file.json`')).toBe('path/file.json')
+  })
+
+  it('应该剥离 @ 前缀加引号的组合', () => {
+    expect(normalizeUserFilePath('@"path/file.pdf"')).toBe('path/file.pdf')
+    expect(normalizeUserFilePath("@'path/file.pdf'")).toBe('path/file.pdf')
+  })
+
+  it('应该保留不含包裹字符的路径', () => {
+    expect(normalizeUserFilePath('plain/path.txt')).toBe('plain/path.txt')
+    expect(normalizeUserFilePath('./relative.md')).toBe('./relative.md')
+  })
+
+  it('应该 trim 首尾空白', () => {
+    expect(normalizeUserFilePath('  path.txt  ')).toBe('path.txt')
+  })
+
+  it('应该拒绝仅含空白的输入', async () => {
+    await expect(loadMarkitdownSource('   ', process.cwd())).rejects.toThrow(MarkitdownError)
+    await expect(loadMarkitdownSource('@"   "', process.cwd())).rejects.toThrow(MarkitdownError)
+  })
+})
+
+describe('loadMarkitdownSource - format 覆盖', () => {
+  it('应该支持 formatOverride 覆盖扩展名推断', async () => {
+    const result = await loadMarkitdownSource(
+      path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.txt')),
+      process.cwd(),
+      'text',
+    )
+    expect(result.format).toBe('text')
+  })
+
+  it('应该在未提供 formatOverride 时回退到扩展名推断', async () => {
+    const result = await loadMarkitdownSource(
+      path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.json')),
+      process.cwd(),
+    )
+    expect(result.format).toBe('json')
+  })
+
+  it('应该接受 @ 前缀路径并正确加载', async () => {
+    const rel = path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.txt'))
+    const result = await loadMarkitdownSource(`@${rel}`, process.cwd())
+    expect(result.format).toBe('text')
+    expect(result.textContent).toContain('plain text file')
+  })
+
+  it('应该接受引号包裹的路径并正确加载', async () => {
+    const rel = path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.txt'))
+    const result = await loadMarkitdownSource(`"${rel}"`, process.cwd())
+    expect(result.format).toBe('text')
+  })
+})
+
+describe('normalizeUserFilePath', () => {
+  it('应该剥离 @ 前缀', () => {
+    expect(normalizeUserFilePath('@docs/a.txt')).toBe('docs/a.txt')
+  })
+
+  it('应该剥离首尾配对的引号与反引号', () => {
+    expect(normalizeUserFilePath('"docs/a.txt"')).toBe('docs/a.txt')
+    expect(normalizeUserFilePath("'docs/a.txt'")).toBe('docs/a.txt')
+    expect(normalizeUserFilePath('`docs/a.txt`')).toBe('docs/a.txt')
+  })
+
+  it('应该同时剥离 @ 前缀与引号', () => {
+    expect(normalizeUserFilePath('@"docs/a.txt"')).toBe('docs/a.txt')
+  })
+
+  it('应该保留路径内部的空格与分隔符', () => {
+    expect(normalizeUserFilePath('my docs/a b.txt')).toBe('my docs/a b.txt')
+  })
+
+  it('应该处理纯空白输入', () => {
+    expect(normalizeUserFilePath('   ')).toBe('')
+  })
+
+  it('不应该剥离未配对的引号', () => {
+    expect(normalizeUserFilePath('"docs/a.txt')).toBe('"docs/a.txt')
+  })
+})
+
+describe('markitdown-source-loader format override', () => {
+  it('应该支持通过 formatOverride 强制指定格式', async () => {
+    await fs.mkdir(path.join(FIXTURES_DIR, 'tmp_override'), { recursive: true })
+    const noExtFile = path.join(FIXTURES_DIR, 'tmp_override', 'noext')
+    await fs.writeFile(noExtFile, 'name,age\nAlice,30\n')
+    try {
+      const rel = path.relative(process.cwd(), noExtFile)
+      // 不指定 format：无扩展名应被拒绝
+      await expect(loadMarkitdownSource(rel, process.cwd())).rejects.toThrow(MarkitdownError)
+      // 指定 format=csv：应成功按 csv 解析
+      const result = await loadMarkitdownSource(rel, process.cwd(), 'csv')
+      expect(result.format).toBe('csv')
+    } finally {
+      await fs.rm(path.join(FIXTURES_DIR, 'tmp_override'), { recursive: true, force: true })
+    }
+  })
+})
+
+describe('normalizeUserFilePath', () => {
+  it('应该剥离 @ 前缀', () => {
+    expect(normalizeUserFilePath('@tests/fixtures/sample.txt')).toBe('tests/fixtures/sample.txt')
+  })
+
+  it('应该剥离配对的双引号', () => {
+    expect(normalizeUserFilePath('"tests/fixtures/sample.txt"')).toBe('tests/fixtures/sample.txt')
+  })
+
+  it('应该剥离配对的单引号', () => {
+    expect(normalizeUserFilePath("'tests/fixtures/sample.txt'")).toBe('tests/fixtures/sample.txt')
+  })
+
+  it('应该剥离配对的反引号', () => {
+    expect(normalizeUserFilePath('`tests/fixtures/sample.txt`')).toBe('tests/fixtures/sample.txt')
+  })
+
+  it('应该剥离 @ 前缀与配对引号的组合', () => {
+    expect(normalizeUserFilePath('@"tests/fixtures/sample.txt"')).toBe('tests/fixtures/sample.txt')
+    expect(normalizeUserFilePath("@'tests/fixtures/sample.txt'")).toBe('tests/fixtures/sample.txt')
+  })
+
+  it('应该保留首尾空白被 trim 后的内部路径', () => {
+    expect(normalizeUserFilePath('  tests/fixtures/sample.txt  ')).toBe('tests/fixtures/sample.txt')
+  })
+
+  it('应该保留路径中合法的 @ 字符', () => {
+    expect(normalizeUserFilePath('tests/@scope/file.txt')).toBe('tests/@scope/file.txt')
+  })
+
+  it('应该保留单个配对引号不存在的路径原样', () => {
+    expect(normalizeUserFilePath('tests/file.txt')).toBe('tests/file.txt')
+  })
+
+  it('应该不剥离非配对的引号', () => {
+    expect(normalizeUserFilePath('"tests/file.txt')).toBe('"tests/file.txt')
+  })
+})
+
+describe('loadMarkitdownSource 路径归一化与 format 覆盖', () => {
+  it('应该接受 @ 前缀路径', async () => {
+    const rel = path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.txt'))
+    const result = await loadMarkitdownSource(`@${rel}`, process.cwd())
+    expect(result.format).toBe('text')
+  })
+
+  it('应该接受带引号的路径', async () => {
+    const rel = path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.txt'))
+    const result = await loadMarkitdownSource(`"${rel}"`, process.cwd())
+    expect(result.format).toBe('text')
+  })
+
+  it('应该接受 format 覆盖并优先于扩展名推断', async () => {
+    const rel = path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.txt'))
+    const result = await loadMarkitdownSource(rel, process.cwd(), 'markdown')
+    expect(result.format).toBe('markdown')
+  })
+
+  it('应该支持对无扩展名文件使用 format 覆盖', async () => {
+    const noExtFile = path.join(FIXTURES_DIR, 'noext_temp')
+    await fs.writeFile(noExtFile, 'plain content\n')
+    try {
+      const rel = path.relative(process.cwd(), noExtFile)
+      const result = await loadMarkitdownSource(rel, process.cwd(), 'text')
+      expect(result.format).toBe('text')
+      expect(result.textContent).toContain('plain content')
+    } finally {
+      await fs.unlink(noExtFile)
     }
   })
 })

@@ -107,6 +107,17 @@ describe('markitdown-converters-binary (aligned with Python reference behavior)'
       expect(result).toHaveProperty('markdown')
       expect(typeof result.markdown).toBe('string')
     })
+
+    it('应该从真实 PDF 提取非空文本', async () => {
+      const pdfBuffer = readFileSync(path.join(FIXTURES_DIR, 'reference', 'test.pdf'))
+      const result = await PdfConverter.convertPdf(pdfBuffer)
+      expect(result.markdown.length).toBeGreaterThan(0)
+      expect(result.markdown).toContain('Introduction')
+    })
+
+    it('应该对损坏的 PDF 缓冲区抛出错误而非静默返回空', async () => {
+      await expect(PdfConverter.convertPdf(Buffer.from('not a pdf file'))).rejects.toThrow('PDF 解析失败')
+    })
   })
 
   describe('IpynbConverter', () => {
@@ -388,10 +399,23 @@ function createMinimalPdf(text: string): Buffer {
   const obj4 = '4 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 5 0 R /Resources << /Font << /F1 3 0 R >> >> >>\nendobj\n'
   const obj5 = `5 0 obj\n<< /Length ${streamLen} >>\nstream\n${streamContent}\nendstream\nendobj\n`
 
-  const xrefOffset = Buffer.byteLength(header + obj1 + obj2 + obj3 + obj4 + obj5)
-  const trailer = `xref\n0 6\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \n0000000184 00000 n \n0000000${String(xrefOffset).padStart(5, '0')} 00000 n \ntrailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`
+  const parts = [header, obj1, obj2, obj3, obj4, obj5]
+  const offsets: number[] = []
+  let pos = 0
+  for (const part of parts) {
+    offsets.push(pos)
+    pos += Buffer.byteLength(part)
+  }
+  const xrefStart = pos
 
-  return Buffer.from(header + obj1 + obj2 + obj3 + obj4 + obj5 + trailer)
+  const xrefEntries = ['0000000000 65535 f ']
+  for (const offset of offsets) {
+    xrefEntries.push(`${String(offset).padStart(10, '0')} 00000 n `)
+  }
+  const xref = `xref\n0 ${offsets.length + 1}\n${xrefEntries.join('\n')}\n`
+  const trailer = `trailer\n<< /Size ${offsets.length + 1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF`
+
+  return Buffer.from(parts.join('') + xref + trailer)
 }
 
 function escapePdfString(str: string): string {

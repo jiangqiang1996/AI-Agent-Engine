@@ -1,6 +1,24 @@
+import { MarkitdownError } from '../../markitdown-errors.js'
 import type { ConverterInput, ConverterResult, DocumentConverter, SupportedFormat } from '../../markitdown-types.js'
 
 const PARTIAL_NUMBERING_PATTERN = /^\.\d+$/
+
+let workerBootstrapPromise: Promise<void> | null = null
+
+function ensurePdfWorkerBootstrap(): Promise<void> {
+  if (workerBootstrapPromise) return workerBootstrapPromise
+  workerBootstrapPromise = (async () => {
+    if ((globalThis as { pdfjsWorker?: unknown }).pdfjsWorker) return
+    // esbuild 会把动态 import 内联为同步模块，因此这里不依赖运行时 node_modules 解析；
+    // 加载后 worker 模块会自行把自身挂到 globalThis.pdfjsWorker，pdfjs 主线程读取该字段即可跳过 workerSrc 相对路径。
+    const worker = await import('pdfjs-dist/legacy/build/pdf.worker.mjs')
+    ;(globalThis as { pdfjsWorker?: unknown }).pdfjsWorker = worker
+  })().catch((error) => {
+    workerBootstrapPromise = null
+    throw error
+  })
+  return workerBootstrapPromise
+}
 
 interface Word {
   x0: number
@@ -414,13 +432,21 @@ export class PdfConverter implements DocumentConverter {
   static async convertPdf(buffer: Buffer): Promise<ConverterResult> {
     try {
       return await PdfConverter.convertWithPdfjs(buffer)
-    } catch {
-      return { markdown: '' }
+    } catch (error) {
+      throw new MarkitdownError(
+        'pdf_convert_failed',
+        `PDF 解析失败：${error instanceof Error ? error.message : String(error)}。请确认文件不是加密或损坏的 PDF。`,
+      )
     }
   }
 
   private static async convertWithPdfjs(buffer: Buffer): Promise<ConverterResult> {
+    // 优先把 worker 模块挂到 globalThis.pdfjsWorker，让 pdfjs 跳过对 workerSrc 的相对路径 import；
+    // esbuild bundle 后 pdfjs 内部 "./pdf.worker.mjs" 相对路径无法解析，此路径绕开该问题。
+    await ensurePdfWorkerBootstrap()
+
     const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
+
     const uint8 = new Uint8Array(buffer)
     const loadingTask = pdfjs.getDocument({
       data: uint8,

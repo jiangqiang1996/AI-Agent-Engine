@@ -1,3 +1,6 @@
+import { randomBytes } from 'node:crypto'
+import { basename, join } from 'node:path'
+
 import { MarkitdownError } from './markitdown-errors.js'
 import { loadMarkitdownSource } from './markitdown-source-loader.js'
 import type { ConverterInput, ConverterResult, DocumentConverter, SupportedFormat } from './markitdown-types.js'
@@ -7,6 +10,32 @@ import { createTextConverters } from './markitdown-converters-text.js'
 export interface MarkitdownInput {
   file: string
   worktree: string
+  format?: SupportedFormat
+}
+
+const MARKITDOWN_OUTPUT_DIR = 'ae/markitdown'
+
+function formatTimestamp(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return (
+    `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}` +
+    `-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`
+  )
+}
+
+/**
+ * 根据原始文件路径生成转换产物输出路径。
+ *
+ * 命名规则固化于此：`<原始文件basename>-<YYYYMMDD-HHMMSS>-<6位随机hex>.md`，
+ * 输出目录固定为工作区下的 `ae/markitdown/`。
+ * 保留原始完整文件名便于追溯来源，时间戳与随机串确保同一文件反复转换不冲突。
+ */
+export function generateMarkitdownOutputPath(worktree: string, originalFilePath: string): string {
+  const originalBasename = basename(originalFilePath)
+  const timestamp = formatTimestamp(new Date())
+  const random = randomBytes(3).toString('hex')
+  const fileName = `${originalBasename}-${timestamp}-${random}.md`
+  return join(worktree, MARKITDOWN_OUTPUT_DIR, fileName)
 }
 
 export interface MarkitdownOutput {
@@ -45,7 +74,7 @@ function findConverter(
 }
 
 export async function convertToMarkdown(input: MarkitdownInput): Promise<MarkitdownOutput> {
-  const source = await loadMarkitdownSource(input.file, input.worktree)
+  const source = await loadMarkitdownSource(input.file, input.worktree, input.format)
   const converters = getConverters()
   const converter = findConverter(source.filePath, source.format, converters)
 
