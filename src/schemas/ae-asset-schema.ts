@@ -80,6 +80,17 @@ export const COMMAND = {
   ...SKILL_COMMANDS,
 } as const
 
+/**
+ * 文件路径型命令集合。
+ *
+ * 这些命令的底层工具自身读取文件内容，LLM 只需看到文件路径即可调用工具；
+ * 在 command.execute.before 钩子中会把 FilePart 转换为纯文本路径，避免
+ * 二进制内容被发送给 LLM。
+ *
+ * 新增命令时在此处添加命令名即可。
+ */
+export const FILE_PATH_COMMANDS = [COMMAND.MARKITDOWN] as const
+
 export const AGENT = {
   CORRECTNESS_REVIEWER: 'correctness-reviewer',
   TESTING_REVIEWER: 'testing-reviewer',

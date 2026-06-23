@@ -23,6 +23,10 @@ import {registerSkillsPath} from './services/skills-path-service.js'
 import {createToolRegistry} from './tools/index.js'
 import {setGlobalClient} from './services/client-holder.js'
 import {dedupeCommandFileArgumentParts} from './services/command-file-argument-dedupe-service.js'
+import {
+    convertFilePartsToPathText,
+    isFilePathCommand,
+} from './services/command-file-argument-path-service.js'
 
 interface RuntimeConfigShape {
     command?: Record<string, {
@@ -127,8 +131,12 @@ const plugin: Plugin = async (input) => {
         'experimental.chat.system.transform': async (_input, output) => {
             await injectBuiltinRulesIntoSystem(manifest, output)
         },
-        'command.execute.before': async (_input, output) => {
-            dedupeCommandFileArgumentParts(output.parts)
+        'command.execute.before': async (input, output) => {
+            if (isFilePathCommand(input.command)) {
+                convertFilePartsToPathText(output.parts)
+            } else {
+                dedupeCommandFileArgumentParts(output.parts)
+            }
         },
         tool: createToolRegistry(),
     }
