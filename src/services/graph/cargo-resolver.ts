@@ -3,6 +3,7 @@ import { execSync } from 'node:child_process'
 import { join } from 'node:path'
 
 import type { DependencyResolver, DependencyNode, DependencyTree } from './dependency-resolver.js'
+import { extractErrorMessage } from '../graph-storage-utils.js'
 
 /** cargo tree 输出行正则：缩进 + name vversion */
 const CARGO_TREE_LINE_REGEX = /^([│├└┘─┣━┃ ]*)(\S+)\s+v(\S+)/
@@ -142,7 +143,7 @@ export const cargoResolver: DependencyResolver = {
         parser: 'regex-fallback',
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
+      const message = extractErrorMessage(error)
       throw new Error(`cargo 依赖解析失败：${message}`)
     }
   },

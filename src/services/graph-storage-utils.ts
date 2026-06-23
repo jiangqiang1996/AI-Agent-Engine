@@ -165,6 +165,14 @@ export function isFileLevelRelation(relation: GraphRelation): boolean {
   return getRelationType(relation) !== 'contains'
 }
 
+/**
+ * 从未知错误值中提取消息字符串
+ * 统一处理 Error 实例和非 Error 值的错误消息提取
+ */
+export function extractErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
 export function countFileLevelNodes(files: GraphFileNode[]): number {
   return files.filter((file) => getNodeKind(file) !== 'symbol').length
 }

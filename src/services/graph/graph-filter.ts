@@ -1,4 +1,7 @@
+import { getRelationType, isFileLevelRelation } from '../graph-storage-utils.js'
 import type { GraphFileNode, GraphRelation } from '../graph-storage-service.js'
+
+export { getRelationType, isFileLevelRelation }
 
 /** 图谱过滤选项 */
 export interface GraphFilterOptions {
@@ -32,21 +35,6 @@ export function isInDirectory(filePath: string, directory: string | undefined): 
   }
   const normalized = directory.replace(/\/$/, '')
   return filePath === normalized || filePath.startsWith(`${normalized}/`)
-}
-
-/**
- * 获取关系的规范化类型
- * 优先使用 type 字段，否则将 storage 的 relationType 映射为 schema 类型
- */
-export function getRelationType(relation: GraphRelation): string {
-  return relation.type ?? (relation.relationType === 'external' ? 'external_reference' : relation.relationType)
-}
-
-/**
- * 判断关系是否为文件级别（非 contains 目录包含关系）
- */
-export function isFileLevelRelation(relation: GraphRelation): boolean {
-  return getRelationType(relation) !== 'contains'
 }
 
 /**

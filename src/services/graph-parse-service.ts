@@ -278,6 +278,9 @@ function stripTrailingComment(lineContent: string, language: string | undefined)
   if (language === 'markdown') {
     return lineContent.split('<!--')[0]
   }
+  if (language === 'python') {
+    return lineContent.split('#')[0]
+  }
   return lineContent
 }
 

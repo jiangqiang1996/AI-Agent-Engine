@@ -11,6 +11,7 @@ import {
   cloneRelations,
   countFileLevelNodes,
   ensureGraphDir,
+  extractErrorMessage,
   isChunkRecord,
   sanitizeChunkId,
   versionChunkDir,
@@ -24,6 +25,25 @@ export class GraphChunkStore {
     private readonly findActiveVersion: (workspaceRoot: string, scopeRoot: string) => GraphVersionRecord | undefined,
     private readonly findVersion: (versionId: number) => GraphVersionRecord | undefined,
   ) {}
+
+  private parseChunkFile(chunkPath: string, chunkId: string): GraphChunkRecord {
+    let raw: string
+    try {
+      raw = readFileSync(chunkPath, 'utf8')
+    } catch (error) {
+      throw new Error(`图谱分片文件读取失败：${chunkId}（${extractErrorMessage(error)}）`)
+    }
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(raw)
+    } catch (error) {
+      throw new Error(`图谱分片 JSON 格式无效：${chunkId}（${extractErrorMessage(error)}）`)
+    }
+    if (!isChunkRecord(parsed)) {
+      throw new Error(`图谱分片格式不受支持：${chunkId}`)
+    }
+    return parsed
+  }
 
   loadActiveGraphChunks(workspaceRoot: string, scopeRoot: string): GraphChunkRecord[] {
     const version = this.findActiveVersion(workspaceRoot, scopeRoot)
@@ -40,11 +60,7 @@ export class GraphChunkStore {
       if (!isRegularFile(chunkPath)) {
         throw new Error(`图谱分片缺失：${chunkId}`)
       }
-      const parsed = JSON.parse(readFileSync(chunkPath, 'utf8')) as unknown
-      if (!isChunkRecord(parsed)) {
-        throw new Error(`图谱分片格式不受支持：${chunkId}`)
-      }
-      return [parsed]
+      return [this.parseChunkFile(chunkPath, chunkId)]
     })
   }
 
@@ -64,11 +80,7 @@ export class GraphChunkStore {
     if (!isRegularFile(chunkPath)) {
       throw new Error(`图谱分片缺失：${chunkId}`)
     }
-    const parsed = JSON.parse(readFileSync(chunkPath, 'utf8')) as unknown
-    if (!isChunkRecord(parsed)) {
-      throw new Error(`图谱分片格式不受支持：${chunkId}`)
-    }
-    return parsed
+    return this.parseChunkFile(chunkPath, chunkId)
   }
 
   loadVersionFiles(version: GraphVersionRecord): GraphFileNode[] {
@@ -89,11 +101,7 @@ export class GraphChunkStore {
       if (!isRegularFile(chunkPath)) {
         throw new Error(`图谱分片缺失：${chunkId}`)
       }
-      const parsed = JSON.parse(readFileSync(chunkPath, 'utf8')) as unknown
-      if (!isChunkRecord(parsed)) {
-        throw new Error(`图谱分片格式不受支持：${chunkId}`)
-      }
-      return parsed
+      return this.parseChunkFile(chunkPath, chunkId)
     })
   }
 

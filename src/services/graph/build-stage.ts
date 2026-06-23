@@ -8,6 +8,7 @@ import { goResolver } from './go-resolver.js'
 import { pipResolver } from './pip-resolver.js'
 import { cargoResolver } from './cargo-resolver.js'
 import { gradleResolver } from './gradle-resolver.js'
+import { extractErrorMessage } from '../graph-storage-utils.js'
 
 /** 工具描述符 */
 export interface ToolDescriptor {
@@ -35,11 +36,6 @@ export interface BuildStage {
   extract(worktree: string, toolchain: ToolchainProfile): Promise<StageResult>
   /** 置信度 */
   confidence: 'deterministic' | 'heuristic'
-}
-
-/** 生成空 StageResult 的工厂函数 */
-function emptyStageResult(): StageResult {
-  return { nodes: [], relations: [], diagnostics: [] }
 }
 
 /** 已注册的依赖解析器列表 */
@@ -152,30 +148,6 @@ function flattenDependencyTree(
   return { nodes, relations }
 }
 
-/** 内置 Stage：tree-sitter 代码解析（占位，U6 集成时替换） */
-export const TREE_SITTER_STAGE: BuildStage = {
-  name: 'tree-sitter',
-  layer: 'code',
-  requiredTools: [{ tool: 'tree-sitter', command: 'tree-sitter', detectFiles: [] }],
-  async extract(_worktree: string, _toolchain: ToolchainProfile): Promise<StageResult> {
-    // 占位实现，实际逻辑仍在 graph-parse-service，U6 集成时替换
-    return emptyStageResult()
-  },
-  confidence: 'deterministic',
-}
-
-/** 内置 Stage：文档引用解析（占位，U6 集成时替换） */
-export const DOCUMENT_STAGE: BuildStage = {
-  name: 'document',
-  layer: 'document',
-  requiredTools: [{ tool: 'regex', command: '', detectFiles: [] }],
-  async extract(_worktree: string, _toolchain: ToolchainProfile): Promise<StageResult> {
-    // 占位实现，实际逻辑仍在 graph-parse-service，U6 集成时替换
-    return emptyStageResult()
-  },
-  confidence: 'heuristic',
-}
-
 /** 内置 Stage：制品依赖解析（depth=medium 时激活） */
 export const ARTIFACT_STAGE: BuildStage = {
   name: 'artifact',
@@ -199,7 +171,7 @@ export const ARTIFACT_STAGE: BuildStage = {
         allNodes.push(...nodes)
         allRelations.push(...relations)
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error)
+        const message = extractErrorMessage(error)
         allDiagnostics.push({
           filePath: ECOSYSTEM_TO_MANIFEST[resolver.ecosystem] ?? 'unknown',
           parser: resolver.ecosystem,

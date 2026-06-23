@@ -3,6 +3,7 @@ import { execSync } from 'node:child_process'
 import { join } from 'node:path'
 
 import type { DependencyResolver, DependencyNode, DependencyTree } from './dependency-resolver.js'
+import { extractErrorMessage } from '../graph-storage-utils.js'
 
 /** Maven 树形输出行的正则：[INFO] +- groupId:artifactId:type:version:scope */
 const MAVEN_TREE_LINE_REGEX =
@@ -151,7 +152,7 @@ export const mavenResolver: DependencyResolver = {
         parser: 'regex-fallback',
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
+      const message = extractErrorMessage(error)
       throw new Error(`Maven 依赖解析失败：${message}`)
     }
   },

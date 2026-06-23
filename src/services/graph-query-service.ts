@@ -274,8 +274,8 @@ export function executeGraphQuery(request: GraphQueryRequest): unknown {
     }
 
     if (request.mode === 'stats') {
-      if (excluded.size === 0) {
-        const result = indexedSummary?.relationTypeCounts ?? {}
+      if (excluded.size === 0 && indexedSummary) {
+        const result = indexedSummary.relationTypeCounts ?? {}
         return formatOkResult({
           mode: request.mode,
           scopeRoot: request.scopeRoot,
