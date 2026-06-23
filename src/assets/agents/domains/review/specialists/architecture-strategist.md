@@ -53,3 +53,16 @@ description: "从架构视角分析代码变更，检查架构边界、跨模块
 - API 请求/响应兼容性、版本控制和公共契约破坏——由 api-contract-reviewer 负责
 
 当你发现问题时，提供具体、可操作的建议，在保持架构完整性的同时兼顾实施的可行性。必要时同时考虑理想架构方案和务实的折中方案。
+
+## 输出格式
+
+以 findings schema 格式返回 JSON。JSON 之外不得包含任何文字说明。架构发现映射到 findings 数组，每条 finding 的 evidence 引用具体文件路径、导入关系或架构原则。
+
+```json
+{
+  "reviewer": "architecture",
+  "findings": [],
+  "residual_risks": [],
+  "testing_gaps": []
+}
+```

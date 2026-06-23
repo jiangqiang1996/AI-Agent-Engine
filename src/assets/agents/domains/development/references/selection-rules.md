@@ -11,13 +11,15 @@
 | 前端、UI、组件、样式、交互、响应式、页面 | frontend-dev |
 | API、数据库、服务、后端、接口、数据层、中间件 | backend-dev |
 | 调试、修复、Bug、错误、异常、崩溃 | debug-fix |
-| 重构、优化、技术债、架构改进、模式改进 | refactor-dev |
+| 重构、优化、技术债、架构改进、模式改进 | refactor-dev（当前 disabled，回退到 debug-fix 或按模块联合 frontend-dev/backend-dev） |
+
+> **注意**：`refactor-dev` 当前为占位 disabled 状态。任务关键词命中重构类时，按"兜底策略"回退：优先按模块类型联合 `frontend-dev` 或 `backend-dev`，无模块信号时由 `debug-fix` 兜底。待 `refactor-dev` 实现完整工作流并移除 `disable: true` 后，本规则恢复直接路由。
 
 ## 组合规则
 
 - 任务同时涉及前后端时，选择 frontend-dev + backend-dev 并行执行
 - Bug 修复涉及前端或后端时，debug-fix 优先，按需联合 frontend-dev 或 backend-dev
-- 重构任务如涉及特定模块，按需联合对应专精代理
+- 重构任务当前由 frontend-dev/backend-dev 按模块联合处理，或由 debug-fix 兜底
 - 无法匹配任何专精时，优先使用 `DomainCallRequest.selectedSpecialists` 中的兜底选择；若该字段缺失，返回 failed 状态
 
 ## 兜底策略
