@@ -259,25 +259,21 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   },
 ]
 
-const PHASE_ONE_PO_ENTRIES: AeAssetEntry[] = PHASE_ONE_ENTRIES
-  .filter((e) => e.allowPromptOptimizeVariant !== false && hasPromptOptimizeVariant(e.skillName))
-  .map((e) => ({
-    skillName: SKILL.PROMPT_OPTIMIZE,
-    commandName: `${e.commandName}${PO_SUFFIX}`,
-    description: `先优化提示词，再用 ${e.description}`,
-    argumentHint: e.argumentHint,
-    skillFile: `src/assets/skills/${skillDir(SKILL.PROMPT_OPTIMIZE)}/SKILL.md`,
-  } satisfies AeAssetEntry))
+function buildPromptOptimizeVariantEntries(suffix: string, descriptionPrefix: string): AeAssetEntry[] {
+  return PHASE_ONE_ENTRIES
+    .filter((e) => e.allowPromptOptimizeVariant !== false && hasPromptOptimizeVariant(e.skillName))
+    .map((e) => ({
+      skillName: SKILL.PROMPT_OPTIMIZE,
+      commandName: `${e.commandName}${suffix}`,
+      description: `${descriptionPrefix}${e.description}`,
+      argumentHint: e.argumentHint,
+      skillFile: `src/assets/skills/${skillDir(SKILL.PROMPT_OPTIMIZE)}/SKILL.md`,
+    } satisfies AeAssetEntry))
+}
 
-const PHASE_ONE_PA_ENTRIES: AeAssetEntry[] = PHASE_ONE_ENTRIES
-  .filter((e) => e.allowPromptOptimizeVariant !== false && hasPromptOptimizeVariant(e.skillName))
-  .map((e) => ({
-    skillName: SKILL.PROMPT_OPTIMIZE,
-    commandName: `${e.commandName}${PA_SUFFIX}`,
-    description: `先优化提示词（auto 模式），再用 ${e.description}`,
-    argumentHint: e.argumentHint,
-    skillFile: `src/assets/skills/${skillDir(SKILL.PROMPT_OPTIMIZE)}/SKILL.md`,
-  } satisfies AeAssetEntry))
+const PHASE_ONE_PO_ENTRIES: AeAssetEntry[] = buildPromptOptimizeVariantEntries(PO_SUFFIX, '先优化提示词，再用 ')
+
+const PHASE_ONE_PA_ENTRIES: AeAssetEntry[] = buildPromptOptimizeVariantEntries(PA_SUFFIX, '先优化提示词（auto 模式），再用 ')
 
 const REVIEW_SPECIALIST_AGENT_NAMES = new Set<string>([
   AGENT.COHERENCE_REVIEWER,

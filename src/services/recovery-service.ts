@@ -29,6 +29,10 @@ function fallbackSkillForPhase(phase: RecoveryResult['phase']): string {
     case 'work':
     case 'review':
       return SKILL.PLAN
+    default: {
+      const _exhaustive: never = phase
+      return _exhaustive
+    }
   }
 }
 
@@ -44,6 +48,10 @@ function preferredArtifactTypes(phase: RecoveryResult['phase']): RecoverableArti
       return ['review', 'work', 'plan', 'prd']
     case 'lfg':
       return ['review', 'work', 'plan', 'prd']
+    default: {
+      const _exhaustive: never = phase
+      return _exhaustive
+    }
   }
 }
 
@@ -67,7 +75,15 @@ function nextSkillForArtifact(phase: RecoveryResult['phase'], artifactType: Reco
           return SKILL.REVIEW
         case 'prd':
           return SKILL.REVIEW
+        default: {
+          const _exhaustive: never = artifactType
+          return _exhaustive
+        }
       }
+    default: {
+      const _exhaustive: never = phase
+      return _exhaustive
+    }
   }
 }
 
@@ -113,6 +129,10 @@ function resumePhaseForArtifact(
       return 'review'
     case 'prd':
       return 'review'
+    default: {
+      const _exhaustive: never = artifactType
+      return _exhaustive
+    }
   }
 }
 

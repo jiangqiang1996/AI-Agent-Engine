@@ -295,7 +295,7 @@ function aggregateUnion(
 
 function extractFindingsFromText(text: string): DomainFinding[] {
   const findings: DomainFinding[] = []
-  const findingMatch = text.match(/严重级别[：:]\s*([A-Za-z0-9_]+).*?标题[：:]\s*(.+)/g)
+  const findingMatch = text.match(/严重级别[：:]\s*([A-Za-z0-9_]+)[\s\S]*?标题[：:]\s*(.+)/g)
   if (findingMatch) {
     for (const fm of findingMatch) {
       const severityMatch = fm.match(/严重级别[：:]\s*([A-Za-z0-9_]+)/)
@@ -375,8 +375,11 @@ function aggregateBestOf(
   }
 
   const bestIndex = results.indexOf(best)
-  const bestFindings = structuredFindings?.[bestIndex] && structuredFindings[bestIndex].length > 0
-    ? structuredFindings[bestIndex]
+  const validStructuredFindings = structuredFindings && structuredFindings.length === results.length
+    ? structuredFindings
+    : undefined
+  const bestFindings = validStructuredFindings?.[bestIndex] && validStructuredFindings[bestIndex].length > 0
+    ? validStructuredFindings[bestIndex]
     : extractFindingsFromText(best.output)
 
   return {

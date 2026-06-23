@@ -46,11 +46,6 @@ export function resolvePluginRootFromModuleUrl(moduleUrl: string): string {
   throw new Error(`无法从模块路径推断仓库根目录: ${moduleUrl}`)
 }
 
-/**
- * 兼容旧命名，等价于 `resolvePluginRootFromModuleUrl()`。
- */
-export const resolveRepoRootFromModuleUrl = resolvePluginRootFromModuleUrl
-
 export function isInsideRoot(root: string, filePath: string): boolean {
   const rel = relative(resolve(root), resolve(filePath))
   // Windows 盘符相对路径会包含冒号，必须和 .. 一起拦截，避免跨盘路径绕过仓库边界。

@@ -30,13 +30,8 @@ function pushSection(
   }
 }
 
-/** 将会话提取结果格式化为系统提示词，用于注入新会话的 system prompt。 */
-export function formatSystemPrompt(extractResult: SessionExtractResult): string {
-  const sections: string[] = []
-  sections.push(HANDOFF_CONTEXT_HEADER)
-  sections.push(HANDOFF_CONTEXT_UNDERLINE)
-  sections.push('')
-
+/** 将交接上下文的通用 section 批量推入 sections 数组 */
+function pushHandoffSections(sections: string[], extractResult: SessionExtractResult): void {
   pushSection(sections, 'USER REQUESTS (AS-IS)', '---------------------', extractResult.userRequests)
   pushSection(sections, 'GOAL', '----', extractResult.goal)
   pushSection(sections, 'WORK COMPLETED', '--------------', extractResult.workCompleted)
@@ -46,6 +41,16 @@ export function formatSystemPrompt(extractResult: SessionExtractResult): string 
   pushSection(sections, 'IMPORTANT DECISIONS', '-------------------', extractResult.importantDecisions)
   pushSection(sections, 'EXPLICIT CONSTRAINTS', '--------------------', extractResult.explicitConstraints)
   pushSection(sections, 'CONTEXT FOR CONTINUATION', '------------------------', extractResult.contextForContinuation)
+}
+
+/** 将会话提取结果格式化为系统提示词，用于注入新会话的 system prompt。 */
+export function formatSystemPrompt(extractResult: SessionExtractResult): string {
+  const sections: string[] = []
+  sections.push(HANDOFF_CONTEXT_HEADER)
+  sections.push(HANDOFF_CONTEXT_UNDERLINE)
+  sections.push('')
+
+  pushHandoffSections(sections, extractResult)
 
   if (extractResult.truncatedWarning) {
     sections.push(extractResult.truncatedWarning)
@@ -68,15 +73,7 @@ export function formatContextMessage(extractResult: SessionExtractResult): strin
   sections.push(HANDOFF_CONTEXT_UNDERLINE)
   sections.push('')
 
-  pushSection(sections, 'USER REQUESTS (AS-IS)', '---------------------', extractResult.userRequests)
-  pushSection(sections, 'GOAL', '----', extractResult.goal)
-  pushSection(sections, 'WORK COMPLETED', '--------------', extractResult.workCompleted)
-  pushSection(sections, 'CURRENT STATE', '-------------', extractResult.currentState)
-  pushSection(sections, 'PENDING TASKS', '-------------', extractResult.pendingTasks)
-  pushSection(sections, 'KEY FILES', '---------', extractResult.keyFiles)
-  pushSection(sections, 'IMPORTANT DECISIONS', '-------------------', extractResult.importantDecisions)
-  pushSection(sections, 'EXPLICIT CONSTRAINTS', '--------------------', extractResult.explicitConstraints)
-  pushSection(sections, 'CONTEXT FOR CONTINUATION', '------------------------', extractResult.contextForContinuation)
+  pushHandoffSections(sections, extractResult)
 
   if (extractResult.truncatedWarning) {
     sections.push(extractResult.truncatedWarning)

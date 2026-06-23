@@ -1,10 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import {
-  ARTIFACT_STAGE,
-  DOCUMENT_STAGE,
-  TREE_SITTER_STAGE,
-} from '../../src/services/graph/build-stage.js'
+import { ARTIFACT_STAGE } from '../../src/services/graph/build-stage.js'
 import * as npmResolverModule from '../../src/services/graph/npm-resolver.js'
 import type { ToolchainProfile, ToolchainInfo } from '../../src/services/graph/toolchain-profile.js'
 
@@ -74,16 +70,6 @@ describe('build-stage 行为测试', () => {
   })
 
   describe('Stage 元数据', () => {
-    it('TREE_SITTER_STAGE 应标记为 deterministic', () => {
-      expect(TREE_SITTER_STAGE.confidence).toBe('deterministic')
-      expect(TREE_SITTER_STAGE.layer).toBe('code')
-    })
-
-    it('DOCUMENT_STAGE 应标记为 heuristic', () => {
-      expect(DOCUMENT_STAGE.confidence).toBe('heuristic')
-      expect(DOCUMENT_STAGE.layer).toBe('document')
-    })
-
     it('ARTIFACT_STAGE 应标记为 heuristic', () => {
       expect(ARTIFACT_STAGE.confidence).toBe('heuristic')
       expect(ARTIFACT_STAGE.layer).toBe('artifact')

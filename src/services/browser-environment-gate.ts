@@ -1,8 +1,10 @@
+import { SKILL, TOOL, COMMAND } from '../schemas/ae-asset-schema.js'
+
 const BROWSER_KEYWORDS = [
   'chrome-devtools',
-  'ae:chrome-devtools',
-  '/ae-chrome-devtools',
-  'ae-chrome-devtools-mcp',
+  SKILL.CHROME_DEVTOOLS,
+  `/${COMMAND.CHROME_DEVTOOLS}`,
+  TOOL.AE_CHROME_DEVTOOLS_MCP,
   'chrome-devtools_navigate_page',
   'chrome-devtools_take_snapshot',
   'chrome-devtools_take_screenshot',
@@ -14,8 +16,8 @@ const BROWSER_KEYWORDS = [
   'chrome-devtools_wait_for',
   'chrome-devtools_evaluate_script',
   'chrome-devtools_lighthouse_audit',
-  'ae:web-forge',
-  '/ae-web-forge',
+  SKILL.WEB_FORGE,
+  `/${COMMAND.WEB_FORGE}`,
   '@ui-architect',
   '@ui-matcher',
   '@logic-weaver',

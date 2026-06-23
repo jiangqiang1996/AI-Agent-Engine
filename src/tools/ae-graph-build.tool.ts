@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process'
 import { tool } from '@opencode-ai/plugin'
 import { z } from 'zod'
 
-import { TOOL } from '../schemas/ae-asset-schema.js'
+import { TOOL, SKILL, skillDir } from '../schemas/ae-asset-schema.js'
 import {
   loadGraphConfig,
   updateGraphRulesInProjectConfig,
@@ -50,7 +50,7 @@ interface SavedGraphFilterDecisions {
 
 function copyGraphPreview(worktree: string): void {
   const manifest = createRuntimeAssetManifest(import.meta.url)
-  const refDir = join(manifest.skillsDir, 'ae-graph-build', 'references')
+  const refDir = join(manifest.skillsDir, skillDir(SKILL.GRAPH_BUILD), 'references')
   const targetDir = join(worktree, docsAePath(DOCS_AE_SUBDIRS.GRAPHS))
 
   function copyDir(src: string, dest: string): void {
