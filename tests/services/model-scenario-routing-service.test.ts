@@ -97,4 +97,22 @@ describe('model-scenario-routing-service', () => {
     expect(result).toBe('standard')
     expect(context.unresolvedReferences).toEqual([])
   })
+
+  it('应该将未配置的 audio 稳定场景回退为 undefined 继承默认模型', () => {
+    const context = createModelScenarioRoutingContext(new Map())
+
+    const result = resolveModelReference(context, '$audio')
+
+    expect(result).toBeUndefined()
+    expect(context.unresolvedReferences).toEqual([])
+  })
+
+  it('应该将未配置的 video 稳定场景回退为 undefined 继承默认模型', () => {
+    const context = createModelScenarioRoutingContext(new Map())
+
+    const result = resolveModelReference(context, '$video')
+
+    expect(result).toBeUndefined()
+    expect(context.unresolvedReferences).toEqual([])
+  })
 })

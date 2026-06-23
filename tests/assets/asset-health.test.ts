@@ -144,12 +144,6 @@ describe('资产健康巡检', () => {
     expect(commandConfig[`${COMMAND.GRAPH_QUERY}-pa`], 'asset-health/prompt-variant/command/ae-graph-query-pa').toBeUndefined()
     expect(commandConfig[`${COMMAND.CHROME_DEVTOOLS}-po`], 'asset-health/prompt-variant/command/ae-chrome-devtools-po').toBeUndefined()
     expect(commandConfig[`${COMMAND.CHROME_DEVTOOLS}-pa`], 'asset-health/prompt-variant/command/ae-chrome-devtools-pa').toBeUndefined()
-    expect(commandConfig[`${COMMAND.LSM_SPEC}-po`], 'asset-health/prompt-variant/command/ae-lsm-spec-po').toBeUndefined()
-    expect(commandConfig[`${COMMAND.LSM_DESIGN}-pa`], 'asset-health/prompt-variant/command/ae-lsm-design-pa').toBeUndefined()
-    expect(commandConfig[`${COMMAND.LSM_TEST}-po`], 'asset-health/prompt-variant/command/ae-lsm-test-po').toBeUndefined()
-    expect(commandConfig[`${COMMAND.LSM_MOCKUP}-po`], 'asset-health/prompt-variant/command/ae-lsm-mockup-po').toBeUndefined()
-    expect(commandConfig[`${COMMAND.LSM_BUILD}-pa`], 'asset-health/prompt-variant/command/ae-lsm-build-pa').toBeUndefined()
-    expect(commandConfig[`${COMMAND.LSM_VERIFY}-po`], 'asset-health/prompt-variant/command/ae-lsm-verify-po').toBeUndefined()
     expect(buildCommandConfig(join(process.cwd(), 'src/assets/commands'))['ae-work-continue'], 'asset-health/disk-command/command/ae-work-continue').toBeDefined()
     expect(commandConfig['ae-work-continue'], 'asset-health/catalog-command/command/ae-work-continue').toBeUndefined()
     expect(commandConfig['ae-work-continue-po'], 'asset-health/prompt-variant/command/ae-work-continue-po').toBeUndefined()
@@ -244,57 +238,6 @@ describe('资产健康巡检', () => {
     expect(routingEntry).toMatchObject({ type: 'command', name: COMMAND.SAVE_EXPERIENCE, scenario: 'standard' })
   })
 
-  it('LSM 内置资产应该保持命名、模板和安全边界一致', () => {
-    const lsmSkills = [
-      [SKILL.LSM_SPEC, COMMAND.LSM_SPEC, 'spec-template.md'],
-      [SKILL.LSM_DESIGN, COMMAND.LSM_DESIGN, 'design-template.md'],
-      [SKILL.LSM_MOCKUP, COMMAND.LSM_MOCKUP, 'mockup-template.md'],
-      [SKILL.LSM_BUILD, COMMAND.LSM_BUILD, 'build-report-template.md'],
-      [SKILL.LSM_TEST, COMMAND.LSM_TEST, 'test-template.md'],
-      [SKILL.LSM_VERIFY, COMMAND.LSM_VERIFY, 'verify-template.md'],
-    ] as const
-    const entries = getPhaseOneEntries()
-    const commandConfig = buildCommandConfig('__missing_commands_dir__')
-
-    for (const [skillName, commandName, templateName] of lsmSkills) {
-      const skillDirectory = join(process.cwd(), 'src/assets/skills', commandName)
-      const skillText = readFileSync(join(skillDirectory, 'SKILL.md'), 'utf8')
-      const templatePath = join(skillDirectory, 'references', templateName)
-      const templateText = readFileSync(templatePath, 'utf8')
-      const templateFrontmatter = parseFrontmatter(templateText).data
-      const entry = entries.find((item) => item.skillName === skillName)
-
-      expect(entry?.commandName, `asset-health/lsm-catalog/${skillName}`).toBe(commandName)
-      expect(commandConfig[commandName], `asset-health/lsm-command/${commandName}`).toBeDefined()
-      expect(skillText, `asset-health/lsm-name/${skillName}`).toContain(`name: ${skillName}`)
-      expect(skillText, `asset-health/lsm-boundary/${skillName}`).toContain('不适用场景')
-      expect(skillText, `asset-health/lsm-upstream/${skillName}`).toContain('显式')
-      expect(skillText, `asset-health/lsm-no-mcp/${skillName}`).not.toContain('chrome-devtools_')
-      expect(skillText, `asset-health/lsm-no-remote-write/${skillName}`).not.toContain('git push')
-      expect(skillText, `asset-health/lsm-no-bare-entry/${skillName}`).not.toMatch(/(^|[^a-z])lsm:/)
-      expect(skillText, `asset-health/lsm-no-blind-scan/${skillName}`).not.toMatch(/自动.*盲扫历史目录/)
-      if (skillName === SKILL.LSM_SPEC) {
-        expect(templateText, `asset-health/lsm-template-upstream/${skillName}`).toContain('上游依赖')
-      }
-      expect(getFrontmatterString(templateFrontmatter, 'lsmKind'), `asset-health/lsm-template-frontmatter-kind/${skillName}`).toBeTruthy()
-      expect(templateFrontmatter, `asset-health/lsm-template-frontmatter-upstream/${skillName}`).toHaveProperty('upstreamRefs')
-      expect(templateFrontmatter, `asset-health/lsm-template-frontmatter-trace/${skillName}`).toHaveProperty('traceTable')
-    }
-
-    expect(getCommandModelScenario(COMMAND.LSM_MOCKUP)).toBe(MODEL_SCENARIO.VISION)
-    expect(getCommandModelScenario(COMMAND.LSM_BUILD)).toBe(MODEL_SCENARIO.DEEP)
-    expect(getCommandModelScenario(COMMAND.LSM_VERIFY)).toBe(MODEL_SCENARIO.VISION)
-  })
-
-  it('ae:review SKILL 应包含 LSM frontmatter 优先识别策略', () => {
-    const reviewSkillText = readFileSync('src/assets/skills/ae-review/SKILL.md', 'utf8')
-
-    expect(reviewSkillText, 'asset-health/review-lsm-frontmatter-strategy').toMatch(/LSM[\s\S]{0,200}frontmatter/)
-    expect(reviewSkillText, 'asset-health/review-lsm-evidence-call').toContain('lsmEvidenceMissing')
-    expect(reviewSkillText, 'asset-health/review-lsm-trace').toContain('traceTable')
-    expect(reviewSkillText, 'asset-health/review-lsm-v-id').toContain('V-')
-  })
-
   it('应该注册 ae:html-bundle 技术栈无关 bundle 入口', () => {
     const entries = getPhaseOneEntries()
     const htmlBundle = entries.find((entry) => entry.skillName === SKILL.HTML_BUNDLE)
@@ -369,12 +312,6 @@ describe('资产健康巡检', () => {
       COMMAND.BRAINSTORM,
       COMMAND.PRD,
       COMMAND.PLAN,
-      COMMAND.LSM_SPEC,
-      COMMAND.LSM_DESIGN,
-      COMMAND.LSM_MOCKUP,
-      COMMAND.LSM_BUILD,
-      COMMAND.LSM_TEST,
-      COMMAND.LSM_VERIFY,
       COMMAND.WORK,
       'ae-work-continue',
       COMMAND.MERGE_BRANCH,
@@ -426,7 +363,6 @@ describe('资产健康巡检', () => {
     }
 
     expect(extractMarkdownCommandList(content, MODEL_SCENARIO.STANDARD, COMMAND.IDEATE)).toContain(COMMAND.SKILL_FROM_SESSION)
-    expect(extractMarkdownCommandList(content, MODEL_SCENARIO.VISION, COMMAND.CHROME_DEVTOOLS)).toContain(COMMAND.LSM_MOCKUP)
     expect(content).not.toContain('/ae-save-session-flow')
     expect(content).not.toContain('/ae-asset-debug')
   })

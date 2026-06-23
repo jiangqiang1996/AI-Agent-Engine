@@ -1,5 +1,4 @@
 import { REVIEW_MATRIX, type ActivationPredicate, type MatrixEntry } from './review-catalog.js'
-import { AGENT } from '../schemas/ae-asset-schema.js'
 
 export type ReviewKind = 'code' | 'document' | 'general'
 
@@ -65,7 +64,6 @@ export interface ReviewSelectionInput {
   requirementCountGte5?: boolean
   changedLineCountGte50?: boolean
   hasGoalAlignment?: boolean
-  hasLsmArtifactChain?: boolean
 }
 
 export function selectReviewers(input: ReviewSelectionInput): string[] {
@@ -80,14 +78,6 @@ export function selectReviewers(input: ReviewSelectionInput): string[] {
   for (const entry of REVIEW_MATRIX) {
     if (matchesEntry(entry, derived)) {
       selected.push(entry.name)
-    }
-  }
-  if (
-    derived.hasLsmArtifactChain === true &&
-    (derived.kind === 'general' || derived.hasMixedTargets === true)
-  ) {
-    for (const required of [AGENT.TRACEABILITY_REVIEWER, AGENT.EVIDENCE_REVIEWER]) {
-      if (!selected.includes(required)) selected.push(required)
     }
   }
   return selected

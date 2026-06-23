@@ -118,18 +118,6 @@ describe('command-registration', () => {
     expect(config[`${COMMAND.TASK_LOOP}${PA_SUFFIX}`]?.template).toContain('auto 模式')
   })
 
-  it('应该为 LSM 技能只生成基础命令，全部排除提示词优化变体', () => {
-    const config = buildCommandConfig('__missing_commands_dir__')
-
-    expect(config[COMMAND.LSM_SPEC]).toBeDefined()
-    expect(config[`${COMMAND.LSM_SPEC}${PO_SUFFIX}`]).toBeUndefined()
-    expect(config[`${COMMAND.LSM_DESIGN}${PA_SUFFIX}`]).toBeUndefined()
-    expect(config[`${COMMAND.LSM_TEST}${PO_SUFFIX}`]).toBeUndefined()
-    expect(config[`${COMMAND.LSM_MOCKUP}${PO_SUFFIX}`]).toBeUndefined()
-    expect(config[`${COMMAND.LSM_BUILD}${PA_SUFFIX}`]).toBeUndefined()
-    expect(config[`${COMMAND.LSM_VERIFY}${PO_SUFFIX}`]).toBeUndefined()
-  })
-
   it('应该为 ae:swagger-parser 只生成基础命令', () => {
     const config = buildCommandConfig('__missing_commands_dir__')
     const poCommand = `${COMMAND.SWAGGER_PARSER}${PO_SUFFIX}`

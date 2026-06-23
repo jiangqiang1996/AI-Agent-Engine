@@ -4,7 +4,6 @@ import { Effect } from 'effect'
 import { selectSpecialists, getCoordinationStrategy } from '../services/domain-dispatch-service.js'
 import {
   selectReviewers,
-  type ReviewSelectionInput,
   type ReviewKind,
   type ReviewDocumentType,
   type ReviewSceneType,
@@ -110,7 +109,6 @@ export const aeReviewContractTool: ToolDefinition = tool({
     '- 文档审查（kind=document/plan/test/general/design/prototype）：面向文档，与 Git 无强关联',
     '- 通用混合审查（kind=general/mixed/hybrid）：同一次审查覆盖多种产出物类型，按 scenes/targets 分桶',
     '- 返回门控规则、模式边界与目标覆盖摘要',
-    '- 识别到 LSM 完整产物链时无条件返回 gateBlocked: boolean；为 true 时调用方需校验 acceptance 模板 frontmatter traceTable.outputs 的 V-* 验证 ID，缺失时在 ae-review-proof 调用中传 lsmEvidenceMissing=true',
     '',
     '适用场景：',
     '- markdown 技能需要先确定审查团队再并行派发时',
@@ -165,8 +163,6 @@ export const aeReviewContractTool: ToolDefinition = tool({
     has_upstream: tool.schema.boolean().optional().describe('文档是否记录了 upstream/origin 等上游来源'),
     has_goal_alignment: tool.schema.boolean().optional().describe('是否提供审查目标（成功条件列表），激活目标对齐审查'),
     has_evidence_claim: tool.schema.boolean().optional().describe('文档是否包含事实性声明、外部引用或交付证据，需要 evidence-reviewer 校验'),
-    has_lsm_artifact_chain: tool.schema.boolean().optional().describe('是否已确认存在显式 LSM 产物路径、上游路径链和追踪表；仅有 ID 字面形态不得传 true'),
-    lsm_id_only: tool.schema.boolean().optional().describe('输入是否仅包含 R/U/TC/V 字面 ID；为 true 时不得触发 LSM 产物链审查'),
   },
   async execute(args) {
     return Effect.runPromise(
@@ -176,11 +172,9 @@ export const aeReviewContractTool: ToolDefinition = tool({
           const documentType = resolveDocumentType(args.kind)
           const reviewScenes = parseList<ReviewSceneType>(args.scenes ?? args.reviewScenes, SCENE_VALUES)
           const parsedTargetTypes = parseList<ReviewTargetType>(args.targets ?? args.targetTypes, TARGET_VALUES)
-          const targetTypes: ReviewTargetType[] | undefined = args.has_lsm_artifact_chain && !args.lsm_id_only
-            ? Array.from(new Set<ReviewTargetType>([...(parsedTargetTypes ?? []), 'requirements', 'design', 'prototype', 'test-case', 'document']))
-            : parsedTargetTypes
+          const targetTypes: ReviewTargetType[] | undefined = parsedTargetTypes
           const hasMixedTargets = kind === 'general' || (targetTypes?.length ?? 0) >= 2
-          const hasEvidenceClaim = args.has_evidence_claim || (args.has_lsm_artifact_chain && !args.lsm_id_only)
+          const hasEvidenceClaim = args.has_evidence_claim
 
           const domainContext: Record<string, unknown> = {
             kind: args.kind,
@@ -213,8 +207,6 @@ export const aeReviewContractTool: ToolDefinition = tool({
             hasUpstream: args.has_upstream,
             hasGoalAlignment: args.has_goal_alignment,
             hasEvidenceClaim,
-            hasLsmArtifactChain: args.has_lsm_artifact_chain,
-            lsmIdOnly: args.lsm_id_only,
           }
 
           const taskIntent = {
@@ -259,7 +251,6 @@ export const aeReviewContractTool: ToolDefinition = tool({
             hasNewAbstraction: args.has_new_abstraction,
             hasUpstream: args.has_upstream,
             hasGoalAlignment: args.has_goal_alignment,
-            hasLsmArtifactChain: args.has_lsm_artifact_chain && !args.lsm_id_only,
           })
 
           return JSON.stringify(
@@ -270,9 +261,6 @@ export const aeReviewContractTool: ToolDefinition = tool({
               reviewScenes,
               targetTypes,
               hasMixedTargets,
-              hasLsmArtifactChain: args.has_lsm_artifact_chain && !args.lsm_id_only,
-              lsmIdOnly: args.lsm_id_only,
-              gateBlocked: Boolean(args.has_lsm_artifact_chain && !args.lsm_id_only),
               targetCoverage: computeTargetCoverage(targetTypes, reviewers),
               mode: args.mode,
               reviewers,

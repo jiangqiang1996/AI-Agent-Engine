@@ -103,27 +103,6 @@ describe('AE catalog 一致性', () => {
     expect(getPhaseOnePaEntries().some((item) => item.commandName === 'ae-agent-creator-pa')).toBe(false)
   })
 
-  it('LSM 技能应进入 catalog 并与 frontmatter 一致', () => {
-    const entries = getPhaseOneEntries()
-    const lsmSkills = [
-      SKILL.LSM_SPEC,
-      SKILL.LSM_DESIGN,
-      SKILL.LSM_MOCKUP,
-      SKILL.LSM_BUILD,
-      SKILL.LSM_TEST,
-      SKILL.LSM_VERIFY,
-    ] as const
-
-    for (const skillName of lsmSkills) {
-      const entry = entries.find((item) => item.skillName === skillName)
-      expect(entry).toBeDefined()
-      const frontmatter = readFrontmatter(entry?.skillFile ?? '')
-      expect(frontmatter.name).toBe(skillName)
-      expect(frontmatter.description).toBe(entry?.description)
-      expect(frontmatter['argument-hint']).toBe(entry?.argumentHint)
-    }
-  })
-
   it('ae:html-bundle 应注册为技术栈无关的 bundle 入口', () => {
     const entry = getPhaseOneEntries().find((item) => item.skillName === SKILL.HTML_BUNDLE)
     const frontmatter = readFrontmatter('src/assets/skills/ae-html-bundle/SKILL.md')

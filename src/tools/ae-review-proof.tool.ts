@@ -379,7 +379,6 @@ export const aeReviewProofTool: ToolDefinition = tool({
     summary: z.string().min(1).describe('审查结论摘要'),
     findings: z.array(ReviewFindingSchema).default([]).describe('审查发现列表；passed 时不得包含 P0/P1/P2/high/medium 级别发现'),
     targetCoverage: z.record(z.string(), z.unknown()).optional().describe('通用域混合审查的目标覆盖摘要；不参与 source_review_output 哈希，作为 metadata 可选审计字段写入'),
-    lsmEvidenceMissing: z.boolean().optional().describe('LSM 完整产物链场景下，调用方校验 acceptance 模板 frontmatter traceTable.outputs 缺 V-* 时传 true；为 true 且 review_status=passed 时硬拒绝写入。'),
     source_review_output: z.string().min(1).describe('当前会话中真实 ae:review 或审查子代理输出的完整文本；必须包含可解析的状态、worktree、branch、HEAD 和 statusSummary；通用域（混合审查）输出还应包含 targetCoverage 摘要供审计'),
   },
   execute: async (args, ctx) => {
@@ -391,10 +390,6 @@ export const aeReviewProofTool: ToolDefinition = tool({
 
     if (args.review_status === 'passed' && hasBlockingFinding(args.findings)) {
       return 'review_status 为 passed 时不能包含 P0/P1/P2/critical/high/medium 级别发现。'
-    }
-
-    if (args.lsmEvidenceMissing === true && args.review_status === 'passed') {
-      return 'LSM 完整产物链场景下 acceptance 模板 frontmatter traceTable.outputs 缺 V-* 验证 ID，不能以 passed 写入审查证明。请补全 V-* 验证条目或将 review_status 改为 failed。'
     }
 
     const worktree = ctx.worktree
@@ -442,7 +437,6 @@ export const aeReviewProofTool: ToolDefinition = tool({
       statusSummary: fingerprint.statusSummary,
       reviewStatus: args.review_status,
       hasBlockingFinding: parsedOutput.hasBlockingFinding,
-      ...(args.lsmEvidenceMissing === true ? { lsmEvidenceMissing: true } : {}),
       ...(args.targetCoverage ? { targetCoverage: args.targetCoverage } : {}),
       reviewOutputHash,
     }

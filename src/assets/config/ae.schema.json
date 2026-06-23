@@ -44,7 +44,7 @@
     },
     "modelScenarios": {
       "type": "object",
-      "description": "模型场景到 opencode 模型标识的极简映射。稳定场景包括 quick、standard、deep、vision；允许自定义场景键。",
+      "description": "模型场景到 opencode 模型标识的极简映射。稳定场景包括 quick、standard、deep、vision、audio、video；允许自定义场景键。",
       "properties": {
         "quick": {
           "type": "string",
@@ -65,6 +65,16 @@
           "type": "string",
           "minLength": 1,
           "description": "视觉任务使用的模型标识"
+        },
+        "audio": {
+          "type": "string",
+          "minLength": 1,
+          "description": "音频任务使用的模型标识"
+        },
+        "video": {
+          "type": "string",
+          "minLength": 1,
+          "description": "视频任务使用的模型标识"
         }
       },
       "additionalProperties": {
@@ -76,7 +86,9 @@
           "quick": "provider/fast-model",
           "standard": "provider/default-model",
           "deep": "provider/strong-model",
-          "vision": "provider/vision-model"
+          "vision": "provider/vision-model",
+          "audio": "provider/audio-model",
+          "video": "provider/video-model"
         }
       ]
     }

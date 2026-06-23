@@ -77,6 +77,8 @@ export function resolveModelReference(
     || scenario === MODEL_SCENARIO.STANDARD
     || scenario === MODEL_SCENARIO.DEEP
     || scenario === MODEL_SCENARIO.VISION
+    || scenario === MODEL_SCENARIO.AUDIO
+    || scenario === MODEL_SCENARIO.VIDEO
   ) {
     return undefined
   }

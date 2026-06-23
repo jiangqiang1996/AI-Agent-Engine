@@ -5,6 +5,8 @@ export const MODEL_SCENARIO = {
   STANDARD: 'standard',
   DEEP: 'deep',
   VISION: 'vision',
+  AUDIO: 'audio',
+  VIDEO: 'video',
 } as const
 
 export const ModelScenarioSchema = z
@@ -13,6 +15,8 @@ export const ModelScenarioSchema = z
     MODEL_SCENARIO.STANDARD,
     MODEL_SCENARIO.DEEP,
     MODEL_SCENARIO.VISION,
+    MODEL_SCENARIO.AUDIO,
+    MODEL_SCENARIO.VIDEO,
   ])
   .describe('AE 内置稳定模型场景')
 

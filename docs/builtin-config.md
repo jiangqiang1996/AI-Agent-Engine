@@ -135,8 +135,10 @@ remote MCP 的最终 URL 当前允许 `http` / `https`，建议优先使用 `htt
 | `standard` | 常规任务（`/ae-ideate`、`/ae-brainstorm`、`/ae-sql`） | 平衡性能与质量 |
 | `deep` | 深度推理（`/ae-plan`、`/ae-work`、`/ae-review`、`/ae-lfg`，以及声明 `model: $deep` 的 Markdown 命令） | 强推理、长上下文 |
 | `vision` | 视觉任务（`/ae-chrome-devtools`） | 支持图片输入 |
+| `audio` | 音频任务 | 支持音频输入 |
+| `video` | 视频任务 | 支持视频输入 |
 
-允许使用自定义场景键，但 AE 内置资产首版只依赖上述四个稳定场景。
+允许使用自定义场景键；AE 内置资产当前使用 quick、standard、deep、vision 四个稳定场景，audio 和 video 为预留场景，首版无内置资产使用。
 
 ## 配置方式
 
@@ -148,7 +150,9 @@ remote MCP 的最终 URL 当前允许 `http` / `https`，建议优先使用 `htt
     "quick": "openrouter/google/gemini-2.5-flash",
     "standard": "openrouter/anthropic/claude-sonnet-4",
     "deep": "openrouter/anthropic/claude-sonnet-4",
-    "vision": "openrouter/google/gemini-2.5-flash"
+    "vision": "openrouter/google/gemini-2.5-flash",
+    "audio": "openrouter/audio-model",
+    "video": "openrouter/video-model"
   }
 }
 ```
@@ -166,7 +170,7 @@ model: $deep
 
 - `model: $deep` 这类 `$` 前缀的值会按 `modelScenarios.deep` 解析。
 - `model: anthropic/claude-sonnet-4-20250514`、`model: standard` 这类不以 `$` 开头的值会直接透传给 opencode，不由 AE 校验是否存在。
-- `$quick`、`$standard`、`$deep`、`$vision` 等稳定场景未配置时不会写入 `model` 字段，继承 opencode 当前默认模型。
+- `$quick`、`$standard`、`$deep`、`$vision`、`$audio`、`$video` 等稳定场景未配置时不会写入 `model` 字段，继承 opencode 当前默认模型。
 - 自定义 `$` 变量未配置时会将变量字符串原样作为 `model` 传给 opencode，不由 AE 提示或校验是否存在。
 
 ## 三层优先级
@@ -195,17 +199,17 @@ model: $deep
 
 - 用户在 `opencode.json` 的 `command` 或 `agent` 中显式指定 `model` 时，用户配置最终覆盖场景路由。
 - 项目级或全局命令 Markdown 重写内置命令时，可通过 frontmatter `model` 覆盖该命令的默认场景路由。
-- 未配置任何 `modelScenarios` 时，内置命令和代理声明的 `$quick`、`$standard`、`$deep` 或 `$vision` 不会写入最终 `model` 字段，继承 opencode 当前默认模型。
-- `vision` 仅表示视觉任务场景，首版不探测模型是否支持图像输入。
+- 未配置任何 `modelScenarios` 时，内置命令和代理声明的 `$quick`、`$standard`、`$deep`、`$vision`、`$audio` 或 `$video` 不会写入最终 `model` 字段，继承 opencode 当前默认模型。
+- `vision` 仅表示视觉任务场景，`audio` 仅表示音频任务场景，`video` 仅表示视频任务场景，首版不探测模型是否支持对应模态输入。
 
 ## 内置资产场景清单
 
 | 资产 | 场景 |
 | --- | --- |
 | `/ae-ideate`、`/ae-brainstorm`、`/ae-prd`、`/ae-agent-creator`、`/ae-work-report`、`/ae-my-code-changes`、`/ae-handoff`、`/ae-sql`、`/ae-swagger-parser`、`/ae-api-tester`、`/ae-html-bundle`、`/ae-markitdown`、`/ae-graph-build`、`/ae-save-experience`、`/ae-skill-from-session`、`/ae-skill-creator`、`/ae-static-server`、`/ae-update`、`/ae-ideate-po`、`/ae-brainstorm-po`、`/ae-prd-po`、`/ae-ideate-pa`、`/ae-brainstorm-pa`、`/ae-prd-pa` | `standard` |
-| `/ae-document-review`、`/ae-plan`、`/ae-refactor`、`/ae-lsm-spec`、`/ae-lsm-design`、`/ae-lsm-build`、`/ae-lsm-test`、`/ae-work`、`/ae-merge-branch`、`/ae-review`、`/ae-lfg`、`/ae-web-forge`、`/ae-task-loop`、`/ae-plan-po`、`/ae-refactor-po`、`/ae-work-po`、`/ae-lfg-po`、`/ae-task-loop-po`、`/ae-plan-pa`、`/ae-refactor-pa`、`/ae-work-pa`、`/ae-lfg-pa`、`/ae-task-loop-pa` | `deep` |
+| `/ae-document-review`、`/ae-plan`、`/ae-refactor`、`/ae-work`、`/ae-merge-branch`、`/ae-review`、`/ae-lfg`、`/ae-web-forge`、`/ae-task-loop`、`/ae-plan-po`、`/ae-refactor-po`、`/ae-work-po`、`/ae-lfg-po`、`/ae-task-loop-po`、`/ae-plan-pa`、`/ae-refactor-pa`、`/ae-work-pa`、`/ae-lfg-pa`、`/ae-task-loop-pa` | `deep` |
 | `/ae-prompt-optimize`、`/ae-prompt-optimize-auto`、`/ae-graph-query`、`/ae-help` | `quick` |
-| `/ae-lsm-mockup`、`/ae-lsm-verify`、`/ae-chrome-devtools`、`/ae-course-auto-player` | `vision` |
+| `/ae-chrome-devtools`、`/ae-course-auto-player` | `vision` |
 | `@repo-research-analyst`、`@web-researcher` | `standard` |
 | `@ui-architect`、`@ui-matcher`、`@browser-inspector` | `vision` |
 | `@logic-weaver` | `deep` |

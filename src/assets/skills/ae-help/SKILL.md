@@ -7,7 +7,7 @@ argument-hint: "[技能名或关键词]"
 # AE 帮助信息
 
 获取 AE 插件中所有可调用的技能、命令和代理的完整列表。
-帮助结果还包含内置 agent/command 的静态模型路由总览，展示其声明的 `quick`、`standard`、`deep`、`vision` 场景。
+帮助结果还包含内置 agent/command 的静态模型路由总览，展示其声明的 `quick`、`standard`、`deep`、`vision`、`audio`、`video` 场景。
 
 ## 执行方式
 
@@ -31,8 +31,8 @@ argument-hint: "[技能名或关键词]"
 
 - 用户可在 `ae.jsonc` 的顶层 `modelScenarios` 中配置场景到模型字符串的映射。
 - Agent/command Markdown frontmatter 的 `model` 可以写 `$deep` 这类场景变量，也可以写模型常量名；变量未配置时原样传给 opencode。
-- 稳定场景为 `quick`、`standard`、`deep`、`vision`；具体模型标识由用户自己的 opencode 环境决定。
-- `vision` 只表示视觉任务场景，首版不探测模型是否支持图像输入。
+- 稳定场景为 `quick`、`standard`、`deep`、`vision`、`audio`、`video`；具体模型标识由用户自己的 opencode 环境决定。
+- `vision` 只表示视觉任务场景，`audio` 只表示音频任务场景，`video` 只表示视频任务场景，首版不探测模型是否支持对应模态输入。
 - 首版不支持 fallback、capabilities、params、动态路由或内置推荐模型链。
 
 ## 适用与退出

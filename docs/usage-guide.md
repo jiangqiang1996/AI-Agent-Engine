@@ -274,12 +274,14 @@ AE 默认提供 `context7` 和 `gh_grep` 两个远程 MCP。项目级 `.opencode
     "quick": "provider/fast-model",
     "standard": "provider/default-model",
     "deep": "provider/strong-model",
-    "vision": "provider/vision-model"
+    "vision": "provider/vision-model",
+    "audio": "provider/audio-model",
+    "video": "provider/video-model"
   }
 }
 ```
 
-`quick` 适合帮助和提示词优化，`standard` 适合常规任务，`deep` 适合计划、工作和审查，`vision` 适合浏览器截图和前端视觉任务。完整合并规则见 [builtin-config.md](builtin-config.md)。
+`quick` 适合帮助和提示词优化，`standard` 适合常规任务，`deep` 适合计划、工作和审查，`vision` 适合浏览器截图和前端视觉任务，`audio` 适合音频任务，`video` 适合视频任务。完整合并规则见 [builtin-config.md](builtin-config.md)。
 
 ## 安全边界
 
