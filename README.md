@@ -84,34 +84,34 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 
 ## 常用入口
 
-| 目标 | 入口 |
-| --- | --- |
-| 查看当前能力 | `/ae-help` |
-| 想法生成 | `/ae-ideate` |
-| 多视角发散讨论 | `/ae-brainstorm` |
-| 需求澄清与需求文档 | `/ae-prd` |
-| 计划生成 | `/ae-plan` |
-| 计划执行 | `/ae-work` |
-| Worktree 续执行 | `/ae-work-continue` |
-| 分支或 worktree 合并 | `/ae-merge-branch` |
-| 工作总结 | `/ae-work-report` |
-| 重构计划 | `/ae-refactor` |
-| 代码或文档审查 | `/ae-review` |
-| 前端设计、还原、交互或验收 | `/ae-web-forge` |
+| 目标                   | 入口 |
+|----------------------| --- |
+| 查看当前能力               | `/ae-help` |
+| 想法生成                 | `/ae-ideate` |
+| 多视角发散讨论              | `/ae-brainstorm` |
+| 需求澄清与需求文档            | `/ae-prd` |
+| 计划生成                 | `/ae-plan` |
+| 计划执行                 | `/ae-work` |
+| Worktree 继续执行        | `/ae-work-continue` |
+| 分支或 worktree 合并      | `/ae-merge-branch` |
+| 工作总结                 | `/ae-work-report` |
+| 重构计划                 | `/ae-refactor` |
+| 代码或文档审查              | `/ae-review` |
+| 前端设计、还原、交互或验收        | `/ae-web-forge` |
 | chrome-devtools 浏览器能力 | `/ae-chrome-devtools` |
-| 自动播放课程 | `/ae-course-auto-player` |
-| Swagger/OpenAPI 摘要 | `/ae-swagger-parser` |
-| HTML 单文件打包 | `/ae-html-bundle` |
-| 本地文件转 Markdown | `/ae-markitdown` |
-| 静态服务器 | `/ae-static-server` |
-| 项目关系图谱 | `/ae-graph-build`、`/ae-graph-query` |
-| 探索性修复 | `/ae-task-loop` |
-| 数据库操作 | `/ae-sql` |
-| 会话交接 | `/ae-handoff` |
-| 提示词优化 | `/ae-prompt-optimize` |
-| 经验沉淀 | `/ae-save-experience` |
-| 创建技能或代理 | `/ae-skill-creator`、`/ae-agent-creator` |
-| 更新 AE 插件 | `/ae-update` |
+| 自动播放课程               | `/ae-course-auto-player` |
+| Swagger/OpenAPI 摘要   | `/ae-swagger-parser` |
+| HTML 单文件打包           | `/ae-html-bundle` |
+| 本地文件转 Markdown       | `/ae-markitdown` |
+| 静态服务器                | `/ae-static-server` |
+| 项目关系图谱               | `/ae-graph-build`、`/ae-graph-query` |
+| 探索性修复                | `/ae-task-loop` |
+| 数据库操作                | `/ae-sql` |
+| 会话交接                 | `/ae-handoff` |
+| 提示词优化                | `/ae-prompt-optimize` |
+| 经验沉淀                 | `/ae-save-experience` |
+| 创建技能或代理              | `/ae-skill-creator`、`/ae-agent-creator` |
+| 更新 AE 插件             | `/ae-update` |
 
 详细参数、命令变体、代理分工、工具边界和产物路径见 [docs/usage-guide.md](docs/usage-guide.md)。配置合并和模型场景路由见 [docs/builtin-config.md](docs/builtin-config.md)。
 
