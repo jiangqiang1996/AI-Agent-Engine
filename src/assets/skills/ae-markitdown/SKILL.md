@@ -1,7 +1,7 @@
 ---
 name: ae:markitdown
 description: 将本地文件转换为 Markdown，支持 HTML/CSV/TSV/JSON/DOCX/XLSX/PDF/PPTX/JPG/PNG
-argument-hint: "file=路径 [format=格式] [outputPath=路径]"
+argument-hint: "file=路径 [format=格式]"
 ---
 
 # Skill: ae:markitdown
@@ -10,10 +10,34 @@ argument-hint: "file=路径 [format=格式] [outputPath=路径]"
 
 ## 何时使用
 
-- 用户需要把 HTML、CSV、TSV、JSON、DOCX、XLSX、PDF、PPTX、JPG/PNG 等文件转为 Markdown。
-- 用户需要读取二进制文档（DOCX、XLSX、PDF、PPTX 等）的内容。
+- 用户需要把 DOCX、XLSX、PDF、PPTX 等二进制文档转为 Markdown 或读取其内容。
 - Read 工具提示不支持某格式输入（如 PDF、DOCX、XLSX、PPTX 等二进制文档）时，改用本技能读取。
-- 用户说"转成 Markdown"、"读取这个文件"、"识别图片内容"等。
+- 用户明确说"转成 Markdown"、"转换为 md 文件"等需要产出 `.md` 文件时。
+- 图片格式（JPG/PNG）的使用见下方"图片格式使用限制"，不要默认对本技能可用。
+- 文本类格式（HTML/CSV/TSV/JSON）的使用见下方"文本类格式使用限制"，不要默认对本技能可用。
+
+## 何时不使用
+
+### 文本类格式使用限制
+
+对于大模型可直接支持的文本类格式（HTML、CSV、TSV、JSON），仅当用户明确说明要将其转换为 Markdown 文件（需要产出 `.md` 文件）时才使用本技能。
+
+除上述情况外，一律禁止使用本技能操作文本类格式。具体来说：
+
+- 如果用户只是想查看、理解或分析 HTML/CSV/TSV/JSON 文件内容，应直接使用 Read 工具读取文件，不要调用本技能。
+- 不要仅因为"读取这个文件"而调用本技能；除非用户明确要求生成 Markdown 文件，否则直接用 Read 工具读取。
+
+### 图片格式使用限制
+
+对于图片格式（JPG、PNG），仅当满足以下条件之一时才使用本技能：
+
+1. 当前模型不支持读取图片文件（如 Read 工具无法将图片作为模型输入）。
+2. 用户明确说明要将图片内容转换为 Markdown 文件（需要产出 `.md` 文件）。
+
+除上述两种情况外，一律禁止使用本技能操作图片。具体来说：
+
+- 如果当前模型支持读取图片（Read 工具可直接读取 JPG/PNG 并把图片作为模型输入），且用户只是想理解、查看或分析图片内容，应直接使用 Read 工具读取图片，不要调用本技能。
+- 不要仅因为"识别图片内容"而调用本技能；除非模型不支持读取图片或用户明确要求生成 Markdown 文件。
 
 ## 如何使用
 
@@ -41,3 +65,9 @@ argument-hint: "file=路径 [format=格式] [outputPath=路径]"
 - 仅处理当前工作区内本地文件，不支持远程 URL。
 - 不支持音频、视频等非文档格式。
 - 单文件默认上限 100 MB，可通过环境变量 `AE_MARKITDOWN_MAX_BYTES` 调整。
+
+## 验证方式
+
+- 转换成功后，工具返回值包含 `output`（转换后的 Markdown 内容）和 `metadata.outputPath`（产物绝对路径），两者非空即视为转换成功。
+- 通过 `metadata.outputPath` 确认产物文件位置；通过 `output` 内容确认转换结果符合预期。
+- 转换失败时工具返回中文提示，按提示修正路径、格式或权限后重试；无返回值或返回错误提示即视为未完成。
