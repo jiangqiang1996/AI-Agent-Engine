@@ -9,7 +9,7 @@ import { getPhaseOneEntries, getPhaseOnePoEntries, getPhaseOnePaEntries } from '
 import { COMMAND, AUTO_SUFFIX, PO_SUFFIX, PA_SUFFIX } from '../schemas/ae-asset-schema.js'
 import { getCommandModelScenario } from './asset-model-routing-catalog.js'
 import type { ModelScenarioRoutingContext } from './model-scenario-routing-service.js'
-import { resolveModelReference, resolveModelScenario } from './model-scenario-routing-service.js'
+import { getModelByScenario, resolveModelReference } from './model-scenario-routing-service.js'
 
 const ARGUMENTS_PLACEHOLDER = '$ARGUMENTS'
 
@@ -74,12 +74,8 @@ function applyCommandModel(
     return command
   }
 
-  const resolved = resolveModelScenario(routingContext, scenario)
-  if (!resolved.writeModel) {
-    return command
-  }
-
-  return { ...command, model: resolved.model }
+  const model = getModelByScenario(routingContext, scenario)
+  return model ? { ...command, model } : command
 }
 
 /**

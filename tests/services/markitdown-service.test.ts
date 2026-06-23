@@ -36,42 +36,6 @@ describe('markitdown-service', () => {
     expect(result.markdown).toContain('| name | age |')
   })
 
-  it('应该转换 XML 文件', async () => {
-    const result = await convertToMarkdown({
-      file: path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.xml')),
-      worktree: process.cwd(),
-    })
-    expect(result.format).toBe('xml')
-    expect(result.markdown).toContain('```xml')
-  })
-
-  it('应该转换 YAML 文件', async () => {
-    const result = await convertToMarkdown({
-      file: path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.yaml')),
-      worktree: process.cwd(),
-    })
-    expect(result.format).toBe('yaml')
-    expect(result.markdown).toContain('```yaml')
-  })
-
-  it('应该转换文本文件', async () => {
-    const result = await convertToMarkdown({
-      file: path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.txt')),
-      worktree: process.cwd(),
-    })
-    expect(result.format).toBe('text')
-    expect(result.markdown).toContain('plain text file')
-  })
-
-  it('应该转换 Markdown 文件', async () => {
-    const result = await convertToMarkdown({
-      file: path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.md')),
-      worktree: process.cwd(),
-    })
-    expect(result.format).toBe('markdown')
-    expect(result.markdown).toContain('# Sample Markdown')
-  })
-
   it('应该在文件不存在时抛出 MarkitdownError', async () => {
     await expect(
       convertToMarkdown({
@@ -85,8 +49,8 @@ describe('markitdown-service', () => {
     const result = await convertToMarkdown({
       file: path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.txt')),
       worktree: process.cwd(),
-      format: 'markdown',
+      format: 'html',
     })
-    expect(result.format).toBe('markdown')
+    expect(result.format).toBe('html')
   })
 })

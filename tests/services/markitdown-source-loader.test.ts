@@ -12,11 +12,11 @@ const FIXTURES_DIR = path.resolve(process.cwd(), 'tests/fixtures/markitdown')
 describe('markitdown-source-loader', () => {
   it('应该加载本地文本文件', async () => {
     const result = await loadMarkitdownSource(
-      path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.txt')),
+      path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.html')),
       process.cwd(),
     )
-    expect(result.format).toBe('text')
-    expect(result.textContent).toContain('plain text file')
+    expect(result.format).toBe('html')
+    expect(result.textContent).toContain('Hello World')
     expect(result.fileSize).toBeGreaterThan(0)
   })
 
@@ -26,15 +26,13 @@ describe('markitdown-source-loader', () => {
     expect(detectFormat('a.csv')).toBe('csv')
     expect(detectFormat('a.tsv')).toBe('csv')
     expect(detectFormat('a.json')).toBe('json')
-    expect(detectFormat('a.yaml')).toBe('yaml')
-    expect(detectFormat('a.yml')).toBe('yaml')
-    expect(detectFormat('a.xml')).toBe('xml')
-    expect(detectFormat('a.txt')).toBe('text')
-    expect(detectFormat('a.md')).toBe('markdown')
     expect(detectFormat('a.docx')).toBe('docx')
     expect(detectFormat('a.xlsx')).toBe('xlsx')
     expect(detectFormat('a.pdf')).toBe('pdf')
-    expect(detectFormat('a.ipynb')).toBe('ipynb')
+    expect(detectFormat('a.pptx')).toBe('pptx')
+    expect(detectFormat('a.jpg')).toBe('jpg')
+    expect(detectFormat('a.jpeg')).toBe('jpg')
+    expect(detectFormat('a.png')).toBe('jpg')
     expect(detectFormat('a.unknown')).toBeUndefined()
     expect(detectFormat('noext')).toBeUndefined()
   })
@@ -58,7 +56,7 @@ describe('markitdown-source-loader', () => {
 
   it('应该拒绝空文件', async () => {
     const emptyFile = path.relative(process.cwd(), path.join(FIXTURES_DIR, 'empty.txt'))
-    await expect(loadMarkitdownSource(emptyFile, process.cwd())).rejects.toThrow(MarkitdownError)
+    await expect(loadMarkitdownSource(emptyFile, process.cwd(), 'html')).rejects.toThrow(MarkitdownError)
   })
 
   it('应该拒绝不支持的格式', async () => {
@@ -87,11 +85,11 @@ describe('markitdown-source-loader', () => {
     try {
       const rel = path.relative(process.cwd(), oversizedFile)
       process.env.AE_MARKITDOWN_MAX_BYTES = '32'
-      await expect(loadMarkitdownSource(rel, process.cwd())).rejects.toThrow(
+      await expect(loadMarkitdownSource(rel, process.cwd(), 'html')).rejects.toThrow(
         /文件过大/,
       )
       process.env.AE_MARKITDOWN_MAX_BYTES = '128'
-      const result = await loadMarkitdownSource(rel, process.cwd())
+      const result = await loadMarkitdownSource(rel, process.cwd(), 'html')
       expect(result.fileSize).toBe(64)
     } finally {
       if (previous === undefined) delete process.env.AE_MARKITDOWN_MAX_BYTES
@@ -105,10 +103,10 @@ describe('markitdown-source-loader', () => {
     try {
       process.env.AE_MARKITDOWN_MAX_BYTES = 'not-a-number'
       const result = await loadMarkitdownSource(
-        path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.txt')),
+        path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.html')),
         process.cwd(),
       )
-      expect(result.format).toBe('text')
+      expect(result.format).toBe('html')
     } finally {
       if (previous === undefined) delete process.env.AE_MARKITDOWN_MAX_BYTES
       else process.env.AE_MARKITDOWN_MAX_BYTES = previous
@@ -158,14 +156,14 @@ describe('normalizeUserFilePath', () => {
 describe('markitdown-source-loader format 覆盖', () => {
   it('应该支持 format 覆盖扩展名推断', async () => {
     const rel = path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.txt'))
-    const result = await loadMarkitdownSource(rel, process.cwd(), 'markdown')
-    expect(result.format).toBe('markdown')
+    const result = await loadMarkitdownSource(rel, process.cwd(), 'html')
+    expect(result.format).toBe('html')
   })
 
   it('应该在未提供 format 时回退到扩展名推断', async () => {
-    const rel = path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.txt'))
+    const rel = path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.json'))
     const result = await loadMarkitdownSource(rel, process.cwd())
-    expect(result.format).toBe('text')
+    expect(result.format).toBe('json')
   })
 })
 
@@ -206,9 +204,9 @@ describe('loadMarkitdownSource - format 覆盖', () => {
     const result = await loadMarkitdownSource(
       path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.txt')),
       process.cwd(),
-      'text',
+      'html',
     )
-    expect(result.format).toBe('text')
+    expect(result.format).toBe('html')
   })
 
   it('应该在未提供 formatOverride 时回退到扩展名推断', async () => {
@@ -220,16 +218,16 @@ describe('loadMarkitdownSource - format 覆盖', () => {
   })
 
   it('应该接受 @ 前缀路径并正确加载', async () => {
-    const rel = path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.txt'))
+    const rel = path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.html'))
     const result = await loadMarkitdownSource(`@${rel}`, process.cwd())
-    expect(result.format).toBe('text')
-    expect(result.textContent).toContain('plain text file')
+    expect(result.format).toBe('html')
+    expect(result.textContent).toContain('Hello World')
   })
 
   it('应该接受引号包裹的路径并正确加载', async () => {
-    const rel = path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.txt'))
+    const rel = path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.html'))
     const result = await loadMarkitdownSource(`"${rel}"`, process.cwd())
-    expect(result.format).toBe('text')
+    expect(result.format).toBe('html')
   })
 })
 
@@ -320,21 +318,21 @@ describe('normalizeUserFilePath', () => {
 
 describe('loadMarkitdownSource 路径归一化与 format 覆盖', () => {
   it('应该接受 @ 前缀路径', async () => {
-    const rel = path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.txt'))
+    const rel = path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.html'))
     const result = await loadMarkitdownSource(`@${rel}`, process.cwd())
-    expect(result.format).toBe('text')
+    expect(result.format).toBe('html')
   })
 
   it('应该接受带引号的路径', async () => {
-    const rel = path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.txt'))
+    const rel = path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.html'))
     const result = await loadMarkitdownSource(`"${rel}"`, process.cwd())
-    expect(result.format).toBe('text')
+    expect(result.format).toBe('html')
   })
 
   it('应该接受 format 覆盖并优先于扩展名推断', async () => {
     const rel = path.relative(process.cwd(), path.join(FIXTURES_DIR, 'sample.txt'))
-    const result = await loadMarkitdownSource(rel, process.cwd(), 'markdown')
-    expect(result.format).toBe('markdown')
+    const result = await loadMarkitdownSource(rel, process.cwd(), 'html')
+    expect(result.format).toBe('html')
   })
 
   it('应该支持对无扩展名文件使用 format 覆盖', async () => {
@@ -342,8 +340,8 @@ describe('loadMarkitdownSource 路径归一化与 format 覆盖', () => {
     await fs.writeFile(noExtFile, 'plain content\n')
     try {
       const rel = path.relative(process.cwd(), noExtFile)
-      const result = await loadMarkitdownSource(rel, process.cwd(), 'text')
-      expect(result.format).toBe('text')
+      const result = await loadMarkitdownSource(rel, process.cwd(), 'html')
+      expect(result.format).toBe('html')
       expect(result.textContent).toContain('plain content')
     } finally {
       await fs.unlink(noExtFile)

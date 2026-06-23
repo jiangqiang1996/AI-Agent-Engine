@@ -15,6 +15,7 @@ import {
     resolveBuiltinOpencodeConfigPaths,
 } from './services/builtin-opencode-config-service.js'
 import {createModelScenarioRoutingContext, resolveModelReference,} from './services/model-scenario-routing-service.js'
+import { setModelScenarioRoutingContext } from './services/model-scenario-holder.js'
 import {registerRulesInstructions} from './services/rules-instructions-service.js'
 import {injectBuiltinRulesIntoSystem} from './services/rules-system-transform-service.js'
 import {createRuntimeAssetManifest} from './services/runtime-asset-manifest.js'
@@ -67,6 +68,7 @@ function mergeCommandConfigWithRouting(
     const routingContext = createModelScenarioRoutingContext(
         collectModelScenarioSources(resolveBuiltinOpencodeConfigPaths(manifest, hostWorktree)),
     )
+    setModelScenarioRoutingContext(routingContext)
     const dynamicHasPriority = isProjectPluginInstall(manifest, hostWorktree)
     config.command = mergeProjectCommandOverrides(
         mergeDynamicCommands(buildCommandConfig(manifest.commandsDir, routingContext), config.command, dynamicHasPriority),

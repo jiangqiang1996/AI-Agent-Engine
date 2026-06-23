@@ -42,9 +42,9 @@ async function callTool(
 describe('ae-markitdown 工具', () => {
   it('转换后应自动写入 ae/markitdown 并返回 outputPath', async () => {
     const root = createRoot()
-    writeFileSync(join(root, 'note.md'), '# 标题\n\n正文内容')
+    writeFileSync(join(root, 'note.html'), '<h1>标题</h1>\n<p>正文内容</p>')
 
-    const result = await callTool(root, { file: 'note.md' })
+    const result = await callTool(root, { file: 'note.html' })
     const obj = result as { output: string; metadata: Record<string, unknown> }
 
     expect(obj.output).toContain('标题')
@@ -54,7 +54,7 @@ describe('ae-markitdown 工具', () => {
     // 输出路径位于 ae/markitdown 子目录下
     expect(outputPath).toContain(join('ae', 'markitdown') + sep)
     // 文件名保留原始文件名
-    expect(outputPath).toContain('note.md-')
+    expect(outputPath).toContain('note.html-')
     // 以 .md 结尾
     expect(outputPath.endsWith('.md')).toBe(true)
     // 文件真实写入
@@ -95,20 +95,20 @@ describe('ae-markitdown 工具', () => {
   it('嵌套路径文件应取 basename 作为输出文件名前缀', async () => {
     const root = createRoot()
     mkdirSync(join(root, 'docs', 'sub'), { recursive: true })
-    writeFileSync(join(root, 'docs', 'sub', 'report.md'), '# 报告')
+    writeFileSync(join(root, 'docs', 'sub', 'report.html'), '<h1>报告</h1>')
 
-    const result = await callTool(root, { file: 'docs/sub/report.md' })
+    const result = await callTool(root, { file: 'docs/sub/report.html' })
     const obj = result as { output: string; metadata: Record<string, unknown> }
 
     const outputPath = obj.metadata.outputPath as string
-    expect(outputPath).toContain('report.md-')
+    expect(outputPath).toContain('report.html-')
     expect(existsSync(outputPath)).toBe(true)
   })
 
   it('文件不存在时应返回可恢复的中文错误', async () => {
     const root = createRoot()
 
-    const result = await callTool(root, { file: 'missing.md' })
+    const result = await callTool(root, { file: 'missing.html' })
     const output = typeof result === 'string' ? result : result.output
 
     expect(output).toContain('路径不存在')

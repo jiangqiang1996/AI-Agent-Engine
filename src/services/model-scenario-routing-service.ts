@@ -51,6 +51,23 @@ export function resolveModelScenario(
 }
 
 /**
+ * 获取目标场景配置的模型标识。
+ *
+ * 命中时返回模型字符串（如 "anthropic/claude-3-5-sonnet"）；
+ * 未配置或 context 缺失时返回 undefined，由调用方继承 opencode 当前默认模型。
+ *
+ * 适用于运行时按场景取模型（如 markitdown 工具按 vision 场景取模型识别图片）。
+ */
+export function getModelByScenario(
+  context: ModelScenarioRoutingContext | undefined,
+  scenario: ModelScenario,
+): string | undefined {
+  if (!context) return undefined
+  const resolved = resolveModelScenario(context, scenario)
+  return resolved.writeModel ? resolved.model : undefined
+}
+
+/**
  * 解析 frontmatter 中的模型引用
  * `$name` 优先按 modelScenarios 变量解析；未命中时，内置稳定场景回退默认模型，自定义场景则原样透传引用。
  */

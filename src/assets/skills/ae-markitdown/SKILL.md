@@ -1,7 +1,7 @@
 ---
 name: ae:markitdown
-description: 将本地文件转换为 Markdown，支持 HTML/CSV/TSV/JSON/XML/YAML/文本/Markdown/DOCX/XLSX/PDF/IPYNB/PPTX/ZIP/JPG/RSS/EPUB/MSG
-argument-hint: "file=路径 [format=格式]"
+description: 将本地文件转换为 Markdown，支持 HTML/CSV/TSV/JSON/DOCX/XLSX/PDF/PPTX/JPG/PNG
+argument-hint: "file=路径 [format=格式] [outputPath=路径]"
 ---
 
 # Skill: ae:markitdown
@@ -10,10 +10,10 @@ argument-hint: "file=路径 [format=格式]"
 
 ## 何时使用
 
-- 用户需要把 HTML、CSV、JSON、XML、YAML、TXT、Markdown、DOCX、XLSX、PDF、IPYNB、PPTX、ZIP、JPG/PNG、RSS/Atom、EPUB、MSG 等文件转为 Markdown。
+- 用户需要把 HTML、CSV、TSV、JSON、DOCX、XLSX、PDF、PPTX、JPG/PNG 等文件转为 Markdown。
 - 用户需要读取二进制文档（DOCX、XLSX、PDF、PPTX 等）的内容。
 - Read 工具提示不支持某格式输入（如 PDF、DOCX、XLSX、PPTX 等二进制文档）时，改用本技能读取。
-- 用户说"转成 Markdown"、"读取这个文件"、"提取图片元数据"等。
+- 用户说"转成 Markdown"、"读取这个文件"、"识别图片内容"等。
 
 ## 如何使用
 

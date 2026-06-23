@@ -34,20 +34,26 @@ export class CsvConverter implements DocumentConverter {
     return format === 'csv'
   }
 
-  static parseAndConvert(text: string, delimiter: string): string {
+  /**
+   * 静态工具方法：直接传入 CSV/TSV 文本和分隔符即可转换为 Markdown 表格。
+   *
+   * - CSV 使用逗号分隔，TSV 使用制表符分隔
+   * - 空文本返回空 markdown，不抛异常
+   * - 支持引号包裹字段（内嵌逗号、换行、转义引号）
+   */
+  static convertCsv(text: string, delimiter: string): ConverterResult {
     const rows = parseCsv(text, delimiter)
     if (rows.length === 0) {
-      return ''
+      return { markdown: '' }
     }
-    return rowsToMarkdownTable(rows)
+    return { markdown: rowsToMarkdownTable(rows) }
   }
 
   async convert(input: ConverterInput): Promise<ConverterResult> {
     try {
       const isTsv = input.filePath.toLowerCase().endsWith('.tsv')
       const delimiter = isTsv ? '\t' : ','
-      const markdown = CsvConverter.parseAndConvert(input.textContent, delimiter)
-      return { markdown }
+      return CsvConverter.convertCsv(input.textContent, delimiter)
     } catch (error) {
       if (error instanceof MarkitdownError) throw error
       throw new MarkitdownError(

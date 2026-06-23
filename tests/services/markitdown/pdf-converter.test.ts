@@ -450,17 +450,13 @@ describe('pdf-converter', () => {
       expect(typeof result.markdown).toBe('string')
     }, 30000)
 
-    it('应该对损坏的 PDF 返回空 markdown 而不抛异常', async () => {
+    it('应该对损坏的 PDF 抛出错误而非静默返回空', async () => {
       const badBuffer = Buffer.from('not a pdf file')
-      const result = await PdfConverter.convertPdf(badBuffer)
-      expect(result).toHaveProperty('markdown')
-      expect(typeof result.markdown).toBe('string')
+      await expect(PdfConverter.convertPdf(badBuffer)).rejects.toThrow('PDF 解析失败')
     })
 
-    it('应该对空 Buffer 返回空 markdown 而不抛异常', async () => {
-      const result = await PdfConverter.convertPdf(Buffer.alloc(0))
-      expect(result).toHaveProperty('markdown')
-      expect(typeof result.markdown).toBe('string')
+    it('应该对空 Buffer 抛出错误而非静默返回空', async () => {
+      await expect(PdfConverter.convertPdf(Buffer.alloc(0))).rejects.toThrow('PDF 解析失败')
     })
   })
 

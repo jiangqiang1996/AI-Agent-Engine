@@ -197,7 +197,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   {
     skillName: SKILL.MARKITDOWN,
     commandName: COMMAND.MARKITDOWN,
-    description: '将本地文件转换为 Markdown，支持 HTML/CSV/TSV/JSON/XML/YAML/文本/Markdown/DOCX/XLSX/PDF/IPYNB/PPTX/ZIP/JPG/RSS/EPUB/MSG',
+    description: '将本地文件转换为 Markdown，支持 HTML/CSV/TSV/JSON/DOCX/XLSX/PDF/PPTX/JPG/PNG',
     argumentHint: 'file=路径 [format=格式] [outputPath=路径]',
     skillFile: `src/assets/skills/${skillDir(SKILL.MARKITDOWN)}/SKILL.md`,
   },

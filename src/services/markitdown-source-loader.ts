@@ -84,7 +84,7 @@ export async function loadMarkitdownSource(
   if (!format) {
     throw new MarkitdownError(
       'unsupported_format',
-      `不支持的文件格式：${path.extname(realTarget) || '无扩展名'}。支持的格式包括 HTML、CSV、TSV、JSON、XML、YAML、TXT、MD、DOCX、XLSX、PDF、IPYNB、PPTX、ZIP、JPG/PNG、RSS/Atom、EPUB、MSG。`,
+      `不支持的文件格式：${path.extname(realTarget) || '无扩展名'}。支持的格式包括 HTML、CSV、TSV、JSON、DOCX、XLSX、PDF、PPTX、JPG/PNG。`,
     )
   }
 
@@ -93,9 +93,7 @@ export async function loadMarkitdownSource(
     throw new MarkitdownError('file_empty', '文件为空：请提供有效的文件内容。')
   }
 
-  const isTextFormat = ['html', 'csv', 'json', 'xml', 'yaml', 'text', 'markdown', 'ipynb'].includes(
-    format,
-  )
+  const isTextFormat = ['html', 'csv', 'json'].includes(format)
   const textContent = isTextFormat ? detectAndDecode(binaryContent) : ''
 
   return {

@@ -2,20 +2,11 @@ export type SupportedFormat =
   | 'html'
   | 'csv'
   | 'json'
-  | 'xml'
-  | 'yaml'
-  | 'text'
-  | 'markdown'
   | 'docx'
   | 'xlsx'
   | 'pdf'
-  | 'ipynb'
   | 'pptx'
-  | 'zip'
   | 'jpg'
-  | 'rss'
-  | 'epub'
-  | 'msg'
 
 export interface ConverterInput {
   filePath: string
@@ -51,28 +42,14 @@ const EXTENSION_FORMAT_MAP: Record<string, SupportedFormat> = {
   '.csv': 'csv',
   '.tsv': 'csv',
   '.json': 'json',
-  '.xml': 'xml',
-  '.yaml': 'yaml',
-  '.yml': 'yaml',
-  '.txt': 'text',
-  '.text': 'text',
-  '.log': 'text',
-  '.md': 'markdown',
-  '.markdown': 'markdown',
   '.docx': 'docx',
   '.xlsx': 'xlsx',
   '.xls': 'xlsx',
   '.pdf': 'pdf',
-  '.ipynb': 'ipynb',
   '.pptx': 'pptx',
-  '.zip': 'zip',
   '.jpg': 'jpg',
   '.jpeg': 'jpg',
   '.png': 'jpg',
-  '.rss': 'rss',
-  '.atom': 'rss',
-  '.epub': 'epub',
-  '.msg': 'msg',
 }
 
 export function detectFormat(filePath: string): SupportedFormat | undefined {
@@ -85,18 +62,9 @@ export const ALL_SUPPORTED_FORMATS: readonly SupportedFormat[] = [
   'html',
   'csv',
   'json',
-  'xml',
-  'yaml',
-  'text',
-  'markdown',
   'docx',
   'xlsx',
   'pdf',
-  'ipynb',
   'pptx',
-  'zip',
   'jpg',
-  'rss',
-  'epub',
-  'msg',
 ]
