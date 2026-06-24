@@ -346,7 +346,7 @@ const REQUIRED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'],
 
 const GILDED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'], string]> = [
   [AGENT.UI_ARCHITECT, 'workflow', '自由设计：无 Figma 约束的初版 UI 设计实现与视觉验证'],
-  [AGENT.UI_MATCHER, 'workflow', '设计还原：以 Figma 设计稿或截图为准同步视觉差异'],
+  [AGENT.UI_MATCHER, 'workflow', '设计还原：以 Figma 设计稿、截图或文字设计规格为准精确还原实现'],
   [AGENT.LOGIC_WEAVER, 'workflow', '交互逻辑：前端交互实现与 API 集成'],
   [AGENT.BROWSER_INSPECTOR, 'workflow', '浏览器验收：端到端浏览器测试与回归验证'],
 ]
