@@ -207,11 +207,11 @@ model: $deep
 | 资产 | 场景 |
 | --- | --- |
 | `/ae-ideate`、`/ae-brainstorm`、`/ae-prd`、`/ae-agent-creator`、`/ae-work-report`、`/ae-my-code-changes`、`/ae-handoff`、`/ae-sql`、`/ae-swagger-parser`、`/ae-api-tester`、`/ae-html-bundle`、`/ae-markitdown`、`/ae-graph-build`、`/ae-save-experience`、`/ae-skill-from-session`、`/ae-skill-creator`、`/ae-static-server`、`/ae-update`、`/ae-ideate-po`、`/ae-brainstorm-po`、`/ae-prd-po`、`/ae-ideate-pa`、`/ae-brainstorm-pa`、`/ae-prd-pa` | `standard` |
-| `/ae-document-review`、`/ae-plan`、`/ae-refactor`、`/ae-work`、`/ae-merge-branch`、`/ae-review`、`/ae-lfg`、`/ae-web-forge`、`/ae-task-loop`、`/ae-plan-po`、`/ae-refactor-po`、`/ae-work-po`、`/ae-lfg-po`、`/ae-task-loop-po`、`/ae-plan-pa`、`/ae-refactor-pa`、`/ae-work-pa`、`/ae-lfg-pa`、`/ae-task-loop-pa` | `deep` |
+| `/ae-design`、`/ae-document-review`、`/ae-plan`、`/ae-refactor`、`/ae-work`、`/ae-merge-branch`、`/ae-review`、`/ae-lfg`、`/ae-web-forge`、`/ae-task-loop`、`/ae-design-po`、`/ae-plan-po`、`/ae-refactor-po`、`/ae-work-po`、`/ae-lfg-po`、`/ae-task-loop-po`、`/ae-design-pa`、`/ae-plan-pa`、`/ae-refactor-pa`、`/ae-work-pa`、`/ae-lfg-pa`、`/ae-task-loop-pa` | `deep` |
 | `/ae-prompt-optimize`、`/ae-prompt-optimize-auto`、`/ae-graph-query`、`/ae-help` | `quick` |
 | `/ae-chrome-devtools`、`/ae-course-auto-player` | `vision` |
 | `@repo-research-analyst`、`@web-researcher` | `standard` |
 | `@ui-architect`、`@ui-matcher`、`@browser-inspector` | `vision` |
-| `@logic-weaver` | `deep` |
-| 其他内置代理 | `deep`（默认） |
+| `@logic-weaver`、`@spec-flow-analyzer`、全部 28 个审查专精代理 | `deep` |
+| `@review-domain`、`@development-domain`、`@frontend-dev`、`@backend-dev`、`@debug-fix`、`@refactor-dev` | 继承 opencode 当前默认模型（未声明 `model` frontmatter） |
 | 未列出的内置命令 | 继承 opencode 当前默认模型 |

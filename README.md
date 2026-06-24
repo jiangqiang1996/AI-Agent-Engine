@@ -1,6 +1,6 @@
 # AI Agent Engine
 
-AI Agent Engine（AE）是 opencode 的工程工作流插件。它提供技能、命令、子代理、工具和内置规则，让 AI 代理按可检查流程完成需求澄清、计划、实现、审查、验证、交接和交付。
+AI Agent Engine（AE）是 opencode 的工程工作流插件。它提供技能、命令、子代理、工具和内置规则，让 AI 代理按可检查流程完成需求澄清、设计、计划、实现、审查、验证、交接和交付。
 
 AE 不要求业务项目采用本仓库结构。面向用户的运行时能力以 `src/` 下资产为真源，安装后的实际可用能力以 `/ae-help` 为准。
 
@@ -46,6 +46,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 ```text
 /ae-brainstorm 设计一个多租户数据隔离方案
 /ae-prd
+/ae-design
 /ae-review domain:document
 /ae-plan
 /ae-review domain:document
@@ -53,7 +54,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 /ae-review
 ```
 
-`/ae-brainstorm` 仅做多视角发散讨论与汇总，不产出文档；当讨论结果需要沉淀为正式需求文档时，由 `/ae-prd` 接续。
+`/ae-brainstorm` 仅做多视角发散讨论与汇总，不产出文档；当讨论结果需要沉淀为正式需求文档时，由 `/ae-prd` 接续。`/ae-design` 在需求和计划之间产出设计文档，包含架构、接口、数据模型和测试用例维度。
 
 只做代码或文档审查：
 
@@ -84,34 +85,38 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 
 ## 常用入口
 
-| 目标                   | 入口 |
-|----------------------| --- |
-| 查看当前能力               | `/ae-help` |
-| 想法生成                 | `/ae-ideate` |
-| 多视角发散讨论              | `/ae-brainstorm` |
-| 需求澄清与需求文档            | `/ae-prd` |
-| 计划生成                 | `/ae-plan` |
-| 计划执行                 | `/ae-work` |
-| Worktree 继续执行        | `/ae-work-continue` |
-| 分支或 worktree 合并      | `/ae-merge-branch` |
-| 工作总结                 | `/ae-work-report` |
-| 重构计划                 | `/ae-refactor` |
-| 代码或文档审查              | `/ae-review` |
-| 前端设计、还原、交互或验收        | `/ae-web-forge` |
+| 目标 | 入口 |
+| --- | --- |
+| 查看当前能力 | `/ae-help` |
+| 想法生成 | `/ae-ideate` |
+| 多视角发散讨论 | `/ae-brainstorm` |
+| 需求澄清与需求文档 | `/ae-prd` |
+| 设计阶段（架构、接口、数据模型） | `/ae-design` |
+| 计划生成 | `/ae-plan` |
+| 计划执行 | `/ae-work` |
+| Worktree 继续执行 | `/ae-work-continue` |
+| 分支或 worktree 合并 | `/ae-merge-branch` |
+| 工作总结 | `/ae-work-report` |
+| 查看本人代码变更 | `/ae-my-code-changes` |
+| 重构计划 | `/ae-refactor` |
+| 代码或文档审查 | `/ae-review` |
+| 前端设计、还原、交互或验收 | `/ae-web-forge` |
 | chrome-devtools 浏览器能力 | `/ae-chrome-devtools` |
-| 自动播放课程               | `/ae-course-auto-player` |
-| Swagger/OpenAPI 摘要   | `/ae-swagger-parser` |
-| HTML 单文件打包           | `/ae-html-bundle` |
-| 本地文件转 Markdown       | `/ae-markitdown` |
-| 静态服务器                | `/ae-static-server` |
-| 项目关系图谱               | `/ae-graph-build`、`/ae-graph-query` |
-| 探索性修复                | `/ae-task-loop` |
-| 数据库操作                | `/ae-sql` |
-| 会话交接                 | `/ae-handoff` |
-| 提示词优化                | `/ae-prompt-optimize` |
-| 经验沉淀                 | `/ae-save-experience` |
-| 创建技能或代理              | `/ae-skill-creator`、`/ae-agent-creator` |
-| 更新 AE 插件             | `/ae-update` |
+| 自动播放课程 | `/ae-course-auto-player` |
+| 接口测试 | `/ae-api-tester` |
+| Swagger/OpenAPI 摘要 | `/ae-swagger-parser` |
+| HTML 单文件打包 | `/ae-html-bundle` |
+| 本地文件转 Markdown | `/ae-markitdown` |
+| 静态服务器 | `/ae-static-server` |
+| 项目关系图谱 | `/ae-graph-build`、`/ae-graph-query` |
+| 探索性修复 | `/ae-task-loop` |
+| 数据库操作 | `/ae-sql` |
+| 会话交接 | `/ae-handoff` |
+| 提示词优化 | `/ae-prompt-optimize` |
+| 经验沉淀 | `/ae-save-experience` |
+| 创建技能 | `/ae-skill-creator`、`/ae-skill-from-session` |
+| 创建代理 | `/ae-agent-creator` |
+| 更新 AE 插件 | `/ae-update` |
 
 详细参数、命令变体、代理分工、工具边界和产物路径见 [docs/usage-guide.md](docs/usage-guide.md)。配置合并和模型场景路由见 [docs/builtin-config.md](docs/builtin-config.md)。
 
@@ -130,9 +135,9 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 
 | 类型 | 当前快照 | 真源 |
 | --- | ---: | --- |
-| 技能 | 32 | `src/assets/skills/`、`src/services/ae-catalog.ts` |
-| 命令 | 52 | `src/services/command-registration.ts`、`src/assets/commands/` |
-| 代理 | 38 | `src/assets/agents/`、`src/services/agent-registration.ts` |
+| 技能 | 33 | `src/assets/skills/`、`src/schemas/ae-asset-schema.ts` |
+| 命令 | 55 | `src/services/command-registration.ts`、`src/assets/commands/` |
+| 代理 | 41 | `src/assets/agents/`、`src/services/agent-registration.ts` |
 | 工具 | 21 | `src/tools/` |
 | 规则 | 5 | `src/assets/rules/` |
 | 内置配置 | 1 | `src/assets/config/ae.jsonc` |
@@ -221,9 +226,10 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 
 ## 文档入口
 
-| 入口                                               | 内容                         |
-|--------------------------------------------------|----------------------------|
-| [docs/usage-guide.md](docs/usage-guide.md)       | 用户手册、经典用法、能力说明、代理、工具、产物路径  |
+| 入口 | 内容 |
+| --- | --- |
+| [docs/usage-guide.md](docs/usage-guide.md) | 用户手册、经典用法、能力说明、代理、工具、产物路径 |
 | [docs/builtin-config.md](docs/builtin-config.md) | MCP、`ae.jsonc`、模型场景路由和覆盖规则 |
-| [docs/INSTALL.md](docs/INSTALL.md)                 | 安装、更新、卸载代理执行说明             |
-| `/ae-help`                                       | 当前运行时权威帮助                  |
+| [docs/INSTALL.md](docs/INSTALL.md) | 安装、更新、卸载代理执行说明 |
+| [docs/development.md](docs/development.md) | 本仓库开发规范、架构和测试 |
+| `/ae-help` | 当前运行时权威帮助 |
