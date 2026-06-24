@@ -11,6 +11,23 @@
 - 用户已确认在当前分支/工作区执行，或已创建新 worktree，或 B worktree 交接文件验证通过且当前目录匹配目标 B worktree。
 - `worktree_decision` 值已确定：`created` / `rejected` / `transferred` / `cancelled` / `not_applicable`。
 
+## design 契约一致性核验准备
+
+修改项目文件前，检测是否存在 design 契约。存在时将契约维度作为实现对照依据，无 design 时降级为现状行为。
+
+**检测：** 检查 `ae/designs/` 下是否存在与当前任务匹配的 design 目录。匹配规则：计划路径或交接文件中引用了 design 目录，或按计划标题/需求描述名在 `ae/designs/` 下找到对应目录。
+
+**契约读取：** 读取 `design.md` 及其 Split Manifest 引用的各维度子文件。Split Manifest `status: unified` 时从 `design.md` 内联章节读取；`status: split` 时按 Split Manifest 引用的子文件路径读取。
+
+**对照依据准备：** 将以下维度作为实现对照依据，按 Split Manifest 声明的维度清单确定哪些维度存在：
+- `ui-ux`：布局家族、组件契约、token、状态机
+- `api`：端点、Schema、错误码
+- `database`：schema、约束、索引
+- `architecture`：模块边界、依赖方向
+- `security`、`observability`、`non-functional`：对应约束
+
+对照依据传递给执行循环中的开发域代理，要求实现时对照核验一致性。核验结果在 `references/verification-workflow.md` 中完成最终对照检查。
+
 ## 执行循环
 
 按任务分析阶段选定的策略和 `parallel_groups` 构造 `DomainCallRequest`，并通过 Task 工具委托 `@development-domain` 执行。

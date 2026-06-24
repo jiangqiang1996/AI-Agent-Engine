@@ -30,6 +30,7 @@ type: prd
 status: drafted
 date: YYYY-MM-DD
 topic: <kebab-case-topic>
+time_scope: [frontend, backend, data, security, ops]
 origin: <上游路径，若无则删除此行>
 originFingerprint: <上游指纹，若无则删除此行>
 format: human-readable-requirements
@@ -108,6 +109,7 @@ sharded: false
 | `status` | `drafted` | 默认值，文档通过审查后由后续技能更新为 `review-passed` |
 | `date` | `YYYY-MM-DD` | 当前日期 |
 | `topic` | `<kebab-case-topic>` | 主题的 kebab-case 形式 |
+| `time_scope` | `[frontend, backend, data, security, ops]` | 涉及时段列表，用于触发下游 ae:design 维度自动产出。可选值：`frontend`、`backend`、`data`、`security`、`ops`、`mobile`、`infra` 等；非软件任务省略此字段 |
 | `origin` | 上游产物路径 | 仅在有上游产物时填写，否则删除此行。必须使用仓库相对路径 |
 | `originFingerprint` | 上游指纹 | 仅在有上游产物时填写，否则删除此行。值为上游产物 `date` + `-` + `topic` 的 kebab-case 拼接；若上游没有 `topic`，则使用 `date` + `-` + `title` |
 | `format` | `human-readable-requirements` | 固定值，表示同一文档同时供人读和机器提取 |

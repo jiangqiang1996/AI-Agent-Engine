@@ -162,6 +162,7 @@ export const aeReviewContractTool: ToolDefinition = tool({
     has_script: tool.schema.boolean().optional().describe('是否涉及脚本变更'),
     has_upstream: tool.schema.boolean().optional().describe('文档是否记录了 upstream/origin 等上游来源'),
     has_goal_alignment: tool.schema.boolean().optional().describe('是否提供审查目标（成功条件列表），激活目标对齐审查'),
+    has_design_contract: tool.schema.boolean().optional().describe('是否存在设计文档契约，激活设计一致性、UI 一致性和测试覆盖审查'),
     has_evidence_claim: tool.schema.boolean().optional().describe('文档是否包含事实性声明、外部引用或交付证据，需要 evidence-reviewer 校验'),
   },
   async execute(args) {
@@ -206,6 +207,7 @@ export const aeReviewContractTool: ToolDefinition = tool({
             hasNewAbstraction: args.has_new_abstraction,
             hasUpstream: args.has_upstream,
             hasGoalAlignment: args.has_goal_alignment,
+            hasDesignContract: args.has_design_contract,
             hasEvidenceClaim,
           }
 
@@ -251,6 +253,7 @@ export const aeReviewContractTool: ToolDefinition = tool({
             hasNewAbstraction: args.has_new_abstraction,
             hasUpstream: args.has_upstream,
             hasGoalAlignment: args.has_goal_alignment,
+            hasDesignContract: args.has_design_contract,
           })
 
           return JSON.stringify(

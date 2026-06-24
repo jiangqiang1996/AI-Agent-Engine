@@ -108,6 +108,7 @@ function toReviewSelectionInput(
     ['hasNewAbstraction', domainContext.hasNewAbstraction ?? domainContext.has_new_abstraction],
     ['hasUpstream', domainContext.hasUpstream ?? domainContext.has_upstream],
     ['hasGoalAlignment', domainContext.hasGoalAlignment ?? domainContext.has_goal_alignment],
+    ['hasDesignContract', domainContext.hasDesignContract ?? domainContext.has_design_contract],
     ['hasEvidenceClaim', domainContext.hasEvidenceClaim ?? domainContext.has_evidence_claim],
   ]
 
@@ -159,6 +160,7 @@ function toReviewSelectionInput(
     hasNewAbstraction: getBoolean(flagMap.get('hasNewAbstraction')),
     hasUpstream: getBoolean(flagMap.get('hasUpstream')),
     hasGoalAlignment: getBoolean(flagMap.get('hasGoalAlignment')),
+    hasDesignContract: getBoolean(flagMap.get('hasDesignContract')),
     dispatchedFlags,
   }
 }

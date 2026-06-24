@@ -63,17 +63,38 @@ argument-hint: "[重构目标|计划路径|需求文档路径|旧机制描述]"
 9. 每个被保留的技术债都必须标记为 `blocked-debt`，说明它与哪一条非技术需求或安全验证边界冲突；旧接口兼容性、旧调用方迁移成本、工期、人力、改动规模不能作为 `blocked-debt` 理由。
 10. 如果用户选择修改原计划，直接更新原计划文件；如果用户选择创建新计划，新计划仍写入 ae/plans/，frontmatter 使用 type: plan，title 建议以 refactor- 开头。
 11. 若发现输入实际包含用户可见行为变化或新增产品能力，在计划中明确标记“不是纯重构”，并说明需要 `ae:prd` 或普通 `ae:plan` 的产品决策；随后询问用户是继续基于该计划执行，还是先回到需求/产品决策阶段。
+12. **design 契约同步更新：** 重构波及的 design 契约必须同步更新，标注破坏性变更清单。当重构涉及已存在的 design 契约（`ae/designs/` 下）时，计划中必须包含 design 契约更新单元。更新方式：创建新日期目录（版本演化），在 `design.md` 中更新受影响维度并更新 Split Manifest。无已存在 design 时跳过此要求。
 
 原始重构输入：#$ARGUMENTS
 ```
 
 ## 交接
 
-`ae:plan` 产出计划后，本技能停止在计划交付阶段，不得自动触发 `ae:work` 或任何实现步骤。只提示用户可选择后续动作：
+`ae:plan` 产出计划后，本技能运行技能内 review 闭环，然后停止在计划交付阶段，不得自动触发 `ae:work` 或任何实现步骤。
+
+### 技能内 review 闭环
+
+产出重构 plan 后调用 `ae:review mode=headless domain=document <plan-path>`，审查者为 `step-granularity-reviewer` + `traceability-reviewer`。`mode=headless` 表示 ae:review 被技能内部调用时不输出"下一步推荐技能"引导，仅返回审查结果给本技能，由 ae:refactor 自身负责下一步引导。
+
+**auto 修复范围：** 清债目标不完整、行为保持要求缺失、破坏性变更未标注。ae:review 返回的 auto 可修复发现由本技能自动应用修复，修复后重新运行审查。
+
+**收敛协议（上限 2 轮）：**
+- 第 1 轮：初次审查 → auto 修复 → 重新审查
+- 收敛判定：重新审查后无新增 P0/P1 发现即为收敛
+- 未收敛处理：2 轮后仍有 P0/P1 阻断，回退用户澄清
+
+### 下一步引导
+
+技能内 review 闭环收敛后，提示用户可选后续动作：
 
 ```text
-/ae-review domain=document <plan-path>
+重构计划已就绪。接下来使用 ae:work 执行重构。
+
+可选后续动作：
+/ae-work <plan-path>
 ```
+
+**阻断时引导：** 若技能内 review 闭环未收敛（2 轮后仍有 P0/P1），回退用户澄清。
 
 永远不要在 `ae:refactor` 中复制 `ae:plan` 的完整流程。`ae:refactor` 负责重构计划策略、清债约束和共享计划结构的正确使用，不是 `ae:plan` 的简单封装。
 

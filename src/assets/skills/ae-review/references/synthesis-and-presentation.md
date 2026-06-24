@@ -126,6 +126,7 @@
 丢弃任何建议删除以下目录中文件的发现：
 - `ae/prds/`
 - `ae/plans/`
+- `ae/designs/`
 - `ae/solutions/`
 - `.opencode/`
 
@@ -140,6 +141,8 @@
 调用 `ae-review-proof` 写入 `ae/reviews/<run-id>/metadata.json`。代码域 `metadata.json` 必须包含 `generatedBy: "ae:review"`、`reviewRunIdOrMessageRef`、`worktree`、`branch`、`head`、`statusSummary`、`reviewStatus`、`reviewOutputHash`，便于后续审计和交付引用。`source_review_output` 必须来自当前会话中真实 `ae:review` 或审查子代理输出；该输出本身必须包含可解析的通过/失败状态、当前 worktree、branch、HEAD 和 statusSummary，不能只在 metadata 中声明结论。不得使用手写文本、普通 task 正文、任意工具输出或与本次审查无关的标识替代真实审查来源。
 
 ### 步骤 3：最终下一步（仅交互模式）
+
+**内部调用行为（D13）：** 当本技能以 `mode=headless` 被其他技能内部调用时（技能内 review 闭环），跳过本步骤，不输出"下一步推荐技能"引导，仅返回审查结果（status/findings/summary）给调用方，由调用方自身负责下一步引导。
 
 **代码域：**
 - PR 模式：继续 / 退出

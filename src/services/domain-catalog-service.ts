@@ -181,6 +181,27 @@ const REVIEW_SPECIALISTS: SpecialistDef[] = [
     inputContract: '变更内容和审查目标（成功条件列表）',
     outputContract: '逐条目标达成评估和未达成项发现',
   },
+  {
+    name: AGENT.DESIGN_CONSISTENCY_REVIEWER,
+    capabilities: ['设计-需求一致性', '设计维度完整性', '架构可行性', '数据模型一致性', '安全设计覆盖', 'API 设计合理性'],
+    selectionCriteria: '审查设计文档时选中：hasDesignContract=true',
+    inputContract: '设计文档和需求文档',
+    outputContract: '设计维度缺口、需求偏离、架构与数据模型风险列表',
+  },
+  {
+    name: AGENT.UI_CONSISTENCY_REVIEWER,
+    capabilities: ['UI/UX 交互流程完整性', '状态覆盖', 'UI-需求一致性', '可访问性设计'],
+    selectionCriteria: '设计文档含 UI 维度或 hasUi=true 时选中',
+    inputContract: '设计文档中的 UI/UX 维度和需求文档',
+    outputContract: '交互流程缺口、状态遗漏、UI-需求偏离列表',
+  },
+  {
+    name: AGENT.TEST_COVERAGE_REVIEWER,
+    capabilities: ['测试用例覆盖完备性', '步骤可执行性', '需求对齐', '边界用例识别'],
+    selectionCriteria: '设计文档含测试用例维度时选中：hasDesignContract=true',
+    inputContract: '设计文档中的测试用例维度和需求文档',
+    outputContract: '覆盖缺口、不可执行步骤、需求对齐问题列表',
+  },
 ]
 
 const DEVELOPMENT_SPECIALISTS: SpecialistDef[] = [

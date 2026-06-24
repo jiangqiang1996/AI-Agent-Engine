@@ -64,6 +64,7 @@ export interface ReviewSelectionInput {
   requirementCountGte5?: boolean
   changedLineCountGte50?: boolean
   hasGoalAlignment?: boolean
+  hasDesignContract?: boolean
 }
 
 export function selectReviewers(input: ReviewSelectionInput): string[] {

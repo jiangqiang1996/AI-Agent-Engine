@@ -37,6 +37,13 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillFile: `src/assets/skills/${skillDir(SKILL.PRD)}/SKILL.md`,
   },
   {
+    skillName: SKILL.DESIGN,
+    commandName: COMMAND.DESIGN,
+    description: getLifecycleCatalogDescription('design'),
+    argumentHint: '[需求文档路径|旧 design|裸描述]',
+    skillFile: `src/assets/skills/${skillDir(SKILL.DESIGN)}/SKILL.md`,
+  },
+  {
     skillName: SKILL.DOCUMENT_REVIEW,
     commandName: COMMAND.DOCUMENT_REVIEW,
     description: '面向文档的专项审查（通过 ae:review 统一技能执行），核心流程审查需求和计划文档，也支持审查任意文档',
@@ -301,6 +308,9 @@ const REVIEW_SPECIALIST_AGENT_NAMES = new Set<string>([
   AGENT.PROTOTYPE_REVIEWER,
   AGENT.TRACEABILITY_REVIEWER,
   AGENT.EVIDENCE_REVIEWER,
+  AGENT.DESIGN_CONSISTENCY_REVIEWER,
+  AGENT.UI_CONSISTENCY_REVIEWER,
+  AGENT.TEST_COVERAGE_REVIEWER,
 ])
 
 const REQUIRED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'], string, string?]> = [
@@ -336,6 +346,9 @@ const REQUIRED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'],
   [AGENT.PROTOTYPE_REVIEWER, 'review', '审查原型/线框/高保真完整性、交互状态覆盖、与需求一致性和实现可行性提示'],
   [AGENT.TRACEABILITY_REVIEWER, 'review', '审查需求-设计-原型-计划-实现-测试链路追溯，识别断裂引用、孤儿条目和未声明延期'],
   [AGENT.EVIDENCE_REVIEWER, 'review', '核验文档或交付报告中的事实声明、命令输出真实性、外部引用可达性和声明可证伪性'],
+  [AGENT.DESIGN_CONSISTENCY_REVIEWER, 'review', '审查设计文档与需求的一致性、设计维度完整性、架构与数据模型可行性和安全设计覆盖'],
+  [AGENT.UI_CONSISTENCY_REVIEWER, 'review', '审查 UI/UX 设计维度的交互流程完整性、状态覆盖和与需求的一致性'],
+  [AGENT.TEST_COVERAGE_REVIEWER, 'review', '审查设计文档中测试用例维度的覆盖完备性、步骤可执行性和需求对齐程度'],
   [AGENT.REVIEW_DOMAIN, 'domain', '审查域代理：选择审查者、并行调度、综合发现', 'domains/review/DOMAIN.md'],
   [AGENT.DEVELOPMENT_DOMAIN, 'domain', '开发域代理：分析任务、选择专精、协调执行', 'domains/development/DOMAIN.md'],
   [AGENT.FRONTEND_DEV, 'domain', '前端开发专精代理：处理 UI 组件、样式、交互逻辑和响应式设计', 'domains/development/specialists/frontend-dev.md'],

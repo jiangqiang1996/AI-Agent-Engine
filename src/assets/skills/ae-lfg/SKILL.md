@@ -40,7 +40,7 @@ disable-model-invocation: true
 - **只读审查**：直接调用 `ae:review mode=report-only`，不进管道。判断信号：用户明确要求"审查""review""不要修改"。
 - **提交请求**：走 Git 安全流程，不进管道。判断信号：用户明确要求"提交""commit""push"。
 - **单文件文字修改**：直接修改，不进管道。判断信号：范围限于单个文件的文字内容修改（如修正拼写、改写注释、更新文档段落）。
-- **其他所有场景**：走完整 6 步管道。
+- **其他所有场景**：走完整 7 步管道。
 
 快捷路由（只读审查、提交请求）是管道的前置分流，避免对明确只读或提交意图的用户强制走完整管道。它们不替代管道步骤，而是直接委托对应能力。
 
@@ -50,8 +50,9 @@ disable-model-invocation: true
 
 - **需求文档**（`*-lfg-prd.md`）：跳过步骤 1 和 2，从步骤 3 设计开始
 - **设计文档**（`*-lfg-plan.md`）：跳过步骤 1-4，从步骤 5 实施开始
+- **design 目录**（`ae/designs/<name>-YYYY-MM-DD/design.md`）：跳过步骤 1-3，从步骤 4 审查设计开始（审查 design.md 一致性）
 
-判断方式：task 参数以 `ae/` 开头且对应文件存在时，视为产物路径；按文件名中的 `-lfg-prd` 或 `-lfg-plan` 判断产物类型。如果文件不存在，视为普通任务描述。如果文件存在但文件名不含 `-lfg-prd` 或 `-lfg-plan`，视为普通任务描述（非产物路径），走完整 6 步管道，并提示用户该路径未被识别为 lfg 产物。
+判断方式：task 参数以 `ae/` 开头且对应文件存在时，视为产物路径；按文件名中的 `-lfg-prd` 或 `-lfg-plan` 判断产物类型；按路径匹配 `ae/designs/*/design.md` 判断 design 产物。如果文件不存在，视为普通任务描述。如果文件存在但文件名不含 `-lfg-prd`、`-lfg-plan` 或不匹配 design 目录路径，视为普通任务描述（非产物路径），走完整 7 步管道，并提示用户该路径未被识别为 lfg 产物。
 
 ## 非软件任务
 
@@ -103,13 +104,19 @@ disable-model-invocation: true
 
 ### 步骤 3：设计
 
-内联生成设计文档，格式见 `@./references/lfg-templates.md`。
+内联生成轻量版 design 目录，作为 work 阶段的一致性核验依据和 review 闭环的审查输入。
 
-基于需求文档中的目标、范围和验收标准，规划实现步骤、文件变更和验证命令。
+基于需求文档中的目标、范围和验收标准，规划实现步骤、文件变更和验证命令。按需求文档 frontmatter 的 `time_scope` 标注触发的必产出维度（与 ae:design 维度触发规则一致），生成对应维度的核心契约内容。
 
-产出：设计文档 `ae/plans/YYYY-MM-DD-NNN-<type>-<topic>-lfg-plan.md`。
+**产出：** `ae/designs/<需求描述名>-YYYY-MM-DD/design.md`，包含：
+- `overview` 章节（必产出）
+- 按 `time_scope` 标注触发的必产出维度的核心契约内容（内联在 design.md 中，不拆分子文件）
+- Split Manifest（`status: unified`）
+- 实现步骤、文件变更和验证命令（内联在 design.md 中或作为附录章节）
 
-**门控：** 设计文档已写入磁盘。
+同时产出设计文档 `ae/plans/YYYY-MM-DD-NNN-<type>-<topic>-lfg-plan.md`，引用 design 目录路径作为实现依据。
+
+**门控：** design.md 和设计文档已写入磁盘。
 
 ### 步骤 4：审查设计
 
@@ -121,10 +128,27 @@ disable-model-invocation: true
 
 内联执行：按设计文档中的实现步骤和文件变更列表，直接编辑文件、运行命令。
 
-软件任务：编辑代码文件、运行构建和测试命令。
+软件任务：编辑代码文件、运行构建和测试命令。实现时对照步骤 3 产出的 design.md 各维度契约核验一致性（UI 实现对照 ui-ux 维度、API 实现对照 api 维度、数据层实现对照 database 维度等）。
 非软件任务：撰写文档、整理资料、生成报告等。
 
 **门控：** 产出物与设计文档中的文件变更列表一致。
+
+### 步骤 5.5：技能内 review 闭环
+
+实施完成后、最终审查之前，对实际改动文件运行技能内 review 闭环。
+
+**审查调用：** 调用 `ae:review mode=headless domain=code <changed-files>`，传入 `plan=<plan-path>` 作为实现意图上下文，传入 `has_design_contract=true`（步骤 3 已产出 design.md）。`mode=headless` 表示 ae:review 不输出下一步引导，仅返回审查结果给本技能。
+
+**审查者调度：** 按存在的 design 维度自动调度对应一致性审查者（design-consistency-reviewer、ui-consistency-reviewer[若 hasUi]、test-coverage-reviewer、correctness-reviewer、testing-reviewer）。
+
+**auto 修复范围：** 与 design 契约不一致的代码、测试覆盖缺口、验证未通过的发现。ae:review 返回的 auto 可修复发现由本技能自动应用修复，修复后重新运行审查。
+
+**收敛协议（上限 2 轮）：**
+- 第 1 轮：初次审查 → auto 修复 → 重新审查
+- 收敛判定：重新审查后无新增 P0/P1 发现即为收敛
+- 未收敛处理：2 轮后仍有 P0/P1 阻断，在最终报告中标注"review 闭环未收敛"，继续进入步骤 6 最终审查
+
+**非软件任务：** 跳过本步骤，直接进入步骤 6。
 
 ### 步骤 6：审查结果
 
@@ -142,8 +166,10 @@ disable-model-invocation: true
 最终交付前汇总以下证据：
 
 - 需求文档路径
+- design 目录路径（步骤 3 产出）
 - 设计文档路径
 - 实际运行的验证命令及结果（每条包含 command、exit_code、output）
+- 技能内 review 闭环状态（收敛/未收敛，轮数）
 - 审查状态和审查产物路径
 - 实际修改的文件列表
 - 剩余风险
@@ -156,7 +182,7 @@ disable-model-invocation: true
 
 ---
 
-标准管道：澄清需求 → 审查需求 → 设计 → 审查设计 → 实施 → 审查结果
+标准管道：澄清需求 → 审查需求 → 设计（产出轻量 design 目录）→ 审查设计 → 实施 → 技能内 review 闭环 → 审查结果
 
 从步骤 1 现在开始。
 

@@ -22,6 +22,7 @@
 
 3. **最终验证**
    - 已消费 `references/verification-workflow.md` 输出的 `verification_result` 和实际 `validation_commands`
+   - 已消费 design 契约对照核验结果（当存在 design 契约时）
    - 所有任务已完成
    - 测试覆盖——新增/变更行为有对应测试
    - Lint 通过
@@ -31,7 +32,26 @@
    - B worktree 交接继续执行场景已记录执行基线声明；若实现中出现阻断性需求/设计/计划歧义，已记录用户对具体实现决策的确认
    - 推迟问题已在执行中解决
 
-4. **最终证据汇总（必需，最终写操作之后执行）**
+4. **技能内 review 闭环（最终验证通过后、最终交付之前执行）**
+
+   对实际改动文件运行技能内 review 闭环。此环节在 `代码审查（层级 2）` 之后、最终证据汇总之前执行，确保实现与 design 契约一致且无遗漏缺陷。
+
+   **审查调用：** 调用 `ae:review mode=headless domain=code <changed-files>`，传入 `plan=<plan-path>` 作为实现意图上下文。当存在 design 契约时，传入 `has_design_contract=true`。`mode=headless` 表示 ae:review 被技能内部调用时不输出"下一步推荐技能"引导，仅返回审查结果（status/findings/summary）给本技能，由 ae:work 自身负责下一步引导。
+
+   **审查者调度：** 当 `has_design_contract=true` 时，按存在的 design 维度自动调度对应一致性审查者：
+   - 任意实现代码 → `design-consistency-reviewer`（覆盖 database/security/architecture 等维度一致性）
+   - UI 实现代码 → `ui-consistency-reviewer`
+   - 测试代码 → `test-coverage-reviewer`
+   - 始终调度 `correctness-reviewer` + `testing-reviewer`
+
+   **auto 修复范围：** 与 design 契约不一致的代码、测试覆盖缺口、验证未通过的发现。ae:review 返回的 auto 可修复发现由本技能自动应用修复，修复后重新运行审查。
+
+   **收敛协议（上限 2 轮）：**
+   - 第 1 轮：初次审查 → auto 修复 → 重新审查
+   - 收敛判定：重新审查后无新增 P0/P1 发现即为收敛
+   - 未收敛处理：2 轮后仍有 P0/P1 阻断，回退实现（继续在当前会话修复实现问题），不进入最终交付
+
+5. **最终证据汇总（必需，最终写操作之后执行）**
     - 汇总 `verification_result` 中记录的实际运行 `validation_commands`
     - 汇总与 `validation_commands` 一一对应的 `validation_results`，每条包含 `command`、`exit_code`、`output`、`executed_at`；正式交付所依赖的验证结果 `exit_code` 必须为 0
     - 汇总 `review_status`；正式代码交付必须为 `passed`，除非本轮无代码变更或审查工具不可用且最终回复明确标记为无法完成交付
@@ -110,6 +130,15 @@
     只有在用户明确授权提交时，才执行提交步骤。提交后必须重新检查 Git 状态，确保最终交付说明覆盖最新 HEAD 和 Git 写操作状态。交付时输出变更摘要、测试说明和证据上下文。
 
 4. **通知用户** — 只按最终交付模板输出简洁结果，不追加后续工作说明
+
+### 下一步引导
+
+技能内 review 闭环收敛后，按以下规则提示下一步：
+
+- **通过（review 闭环收敛，无阻断）：** "实施已完成并通过一致性审查。建议使用 `ae:review` 做一次深度全量审查，或任务结束。"
+- **阻断（review 闭环未收敛，2 轮后仍有 P0/P1）：** 回退实现，不进入最终交付；提示"实施存在阻断项，需继续修复后重新验证。"
+
+不自动调用 `ae:review` 深度审查或 `ae:work` 继续；只输出建议，由用户决定后续动作。
 
 ## 质量检查清单
 

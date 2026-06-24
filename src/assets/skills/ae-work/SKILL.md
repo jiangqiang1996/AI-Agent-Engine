@@ -25,9 +25,9 @@ argument-hint: "[计划路径|交接文件路径|任务描述]"
 1. `references/input-routing-workflow.md`：识别输入类型、委派来源和任务大小。
 2. `references/startup-and-worktree-workflow.md`：完成 Git 状态检查、worktree 决策和 A→B 交接处理。
 3. `references/task-analysis-workflow.md`：分析任务、构建待办和选择执行策略。
-4. `references/execution-workflow.md`：执行前验证、失败处理、进度跟踪和主代理汇总职责。
-5. `references/verification-workflow.md`：核验真实变更范围、越权修改和统一验证结果。
-6. `references/shipping-workflow.md`：完成代码审查、最终检查和交付模板。
+4. `references/execution-workflow.md`：执行前验证、design 契约一致性核验准备、执行前验证、串行/并行执行、失败处理、进度跟踪和主代理汇总职责。
+5. `references/verification-workflow.md`：核验真实变更范围、design 契约对照核验、越权修改和统一验证结果。
+6. `references/shipping-workflow.md`：完成代码审查、技能内 review 闭环、最终检查、下一步引导和交付模板。
 
 调度阶段通过 `ae-domain-dispatch-prepare` 预计算专精列表，编排层直接并行调度专精代理，最后通过 `ae-domain-dispatch-aggregate` 聚合结果；仅当预计算返回空列表时退化为通过 `@development-domain` 中转。
 

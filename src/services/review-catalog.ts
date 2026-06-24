@@ -218,6 +218,32 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
     description: '对照显式审查目标逐条校验变更是否达成各项目标，识别未达成项和偏离',
   },
   {
+    name: AGENT.DESIGN_CONSISTENCY_REVIEWER,
+    domain: 'both',
+    alwaysOn: false,
+    conditionGroups: [
+      [{ field: 'hasDesignContract', operator: 'truthy' }],
+      [{ field: 'targetTypes', operator: 'contains', value: 'design' }],
+    ],
+    description: '审查设计文档与需求的一致性、设计维度完整性、架构与数据模型可行性和安全设计覆盖',
+  },
+  {
+    name: AGENT.UI_CONSISTENCY_REVIEWER,
+    domain: 'code',
+    alwaysOn: false,
+    conditionGroups: [
+      [{ field: 'hasDesignContract', operator: 'truthy' }, { field: 'hasUi', operator: 'truthy' }],
+    ],
+    description: '审查 UI/UX 设计维度的交互流程完整性、状态覆盖和与需求的一致性',
+  },
+  {
+    name: AGENT.TEST_COVERAGE_REVIEWER,
+    domain: 'code',
+    alwaysOn: false,
+    conditionGroups: [[{ field: 'hasDesignContract', operator: 'truthy' }]],
+    description: '审查设计文档中测试用例维度的覆盖完备性、步骤可执行性和需求对齐程度',
+  },
+  {
     name: AGENT.TRACEABILITY_REVIEWER,
     domain: 'both',
     alwaysOn: false,

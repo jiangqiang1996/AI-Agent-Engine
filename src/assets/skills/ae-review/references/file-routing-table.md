@@ -21,7 +21,7 @@
 - 密钥：.env .env.*（保留 .env.example .env.template）——**在文件收集阶段即从变更文件列表中移除，后续任何阶段不可读取或引用这些文件的内容**
 - 运行时目录：.opencode/ 下的所有文件——**始终排除，不可覆盖**
 - 受保护产物：ae/reviews/* ae/solutions/*
-- 需求文档和计划文档：ae/prds/ 和 ae/plans/ 下的文件——**默认排除，用户明确指定时纳入**
+- 需求文档、计划文档和设计文档：ae/prds/、ae/plans/ 和 ae/designs/ 下的文件——**默认排除，用户明确指定时纳入**
 
 ## 全局审查者
 
@@ -51,6 +51,9 @@
 - adversarial — >=50 行可执行代码、高风险或新抽象
 - agent-native — CLI 命令定义或 UI/工具能力影响代理可操作性
 - previous-comments — 仅 PR 模式
+- design-consistency — 存在 design 契约（`hasDesignContract=true`）时激活，核验实现与 design 契约维度一致性
+- ui-consistency — 存在 design 契约（`hasDesignContract=true`）或 `hasUi=true` 时激活，核验 UI 实现与 design 的 ui-ux 维度一致性
+- test-coverage — 存在 design 契约（`hasDesignContract=true`）时激活，核验测试覆盖与 design 的 test-cases 维度一致性
 
 ### 配置路由
 
@@ -113,9 +116,9 @@
 
 **匹配文件：** .md .rst .adoc .org .txt
 
-**排除：** ae/prds/ 和 ae/plans/ 下的需求文档和计划文档默认排除——除非用户明确指定纳入，此时由 `ae:review domain=document` 审查后结果合并到统一报告。
+**排除：** ae/prds/、ae/plans/ 和 ae/designs/ 下的需求文档、计划文档和设计文档默认排除——除非用户明确指定纳入，此时由 `ae:review domain=document` 审查后结果合并到统一报告。
 
-**处理方式：** 需求/计划之外的文档文件使用 domain=document 模式审查。ae-review 内部按文档域流程处理，选择文档域审查者并综合结果。
+**处理方式：** 需求/计划/设计之外的文档文件使用 domain=document 模式审查。ae-review 内部按文档域流程处理，选择文档域审查者并综合结果。设计文档（`ae/designs/**`）审查时调度 `design-consistency-reviewer` 核验设计内部一致性。
 
 ### 兜底路由
 

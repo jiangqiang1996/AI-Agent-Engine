@@ -49,12 +49,13 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 **全域默认排除（域安全需求 R4-R5）：**
 - `ae/prds/` 下的文件
 - `ae/plans/` 下的文件
+- `ae/designs/` 下的文件
 
 **"明确指定"条件——满足任一则纳入：**
 1. 用户传入的文件路径指向这些目录下的文件
-2. 对话中明确提到"审查需求文档"或"审查计划文档"等语义等价表达
+2. 对话中明确提到"审查需求文档"、"审查计划文档"或"审查设计文档"等语义等价表达
 3. `domain=document` 模式下确定性搜索机制（阶段 1）找到了文档——搜索成功等同于明确指定
-4. `domain=general` 模式下用户提供的混合范围中显式包含 `ae/prds/` 或 `ae/plans/` 路径——纳入对应目标类型的审查者
+4. `domain=general` 模式下用户提供的混合范围中显式包含 `ae/prds/`、`ae/plans/` 或 `ae/designs/` 路径——纳入对应目标类型的审查者
 
 ## 四阶段编排协议
 
@@ -133,7 +134,7 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 - 路径列表按文件特征分桶为不同 `targetTypes` 与 `reviewScenes`：
   - `ae/prds/**`、`requirements`、`prd` 命名 → `requirements`
   - `ae/plans/**`、`plan` 命名 → `plan`
-  - `design`、`spec` 命名或 frontmatter `type: design` → `design`
+  - `ae/designs/**`、`design`、`spec` 命名或 frontmatter `type: design` → `design`
   - `prototype`、`mock` 命名 → `prototype`
   - `tests/**`、`test-case`、frontmatter `type: test` → `test-case`
   - `*.json(c)`、`*.yaml`、`*.toml`、`.env.example`、`.env.template` → `config`；`.opencode/` 与真实 `.env*` 仍按排除规则处理
@@ -149,6 +150,24 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 - 代码域：结合对话上下文编写 2-3 行意图摘要；检查 `plan=` 参数或自动发现最近计划；`goals=` 参数内容作为审查目标注入子代理上下文
 - 文档域：通过分析文档内容判断类型（requirements/plan/test/general）；`goals=` 参数内容作为审查目标注入子代理上下文
 - 通用域（`domain=general`）：分别为每种识别出的目标类型生成意图摘要；调度阶段按 `reviewScenes` 与 `targetTypes` 分别选择审查者，最终在汇总阶段统一聚合发现并按目标类型声明覆盖
+
+#### design 契约检测
+
+在范围确定后检测是否存在 design 契约，用于激活一致性审查者。
+
+**检测规则：**
+- 检查 `ae/designs/` 下是否存在与当前审查范围匹配的 design 目录
+- 匹配条件：审查范围包含实现代码且 `ae/designs/` 下存在 design 目录（按计划路径、需求描述名或时间戳匹配）
+- 审查范围本身就是 `ae/designs/**` 下的 design 文档时，`hasDesignContract=true`（审查 design 文档本身）
+
+**flag 传入：** 当 `hasDesignContract=true` 时，在调用 `ae-review-contract` 工具或 `ae-domain-dispatch-prepare` 时传入 `has_design_contract=true`，激活以下一致性审查者：
+- 任意实现代码 → `design-consistency-reviewer`（覆盖 database/security/architecture 等维度一致性）
+- UI 实现代码 → `ui-consistency-reviewer`（激活条件：`hasDesignContract` 或 `hasUi`）
+- 测试代码 → `test-coverage-reviewer`
+- 审查 design 文档本身（`targetTypes` contains `design`）→ `design-consistency-reviewer`
+- 存在 `api.md` + API 实现代码 → `api-contract-reviewer`（复用现有）
+
+**内部调用约定：** 当本技能被其他技能以 `mode=headless` 调用时（技能内 review 闭环），不输出"下一步推荐技能"引导，仅返回审查结果（status/findings/summary）给调用方，由调用方自身负责下一步引导。
 
 #### TaskIntent 输出
 
