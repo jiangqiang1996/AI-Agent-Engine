@@ -202,6 +202,13 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillFile: `src/assets/skills/${skillDir(SKILL.HTML_BUNDLE)}/SKILL.md`,
   },
   {
+    skillName: SKILL.HTML_TO_PPTX,
+    commandName: COMMAND.HTML_TO_PPTX,
+    description: '将 HTML 文件转换为 PPTX 演示文稿，按 section/hr/h1 分页并映射标题、段落、图片、列表、表格',
+    argumentHint: '[file=路径] [title=标题] [output=输出路径] [slide_separator=section|hr|h1|auto]',
+    skillFile: `src/assets/skills/${skillDir(SKILL.HTML_TO_PPTX)}/SKILL.md`,
+  },
+  {
     skillName: SKILL.MARKITDOWN,
     commandName: COMMAND.MARKITDOWN,
     description: '将本地文件转换为 Markdown，支持 HTML/CSV/TSV/JSON/DOCX/XLSX/PDF/PPTX/JPG/PNG',
@@ -249,6 +256,34 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '使用 JavaScript 创建静态服务器，用于预览指定静态页面，支持传入文件路径/目录路径，并返回访问 URL',
     argumentHint: '<路径> [port=端口号] [-k]',
     skillFile: `src/assets/skills/${skillDir(SKILL.STATIC_SERVER)}/SKILL.md`,
+  },
+  {
+    skillName: SKILL.DOCX,
+    commandName: COMMAND.DOCX,
+    description: '创建、编辑、分析 Word 文档（.docx），支持格式保留、修订追踪和文本提取；与 ae:markitdown（只读转 Markdown）互补，本技能输出仍为 .docx',
+    argumentHint: '[创建|编辑|分析|修订] [文件路径] [任务描述]',
+    skillFile: `src/assets/skills/${skillDir(SKILL.DOCX)}/SKILL.md`,
+  },
+  {
+    skillName: SKILL.PDF,
+    commandName: COMMAND.PDF,
+    description: '处理 PDF 文档：创建、合并、拆分、提取文本/表格、填写表单；与 ae:markitdown（只读转 Markdown）互补，本技能输出仍为 PDF 或结构化数据',
+    argumentHint: '[创建|合并|拆分|提取|表单|旋转|删除|水印] [文件路径] [任务描述]',
+    skillFile: `src/assets/skills/${skillDir(SKILL.PDF)}/SKILL.md`,
+  },
+  {
+    skillName: SKILL.PPTX,
+    commandName: COMMAND.PPTX,
+    description: '创建、编辑、分析 PowerPoint 演示文稿（.pptx），支持模板、布局和设计原则；与 ae:markitdown（只读转 Markdown）互补，本技能输出仍为 .pptx',
+    argumentHint: '[创建|编辑|分析|模板] [文件路径] [任务描述]',
+    skillFile: `src/assets/skills/${skillDir(SKILL.PPTX)}/SKILL.md`,
+  },
+  {
+    skillName: SKILL.XLSX,
+    commandName: COMMAND.XLSX,
+    description: '创建、编辑、分析 Excel 电子表格（.xlsx），支持公式、格式、数据分析和图表；与 ae:markitdown（只读转 Markdown）互补，本技能输出仍为 .xlsx',
+    argumentHint: '[创建|编辑|分析|公式] [文件路径] [任务描述]',
+    skillFile: `src/assets/skills/${skillDir(SKILL.XLSX)}/SKILL.md`,
   },
   {
     skillName: SKILL.HELP,

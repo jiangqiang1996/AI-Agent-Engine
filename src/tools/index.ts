@@ -11,6 +11,7 @@ import { aeHelpTool } from './ae-help.tool.js'
 import { aeReviewProofTool } from './ae-review-proof.tool.js'
 import { aeSwaggerParserTool } from './ae-swagger-parser.tool.js'
 import { aeHtmlBundleTool } from './ae-html-bundle.tool.js'
+import { aeHtmlToPptxTool } from './ae-html-to-pptx.tool.js'
 import { aeMarkitdownTool } from './ae-markitdown.tool.js'
 import { aeGraphBuildTool } from './ae-graph-build.tool.js'
 import { aeGraphQueryTool } from './ae-graph-query.tool.js'
@@ -22,6 +23,10 @@ import { aeTimerTool } from './ae-timer.tool.js'
 import { aeDomainDispatchPrepareTool } from './ae-domain-dispatch-prepare.tool.js'
 import { aeDomainDispatchAggregateTool } from './ae-domain-dispatch-aggregate.tool.js'
 import { aeBackgroundExecTool } from './ae-background-exec.tool.js'
+import { aeDocxTool } from './ae-docx.tool.js'
+import { aePdfTool } from './ae-pdf.tool.js'
+import { aePptxTool } from './ae-pptx.tool.js'
+import { aeXlsxTool } from './ae-xlsx.tool.js'
 
 export function createToolRegistry(): Record<string, ToolDefinition> {
   return {
@@ -35,6 +40,7 @@ export function createToolRegistry(): Record<string, ToolDefinition> {
     [TOOL.AE_REVIEW_PROOF]: aeReviewProofTool,
     [TOOL.AE_SWAGGER_PARSER]: aeSwaggerParserTool,
     [TOOL.AE_HTML_BUNDLE]: aeHtmlBundleTool,
+    [TOOL.AE_HTML_TO_PPTX]: aeHtmlToPptxTool,
     [TOOL.AE_MARKITDOWN]: aeMarkitdownTool,
     [TOOL.AE_GRAPH_BUILD]: aeGraphBuildTool,
     [TOOL.AE_GRAPH_QUERY]: aeGraphQueryTool,
@@ -46,5 +52,9 @@ export function createToolRegistry(): Record<string, ToolDefinition> {
     [TOOL.AE_DOMAIN_DISPATCH_PREPARE]: aeDomainDispatchPrepareTool,
     [TOOL.AE_DOMAIN_DISPATCH_AGGREGATE]: aeDomainDispatchAggregateTool,
     [TOOL.AE_BACKGROUND_EXEC]: aeBackgroundExecTool,
+    [TOOL.AE_DOCX]: aeDocxTool,
+    [TOOL.AE_PDF]: aePdfTool,
+    [TOOL.AE_PPTX]: aePptxTool,
+    [TOOL.AE_XLSX]: aeXlsxTool,
   }
 }

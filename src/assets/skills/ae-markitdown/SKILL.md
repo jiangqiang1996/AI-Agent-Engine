@@ -1,7 +1,7 @@
 ---
 name: ae:markitdown
 description: 将本地文件转换为 Markdown，支持 HTML/CSV/TSV/JSON/DOCX/XLSX/PDF/PPTX/JPG/PNG
-argument-hint: "file=路径 [format=格式]"
+argument-hint: "file=路径 [format=格式] [outputPath=路径]"
 ---
 
 # Skill: ae:markitdown
