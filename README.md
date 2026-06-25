@@ -106,6 +106,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 接口测试 | `/ae-api-tester` |
 | Swagger/OpenAPI 摘要 | `/ae-swagger-parser` |
 | HTML 单文件打包 | `/ae-html-bundle` |
+| HTML 转 PPTX | `/ae-html-to-pptx` |
 | 本地文件转 Markdown | `/ae-markitdown` |
 | 创建或编辑 DOCX | `/ae-docx` |
 | 创建或编辑 PDF | `/ae-pdf` |
@@ -140,7 +141,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 类型 | 当前快照 | 真源 |
 | --- | ---: | --- |
 | 技能 | 33 | `src/assets/skills/`、`src/schemas/ae-asset-schema.ts` |
-| 命令 | 59 | `src/services/command-registration.ts`、`src/assets/commands/` |
+| 命令 | 61 | `src/services/command-registration.ts`、`src/assets/commands/` |
 | 代理 | 41 | `src/assets/agents/`、`src/services/agent-registration.ts` |
 | 工具 | 21 | `src/tools/` |
 | 规则 | 5 | `src/assets/rules/` |

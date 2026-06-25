@@ -2,6 +2,14 @@ import { existsSync, readFileSync } from 'node:fs'
 import { dirname, isAbsolute, resolve } from 'node:path'
 
 import { processPptx, type PptxInputElement, type PptxSlideContent, type PptxTableCell } from './pptx-service.js'
+import {
+  buildExtractionScript,
+  buildViewportProbeScript,
+  mapBrowserSlideToPptxSlide,
+  type BrowserExtractionResult,
+  type McpExecutor,
+  type SlideSeparator,
+} from './browser-pptx-renderer.js'
 
 export interface HtmlToPptxOptions {
   /** HTML 文件路径，支持绝对路径或相对于 worktree 的相对路径 */
@@ -13,7 +21,9 @@ export interface HtmlToPptxOptions {
   /** 演示文稿标题 */
   title?: string
   /** 幻灯片分页策略，默认 auto */
-  slideSeparator?: 'section' | 'hr' | 'h1' | 'auto'
+  slideSeparator?: SlideSeparator
+  /** MCP 执行器回调，传入 JS 脚本字符串，返回浏览器执行结果 JSON。提供时走浏览器渲染路径。 */
+  mcpExecutor?: McpExecutor
 }
 
 export interface HtmlToPptxResult {
@@ -405,8 +415,60 @@ function parseHtmlTable(tableHtml: string): PptxTableCell[][] {
   return rows
 }
 
-export async function convertHtmlToPptx(options: HtmlToPptxOptions): Promise<HtmlToPptxResult> {
-  const filePath = resolveFilePath(options.worktree, options.file)
+export function buildBrowserExtractionScript(slideSeparator: SlideSeparator): string {
+  return buildExtractionScript(slideSeparator)
+}
+
+export function buildBrowserViewportProbeScript(): string {
+  return buildViewportProbeScript()
+}
+
+async function convertHtmlToPptxBrowser(options: HtmlToPptxOptions, filePath: string): Promise<HtmlToPptxResult> {
+  if (!options.mcpExecutor) {
+    throw new HtmlToPptxError('浏览器渲染路径需要提供 mcpExecutor 回调，但未收到。')
+  }
+
+  const separator = options.slideSeparator ?? 'auto'
+  const script = buildExtractionScript(separator)
+  const rawJson = await options.mcpExecutor(script)
+
+  let extractionResult: BrowserExtractionResult
+  try {
+    extractionResult = JSON.parse(rawJson) as BrowserExtractionResult
+  } catch {
+    throw new HtmlToPptxError(`浏览器脚本返回的 JSON 无法解析。原始输出前 200 字符：${rawJson.slice(0, 200)}`)
+  }
+
+  if (!extractionResult.slides || extractionResult.slides.length === 0) {
+    throw new HtmlToPptxError('浏览器渲染提取结果为空，未识别到任何幻灯片内容。')
+  }
+
+  const baseDir = dirname(filePath)
+  const warnings: string[] = [...(extractionResult.errors ?? [])]
+
+  const slides: PptxSlideContent[] = extractionResult.slides.map((browserSlide) =>
+    mapBrowserSlideToPptxSlide(browserSlide, options.worktree, baseDir, warnings)
+  )
+
+  const html = readFileSync(filePath, 'utf8')
+  const title = options.title ?? extractTitle(stripNonContent(html)) ?? 'HTML 转换'
+
+  const result = await processPptx({
+    operation: 'create',
+    worktree: options.worktree,
+    title,
+    slides,
+    outputPath: options.outputPath,
+  })
+
+  return {
+    outputPath: result.outputPath!,
+    slideCount: slides.length,
+    warnings,
+  }
+}
+
+async function convertHtmlToPptxRegex(options: HtmlToPptxOptions, filePath: string): Promise<HtmlToPptxResult> {
   const html = readFileSync(filePath, 'utf8')
   const baseDir = dirname(filePath)
 
@@ -437,4 +499,14 @@ export async function convertHtmlToPptx(options: HtmlToPptxOptions): Promise<Htm
     slideCount: slides.length,
     warnings,
   }
+}
+
+export async function convertHtmlToPptx(options: HtmlToPptxOptions): Promise<HtmlToPptxResult> {
+  const filePath = resolveFilePath(options.worktree, options.file)
+
+  if (options.mcpExecutor) {
+    return convertHtmlToPptxBrowser(options, filePath)
+  }
+
+  return convertHtmlToPptxRegex(options, filePath)
 }
