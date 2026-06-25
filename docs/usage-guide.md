@@ -158,12 +158,12 @@
 
 ## 非技能基础命令
 
-| 命令 | 用途 | 边界 |
-| --- | --- | --- |
-| `/ae-work-continue` | 在 B worktree 查找交接文件并继续执行 `ae:work` | 仅用于 A→B worktree 转移后的目标工作空间；多个交接文件时先让用户选择 |
-| `/ae-commit` | 智能提交当前变更 | 只做本地提交；不等同于 push、PR、跳过 hooks 或改 Git 配置 |
-| `/ae-prompt-optimize-auto` | 提示词优化（auto 模式）：优化后跳过确认直接执行 | 效果等同于 `/ae-prompt-optimize auto` |
-| `/remove-local-branch-worktree` | 安全清理本地分支、worktree 和对应本地目录 | 删除分支、worktree 或目录前必须确认目标和风险 |
+| 命令                                 | 用途 | 边界 |
+|------------------------------------| --- | --- |
+| `/ae-work-continue`                | 在 B worktree 查找交接文件并继续执行 `ae:work` | 仅用于 A→B worktree 转移后的目标工作空间；多个交接文件时先让用户选择 |
+| `/ae-commit`                       | 智能提交当前变更 | 只做本地提交；不等同于 push、PR、跳过 hooks 或改 Git 配置 |
+| `/ae-prompt-optimize-auto`         | 提示词优化（auto 模式）：优化后跳过确认直接执行 | 效果等同于 `/ae-prompt-optimize auto` |
+| `/ae-remove-local-branch-worktree` | 安全清理本地分支、worktree 和对应本地目录 | 删除分支、worktree 或目录前必须确认目标和风险 |
 
 ## 命令变体
 
