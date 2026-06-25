@@ -21,7 +21,17 @@ argument-hint: "[描述|Figma URL|截图路径|页面路由] [--design|--match|-
 
 在执行任何浏览器操作前，必须先使用 `ae:chrome-devtools` 技能完成浏览器 MCP 动态注册并确认连接就绪；`ae:chrome-devtools` 是浏览器 MCP 的唯一管理入口，不应直接调用 `ae-chrome-devtools-mcp` 工具。MCP 未就绪时不得执行浏览器操作。
 
-MCP 已在配置中声明、用户声称已配置或本地进程检查成功，都不能替代通过 `ae:chrome-devtools` 技能完成的注册确认。只有当 MCP 注册失败、用户拒绝启动或当前环境无法启动时，才记录"无法验收"并停止整个技能执行流程——停止浏览器操作命令，同时阻断交付：不得在验收未完成的情况下输出产出文件、声明任务完成或继续执行步骤 3（输出总结）。验收降级时唯一允许的输出是明确标注"验收阻断"的状态报告，不得作为交付凭证。
+MCP 已在配置中声明、用户声称已配置或本地进程检查成功，都不能替代通过 `ae:chrome-devtools` 技能完成的注册确认。MCP 注册失败时不得立即阻断交付，必须按以下浏览器重试策略尽可能完成验收：
+
+**浏览器重试策略（按顺序尝试，每种模式失败后自动尝试下一种）：**
+
+1. Chrome autoConnect — 默认首选，自动发现已运行的 Chrome
+2. Edge autoConnect — Chrome 不可用时，自动发现已运行的 Edge
+3. Chrome/Edge connect — autoConnect 失败时，提示用户提供浏览器调试端口
+4. Chrome isolated — 启动独立 Chrome 实例（干净环境）
+5. Edge isolated — Chrome isolated 失败时，启动独立 Edge 实例
+
+**阻断条件（仅当以下全部满足时方可阻断）：** 所有 5 种注册模式均失败、用户明确拒绝启动任何浏览器、且用户明确拒绝重新执行验收。此时停止浏览器操作命令，同时阻断交付：不得在验收未完成的情况下输出产出文件、声明任务完成或继续执行步骤 3（输出总结）。验收阻断时唯一允许的输出是标注"验收阻断：所有浏览器注册模式均失败"的状态报告，含已尝试的浏览器和模式列表、阻断原因、用户后续可自行验收的指引。该报告不得作为交付凭证。
 
 ## 工作流
 
@@ -143,9 +153,25 @@ MCP 已在配置中声明、用户声称已配置或本地进程检查成功，�
 - 进入执行阶段 2 时，@logic-weaver 发现结构缺陷（缺少 DOM 元素、选择器不可用、布局无法承载交互） → 回到执行阶段 1 修复视觉实现，修复后重新执行阶段 2
 - 交互实现问题（事件绑定、API 对接、状态管理） → 在阶段 2 内直接修复，不回退
 
-**验收降级：**
+**验收降级与浏览器重试：**
 
-仅当 chrome-devtools MCP 注册失败、用户拒绝启动或环境无法启动浏览器时，记录"无法验收"并停止整个技能执行流程。验收阻断时：不得跳过验收直接交付产出文件，不得声明任务完成，不得继续执行步骤 3（输出总结）。唯一允许的输出是标注"验收阻断：MCP 未就绪，交付被阻断"的状态报告，该报告不得作为交付凭证。
+浏览器验收受阻时不得立即阻断交付，必须按以下策略依次尝试多种浏览器和注册模式：
+
+1. **Chrome autoConnect**（默认首选） → 调用 `ae:chrome-devtools action=register mode=autoConnect`
+2. **Edge autoConnect** → 调用 `ae:chrome-devtools action=register mode=autoConnect browser=Edge`
+3. **Chrome/Edge connect**（提示用户提供调试端口） → 调用 `ae:chrome-devtools action=register mode=connect browser=<用户指定> port=<用户指定>`
+4. **Chrome isolated** → 调用 `ae:chrome-devtools action=register mode=isolated`
+5. **Edge isolated** → 调用 `ae:chrome-devtools action=register mode=isolated browser=Edge`
+
+每种模式尝试后必须调用 `chrome-devtools_list_pages` 验证连接可用；成功则继续验收流程，失败则自动尝试下一种模式。用户明确拒绝启动浏览器时跳过对应模式，继续尝试后续模式。
+
+**阻断条件（仅当以下全部满足时方可阻断交付）：**
+
+- 所有 5 种注册模式均失败（自动尝试或用户拒绝后跳过的模式均计为失败）
+- 用户明确拒绝启动任何浏览器
+- 用户明确拒绝重新执行验收
+
+阻断时：不得跳过验收直接交付产出文件，不得声明任务完成，不得继续执行步骤 3（输出总结）。唯一允许的输出是标注"验收阻断：所有浏览器注册模式均失败"的状态报告，含已尝试的浏览器和模式列表、阻断原因、用户后续可自行验收的指引。该报告不得作为交付凭证。
 
 ### 步骤 3：输出总结
 
