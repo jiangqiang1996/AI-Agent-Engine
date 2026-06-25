@@ -23,7 +23,7 @@ description: "设计还原开发页面：识别 Figma/截图设计图或解析�
 
 ## 截图保存路径
 
-在执行任何 chrome-devtools 浏览器操作前，必须先使用 `ae:chrome-devtools` 技能完成浏览器 MCP 动态注册并确认连接就绪；`ae:chrome-devtools` 是浏览器 MCP 的唯一管理入口，上层技能和代理不能替代或绕过注册流程直接调用 `ae-chrome-devtools-mcp` 工具。未完成 MCP 注册前不得执行任何浏览器操作命令；注册失败、用户拒绝启动或当前环境无法启动时，必须停止浏览器流程并记录无法验证原因。
+在执行任何 chrome-devtools 浏览器操作前，必须先使用 `ae:chrome-devtools` 技能完成浏览器 MCP 动态注册并确认连接就绪；`ae:chrome-devtools` 是浏览器 MCP 的唯一管理入口，上层技能和代理不能替代或绕过注册流程直接调用 `ae-chrome-devtools-mcp` 工具。未完成 MCP 注册前不得执行任何浏览器操作命令；注册失败、用户拒绝启动或当前环境无法启动时，必须停止浏览器流程并记录无法验收原因。
 
 所有 `chrome-devtools_take_screenshot` 命令的输出文件必须保存到 opencode 启动目录下的 `ae/screenshot/` 目录中。截图前须确保目录存在：
 
@@ -67,6 +67,40 @@ New-Item -ItemType Directory -Path ae/screenshot -Force | Out-Null
 - 组件不应有外层 section 级别的内边距
 - 所有宽度约束和水平内边距应由父级 HTML/JSX 中的包装 div 处理
 - 优先使用 Tailwind 默认值（如 `gap-10` 代替 `gap-[40px]`）
+
+### HTML/CSS 编码规范
+
+#### HTML 语义化
+
+- 使用语义化标签（`<header>`/`<nav>`/`<main>`/`<article>`/`<section>`/`<aside>`/`<footer>`），不滥用 `<div>`
+- 标题层级 `<h1>` → `<h6>` 不跳级，一个页面只有一个 `<h1>`
+- 按钮用 `<button>` 不用 `<div onclick>`；表单字段必须有 `<label>`；图标按钮必须有 `aria-label`
+
+#### CSS/Tailwind 规范
+
+- 优先用 Tailwind 默认值（`gap-10` 代替 `gap-[40px]`）
+- 组件全宽（`w-full`），宽度约束由父级包装 div 处理
+- 使用 `min-h-[100dvh]` 而非 `h-screen`；Grid 优先于 Flex 百分比计算
+- 动画仅 `transform` 和 `opacity`；形状一致性：一个圆角比例贯穿全页
+
+#### 代码组织
+
+- 大样式文件按职责拆分（基础样式、组件样式、布局样式分离），单文件页面除外
+- 复杂页面按区块拆分为子组件；避免单个 CSS 文件超过 300 行
+
+#### 可访问性
+
+- WCAG AA 最低对比度；`:focus-visible` 焦点环不可移除
+- 为 `prefers-reduced-motion` 提供降级
+
+#### 依赖管理
+
+- 优先使用项目已引入的 CSS 框架、组件库和图标库；引入新依赖前必须在输出中说明必要性
+
+#### 二开约束
+
+- 禁止修复现有项目中不符合规范的代码；只修改与当前任务直接相关的代码
+- 发现现有代码问题时，在输出中标注并返回上层，不主动修改
 
 ### 步骤 3：截图对比
 
