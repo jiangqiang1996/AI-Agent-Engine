@@ -134,6 +134,13 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     ].join(''),
   },
   {
+    skillName: SKILL.HTML_SLIDES,
+    commandName: COMMAND.HTML_SLIDES,
+    description: '先收集并确认幻灯片内容大纲，再调用 ae:web-forge 生成 HTML 幻灯片',
+    argumentHint: '[主题|需求描述|现有 HTML 文件路径]',
+    skillFile: `src/assets/skills/${skillDir(SKILL.HTML_SLIDES)}/SKILL.md`,
+  },
+  {
     skillName: SKILL.COURSE_AUTO_PLAYER,
     commandName: COMMAND.COURSE_AUTO_PLAYER,
     description: `通过 ${SKILL.CHROME_DEVTOOLS} 完成浏览器 MCP 注册后，自动播放在线课程列表`,
