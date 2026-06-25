@@ -204,8 +204,8 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   {
     skillName: SKILL.HTML_TO_PPTX,
     commandName: COMMAND.HTML_TO_PPTX,
-    description: '将 HTML 文件转换为 PPTX 演示文稿，按 section/hr/h1 分页并映射标题、段落、图片、列表、表格',
-    argumentHint: '[file=路径] [title=标题] [output=输出路径] [slide_separator=section|hr|h1|auto]',
+    description: '将 HTML 文件转换为 PPTX 演示文稿，支持正则提取和浏览器渲染两种模式，浏览器模式通过 chrome-devtools MCP 提取精确布局与样式',
+    argumentHint: '[file=路径] [title=标题] [output=输出路径] [slide_separator=section|hr|h1|auto] [browser_render=true]',
     skillFile: `src/assets/skills/${skillDir(SKILL.HTML_TO_PPTX)}/SKILL.md`,
   },
   {
