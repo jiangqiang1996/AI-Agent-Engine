@@ -124,7 +124,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   {
     skillName: SKILL.WEB_FORGE,
     commandName: COMMAND.WEB_FORGE,
-    description: `统一前端能力入口：自由设计、设计还原、交互逻辑与浏览器验收。需先完成 ${SKILL.CHROME_DEVTOOLS} MCP 注册，再通过子代理 @ui-architect、@ui-matcher、@logic-weaver、@browser-inspector 交错执行`,
+    description: `统一前端能力入口：通过四问题分析选择子代理，强制浏览器验收收尾，最多 3 轮返工修复+回归。需先完成 ${SKILL.CHROME_DEVTOOLS} MCP 注册，子代理 @ui-architect、@ui-matcher、@logic-weaver、@browser-inspector`,
     argumentHint: '[描述|Figma URL|截图路径|页面路由] [--design|--match|--logic|--inspect]',
     skillFile: `src/assets/skills/${skillDir(SKILL.WEB_FORGE)}/SKILL.md`,
     customTemplate: [
