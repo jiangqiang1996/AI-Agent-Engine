@@ -16,7 +16,7 @@ describe('browser-pptx-renderer', () => {
     it('应该生成包含 IIFE 包裹的可执行 JavaScript', () => {
       const script = buildExtractionScript('auto')
       expect(script).toContain('(function()')
-      expect(script).toContain('return JSON.stringify(result)')
+      expect(script).toContain('return result')
       expect(script).toContain('})();')
     })
 
@@ -45,7 +45,7 @@ describe('browser-pptx-renderer', () => {
     it('应该包含 pxToInch 转换函数', () => {
       const script = buildExtractionScript('auto')
       expect(script).toContain('function pxToInch')
-      expect(script).toContain('/ 96')
+      expect(script).toContain('/ PX_PER_IN')
     })
 
     it('应该包含 rgbToHex 转换函数', () => {
@@ -55,10 +55,10 @@ describe('browser-pptx-renderer', () => {
 
     it('应该包含 extractElementData 函数处理多种元素类型', () => {
       const script = buildExtractionScript('auto')
-      expect(script).toContain('function extractElementData')
-      expect(script).toContain("'img'")
-      expect(script).toContain("'ul'")
-      expect(script).toContain("'table'")
+      expect(script).toContain('function extractElement')
+      expect(script).toContain("'IMG'")
+      expect(script).toContain("'UL'")
+      expect(script).toContain("'TABLE'")
     })
 
     it('无效 slideSeparator 类型不应该崩溃', () => {
@@ -208,7 +208,9 @@ describe('browser-pptx-renderer', () => {
         errors: [],
       }
       const result = mapBrowserSlideToPptxSlide(slide, worktree, baseDir, warnings)
-      expect(result.elements!.length).toBeGreaterThanOrEqual(2)
+      expect(result.elements).toHaveLength(1)
+      expect(result.elements![0].type).toBe('text')
+      expect(result.elements![0].textRuns!.length).toBeGreaterThanOrEqual(2)
     })
 
     it('应该将表格元素映射为 PptxInputElement', () => {

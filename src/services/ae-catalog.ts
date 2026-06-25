@@ -137,7 +137,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillName: SKILL.HTML_SLIDES,
     commandName: COMMAND.HTML_SLIDES,
     description: '先收集并确认幻灯片内容大纲，再调用 ae:web-forge 生成 HTML 幻灯片',
-    argumentHint: '[主题|需求描述|现有 HTML 文件路径]',
+    argumentHint: '[主题|需求描述|大纲文件路径|现有 HTML 文件路径]',
     skillFile: `src/assets/skills/${skillDir(SKILL.HTML_SLIDES)}/SKILL.md`,
   },
   {

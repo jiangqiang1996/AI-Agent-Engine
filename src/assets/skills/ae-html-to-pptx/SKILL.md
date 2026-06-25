@@ -51,6 +51,12 @@ argument-hint: "[file=路径] [title=标题] [output=输出路径] [slide_separa
 
 **内部调用约定**：当本技能被其他技能自动调用时，所有参数必须使用显式命名格式（如 `file=./slides.html output=./out.pptx`），不依赖值特征推断。
 
+## chrome-devtools MCP 门禁
+
+在执行任何浏览器操作前，必须先使用 `ae:chrome-devtools` 技能完成浏览器 MCP 动态注册并确认连接就绪；`ae:chrome-devtools` 是浏览器 MCP 的唯一管理入口，不应直接调用 `ae-chrome-devtools-mcp` 工具。MCP 未就绪时不得执行浏览器操作。
+
+MCP 已在配置中声明、用户声称已配置或本地进程检查成功，都不能替代通过 `ae:chrome-devtools` 技能完成的注册确认。只有当 MCP 注册失败、用户拒绝启动或当前环境无法启动时，才记录"无法验证"并停止浏览器流程——不得跳过门禁继续执行 browser 模式的后续步骤。
+
 ## 渲染模式
 
 ### regex 模式（默认）
