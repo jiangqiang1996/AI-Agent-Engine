@@ -62,6 +62,10 @@ export const aeDomainDispatchPrepareTool = tool({
     '',
     '不适用场景：',
     '- 仅查询域目录信息（使用 ae-domain-catalog）',
+    '',
+    '注意事项：',
+    '- 所有域上下文标记（has_security、has_api 等）均为顶级参数，无需嵌套对象',
+    '- 布尔标记默认 false，仅需传入 true 的标记即可激活对应专精代理',
   ].join('\n'),
   args: {
     domain: z
@@ -75,10 +79,141 @@ export const aeDomainDispatchPrepareTool = tool({
       .array(z.string())
       .default([])
       .describe('约束条件列表'),
-    domainContext: z
-      .record(z.string(), z.unknown())
-      .default({})
-      .describe('域特有扩展上下文，如 hasSecurity、hasApi、kind 等'),
+    kind: z
+      .enum(['code', 'document', 'plan', 'test', 'general', 'design', 'prototype', 'mixed', 'hybrid'])
+      .optional()
+      .describe('审查类型；code=代码审查，document=文档审查，general/mixed/hybrid=混合审查'),
+    scenes: z
+      .string()
+      .optional()
+      .describe('审查场景列表，逗号分隔，可选值：code/requirements/design/prototype/test-case/plan/config/asset/general-document'),
+    targets: z
+      .string()
+      .optional()
+      .describe('目标产出物类型列表，逗号分隔，可选值：code/requirements/design/prototype/test-case/plan/config/asset/document'),
+    has_security: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe('是否涉及安全边界'),
+    has_api: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe('是否涉及 API 契约变更'),
+    has_performance: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe('是否涉及性能敏感逻辑'),
+    has_reliability: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe('是否涉及可靠性/容错机制'),
+    has_cli: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe('是否涉及 CLI'),
+    has_tooling: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe('是否涉及工具定义、工具参数或工具注册'),
+    has_agent_config: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe('是否涉及代理配置、代理注册或技能 frontmatter'),
+    has_pr_metadata: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe('是否存在 PR 元数据'),
+    has_typescript: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe('是否涉及 TypeScript 代码'),
+    has_migrations: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe('是否涉及数据迁移'),
+    has_config: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe('是否涉及配置变更'),
+    has_infra: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe('是否涉及基础设施变更'),
+    has_database: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe('是否涉及数据库变更'),
+    has_script: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe('是否涉及脚本变更'),
+    has_ui: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe('是否涉及 UI'),
+    has_product_claim: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe('是否包含战略或产品主张'),
+    has_architecture_decision: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe('是否包含重要架构决策'),
+    is_high_risk_domain: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe('是否属于高风险领域'),
+    has_new_abstraction: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe('是否提出新抽象'),
+    has_upstream: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe('文档是否记录了上游来源'),
+    has_goal_alignment: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe('是否提供审查目标（成功条件列表），激活目标对齐审查'),
+    has_design_contract: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe('是否存在设计文档契约，激活设计一致性、UI 一致性和测试覆盖审查'),
+    has_evidence_claim: z
+      .boolean()
+      .optional()
+      .default(false)
+      .describe('文档是否包含事实性声明、外部引用或交付证据'),
+    changed_lines: z
+      .number()
+      .optional()
+      .describe('改动行数'),
+    requirement_count: z
+      .number()
+      .optional()
+      .describe('需求数量'),
   },
   execute: async (args, ctx) => {
     ctx.metadata({ title: `准备域调度: ${args.domain}`, metadata: { domain: args.domain } })
@@ -93,7 +228,39 @@ export const aeDomainDispatchPrepareTool = tool({
         timestamp: new Date().toISOString(),
       }
 
-      const specialists = selectSpecialists(args.domain, taskIntent, args.domainContext)
+      const domainContext: Record<string, unknown> = {
+        kind: args.kind,
+        domain: args.domain,
+        scenes: args.scenes,
+        targetTypes: args.targets,
+        hasSecurity: args.has_security,
+        hasApi: args.has_api,
+        hasPerformance: args.has_performance,
+        hasReliability: args.has_reliability,
+        hasCli: args.has_cli,
+        hasTooling: args.has_tooling,
+        hasAgentConfig: args.has_agent_config,
+        hasPrMetadata: args.has_pr_metadata,
+        hasTypescript: args.has_typescript,
+        hasMigrations: args.has_migrations,
+        hasConfig: args.has_config,
+        hasInfra: args.has_infra,
+        hasDatabase: args.has_database,
+        hasScript: args.has_script,
+        hasUi: args.has_ui,
+        hasProductClaim: args.has_product_claim,
+        hasArchitectureDecision: args.has_architecture_decision,
+        isHighRiskDomain: args.is_high_risk_domain,
+        hasNewAbstraction: args.has_new_abstraction,
+        hasUpstream: args.has_upstream,
+        hasGoalAlignment: args.has_goal_alignment,
+        hasDesignContract: args.has_design_contract,
+        hasEvidenceClaim: args.has_evidence_claim,
+        changedLineCount: args.changed_lines,
+        requirementCount: args.requirement_count,
+      }
+
+      const specialists = selectSpecialists(args.domain, taskIntent, domainContext)
       const strategyDomain = args.domain === 'general' ? 'review' : args.domain
       const strategy: CoordinationConfig = getCoordinationStrategy(strategyDomain)
 
@@ -103,9 +270,9 @@ export const aeDomainDispatchPrepareTool = tool({
           strategy,
           tasks: [],
           specialistCount: 0,
-          fallbackHint: args.domain === 'review'
-            ? '未选中任何审查专精代理。请检查 domainContext 中的标记是否正确，或考虑直接调用 @review-domain。'
-            : '未选中任何开发专精代理。请检查 domainContext 中的标记是否正确，或考虑直接调用 @development-domain。',
+          fallbackHint: args.domain === 'review' || args.domain === 'general'
+            ? '未选中任何审查专精代理。请检查传入的标记参数是否正确，或考虑直接调用 @review-domain。'
+            : '未选中任何开发专精代理。请检查传入的标记参数是否正确，或考虑直接调用 @development-domain。',
         }, null, 2)
       }
 

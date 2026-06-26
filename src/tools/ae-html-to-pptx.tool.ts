@@ -85,7 +85,7 @@ export const aeHtmlToPptxTool = tool({
     '- 步骤：注册 MCP → 导航 HTML → 执行提取脚本 → 收集 JSON → 再次调用本工具',
     '',
     '适用场景：',
-    '- 将 ae:html-slides 生成的 HTML 幻灯片转换为 PPTX',
+    '- 将 ae:slides-forge 生成的 HTML 幻灯片转换为 PPTX',
     '- 将已有 HTML 内容快速转为演示文稿',
     '- 需要高保真还原 HTML 视觉布局时使用 browser_render 模式',
     '',
