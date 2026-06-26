@@ -108,6 +108,13 @@ export const aePdfTool = tool({
     '- rotate-pages：旋转页面（90/180/270 度），可指定页码',
     '- delete-pages：删除指定页面',
     '- add-watermark：为所有页面添加文本水印（可配置字号、颜色、不透明度、旋转）',
+    '- add-pages：向已有 PDF 追加新页面，页面结构与 create 的 pages 相同',
+    '- update-page：在已有 PDF 的指定页面上叠加绘制新元素（文本/矩形/椭圆/直线/图片）',
+    '',
+    '增量操作策略：',
+    '- 大型 PDF（>5 页）：先用 create 创建初始页面，再用 add-pages 分批追加后续页面',
+    '- 需在已有页面上添加元素：使用 update-page 而非重新 create',
+    '- add-pages 可多次调用，每次追加一批页面',
     '',
     '输出：',
     '- 生成文件自动写入 `ae/documents/pdf/` 子目录',
@@ -118,10 +125,12 @@ export const aePdfTool = tool({
     '- create 操作前，必须先向用户展示页面大纲（每页元素或文本摘要）',
     '- merge 操作前，必须先向用户展示文件列表和合并顺序',
     '- fill-form 操作前，必须先向用户展示字段填写对照表（字段名 → 值）',
+    '- add-pages 操作前，必须先向用户展示追加页面大纲',
+    '- update-page 操作前，必须先向用户展示新增元素列表和目标页码',
     '- 用户确认后再调用本工具',
     '',
     '适用场景：',
-    '- 用户明确要求创建、合并、拆分、提取文本、填写表单、旋转、删除页面或添加水印',
+    '- 用户明确要求创建、合并、拆分、提取文本、填写表单、旋转、删除页面、添加水印、追加页面或局部更新',
     '',
     '不适用场景：',
     '- 只需读取 PDF 内容转为 Markdown 时，使用 ae:markitdown',
@@ -140,12 +149,14 @@ export const aePdfTool = tool({
         'rotate-pages',
         'delete-pages',
         'add-watermark',
+        'add-pages',
+        'update-page',
       ])
       .describe('操作类型'),
     file: z
       .string()
       .optional()
-      .describe('现有 PDF 文件路径（split/extract-text/fill-form/rotate-pages/delete-pages/add-watermark 操作必填）'),
+      .describe('现有 PDF 文件路径（add-pages/update-page/split/extract-text/fill-form/rotate-pages/delete-pages/add-watermark 操作必填）'),
     files: z
       .array(z.string())
       .optional()
@@ -157,7 +168,17 @@ export const aePdfTool = tool({
     pages: z
       .array(pageSpecSchema)
       .optional()
-      .describe('页面数组（create 操作必填），每页可含 elements 元素列表或 text 整页文本'),
+      .describe('页面数组（create/add-pages 操作必填），每页可含 elements 元素列表或 text 整页文本'),
+    elements: z
+      .array(pageElementSchema)
+      .optional()
+      .describe('元素数组（update-page 操作必填），在目标页面上叠加绘制的新元素'),
+    pageIndex: z
+      .number()
+      .int()
+      .min(0)
+      .optional()
+      .describe('目标页面索引（0-based，update-page 操作必填）'),
     fields: z
       .array(
         z.object({
@@ -195,6 +216,8 @@ export const aePdfTool = tool({
         files: args.files,
         title: args.title,
         pages: args.pages,
+        elements: args.elements,
+        pageIndex: args.pageIndex,
         fields: args.fields,
         metadata: args.metadata,
         rotation: args.rotation,

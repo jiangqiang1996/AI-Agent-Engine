@@ -5,7 +5,7 @@ import ExcelJS from 'exceljs'
 
 import { generateDocumentOutputPath } from '../utils/document-output-path.js'
 
-export type XlsxOperation = 'create' | 'edit' | 'analyze'
+export type XlsxOperation = 'create' | 'edit' | 'analyze' | 'add-rows' | 'add-sheet'
 
 // ==================== 样式类型 ====================
 
@@ -144,6 +144,12 @@ export interface XlsxInput {
   autoFilter?: string
   workbookProps?: XlsxWorkbookProps
   outputPath?: string
+  /** add-rows 操作：行数据数组，格式与 create 的 rows 相同 */
+  rows?: Record<string, XlsxRowValue>[]
+  /** add-rows 操作：起始行号（1-based，默认追加到末尾；1 表示第一行） */
+  startRow?: number
+  /** add-sheet 操作：单个工作表数据 */
+  sheet?: XlsxSheetData
 }
 
 export interface XlsxResult {
@@ -595,6 +601,151 @@ async function handleAnalyze(input: XlsxInput): Promise<XlsxResult> {
   }
 }
 
+// ==================== add-rows 操作 ====================
+
+async function handleAddRows(input: XlsxInput): Promise<XlsxResult> {
+  const file = input.file
+  const sheetName = input.sheetName
+  const rows = input.rows
+  if (!file) {
+    throw new Error('add-rows 操作需要 file 参数')
+  }
+  if (!sheetName) {
+    throw new Error('add-rows 操作需要 sheetName 参数')
+  }
+  if (!rows) {
+    throw new Error('add-rows 操作需要 rows 参数')
+  }
+
+  const wb = new ExcelJS.Workbook()
+  await wb.xlsx.readFile(file)
+
+  const ws = wb.getWorksheet(sheetName)
+  if (!ws) {
+    throw new Error(`工作表 "${sheetName}" 不存在`)
+  }
+
+  if (input.startRow !== undefined && input.startRow !== null) {
+    // 在指定位置插入行
+    for (let i = 0; i < rows.length; i++) {
+      ws.insertRow(input.startRow + i, rows[i])
+    }
+  } else {
+    // 在末尾追加行
+    ws.addRows(rows)
+  }
+
+  const totalRows = ws.rowCount
+  const outputPath =
+    input.outputPath ?? generateDocumentOutputPath(input.worktree, 'add-rows', 'xlsx', file)
+  mkdirSync(path.dirname(outputPath), { recursive: true })
+  await wb.xlsx.writeFile(outputPath)
+
+  return {
+    outputPath,
+    summary: `已添加 ${rows.length} 行到工作表 "${sheetName}"，当前总行数: ${totalRows}`,
+  }
+}
+
+// ==================== add-sheet 操作 ====================
+
+async function handleAddSheet(input: XlsxInput): Promise<XlsxResult> {
+  const file = input.file
+  const sheetData = input.sheet
+  if (!file) {
+    throw new Error('add-sheet 操作需要 file 参数')
+  }
+  if (!sheetData) {
+    throw new Error('add-sheet 操作需要 sheet 参数')
+  }
+
+  const wb = new ExcelJS.Workbook()
+  await wb.xlsx.readFile(file)
+
+  // 检查同名工作表是否已存在
+  const existingWs = wb.getWorksheet(sheetData.name)
+  if (existingWs) {
+    throw new Error(`工作表 "${sheetData.name}" 已存在，无法添加同名工作表`)
+  }
+
+  const ws = wb.addWorksheet(sheetData.name, buildWorksheetOptions(sheetData))
+
+  // 设置列定义（含样式）
+  if (sheetData.columns) {
+    ws.columns = sheetData.columns.map((col) => {
+      const result: Partial<ExcelJS.Column> = {
+        header: col.header,
+        key: col.key,
+      }
+      if (col.width !== undefined) result.width = col.width
+      if (col.style) result.style = toExcelStyle(col.style)
+      return result
+    })
+  }
+
+  // 添加行数据
+  if (sheetData.rows) {
+    ws.addRows(sheetData.rows)
+  }
+
+  // 设置单元格值和完整样式
+  if (sheetData.cells) {
+    for (const cellData of sheetData.cells) {
+      if (cellData.address) {
+        const cell = ws.getCell(cellData.address)
+        if (cellData.value !== undefined) {
+          cell.value = cellData.value as ExcelJS.CellValue
+        }
+        applyCellStyle(cell, cellData)
+      }
+    }
+  }
+
+  // 合并单元格
+  if (sheetData.merges) {
+    for (const range of sheetData.merges) {
+      ws.mergeCells(range)
+    }
+  }
+
+  // 自动筛选
+  if (sheetData.autoFilter) {
+    ws.autoFilter = sheetData.autoFilter
+  }
+
+  // 行高
+  if (sheetData.rowHeights) {
+    for (const rh of sheetData.rowHeights) {
+      ws.getRow(rh.row).height = rh.height
+    }
+  }
+
+  // 条件格式
+  if (sheetData.conditionalFormatting) {
+    for (const cf of sheetData.conditionalFormatting) {
+      ws.addConditionalFormatting(buildConditionalFormattingOptions(cf))
+    }
+  }
+
+  // 数据验证
+  if (sheetData.dataValidation) {
+    for (const dv of sheetData.dataValidation) {
+      applyDataValidation(ws, dv)
+    }
+  }
+
+  const totalSheets = wb.worksheets.length
+  const outputPath =
+    input.outputPath ?? generateDocumentOutputPath(input.worktree, 'add-sheet', 'xlsx', file)
+  mkdirSync(path.dirname(outputPath), { recursive: true })
+  await wb.xlsx.writeFile(outputPath)
+
+  return {
+    outputPath,
+    summary: `已添加工作表 "${sheetData.name}"，当前总工作表数: ${totalSheets}`,
+  }
+}
+
 // ==================== 入口 ====================
 
 export async function processXlsx(input: XlsxInput): Promise<XlsxResult> {
@@ -605,5 +756,9 @@ export async function processXlsx(input: XlsxInput): Promise<XlsxResult> {
       return handleEdit(input)
     case 'analyze':
       return handleAnalyze(input)
+    case 'add-rows':
+      return handleAddRows(input)
+    case 'add-sheet':
+      return handleAddSheet(input)
   }
 }

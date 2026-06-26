@@ -111,6 +111,8 @@ export type PdfOperation =
   | 'rotate-pages'
   | 'delete-pages'
   | 'add-watermark'
+  | 'add-pages'
+  | 'update-page'
 
 export interface PdfInput {
   operation: PdfOperation
@@ -125,6 +127,10 @@ export interface PdfInput {
   rotation?: 90 | 180 | 270
   /** 要操作的页码（0-based），rotate-pages/delete-pages 使用 */
   pageIndices?: number[]
+  /** update-page 目标页面索引（0-based） */
+  pageIndex?: number
+  /** update-page 在目标页面上绘制的新元素列表 */
+  elements?: PdfPageElement[]
   /** add-watermark 水印配置 */
   watermark?: PdfWatermark
   outputPath?: string
@@ -339,7 +345,7 @@ async function handleMerge(input: PdfInput): Promise<PdfResult> {
   const merged = await PDFDocument.create()
 
   for (const file of files) {
-    const src = await PDFDocument.load(readFileSync(file))
+    const src = await PDFDocument.load(readFileSync(file), { ignoreEncryption: true })
     const pages = await merged.copyPages(src, src.getPageIndices())
     pages.forEach((p) => merged.addPage(p))
   }
@@ -361,7 +367,7 @@ async function handleSplit(input: PdfInput): Promise<PdfResult> {
   if (!file) {
     throw new Error('split 操作需要 file 参数')
   }
-  const src = await PDFDocument.load(readFileSync(file))
+  const src = await PDFDocument.load(readFileSync(file), { ignoreEncryption: true })
   const total = src.getPageCount()
   const outputPaths: string[] = []
 
@@ -411,7 +417,7 @@ async function handleFillForm(input: PdfInput): Promise<PdfResult> {
   if (!fields) {
     throw new Error('fill-form 操作需要 fields 参数')
   }
-  const doc = await PDFDocument.load(readFileSync(file))
+  const doc = await PDFDocument.load(readFileSync(file), { ignoreEncryption: true })
   const form = doc.getForm()
 
   let filledCount = 0
@@ -453,7 +459,7 @@ async function handleRotatePages(input: PdfInput): Promise<PdfResult> {
   if (!file) {
     throw new Error('rotate-pages 操作需要 file 参数')
   }
-  const doc = await PDFDocument.load(readFileSync(file))
+  const doc = await PDFDocument.load(readFileSync(file), { ignoreEncryption: true })
   const rotation = input.rotation ?? 90
   const targetIndices = input.pageIndices
   const pages = targetIndices
@@ -486,7 +492,7 @@ async function handleDeletePages(input: PdfInput): Promise<PdfResult> {
   if (indices.length === 0) {
     throw new Error('delete-pages 操作需要 pageIndices 参数')
   }
-  const doc = await PDFDocument.load(readFileSync(file))
+  const doc = await PDFDocument.load(readFileSync(file), { ignoreEncryption: true })
   const total = doc.getPageCount()
   const keepIndices = doc.getPageIndices().filter((i) => !indices.includes(i))
 
@@ -515,7 +521,7 @@ async function handleAddWatermark(input: PdfInput): Promise<PdfResult> {
   if (!wm) {
     throw new Error('add-watermark 操作需要 watermark 参数')
   }
-  const doc = await PDFDocument.load(readFileSync(file))
+  const doc = await PDFDocument.load(readFileSync(file), { ignoreEncryption: true })
   const font = await doc.embedFont(StandardFonts.HelveticaBold)
   const fontSize = wm.fontSize ?? 50
   const opacity = wm.opacity ?? 0.3
@@ -549,6 +555,107 @@ async function handleAddWatermark(input: PdfInput): Promise<PdfResult> {
   }
 }
 
+async function handleAddPages(input: PdfInput): Promise<PdfResult> {
+  const file = input.file
+  if (!file) {
+    throw new Error('add-pages 操作需要 file 参数')
+  }
+  const pages = input.pages
+  if (!pages) {
+    throw new Error('add-pages 操作需要 pages 参数')
+  }
+  if (pages.length === 0) {
+    throw new Error('add-pages 操作的 pages 数组不能为空')
+  }
+
+  const existingBytes = readFileSync(file)
+  const doc = await PDFDocument.load(existingBytes, { ignoreEncryption: true })
+  const existingCount = doc.getPageCount()
+
+  const fontCache: Record<string, PDFFont> = {}
+
+  for (const pageSpec of pages) {
+    const [w, h] = resolvePageSize(pageSpec.size)
+    const page = doc.addPage([w, h])
+
+    // 兼容旧模式
+    if (pageSpec.text && !pageSpec.elements) {
+      const font = await getFont(doc, 'Helvetica', fontCache)
+      const fontSize = pageSpec.fontSize ?? 12
+      const lines = pageSpec.text.split('\n')
+      let y = h - 50
+      for (const line of lines) {
+        if (line.length > 0) {
+          page.drawText(line, { x: 50, y, size: fontSize, font, color: rgb(0, 0, 0) })
+        }
+        y -= fontSize + 6
+        if (y < 50) break
+      }
+    }
+
+    // 元素化绘制
+    if (pageSpec.elements) {
+      for (const el of pageSpec.elements) {
+        await drawElement(doc, page, el, fontCache)
+      }
+    }
+  }
+
+  const bytes = await doc.save()
+  const outputPath =
+    input.outputPath ?? generateDocumentOutputPath(input.worktree, 'add-pages', 'pdf', file)
+  mkdirSync(path.dirname(outputPath), { recursive: true })
+  writeFileSync(outputPath, bytes)
+
+  const totalCount = existingCount + pages.length
+  return {
+    outputPath,
+    summary: `已追加 ${pages.length} 页，文件总页数从 ${existingCount} 变为 ${totalCount}`,
+  }
+}
+
+async function handleUpdatePage(input: PdfInput): Promise<PdfResult> {
+  const file = input.file
+  if (!file) {
+    throw new Error('update-page 操作需要 file 参数')
+  }
+  const pageIndex = input.pageIndex
+  if (pageIndex === undefined || pageIndex === null) {
+    throw new Error('update-page 操作需要 pageIndex 参数')
+  }
+  const elements = input.elements
+  if (!elements) {
+    throw new Error('update-page 操作需要 elements 参数')
+  }
+
+  const existingBytes = readFileSync(file)
+  const doc = await PDFDocument.load(existingBytes, { ignoreEncryption: true })
+
+  if (pageIndex < 0 || pageIndex >= doc.getPageCount()) {
+    throw new Error(
+      `pageIndex ${pageIndex} 超出范围，文件共 ${doc.getPageCount()} 页（有效索引 0-${doc.getPageCount() - 1}）`,
+    )
+  }
+
+  const page = doc.getPage(pageIndex)
+  const fontCache: Record<string, PDFFont> = {}
+
+  for (const el of elements) {
+    await drawElement(doc, page, el, fontCache)
+  }
+
+  const bytes = await doc.save()
+  const outputPath =
+    input.outputPath ?? generateDocumentOutputPath(input.worktree, 'update-page', 'pdf', file)
+  mkdirSync(path.dirname(outputPath), { recursive: true })
+  writeFileSync(outputPath, bytes)
+
+  return {
+    outputPath,
+    summary: `已在第 ${pageIndex + 1} 页（索引 ${pageIndex}）上绘制 ${elements.length} 个新元素`,
+  }
+}
+
 export async function processPdf(input: PdfInput): Promise<PdfResult> {
   switch (input.operation) {
     case 'create':
@@ -567,5 +674,9 @@ export async function processPdf(input: PdfInput): Promise<PdfResult> {
       return handleDeletePages(input)
     case 'add-watermark':
       return handleAddWatermark(input)
+    case 'add-pages':
+      return handleAddPages(input)
+    case 'update-page':
+      return handleUpdatePage(input)
   }
 }

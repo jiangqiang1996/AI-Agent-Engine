@@ -190,6 +190,8 @@ export const aeDocxTool = tool({
     '- edit：在现有 DOCX 中执行文本替换（直接修改 XML，保留原有格式）',
     '- analyze：提取 DOCX 的文本内容、段落数和表格数',
     '- track-changes：添加 Word 修订标记（w:del/w:ins），便于审阅变更',
+    '- append-blocks：向已有 DOCX 追加内容块（增量追加，保留原有内容）',
+    '- update-block：更新已有 DOCX 中指定索引的内容块（局部替换，不影响其他块）',
     '',
     'create 操作支持的高级特性：',
     '- 富文本运行（runs）：同一段落内混合多种样式（粗体、斜体、颜色、字号等）',
@@ -197,6 +199,11 @@ export const aeDocxTool = tool({
     '- 节属性（sections）：页面尺寸、边距、页眉页脚、分栏',
     '- 文档元数据（documentMeta）：标题、作者、主题、关键词等',
     '- 图片：支持文件路径或 base64 数据，可设置宽高和替代文本',
+    '',
+    '增量操作策略：',
+    '- 大型文档（>15个内容块）：先 create 创建初始部分，再 append-blocks 分批追加，避免单次生成过多内容',
+    '- 需要修改单个块：使用 update-block 而非重新 create',
+    '- append-blocks 可多次调用，每次追加一批内容块',
     '',
     '输出：',
     '- 生成文件自动写入 `ae/documents/docx/` 子目录',
@@ -206,12 +213,15 @@ export const aeDocxTool = tool({
     '预览确认工作流：',
     '- create 操作前，必须先向用户展示内容块大纲（标题层级、段落摘要、表格结构）',
     '- track-changes 操作前，必须先向用户展示变更对照表（原文 → 新文）',
+    '- append-blocks 操作前，必须先向用户展示追加的内容块大纲',
+    '- update-block 操作前，必须先向用户展示原块摘要和新块内容',
     '- 用户确认后再调用本工具',
     '',
     '适用场景：',
     '- 用户明确要求创建、编辑或分析 DOCX 文件',
     '- 需要以修订标记方式记录文档变更',
     '- 需要生成包含表格、图片、富文本的复杂文档',
+    '- 需要向已有文档追加内容或修改单个内容块',
     '',
     '不适用场景：',
     '- 只需读取 DOCX 内容转为 Markdown 时，使用 ae:markitdown',
@@ -219,12 +229,12 @@ export const aeDocxTool = tool({
   ].join('\n'),
   args: {
     operation: z
-      .enum(['create', 'edit', 'analyze', 'track-changes'])
+      .enum(['create', 'edit', 'analyze', 'track-changes', 'append-blocks', 'update-block'])
       .describe('操作类型'),
     file: z
       .string()
       .optional()
-      .describe('现有 DOCX 文件路径（edit/analyze/track-changes 操作必填）'),
+      .describe('现有 DOCX 文件路径（edit/analyze/track-changes/append-blocks/update-block 操作必填）'),
     title: z
       .string()
       .optional()
@@ -232,7 +242,7 @@ export const aeDocxTool = tool({
     blocks: z
       .array(contentBlockSchema)
       .optional()
-      .describe('内容块数组（create 操作必填，支持 11 种块类型）'),
+      .describe('内容块数组（create/append-blocks 操作必填，支持 11 种块类型）'),
     sections: z
       .array(sectionPropsSchema)
       .optional()
@@ -254,6 +264,14 @@ export const aeDocxTool = tool({
       }))
       .optional()
       .describe('修订变更列表（track-changes 操作必填）'),
+    blockIndex: z
+      .number()
+      .min(0)
+      .optional()
+      .describe('0-based 内容块索引（update-block 操作必填，用于指定要更新的块）'),
+    block: contentBlockSchema
+      .optional()
+      .describe('新内容块对象（update-block 操作必填，与 create 的 block 结构相同）'),
     outputPath: z
       .string()
       .optional()
@@ -273,6 +291,8 @@ export const aeDocxTool = tool({
         documentMeta: args.documentMeta,
         replacements: args.replacements,
         changes: args.changes,
+        blockIndex: args.blockIndex,
+        block: args.block,
         outputPath: args.outputPath,
       })
 

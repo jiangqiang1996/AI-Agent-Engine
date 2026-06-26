@@ -166,6 +166,13 @@ export const aeXlsxTool = tool({
     '- create：根据工作表数据创建 XLSX 文件，支持完整单元格样式、合并、冻结、筛选、条件格式、数据验证、工作簿属性',
     '- edit：编辑现有 XLSX 中指定工作表，支持完整样式、合并单元格、冻结窗格、自动筛选',
     '- analyze：提取工作表信息（名称、行列数、前 5 行预览、合并单元格、冻结窗格、条件格式、数据验证）',
+    '- add-rows：向已有工作表追加或插入行数据，支持指定起始行号',
+    '- add-sheet：向已有工作簿添加新工作表，支持完整列定义、行数据、合并、冻结等',
+    '',
+    '增量操作引导：',
+    '- 大量数据（>100行）：先 create 创建初始数据，再 add-rows 分批追加，避免单次调用参数过大',
+    '- 需要添加新工作表：使用 add-sheet 而非重新 create，保留已有工作表数据',
+    '- add-rows 可多次调用，每次追加一批行数据',
     '',
     '单元格样式能力：',
     '- font：字体名称、字号、粗体、斜体、下划线、删除线、颜色',
@@ -193,6 +200,8 @@ export const aeXlsxTool = tool({
     '预览确认工作流：',
     '- create 操作前，必须先向用户展示表格结构（工作表名、列定义、前几行示例）',
     '- edit 操作前，必须先向用户展示单元格修改对照表（地址、原值 → 新值）',
+    '- add-rows 操作前，必须先向用户展示追加的行数和起始位置',
+    '- add-sheet 操作前，必须先向用户展示新工作表的结构（名称、列定义、行数据）',
     '- 用户确认后再调用本工具',
     '',
     '适用场景：',
@@ -205,12 +214,12 @@ export const aeXlsxTool = tool({
   ].join('\n'),
   args: {
     operation: z
-      .enum(['create', 'edit', 'analyze'])
+      .enum(['create', 'edit', 'analyze', 'add-rows', 'add-sheet'])
       .describe('操作类型'),
     file: z
       .string()
       .optional()
-      .describe('现有 XLSX 文件路径（edit/analyze 操作必填）'),
+      .describe('现有 XLSX 文件路径（edit/analyze/add-rows/add-sheet 操作必填）'),
     sheets: z
       .array(sheetSchema)
       .optional()
@@ -218,7 +227,7 @@ export const aeXlsxTool = tool({
     sheetName: z
       .string()
       .optional()
-      .describe('要编辑的工作表名称（edit 操作必填）'),
+      .describe('要编辑或追加行的工作表名称（edit/add-rows 操作必填）'),
     cells: z
       .array(cellSchema)
       .optional()
@@ -239,6 +248,19 @@ export const aeXlsxTool = tool({
       .string()
       .optional()
       .describe('自动筛选范围（edit 操作可选，如 A1:D10；传空字符串清除筛选）'),
+    rows: z
+      .array(z.record(z.string(), cellValueSchema))
+      .optional()
+      .describe('行数据数组（add-rows 操作必填，格式与 create 的 rows 相同）'),
+    startRow: z
+      .number()
+      .int()
+      .min(1)
+      .optional()
+      .describe('起始行号（1-based，add-rows 操作可选，默认追加到末尾；指定时在目标位置插入行，1 表示第一行）'),
+    sheet: sheetSchema
+      .optional()
+      .describe('单个工作表数据（add-sheet 操作必填，结构与 create 的单个 sheet 相同）'),
     workbookProps: workbookPropsSchema.optional().describe('工作簿元数据属性（create 操作可选）'),
     outputPath: z
       .string()
@@ -261,6 +283,9 @@ export const aeXlsxTool = tool({
         autoFilter: args.autoFilter,
         workbookProps: args.workbookProps,
         outputPath: args.outputPath,
+        rows: args.rows,
+        startRow: args.startRow,
+        sheet: args.sheet,
       })
 
       return {

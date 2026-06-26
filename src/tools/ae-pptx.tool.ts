@@ -312,6 +312,8 @@ export const aePptxTool = tool({
     '- create：根据幻灯片数组创建 PPTX 文件，支持元素化绘制、母版、章节、自定义布局、元数据',
     '- edit：在现有 PPTX 中执行文本替换（直接修改幻灯片 XML）',
     '- analyze：提取所有幻灯片的文本内容',
+    '- append-slides：向已有 PPTX 追加新幻灯片，保留原有幻灯片不变',
+    '- update-slide：替换指定幻灯片的全部元素（0-based 索引）',
     '',
     '元素化绘制（推荐模式）：',
     '- text：富文本（多运行、粗斜体、字号、颜色、字体、对齐、项目符号、行距、超链接、上下标、高亮、阴影、旋转）',
@@ -320,6 +322,11 @@ export const aePptxTool = tool({
     '- table：表格（单元格合并、边框、填充、对齐、自动分页）',
     '- chart：图表（bar、line、pie、doughnut、area、scatter、radar、bubble）',
     '- media：媒体（音频、视频、在线媒体，含封面）',
+    '',
+    '增量操作策略：',
+    '- 大型演示文稿（>10张幻灯片）：先 create 创建初始部分，再 append-slides 分批追加',
+    '- 需要修改单张幻灯片：使用 update-slide 而非重新 create',
+    '- append-slides 可多次调用，每次追加一批幻灯片',
     '',
     '幻灯片级能力：',
     '- background：纯色/图片背景',
@@ -342,11 +349,14 @@ export const aePptxTool = tool({
     '预览确认工作流：',
     '- create 操作前，必须先向用户展示幻灯片大纲（每页元素清单、布局、标题）',
     '- edit 操作前，必须先向用户展示替换对照表（原文 → 新文）',
+    '- append-slides 操作前，必须先向用户展示追加的幻灯片大纲',
+    '- update-slide 操作前，必须先向用户展示目标幻灯片的新元素清单',
     '- 用户确认后再调用本工具',
     '',
     '适用场景：',
     '- 用户明确要求创建、编辑或分析 PPTX 文件',
     '- 需要富文本、图片、形状、表格、图表、媒体、母版、章节等高级功能',
+    '- 需要向已有 PPTX 追加幻灯片或更新单张幻灯片',
     '',
     '不适用场景：',
     '- 只需读取 PPTX 内容转为 Markdown 时，使用 ae:markitdown',
@@ -354,12 +364,12 @@ export const aePptxTool = tool({
   ].join('\n'),
   args: {
     operation: z
-      .enum(['create', 'edit', 'analyze'])
+      .enum(['create', 'edit', 'analyze', 'append-slides', 'update-slide'])
       .describe('操作类型'),
     file: z
       .string()
       .optional()
-      .describe('现有 PPTX 文件路径（edit/analyze 操作必填）'),
+      .describe('现有 PPTX 文件路径（edit/analyze/append-slides/update-slide 操作必填）'),
     title: z
       .string()
       .optional()
@@ -367,7 +377,7 @@ export const aePptxTool = tool({
     slides: z
       .array(slideSchema)
       .optional()
-      .describe('幻灯片数组（create 操作必填）'),
+      .describe('幻灯片数组（create/append-slides 操作必填）'),
     masters: z
       .array(masterSchema)
       .optional()
@@ -392,6 +402,16 @@ export const aePptxTool = tool({
       }))
       .optional()
       .describe('文本替换列表（edit 操作必填）'),
+    slideIndex: z
+      .number()
+      .int()
+      .min(0)
+      .optional()
+      .describe('目标幻灯片索引（0-based，update-slide 操作必填）'),
+    elements: z
+      .array(elementSchema)
+      .optional()
+      .describe('幻灯片元素数组（update-slide 操作必填，替换目标幻灯片的全部元素）'),
     outputPath: z
       .string()
       .optional()
@@ -413,6 +433,8 @@ export const aePptxTool = tool({
         layout: args.layout,
         presentationMeta: args.presentationMeta,
         replacements: args.replacements,
+        slideIndex: args.slideIndex,
+        elements: args.elements,
         outputPath: args.outputPath,
       })
 
