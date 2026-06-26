@@ -120,8 +120,9 @@ const sheetSchema = z.object({
     .describe('列定义（含表头、键名、列宽、列样式）'),
   rows: z
     .array(z.record(z.string(), cellValueSchema))
+    .max(500, '单次行数据上限 500，超过时请分批追加：先用 create 创建初始数据，再用 add-rows 分批追加')
     .optional()
-    .describe('行数据数组，键为列 key'),
+    .describe('行数据数组，键为列 key。单次上限 500 行，超过时请分批追加'),
   cells: z.array(cellSchema).optional().describe('单元格级数据（地址、值、完整样式）'),
   merges: z.array(z.string()).optional().describe('合并单元格范围数组，如 ["A1:B2", "C1:D1"]'),
   freeze: z.object({
@@ -173,6 +174,7 @@ export const aeXlsxTool = tool({
     '- 大量数据（>100行）：先 create 创建初始数据，再 add-rows 分批追加，避免单次调用参数过大',
     '- 需要添加新工作表：使用 add-sheet 而非重新 create，保留已有工作表数据',
     '- add-rows 可多次调用，每次追加一批行数据',
+    '- edit/add-rows/add-sheet 默认覆盖源文件（原地更新），保持单文件输出；如需保留原文件，请指定 outputPath',
     '',
     '单元格样式能力：',
     '- font：字体名称、字号、粗体、斜体、下划线、删除线、颜色',
@@ -194,8 +196,9 @@ export const aeXlsxTool = tool({
     '- creator、title、subject、description、keywords、category、company 等',
     '',
     '输出：',
-    '- 生成文件自动写入 ae/documents/xlsx/ 子目录',
-    '- 文件名规则：<名称>-<操作>-<时间戳>-<随机串>.xlsx',
+    '- create 操作生成文件自动写入 ae/documents/xlsx/ 子目录',
+    '- edit/add-rows/add-sheet 操作默认覆盖源文件（原地更新）',
+    '- 文件名规则：<名称>-<操作>-<时间戳>-<随机串>.xlsx（仅 create 操作）',
     '',
     '预览确认工作流：',
     '- create 操作前，必须先向用户展示表格结构（工作表名、列定义、前几行示例）',
@@ -250,8 +253,9 @@ export const aeXlsxTool = tool({
       .describe('自动筛选范围（edit 操作可选，如 A1:D10；传空字符串清除筛选）'),
     rows: z
       .array(z.record(z.string(), cellValueSchema))
+      .max(500, '单次追加行数上限 500，超过时请分多次追加')
       .optional()
-      .describe('行数据数组（add-rows 操作必填，格式与 create 的 rows 相同）'),
+      .describe('行数据数组（add-rows 操作必填，格式与 create 的 rows 相同）。单次上限 500 行'),
     startRow: z
       .number()
       .int()
@@ -265,7 +269,7 @@ export const aeXlsxTool = tool({
     outputPath: z
       .string()
       .optional()
-      .describe('自定义输出路径；省略时自动生成到 ae/documents/xlsx/'),
+      .describe('自定义输出路径；create 操作省略时自动生成到 ae/documents/xlsx/；edit/add-rows/add-sheet 操作省略时默认覆盖源文件（原地更新）'),
   },
   execute: async (args, ctx) => {
     ctx.metadata({ title: `XLSX ${args.operation}`, metadata: { operation: args.operation } })

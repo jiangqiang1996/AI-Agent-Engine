@@ -151,7 +151,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillName: SKILL.PPTX_FROM_OUTLINE,
     commandName: COMMAND.PPTX_FROM_OUTLINE,
     description: '传入确认后的幻灯片大纲文件，解析布局提示词与图表/线框描述，调用 ae-pptx 工具生成 PPTX 演示文稿；内容必须完全符合大纲，禁止镀金',
-    argumentHint: '[大纲文件路径] [--output=输出路径] [--template=模板风格]',
+    argumentHint: '[大纲文件路径]',
     skillFile: `src/assets/skills/${skillDir(SKILL.PPTX_FROM_OUTLINE)}/SKILL.md`,
   },
   {

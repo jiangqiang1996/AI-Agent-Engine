@@ -778,9 +778,10 @@ function handleEdit(input: PptxInput): PptxResult {
     }
   }
 
-  const outputPath =
-    input.outputPath ?? generateDocumentOutputPath(input.worktree, 'edit', 'pptx', file)
-  mkdirSync(path.dirname(outputPath), { recursive: true })
+  const outputPath = input.outputPath ?? file
+  if (outputPath !== file) {
+    mkdirSync(path.dirname(outputPath), { recursive: true })
+  }
   zip.writeZip(outputPath)
 
   return {

@@ -69,6 +69,7 @@ argument-hint: "[创建|编辑|分析|追加行|添加工作表] [文件路径] 
 | 需要添加新工作表 | 使用 `add-sheet` 而非重新 `create`，保留已有工作表数据 |
 | 多次追加行数据 | `add-rows` 可多次调用，每次追加一批行数据 |
 | 在指定位置插入行 | `add-rows` 指定 `startRow` 参数，在目标位置插入行 |
+| 修改现有文件 | `edit`/`add-rows`/`add-sheet` 默认覆盖源文件（原地更新）；如需保留原文件，显式指定 `outputPath` |
 
 ## 可用操作
 
@@ -326,7 +327,8 @@ sheet 参数包含所有 create 中单个工作表支持的字段：name、colum
 
 ## 输出路径
 
-生成文件自动写入 `ae/documents/xlsx/` 子目录，文件名规则：`<名称>-<操作>-<时间戳>-<随机串>.xlsx`。如需自定义路径，传入 `outputPath` 参数。
+- **create 操作**：生成文件自动写入 `ae/documents/xlsx/` 子目录，文件名规则：`<名称>-<操作>-<时间戳>-<随机串>.xlsx`
+- **edit/add-rows/add-sheet 操作**：默认覆盖源文件（原地更新），保持单文件输出。如需输出到不同路径，传入 `outputPath` 参数
 
 ## 边界
 

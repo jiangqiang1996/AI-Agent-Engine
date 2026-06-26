@@ -241,8 +241,9 @@ export const aeDocxTool = tool({
       .describe('文档标题（create 操作可选，也可通过 documentMeta.title 设置）'),
     blocks: z
       .array(contentBlockSchema)
+      .max(80, '单次内容块数量上限 80，超过时请分批追加：先用 create 创建初始部分，再用 append-blocks 分批追加')
       .optional()
-      .describe('内容块数组（create/append-blocks 操作必填，支持 11 种块类型）'),
+      .describe('内容块数组（create/append-blocks 操作必填，支持 11 种块类型）。单次上限 80 个块，超过时请分批追加'),
     sections: z
       .array(sectionPropsSchema)
       .optional()

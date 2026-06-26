@@ -249,7 +249,7 @@ const slideSchema = z.object({
 const masterObjectSchema = z.object({
   text: z.object({
     text: z.string(),
-    options: z.any().optional(),
+    options: z.any().optional().describe('母版文本对象选项'),
   }).optional().describe('母版文本对象'),
   image: z.any().optional().describe('母版图片对象'),
   rect: z.any().optional().describe('母版矩形对象'),
@@ -376,8 +376,9 @@ export const aePptxTool = tool({
       .describe('演示文稿标题（create 操作可选）'),
     slides: z
       .array(slideSchema)
+      .max(50, '单次幻灯片数量上限 50，超过时请分批追加：先用 create 创建初始部分，再用 append-slides 分批追加')
       .optional()
-      .describe('幻灯片数组（create/append-slides 操作必填）'),
+      .describe('幻灯片数组（create/append-slides 操作必填）。单次上限 50 张，超过时请分批追加'),
     masters: z
       .array(masterSchema)
       .optional()

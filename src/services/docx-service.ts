@@ -661,9 +661,10 @@ function handleEdit(input: DocxInput): DocxResult {
   }
 
   zip.updateFile('word/document.xml', Buffer.from(modified, 'utf8'))
-  const outputPath =
-    input.outputPath ?? generateDocumentOutputPath(input.worktree, 'edit', 'docx', file)
-  mkdirSync(path.dirname(outputPath), { recursive: true })
+  const outputPath = input.outputPath ?? file
+  if (outputPath !== file) {
+    mkdirSync(path.dirname(outputPath), { recursive: true })
+  }
   zip.writeZip(outputPath)
 
   return {
@@ -733,10 +734,10 @@ function handleTrackChanges(input: DocxInput): DocxResult {
   }
 
   zip.updateFile('word/document.xml', Buffer.from(xml, 'utf8'))
-  const outputPath =
-    input.outputPath ??
-    generateDocumentOutputPath(input.worktree, 'track-changes', 'docx', file)
-  mkdirSync(path.dirname(outputPath), { recursive: true })
+  const outputPath = input.outputPath ?? file
+  if (outputPath !== file) {
+    mkdirSync(path.dirname(outputPath), { recursive: true })
+  }
   zip.writeZip(outputPath)
 
   return {
@@ -1017,9 +1018,10 @@ async function handleAppendBlocks(input: DocxInput): Promise<DocxResult> {
   }
 
   zip.updateFile('word/document.xml', Buffer.from(modifiedXml, 'utf8'))
-  const outputPath =
-    input.outputPath ?? generateDocumentOutputPath(input.worktree, 'append-blocks', 'docx', file)
-  mkdirSync(path.dirname(outputPath), { recursive: true })
+  const outputPath = input.outputPath ?? file
+  if (outputPath !== file) {
+    mkdirSync(path.dirname(outputPath), { recursive: true })
+  }
   zip.writeZip(outputPath)
 
   return {
@@ -1115,9 +1117,10 @@ async function handleUpdateBlock(input: DocxInput): Promise<DocxResult> {
   }
 
   zip.updateFile('word/document.xml', Buffer.from(modifiedXml, 'utf8'))
-  const outputPath =
-    input.outputPath ?? generateDocumentOutputPath(input.worktree, 'update-block', 'docx', file)
-  mkdirSync(path.dirname(outputPath), { recursive: true })
+  const outputPath = input.outputPath ?? file
+  if (outputPath !== file) {
+    mkdirSync(path.dirname(outputPath), { recursive: true })
+  }
   zip.writeZip(outputPath)
 
   return {

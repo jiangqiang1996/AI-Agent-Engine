@@ -513,9 +513,10 @@ async function handleEdit(input: XlsxInput): Promise<XlsxResult> {
     ws.autoFilter = input.autoFilter
   }
 
-  const outputPath =
-    input.outputPath ?? generateDocumentOutputPath(input.worktree, 'edit', 'xlsx', file)
-  mkdirSync(path.dirname(outputPath), { recursive: true })
+  const outputPath = input.outputPath ?? file
+  if (outputPath !== file) {
+    mkdirSync(path.dirname(outputPath), { recursive: true })
+  }
   await wb.xlsx.writeFile(outputPath)
 
   return {
@@ -601,6 +602,31 @@ async function handleAnalyze(input: XlsxInput): Promise<XlsxResult> {
   }
 }
 
+// ==================== 列 key 恢复 ====================
+
+/**
+ * exceljs 读取文件后会丢失列 key 映射。
+ * 从首行标题值恢复 key：用标题文本（去掉空格）作为列 key，
+ * 使 addRows/insertRow 的键值对象能通过 header 名映射到列。
+ */
+function restoreColumnKeys(ws: ExcelJS.Worksheet): void {
+  if (ws.columnCount === 0) return
+  const headerRow = ws.getRow(1)
+  const usedKeys = new Map<string, number>()
+  for (let colIdx = 1; colIdx <= ws.columnCount; colIdx++) {
+    const col = ws.getColumn(colIdx)
+    if (!col.key) {
+      const headerVal = headerRow.getCell(colIdx).value
+      const keyStr = headerVal == null ? '' : String(headerVal).trim()
+      if (keyStr) {
+        const suffix = usedKeys.get(keyStr) ?? 0
+        usedKeys.set(keyStr, suffix + 1)
+        col.key = suffix > 0 ? `${keyStr}_${suffix}` : keyStr
+      }
+    }
+  }
+}
+
 // ==================== add-rows 操作 ====================
 
 async function handleAddRows(input: XlsxInput): Promise<XlsxResult> {
@@ -625,20 +651,22 @@ async function handleAddRows(input: XlsxInput): Promise<XlsxResult> {
     throw new Error(`工作表 "${sheetName}" 不存在`)
   }
 
+  // exceljs 读取文件后会丢失列 key 映射，需从首行标题恢复
+  restoreColumnKeys(ws)
+
   if (input.startRow !== undefined && input.startRow !== null) {
-    // 在指定位置插入行
     for (let i = 0; i < rows.length; i++) {
       ws.insertRow(input.startRow + i, rows[i])
     }
   } else {
-    // 在末尾追加行
     ws.addRows(rows)
   }
 
   const totalRows = ws.rowCount
-  const outputPath =
-    input.outputPath ?? generateDocumentOutputPath(input.worktree, 'add-rows', 'xlsx', file)
-  mkdirSync(path.dirname(outputPath), { recursive: true })
+  const outputPath = input.outputPath ?? file
+  if (outputPath !== file) {
+    mkdirSync(path.dirname(outputPath), { recursive: true })
+  }
   await wb.xlsx.writeFile(outputPath)
 
   return {
@@ -735,9 +763,10 @@ async function handleAddSheet(input: XlsxInput): Promise<XlsxResult> {
   }
 
   const totalSheets = wb.worksheets.length
-  const outputPath =
-    input.outputPath ?? generateDocumentOutputPath(input.worktree, 'add-sheet', 'xlsx', file)
-  mkdirSync(path.dirname(outputPath), { recursive: true })
+  const outputPath = input.outputPath ?? file
+  if (outputPath !== file) {
+    mkdirSync(path.dirname(outputPath), { recursive: true })
+  }
   await wb.xlsx.writeFile(outputPath)
 
   return {
