@@ -596,4 +596,171 @@ describe('xlsx-service', () => {
       processXlsx({ operation: 'analyze', worktree: root }),
     ).rejects.toThrow('file')
   })
+
+  // ==================== 增量操作默认覆盖源文件 ====================
+
+  it('edit 应默认覆盖源文件（原地更新）', async () => {
+    const root = createRoot()
+    const created = await processXlsx({
+      operation: 'create',
+      worktree: root,
+      sheets: [
+        {
+          name: '覆盖表',
+          columns: [{ header: '值', key: 'val' }],
+          rows: [{ val: '原始值' }],
+        },
+      ],
+    })
+    const sourcePath = created.outputPath!
+
+    const result = await processXlsx({
+      operation: 'edit',
+      worktree: root,
+      file: sourcePath,
+      sheetName: '覆盖表',
+      cells: [{ address: 'A2', value: '修改后值' }],
+    })
+
+    expect(result.outputPath).toBe(sourcePath)
+    expect(existsSync(sourcePath)).toBe(true)
+
+    const analyzed = await processXlsx({
+      operation: 'analyze',
+      worktree: root,
+      file: sourcePath,
+    })
+    expect(analyzed.content).toContain('修改后值')
+  })
+
+  it('edit 显式指定 outputPath 应输出到新路径', async () => {
+    const root = createRoot()
+    const created = await processXlsx({
+      operation: 'create',
+      worktree: root,
+      sheets: [{ name: '分离表', columns: [{ header: '值', key: 'val' }], rows: [{ val: '原始' }] }],
+    })
+    const sourcePath = created.outputPath!
+    const customPath = join(root, 'custom-output.xlsx')
+
+    const result = await processXlsx({
+      operation: 'edit',
+      worktree: root,
+      file: sourcePath,
+      sheetName: '分离表',
+      cells: [{ address: 'A2', value: '新值' }],
+      outputPath: customPath,
+    })
+
+    expect(result.outputPath).toBe(customPath)
+    expect(existsSync(customPath)).toBe(true)
+    expect(existsSync(sourcePath)).toBe(true)
+  })
+
+  it('add-rows 应默认覆盖源文件（原地更新）', async () => {
+    const root = createRoot()
+    const created = await processXlsx({
+      operation: 'create',
+      worktree: root,
+      sheets: [
+        {
+          name: '追加表',
+          columns: [{ header: '名称', key: '名称' }],
+          rows: [{ '名称': '行1' }],
+        },
+      ],
+    })
+    const sourcePath = created.outputPath!
+
+    const result = await processXlsx({
+      operation: 'add-rows',
+      worktree: root,
+      file: sourcePath,
+      sheetName: '追加表',
+      rows: [{ '名称': '行2' }],
+    })
+
+    expect(result.outputPath).toBe(sourcePath)
+
+    const analyzed = await processXlsx({
+      operation: 'analyze',
+      worktree: root,
+      file: sourcePath,
+    })
+    expect(analyzed.content).toContain('行2')
+  })
+
+  it('add-rows 显式指定 outputPath 应输出到新路径', async () => {
+    const root = createRoot()
+    const created = await processXlsx({
+      operation: 'create',
+      worktree: root,
+      sheets: [{ name: '追加分离表', columns: [{ header: '名称', key: '名称' }], rows: [{ '名称': '行1' }] }],
+    })
+    const sourcePath = created.outputPath!
+    const customPath = join(root, 'add-rows-output.xlsx')
+
+    const result = await processXlsx({
+      operation: 'add-rows',
+      worktree: root,
+      file: sourcePath,
+      sheetName: '追加分离表',
+      rows: [{ '名称': '行2' }],
+      outputPath: customPath,
+    })
+
+    expect(result.outputPath).toBe(customPath)
+    expect(existsSync(customPath)).toBe(true)
+    expect(existsSync(sourcePath)).toBe(true)
+  })
+
+  it('add-sheet 应默认覆盖源文件（原地更新）', async () => {
+    const root = createRoot()
+    const created = await processXlsx({
+      operation: 'create',
+      worktree: root,
+      sheets: [{ name: '已有表' }],
+    })
+    const sourcePath = created.outputPath!
+
+    const result = await processXlsx({
+      operation: 'add-sheet',
+      worktree: root,
+      file: sourcePath,
+      sheet: { name: '新表', columns: [{ header: '数据', key: 'd' }], rows: [{ d: '值' }] },
+    })
+
+    expect(result.outputPath).toBe(sourcePath)
+
+    const analyzed = await processXlsx({
+      operation: 'analyze',
+      worktree: root,
+      file: sourcePath,
+    })
+    expect(analyzed.content).toContain('新表')
+    expect(analyzed.content).toContain('已有表')
+  })
+
+  it('add-sheet 显式指定 outputPath 应输出到新路径', async () => {
+    const root = createRoot()
+    const created = await processXlsx({
+      operation: 'create',
+      worktree: root,
+      sheets: [{ name: '已有表2' }],
+    })
+    const sourcePath = created.outputPath!
+    const customPath = join(root, 'add-sheet-output.xlsx')
+
+    const result = await processXlsx({
+      operation: 'add-sheet',
+      worktree: root,
+      file: sourcePath,
+      sheet: { name: '新表2' },
+      outputPath: customPath,
+    })
+
+    expect(result.outputPath).toBe(customPath)
+    expect(existsSync(customPath)).toBe(true)
+    expect(existsSync(sourcePath)).toBe(true)
+  })
 })

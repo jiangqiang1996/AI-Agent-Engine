@@ -741,4 +741,396 @@ describe('pdf-service - add-watermark', () => {
       }),
     ).rejects.toThrow('watermark')
   })
+
+  it('normalizes 0-255 color range to 0-1 for watermark', async () => {
+    const root = createRoot()
+    const created = await processPdf({
+      operation: 'create',
+      worktree: root,
+      pages: [{ text: 'p1' }],
+    })
+
+    // 传入 0-255 范围的红色，服务层应自动归一化为 0-1
+    const result = await processPdf({
+      operation: 'add-watermark',
+      worktree: root,
+      file: created.outputPath!,
+      watermark: {
+        text: 'COLOR_NORMALIZE',
+        color: { r: 255, g: 0, b: 0 },
+      },
+    })
+
+    expect(existsSync(result.outputPath!)).toBe(true)
+    expect(result.summary).toContain('1')
+  })
+})
+
+describe('pdf-service - color normalization', () => {
+  it('create text color auto-normalizes 0-255 range to 0-1', async () => {
+    const root = createRoot()
+    // 传入 0-255 范围的值（误传），应自动归一化
+    const result = await processPdf({
+      operation: 'create',
+      worktree: root,
+      pages: [
+        {
+          elements: [
+            {
+              type: 'text',
+              text: 'Red text with 0-255 values',
+              x: 50,
+              y: 750,
+              color: { r: 255, g: 0, b: 0 },
+              fontSize: 16,
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(existsSync(result.outputPath!)).toBe(true)
+  })
+
+  it('create line color auto-normalizes 0-255 range to 0-1', async () => {
+    const root = createRoot()
+    const result = await processPdf({
+      operation: 'create',
+      worktree: root,
+      pages: [
+        {
+          elements: [
+            {
+              type: 'line',
+              x: 50,
+              y: 700,
+              x2: 300,
+              y2: 600,
+              thickness: 3,
+              color: { r: 0, g: 0, b: 255 },
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(existsSync(result.outputPath!)).toBe(true)
+  })
+
+  it('create rect color auto-normalizes 0-255 range to 0-1', async () => {
+    const root = createRoot()
+    const result = await processPdf({
+      operation: 'create',
+      worktree: root,
+      pages: [
+        {
+          elements: [
+            {
+              type: 'rect',
+              x: 50,
+              y: 700,
+              width: 200,
+              height: 100,
+              borderColor: { r: 255, g: 128, b: 0 },
+              borderWidth: 2,
+              fillColor: { r: 230, g: 230, b: 230 },
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(existsSync(result.outputPath!)).toBe(true)
+  })
+
+  it('mixed 0-1 and 0-255 values are handled correctly', async () => {
+    const root = createRoot()
+    // r:1 是正确的0-1，g:128需要归一化→0.5，b:255需要归一化→1
+    const result = await processPdf({
+      operation: 'create',
+      worktree: root,
+      pages: [
+        {
+          elements: [
+            {
+              type: 'text',
+              text: 'Mixed range color',
+              x: 50,
+              y: 750,
+              color: { r: 1, g: 128, b: 255 },
+              fontSize: 14,
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(existsSync(result.outputPath!)).toBe(true)
+  })
+})
+
+describe('pdf-service - auto-layout', () => {
+  it('text elements without y coordinate stack vertically without overlap', async () => {
+    const root = createRoot()
+    const result = await processPdf({
+      operation: 'create',
+      worktree: root,
+      pages: [
+        {
+          elements: [
+            { type: 'text', text: 'First line', fontSize: 14 },
+            { type: 'text', text: 'Second line', fontSize: 14 },
+            { type: 'text', text: 'Third line', fontSize: 14 },
+          ],
+        },
+      ],
+    })
+
+    expect(existsSync(result.outputPath!)).toBe(true)
+    expect(result.summary).toContain('1')
+  })
+
+  it('text elements with explicit y use absolute positioning', async () => {
+    const root = createRoot()
+    const result = await processPdf({
+      operation: 'create',
+      worktree: root,
+      pages: [
+        {
+          elements: [
+            { type: 'text', text: 'Header', x: 50, y: 780, fontSize: 20 },
+            { type: 'text', text: 'Body', x: 50, y: 750, fontSize: 12 },
+          ],
+        },
+      ],
+    })
+
+    expect(existsSync(result.outputPath!)).toBe(true)
+  })
+
+  it('mixed auto-layout and explicit y positioning', async () => {
+    const root = createRoot()
+    // 第一个元素无坐标（自动布局），第二个有明确 y（绝对定位）
+    const result = await processPdf({
+      operation: 'create',
+      worktree: root,
+      pages: [
+        {
+          elements: [
+            { type: 'text', text: 'Auto positioned', fontSize: 14 },
+            { type: 'text', text: 'Explicit positioned', x: 50, y: 500, fontSize: 14 },
+          ],
+        },
+      ],
+    })
+
+    expect(existsSync(result.outputPath!)).toBe(true)
+  })
+
+  it('rect/ellipse/line/image do not affect auto-layout thread', async () => {
+    const root = createRoot()
+    // 非文本元素不应改变 auto-layout 的 nextY
+    const result = await processPdf({
+      operation: 'create',
+      worktree: root,
+      pages: [
+        {
+          elements: [
+            { type: 'text', text: 'Before shape', fontSize: 14 },
+            { type: 'rect', x: 50, y: 600, width: 100, height: 50 },
+            { type: 'text', text: 'After shape should continue from before', fontSize: 14 },
+          ],
+        },
+      ],
+    })
+
+    expect(existsSync(result.outputPath!)).toBe(true)
+  })
+})
+
+describe('pdf-service - add-pages', () => {
+  it('appends new pages to existing PDF', async () => {
+    const root = createRoot()
+    const created = await processPdf({
+      operation: 'create',
+      worktree: root,
+      pages: [{ text: 'Original page' }],
+    })
+
+    const result = await processPdf({
+      operation: 'add-pages',
+      worktree: root,
+      file: created.outputPath!,
+      pages: [{ text: 'Added page 1' }, { text: 'Added page 2' }],
+    })
+
+    expect(existsSync(result.outputPath!)).toBe(true)
+    expect(result.summary).toContain('2')
+
+    const doc = await PDFDocument.load(readFileSync(result.outputPath!))
+    expect(doc.getPageCount()).toBe(3)
+  })
+
+  it('appends element-based pages', async () => {
+    const root = createRoot()
+    const created = await processPdf({
+      operation: 'create',
+      worktree: root,
+      pages: [{ elements: [{ type: 'text', text: 'Original', x: 50, y: 780 }] }],
+    })
+
+    const result = await processPdf({
+      operation: 'add-pages',
+      worktree: root,
+      file: created.outputPath!,
+      pages: [
+        {
+          elements: [
+            { type: 'text', text: 'Added header', x: 50, y: 780, fontSize: 16 },
+            { type: 'text', text: 'Added body', fontSize: 12 },
+          ],
+        },
+      ],
+    })
+
+    expect(existsSync(result.outputPath!)).toBe(true)
+    const doc = await PDFDocument.load(readFileSync(result.outputPath!))
+    expect(doc.getPageCount()).toBe(2)
+  })
+
+  it('throws when file is missing', async () => {
+    const root = createRoot()
+    await expect(
+      processPdf({ operation: 'add-pages', worktree: root, pages: [{ text: 'p' }] }),
+    ).rejects.toThrow('file')
+  })
+
+  it('throws when pages is missing', async () => {
+    const root = createRoot()
+    const created = await processPdf({
+      operation: 'create',
+      worktree: root,
+      pages: [{ text: 'p1' }],
+    })
+
+    await expect(
+      processPdf({ operation: 'add-pages', worktree: root, file: created.outputPath! }),
+    ).rejects.toThrow('pages')
+  })
+})
+
+describe('pdf-service - update-page', () => {
+  it('overlays elements on existing page', async () => {
+    const root = createRoot()
+    const created = await processPdf({
+      operation: 'create',
+      worktree: root,
+      pages: [{ text: 'Base content' }],
+    })
+
+    const result = await processPdf({
+      operation: 'update-page',
+      worktree: root,
+      file: created.outputPath!,
+      pageIndex: 0,
+      elements: [
+        { type: 'text', text: 'Overlay text', x: 50, y: 700, fontSize: 16 },
+      ],
+    })
+
+    expect(existsSync(result.outputPath!)).toBe(true)
+    expect(result.summary).toContain('0')
+  })
+
+  it('update-page auto-layout stacks text without overlap', async () => {
+    const root = createRoot()
+    const created = await processPdf({
+      operation: 'create',
+      worktree: root,
+      pages: [{ text: 'Base' }],
+    })
+
+    const result = await processPdf({
+      operation: 'update-page',
+      worktree: root,
+      file: created.outputPath!,
+      pageIndex: 0,
+      elements: [
+        { type: 'text', text: 'Overlay line 1', fontSize: 14 },
+        { type: 'text', text: 'Overlay line 2', fontSize: 14 },
+      ],
+    })
+
+    expect(existsSync(result.outputPath!)).toBe(true)
+  })
+
+  it('update-page color normalization works', async () => {
+    const root = createRoot()
+    const created = await processPdf({
+      operation: 'create',
+      worktree: root,
+      pages: [{ text: 'Base' }],
+    })
+
+    // 0-255 范围颜色应被自动归一化
+    const result = await processPdf({
+      operation: 'update-page',
+      worktree: root,
+      file: created.outputPath!,
+      pageIndex: 0,
+      elements: [
+        { type: 'text', text: 'Red overlay', x: 50, y: 700, color: { r: 255, g: 0, b: 0 } },
+      ],
+    })
+
+    expect(existsSync(result.outputPath!)).toBe(true)
+  })
+
+  it('throws when file is missing', async () => {
+    const root = createRoot()
+    await expect(
+      processPdf({
+        operation: 'update-page',
+        worktree: root,
+        pageIndex: 0,
+        elements: [{ type: 'text', text: 'x' }],
+      }),
+    ).rejects.toThrow('file')
+  })
+
+  it('throws when pageIndex is missing', async () => {
+    const root = createRoot()
+    const created = await processPdf({
+      operation: 'create',
+      worktree: root,
+      pages: [{ text: 'p1' }],
+    })
+
+    await expect(
+      processPdf({
+        operation: 'update-page',
+        worktree: root,
+        file: created.outputPath!,
+        elements: [{ type: 'text', text: 'x' }],
+      }),
+    ).rejects.toThrow('pageIndex')
+  })
+
+  it('throws when elements is missing', async () => {
+    const root = createRoot()
+    const created = await processPdf({
+      operation: 'create',
+      worktree: root,
+      pages: [{ text: 'p1' }],
+    })
+
+    await expect(
+      processPdf({
+        operation: 'update-page',
+        worktree: root,
+        file: created.outputPath!,
+        pageIndex: 0,
+      }),
+    ).rejects.toThrow('elements')
+  })
 })

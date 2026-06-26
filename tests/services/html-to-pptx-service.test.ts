@@ -1,10 +1,18 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync, readFileSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { resolve } from 'node:path'
 
-import { convertHtmlToPptx, formatHtmlToPptxError } from '../../src/services/html-to-pptx-service.js'
+import {
+  convertHtmlToPptx,
+  formatHtmlToPptxError,
+  resolveDirectorySlides,
+  isSlidesForgeDirectory,
+  convertDirectorySlidesToPptxRegex,
+  createMergedSlidesHtml,
+  cleanupMergedHtml,
+} from '../../src/services/html-to-pptx-service.js'
 
 describe('html-to-pptx-service', () => {
   let tempDir: string
@@ -251,6 +259,191 @@ describe('html-to-pptx-service', () => {
     it('应该格式化未知错误', () => {
       const formatted = formatHtmlToPptxError(null)
       expect(formatted).toBeTruthy()
+    })
+  })
+
+  describe('resolveDirectorySlides', () => {
+    it('应该按编号排序解析 slide-NN.html 文件', () => {
+      mkdirSync(join(tempDir, 'slides'), { recursive: true })
+      writeFileSync(join(tempDir, 'slides', 'slide-02.html'), '<h1>第二页</h1>')
+      writeFileSync(join(tempDir, 'slides', 'slide-01.html'), '<h1>第一页</h1>')
+      writeFileSync(join(tempDir, 'slides', 'slide-03.html'), '<h1>第三页</h1>')
+      writeFileSync(join(tempDir, 'slides', 'index.html'), '<html></html>')
+
+      const slides = resolveDirectorySlides(join(tempDir, 'slides'))
+
+      expect(slides.length).toBe(3)
+      expect(slides[0].number).toBe(1)
+      expect(slides[0].filename).toBe('slide-01.html')
+      expect(slides[1].number).toBe(2)
+      expect(slides[2].number).toBe(3)
+    })
+
+    it('应该忽略不符合 slide-NN.html 模式的文件', () => {
+      mkdirSync(join(tempDir, 'slides'), { recursive: true })
+      writeFileSync(join(tempDir, 'slides', 'slide-01.html'), '<h1>第一页</h1>')
+      writeFileSync(join(tempDir, 'slides', 'index.html'), '<html></html>')
+      writeFileSync(join(tempDir, 'slides', 'common.css'), 'body{}')
+      writeFileSync(join(tempDir, 'slides', 'common.js'), 'console.log(1)')
+
+      const slides = resolveDirectorySlides(join(tempDir, 'slides'))
+
+      expect(slides.length).toBe(1)
+      expect(slides[0].filename).toBe('slide-01.html')
+    })
+
+    it('应该在目录不存在时返回空数组', () => {
+      const slides = resolveDirectorySlides(join(tempDir, 'nonexistent'))
+      expect(slides).toEqual([])
+    })
+
+    it('应该在传入文件路径而非目录时返回空数组', () => {
+      const filePath = join(tempDir, 'some-file.html')
+      writeFileSync(filePath, '<html></html>')
+      const slides = resolveDirectorySlides(filePath)
+      expect(slides).toEqual([])
+    })
+  })
+
+  describe('isSlidesForgeDirectory', () => {
+    it('应该在目录含 slide-NN.html 文件时返回 true', () => {
+      mkdirSync(join(tempDir, 'slides'), { recursive: true })
+      writeFileSync(join(tempDir, 'slides', 'slide-01.html'), '<h1>第一页</h1>')
+      writeFileSync(join(tempDir, 'slides', 'index.html'), '<html></html>')
+
+      expect(isSlidesForgeDirectory(join(tempDir, 'slides'))).toBe(true)
+    })
+
+    it('应该在目录不含 slide-NN.html 文件时返回 false', () => {
+      mkdirSync(join(tempDir, 'no-slides'), { recursive: true })
+      writeFileSync(join(tempDir, 'no-slides', 'index.html'), '<html></html>')
+
+      expect(isSlidesForgeDirectory(join(tempDir, 'no-slides'))).toBe(false)
+    })
+
+    it('应该在传入文件路径时返回 false', () => {
+      const filePath = join(tempDir, 'some-file.html')
+      writeFileSync(filePath, '<html></html>')
+
+      expect(isSlidesForgeDirectory(filePath)).toBe(false)
+    })
+
+    it('应该在路径不存在时返回 false', () => {
+      expect(isSlidesForgeDirectory(join(tempDir, 'nonexistent'))).toBe(false)
+    })
+  })
+
+  describe('convertDirectorySlidesToPptxRegex', () => {
+    it('应该将 slide-NN.html 目录转换为 PPTX', async () => {
+      const slidesDir = join(tempDir, 'slides-dir')
+      mkdirSync(slidesDir, { recursive: true })
+      writeFileSync(join(slidesDir, 'slide-01.html'), '<section><h1>第一页</h1><p>内容1</p></section>')
+      writeFileSync(join(slidesDir, 'slide-02.html'), '<section><h2>第二页</h2><p>内容2</p></section>')
+      writeFileSync(join(slidesDir, 'index.html'), '<html><head></head><body></body></html>')
+
+      const result = await convertDirectorySlidesToPptxRegex(slidesDir, tempDir)
+
+      expect(result.outputPath).toBeTruthy()
+      expect(result.outputPath.endsWith('.pptx')).toBe(true)
+      expect(result.slideCount).toBe(2)
+    })
+
+    it('应该在目录无 slide-NN.html 时抛出错误', async () => {
+      mkdirSync(join(tempDir, 'empty-dir'), { recursive: true })
+
+      await expect(
+        convertDirectorySlidesToPptxRegex(join(tempDir, 'empty-dir'), tempDir),
+      ).rejects.toThrow('未找到')
+    })
+
+    it('应该支持自定义标题和输出路径', async () => {
+      const slidesDir = join(tempDir, 'slides-custom')
+      mkdirSync(slidesDir, { recursive: true })
+      writeFileSync(join(slidesDir, 'slide-01.html'), '<section><h1>自定义标题</h1></section>')
+
+      const outputPath = join(tempDir, 'custom-output.pptx')
+      const result = await convertDirectorySlidesToPptxRegex(
+        slidesDir,
+        tempDir,
+        '自定义标题名',
+        outputPath,
+      )
+
+      expect(result.outputPath).toBe(outputPath)
+      expect(result.slideCount).toBe(1)
+    })
+  })
+
+  describe('createMergedSlidesHtml', () => {
+    it('应该将多个 slide-NN.html 合并为单个 HTML 文件', () => {
+      const slidesDir = join(tempDir, 'merge-dir')
+      mkdirSync(slidesDir, { recursive: true })
+      writeFileSync(join(slidesDir, 'slide-01.html'), '<html><body><h1>第一页</h1><p>内容1</p></body></html>')
+      writeFileSync(join(slidesDir, 'slide-02.html'), '<html><body><h2>第二页</h2><p>内容2</p></body></html>')
+      writeFileSync(join(slidesDir, 'index.html'), '<html></html>')
+
+      const mergedPath = createMergedSlidesHtml(slidesDir)
+
+      expect(mergedPath).toBe(join(slidesDir, '_ae_merged_tmp.html'))
+      const mergedContent = readFileSync(mergedPath, 'utf8')
+      expect(mergedContent).toContain('第一页')
+      expect(mergedContent).toContain('第二页')
+      expect(mergedContent).toContain('data-slide-number="1"')
+      expect(mergedContent).toContain('data-slide-number="2"')
+    })
+
+    it('应该合并 common.css 内容', () => {
+      const slidesDir = join(tempDir, 'merge-css')
+      mkdirSync(slidesDir, { recursive: true })
+      writeFileSync(join(slidesDir, 'slide-01.html'), '<html><body><h1>标题</h1></body></html>')
+      writeFileSync(join(slidesDir, 'common.css'), 'body { background: #fff; }')
+
+      const mergedPath = createMergedSlidesHtml(slidesDir)
+
+      const mergedContent = readFileSync(mergedPath, 'utf8')
+      expect(mergedContent).toContain('body { background: #fff; }')
+    })
+
+    it('应该提取各 slide 中的 inline style', () => {
+      const slidesDir = join(tempDir, 'merge-styles')
+      mkdirSync(slidesDir, { recursive: true })
+      writeFileSync(
+        join(slidesDir, 'slide-01.html'),
+        '<html><head><style>.slide1{color:red}</style></head><body><h1>标题</h1></body></html>',
+      )
+
+      const mergedPath = createMergedSlidesHtml(slidesDir)
+
+      const mergedContent = readFileSync(mergedPath, 'utf8')
+      expect(mergedContent).toContain('.slide1{color:red}')
+    })
+
+    it('应该在目录无 slide-NN.html 时抛出错误', () => {
+      mkdirSync(join(tempDir, 'empty-merge'), { recursive: true })
+
+      expect(() => createMergedSlidesHtml(join(tempDir, 'empty-merge'))).toThrow('未找到')
+    })
+  })
+
+  describe('cleanupMergedHtml', () => {
+    it('应该删除合并的临时 HTML 文件', () => {
+      const slidesDir = join(tempDir, 'cleanup-dir')
+      mkdirSync(slidesDir, { recursive: true })
+      writeFileSync(join(slidesDir, 'slide-01.html'), '<html><body><h1>标题</h1></body></html>')
+
+      const mergedPath = createMergedSlidesHtml(slidesDir)
+      expect(existsSync(mergedPath)).toBe(true)
+
+      cleanupMergedHtml(slidesDir)
+      expect(existsSync(mergedPath)).toBe(false)
+    })
+
+    it('应该在文件不存在时静默忽略', () => {
+      const slidesDir = join(tempDir, 'no-merged')
+      mkdirSync(slidesDir, { recursive: true })
+
+      cleanupMergedHtml(slidesDir)
+      // 无异常即可
     })
   })
 })
