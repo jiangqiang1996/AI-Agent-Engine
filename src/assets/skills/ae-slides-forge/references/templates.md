@@ -43,22 +43,33 @@ body {
   --slide-pad: 5vw;
 }
 
-/* ===== 子页面居中布局 ===== */
-.slide {
+/* ===== 子页面根容器与居中布局 ===== */
+.slide-root {
   width: 100dvw;
   height: 100dvh;
   overflow: hidden;
+  position: relative;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1.5rem;
   padding: var(--slide-pad);
   background: var(--slide-bg);
   color: var(--slide-fg);
 }
 
-.slide__content {
+/* 页码：统一在根容器内绝对定位，不得放在 slide-header 或其他嵌套容器内 */
+.slide-number {
+  position: absolute;
+  top: 1.5rem;
+  left: 3rem;
+  z-index: 10;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--slide-accent);
+}
+
+.slide-content {
   width: 100%;
   max-width: 100%;
   max-height: 100%;
@@ -69,29 +80,220 @@ body {
   gap: 1.25rem;
 }
 
+/* 内容头部：标题区，不含页码 */
+.slide-header {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-shrink: 0;
+}
+
 /* ===== 排版类（可复用） ===== */
-.slide__title {
+.slide-title {
   font-size: var(--slide-title-size);
   line-height: 1.1;
   text-align: center;
 }
 
-.slide__text {
+.slide-text {
   font-size: var(--slide-text-size);
   line-height: 1.5;
   max-width: 65ch;
   text-align: center;
 }
 
-.slide__list {
+/* ===== 卡片组件 ===== */
+.card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 1.5rem;
+  position: relative;
+  z-index: 2;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--slide-accent);
+}
+
+.card-title {
+  font-weight: 700;
+  color: var(--slide-fg);
+}
+
+/* ===== 布局变体修饰类 ===== */
+.slide-root--cover {
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.slide-root--split {
+  flex-direction: row;
+  align-items: stretch;
+  gap: 3rem;
+}
+.slide-root--split .slide-content {
+  flex: 1;
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.slide-root--grid {
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+.slide-root--grid .slide-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: 2rem;
+  width: 100%;
+  max-width: 100%;
+}
+
+.slide-root--timeline {
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+.slide-root--timeline .slide-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 100%;
+}
+.slide-root--timeline .timeline-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+  width: 100%;
+}
+.slide-root--timeline .timeline-marker {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid var(--slide-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  color: var(--slide-accent);
+}
+.slide-root--timeline .timeline-body {
+  flex: 1;
+}
+
+.slide-root--versus {
+  flex-direction: row;
+  align-items: stretch;
+  gap: 3rem;
+}
+.slide-root--versus .versus-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+.slide-root--versus .versus-divider {
+  flex-shrink: 0;
+  width: 1px;
+  background: rgba(255,255,255,0.1);
+}
+
+.slide-root--quote {
+  flex-direction: column;
+  gap: 3rem;
+}
+.slide-root--quote .slide-text {
+  font-size: clamp(2rem, 4vw, 3rem);
+  text-align: center;
+  max-width: 50ch;
+}
+
+.slide-root--flow {
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+.slide-root--flow .slide-content {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  max-width: 100%;
+  flex-wrap: nowrap;
+}
+.slide-root--flow .flow-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+.slide-root--flow .flow-arrow {
+  flex-shrink: 0;
+  color: var(--slide-accent);
+  font-size: 1.5rem;
+}
+
+/* ===== Mermaid/Canvas 图形容器 ===== */
+.diagram {
+  width: 100%;
+  max-width: 100%;
+  max-height: 70dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.diagram svg {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* ===== ASCII 线框图复刻组件 ===== */
+.wireframe-box {
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.wireframe-row {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  align-items: stretch;
+}
+.wireframe-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: stretch;
+}
+.wireframe-label {
   font-size: var(--slide-text-size);
-  line-height: 1.6;
-  list-style: none;
+  text-align: center;
+  color: var(--slide-fg);
+}
+.wireframe-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--slide-accent);
+  font-size: 1.5rem;
 }
 
 /* ===== 媒体 ===== */
-.slide img,
-.slide video {
+.slide-root img,
+.slide-root video {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
@@ -170,7 +372,7 @@ body {
    * 3) 仍溢出则不强制，由大纲侧调整
    */
   function autoFit(root) {
-    var el = root || document.querySelector('.slide__content') || document.body
+    var el = root || document.querySelector('.slide-content') || document.body
     var step = 0
     var MIN_TEXT = 1.5
     var MIN_TITLE = 2.5
@@ -358,24 +560,161 @@ body {
     <link rel="stylesheet" href="common.css" />
     <style>
       /* 本页特有样式：仅写该页独有的布局微调与动画，不重复全局 reset */
-      .slide--cover {
+      /* 禁止大量 inline style，本页差异必须通过 class 选择器写在 <style> 中 */
+      .slide-root--cover {
         gap: 2rem;
       }
-      .slide--cover .slide__title {
+      .slide-root--cover .slide-title {
         letter-spacing: -0.02em;
       }
     </style>
   </head>
-  <body class="slide slide--cover" data-slide="N">
-    <div class="slide__content">
-      <h1 class="slide__title">大纲第 N 页标题</h1>
-      <p class="slide__text">大纲第 N 页正文（与确认后大纲逐字一致）</p>
-      <!-- 列表、表格、图片按大纲结构渲染；图片用 <img src="相对路径"> -->
+  <body>
+    <div class="slide-root slide-root--cover" data-slide="N">
+      <span class="slide-number">N / TOTAL</span>
+      <div class="slide-content">
+        <div class="slide-header">
+          <h1 class="slide-title">大纲第 N 页标题</h1>
+        </div>
+        <p class="slide-text">大纲第 N 页正文（与确认后大纲逐字一致）</p>
+        <!-- 列表、表格、图片按大纲结构渲染；图片用 <img src="相对路径"> -->
+      </div>
     </div>
 
     <script src="common.js"></script>
     <script>
       // 本页特有脚本：仅在字体加载后触发自适应，不实现翻页
+      if (window.AESlides) {
+        AESlides.onFontsReady(function () {
+          AESlides.autoFit()
+        })
+      }
+    </script>
+  </body>
+</html>
+```
+
+### 含 Mermaid 图的子页面骨架
+
+当大纲页包含 ` ```mermaid ``` ` 代码块时，使用以下骨架：
+
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>第 N 页</title>
+    <link rel="stylesheet" href="common.css" />
+    <style>
+      /* 本页特有样式 */
+      .slide-root--flow {
+        /* 布局变体样式已在 common.css 中定义，此处仅补充本页独有微调 */
+      }
+    </style>
+  </head>
+  <body>
+    <div class="slide-root slide-root--flow" data-slide="N">
+      <span class="slide-number">N / TOTAL</span>
+      <div class="slide-content">
+        <div class="slide-header">
+          <h1 class="slide-title">大纲第 N 页标题</h1>
+        </div>
+        <div class="diagram" id="mermaid-diagram-N">
+          <!-- mermaid.js 渲染后的 SVG 将插入此处 -->
+        </div>
+      </div>
+    </div>
+
+    <script src="common.js"></script>
+    <!-- mermaid.js CDN 引入 -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script>
+      // Mermaid 初始化与渲染
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: 'dark',
+        themeVariables: {
+          fontSize: '24px',
+          fontFamily: 'JetBrains Mono, monospace',
+          primaryColor: '#050505',
+          primaryTextColor: '#EAEAEA',
+          primaryBorderColor: '#00D4FF',
+          lineColor: '#EAEAEA',
+          secondaryColor: '#0A0A0A',
+          tertiaryColor: '#121212'
+        }
+      })
+
+      // 将大纲中的 Mermaid 代码块（变量 mermaidCode）渲染为 SVG
+      var mermaidCode = 'graph TD\n  A[节点A] --> B[节点B]\n  B --> C[节点C]' // 替换为大纲中实际 Mermaid 代码
+      var diagramId = 'mermaid-diagram-N'
+
+      mermaid.render(diagramId + '-svg', mermaidCode).then(function (result) {
+        document.getElementById(diagramId).innerHTML = result.svg
+      }).catch(function (err) {
+        // Mermaid 渲染失败时降级为纯文本说明（不得以 <pre> 录入）
+        document.getElementById(diagramId).innerHTML =
+          '<p class="slide-text">图形渲染失败，请参考大纲中的 Mermaid 定义</p>'
+      })
+
+      // 自适应
+      if (window.AESlides) {
+        AESlides.onFontsReady(function () {
+          AESlides.autoFit()
+        })
+      }
+    </script>
+  </body>
+</html>
+```
+
+### 含 ASCII 线框图的子页面骨架
+
+当大纲页包含 ASCII 线框图时，将其复刻为 HTML/CSS 边框布局：
+
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>第 N 页</title>
+    <link rel="stylesheet" href="common.css" />
+    <style>
+      /* 本页特有样式：仅补充本页独有的线框微调 */
+      .wireframe-box--highlight {
+        border-color: var(--slide-accent);
+        background: rgba(0, 212, 255, 0.05);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="slide-root slide-root--split" data-slide="N">
+      <span class="slide-number">N / TOTAL</span>
+      <div class="slide-content">
+        <div class="slide-header">
+          <h1 class="slide-title">大纲第 N 页标题</h1>
+        </div>
+        <!-- ASCII 线框图复刻为 HTML/CSS 边框布局 -->
+        <div class="wireframe-row">
+          <div class="wireframe-box wireframe-box--highlight">
+            <span class="wireframe-label">区域 A 标注文本</span>
+            <div class="wireframe-col">
+              <span class="wireframe-label">子区域 A1</span>
+              <span class="wireframe-label">子区域 A2</span>
+            </div>
+          </div>
+          <div class="wireframe-arrow">→</div>
+          <div class="wireframe-box">
+            <span class="wireframe-label">区域 B 标注文本</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="common.js"></script>
+    <script>
       if (window.AESlides) {
         AESlides.onFontsReady(function () {
           AESlides.autoFit()
@@ -393,3 +732,19 @@ body {
 - `index.html` 的翻页逻辑必须内联在本文件 `<script>` 中，不得放入 `common.js`，以保证子页面单独打开时不引入翻页副作用
 - 模板中 CSS 自定义属性（`--slide-*`）是设计阶段的配色与字号入口，`ae:web-forge` 子代理可自由覆盖，但不得删除 `overflow: hidden`、`100dvh/100dvw`、滚动条隐藏等硬性约束
 - 当大纲页数变化时，`index.html` 的 `.deck__frame` 数量与 `slide-NN.html` 文件数量必须同步，`N` 占位符替换为实际页数
+- **类名规范（硬约束）：** 子页面必须使用以下统一 flat 类名，禁止 BEM（`.slide`/`.slide__content`）或其他变体：
+  - `.slide-root` — 根容器（`position: relative`、`100dvh/100dvw`、居中布局）
+  - `.slide-number` — 页码（必须在 `.slide-root` 内绝对定位，不得放在 `.slide-header` 或其他嵌套容器内）
+  - `.slide-content` — 内容居中容器
+  - `.slide-header` — 标题区（不含页码）
+  - `.slide-title` — 标题排版类
+  - `.slide-text` — 正文排版类
+  - `.card` / `.card-header` / `.card-title` — 卡片组件
+  - `.diagram` — Mermaid/Canvas 图形容器
+  - `.wireframe-box` / `.wireframe-row` / `.wireframe-col` / `.wireframe-label` / `.wireframe-arrow` — ASCII 线框复刻组件
+  - 页面差异通过 `.slide-root--variant`（如 `.slide-root--cover`/`.slide-root--split`/`.slide-root--grid`/`.slide-root--timeline`/`.slide-root--versus`/`.slide-root--quote`/`.slide-root--flow`）修饰类隔离
+- **页码位置（硬约束）：** 每个子页面的 `<span class="slide-number">` 必须放在 `<div class="slide-root">` 内的顶层，使用绝对定位（`position: absolute; top: 1.5rem; left: 3rem; z-index: 10`），不得嵌套在 `.slide-header` 或 `.slide-content` 中
+- **inline style 限制：** 子页面 `<style>` 内通过 class 选择器表达页面差异，禁止大量 inline `style` 属性；个别微调允许最多 3 处 inline style，其余必须提取为 class
+- **布局提示词（硬约束）：** 大纲中的布局提示词（如 `布局:左右分栏`、`[卡片网格]`、`layout:timeline`）必须转化为对应的 `.slide-root--variant` 修饰类（见 `html-constraints.md` 映射表）；无布局提示词的页面必须由子代理根据内容特征自动选择最适配的布局变体
+- **Mermaid 图（硬约束）：** 大纲中的 ` ```mermaid ``` ` 代码块必须通过 `mermaid.js` CDN 渲染为内嵌 SVG 放入 `.diagram` 容器，不得以 `<pre>` 纯文本录入替代；节点标签与边标签必须与大纲完全一致；SVG 字号不得低于 `1.5rem`
+- **ASCII 线框图（硬约束）：** 大纲中的 ASCII 线框图必须复刻为 HTML/CSS 边框布局（`.wireframe-box`/`.wireframe-row`/`.wireframe-col`/`.wireframe-label`/`.wireframe-arrow`），不得以 `<pre>` 纯文本录入替代；标注文本与空间关系必须与大纲完全一致

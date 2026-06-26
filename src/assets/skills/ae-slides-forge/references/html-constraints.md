@@ -109,8 +109,130 @@
 
 - 每张子页面的内容（文字、列表项、表格单元格文本、图片路径）必须与确认后大纲中对应页完全一致
 - **禁止镀金**：不允许新增、扩展、改写或虚构大纲中没有的内容；不允许删除或浓缩大纲中已有的文字
-- 仅允许的"内容变形"：将大纲中以纯文本形式给出的图片路径（URL 或相对路径）渲染为 `<img>` 元素；以及为列表/表格/段落进行 HTML 结构化渲染
+- 仅允许的"内容变形"：将大纲中以纯文本形式给出的图片路径（URL 或相对路径）渲染为 `<img>` 元素；为列表/表格/段落进行 HTML 结构化渲染；将布局提示词转化为 CSS 布局修饰类；将 Mermaid 代码块渲染为 SVG/Canvas 图形；将 ASCII 线框图复刻为 HTML/CSS 边框布局
 - 视觉风格由 `ae:web-forge` 及其子代理自由设计，但内容真源不得偏离
+
+## 布局提示词约束（硬约束）
+
+大纲每页可能包含布局提示词，用于指导 HTML 布局结构。提示词仅影响 CSS 布局与 HTML 结构，不增删改写内容本身。
+
+### 提示词识别与剥离
+
+- 识别以下形式的布局提示词并将其从内容文本中剥离：
+  - `布局:xxx` 或 `layout:xxx`（如 `布局:左右分栏`、`layout:grid-3`）
+  - `[xxx]` 方括号标记（如 `[分屏]`、`[卡片网格]`、`[时间线]`）
+  - 行首或标题行末尾的布局注释（如 `# 标题 — 左右分栏` 中的 `— 左右分栏` 部分）
+- 剥离后的纯文本仍作为内容真源；剥离出的布局意图转化为 `.slide-root--variant` 修饰类
+
+### 提示词到修饰类映射
+
+常见布局提示词及其对应的修饰类（`ae:web-forge` 子代理可扩展，但不得创建与已有类冲突的变体）：
+
+| 提示词示例 | 修饰类 | 布局含义 |
+|---|---|---|
+| `左右分栏` / `分屏` / `split` | `.slide-root--split` | 左右两栏 flex/grid 布局 |
+| `卡片网格` / `grid-3` / `grid-4` | `.slide-root--grid` | 多卡片 CSS Grid 网格 |
+| `时间线` / `timeline` | `.slide-root--timeline` | 垂直/水平时间线步骤布局 |
+| `全屏居中` / `cover` / `封面` | `.slide-root--cover` | 大标题居中封面布局 |
+| `对比` / `versus` / `对比左右` | `.slide-root--versus` | 左右对比布局 |
+| `引用` / `quote` / `名言` | `.slide-root--quote` | 大字引用居中布局 |
+| `流程` / `flow` / `pipeline` | `.slide-root--flow` | 横向流程箭头布局 |
+
+### 无布局提示词时的自动推断
+
+- 大纲中未包含任何布局提示词的页面，`ae:web-forge` 子代理必须根据内容特征自动选择最适配的布局变体
+- 自动推断规则（优先序）：
+  1. 纯标题 + 短正文 → `.slide-root--cover`（默认居中）
+  2. 多项并列内容（3+ 项）→ `.slide-root--grid`（卡片网格）
+  3. 步骤/阶段/流程 → `.slide-root--timeline` 或 `.slide-root--flow`
+  4. 两组对比内容 → `.slide-root--versus`
+  5. 长引用/名言 → `.slide-root--quote`
+  6. 其他 → 默认 `.slide-root`（flex 居中）
+
+## Mermaid 与 ASCII 线框图复刻约束（硬约束）
+
+大纲中包含 Mermaid 代码块或 ASCII 线框图时，必须将其复刻为 HTML 内可渲染的图形，不得以纯文本 `<pre>` 录入替代。
+
+### Mermaid 图复刻
+
+- **渲染方式**：在子页面中引入 `mermaid.js` CDN（`https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js`），使用 `mermaid.render()` 将 Mermaid 代码块渲染为内嵌 SVG
+- **容器**：SVG 渲染结果必须放在 `<div class="diagram">` 容器内，容器样式：
+  ```css
+  .diagram {
+    width: 100%;
+    max-width: 100%;
+    max-height: 70dvh; /* 留出标题与页码空间 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .diagram svg {
+    max-width: 100%;
+    max-height: 100%;
+  }
+  ```
+- **备选方式**：对于简单流程图、架构图等，可使用 HTML `<canvas>` + JS 手绘方式复刻，但必须保证节点名称、连线关系与大纲 Mermaid 代码完全一致
+- **文本保真**：Mermaid 图中的节点标签（`node["标签文本"]`）、边标签（`-->|标签|`）必须与大纲中完全一致，不得简化、改写或虚构
+- **字号下限**：Mermaid 渲染的 SVG 中节点文字字号不得低于 `1.5rem`；若 `mermaid.js` 默认字号过小，需通过 `mermaid.initialize({ themeVariables: { fontSize: '24px' } })` 或 CSS 覆盖调整
+- **滚动条禁令**：Mermaid SVG 尺寸必须适配子页面视口，不得因图形过大导致滚动条出现；超出时按"内容溢出处理策略"缩放
+
+### ASCII 线框图复刻
+
+- **复刻方式**：将 ASCII 线框图转化为 HTML/CSS 边框布局，使用以下统一 flat 类名：
+  - `.wireframe-box` — 线框中的矩形区域（`border: 1px solid` + 内部标注文本）
+  - `.wireframe-row` — 线框中的水平行（`display: flex` + 水平排列子区域）
+  - `.wireframe-col` — 线框中的垂直列（`display: flex; flex-direction: column` + 垂直排列子区域）
+  - `.wireframe-label` — 线框中的标注文本（字号不低于 `1.5rem`）
+  - `.wireframe-arrow` — 线框中的连接箭头（CSS border triangle 或 SVG inline arrow）
+- **空间关系保真**：复刻后的 HTML/CSS 布局必须保留原始线框的空间关系——哪些区域并列、哪些区域嵌套、哪些区域通过箭头连接
+- **标注文本保真**：线框中的所有标注文本（区域名称、按钮文字、数据标签）必须与大纲中 ASCII 图完全一致
+- **禁止 `<pre>` 录入**：ASCII 线框图不得以 `<pre>` 或 `<code>` 标签原样录入——纯文本录入不符合幻灯片字号规范与视觉要求
+- **字号下限**：所有 `.wireframe-label` 字号不得低于 `1.5rem`
+
+### 图形类名统一
+
+- 图形相关类名必须使用以下统一 flat 类名，禁止 BEM 变体：
+  - `.diagram` — Mermaid/Canvas 图形容器
+  - `.wireframe-box` / `.wireframe-row` / `.wireframe-col` / `.wireframe-label` / `.wireframe-arrow` — ASCII 线框复刻组件
+
+以下约束确保多文件产出在结构、类名和数量上完全一致，防止本次会话暴露的痛点复发：
+
+### iframe 数量与大纲页数对齐
+
+- `index.html` 中 `.deck__frame` 的数量必须等于大纲的总页数
+- 每个大纲页必须对应一个 `slide-NN.html` 文件，序号从 `01` 连续递增
+- 禁止出现"iframe 数量少于文件数量"或"文件数量少于大纲页数"的不一致
+
+### 页码必须存在且位置统一
+
+- 每个子页面必须包含 `<span class="slide-number">` 元素，不得缺失
+- 页码必须放在 `<div class="slide-root">` 内的顶层（绝对定位），不得放在 `.slide-header` 或 `.slide-content` 等嵌套容器内
+- 页码位置统一为 `position: absolute; top: 1.5rem; left: 3rem; z-index: 10`
+- 页码文本格式统一为 `N / TOTAL`，其中 N 为当前页序号，TOTAL 为总页数
+
+### 类名统一（禁止 BEM 或其他变体）
+
+- 子页面根容器统一使用 `.slide-root`（不得用 `.slide` 或 `.slide__wrapper`）
+- 内容容器统一使用 `.slide-content`（不得用 `.slide__content`）
+- 标题区统一使用 `.slide-header`（不得用 `.slide__header`）
+- 标题排版类统一使用 `.slide-title`（不得用 `.slide__title` 或 `h1` 无类名裸写）
+- 正文排版类统一使用 `.slide-text`（不得用 `.slide__text`）
+- 卡片组件统一使用 `.card` / `.card-header` / `.card-title`
+- 图形容器统一使用 `.diagram`（不得用 `.slide__diagram`）
+- 线框组件统一使用 `.wireframe-box` / `.wireframe-row` / `.wireframe-col` / `.wireframe-label` / `.wireframe-arrow`（不得用 `.wf-box` 或 `.wireframe__box` 等 BEM 变体）
+- 页面差异通过 `.slide-root--variant` 修饰类表达（如 `.slide-root--cover`），不得创建独立的 `.slide--xxx` 类
+
+### inline style 限制
+
+- 子页面通过 `<style>` 内的 class 选择器表达页面差异，禁止大量 inline `style` 属性
+- 个别微调允许最多 3 处 inline style，超出必须提取为 `<style>` 中的 class
+- `common.css` 中已有定义的样式不得用 inline style 重复声明
+
+### common.css 与 common.js 引用完整性
+
+- 所有子页面和主入口必须通过 `<link rel="stylesheet" href="common.css">` 和 `<script src="common.js"></script>` 引入公共资源
+- 禁止把 `common.css` 中已有定义的样式内联复制到子页面 `<style>` 中
+- `common.css` 中必须包含模板骨架中定义的所有类（`.slide-root`/`.slide-number`/`.slide-content`/`.slide-header`/`.slide-title`/`.slide-text`/`.card`/`.card-header`/`.card-title`），不得遗漏
 
 ## 兼容性
 
