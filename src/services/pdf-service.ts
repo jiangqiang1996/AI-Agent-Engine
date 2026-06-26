@@ -1,11 +1,14 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
+import { homedir } from 'node:os'
 import path from 'node:path'
 
+import fontkit from '@pdf-lib/fontkit'
 import { PDFDocument, StandardFonts, degrees, rgb } from 'pdf-lib'
 import type { PDFFont, PDFImage, PDFPage } from 'pdf-lib'
 
 import { generateDocumentOutputPath } from '../utils/document-output-path.js'
+import { isInsideRoot } from '../utils/path-utils.js'
 
 const require = createRequire(import.meta.url)
 const PdfParseModule = require('pdf-parse') as {
@@ -21,8 +24,8 @@ export interface PdfColor {
   b: number
 }
 
-/** 标准字体名称，均为 WinAnsi 编码，不支持 CJK 字符 */
-export type FontName =
+/** 标准字体名称，均为 WinAnsi 编码 */
+export type StandardFontName =
   | 'Helvetica'
   | 'HelveticaBold'
   | 'HelveticaOblique'
@@ -35,6 +38,17 @@ export type FontName =
   | 'CourierBold'
   | 'CourierOblique'
   | 'CourierBoldOblique'
+
+/** CJK 字体名称，通过嵌入自定义 TTF/OTF 实现 */
+export type CjkFontName =
+  | 'NotoSansSC'
+  | 'NotoSansSCBold'
+  | 'SimHei'
+  | 'MSYH'
+  | 'MSYHBD'
+
+/** 字体名称：标准字体或 CJK 字体 */
+export type FontName = StandardFontName | CjkFontName
 
 /** 页面元素，支持文本、矩形、椭圆、直线、图片 */
 export interface PdfPageElement {
@@ -134,6 +148,8 @@ export interface PdfInput {
   /** add-watermark 水印配置 */
   watermark?: PdfWatermark
   outputPath?: string
+  /** 自定义 CJK 字体文件路径，用于覆盖默认系统字体搜索 */
+  cjkFontPath?: string
 }
 
 export interface PdfResult {
@@ -149,7 +165,7 @@ const PAGE_SIZES: Record<string, [number, number]> = {
   Legal: [612, 1008],
 }
 
-const FONT_MAP: Record<FontName, StandardFonts> = {
+const STANDARD_FONT_MAP: Record<StandardFontName, StandardFonts> = {
   Helvetica: StandardFonts.Helvetica,
   HelveticaBold: StandardFonts.HelveticaBold,
   HelveticaOblique: StandardFonts.HelveticaOblique,
@@ -164,8 +180,66 @@ const FONT_MAP: Record<FontName, StandardFonts> = {
   CourierBoldOblique: StandardFonts.CourierBoldOblique,
 }
 
+const CJK_FONT_FILES: Record<CjkFontName, string[]> = {
+  NotoSansSC: ['NotoSansSC-VF.ttf', 'NotoSansCJKsc-Regular.ttf', 'NotoSansSC-Regular.otf', 'NotoSansSC-Regular.ttf'],
+  NotoSansSCBold: ['NotoSansSC-Bold.ttf', 'NotoSansSC-Bold.otf', 'NotoSansCJKsc-Bold.ttf'],
+  SimHei: ['simhei.ttf', 'SimHei.ttf'],
+  MSYH: ['msyh.ttc', 'MSYH.TTC', 'msyh.ttf'],
+  MSYHBD: ['msyhbd.ttc', 'MSYHBD.TTC', 'msyhbd.ttf'],
+}
+
+const SYSTEM_FONT_DIRS: string[] = (() => {
+  const dirs: string[] = []
+  const platform = process.platform
+  if (platform === 'win32') {
+    dirs.push('C:\\Windows\\Fonts')
+    dirs.push(path.join(homedir(), 'AppData', 'Local', 'Microsoft', 'Windows', 'Fonts'))
+  } else if (platform === 'darwin') {
+    dirs.push('/System/Library/Fonts')
+    dirs.push('/Library/Fonts')
+    dirs.push(path.join(homedir(), 'Library', 'Fonts'))
+  } else {
+    dirs.push('/usr/share/fonts')
+    dirs.push('/usr/local/share/fonts')
+    dirs.push(path.join(homedir(), '.local', 'share', 'fonts'))
+    dirs.push(path.join(homedir(), '.fonts'))
+  }
+  return dirs
+})()
+
+const CJK_CHAR_REGEX = /[\u4e00-\u9fff\u3400-\u4dbf\u3000-\u303f\uff00-\uffef\uac00-\ud7af\u3040-\u309f\u30a0-\u30ff]/
+
+function hasCjkChar(text: string): boolean {
+  return CJK_CHAR_REGEX.test(text)
+}
+
+function isCjkFont(name: FontName): name is CjkFontName {
+  return name in CJK_FONT_FILES
+}
+
+function findSystemCjkFont(cjkName: CjkFontName): string | null {
+  for (const dir of SYSTEM_FONT_DIRS) {
+    for (const filename of CJK_FONT_FILES[cjkName]) {
+      const fullPath = path.join(dir, filename)
+      if (existsSync(fullPath)) return fullPath
+    }
+  }
+  return null
+}
+
+const DEFAULT_CJK_REGULAR: CjkFontName = 'NotoSansSC'
+const DEFAULT_CJK_BOLD: CjkFontName = 'NotoSansSCBold'
+
+function resolveCjkFontForStandardBold(name: StandardFontName): CjkFontName {
+  if (name.includes('Bold')) return DEFAULT_CJK_BOLD
+  return DEFAULT_CJK_REGULAR
+}
+
 function toColor(c?: PdfColor) {
-  return c ? rgb(c.r, c.g, c.b) : undefined
+  if (!c) return undefined
+  // 防御性处理：值 > 1 时可能是 0-255 范围误传，自动归一化到 0-1；值 < 0 时钳制为 0
+  const clamp = (v: number) => v > 1 ? v / 255 : v < 0 ? 0 : v
+  return rgb(clamp(c.r), clamp(c.g), clamp(c.b))
 }
 
 function isJpg(bytes: Buffer): boolean {
@@ -182,11 +256,36 @@ async function getFont(
   doc: PDFDocument,
   name: FontName,
   cache: Record<string, PDFFont>,
+  customCjkFontPath?: string,
+  worktree?: string,
 ): Promise<PDFFont> {
-  if (!cache[name]) {
-    cache[name] = await doc.embedFont(FONT_MAP[name])
+  if (cache[name]) return cache[name]
+
+  if (isCjkFont(name)) {
+    doc.registerFontkit(fontkit)
+    const fontPath = customCjkFontPath ?? findSystemCjkFont(name)
+    if (!fontPath) {
+      const candidates = CJK_FONT_FILES[name].join('、')
+      const systemDirs = SYSTEM_FONT_DIRS.join('、')
+      throw new Error(
+        `找不到 CJK 字体 "${name}" 的文件（候选文件名：${candidates}，搜索目录：${systemDirs}）。请安装对应字体，或通过 cjkFontPath 参数指定字体文件路径。`,
+      )
+    }
+    if (customCjkFontPath && worktree && !isInsideRoot(worktree, customCjkFontPath)) {
+      throw new Error(`CJK 字体文件路径超出工作区边界：${customCjkFontPath}。请使用工作区内的字体文件路径。`)
+    }
+    const fontBytes = readFileSync(fontPath)
+    cache[name] = await doc.embedFont(fontBytes)
+    return cache[name]
   }
+
+  cache[name] = await doc.embedFont(STANDARD_FONT_MAP[name])
   return cache[name]
+}
+
+interface AutoLayoutState {
+  nextY: number
+  pageHeight: number
 }
 
 async function drawElement(
@@ -194,24 +293,43 @@ async function drawElement(
   page: PDFPage,
   el: PdfPageElement,
   fontCache: Record<string, PDFFont>,
-): Promise<void> {
+  customCjkFontPath?: string,
+  worktree?: string,
+  autoLayout?: AutoLayoutState,
+): Promise<AutoLayoutState | undefined> {
   switch (el.type) {
     case 'text': {
-      const fontName: FontName = el.font ?? 'Helvetica'
-      const font = await getFont(doc, fontName, fontCache)
+      const rawFontName: FontName | undefined = el.font
+      const textContent = el.text ?? ''
+      const fontName = rawFontName ?? (hasCjkChar(textContent) ? DEFAULT_CJK_REGULAR : 'Helvetica')
+      const font = await getFont(doc, fontName, fontCache, customCjkFontPath, worktree)
       const size = el.fontSize ?? 12
-      const color = el.color ? rgb(el.color.r, el.color.g, el.color.b) : rgb(0, 0, 0)
-      const lines = (el.text ?? '').split('\n')
-      const startX = el.x ?? 50
-      let y = el.y ?? page.getHeight() - 50
+      // toColor 已内置防御性归一化（值>1时自动从0-255范围归一化到0-1）
+      const color = toColor(el.color) ?? rgb(0, 0, 0)
+      const lines = textContent.split('\n')
       const lineHeight = el.lineHeight ?? size + 6
+      const pageHeight = page.getHeight()
+      const startX = el.x ?? 50
+
+      // 未指定 y 时使用自动布局：从上一个元素的 y 位置继续向下排列，防止重叠
+      let y: number
+      if (el.y !== undefined) {
+        y = el.y
+      } else if (autoLayout) {
+        y = autoLayout.nextY
+      } else {
+        y = pageHeight - 50
+      }
+
       for (const line of lines) {
         if (line.length > 0) {
           page.drawText(line, { x: startX, y, size, font, color })
         }
         y -= lineHeight
       }
-      break
+
+      // 返回更新后的自动布局状态，供下一个元素使用
+      return { nextY: y, pageHeight }
     }
     case 'rect': {
       page.drawRectangle({
@@ -245,7 +363,7 @@ async function drawElement(
         start: { x: el.x ?? 0, y: el.y ?? 0 },
         end: { x: el.x2 ?? 0, y: el.y2 ?? 0 },
         thickness: el.thickness ?? 1,
-        color: el.color ? rgb(el.color.r, el.color.g, el.color.b) : rgb(0, 0, 0),
+        color: toColor(el.color) ?? rgb(0, 0, 0),
       })
       break
     }
@@ -304,7 +422,8 @@ async function handleCreate(input: PdfInput): Promise<PdfResult> {
 
     // 兼容旧模式：仅有 text/fontSize
     if (pageSpec.text && !pageSpec.elements) {
-      const font = await getFont(doc, 'Helvetica', fontCache)
+      const legacyFontName: FontName = hasCjkChar(pageSpec.text) ? DEFAULT_CJK_REGULAR : 'Helvetica'
+      const font = await getFont(doc, legacyFontName, fontCache, input.cjkFontPath, input.worktree)
       const fontSize = pageSpec.fontSize ?? 12
       const lines = pageSpec.text.split('\n')
       let y = h - 50
@@ -317,10 +436,12 @@ async function handleCreate(input: PdfInput): Promise<PdfResult> {
       }
     }
 
-    // 新模式：元素化绘制
+    // 新模式：元素化绘制（带自动布局：未指定坐标的文本元素自动向下排列防重叠）
     if (pageSpec.elements) {
+      let autoLayout: AutoLayoutState | undefined = undefined
       for (const el of pageSpec.elements) {
-        await drawElement(doc, page, el, fontCache)
+        const result = await drawElement(doc, page, el, fontCache, input.cjkFontPath, input.worktree, autoLayout)
+        if (result) autoLayout = result
       }
     }
   }
@@ -443,9 +564,10 @@ async function handleFillForm(input: PdfInput): Promise<PdfResult> {
   }
 
   const bytes = await doc.save()
-  const outputPath =
-    input.outputPath ?? generateDocumentOutputPath(input.worktree, 'fill-form', 'pdf', file)
-  mkdirSync(path.dirname(outputPath), { recursive: true })
+  const outputPath = input.outputPath ?? file
+  if (outputPath !== file) {
+    mkdirSync(path.dirname(outputPath), { recursive: true })
+  }
   writeFileSync(outputPath, bytes)
 
   return {
@@ -472,9 +594,10 @@ async function handleRotatePages(input: PdfInput): Promise<PdfResult> {
   }
 
   const bytes = await doc.save()
-  const outputPath =
-    input.outputPath ?? generateDocumentOutputPath(input.worktree, 'rotate-pages', 'pdf', file)
-  mkdirSync(path.dirname(outputPath), { recursive: true })
+  const outputPath = input.outputPath ?? file
+  if (outputPath !== file) {
+    mkdirSync(path.dirname(outputPath), { recursive: true })
+  }
   writeFileSync(outputPath, bytes)
 
   return {
@@ -501,9 +624,10 @@ async function handleDeletePages(input: PdfInput): Promise<PdfResult> {
   keptPages.forEach((p) => newDoc.addPage(p))
 
   const bytes = await newDoc.save()
-  const outputPath =
-    input.outputPath ?? generateDocumentOutputPath(input.worktree, 'delete-pages', 'pdf', file)
-  mkdirSync(path.dirname(outputPath), { recursive: true })
+  const outputPath = input.outputPath ?? file
+  if (outputPath !== file) {
+    mkdirSync(path.dirname(outputPath), { recursive: true })
+  }
   writeFileSync(outputPath, bytes)
 
   return {
@@ -522,11 +646,14 @@ async function handleAddWatermark(input: PdfInput): Promise<PdfResult> {
     throw new Error('add-watermark 操作需要 watermark 参数')
   }
   const doc = await PDFDocument.load(readFileSync(file), { ignoreEncryption: true })
-  const font = await doc.embedFont(StandardFonts.HelveticaBold)
+  const isCjk = hasCjkChar(wm.text)
+  const fontName: FontName = isCjk ? DEFAULT_CJK_BOLD : 'HelveticaBold'
+  const fontCache: Record<string, PDFFont> = {}
+  const font = await getFont(doc, fontName, fontCache, input.cjkFontPath, input.worktree)
   const fontSize = wm.fontSize ?? 50
   const opacity = wm.opacity ?? 0.3
   const rotation = wm.rotation ?? 45
-  const color = wm.color ? rgb(wm.color.r, wm.color.g, wm.color.b) : rgb(0.5, 0.5, 0.5)
+  const color = toColor(wm.color) ?? rgb(0.5, 0.5, 0.5)
 
   const pages = doc.getPages()
   for (const page of pages) {
@@ -544,9 +671,10 @@ async function handleAddWatermark(input: PdfInput): Promise<PdfResult> {
   }
 
   const bytes = await doc.save()
-  const outputPath =
-    input.outputPath ?? generateDocumentOutputPath(input.worktree, 'add-watermark', 'pdf', file)
-  mkdirSync(path.dirname(outputPath), { recursive: true })
+  const outputPath = input.outputPath ?? file
+  if (outputPath !== file) {
+    mkdirSync(path.dirname(outputPath), { recursive: true })
+  }
   writeFileSync(outputPath, bytes)
 
   return {
@@ -580,7 +708,8 @@ async function handleAddPages(input: PdfInput): Promise<PdfResult> {
 
     // 兼容旧模式
     if (pageSpec.text && !pageSpec.elements) {
-      const font = await getFont(doc, 'Helvetica', fontCache)
+      const legacyFontName: FontName = hasCjkChar(pageSpec.text) ? DEFAULT_CJK_REGULAR : 'Helvetica'
+      const font = await getFont(doc, legacyFontName, fontCache, input.cjkFontPath, input.worktree)
       const fontSize = pageSpec.fontSize ?? 12
       const lines = pageSpec.text.split('\n')
       let y = h - 50
@@ -593,18 +722,21 @@ async function handleAddPages(input: PdfInput): Promise<PdfResult> {
       }
     }
 
-    // 元素化绘制
+    // 元素化绘制（带自动布局防重叠）
     if (pageSpec.elements) {
+      let autoLayout: AutoLayoutState | undefined = undefined
       for (const el of pageSpec.elements) {
-        await drawElement(doc, page, el, fontCache)
+        const result = await drawElement(doc, page, el, fontCache, input.cjkFontPath, input.worktree, autoLayout)
+        if (result) autoLayout = result
       }
     }
   }
 
   const bytes = await doc.save()
-  const outputPath =
-    input.outputPath ?? generateDocumentOutputPath(input.worktree, 'add-pages', 'pdf', file)
-  mkdirSync(path.dirname(outputPath), { recursive: true })
+  const outputPath = input.outputPath ?? file
+  if (outputPath !== file) {
+    mkdirSync(path.dirname(outputPath), { recursive: true })
+  }
   writeFileSync(outputPath, bytes)
 
   const totalCount = existingCount + pages.length
@@ -640,14 +772,18 @@ async function handleUpdatePage(input: PdfInput): Promise<PdfResult> {
   const page = doc.getPage(pageIndex)
   const fontCache: Record<string, PDFFont> = {}
 
+  // update-page 的元素叠加在已有内容上，自动布局从页面顶部开始
+  let autoLayout: AutoLayoutState | undefined = { nextY: page.getHeight() - 50, pageHeight: page.getHeight() }
   for (const el of elements) {
-    await drawElement(doc, page, el, fontCache)
+    const result = await drawElement(doc, page, el, fontCache, input.cjkFontPath, input.worktree, autoLayout)
+    if (result) autoLayout = result
   }
 
   const bytes = await doc.save()
-  const outputPath =
-    input.outputPath ?? generateDocumentOutputPath(input.worktree, 'update-page', 'pdf', file)
-  mkdirSync(path.dirname(outputPath), { recursive: true })
+  const outputPath = input.outputPath ?? file
+  if (outputPath !== file) {
+    mkdirSync(path.dirname(outputPath), { recursive: true })
+  }
   writeFileSync(outputPath, bytes)
 
   return {

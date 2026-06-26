@@ -7,11 +7,11 @@ import { formatDocumentToolError } from '../utils/document-tool-errors.js'
 
 const colorSchema = z
   .object({
-    r: z.number().min(0).max(1).describe('红色分量，0-1 范围'),
-    g: z.number().min(0).max(1).describe('绿色分量，0-1 范围'),
-    b: z.number().min(0).max(1).describe('蓝色分量，0-1 范围'),
+    r: z.number().min(0).max(1).describe('红色分量，0-1 范围（非 0-255！红色为 {r:1,g:0,b:0}）'),
+    g: z.number().min(0).max(1).describe('绿色分量，0-1 范围（非 0-255！绿色为 {r:0,g:1,b:0}）'),
+    b: z.number().min(0).max(1).describe('蓝色分量，0-1 范围（非 0-255！蓝色为 {r:0,g:0,b:1}）'),
   })
-  .describe('RGB 颜色，分量范围 0-1')
+  .describe('RGB 颜色，分量范围 0-1（不是 0-255！红色={r:1,g:0,b:0}，黑色={r:0,g:0,b:0}，白色={r:1,g:1,b:1}）')
 
 const fontNameSchema = z
   .enum([
@@ -27,8 +27,13 @@ const fontNameSchema = z
     'CourierBold',
     'CourierOblique',
     'CourierBoldOblique',
+    'NotoSansSC',
+    'NotoSansSCBold',
+    'SimHei',
+    'MSYH',
+    'MSYHBD',
   ])
-  .describe('标准字体名称（WinAnsi 编码，不支持 CJK）')
+  .describe('字体名称：Helvetica(默认)/HelveticaBold/HelveticaOblique/HelveticaBoldOblique/TimesRoman(含Bold/Italic/BoldItalic)/Courier(含Bold/Oblique/BoldOblique) 或 CJK 字体 NotoSansSC/NotoSansSCBold/SimHei/MSYH/MSYHBD（需系统安装对应字体文件）')
 
 const pageElementSchema = z
   .object({
@@ -36,25 +41,25 @@ const pageElementSchema = z
       .enum(['text', 'rect', 'ellipse', 'line', 'image'])
       .describe('元素类型'),
     text: z.string().optional().describe('文本内容，支持换行（text 类型使用）'),
-    x: z.number().optional().describe('起始 x 坐标（pt）'),
-    y: z.number().optional().describe('起始 y 坐标（pt）'),
-    fontSize: z.number().optional().describe('字号，默认 12（text 类型使用）'),
-    font: fontNameSchema.optional().describe('字体，默认 Helvetica'),
-    color: colorSchema.optional().describe('文本/线条颜色'),
-    lineHeight: z.number().optional().describe('行高（pt），默认字号 +6'),
-    width: z.number().optional().describe('宽度（pt），rect/ellipse 使用'),
-    height: z.number().optional().describe('高度（pt），rect/ellipse 使用'),
+    x: z.number().optional().describe('起始 x 坐标（pt），PDF 坐标系 y=0 在页面底部！未指定时文本默认 50，rect/ellipse/line 默认 0'),
+    y: z.number().optional().describe('起始 y 坐标（pt），PDF 坐标系 y=0 在页面底部！A4 页面高度 841.89pt，文字从顶部开始 y≈792。未指定时文本默认 pageHeight-50'),
+    fontSize: z.number().min(1).max(200).optional().describe('字号（pt），默认 12（text 类型使用），建议范围 8-72'),
+    font: fontNameSchema.optional().describe('字体，默认 Helvetica（含 CJK 字符时自动切换 NotoSansSC）'),
+    color: colorSchema.optional().describe('文本/线条颜色，默认黑色 {r:0,g:0,b:0}'),
+    lineHeight: z.number().min(1).optional().describe('行高（pt），默认 fontSize+6（text 类型使用）'),
+    width: z.number().min(1).optional().describe('宽度（pt），rect/ellipse 使用'),
+    height: z.number().min(1).optional().describe('高度（pt），rect/ellipse 使用'),
     borderColor: colorSchema.optional().describe('边框颜色'),
-    borderWidth: z.number().optional().describe('边框宽度（pt）'),
+    borderWidth: z.number().min(0).optional().describe('边框宽度（pt）'),
     fillColor: colorSchema.optional().describe('填充颜色'),
     opacity: z.number().min(0).max(1).optional().describe('不透明度，0-1'),
-    x2: z.number().optional().describe('终点 x 坐标（line 类型使用）'),
-    y2: z.number().optional().describe('终点 y 坐标（line 类型使用）'),
-    thickness: z.number().optional().describe('线条粗细（pt），默认 1'),
-    imagePath: z.string().optional().describe('本地图片路径（JPG/PNG）'),
+    x2: z.number().optional().describe('终点 x 坐标（pt，line 类型使用）'),
+    y2: z.number().optional().describe('终点 y 坐标（pt，line 类型使用）'),
+    thickness: z.number().min(0).optional().describe('线条粗细（pt），默认 1'),
+    imagePath: z.string().optional().describe('本地图片路径（JPG/PNG），仅当前工作区内的文件'),
     imageData: z.string().optional().describe('base64 图片数据，支持 data URI 前缀'),
-    imageWidth: z.number().optional().describe('图片绘制宽度（pt）'),
-    imageHeight: z.number().optional().describe('图片绘制高度（pt）'),
+    imageWidth: z.number().min(1).optional().describe('图片绘制宽度（pt），默认使用图片原始宽度'),
+    imageHeight: z.number().min(1).optional().describe('图片绘制高度（pt），默认使用图片原始高度'),
   })
   .describe('页面元素')
 
@@ -111,6 +116,11 @@ export const aePdfTool = tool({
     '- add-pages：向已有 PDF 追加新页面，页面结构与 create 的 pages 相同',
     '- update-page：在已有 PDF 的指定页面上叠加绘制新元素（文本/矩形/椭圆/直线/图片）',
     '',
+    'CJK 字体支持：',
+    '- 支持 NotoSansSC、NotoSansSCBold、SimHei、MSYH、MSYHBD 五种 CJK 字体',
+    '- CJK 字体从系统字体目录自动发现，也可通过 cjkFontPath 指定自定义字体文件路径',
+    '- 未指定 font 的文本元素会自动检测是否含 CJK 字符并切换到对应 CJK 字体',
+    '',
     '增量操作策略：',
     '- 大型 PDF（>5 页）：先用 create 创建初始页面，再用 add-pages 分批追加后续页面',
     '- 需在已有页面上添加元素：使用 update-page 而非重新 create',
@@ -136,7 +146,6 @@ export const aePdfTool = tool({
     '- 只需读取 PDF 内容转为 Markdown 时，使用 ae:markitdown',
     '- 不支持远程 URL，仅处理当前工作区内本地文件',
     '- 不支持加密 PDF',
-    '- 标准字体为 WinAnsi 编码，不支持中文、日文、韩文等 CJK 字符',
   ].join('\n'),
   args: {
     operation: z
@@ -167,8 +176,9 @@ export const aePdfTool = tool({
       .describe('PDF 标题（create 操作可选，等价于 metadata.title）'),
     pages: z
       .array(pageSpecSchema)
+      .max(30, '单次页面数量上限 30，超过时请分批追加：先用 create 创建初始页面，再用 add-pages 分批追加')
       .optional()
-      .describe('页面数组（create/add-pages 操作必填），每页可含 elements 元素列表或 text 整页文本'),
+      .describe('页面数组（create/add-pages 操作必填）。单次上限 30 页，超过时请分批追加'),
     elements: z
       .array(pageElementSchema)
       .optional()
@@ -204,6 +214,10 @@ export const aePdfTool = tool({
       .string()
       .optional()
       .describe('自定义输出路径；省略时自动生成到 ae/documents/pdf/'),
+    cjkFontPath: z
+      .string()
+      .optional()
+      .describe('自定义 CJK 字体文件路径（.ttf 或 .otf），用于覆盖默认系统字体搜索；仅对 CJK 字体和含 CJK 字符的文本生效'),
   },
   execute: async (args, ctx) => {
     ctx.metadata({ title: `PDF ${args.operation}`, metadata: { operation: args.operation } })
@@ -224,6 +238,7 @@ export const aePdfTool = tool({
         pageIndices: args.pageIndices,
         watermark: args.watermark,
         outputPath: args.outputPath,
+        cjkFontPath: args.cjkFontPath,
       })
 
       return {
