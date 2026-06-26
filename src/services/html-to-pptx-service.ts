@@ -1,6 +1,7 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { dirname, isAbsolute, resolve } from 'node:path'
+import { existsSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs'
+import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 
+import { isInsideRoot } from '../utils/path-utils.js'
 import { processPptx, type PptxInputElement, type PptxSlideContent, type PptxTableCell } from './pptx-service.js'
 import {
   buildExtractionScript,
@@ -53,6 +54,9 @@ const DEFAULT_FONT_SIZE_SMALL = 14
 
 function resolveFilePath(worktree: string, filePath: string): string {
   const resolved = isAbsolute(filePath) ? filePath : resolve(worktree, filePath)
+  if (!isInsideRoot(worktree, resolved)) {
+    throw new HtmlToPptxError(`文件路径超出工作区边界：${filePath}。请使用工作区内的文件路径。`)
+  }
   if (!existsSync(resolved)) {
     throw new HtmlToPptxError(`HTML 文件不存在：${filePath}`)
   }
@@ -509,4 +513,163 @@ export async function convertHtmlToPptx(options: HtmlToPptxOptions): Promise<Htm
   }
 
   return convertHtmlToPptxRegex(options, filePath)
+}
+
+const SLIDE_FILE_PATTERN = /^slide-(\d+)\.html$/i
+const MERGED_HTML_FILENAME = '_ae_merged_tmp.html'
+
+export interface SlideFileInfo {
+  filename: string
+  number: number
+  fullPath: string
+}
+
+export function resolveDirectorySlides(dirPath: string): SlideFileInfo[] {
+  if (!existsSync(dirPath) || !statSync(dirPath).isDirectory()) {
+    return []
+  }
+
+  const entries = readdirSync(dirPath)
+  const slides: SlideFileInfo[] = []
+
+  const seenNumbers = new Set<number>()
+  const duplicates: number[] = []
+
+  for (const entry of entries) {
+    const match = SLIDE_FILE_PATTERN.exec(entry)
+    if (match) {
+      const num = Number(match[1])
+      if (seenNumbers.has(num)) {
+        duplicates.push(num)
+        continue
+      }
+      seenNumbers.add(num)
+      const fullPath = join(dirPath, entry)
+      if (statSync(fullPath).isFile()) {
+        slides.push({
+          filename: entry,
+          number: num,
+          fullPath,
+        })
+      }
+    }
+  }
+
+  if (duplicates.length > 0) {
+    throw new HtmlToPptxError(`目录中存在重复的幻灯片编号：${duplicates.join('、')}。请确保每个 slide-NN.html 文件的编号唯一。`)
+  }
+
+  slides.sort((a, b) => a.number - b.number)
+  return slides
+}
+
+export function isSlidesForgeDirectory(inputPath: string): boolean {
+  if (!existsSync(inputPath)) return false
+
+  if (statSync(inputPath).isFile()) return false
+
+  if (!statSync(inputPath).isDirectory()) return false
+
+  const slides = resolveDirectorySlides(inputPath)
+  return slides.length > 0
+}
+
+export async function convertDirectorySlidesToPptxRegex(
+  dirPath: string,
+  worktree: string,
+  titleOverride?: string,
+  outputPath?: string,
+): Promise<HtmlToPptxResult> {
+  const slides = resolveDirectorySlides(dirPath)
+  if (slides.length === 0) {
+    throw new HtmlToPptxError(`目录中未找到 slide-NN.html 格式的幻灯片文件：${dirPath}`)
+  }
+
+  const warnings: string[] = []
+  const pptxSlides: PptxSlideContent[] = []
+
+  for (const slideInfo of slides) {
+    const html = readFileSync(slideInfo.fullPath, 'utf8')
+    const cleaned = stripNonContent(html)
+    const rawSlide: RawSlide = { body: cleaned }
+    pptxSlides.push(parseSlideContent(rawSlide, worktree, dirPath, warnings))
+  }
+
+  const title = titleOverride ?? extractTitle(stripNonContent(readFileSync(slides[0].fullPath, 'utf8'))) ?? basename(dirPath)
+
+  const result = await processPptx({
+    operation: 'create',
+    worktree,
+    title,
+    slides: pptxSlides,
+    outputPath,
+  })
+
+  return {
+    outputPath: result.outputPath!,
+    slideCount: pptxSlides.length,
+    warnings,
+  }
+}
+
+export function createMergedSlidesHtml(dirPath: string): string {
+  const slides = resolveDirectorySlides(dirPath)
+  if (slides.length === 0) {
+    throw new HtmlToPptxError(`目录中未找到 slide-NN.html 格式的幻灯片文件：${dirPath}`)
+  }
+
+  const commonCssPath = join(dirPath, 'common.css')
+  let commonCssContent = ''
+  if (existsSync(commonCssPath) && statSync(commonCssPath).isFile()) {
+    commonCssContent = readFileSync(commonCssPath, 'utf8')
+  }
+
+  const sections: string[] = []
+
+  for (const slideInfo of slides) {
+    const html = readFileSync(slideInfo.fullPath, 'utf8')
+
+    const headStyleMatches = html.match(/<style\b[^>]*>([\s\S]*?)<\/style>/gi) ?? []
+    const headStyles = headStyleMatches.map((s) => s.replace(/<\/?style\b[^>]*>/gi, '')).join('\n')
+
+    const bodyMatch = html.match(/<body\b[^>]*>([\s\S]*?)<\/body>/i)
+    const bodyContent = bodyMatch?.[1] ?? html
+
+    const sectionInner = [
+      headStyles ? `<style>\n${headStyles}\n</style>` : '',
+      bodyContent.trim(),
+    ].filter(Boolean).join('\n')
+
+    sections.push(`<section data-slide-number="${slideInfo.number}">\n${sectionInner}\n</section>`)
+  }
+
+  const mergedHtml = [
+    '<!DOCTYPE html>',
+    '<html lang="zh-CN">',
+    '<head>',
+    '<meta charset="UTF-8">',
+    '<title>Merged Slides</title>',
+    commonCssContent ? `<style>\n${commonCssContent}\n</style>` : '',
+    '</head>',
+    '<body>',
+    ...sections,
+    '</body>',
+    '</html>',
+  ].filter(Boolean).join('\n')
+
+  const mergedPath = join(dirPath, MERGED_HTML_FILENAME)
+  writeFileSync(mergedPath, mergedHtml, 'utf8')
+
+  return mergedPath
+}
+
+export function cleanupMergedHtml(dirPath: string): void {
+  const mergedPath = join(dirPath, MERGED_HTML_FILENAME)
+  if (existsSync(mergedPath)) {
+    try {
+      unlinkSync(mergedPath)
+    } catch {
+      // 清理失败不影响结果，静默忽略
+    }
+  }
 }

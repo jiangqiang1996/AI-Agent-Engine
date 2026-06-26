@@ -1,11 +1,21 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { isAbsolute, resolve } from 'node:path'
+import { existsSync, readFileSync, statSync, writeFileSync, unlinkSync } from 'node:fs'
+import { basename, isAbsolute, join, resolve } from 'node:path'
 
 import { tool } from '@opencode-ai/plugin'
 import { z } from 'zod'
 
 import { TOOL } from '../schemas/ae-asset-schema.js'
-import { buildBrowserExtractionScript, buildBrowserViewportProbeScript, convertHtmlToPptx, formatHtmlToPptxError } from '../services/html-to-pptx-service.js'
+import { isInsideRoot } from '../utils/path-utils.js'
+import {
+  buildBrowserExtractionScript,
+  buildBrowserViewportProbeScript,
+  cleanupMergedHtml,
+  convertDirectorySlidesToPptxRegex,
+  convertHtmlToPptx,
+  createMergedSlidesHtml,
+  formatHtmlToPptxError,
+  isSlidesForgeDirectory,
+} from '../services/html-to-pptx-service.js'
 
 function formatResult(result: { outputPath: string; slideCount: number; warnings: string[] }, renderMode: string): string {
   return [
@@ -68,16 +78,17 @@ function formatBrowserStepInstruction(file: string, slideSeparator: string): str
 
 export const aeHtmlToPptxTool = tool({
   description: [
-    '将 HTML 文件转换为 PPTX 演示文稿。',
+    '将 HTML 文件或幻灯片目录转换为 PPTX 演示文稿。',
     '',
     '功能说明：',
-    '- 读取当前工作区内的 HTML 文件',
+    '- 读取当前工作区内的 HTML 文件或多文件幻灯片目录',
+    '- 自动探测输入格式：',
+    '  1. 单文件 HTML：按 section/hr/h1 自动分页',
+    '  2. 多文件目录（如 ae:slides-forge 产物 slide-01.html..slide-NN.html + common.css）：每个文件作为一张幻灯片',
     '- 支持两种渲染模式：',
     '  1. regex（默认）：正则提取结构化内容，不保留 CSS 样式',
     '  2. browser：通过浏览器渲染提取精确布局和样式（需要 chrome-devtools MCP）',
-    '- 按 section / hr / h1 标签自动分页（可指定策略）',
-    '- 浏览器模式映射 getComputedStyle + getBoundingClientRect 获取精确位置和样式',
-    '- 内联 data URI 图片直接嵌入，本地图片路径自动解析',
+    '- 浏览器模式对多文件目录会自动创建合并 HTML，保证 CSS/图片相对路径有效',
     '- 调用 pptxgenjs 生成 .pptx 文件，自动写入 ae/documents/pptx/ 目录',
     '',
     '浏览器渲染模式流程（browser_render=true 且无 browser_data）：',
@@ -90,24 +101,115 @@ export const aeHtmlToPptxTool = tool({
     '- 需要高保真还原 HTML 视觉布局时使用 browser_render 模式',
     '',
     '不适用场景：',
-    '- 不支持远程 URL，仅处理当前工作区内本地 HTML 文件',
+    '- 不支持远程 URL，仅处理当前工作区内本地 HTML 文件或目录',
     '- regex 模式不保留 CSS 样式、布局和动画',
     '- browser 模式需要 chrome-devtools MCP 已连接就绪',
   ].join('\n'),
   args: {
-    file: z.string().min(1).describe('HTML 文件路径，支持绝对路径或相对于工作区的相对路径'),
-    title: z.string().optional().describe('演示文稿标题，省略时从 HTML 的 h1 或 title 标签提取'),
+    file: z.string().min(1).describe('HTML 文件路径或幻灯片目录路径，支持绝对路径或相对于工作区的相对路径。传入目录时自动识别 slide-01.html..slide-NN.html 多文件格式'),
+    title: z.string().optional().describe('演示文稿标题，省略时从 HTML 的 h1 或 title 标签提取，目录模式 fallback 到目录名'),
     output: z.string().optional().describe('输出 PPTX 文件路径，省略时自动生成到 ae/documents/pptx/'),
-    slide_separator: z.enum(['section', 'hr', 'h1', 'auto']).optional().describe('幻灯片分页策略：section 按 <section> 分页，hr 按 <hr> 分页，h1 按 <h1> 分页，auto 自动选择（默认）'),
+    slide_separator: z.enum(['section', 'hr', 'h1', 'auto']).optional().describe('幻灯片分页策略：section 按 <section> 分页，hr 按 <hr> 分页，h1 按 <h1> 分页，auto 自动选择（默认）。仅对单文件 HTML 有效，多文件目录自动忽略此参数'),
     browser_render: z.boolean().optional().describe('是否使用浏览器渲染模式提取精确布局和样式（需要 chrome-devtools MCP）'),
     browser_data: z.string().optional().describe('浏览器提取脚本返回的 JSON 字符串（由 chrome-devtools_evaluate_script 获取），也支持传入工作区内 JSON 文件路径'),
   },
   execute: async (args, ctx) => {
     const worktree = resolve(ctx.worktree)
     const renderMode = args.browser_render ? 'browser' : 'regex'
-    ctx.metadata({ title: `HTML 转 PPTX: ${args.file} (${renderMode})` })
+
+    const resolvedPath = isAbsolute(args.file) ? args.file : resolve(worktree, args.file)
+    if (!existsSync(resolvedPath)) {
+      return {
+        output: formatFailedResult(`路径不存在：${args.file}。请检查路径是否正确。`),
+        metadata: { tool: TOOL.AE_HTML_TO_PPTX, status: 'failed' },
+      }
+    }
+
+    const isDirectory = statSync(resolvedPath).isDirectory()
+    const isSlidesForge = isDirectory && isSlidesForgeDirectory(resolvedPath)
+
+    ctx.metadata({
+      title: `HTML 转 PPTX: ${args.file} (${renderMode}${isSlidesForge ? ', 目录模式' : ''})`,
+      metadata: { isDirectory, isSlidesForge },
+    })
 
     try {
+      // 目录模式 + 浏览器渲染 + 无 browser_data → 创建合并 HTML 并返回浏览器步骤指令
+      if (isSlidesForge && args.browser_render && !args.browser_data) {
+        const mergedPath = createMergedSlidesHtml(resolvedPath)
+        const separator = 'section'
+        const instruction = formatBrowserStepInstruction(mergedPath, separator)
+        return {
+          output: instruction,
+          metadata: {
+            tool: TOOL.AE_HTML_TO_PPTX,
+            status: 'browser_step_instruction',
+            renderMode: 'browser',
+            inputMode: 'directory',
+            mergedPath,
+          },
+        }
+      }
+
+      // 目录模式 + 浏览器渲染 + 有 browser_data → 用合并 HTML 处理 browser 数据
+      if (isSlidesForge && args.browser_render && args.browser_data) {
+        let browserData = args.browser_data
+        const maybePath = isAbsolute(browserData) ? browserData : resolve(worktree, browserData)
+        if (existsSync(maybePath) && maybePath.endsWith('.json')) {
+          browserData = readFileSync(maybePath, 'utf-8')
+        }
+
+        // 如果合并文件不存在（可能被手动删除），重新创建
+        const mergedPath = join(resolvedPath, '_ae_merged_tmp.html')
+        const actualMergedPath = existsSync(mergedPath) ? mergedPath : createMergedSlidesHtml(resolvedPath)
+        try {
+          const mcpExecutor = async (_script: string) => browserData
+          const result = await convertHtmlToPptx({
+            file: actualMergedPath,
+            worktree,
+            title: args.title ?? basename(resolvedPath),
+            outputPath: args.output,
+            slideSeparator: 'section',
+            mcpExecutor,
+          })
+          return {
+            output: formatResult(result, 'browser (directory)'),
+            metadata: {
+              tool: TOOL.AE_HTML_TO_PPTX,
+              status: 'success',
+              renderMode: 'browser',
+              inputMode: 'directory',
+              outputPath: result.outputPath,
+              slideCount: result.slideCount,
+            },
+          }
+        } finally {
+          cleanupMergedHtml(resolvedPath)
+        }
+      }
+
+      // 目录模式 + regex → 直接转换每个 slide 文件
+      if (isSlidesForge) {
+        const result = await convertDirectorySlidesToPptxRegex(
+          resolvedPath,
+          worktree,
+          args.title,
+          args.output,
+        )
+        return {
+          output: formatResult(result, 'regex (directory)'),
+          metadata: {
+            tool: TOOL.AE_HTML_TO_PPTX,
+            status: 'success',
+            renderMode: 'regex',
+            inputMode: 'directory',
+            outputPath: result.outputPath,
+            slideCount: result.slideCount,
+          },
+        }
+      }
+
+      // 单文件模式（原逻辑）
       if (args.browser_render && !args.browser_data) {
         const separator = args.slide_separator ?? 'auto'
         return {
@@ -116,12 +218,16 @@ export const aeHtmlToPptxTool = tool({
             tool: TOOL.AE_HTML_TO_PPTX,
             status: 'browser_step_instruction',
             renderMode: 'browser',
+            inputMode: 'file',
           },
         }
       }
 
       let browserData = args.browser_data ?? ''
       const maybePath = isAbsolute(browserData) ? browserData : resolve(worktree, browserData)
+      if (maybePath && !isInsideRoot(worktree, maybePath)) {
+        return `浏览器提取数据路径超出工作区边界：${args.browser_data}。请使用工作区内的文件路径。`
+      }
       if (existsSync(maybePath) && maybePath.endsWith('.json')) {
         browserData = readFileSync(maybePath, 'utf-8')
       }
@@ -145,11 +251,15 @@ export const aeHtmlToPptxTool = tool({
           tool: TOOL.AE_HTML_TO_PPTX,
           status: 'success',
           renderMode,
+          inputMode: 'file',
           outputPath: result.outputPath,
           slideCount: result.slideCount,
         },
       }
     } catch (error) {
+      if (isSlidesForge) {
+        cleanupMergedHtml(resolvedPath)
+      }
       return {
         output: formatFailedResult(formatHtmlToPptxError(error)),
         metadata: { tool: TOOL.AE_HTML_TO_PPTX, status: 'failed' },
