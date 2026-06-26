@@ -1,7 +1,18 @@
+import { createRequire } from 'node:module'
+import path from 'node:path'
+
 import { MarkitdownError } from '../../markitdown-errors.js'
 import type { ConverterInput, ConverterResult, DocumentConverter, SupportedFormat } from '../../markitdown-types.js'
 
 const PARTIAL_NUMBERING_PATTERN = /^\.\d+$/
+
+const nodeRequire = createRequire(import.meta.url)
+
+// pdfjs-dist 在 Node.js 中使用 useSystemFonts=false 时需要 standardFontDataUrl 和 cMapUrl 来定位
+// 标准字体和 CMap 数据文件；NodeBinaryDataFactory._fetch 使用 fs.readFile，需要纯文件路径而非 file:// URL。
+const PDFJS_DIST_ROOT = path.dirname(nodeRequire.resolve('pdfjs-dist/package.json'))
+const STANDARD_FONT_DATA_URL = `${PDFJS_DIST_ROOT.replace(/\\/g, '/')}/standard_fonts/`
+const CMAP_URL = `${PDFJS_DIST_ROOT.replace(/\\/g, '/')}/cmaps/`
 
 let workerBootstrapPromise: Promise<void> | null = null
 
@@ -451,6 +462,9 @@ export class PdfConverter implements DocumentConverter {
     const loadingTask = pdfjs.getDocument({
       data: uint8,
       useSystemFonts: false,
+      standardFontDataUrl: STANDARD_FONT_DATA_URL,
+      cMapUrl: CMAP_URL,
+      cMapPacked: true,
     })
     const doc = await loadingTask.promise
 

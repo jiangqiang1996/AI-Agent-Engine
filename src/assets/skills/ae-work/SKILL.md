@@ -100,7 +100,7 @@ argument-hint: "[计划路径|交接文件路径|任务描述]"
 
 #### 步骤 3.1：准备调度
 
-调用 `ae-domain-dispatch-prepare` 工具，传入 domain=development、intent、constraints 和 domainContext。工具返回：
+调用 `ae-domain-dispatch-prepare` 工具，传入 domain=development、intent、constraints 以及顶层布尔标记（has_ui、has_security、has_api 等）。工具返回：
 - `tasks`：每个选中专精代理的 agent 名、prompt 模板和能力描述
 - `strategy`：协调策略（development 域为 parallel-then-sequential + merge）
 - `specialistCount`：选中数量

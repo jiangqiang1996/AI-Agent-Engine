@@ -211,7 +211,7 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 
 #### 步骤 3.1：准备调度
 
-调用 `ae-domain-dispatch-prepare` 工具，传入 domain、intent、constraints 和 domainContext。工具返回：
+调用 `ae-domain-dispatch-prepare` 工具，传入 domain、intent、constraints 以及顶层布尔标记（has_security、has_api 等）。工具返回：
 - `tasks`：每个选中专精代理的 agent 名、prompt 模板和能力描述
 - `strategy`：协调策略（review 域为 parallel + union）
 - `specialistCount`：选中数量
@@ -276,7 +276,7 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 - 每种识别出的 `targetTypes` 至少调度一个对应专一审查者；缺失映射时记录 `skipReasons`
 - 不允许任何单一审查者跨目标类型综述发现，必须由编排层在阶段四聚合
 
-**标志映射规则：** `goals:` 参数存在时，`DomainCallRequest.domainContext` 的 `hasGoalAlignment` 必须设为 `true`，以激活 goal-alignment-reviewer。
+**标志映射规则：** `goals:` 参数存在时，`ae-domain-dispatch-prepare` 的 `has_goal_alignment` 必须设为 `true`，以激活 goal-alignment-reviewer。
 
 #### 步骤 3.3：聚合结果
 
