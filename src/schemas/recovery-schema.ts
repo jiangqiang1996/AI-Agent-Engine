@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 export const RecoveryPhaseSchema = z
-  .enum(['prd', 'plan', 'work', 'review', 'lfg'])
+  .enum(['prd', 'plan', 'work', 'review'])
   .describe('恢复阶段')
 
 export const RecoveryResolutionSchema = z

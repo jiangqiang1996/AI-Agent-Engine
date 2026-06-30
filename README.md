@@ -35,12 +35,6 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 
 ## 经典用法
 
-从需求直接推进到交付：
-
-```text
-/ae-lfg 实现一个带权限校验的文件上传功能
-```
-
 手动控制阶段：
 
 ```text
@@ -119,7 +113,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 会话交接 | `/ae-handoff` |
 | 提示词优化 | `/ae-prompt-optimize` |
 | 经验沉淀 | `/ae-save-experience` |
-| 创建技能 | `/ae-skill-creator`、`/ae-skill-from-session` |
+| 创建技能 | `/ae-skill-creator` |
 | 创建代理 | `/ae-agent-creator` |
 | 更新 AE 插件 | `/ae-update` |
 
@@ -131,7 +125,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | --- | --- |
 | 需求不清先澄清 | 复杂实现前先产出需求或计划，避免直接编码 |
 | 审查先定范围 | 代码、文档或通用混合范围按目标类型选择审查代理 |
-| 交付必须验证 | `/ae-work` 和 `/ae-lfg` 交付前检查验证、审查和 Git 授权证据 |
+| 交付必须验证 | `/ae-work` 交付前检查验证、审查和 Git 授权证据 |
 | 浏览器先注册 MCP | 当前会话使用 chrome-devtools-mcp 工具前必须先通过 `/ae-chrome-devtools` 完成动态注册或连接状态确认 |
 | Git 写操作需授权 | 提交、拉取、重置、清理、变基、推送等都需要明确授权；`/ae-commit` 不等同于 push |
 | 远程写操作不默认提供 | 用户侧流程不提供 push、创建 PR、创建 Issue 或 Release 的可复制流程 |
@@ -140,10 +134,10 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 
 | 类型 | 当前快照 | 真源 |
 | --- | ---: | --- |
-| 技能 | 33 | `src/assets/skills/`、`src/schemas/ae-asset-schema.ts` |
-| 命令 | 61 | `src/services/command-registration.ts`、`src/assets/commands/` |
-| 代理 | 41 | `src/assets/agents/`、`src/services/agent-registration.ts` |
-| 工具 | 21 | `src/tools/` |
+| 技能 | 38 | `src/assets/skills/`、`src/schemas/ae-asset-schema.ts` |
+| 命令 | 60 | `src/services/command-registration.ts`、`src/assets/commands/` |
+| 代理 | 40 | `src/assets/agents/`、`src/services/agent-registration.ts` |
+| 工具 | 26 | `src/tools/` |
 | 规则 | 5 | `src/assets/rules/` |
 | 内置配置 | 1 | `src/assets/config/ae.jsonc` |
 

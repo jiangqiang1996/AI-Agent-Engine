@@ -23,7 +23,6 @@ function invalidResult(phase: RecoveryResult['phase'], reason: string): Recovery
 function fallbackSkillForPhase(phase: RecoveryResult['phase']): string {
   switch (phase) {
     case 'prd':
-    case 'lfg':
     case 'plan':
       return SKILL.PRD
     case 'work':
@@ -46,8 +45,6 @@ function preferredArtifactTypes(phase: RecoveryResult['phase']): RecoverableArti
       return ['work', 'plan']
     case 'review':
       return ['review', 'work', 'plan', 'prd']
-    case 'lfg':
-      return ['review', 'work', 'plan', 'prd']
     default: {
       const _exhaustive: never = phase
       return _exhaustive
@@ -65,21 +62,6 @@ function nextSkillForArtifact(phase: RecoveryResult['phase'], artifactType: Reco
       return SKILL.WORK
     case 'review':
       return SKILL.REVIEW
-    case 'lfg':
-      switch (artifactType) {
-        case 'review':
-          return SKILL.REVIEW
-        case 'work':
-          return SKILL.WORK
-        case 'plan':
-          return SKILL.REVIEW
-        case 'prd':
-          return SKILL.REVIEW
-        default: {
-          const _exhaustive: never = artifactType
-          return _exhaustive
-        }
-      }
     default: {
       const _exhaustive: never = phase
       return _exhaustive
@@ -92,12 +74,11 @@ function nextArgumentsForArtifact(
   artifactType: RecoverableArtifactKind,
   path?: string,
 ): string | undefined {
-  if ((phase === 'review' || phase === 'lfg') && (artifactType === 'plan' || artifactType === 'prd')) {
+  if (phase === 'review' && (artifactType === 'plan' || artifactType === 'prd')) {
     if (!path) {
       return undefined
     }
-    // 计划/需求产物属于文档审查范围，不能按默认代码审查契约恢复。
-    return phase === 'lfg' ? `mode=headless domain=document ${path}` : `domain=document ${path}`
+    return `domain=document ${path}`
   }
   return undefined
 }
@@ -114,26 +95,9 @@ function nextCommandForArtifact(
 
 function resumePhaseForArtifact(
   phase: RecoveryResult['phase'],
-  artifactType: RecoverableArtifactKind,
+  _artifactType: RecoverableArtifactKind,
 ): RecoveryResult['phase'] {
-  if (phase !== 'lfg') {
-    return phase
-  }
-  switch (artifactType) {
-    case 'review':
-      return 'review'
-    case 'work':
-      return 'work'
-    case 'plan':
-      // lfg 是入口阶段而非真实工作阶段；计划恢复后从审查阶段继续。
-      return 'review'
-    case 'prd':
-      return 'review'
-    default: {
-      const _exhaustive: never = artifactType
-      return _exhaustive
-    }
-  }
+  return phase
 }
 
 function hasValidMetadata(artifact: {

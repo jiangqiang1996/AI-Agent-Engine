@@ -5,7 +5,6 @@ export const SKILL = {
   BRAINSTORM: 'ae:brainstorm',
   PRD: 'ae:prd',
   DESIGN: 'ae:design',
-  DOCUMENT_REVIEW: 'ae:document-review',
   PLAN: 'ae:plan',
   REFACTOR: 'ae:refactor',
   AGENT_CREATOR: 'ae:agent-creator',
@@ -14,7 +13,6 @@ export const SKILL = {
   MY_CODE_CHANGES: 'ae:my-code-changes',
   MERGE_BRANCH: 'ae:merge-branch',
   REVIEW: 'ae:review',
-  LFG: 'ae:lfg',
   CHROME_DEVTOOLS: 'ae:chrome-devtools',
   WEB_FORGE: 'ae:web-forge',
   HANDOFF: 'ae:handoff',
@@ -32,7 +30,6 @@ export const SKILL = {
   GRAPH_BUILD: 'ae:graph-build',
   GRAPH_QUERY: 'ae:graph-query',
   SAVE_EXPERIENCE: 'ae:save-experience',
-  SKILL_FROM_SESSION: 'ae:skill-from-session',
   SKILL_CREATOR: 'ae:skill-creator',
   COURSE_AUTO_PLAYER: 'ae:course-auto-player',
   STATIC_SERVER: 'ae:static-server',
@@ -49,7 +46,6 @@ export const PA_SUFFIX = '-pa'
 export const AUTO_SUFFIX = '-auto'
 
 export const PROMPT_OPTIMIZE_VARIANT_EXCLUDED_SKILLS = [
-  SKILL.DOCUMENT_REVIEW,
   SKILL.AGENT_CREATOR,
   SKILL.WORK_REPORT,
   SKILL.MY_CODE_CHANGES,
@@ -70,7 +66,6 @@ export const PROMPT_OPTIMIZE_VARIANT_EXCLUDED_SKILLS = [
   SKILL.GRAPH_BUILD,
   SKILL.GRAPH_QUERY,
   SKILL.SAVE_EXPERIENCE,
-  SKILL.SKILL_FROM_SESSION,
   SKILL.SKILL_CREATOR,
   SKILL.STATIC_SERVER,
   SKILL.COURSE_AUTO_PLAYER,
@@ -148,7 +143,6 @@ export const AGENT = {
   FRONTEND_DEV: 'frontend-dev',
   BACKEND_DEV: 'backend-dev',
   DEBUG_FIX: 'debug-fix',
-  REFACTOR_DEV: 'refactor-dev',
 } as const
 
 export function skillDir(skillName: string): string {
@@ -194,7 +188,6 @@ export const AeSkillNameSchema = z
     SKILL.BRAINSTORM,
     SKILL.PRD,
     SKILL.DESIGN,
-    SKILL.DOCUMENT_REVIEW,
     SKILL.PLAN,
     SKILL.REFACTOR,
     SKILL.AGENT_CREATOR,
@@ -203,7 +196,6 @@ export const AeSkillNameSchema = z
     SKILL.MY_CODE_CHANGES,
     SKILL.MERGE_BRANCH,
     SKILL.REVIEW,
-    SKILL.LFG,
     SKILL.CHROME_DEVTOOLS,
     SKILL.WEB_FORGE,
     SKILL.HANDOFF,
@@ -221,7 +213,6 @@ export const AeSkillNameSchema = z
     SKILL.GRAPH_BUILD,
     SKILL.GRAPH_QUERY,
     SKILL.SAVE_EXPERIENCE,
-    SKILL.SKILL_FROM_SESSION,
     SKILL.SKILL_CREATOR,
     SKILL.COURSE_AUTO_PLAYER,
     SKILL.STATIC_SERVER,

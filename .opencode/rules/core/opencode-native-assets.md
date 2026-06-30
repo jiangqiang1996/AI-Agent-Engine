@@ -331,9 +331,9 @@ export function registerHooks(input: PluginInput): Partial<Hooks> {
 
 ### 排列原则
 
-1. **用户流程优先** 主流程包括：ideate brainstorm document-review plan/refactor work review；`lfg` 是核心流程组合技能，允许紧随主流程放置，也允许在面向组合入口选择的列表中前置。
+1. **用户流程优先** 主流程包括：ideate brainstorm prd plan/refactor work review。
 2. **浏览器/设计能力成组** `setup`、`test-browser`、`frontend-design` 这类需要环境准备或视觉验证的能力可作为一组，组内按执行依赖排序：setup → test-browser/frontend-design。
-3. **辅助与维护能力随后** handoff、prompt-optimize、task-loop、sql、swagger-parser、save-rules、save-session-flow、asset-debug、help、update 等按功能执行顺序或用户发现成本排序。
+3. **辅助与维护能力随后** handoff、prompt-optimize、task-loop、sql、swagger-parser、save-rules、help、update 等按功能执行顺序或用户发现成本排序。
 4. **不同展示面可有不同优化目标** catalog、帮助输出、命令别名、文档总览可以为了组合入口、常用程度或分组展示做局部调整；审查时只在顺序会造成发现性、依赖或注册错误时报告。
 
 ### 适用范围
@@ -343,7 +343,7 @@ export function registerHooks(input: PluginInput): Partial<Hooks> {
 
 ### 审查要求
 
-- 不要仅因 `lfg`、`setup` 或维护类技能的位置与某个示例顺序不同就判为违规。
+- 不要仅因 `setup` 或维护类技能的位置与某个示例顺序不同就判为违规。
 - 若报告顺序问题，必须说明该顺序导致的具体后果，例如命令注册错误、帮助信息误导、依赖能力后置导致用户无法发现，或同一文件内相互矛盾。
 - 新增资产时仍应优先保持同一文件内已有分组风格，避免为了机械排序打散语义相关能力。
 
@@ -368,7 +368,7 @@ export function registerHooks(input: PluginInput): Partial<Hooks> {
 
 ### 能力分类判定
 
-- **通用运行时能力**：`ae:lfg`、`ae:brainstorm`、`ae:plan`、`ae:work`、`ae:review`、门禁、审查者和普通工具描述。必须完全避免把本仓库布局当作用户项目前提。
+- **通用运行时能力**：`ae:brainstorm`、`ae:plan`、`ae:work`、`ae:review`、门禁、审查者和普通工具描述。必须完全避免把本仓库布局当作用户项目前提。
 - **插件维护专项能力**：`ae:update`、安装/桥接/配置管理说明。允许引用插件源码仓库或安装目录，但必须把引用限定在维护目标上。
 - **混合能力**：同一技能同时支持普通项目和 AE 内置模式时，必须在文案中先分流，再分别应用对应边界；不要用普通项目规则否定 AE 内置分支，也不要让 AE 内置分支污染普通项目分支。
 

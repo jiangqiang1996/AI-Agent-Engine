@@ -29,7 +29,7 @@ steps: 30
    - "前端"/"UI"/"组件"/"样式" → frontend-dev
    - "API"/"数据库"/"服务"/"后端" → backend-dev
    - "调试"/"修复"/"Bug" → debug-fix
-   - "重构"/"优化"/"技术债" → refactor-dev（当前 disabled，按模块联合 frontend-dev/backend-dev 或由 debug-fix 兜底）
+   - "重构"/"优化"/"技术债" → 按模块联合 frontend-dev/backend-dev，或由 debug-fix 兜底
    - 无匹配时：按 hasUi/hasApi/hasDatabase 等 flags 匹配；仍无匹配时兜底选中 debug-fix
 4. **协调执行** — 按策略调度专精代理：
    - 并行组：独立的前端/后端子任务同时执行

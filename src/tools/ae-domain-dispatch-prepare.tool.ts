@@ -39,7 +39,6 @@ const SPECIALIST_PROMPT_TEMPLATES: Record<string, string> = {
   [AGENT.FRONTEND_DEV]: '你是一位前端开发专精代理。处理 UI 组件、样式、交互逻辑和响应式设计。',
   [AGENT.BACKEND_DEV]: '你是一位后端开发专精代理。处理 API、数据层、业务逻辑和中间件。',
   [AGENT.DEBUG_FIX]: '你是一位调试修复专精代理。处理错误分析、根因定位、修复实现和回归验证。',
-  [AGENT.REFACTOR_DEV]: '你是一位重构专精代理。处理代码重构、架构优化和技术债清理。',
 }
 
 function getSpecialistPrompt(specialistName: string): string {

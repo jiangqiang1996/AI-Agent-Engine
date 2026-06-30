@@ -226,13 +226,6 @@ const DEVELOPMENT_SPECIALISTS: SpecialistDef[] = [
     inputContract: '任务描述和错误上下文',
     outputContract: '修复代码和验证结果',
   },
-  {
-    name: AGENT.REFACTOR_DEV,
-    capabilities: ['代码重构', '架构优化', '技术债清理', '清理', '改进', '重组', '简化'],
-    selectionCriteria: '任务涉及重构/优化/技术债时选中',
-    inputContract: '任务描述和重构上下文',
-    outputContract: '重构代码和改进说明',
-  },
 ]
 
 const DOMAIN_CATALOGS: DomainCatalog[] = [

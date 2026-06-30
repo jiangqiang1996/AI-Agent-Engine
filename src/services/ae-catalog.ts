@@ -44,14 +44,6 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillFile: `src/assets/skills/${skillDir(SKILL.DESIGN)}/SKILL.md`,
   },
   {
-    skillName: SKILL.DOCUMENT_REVIEW,
-    commandName: COMMAND.DOCUMENT_REVIEW,
-    description: '面向文档的专项审查（通过 ae:review 统一技能执行），核心流程审查需求和计划文档，也支持审查任意文档',
-    argumentHint: '[mode] [文档路径]',
-    skillFile: `src/assets/skills/${skillDir(SKILL.DOCUMENT_REVIEW)}/SKILL.md`,
-    customTemplate: `使用 \`${SKILL.REVIEW}\` 技能处理这次请求，指定 domain=document，并沿用参数：\`$ARGUMENTS\`。`,
-  },
-  {
     skillName: SKILL.PLAN,
     commandName: COMMAND.PLAN,
     description: getLifecycleCatalogDescription('plan'),
@@ -106,13 +98,6 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: `${getLifecycleCatalogDescription('outcome-review')}；通用审查入口，默认自动识别审查场景，支持代码、需求、设计、原型、计划、配置、技能、命令、测试用例等单一或混合范围`,
     argumentHint: '[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [full] [full=<path>] [session] [plan=<path>] [goals=<text>] [路径...]',
     skillFile: `src/assets/skills/${skillDir(SKILL.REVIEW)}/SKILL.md`,
-  },
-  {
-    skillName: SKILL.LFG,
-    commandName: COMMAND.LFG,
-    description: '自包含一站式管道技能：内联澄清需求、设计、实施，仅调用 ae:review 审查；一次澄清后静默执行到底；同时支持软件和非软件任务',
-    argumentHint: '[task] [--compatible=true|false]',
-    skillFile: `src/assets/skills/${skillDir(SKILL.LFG)}/SKILL.md`,
   },
   {
     skillName: SKILL.CHROME_DEVTOOLS,
@@ -225,8 +210,8 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   {
     skillName: SKILL.HTML_TO_PPTX,
     commandName: COMMAND.HTML_TO_PPTX,
-    description: '将 HTML 文件转换为 PPTX 演示文稿，支持正则提取和浏览器渲染两种模式，浏览器模式通过 chrome-devtools MCP 提取精确布局与样式',
-    argumentHint: '[file=路径] [title=标题] [output=输出路径] [slide_separator=section|hr|h1|auto] [browser_render=true]',
+    description: '将 HTML 文件或幻灯片目录转换为 PPTX 演示文稿，自动探测单文件或多文件目录格式，支持正则提取和浏览器渲染两种模式，浏览器模式通过 chrome-devtools MCP 提取精确布局与样式',
+    argumentHint: '[file=路径或目录] [title=标题] [output=输出路径] [slide_separator=section|hr|h1|auto] [browser_render=true]',
     skillFile: `src/assets/skills/${skillDir(SKILL.HTML_TO_PPTX)}/SKILL.md`,
   },
   {
@@ -258,17 +243,10 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillFile: `src/assets/skills/${skillDir(SKILL.SAVE_EXPERIENCE)}/SKILL.md`,
   },
   {
-    skillName: SKILL.SKILL_FROM_SESSION,
-    commandName: COMMAND.SKILL_FROM_SESSION,
-    description: '从当前会话创建或更新 OpenCode 原生技能',
-    argumentHint: '[目标技能名|流程关注点|资产名|纠偏摘要] [--global] [--no-command]',
-    skillFile: `src/assets/skills/${skillDir(SKILL.SKILL_FROM_SESSION)}/SKILL.md`,
-  },
-  {
     skillName: SKILL.SKILL_CREATOR,
     commandName: COMMAND.SKILL_CREATOR,
-    description: '创建或更新 OpenCode 原生技能和命令，支持只创建技能、只创建命令或同时创建',
-    argumentHint: '<技能名或需求描述> [--global] [--no-command|--command-only]',
+    description: '创建或更新 OpenCode 原生技能和命令，支持只创建技能、只创建命令或同时创建；--from-session 模式从当前会话提取可复用流程',
+    argumentHint: '<技能名或需求描述> [--global] [--no-command|--command-only] [--from-session]',
     skillFile: `src/assets/skills/${skillDir(SKILL.SKILL_CREATOR)}/SKILL.md`,
   },
   {
@@ -410,7 +388,6 @@ const REQUIRED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'],
   [AGENT.FRONTEND_DEV, 'domain', '前端开发专精代理：处理 UI 组件、样式、交互逻辑和响应式设计', 'domains/development/specialists/frontend-dev.md'],
   [AGENT.BACKEND_DEV, 'domain', '后端开发专精代理：处理 API、数据层、业务逻辑和中间件', 'domains/development/specialists/backend-dev.md'],
   [AGENT.DEBUG_FIX, 'domain', '调试修复专精代理：处理错误分析、根因定位、修复实现和回归验证', 'domains/development/specialists/debug-fix.md'],
-  [AGENT.REFACTOR_DEV, 'domain', '重构改造专精代理（占位）：处理代码重构、架构优化和技术债清理', 'domains/development/specialists/refactor-dev.md'],
 ]
 
 const GILDED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'], string]> = [

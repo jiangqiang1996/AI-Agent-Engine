@@ -13,7 +13,7 @@ export const aeRecoveryTool: ToolDefinition = tool({
     '- 给出恢复阶段、后续技能与回退技能',
     '',
     '适用场景：',
-    '- `/ae-lfg`、`ae:work`、`ae:review` 需要跨会话恢复时',
+    '- `ae:work`、`ae:review` 需要跨会话恢复时',
     '- 命令与技能需要统一恢复语义时',
     '',
     '不适用场景：',
@@ -22,7 +22,7 @@ export const aeRecoveryTool: ToolDefinition = tool({
   ].join('\n'),
   args: {
     phase: tool.schema
-      .enum(['prd', 'plan', 'work', 'review', 'lfg'])
+      .enum(['prd', 'plan', 'work', 'review'])
       .describe('需要恢复的阶段'),
     expected_origin_fingerprint: tool.schema.string().optional().describe('期望的上游指纹'),
   },

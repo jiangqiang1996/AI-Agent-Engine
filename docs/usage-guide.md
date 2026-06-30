@@ -10,7 +10,6 @@
 | 想多角度发散讨论一个主题 | `/ae-brainstorm` |
 | 产出需求文档 | `/ae-prd` |
 | 在需求和计划之间产出设计文档 | `/ae-design` |
-| 想从需求一路做到交付 | `/ae-lfg` |
 | 业务复杂、多模块、需要结构化分解 | `/ae-plan` |
 | 已有需求，需要方案 | `/ae-plan` |
 | 已有计划，需要执行 | `/ae-work` |
@@ -35,16 +34,6 @@
 | 查看完整帮助 | `/ae-help` |
 
 ## 经典用法
-
-### 默认全流程
-
-适合目标明确但还没有需求文档或计划的任务。
-
-```text
-/ae-lfg 实现一个带权限校验的文件上传功能
-```
-
-`/ae-lfg` 会尝试恢复已有 AE 产物；没有可恢复产物时，从需求澄清开始。正式执行通常会经过需求、设计、计划、工作、审查、验证和交付证据汇总。
 
 ### 手动阶段流
 
@@ -126,7 +115,6 @@
 | `/ae-brainstorm` | `[讨论主题]` | 使用多个子代理从不同视角进行多轮发散讨论并汇总 | 不产出持久文档；需求沉淀转 `/ae-prd` |
 | `/ae-prd` | `[目标描述\|需求文档路径\|构思结果]` | 澄清目标、边界、约束、成功标准和待定问题，产出需求文档 | 产物是需求文档 |
 | `/ae-design` | `[需求文档路径\|旧 design\|裸描述]` | 产出设计文档，含概览、架构、接口、数据模型、测试用例与验收标准 | 供计划和审查对齐 |
-| `/ae-document-review` | `[mode:*] [文档路径]` | 兼容的文档审查入口 | 实际通过 `ae:review` 文档域执行 |
 | `/ae-plan` | `[计划路径\|需求文档路径\|需求描述]` | 把需求拆成技术计划 | 复杂实现前优先使用 |
 | `/ae-refactor` | `[重构目标\|计划路径\|需求文档路径\|代码异味描述]` | 以消除技术债为优先约束生成重构计划 | 强调保持外部行为和测试护栏 |
 | `/ae-work` | `[计划路径\|交接文件路径\|工作描述]` | 按计划执行变更并验证 | 交付前检查验证、审查和 Git 授权证据 |
@@ -134,7 +122,6 @@
 | `/ae-my-code-changes` | `since=<date> [until=<date>]` | 获取指定时间内本人提交的所有代码变更 | 只取最终状态，不输出中间过程 |
 | `/ae-merge-branch` | `[来源分支名\|本地 worktree 路径]` | 合并来源分支或 worktree 变更 | 本地 Git 写操作需明确授权 |
 | `/ae-review` | `[mode:*] [domain:code\|domain:document] [from:<ref>] [full] [full:<path>] [session] [plan:<path>] [路径...]` | 审查代码、文档、计划、全量路径或会话变更 | 代码域和文档域分开处理 |
-| `/ae-lfg` | `[需求描述\|已有产物路径]` | 默认全流程入口 | 优先恢复已有产物；缺上游时回退到更早阶段 |
 | `/ae-chrome-devtools` | `[url] [action] [mode] [browser] [port] [task=任务描述]` | 浏览器能力中枢，负责 MCP 动态注册、目标选择和浏览器控制 | 确认 chrome-devtools MCP 连接就绪 |
 | `/ae-web-forge` | `[描述\|Figma URL\|截图\|路由] [--design\|--match\|--logic\|--inspect]` | 统一前端能力入口：自由设计、设计还原、交互逻辑、浏览器验收 | 先完成 chrome-devtools MCP 动态注册 |
 | `/ae-course-auto-player` | `[browser] <课程列表页面URL>` | 自动播放在线课程列表 | 先完成 chrome-devtools MCP 动态注册 |
@@ -151,8 +138,7 @@
 | `/ae-graph-query` | `[mode:deps\|impact\|health\|filter\|path\|core\|stats\|pattern] [file:<PATH>] [target:<PATH>]` | 查询依赖、影响范围、核心模块和健康状态 | 图谱缺失时先构建 |
 | `/ae-save-experience` | `[经验摘要\|保存目标]` | 保存 solution，并按需提炼 rules | 不把临时结论直接当长期规则 |
 | `/ae-agent-creator` | `[代理用途\|代理名称] [--global] [--command]` | 创建或更新 OpenCode 原生代理 | 默认项目级；全局级需显式指定 |
-| `/ae-skill-from-session` | `[目标技能名\|流程关注点\|资产名\|纠偏摘要] [--global] [--no-command]` | 从当前会话沉淀技能 | 写入前确认范围和资产路径 |
-| `/ae-skill-creator` | `<技能名或需求描述> [--global] [--no-command\|--command-only]` | 创建或更新 OpenCode 原生技能和命令 | 支持技能、命令或二者同时创建 |
+| `/ae-skill-creator` | `<技能名或需求描述> [--global] [--no-command\|--command-only] [--from-session]` | 创建或更新 OpenCode 原生技能和命令 | 支持技能、命令或二者同时创建；`--from-session` 从当前会话沉淀技能 |
 | `/ae-help` | `[技能名或关键词]` | 查看运行时能力清单 | 权威只读入口 |
 | `/ae-update` | `[project]` | 更新 AE 插件安装 | 只用于 AE 插件维护语境 |
 
@@ -180,8 +166,8 @@
 | `/ae-plan` | `/ae-plan-po` | `/ae-plan-pa` |
 | `/ae-refactor` | `/ae-refactor-po` | `/ae-refactor-pa` |
 | `/ae-work` | `/ae-work-po` | `/ae-work-pa` |
-| `/ae-lfg` | `/ae-lfg-po` | `/ae-lfg-pa` |
 | `/ae-task-loop` | `/ae-task-loop-po` | `/ae-task-loop-pa` |
+| `/ae-slides-outline` | `/ae-slides-outline-po` | `/ae-slides-outline-pa` |
 
 没有列出的命令不提供 `-po` 或 `-pa` 变体。
 
@@ -250,7 +236,6 @@
 | `@frontend-dev` | 前端开发专精代理：处理 UI 组件、样式、交互逻辑和响应式设计 | 由开发域代理调度 |
 | `@backend-dev` | 后端开发专精代理：处理 API、数据层、业务逻辑和中间件 | 由开发域代理调度 |
 | `@debug-fix` | 调试修复专精代理：处理错误分析、根因定位、修复实现和回归验证 | 由开发域代理调度 |
-| `@refactor-dev` | 重构改造专精代理（占位）：处理代码重构、架构优化和技术债清理 | 由开发域代理调度 |
 
 ## 工具层能力
 

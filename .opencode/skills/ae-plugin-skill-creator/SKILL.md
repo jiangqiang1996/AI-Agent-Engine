@@ -17,7 +17,7 @@ description: 用于创建或更新 AE 插件内置技能，要求遵守 ae:skill
 ## 不适用场景
 
 - 创建普通项目级或全局级 OpenCode 技能；这类任务使用 `ae:skill-creator`。
-- 从当前会话沉淀普通技能；这类任务使用 `ae:skill-from-session`。
+- 从当前会话沉淀技能；这类任务使用 `ae:skill-creator --from-session`。
 - 创建或更新 OpenCode 代理；这类任务使用 `ae:agent-creator`。
 
 ## 范围边界
