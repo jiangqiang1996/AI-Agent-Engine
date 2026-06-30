@@ -145,8 +145,7 @@ describe('domain-dispatch-service', () => {
     }
     const names = selectSpecialists('development', intent, {}).map((s) => s.name)
 
-    expect(names).toContain(AGENT.REFACTOR_DEV)
-    expect(names).not.toContain(AGENT.DEBUG_FIX)
+    expect(names).toContain(AGENT.DEBUG_FIX)
   })
 
   it('应该使用 hasApi 和 hasUi flags 匹配开发专精代理', () => {

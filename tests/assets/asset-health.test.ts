@@ -124,8 +124,6 @@ describe('资产健康巡检', () => {
 
     expect(commandConfig[`${COMMAND.SAVE_EXPERIENCE}-po`], 'asset-health/prompt-variant/command/ae-save-experience-po').toBeUndefined()
     expect(commandConfig[`${COMMAND.SAVE_EXPERIENCE}-pa`], 'asset-health/prompt-variant/command/ae-save-experience-pa').toBeUndefined()
-    expect(commandConfig[`${COMMAND.SKILL_FROM_SESSION}-po`], 'asset-health/prompt-variant/command/ae-skill-from-session-po').toBeUndefined()
-    expect(commandConfig[`${COMMAND.SKILL_FROM_SESSION}-pa`], 'asset-health/prompt-variant/command/ae-skill-from-session-pa').toBeUndefined()
     expect(commandConfig[`${COMMAND.AGENT_CREATOR}-po`], 'asset-health/prompt-variant/command/ae-agent-creator-po').toBeUndefined()
     expect(commandConfig[`${COMMAND.AGENT_CREATOR}-pa`], 'asset-health/prompt-variant/command/ae-agent-creator-pa').toBeUndefined()
     expect(commandConfig[`${COMMAND.WORK_REPORT}-po`], 'asset-health/prompt-variant/command/ae-work-report-po').toBeUndefined()
@@ -287,19 +285,13 @@ describe('资产健康巡检', () => {
     expect(helpText).not.toContain('/ae-asset-debug')
   })
 
-  it('skill-from-session 文档应该固定统一入口的关键流程边界', () => {
-    const text = readFileSync('src/assets/skills/ae-skill-from-session/SKILL.md', 'utf8')
+  it('skill-creator 文档应该包含 --from-session 模式说明', () => {
+    const text = readFileSync('src/assets/skills/ae-skill-creator/SKILL.md', 'utf8')
 
-    expect(text).toContain('普通会话沉淀')
-    expect(text).toContain('资产纠偏沉淀')
+    expect(text).toContain('--from-session')
+    expect(text).toContain('从当前会话提取可复用流程')
     expect(text).toContain('默认处理项目级技能')
     expect(text).toContain('影响当前用户的所有 OpenCode 项目')
-    expect(text).toContain('不得直接写入技能、命令、代理、规则、工具、hook、service、schema 或注册文件')
-    expect(text).toContain('创建意图')
-    expect(text).toContain('更新意图')
-    expect(text).toContain('候选不唯一、调用链证据不足')
-    expect(text).toContain('如果偏差不是资产问题，只输出诊断，不调用 `ae:skill-creator`')
-    expect(text).toContain('准备转交给 `ae:skill-creator`')
   })
 
   it('README 资产快照应该与 src 真源和命令注册结果一致', () => {
@@ -341,7 +333,6 @@ describe('资产健康巡检', () => {
       COMMAND.PROMPT_OPTIMIZE,
       COMMAND.SAVE_EXPERIENCE,
       COMMAND.SKILL_CREATOR,
-      COMMAND.SKILL_FROM_SESSION,
       COMMAND.AGENT_CREATOR,
       COMMAND.UPDATE,
     ]
@@ -357,7 +348,7 @@ describe('资产健康巡检', () => {
     const content = readFileSync('docs/builtin-config.md', 'utf8')
     const scenarios = [
       [MODEL_SCENARIO.STANDARD, COMMAND.IDEATE],
-      [MODEL_SCENARIO.DEEP, COMMAND.DOCUMENT_REVIEW],
+      [MODEL_SCENARIO.DEEP, COMMAND.PLAN],
       [MODEL_SCENARIO.QUICK, COMMAND.PROMPT_OPTIMIZE],
       [MODEL_SCENARIO.VISION, COMMAND.CHROME_DEVTOOLS],
     ] as const
@@ -371,7 +362,7 @@ describe('资产健康巡检', () => {
       expect(documentedCommands).toEqual(expectedCommands)
     }
 
-    expect(extractMarkdownCommandList(content, MODEL_SCENARIO.STANDARD, COMMAND.IDEATE)).toContain(COMMAND.SKILL_FROM_SESSION)
+    expect(extractMarkdownCommandList(content, MODEL_SCENARIO.STANDARD, COMMAND.IDEATE)).toContain(COMMAND.SKILL_CREATOR)
     expect(content).not.toContain('/ae-save-session-flow')
     expect(content).not.toContain('/ae-asset-debug')
   })

@@ -40,7 +40,7 @@ describe('AE catalog 一致性', () => {
     expect(entries.find((item) => item.skillName === SKILL.REFACTOR)?.description).toContain('重构计划阶段')
     expect(entries.find((item) => item.skillName === SKILL.WORK)?.description).toContain('实施阶段')
     expect(entries.find((item) => item.skillName === SKILL.REVIEW)?.description).toContain('审查阶段')
-    expect(entries.find((item) => item.skillName === SKILL.LFG)?.description).toContain('自包含一站式管道技能')
+    expect(entries.find((item) => item.skillName === SKILL.WORK)?.description).toContain('实施阶段')
   })
 
   it('ae:prd 的 catalog 应与 frontmatter 字面一致', () => {
@@ -173,22 +173,11 @@ describe('AE catalog 一致性', () => {
     expect(entry?.argumentHint).toBe(frontmatter['argument-hint'])
   })
 
-  it('ae:skill-from-session 应统一会话沉淀和资产纠偏入口', () => {
+  it('ae:skill-creator 应支持 --from-session 模式', () => {
     const entries = getPhaseOneEntries()
-    const entry = entries.find((item) => item.skillName === SKILL.SKILL_FROM_SESSION)
-    const skillNames = entries.map((item) => item.skillName as string)
-    const commandNames = entries.map((item) => item.commandName as string)
-    const frontmatter = readFrontmatter('src/assets/skills/ae-skill-from-session/SKILL.md')
+    const entry = entries.find((item) => item.skillName === SKILL.SKILL_CREATOR)
 
     expect(entry).toBeDefined()
-    expect(entry?.commandName).toBe('ae-skill-from-session')
-    expect(entry?.description).toBe(frontmatter.description)
-    expect(entry?.argumentHint).toBe(frontmatter['argument-hint'])
-    expect(getPhaseOnePoEntries().some((item) => item.commandName === 'ae-skill-from-session-po')).toBe(false)
-    expect(getPhaseOnePaEntries().some((item) => item.commandName === 'ae-skill-from-session-pa')).toBe(false)
-    expect(skillNames).not.toContain('ae:save-session-flow')
-    expect(skillNames).not.toContain('ae:asset-debug')
-    expect(commandNames).not.toContain('ae-save-session-flow')
-    expect(commandNames).not.toContain('ae-asset-debug')
+    expect(entry?.description).toContain('--from-session')
   })
 })

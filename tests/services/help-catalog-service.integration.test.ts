@@ -4,15 +4,15 @@ import { COMMAND, PA_SUFFIX, PO_SUFFIX, SKILL } from '../../src/schemas/ae-asset
 import { generateHelpText } from '../../src/services/help-catalog-service.js'
 
 describe('help-catalog-service 集成', () => {
-  it('应该在真实帮助目录中暴露 ae:skill-from-session 入口', () => {
-    const text = generateHelpText('skill-from-session')
+  it('应该在真实帮助目录中暴露 ae:skill-creator 入口', () => {
+    const text = generateHelpText('skill-creator')
 
-    expect(text).toContain(SKILL.SKILL_FROM_SESSION)
-    expect(text).toContain(`/${COMMAND.SKILL_FROM_SESSION}`)
-    expect(text).not.toContain(`/${COMMAND.SKILL_FROM_SESSION}${PO_SUFFIX}`)
-    expect(text).not.toContain(`/${COMMAND.SKILL_FROM_SESSION}${PA_SUFFIX}`)
-    expect(text).toContain('从当前会话创建或更新 OpenCode 原生技能')
-    expect(text).toContain('[目标技能名\\|流程关注点\\|资产名\\|纠偏摘要]')
+    expect(text).toContain(SKILL.SKILL_CREATOR)
+    expect(text).toContain(`/${COMMAND.SKILL_CREATOR}`)
+    expect(text).not.toContain(`/${COMMAND.SKILL_CREATOR}${PO_SUFFIX}`)
+    expect(text).not.toContain(`/${COMMAND.SKILL_CREATOR}${PA_SUFFIX}`)
+    expect(text).toContain('创建或更新 OpenCode 原生技能和命令')
+    expect(text).toContain('--from-session')
   })
 
   it('应该在真实帮助目录中暴露 ae:refactor 入口', () => {

@@ -10,11 +10,11 @@ describe('ae-asset-schema', () => {
     expect(AeCommandNameSchema.safeParse(`ae-work-continue${PA_SUFFIX}`).success).toBe(false)
   })
 
-  it('应该接受 skill-from-session 技能和命令', () => {
-    expect(AeSkillNameSchema.parse(SKILL.SKILL_FROM_SESSION)).toBe('ae:skill-from-session')
-    expect(AeCommandNameSchema.parse(COMMAND.SKILL_FROM_SESSION)).toBe('ae-skill-from-session')
-    expect(AeCommandNameSchema.safeParse(`${COMMAND.SKILL_FROM_SESSION}${PO_SUFFIX}`).success).toBe(false)
-    expect(AeCommandNameSchema.safeParse(`${COMMAND.SKILL_FROM_SESSION}${PA_SUFFIX}`).success).toBe(false)
+  it('应该接受 skill-creator 技能和命令', () => {
+    expect(AeSkillNameSchema.parse(SKILL.SKILL_CREATOR)).toBe('ae:skill-creator')
+    expect(AeCommandNameSchema.parse(COMMAND.SKILL_CREATOR)).toBe('ae-skill-creator')
+    expect(AeCommandNameSchema.safeParse(`${COMMAND.SKILL_CREATOR}${PO_SUFFIX}`).success).toBe(false)
+    expect(AeCommandNameSchema.safeParse(`${COMMAND.SKILL_CREATOR}${PA_SUFFIX}`).success).toBe(false)
   })
 
   it('应该接受 swagger-parser 技能和命令', () => {

@@ -86,7 +86,7 @@ describe('插件入口', () => {
 
     const config = await runConfigHook({ worktree: hostRoot, client: {} })
 
-    expect(config.command?.['ae-lfg']?.template).toContain('ae:lfg')
+    expect(config.command?.['ae-work']?.template).toContain('ae:work')
     expect(config.command?.['ae-commit']?.template).toContain('智能提交当前变更')
     expect(config.command?.['ae-commit']?.subtask).toBe(false)
   })
@@ -115,7 +115,7 @@ describe('插件入口', () => {
       template: 'project commit template',
       description: 'project commit',
     })
-    expect(config.command?.['ae-lfg']?.template).toContain('ae:lfg')
+    expect(config.command?.['ae-work']?.template).toContain('ae:work')
   })
 
   it('项目级磁盘命令在 server config 中应该解析 frontmatter model 变量', async () => {

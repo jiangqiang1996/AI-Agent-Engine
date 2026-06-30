@@ -34,8 +34,8 @@ describe('asset-model-routing-catalog', () => {
     }
   })
 
-  it('skill-from-session 命令应该引用 standard 场景且旧入口无路由', () => {
-    expect(getCommandModelScenario(COMMAND.SKILL_FROM_SESSION)).toBe(MODEL_SCENARIO.STANDARD)
+  it('skill-creator 命令应该引用 standard 场景且旧入口无路由', () => {
+    expect(getCommandModelScenario(COMMAND.SKILL_CREATOR)).toBe(MODEL_SCENARIO.STANDARD)
     expect(getCommandModelScenario('ae-save-session-flow')).toBeUndefined()
     expect(getCommandModelScenario('ae-asset-debug')).toBeUndefined()
   })

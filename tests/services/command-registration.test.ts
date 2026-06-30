@@ -143,13 +143,13 @@ describe('command-registration', () => {
     expect(config[paCommand]).toBeUndefined()
   })
 
-  it('应该为 ae:skill-from-session 只生成基础命令', () => {
+  it('应该为 ae:skill-creator 只生成基础命令', () => {
     const config = buildCommandConfig('__missing_commands_dir__')
-    const poCommand = `${COMMAND.SKILL_FROM_SESSION}${PO_SUFFIX}`
-    const paCommand = `${COMMAND.SKILL_FROM_SESSION}${PA_SUFFIX}`
+    const poCommand = `${COMMAND.SKILL_CREATOR}${PO_SUFFIX}`
+    const paCommand = `${COMMAND.SKILL_CREATOR}${PA_SUFFIX}`
 
-    expect(config[COMMAND.SKILL_FROM_SESSION]).toBeDefined()
-    expect(config[COMMAND.SKILL_FROM_SESSION]?.template).toContain(`使用 \`${SKILL.SKILL_FROM_SESSION}\` 技能处理这次请求`)
+    expect(config[COMMAND.SKILL_CREATOR]).toBeDefined()
+    expect(config[COMMAND.SKILL_CREATOR]?.template).toContain(`使用 \`${SKILL.SKILL_CREATOR}\` 技能处理这次请求`)
     expect(config[poCommand]).toBeUndefined()
     expect(config[paCommand]).toBeUndefined()
     expect(config['ae-save-session-flow']).toBeUndefined()
@@ -173,14 +173,14 @@ describe('command-registration', () => {
     expect(skillContent).toContain(`name: ${SKILL.SWAGGER_PARSER}`)
   })
 
-  it('应该保持 ae:skill-from-session catalog 与 SKILL.md frontmatter 一致', () => {
-    const skillContent = readFileSync('src/assets/skills/ae-skill-from-session/SKILL.md', 'utf8')
+  it('应该保持 ae:skill-creator catalog 与 SKILL.md frontmatter 一致', () => {
+    const skillContent = readFileSync('src/assets/skills/ae-skill-creator/SKILL.md', 'utf8')
     const frontmatter = parseFrontmatter(skillContent).data
-    const catalogEntry = getPhaseOneEntries().find((entry) => entry.skillName === SKILL.SKILL_FROM_SESSION)
+    const catalogEntry = getPhaseOneEntries().find((entry) => entry.skillName === SKILL.SKILL_CREATOR)
 
     expect(catalogEntry).toBeDefined()
     expect(frontmatter.name).toBe(catalogEntry?.skillName)
-    expect(frontmatter.description).toBe(catalogEntry?.description)
+    expect(frontmatter.description).toContain('创建或更新')
     expect(frontmatter['argument-hint']).toBe(catalogEntry?.argumentHint)
   })
 

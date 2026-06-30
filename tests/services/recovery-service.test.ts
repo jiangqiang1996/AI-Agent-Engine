@@ -241,43 +241,6 @@ title: second-plan
     expect(result.nextCommand).toBeUndefined()
   })
 
-  it('lfg 阶段命中 plan 产物时应该恢复到 ae:review 无头文档域', () => {
-    const root = createRepoRoot()
-    writePlan(root, 'lfg-plan.md', `
-type: plan
-status: active
-date: 2026-04-27
-title: lfg-plan
-`)
-
-    const result = resolveRecovery(createRuntimeAssetManifestFromRoot(root), 'lfg')
-
-    expect(result.resolution).toBe('resolved')
-    expect(result.resumePhase).toBe('review')
-    expect(result.nextSkill).toBe(SKILL.REVIEW)
-    expect(result.nextArguments).toBe('mode=headless domain=document ae/plans/lfg-plan.md')
-    expect(result.nextCommand).toBe(`${SKILL.REVIEW} mode=headless domain=document ae/plans/lfg-plan.md`)
-  })
-
-  it('lfg 阶段命中 prd 产物时应该恢复到 ae:review 无头文档域', () => {
-    const root = createRepoRoot()
-    writePrd(root, 'feature-prd.md', `
-type: prd
-status: drafted
-date: 2026-04-27
-topic: feature
-`)
-
-    const result = resolveRecovery(createRuntimeAssetManifestFromRoot(root), 'lfg')
-
-    expect(result.resolution).toBe('resolved')
-    expect(result.nextSkill).toBe(SKILL.REVIEW)
-    expect(result.nextArguments).toBe('mode=headless domain=document ae/prds/feature-prd.md')
-    expect(result.nextCommand).toBe(
-      `${SKILL.REVIEW} mode=headless domain=document ae/prds/feature-prd.md`,
-    )
-  })
-
   it('应该只在当前 worktree 根目录内恢复计划产物', () => {
     const rootA = createRepoRoot()
     const rootB = createRepoRoot()
@@ -295,25 +258,6 @@ title: a-plan
     expect(JSON.stringify(result)).not.toContain('a-plan.md')
   })
 
-  it('lfg 阶段命中 prd 产物时应该优先恢复到 ae:review 无头文档域', () => {
-    const root = createRepoRoot()
-    writePrd(root, 'feature-prd.md', `
-type: prd
-status: drafted
-date: 2026-04-27
-topic: feature
-`)
-
-    const result = resolveRecovery(createRuntimeAssetManifestFromRoot(root), 'lfg')
-
-    expect(result.resolution).toBe('resolved')
-    expect(result.nextSkill).toBe(SKILL.REVIEW)
-    expect(result.nextArguments).toBe('mode=headless domain=document ae/prds/feature-prd.md')
-    expect(result.nextCommand).toBe(
-      `${SKILL.REVIEW} mode=headless domain=document ae/prds/feature-prd.md`,
-    )
-  })
-
   it('不应该从旧 docs/ae 计划路径恢复产物', () => {
     const root = createRepoRoot()
     writeLegacyPlan(root, 'legacy-plan.md')
@@ -328,7 +272,7 @@ topic: feature
     const root = createRepoRoot()
     writeLegacyPrd(root, 'legacy-prd.md')
 
-    const result = resolveRecovery(createRuntimeAssetManifestFromRoot(root), 'lfg')
+    const result = resolveRecovery(createRuntimeAssetManifestFromRoot(root), 'review')
 
     expect(result.resolution).not.toBe('resolved')
     expect(JSON.stringify(result)).not.toContain('docs/ae/prds/legacy-prd.md')
