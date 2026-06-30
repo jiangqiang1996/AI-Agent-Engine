@@ -1,4 +1,4 @@
-import matter from 'gray-matter'
+import { parse as parseYaml } from 'yaml'
 
 export interface FrontmatterData {
   [key: string]: unknown
@@ -9,8 +9,24 @@ export interface ParsedFrontmatter<T extends FrontmatterData = FrontmatterData> 
   body: string
 }
 
+function parseMatter(content: string): { data: Record<string, unknown>; content: string } {
+  const text = content.charCodeAt(0) === 0xFEFF ? content.slice(1) : content
+  const match = text.match(/^---\r?\n([\s\S]*?)\r?\n?---\r?\n?([\s\S]*)$/)
+  if (!match) {
+    return { data: {}, content: text }
+  }
+  const [, yamlContent, body] = match
+  let data: Record<string, unknown>
+  try {
+    data = parseYaml(yamlContent) ?? {}
+  } catch {
+    data = {}
+  }
+  return { data, content: body }
+}
+
 export function parseFrontmatter<T extends FrontmatterData = FrontmatterData>(content: string): ParsedFrontmatter<T> {
-  const parsed = matter(content)
+  const parsed = parseMatter(content)
   return { data: normalizeFrontmatterData(parsed.data) as T, body: parsed.content }
 }
 

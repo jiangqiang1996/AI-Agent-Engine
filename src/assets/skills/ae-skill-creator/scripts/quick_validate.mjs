@@ -3,7 +3,7 @@
 import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import path from 'node:path'
-import matter from 'gray-matter'
+import { parse as parseYaml } from 'yaml'
 
 const NAME_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/
 const AE_NAME_PATTERN = /^ae:[a-z0-9]+(-[a-z0-9]+)*$/
@@ -49,16 +49,31 @@ function parseArgs(argv) {
   return { skillDir, commandFile, withCommand }
 }
 
-function parseFrontmatter(content) {
-  if (!content.startsWith('---\n') && !content.startsWith('---\r\n')) {
-    throw new Error('SKILL.md 必须以 frontmatter 开头')
+function parseRawFrontmatter(content) {
+  const text = content.charCodeAt(0) === 0xFEFF ? content.slice(1) : content
+  const match = text.match(/^---\r?\n([\s\S]*?)\r?\n?---\r?\n?([\s\S]*)$/)
+  if (!match) {
+    return null
   }
-
+  const [, yamlContent] = match
   try {
-    return matter(content).data
+    return parseYaml(yamlContent) ?? {}
   } catch {
     throw new Error('无法解析 frontmatter，请确认使用成对的 --- 分隔')
   }
+}
+
+function parseFrontmatter(content) {
+  const text = content.charCodeAt(0) === 0xFEFF ? content.slice(1) : content
+  if (!text.startsWith('---\n') && !text.startsWith('---\r\n')) {
+    throw new Error('SKILL.md 必须以 frontmatter 开头')
+  }
+
+  const data = parseRawFrontmatter(content)
+  if (data === null) {
+    throw new Error('无法解析 frontmatter，请确认使用成对的 --- 分隔')
+  }
+  return data
 }
 
 function expectedFrontmatterNames(expectedName) {

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { readdir, readFile, stat } from 'node:fs/promises'
 import path from 'node:path'
-import matter from 'gray-matter'
+import { parse as parseYaml } from 'yaml'
 
 const VALID_MODES = new Set(['primary', 'subagent', 'all'])
 
@@ -10,12 +10,22 @@ function usage() {
 }
 
 function parseFrontmatter(text) {
-  if (!text.startsWith('---\n') && !text.startsWith('---\r\n')) {
+  const content = text.charCodeAt(0) === 0xFEFF ? text.slice(1) : text
+  if (!content.startsWith('---\n') && !content.startsWith('---\r\n')) {
     return { frontmatter: null, body: text }
   }
 
-  const parsed = matter(text)
-  return { frontmatter: parsed.data, body: parsed.content }
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/)
+  if (!match) {
+    return { frontmatter: null, body: text }
+  }
+
+  const [, yamlContent, body] = match
+  try {
+    return { frontmatter: parseYaml(yamlContent) ?? {}, body }
+  } catch {
+    return { frontmatter: null, body: text }
+  }
 }
 
 async function collectAgentFiles(target) {
