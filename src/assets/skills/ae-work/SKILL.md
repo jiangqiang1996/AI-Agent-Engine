@@ -38,8 +38,8 @@ argument-hint: "[计划路径|交接文件路径|任务描述]"
 - 修改任何项目文件之前，必须完成输入分流、Git 状态检查和 worktree 决策。
 - 必须实际运行并记录 `git status --short`、`git branch --show-current`、`git log --oneline -1`。
 - 单独使用 `ae:work` 且未显式传入 `worktree`、`current-worktree`、`auto` 时，必须按任务大小向用户询问执行位置，不得自行默认 `auto`。
-- 如果调用方是 `ae:lfg` 或 `ae:task-loop`，固定按 `current-worktree` 执行，记录 `worktree_decision: rejected`，不得询问 worktree 模式、不得创建 worktree、不得把未传值补齐为 `auto`。
-- `/ae-lfg ae:work`、`ae:lfg ae:work`、`ae:task-loop ae:work`、`/ae-task-loop ae:work` 都必须归一化为上游编排器委派，按当前工作区执行。
+- 如果调用方是 `ae:task-loop`，固定按 `current-worktree` 执行，记录 `worktree_decision: rejected`，不得询问 worktree 模式、不得创建 worktree、不得把未传值补齐为 `auto`。
+- `ae:task-loop ae:work`、`/ae-task-loop ae:work` 都必须归一化为上游编排器委派，按当前工作区执行。
 - 传入规范 worktree 交接文件路径时，必须把交接文件作为唯一必需输入，在当前可观察 worktree 中继续执行；不得按裸提示词处理，不得再次创建 worktree。
 - A 会话创建 B worktree 后，不得继续实现；只能按需迁移当前任务已确定、真实存在的需求/计划/设计产物、`ae/graphs/` 和 `.opencode/ae.jsonc` 可选上下文，并调用 `ae-worktree-handoff` 工具生成交接文件；存在性判断和复制必须使用文件系统视角，不能依赖 `git status`、`git ls-files` 或其他会受 `.gitignore` 影响的 Git 视角；未迁移的可选上下文不得出现在交接文件中，禁止自行拼接交接 Markdown。
 - `ae-worktree-handoff` 工具会按固定模板生成结构化交接文件并返回 A 会话最终回复使用的简短交接提示；B worktree 通过 `ae:work <交接文件>` 继续执行，`/ae-work-continue` 只是查找交接文件后调用 `ae:work` 的便捷包装。A→B 启动证明的结构由工具保证，AI 只需填值。
@@ -79,7 +79,7 @@ argument-hint: "[计划路径|交接文件路径|任务描述]"
 确认工作范围和执行策略，输出 `ConfirmedContext`。
 
 - 交互模式：展示任务分解、执行策略和预览，让用户确认或修正
-- 上游编排器委派（ae:lfg / ae:task-loop）：跳过用户确认，直接进入调度
+- 上游编排器委派（ae:task-loop）：跳过用户确认，直接进入调度
 - worktree 交接文件：按交接文件中的 `resume_entrypoint` 继续，跳过重新确认
 
 #### ConfirmedContext 输出

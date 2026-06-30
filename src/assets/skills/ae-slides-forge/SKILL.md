@@ -1,6 +1,7 @@
 ---
 name: ae:slides-forge
 description: 传入确认后的幻灯片大纲文件，协调 ae:web-forge 生成多文件 HTML 幻灯片；内容必须完全符合大纲，禁止镀金
+argument-hint: "[大纲文件路径] [--design|--match] [现有 HTML 文件路径]"
 ---
 
 # HTML 幻灯片生成

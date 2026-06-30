@@ -43,12 +43,10 @@
 
 以下输入必须归一化为上游编排器委派，并固定当前工作区执行：
 
-- `/ae-lfg ae:work`
-- `ae:lfg ae:work`
 - `ae:task-loop ae:work`
 - `/ae-task-loop ae:work`
 
-来源为 `ae:lfg` 或 `ae:task-loop` 时，`worktree_policy` 必须为 `current-worktree`，`interaction_policy` 必须禁止 worktree 询问，后续不得创建 worktree，不得把未传值补齐为 `auto`。
+来源为 `ae:task-loop` 时，`worktree_policy` 必须为 `current-worktree`，`interaction_policy` 必须禁止 worktree 询问，后续不得创建 worktree，不得把未传值补齐为 `auto`。
 
 ## 输出契约
 
@@ -56,7 +54,7 @@
 
 ```json
 {
-  "origin": "standalone|ae:lfg|ae:task-loop|worktree-handoff",
+  "origin": "standalone|ae:task-loop|worktree-handoff",
   "input_type": "plan_path|prompt|worktree_handoff|delegated_skill",
   "delegated_skill": "ae:work|null",
   "worktree_policy": "ask|current-worktree|worktree|auto|handoff-created",

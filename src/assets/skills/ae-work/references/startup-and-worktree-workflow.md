@@ -28,14 +28,14 @@ git log --oneline -1
 - 兼容输入 `--no-worktree` 映射为 `current-worktree`。
 - 每次正式实现型任务在修改项目文件前，都必须先解析 worktree 模式：`worktree`、`current-worktree`、`auto`。
 - 显式 `auto` 模式复用阶段 0 的 S3/S4 分流和强制升级停点作为推荐依据：S3 轻量修复、预计不超过 2 个生产文件时推荐 `current-worktree`；S4 多步骤实现、10+ 文件或高风险时推荐 `worktree`，并在最终交付说明 / Git 操作状态中记录推荐依据。
-- 如果调用方是 `ae:lfg` 或 `ae:task-loop`，固定按 `current-worktree` 处理，记录 `worktree_decision: rejected`，不得询问 worktree 模式、不得创建 worktree、不得把未传值补齐为 `auto`。
+- 如果调用方是 `ae:task-loop`，固定按 `current-worktree` 处理，记录 `worktree_decision: rejected`，不得询问 worktree 模式、不得创建 worktree、不得把未传值补齐为 `auto`。
 - 若输入为规范 worktree 交接文件且当前目录匹配目标 B worktree，视为 worktree 模式已由 A→B 启动证明确定，记录 `worktree_decision: created`，不得再次询问 worktree 模式或分支策略，不得再次创建 worktree。
 - 单独使用 `ae:work` 且未显式传入 worktree 模式时，必须基于任务上下文给出推荐依据并明确询问是否创建新的 worktree，不得自行推断或默认采用 `auto`；询问必须基于任务大小给出推荐：小任务推荐当前工作区，大任务推荐创建新 worktree。
 - S3 轻量修复也必须进入阶段 1，完成准备环境 / worktree 决策后再实现。
 
 ## 风险确认
 
-根据 Git 状态、worktree 模式和任务大小向用户展示风险评估并等待确认；若调用方是 `ae:lfg` 或 `ae:task-loop`，本步骤只记录固定当前工作区执行的风险，不询问、不创建 worktree。
+根据 Git 状态、worktree 模式和任务大小向用户展示风险评估并等待确认；若调用方是 `ae:task-loop`，本步骤只记录固定当前工作区执行的风险，不询问、不创建 worktree。
 
 未创建 worktree 不等于允许直接在默认分支实现；若当前在默认分支继续当前工作区，必须二次确认风险，并在最终交付说明中记录该风险接受证据。
 
@@ -72,7 +72,7 @@ git log --oneline -1
 
 - A 会话最后回复**必须逐字使用**工具返回的简短交接提示（userInstruction）；不得改写、缩写或重组。
 - A 会话最后回复只能输出 B worktree 路径、交接 Markdown 路径和简短交接提示；不得输出"已完成/已验证/未验证/Git 操作状态/审查状态/剩余风险"等普通交付分区。
-- 创建 B worktree、迁移产物并调用工具写入规范交接 Markdown 后，立即停止 `ae:work` 阶段 2-4；终止状态必须记录并返回 `worktree_decision: transferred`，供 `ae:lfg` 等调用方识别停点；不得进入普通交付模板。
+- 创建 B worktree、迁移产物并调用工具写入规范交接 Markdown 后，立即停止 `ae:work` 阶段 2-4；终止状态必须记录并返回 `worktree_decision: transferred`，供 `ae:task-loop` 等调用方识别停点；不得进入普通交付模板。
 
 ### 交接后确认清单
 

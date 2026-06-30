@@ -67,8 +67,8 @@
 - 无 Git 写操作：说明无 Git 写操作，记录 `worktree_decision`
 - 非 Git 项目或 `git worktree` 不可用：显式 `worktree` 模式必须停止或请求降级确认，不得静默记录 `not_applicable` 后继续；`current-worktree` 可继续当前目录但必须说明风险；`auto` 降级当前目录时记录 `worktree_decision: not_applicable`
 - 单独使用 `ae:work` 且未显式传入 `worktree`、`current-worktree`、`auto`：必须按任务大小给出推荐并询问是否创建新的 worktree；小任务推荐当前工作区，大任务推荐创建新 worktree；不得默认采用 `auto`
-- 不创建新 worktree 并直接在当前分支执行、`current-worktree` 模式、`auto` 推荐当前工作区，或 `ae:lfg` / `ae:task-loop` 固定当前工作区执行：记录 `worktree_decision: rejected`，表示未创建新 worktree 并留在当前 `ctx.worktree` 或可观察 worktree；产物、验证和审查均归属于当前可观察 worktree。若当前会话是 A→B 后在目标 B worktree 中执行，则 B 会话最终交付优先记录 `worktree_decision: created`
-- `ae:lfg` 或 `ae:task-loop` 调用 `ae:work` 时，必须固定当前工作区执行，禁止询问 worktree 模式，禁止创建 worktree，禁止把未显式传入的模式补齐或透传为 `auto`；`--no-worktree` 仅作为兼容输入映射到 `current-worktree`，不再作为默认策略中心
+- 不创建新 worktree 并直接在当前分支执行、`current-worktree` 模式、`auto` 推荐当前工作区，或 `ae:task-loop` 固定当前工作区执行：记录 `worktree_decision: rejected`，表示未创建新 worktree 并留在当前 `ctx.worktree` 或可观察 worktree；产物、验证和审查均归属于当前可观察 worktree。若当前会话是 A→B 后在目标 B worktree 中执行，则 B 会话最终交付优先记录 `worktree_decision: created`
+- `ae:task-loop` 调用 `ae:work` 时，必须固定当前工作区执行，禁止询问 worktree 模式，禁止创建 worktree，禁止把未显式传入的模式补齐或透传为 `auto`；`--no-worktree` 仅作为兼容输入映射到 `current-worktree`，不再作为默认策略中心
 - 普通 Git 写操作：同时记录 `git_operation_args` 和覆盖相同参数数组的 `git_authorization_evidence`
 - A→B 启动证明：授权证据区分 `operation_worktree` 与 `target_worktree`，`target_worktree` 必须是 A 项目根目录同级的 `../worktrees/<name>` 直接子目录，B 中最终交付的当前 worktree 必须匹配 `target_worktree`
 - A→B 产物迁移：创建 B 后，A 会话只允许把当前任务已确定执行基线中真实存在的具体需求/计划/设计文件、`ae/graphs/` 和 `.opencode/ae.jsonc` 迁移到 B，并在交接文件中逐一显式引用实际迁移的文件或目录；迁移源路径和 B 中目标路径的存在性判断必须使用文件系统视角，即使路径被 `.gitignore` 忽略也必须按真实文件系统存在性迁移，不得用 `git status`、`git ls-files`、Git diff 或图谱结果判断这些文件不存在；其中 `.opencode/ae.jsonc` 只能作为已确定的 AE 项目配置上下文迁移并在交接文件中显式记录；禁止按 glob 批量复制未进入执行基线的需求/计划/设计文件；若存在多个候选需求/计划/设计文件，必须先选择唯一基线文件集；未迁移的需求/计划/设计、图谱或 AE 项目配置产物不在交接文件中出现，不得声称已复制；若设计已由计划承载，交接文件必须明确说明；不迁移 gate/review 运行时产物，不修改 B 中代码、测试或其他项目文件
