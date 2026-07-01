@@ -1,7 +1,5 @@
 import {
   getPhaseOneEntries,
-  getPhaseOnePoEntries,
-  getPhaseOnePaEntries,
   getAllAgentDefinitions,
 } from './ae-catalog.js'
 import { buildCommandConfig } from './command-registration.js'
@@ -17,12 +15,11 @@ export interface SkillEntry {
   commandName: string
 }
 
-/** 命令条目，包含名称、描述、分类和可选的基础命令名。 */
+/** 命令条目，包含名称、描述和分类。 */
 export interface CommandEntry {
   name: string
   description: string
   category: string
-  baseCommand?: string
 }
 
 /** 代理条目，包含名称、阶段和描述。 */
@@ -52,42 +49,15 @@ function buildSkillEntries(): SkillEntry[] {
 
 function buildCommandEntries(manifest: RuntimeAssetManifest): CommandEntry[] {
   const config = buildCommandConfig(manifest.commandsDir)
-  const poEntries = getPhaseOnePoEntries()
-  const paEntries = getPhaseOnePaEntries()
-  const poNames = new Set(poEntries.map((e) => e.commandName))
-  const paNames = new Set(paEntries.map((e) => e.commandName))
 
   const entries: CommandEntry[] = []
 
   for (const [name, cmd] of Object.entries(config)) {
-    if (poNames.has(name)) {
-      entries.push({
-        name,
-        description: cmd.description || '',
-        category: '提示词优化',
-        baseCommand: name.slice(0, -3),
-      })
-    } else if (paNames.has(name)) {
-      entries.push({
-        name,
-        description: cmd.description || '',
-        category: '提示词优化（自动）',
-        baseCommand: name.slice(0, -3),
-      })
-    } else if (name.endsWith('-auto')) {
-      entries.push({
-        name,
-        description: cmd.description || '',
-        category: '基础命令',
-        baseCommand: name.slice(0, -5),
-      })
-    } else {
-      entries.push({
-        name,
-        description: cmd.description || '',
-        category: '基础命令',
-      })
-    }
+    entries.push({
+      name,
+      description: cmd.description || '',
+      category: '基础命令',
+    })
   }
 
   return entries
@@ -155,8 +125,7 @@ export function filterCatalog(catalog: HelpCatalog, query?: string): HelpCatalog
     (c) =>
       matchesQuery(c.name, q) ||
       matchesQuery(c.description, q) ||
-      matchesQuery(c.category, q) ||
-      (c.baseCommand && matchesQuery(c.baseCommand, q)),
+      matchesQuery(c.category, q),
   )
 
   const agents = catalog.agents.filter(
@@ -340,7 +309,7 @@ function buildSkillDetail(catalog: HelpCatalog, skill: SkillEntry): DetailEntry 
   const related: DetailEntry['related'] = []
 
   const commands = catalog.commands.filter(
-    (c) => c.name === skill.commandName || c.baseCommand === skill.commandName,
+    (c) => c.name === skill.commandName,
   )
   for (const cmd of commands) {
     related.push({ type: 'command', name: cmd.name, description: cmd.description })
@@ -368,23 +337,9 @@ function buildSkillDetail(catalog: HelpCatalog, skill: SkillEntry): DetailEntry 
 function buildCommandDetail(catalog: HelpCatalog, command: CommandEntry): DetailEntry {
   const related: DetailEntry['related'] = []
 
-  const skill = catalog.skills.find((s) => s.commandName === command.name || s.commandName === command.baseCommand)
+  const skill = catalog.skills.find((s) => s.commandName === command.name)
   if (skill) {
     related.push({ type: 'skill', name: skill.name, description: skill.description })
-  }
-
-  if (command.baseCommand) {
-    const baseCmd = catalog.commands.find((c) => c.name === command.baseCommand && c.name !== command.name)
-    if (baseCmd) {
-      related.push({ type: 'command', name: baseCmd.name, description: baseCmd.description })
-    }
-  }
-
-  const variantCommands = catalog.commands.filter(
-    (c) => c.baseCommand === (command.baseCommand ?? command.name) && c.name !== command.name,
-  )
-  for (const vc of variantCommands) {
-    related.push({ type: 'command', name: vc.name, description: vc.description })
   }
 
   const routes = catalog.modelRoutes?.filter((r) => r.name === command.name)
@@ -398,9 +353,6 @@ function buildCommandDetail(catalog: HelpCatalog, command: CommandEntry): Detail
     { label: '命令', value: `/${command.name}` },
     { label: '分类', value: command.category },
   ]
-  if (command.baseCommand) {
-    properties.push({ label: '基础命令', value: `/${command.baseCommand}` })
-  }
 
   return {
     type: 'command',

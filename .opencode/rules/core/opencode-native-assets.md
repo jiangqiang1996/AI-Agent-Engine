@@ -331,9 +331,9 @@ export function registerHooks(input: PluginInput): Partial<Hooks> {
 
 ### 排列原则
 
-1. **用户流程优先** 主流程包括：ideate brainstorm prd plan/refactor work review。
+1. **用户流程优先** 主流程包括：prd plan/refactor work review。
 2. **浏览器/设计能力成组** `setup`、`test-browser`、`frontend-design` 这类需要环境准备或视觉验证的能力可作为一组，组内按执行依赖排序：setup → test-browser/frontend-design。
-3. **辅助与维护能力随后** handoff、prompt-optimize、task-loop、sql、swagger-parser、save-rules、help、update 等按功能执行顺序或用户发现成本排序。
+3. **辅助与维护能力随后** brainstorm、handoff、task-loop、sql、swagger-parser、save-experience、help、update 等按功能执行顺序或用户发现成本排序。
 4. **不同展示面可有不同优化目标** catalog、帮助输出、命令别名、文档总览可以为了组合入口、常用程度或分组展示做局部调整；审查时只在顺序会造成发现性、依赖或注册错误时报告。
 
 ### 适用范围

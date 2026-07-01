@@ -131,8 +131,8 @@ remote MCP 的最终 URL 当前允许 `http` / `https`，建议优先使用 `htt
 
 | 场景 | 用途 | 典型模型特征 |
 | --- | --- | --- |
-| `quick` | 快速响应（`/ae-help`、`/ae-prompt-optimize`） | 低延迟、低成本 |
-| `standard` | 常规任务（`/ae-ideate`、`/ae-brainstorm`、`/ae-sql`） | 平衡性能与质量 |
+| `quick` | 快速响应（`/ae-help`、`/ae-graph-query`） | 低延迟、低成本 |
+| `standard` | 常规任务（`/ae-brainstorm`、`/ae-sql`） | 平衡性能与质量 |
 | `deep` | 深度推理（`/ae-plan`、`/ae-work`、`/ae-review`，以及声明 `model: $deep` 的 Markdown 命令） | 强推理、长上下文 |
 | `vision` | 视觉任务（`/ae-chrome-devtools`） | 支持图片输入 |
 | `audio` | 音频任务 | 支持音频输入 |
@@ -206,9 +206,9 @@ model: $deep
 
 | 资产 | 场景 |
 | --- | --- |
-| `/ae-ideate`、`/ae-brainstorm`、`/ae-prd`、`/ae-agent-creator`、`/ae-work-report`、`/ae-my-code-changes`、`/ae-handoff`、`/ae-sql`、`/ae-swagger-parser`、`/ae-api-tester`、`/ae-html-bundle`、`/ae-html-to-pptx`、`/ae-markitdown`、`/ae-graph-build`、`/ae-save-experience`、`/ae-skill-creator`、`/ae-static-server`、`/ae-docx`、`/ae-pdf`、`/ae-pptx`、`/ae-xlsx`、`/ae-update`、`/ae-ideate-po`、`/ae-brainstorm-po`、`/ae-prd-po`、`/ae-ideate-pa`、`/ae-brainstorm-pa`、`/ae-prd-pa` | `standard` |
-| `/ae-design`、`/ae-plan`、`/ae-refactor`、`/ae-work`、`/ae-merge-branch`、`/ae-review`、`/ae-web-forge`、`/ae-slides-outline`、`/ae-slides-forge`、`/ae-pptx-from-outline`、`/ae-task-loop`、`/ae-design-po`、`/ae-plan-po`、`/ae-refactor-po`、`/ae-work-po`、`/ae-slides-outline-po`、`/ae-task-loop-po`、`/ae-design-pa`、`/ae-plan-pa`、`/ae-refactor-pa`、`/ae-work-pa`、`/ae-slides-outline-pa`、`/ae-task-loop-pa` | `deep` |
-| `/ae-prompt-optimize`、`/ae-prompt-optimize-auto`、`/ae-graph-query`、`/ae-help` | `quick` |
+| `/ae-brainstorm`、`/ae-prd`、`/ae-agent-creator`、`/ae-work-report`、`/ae-my-code-changes`、`/ae-handoff`、`/ae-sql`、`/ae-swagger-parser`、`/ae-api-tester`、`/ae-html-bundle`、`/ae-html-to-pptx`、`/ae-markitdown`、`/ae-graph-build`、`/ae-save-experience`、`/ae-skill-creator`、`/ae-static-server`、`/ae-docx`、`/ae-pdf`、`/ae-pptx`、`/ae-xlsx`、`/ae-update` | `standard` |
+| `/ae-design`、`/ae-plan`、`/ae-refactor`、`/ae-work`、`/ae-merge-branch`、`/ae-review`、`/ae-web-forge`、`/ae-slides-outline`、`/ae-slides-forge`、`/ae-pptx-from-outline`、`/ae-task-loop` | `deep` |
+| `/ae-graph-query`、`/ae-help` | `quick` |
 | `/ae-chrome-devtools`、`/ae-course-auto-player` | `vision` |
 | `@repo-research-analyst`、`@web-researcher` | `standard` |
 | `@ui-architect`、`@ui-matcher`、`@browser-inspector` | `vision` |

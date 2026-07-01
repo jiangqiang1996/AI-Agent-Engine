@@ -53,7 +53,7 @@ index.ts / tools → services → schemas / utils
 
 | 文件 | 职责 |
 | --- | --- |
-| `ae-catalog.ts` | Phase One 技能条目、PO/PA 变体、代理定义 |
+| `ae-catalog.ts` | Phase One 技能条目、代理定义 |
 | `command-registration.ts` | 命令配置构建 |
 | `agent-registration.ts` | 代理配置构建 |
 | `help-catalog-service.ts` | 帮助目录构建、过滤和格式化 |

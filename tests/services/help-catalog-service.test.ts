@@ -2,8 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('../../src/services/ae-catalog.js', () => ({
   getPhaseOneEntries: vi.fn(),
-  getPhaseOnePoEntries: vi.fn(),
-  getPhaseOnePaEntries: vi.fn(),
   getAllAgentDefinitions: vi.fn(),
 }))
 
@@ -39,7 +37,7 @@ import * as commandRegistration from '../../src/services/command-registration.js
 import * as agentRegistration from '../../src/services/agent-registration.js'
 import * as assetModelRoutingCatalog from '../../src/services/asset-model-routing-catalog.js'
 import * as runtimeAssetManifest from '../../src/services/runtime-asset-manifest.js'
-import { COMMAND, PA_SUFFIX, PO_SUFFIX, SKILL, skillDir } from '../../src/schemas/ae-asset-schema.js'
+import { COMMAND, SKILL } from '../../src/schemas/ae-asset-schema.js'
 
 import {
   buildHelpCatalog,
@@ -85,11 +83,11 @@ describe('help-catalog-service', () => {
     it('应该复用 ae-catalog、command-registration 和 agent-registration 的数据', () => {
       vi.mocked(aeCatalog.getPhaseOneEntries).mockReturnValue([
         {
-          skillName: 'ae:ideate',
-          commandName: 'ae-ideate',
-          description: '生成想法',
+          skillName: 'ae:brainstorm',
+          commandName: 'ae-brainstorm',
+          description: '头脑风暴',
           argumentHint: '[主题]',
-          skillFile: 'src/assets/skills/ae-ideate/SKILL.md',
+          skillFile: 'src/assets/skills/ae-brainstorm/SKILL.md',
         },
         {
           skillName: 'ae:work',
@@ -99,26 +97,6 @@ describe('help-catalog-service', () => {
           skillFile: 'src/assets/skills/ae-work/SKILL.md',
         },
       ] as ReturnType<typeof aeCatalog.getPhaseOneEntries>)
-
-      vi.mocked(aeCatalog.getPhaseOnePoEntries).mockReturnValue([
-        {
-          skillName: 'ae:prompt-optimize',
-          commandName: 'ae-ideate-po',
-          description: '先优化提示词，再用生成想法',
-          argumentHint: '[主题]',
-          skillFile: 'src/assets/skills/ae-prompt-optimize/SKILL.md',
-        },
-      ] as ReturnType<typeof aeCatalog.getPhaseOnePoEntries>)
-
-      vi.mocked(aeCatalog.getPhaseOnePaEntries).mockReturnValue([
-        {
-          skillName: 'ae:prompt-optimize',
-          commandName: 'ae-ideate-pa',
-          description: '先优化提示词（auto 模式），再用生成想法',
-          argumentHint: '[主题]',
-          skillFile: 'src/assets/skills/ae-prompt-optimize/SKILL.md',
-        },
-      ] as ReturnType<typeof aeCatalog.getPhaseOnePaEntries>)
 
       vi.mocked(aeCatalog.getAllAgentDefinitions).mockReturnValue([
         {
@@ -131,10 +109,8 @@ describe('help-catalog-service', () => {
       ] as ReturnType<typeof aeCatalog.getAllAgentDefinitions>)
 
       vi.mocked(commandRegistration.buildCommandConfig).mockReturnValue({
-        'ae-ideate': { template: '使用 `ae:ideate` 技能...', description: '生成想法' },
+        'ae-brainstorm': { template: '使用 `ae:brainstorm` 技能...', description: '头脑风暴' },
         'ae-work': { template: '使用 `ae:work` 技能...', description: '执行工作' },
-        'ae-ideate-po': { template: '先使用 `ae:prompt-optimize` 技能...', description: '先优化提示词，再用生成想法' },
-        'ae-ideate-pa': { template: '先使用 `ae:prompt-optimize` 技能...', description: '先优化提示词（auto 模式），再用生成想法' },
       })
 
       vi.mocked(agentRegistration.buildAgentConfig).mockReturnValue({
@@ -148,16 +124,13 @@ describe('help-catalog-service', () => {
       const catalog = buildHelpCatalog('/repo')
 
       expect(catalog.skills).toHaveLength(2)
-      expect(catalog.skills[0].name).toBe('ae:ideate')
+      expect(catalog.skills[0].name).toBe('ae:brainstorm')
       expect(catalog.skills[1].name).toBe('ae:work')
 
-      expect(catalog.commands).toHaveLength(4)
-      const poCmd = catalog.commands.find((c) => c.name === 'ae-ideate-po')
-      expect(poCmd).toBeDefined()
-      expect(poCmd!.category).toBe('提示词优化')
-      const paCmd = catalog.commands.find((c) => c.name === 'ae-ideate-pa')
-      expect(paCmd).toBeDefined()
-      expect(paCmd!.category).toBe('提示词优化（自动）')
+      expect(catalog.commands).toHaveLength(2)
+      const brainstormCmd = catalog.commands.find((c) => c.name === 'ae-brainstorm')
+      expect(brainstormCmd).toBeDefined()
+      expect(brainstormCmd!.category).toBe('基础命令')
 
       expect(catalog.agents).toHaveLength(1)
       expect(catalog.agents[0].name).toBe('correctness-reviewer')
@@ -167,42 +140,8 @@ describe('help-catalog-service', () => {
       )
     })
 
-    it('应该对技能去重（同一技能多个命令只保留一个）', () => {
-      vi.mocked(aeCatalog.getPhaseOneEntries).mockReturnValue([
-        {
-          skillName: 'ae:prompt-optimize',
-          commandName: 'ae-prompt-optimize',
-          description: '提示词优化',
-          argumentHint: '',
-          skillFile: 'src/assets/skills/ae-prompt-optimize/SKILL.md',
-        },
-        {
-          skillName: 'ae:prompt-optimize',
-          commandName: 'ae-prompt-optimize-auto',
-          description: '提示词优化（auto）',
-          argumentHint: '',
-          skillFile: 'src/assets/skills/ae-prompt-optimize/SKILL.md',
-        },
-      ] as ReturnType<typeof aeCatalog.getPhaseOneEntries>)
-
-      vi.mocked(aeCatalog.getPhaseOnePoEntries).mockReturnValue([])
-      vi.mocked(aeCatalog.getPhaseOnePaEntries).mockReturnValue([])
-      vi.mocked(aeCatalog.getAllAgentDefinitions).mockReturnValue([])
-      vi.mocked(commandRegistration.buildCommandConfig).mockReturnValue({
-        'ae-prompt-optimize': { template: '', description: '提示词优化' },
-        'ae-prompt-optimize-auto': { template: '', description: '提示词优化（auto）' },
-      })
-      vi.mocked(agentRegistration.buildAgentConfig).mockReturnValue({})
-
-      const catalog = buildHelpCatalog('/repo')
-      expect(catalog.skills).toHaveLength(1)
-      expect(catalog.skills[0].name).toBe('ae:prompt-optimize')
-    })
-
     it('应该将调用方 repoRoot 传递给 agent-registration', () => {
       vi.mocked(aeCatalog.getPhaseOneEntries).mockReturnValue([])
-      vi.mocked(aeCatalog.getPhaseOnePoEntries).mockReturnValue([])
-      vi.mocked(aeCatalog.getPhaseOnePaEntries).mockReturnValue([])
       vi.mocked(aeCatalog.getAllAgentDefinitions).mockReturnValue([])
       vi.mocked(commandRegistration.buildCommandConfig).mockReturnValue({})
       vi.mocked(agentRegistration.buildAgentConfig).mockReturnValue({})
@@ -217,8 +156,6 @@ describe('help-catalog-service', () => {
 
     it('未传 repoRoot 时应使用运行时资产清单', () => {
       vi.mocked(aeCatalog.getPhaseOneEntries).mockReturnValue([])
-      vi.mocked(aeCatalog.getPhaseOnePoEntries).mockReturnValue([])
-      vi.mocked(aeCatalog.getPhaseOnePaEntries).mockReturnValue([])
       vi.mocked(aeCatalog.getAllAgentDefinitions).mockReturnValue([])
       vi.mocked(commandRegistration.buildCommandConfig).mockReturnValue({})
       vi.mocked(agentRegistration.buildAgentConfig).mockReturnValue({})
@@ -240,8 +177,7 @@ describe('help-catalog-service', () => {
       ],
       commands: [
         { name: 'ae-brainstorm', description: '头脑风暴', category: '基础命令' },
-        { name: 'ae-brainstorm-po', description: '先优化提示词', category: '提示词优化', baseCommand: 'ae-brainstorm' },
-        { name: 'ae-brainstorm-pa', description: '先优化提示词（auto）', category: '提示词优化（自动）', baseCommand: 'ae-brainstorm' },
+        { name: 'ae-plan', description: '制定计划', category: '基础命令' },
       ],
       agents: [
         { name: 'correctness-reviewer', stage: 'review', description: '审查逻辑' },
@@ -252,7 +188,7 @@ describe('help-catalog-service', () => {
     it('无 query 时应返回完整目录', () => {
       const result = filterCatalog(catalog)
       expect(result.skills).toHaveLength(2)
-      expect(result.commands).toHaveLength(3)
+      expect(result.commands).toHaveLength(2)
       expect(result.agents).toHaveLength(2)
     })
 
@@ -281,14 +217,7 @@ describe('help-catalog-service', () => {
       expect(result.agents[0].name).toBe('correctness-reviewer')
     })
 
-    it('应该按 baseCommand 过滤命令别名', () => {
-      const result = filterCatalog(catalog, 'ae-brainstorm')
-      expect(result.commands).toHaveLength(3)
-    })
-
     it('应该按 refactor 查询返回技能和命令', () => {
-      const poCommand = `${COMMAND.REFACTOR}${PO_SUFFIX}`
-      const paCommand = `${COMMAND.REFACTOR}${PA_SUFFIX}`
       const result = filterCatalog(
         {
           skills: [
@@ -301,8 +230,6 @@ describe('help-catalog-service', () => {
           ],
           commands: [
             { name: COMMAND.REFACTOR, description: '为重构任务创建结构化计划', category: '基础命令' },
-            { name: poCommand, description: '先优化提示词', category: '提示词优化', baseCommand: COMMAND.REFACTOR },
-            { name: paCommand, description: '先优化提示词（auto）', category: '提示词优化（自动）', baseCommand: COMMAND.REFACTOR },
           ],
           agents: [],
         },
@@ -311,52 +238,29 @@ describe('help-catalog-service', () => {
 
       expect(result.skills).toHaveLength(1)
       expect(result.skills[0].name).toBe(SKILL.REFACTOR)
-      expect(result.commands.map((command) => command.name)).toEqual([COMMAND.REFACTOR, poCommand, paCommand])
+      expect(result.commands.map((command) => command.name)).toEqual([COMMAND.REFACTOR])
     })
 
     it('应该从目录和命令配置构建 refactor 帮助项', () => {
-      const poCommand = `${COMMAND.REFACTOR}${PO_SUFFIX}`
-      const paCommand = `${COMMAND.REFACTOR}${PA_SUFFIX}`
-
       vi.mocked(aeCatalog.getPhaseOneEntries).mockReturnValue([
         {
           skillName: SKILL.REFACTOR,
           commandName: COMMAND.REFACTOR,
           description: '为重构任务创建结构化计划',
           argumentHint: '[重构目标|计划路径|需求文档路径|旧机制描述]',
-          skillFile: `src/assets/skills/${skillDir(SKILL.REFACTOR)}/SKILL.md`,
+          skillFile: 'src/assets/skills/ae-refactor/SKILL.md',
         },
       ] as ReturnType<typeof aeCatalog.getPhaseOneEntries>)
-      vi.mocked(aeCatalog.getPhaseOnePoEntries).mockReturnValue([
-        {
-          skillName: SKILL.PROMPT_OPTIMIZE,
-          commandName: poCommand,
-          description: '先优化提示词，再用为重构任务创建结构化计划',
-          argumentHint: '[重构目标|计划路径|需求文档路径|旧机制描述]',
-          skillFile: `src/assets/skills/${skillDir(SKILL.PROMPT_OPTIMIZE)}/SKILL.md`,
-        },
-      ] as ReturnType<typeof aeCatalog.getPhaseOnePoEntries>)
-      vi.mocked(aeCatalog.getPhaseOnePaEntries).mockReturnValue([
-        {
-          skillName: SKILL.PROMPT_OPTIMIZE,
-          commandName: paCommand,
-          description: '先优化提示词（auto 模式），再用为重构任务创建结构化计划',
-          argumentHint: '[重构目标|计划路径|需求文档路径|旧机制描述]',
-          skillFile: `src/assets/skills/${skillDir(SKILL.PROMPT_OPTIMIZE)}/SKILL.md`,
-        },
-      ] as ReturnType<typeof aeCatalog.getPhaseOnePaEntries>)
       vi.mocked(aeCatalog.getAllAgentDefinitions).mockReturnValue([])
       vi.mocked(commandRegistration.buildCommandConfig).mockReturnValue({
         [COMMAND.REFACTOR]: { template: '', description: '为重构任务创建结构化计划' },
-        [poCommand]: { template: '', description: '先优化提示词，再用为重构任务创建结构化计划' },
-        [paCommand]: { template: '', description: '先优化提示词（auto 模式），再用为重构任务创建结构化计划' },
       })
       vi.mocked(agentRegistration.buildAgentConfig).mockReturnValue({})
 
       const result = filterCatalog(buildHelpCatalog('/repo'), 'refactor')
 
       expect(result.skills.map((skill) => skill.name)).toEqual([SKILL.REFACTOR])
-      expect(result.commands.map((command) => command.name)).toEqual([COMMAND.REFACTOR, poCommand, paCommand])
+      expect(result.commands.map((command) => command.name)).toEqual([COMMAND.REFACTOR])
     })
 
     it('空字符串 query 应视为无过滤', () => {
@@ -368,22 +272,21 @@ describe('help-catalog-service', () => {
   describe('formatHelpCatalog', () => {
     it('应该生成包含技能、命令和代理的 Markdown', () => {
       const catalog = {
-        skills: [{ name: 'ae:ideate', description: '生成想法', argumentHint: '[主题|范围]', commandName: 'ae-ideate' }],
+        skills: [{ name: 'ae:brainstorm', description: '头脑风暴', argumentHint: '[主题|范围]', commandName: 'ae-brainstorm' }],
         commands: [
-          { name: 'ae-ideate', description: '生成想法', category: '基础命令' },
-          { name: 'ae-ideate-po', description: '先优化提示词', category: '提示词优化', baseCommand: 'ae-ideate' },
+          { name: 'ae-brainstorm', description: '头脑风暴', category: '基础命令' },
         ],
         agents: [{ name: 'correctness-reviewer', stage: 'review', description: '审查逻辑' }],
-        modelRoutes: [{ type: 'command' as const, name: 'ae-ideate', scenario: 'standard' as const, applyMode: 'direct' as const, reason: '内置命令声明 standard 场景' }],
+        modelRoutes: [{ type: 'command' as const, name: 'ae-brainstorm', scenario: 'standard' as const, applyMode: 'direct' as const, reason: '内置命令声明 standard 场景' }],
       }
 
       const text = formatHelpCatalog(catalog)
       expect(text).toContain('# AE 帮助信息')
       expect(text).toContain('## 技能')
-      expect(text).toContain('ae:ideate')
+      expect(text).toContain('ae:brainstorm')
       expect(text).toContain('`[主题\\|范围]`')
       expect(text).toContain('## 命令')
-      expect(text).toContain('/ae-ideate-po')
+      expect(text).toContain('/ae-brainstorm')
       expect(text).toContain('## 代理')
       expect(text).toContain('@correctness-reviewer')
       expect(text).toContain('## 模型路由')
@@ -433,8 +336,6 @@ describe('help-catalog-service', () => {
   describe('generateHelpText', () => {
     it('应该整合扫描和格式化输出', () => {
       vi.mocked(aeCatalog.getPhaseOneEntries).mockReturnValue([])
-      vi.mocked(aeCatalog.getPhaseOnePoEntries).mockReturnValue([])
-      vi.mocked(aeCatalog.getPhaseOnePaEntries).mockReturnValue([])
       vi.mocked(aeCatalog.getAllAgentDefinitions).mockReturnValue([])
       vi.mocked(commandRegistration.buildCommandConfig).mockReturnValue({})
       vi.mocked(agentRegistration.buildAgentConfig).mockReturnValue({})
@@ -453,8 +354,6 @@ describe('help-catalog-service', () => {
           skillFile: 'src/assets/skills/ae-plan/SKILL.md',
         },
       ] as ReturnType<typeof aeCatalog.getPhaseOneEntries>)
-      vi.mocked(aeCatalog.getPhaseOnePoEntries).mockReturnValue([])
-      vi.mocked(aeCatalog.getPhaseOnePaEntries).mockReturnValue([])
       vi.mocked(aeCatalog.getAllAgentDefinitions).mockReturnValue([])
       vi.mocked(commandRegistration.buildCommandConfig).mockReturnValue({
         'ae-plan': { template: '', description: '制定计划' },
@@ -477,33 +376,19 @@ describe('help-catalog-service', () => {
           skillFile: 'src/assets/skills/ae-brainstorm/SKILL.md',
         },
       ] as ReturnType<typeof aeCatalog.getPhaseOneEntries>)
-      vi.mocked(aeCatalog.getPhaseOnePoEntries).mockReturnValue([
-        {
-          skillName: 'ae:prompt-optimize',
-          commandName: 'ae-brainstorm-po',
-          description: '先优化提示词',
-          argumentHint: '[主题]',
-          skillFile: 'src/assets/skills/ae-prompt-optimize/SKILL.md',
-        },
-      ] as ReturnType<typeof aeCatalog.getPhaseOnePoEntries>)
-      vi.mocked(aeCatalog.getPhaseOnePaEntries).mockReturnValue([])
       vi.mocked(aeCatalog.getAllAgentDefinitions).mockReturnValue([])
       vi.mocked(commandRegistration.buildCommandConfig).mockReturnValue({
         'ae-brainstorm': { template: '', description: '头脑风暴' },
-        'ae-brainstorm-po': { template: '', description: '先优化提示词' },
       })
       vi.mocked(agentRegistration.buildAgentConfig).mockReturnValue({})
 
-      const text = generateHelpText('ae-brainstorm-po')
-      expect(text).toContain('# 命令：ae-brainstorm-po')
-      expect(text).toContain('先优化提示词')
-      expect(text).toContain('ae:brainstorm')
+      const text = generateHelpText('ae-brainstorm')
+      expect(text).toContain('# 技能：ae:brainstorm')
+      expect(text).toContain('头脑风暴')
     })
 
     it('精确匹配代理名时应返回详情视图', () => {
       vi.mocked(aeCatalog.getPhaseOneEntries).mockReturnValue([])
-      vi.mocked(aeCatalog.getPhaseOnePoEntries).mockReturnValue([])
-      vi.mocked(aeCatalog.getPhaseOnePaEntries).mockReturnValue([])
       vi.mocked(aeCatalog.getAllAgentDefinitions).mockReturnValue([
         {
           name: 'correctness-reviewer',
@@ -534,8 +419,6 @@ describe('help-catalog-service', () => {
           skillFile: 'src/assets/skills/ae-plan/SKILL.md',
         },
       ] as ReturnType<typeof aeCatalog.getPhaseOneEntries>)
-      vi.mocked(aeCatalog.getPhaseOnePoEntries).mockReturnValue([])
-      vi.mocked(aeCatalog.getPhaseOnePaEntries).mockReturnValue([])
       vi.mocked(aeCatalog.getAllAgentDefinitions).mockReturnValue([])
       vi.mocked(commandRegistration.buildCommandConfig).mockReturnValue({
         'ae-plan': { template: '', description: '制定计划' },
@@ -548,8 +431,6 @@ describe('help-catalog-service', () => {
 
     it('带前缀 @ 的查询应返回代理详情视图', () => {
       vi.mocked(aeCatalog.getPhaseOneEntries).mockReturnValue([])
-      vi.mocked(aeCatalog.getPhaseOnePoEntries).mockReturnValue([])
-      vi.mocked(aeCatalog.getPhaseOnePaEntries).mockReturnValue([])
       vi.mocked(aeCatalog.getAllAgentDefinitions).mockReturnValue([
         {
           name: 'web-researcher',
@@ -578,8 +459,6 @@ describe('help-catalog-service', () => {
           skillFile: 'src/assets/skills/ae-brainstorm/SKILL.md',
         },
       ] as ReturnType<typeof aeCatalog.getPhaseOneEntries>)
-      vi.mocked(aeCatalog.getPhaseOnePoEntries).mockReturnValue([])
-      vi.mocked(aeCatalog.getPhaseOnePaEntries).mockReturnValue([])
       vi.mocked(aeCatalog.getAllAgentDefinitions).mockReturnValue([])
       vi.mocked(commandRegistration.buildCommandConfig).mockReturnValue({
         'ae-brainstorm': { template: '', description: '头脑风暴' },
@@ -601,7 +480,7 @@ describe('help-catalog-service', () => {
       commands: [
         { name: 'ae-plan', description: '制定计划', category: '基础命令' },
         { name: 'ae-brainstorm', description: '头脑风暴', category: '基础命令' },
-        { name: 'ae-brainstorm-po', description: '先优化提示词', category: '提示词优化', baseCommand: 'ae-brainstorm' },
+        { name: 'ae-commit', description: '智能提交', category: '基础命令' },
       ],
       agents: [
         { name: 'correctness-reviewer', stage: 'review', description: '审查逻辑' },
@@ -627,14 +506,6 @@ describe('help-catalog-service', () => {
       expect(detail).not.toBeNull()
       expect(detail!.type).toBe('skill')
       expect(detail!.name).toBe('ae:plan')
-    })
-
-    it('按变体命令名精确查找应返回命令详情', () => {
-      const detail = resolveDetail(catalog, 'ae-brainstorm-po')
-      expect(detail).not.toBeNull()
-      expect(detail!.type).toBe('command')
-      expect(detail!.name).toBe('ae-brainstorm-po')
-      expect(detail!.properties).toContainEqual({ label: '基础命令', value: '/ae-brainstorm' })
     })
 
     it('按代理名精确查找应返回代理详情', () => {
@@ -692,14 +563,12 @@ describe('help-catalog-service', () => {
       expect(routeRelated).toBeDefined()
     })
 
-    it('命令详情应包含关联技能和变体命令', () => {
-      const detail = resolveDetail(catalog, 'ae-brainstorm-po')
+    it('非技能命令详情不应包含关联技能', () => {
+      const detail = resolveDetail(catalog, 'ae-commit')
       expect(detail).not.toBeNull()
+      expect(detail!.type).toBe('command')
       const skillRelated = detail!.related.find((r) => r.type === 'skill')
-      expect(skillRelated).toBeDefined()
-      expect(skillRelated!.name).toBe('ae:brainstorm')
-      const baseRelated = detail!.related.find((r) => r.type === 'command' && r.name === 'ae-brainstorm')
-      expect(baseRelated).toBeDefined()
+      expect(skillRelated).toBeUndefined()
     })
   })
 
@@ -745,21 +614,18 @@ describe('help-catalog-service', () => {
     it('应该格式化命令详情', () => {
       const entry = {
         type: 'command' as const,
-        name: 'ae-plan-po',
-        description: '优化后制定计划',
+        name: 'ae-plan',
+        description: '制定计划',
         properties: [
-          { label: '命令', value: '/ae-plan-po' },
-          { label: '分类', value: '提示词优化' },
-          { label: '基础命令', value: '/ae-plan' },
+          { label: '命令', value: '/ae-plan' },
+          { label: '分类', value: '基础命令' },
         ],
         related: [
           { type: 'skill' as const, name: 'ae:plan', description: '制定计划' },
-          { type: 'command' as const, name: 'ae-plan', description: '制定计划' },
         ],
       }
       const text = formatDetailEntry(entry)
-      expect(text).toContain('# 命令：ae-plan-po')
-      expect(text).toContain('- **基础命令**：/ae-plan')
+      expect(text).toContain('# 命令：ae-plan')
       expect(text).toContain('## 关联')
       expect(text).toContain('**技能** `ae:plan`')
     })

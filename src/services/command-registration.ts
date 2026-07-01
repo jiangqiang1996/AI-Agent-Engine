@@ -5,8 +5,7 @@ import { basename, join } from 'node:path'
 import type { Config } from '@opencode-ai/plugin'
 
 import { getFrontmatterString, parseFrontmatter } from '../utils/frontmatter.js'
-import { getPhaseOneEntries, getPhaseOnePoEntries, getPhaseOnePaEntries } from './ae-catalog.js'
-import { COMMAND, AUTO_SUFFIX, PO_SUFFIX, PA_SUFFIX } from '../schemas/ae-asset-schema.js'
+import { getPhaseOneEntries } from './ae-catalog.js'
 import { getCommandModelScenario } from './asset-model-routing-catalog.js'
 import type { ModelScenarioRoutingContext } from './model-scenario-routing-service.js'
 import { getModelByScenario, resolveModelReference } from './model-scenario-routing-service.js'
@@ -79,7 +78,7 @@ function applyCommandModel(
 }
 
 /**
- * 构建完整命令配置，合并内置 catalog 命令、-po/-pa 变体和磁盘命令文件。
+ * 构建完整命令配置，合并内置 catalog 命令和磁盘命令文件。
  * 磁盘命令最后合并，允许本地调试覆盖内置定义。
  */
 export function buildCommandConfig(
@@ -88,57 +87,13 @@ export function buildCommandConfig(
 ): NonNullable<Config['command']> {
   const result: NonNullable<Config['command']> = {}
   const phaseOne = getPhaseOneEntries()
-  const commandToSkill = new Map(phaseOne.map((e) => [e.commandName, e.skillName]))
-
-  const promptOptimizeAutoCommand = `${COMMAND.PROMPT_OPTIMIZE}${AUTO_SUFFIX}`
 
   for (const entry of phaseOne) {
-    const isAutoPo = entry.commandName === promptOptimizeAutoCommand
     // catalog 是默认命令真源；仅当条目显式提供模板时才覆盖统一的技能调用包装。
     const template = entry.customTemplate
-      ?? (isAutoPo
-        ? `使用 \`${entry.skillName}\` 技能以 auto 模式处理这次请求（跳过确认直接提交），并沿用参数：\`auto ${ARGUMENTS_PLACEHOLDER}\`。`
-        : `使用 \`${entry.skillName}\` 技能处理这次请求，并沿用参数：\`${ARGUMENTS_PLACEHOLDER}\`。`)
+      ?? `使用 \`${entry.skillName}\` 技能处理这次请求，并沿用参数：\`${ARGUMENTS_PLACEHOLDER}\`。`
     result[entry.commandName] = applyCommandModel({
       template,
-      description: entry.description,
-    }, entry.commandName, routingContext)
-  }
-
-  for (const entry of getPhaseOnePoEntries()) {
-    const baseCommandName = entry.commandName.slice(0, -PO_SUFFIX.length)
-    const baseSkillName = commandToSkill.get(baseCommandName as typeof entry.commandName) ?? ''
-    const baseEntry = phaseOne.find((e) => e.commandName === baseCommandName)
-    // -po 命令必须先优化用户输入，再把优化后的提示词交回原始命令模板执行。
-    const baseTemplate = baseEntry?.customTemplate
-      ?? `使用 \`${baseSkillName}\` 技能处理这次请求，并沿用参数：\`${ARGUMENTS_PLACEHOLDER}\`。`
-    result[entry.commandName] = applyCommandModel({
-      template: [
-        `先使用 \`${entry.skillName}\` 技能优化以下用户输入，将优化结果作为最终提示词：`,
-        '',
-        '---',
-        baseTemplate,
-        '---',
-      ].join('\n'),
-      description: entry.description,
-    }, entry.commandName, routingContext)
-  }
-
-  for (const entry of getPhaseOnePaEntries()) {
-    const baseCommandName = entry.commandName.slice(0, -PA_SUFFIX.length)
-    const baseSkillName = commandToSkill.get(baseCommandName as typeof entry.commandName) ?? ''
-    const baseEntry = phaseOne.find((e) => e.commandName === baseCommandName)
-    // -pa 与 -po 使用同一条基础命令链路，只是固定启用 prompt-optimize 的 auto 模式。
-    const baseTemplate = baseEntry?.customTemplate
-      ?? `使用 \`${baseSkillName}\` 技能处理这次请求，并沿用参数：\`${ARGUMENTS_PLACEHOLDER}\`。`
-    result[entry.commandName] = applyCommandModel({
-      template: [
-        `先使用 \`${entry.skillName}\` 技能以 auto 模式优化以下用户输入（跳过确认直接提交），将优化结果作为最终提示词：`,
-        '',
-        '---',
-        baseTemplate,
-        '---',
-      ].join('\n'),
       description: entry.description,
     }, entry.commandName, routingContext)
   }

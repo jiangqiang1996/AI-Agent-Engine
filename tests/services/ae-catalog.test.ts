@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 
-import { getPhaseOneEntries, getPhaseOnePaEntries, getPhaseOnePoEntries } from '../../src/services/ae-catalog.js'
+import { getPhaseOneEntries } from '../../src/services/ae-catalog.js'
 import { SKILL } from '../../src/schemas/ae-asset-schema.js'
 
 function readFrontmatter(filePath: string): Record<string, string> {
@@ -33,8 +33,6 @@ describe('AE catalog 一致性', () => {
   it('核心技能 catalog 应使用通用生命周期阶段描述', () => {
     const entries = getPhaseOneEntries()
 
-    expect(entries.find((item) => item.skillName === SKILL.IDEATE)?.description).toContain('构思阶段')
-    expect(entries.find((item) => item.skillName === SKILL.BRAINSTORM)?.description).toContain('头脑风暴')
     expect(entries.find((item) => item.skillName === SKILL.PRD)?.description).toContain('探索阶段')
     expect(entries.find((item) => item.skillName === SKILL.PLAN)?.description).toContain('渐进计划阶段')
     expect(entries.find((item) => item.skillName === SKILL.REFACTOR)?.description).toContain('重构计划阶段')
@@ -47,7 +45,7 @@ describe('AE catalog 一致性', () => {
     const entry = getPhaseOneEntries().find((item) => item.skillName === SKILL.PRD)
     const frontmatter = readFrontmatter('src/assets/skills/ae-prd/SKILL.md')
 
-    expect(entry?.argumentHint).toBe('[目标描述|需求文档路径|构思结果]')
+    expect(entry?.argumentHint).toBe('[目标描述|需求文档路径]')
     expect(entry?.description).toContain('探索阶段')
     expect(frontmatter.description).toBe(entry?.description)
   })
@@ -92,15 +90,10 @@ describe('AE catalog 一致性', () => {
     const text = readFileSync('src/assets/skills/ae-agent-creator/SKILL.md', 'utf8')
 
     expect(entry?.description).toContain('更新')
-    expect(entries.map((item) => item.skillName)).not.toContain('ae:agent-updater')
-    expect(entries.map((item) => item.commandName)).not.toContain('ae-agent-updater')
+    expect(entries.map((item) => item.skillName as string)).not.toContain('ae:agent-updater')
+    expect(entries.map((item) => item.commandName as string)).not.toContain('ae-agent-updater')
     expect(text).toContain('不新增或引导寻找 `ae:agent-updater`')
     expect(text).toContain('init_agent.mjs` 拒绝覆盖既有目标是预期安全语义')
-  })
-
-  it('ae:agent-creator 不应生成提示词优化命令变体', () => {
-    expect(getPhaseOnePoEntries().some((item) => item.commandName === 'ae-agent-creator-po')).toBe(false)
-    expect(getPhaseOnePaEntries().some((item) => item.commandName === 'ae-agent-creator-pa')).toBe(false)
   })
 
   it('ae:html-bundle 应注册为技术栈无关的 bundle 入口', () => {
@@ -112,8 +105,6 @@ describe('AE catalog 一致性', () => {
     expect(entry?.skillFile).toBe('src/assets/skills/ae-html-bundle/SKILL.md')
     expect(entry?.description).toBe(frontmatter.description)
     expect(entry?.argumentHint).toBe(frontmatter['argument-hint'])
-    expect(getPhaseOnePoEntries().some((item) => item.commandName === 'ae-html-bundle-po')).toBe(false)
-    expect(getPhaseOnePaEntries().some((item) => item.commandName === 'ae-html-bundle-pa')).toBe(false)
   })
 
   it('ae:markitdown 应注册为本地文件转 Markdown 入口', () => {
@@ -125,8 +116,6 @@ describe('AE catalog 一致性', () => {
     expect(entry?.skillFile).toBe('src/assets/skills/ae-markitdown/SKILL.md')
     expect(entry?.description).toBe(frontmatter.description)
     expect(entry?.argumentHint).toBe(frontmatter['argument-hint'])
-    expect(getPhaseOnePoEntries().some((item) => item.commandName === 'ae-markitdown-po')).toBe(false)
-    expect(getPhaseOnePaEntries().some((item) => item.commandName === 'ae-markitdown-pa')).toBe(false)
   })
 
   it('ae:chrome-devtools 应注册为浏览器能力中枢入口', () => {
@@ -139,8 +128,6 @@ describe('AE catalog 一致性', () => {
     expect(entry?.description).toBe(frontmatter.description)
     expect(entry?.argumentHint).toBe(frontmatter['argument-hint'])
     expect(entry?.customTemplate).toBeUndefined()
-    expect(getPhaseOnePoEntries().some((item) => item.commandName === 'ae-chrome-devtools-po')).toBe(false)
-    expect(getPhaseOnePaEntries().some((item) => item.commandName === 'ae-chrome-devtools-pa')).toBe(false)
   })
 
   it('ae:skill-creator 应保持单一入口并描述创建与更新能力', () => {

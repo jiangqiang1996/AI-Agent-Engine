@@ -82,7 +82,6 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 目标 | 入口 |
 | --- | --- |
 | 查看当前能力 | `/ae-help` |
-| 想法生成 | `/ae-ideate` |
 | 多视角发散讨论 | `/ae-brainstorm` |
 | 需求澄清与需求文档 | `/ae-prd` |
 | 设计阶段（架构、接口、数据模型） | `/ae-design` |
@@ -111,13 +110,11 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 探索性修复 | `/ae-task-loop` |
 | 数据库操作 | `/ae-sql` |
 | 会话交接 | `/ae-handoff` |
-| 提示词优化 | `/ae-prompt-optimize` |
-| 经验沉淀 | `/ae-save-experience` |
 | 创建技能 | `/ae-skill-creator` |
 | 创建代理 | `/ae-agent-creator` |
 | 更新 AE 插件 | `/ae-update` |
 
-详细参数、命令变体、代理分工、工具边界和产物路径见 [docs/usage-guide.md](docs/usage-guide.md)。配置合并和模型场景路由见 [docs/builtin-config.md](docs/builtin-config.md)。
+详细参数、代理分工、工具边界和产物路径见 [docs/usage-guide.md](docs/usage-guide.md)。配置合并和模型场景路由见 [docs/builtin-config.md](docs/builtin-config.md)。
 
 ## 工作规则
 
@@ -134,10 +131,10 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 
 | 类型 | 当前快照 | 真源 |
 | --- | ---: | --- |
-| 技能 | 38 | `src/assets/skills/`、`src/schemas/ae-asset-schema.ts` |
-| 命令 | 60 | `src/services/command-registration.ts`、`src/assets/commands/` |
+| 技能 | 36 | `src/assets/skills/`、`src/schemas/ae-asset-schema.ts` |
+| 命令 | 39 | `src/services/command-registration.ts`、`src/assets/commands/` |
 | 代理 | 40 | `src/assets/agents/`、`src/services/agent-registration.ts` |
-| 工具 | 26 | `src/tools/` |
+| 工具 | 25 | `src/tools/` |
 | 规则 | 5 | `src/assets/rules/` |
 | 内置配置 | 1 | `src/assets/config/ae.jsonc` |
 

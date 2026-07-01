@@ -1,7 +1,6 @@
-type LifecycleCatalogStageId = 'ideate' | 'prd' | 'design' | 'plan' | 'refactor-plan' | 'work' | 'outcome-review'
+type LifecycleCatalogStageId = 'prd' | 'design' | 'plan' | 'refactor-plan' | 'work' | 'outcome-review'
 
 const LIFECYCLE_CATALOG_DESCRIPTIONS: Record<LifecycleCatalogStageId, string> = {
-  ideate: '构思阶段：生成候选方向并比较价值、成本、风险和落地条件',
   prd: '探索阶段：澄清目标、边界、约束、成功标准和待定问题，并产出需求文档',
   design: '设计阶段：澄清设计决策并产出设计文档，含概览、架构、接口、数据模型、测试用例与验收标准，供计划和审查对齐',
   plan: '渐进计划阶段：把目标拆成步骤、依赖、验证方式和产物结构',

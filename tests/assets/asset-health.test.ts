@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { AGENT, COMMAND, SKILL } from '../../src/schemas/ae-asset-schema.js'
 import { MODEL_SCENARIO } from '../../src/schemas/model-scenario-schema.js'
 import { getAssetModelRoutingEntries, getCommandModelScenario } from '../../src/services/asset-model-routing-catalog.js'
-import { getAllAgentDefinitions, getPhaseOneEntries, getPhaseOnePaEntries, getPhaseOnePoEntries } from '../../src/services/ae-catalog.js'
+import { getAllAgentDefinitions, getPhaseOneEntries } from '../../src/services/ae-catalog.js'
 import { buildCommandConfig } from '../../src/services/command-registration.js'
 import { generateHelpText } from '../../src/services/help-catalog-service.js'
 import { getFrontmatterString, parseFrontmatter } from '../../src/utils/frontmatter.js'
@@ -18,14 +18,7 @@ interface ArgumentHintException {
   expectedFrontmatter: string
 }
 
-const ARGUMENT_HINT_EXCEPTIONS: ArgumentHintException[] = [
-  {
-    commandName: `${COMMAND.PROMPT_OPTIMIZE}-auto`,
-    field: 'argument-hint',
-    reason: 'auto 命令通过命令模板固定注入 auto 参数，用户侧参数提示不重复显示 auto',
-    expectedFrontmatter: '[auto] [提示词内容]',
-  },
-]
+const ARGUMENT_HINT_EXCEPTIONS: ArgumentHintException[] = []
 
 const VALID_AGENT_MODES = new Set(['primary', 'subagent', 'all'])
 
@@ -110,18 +103,18 @@ describe('资产健康巡检', () => {
     }
   })
 
-  it('应该保持命令变体在注册与 help catalog 真源中可发现', () => {
+  it('应该保持命令在注册与 help catalog 真源中可发现', () => {
     const commandConfig = buildCommandConfig('__missing_commands_dir__')
     const commandNames = [
       ...getPhaseOneEntries().map((entry) => entry.commandName),
-      ...getPhaseOnePoEntries().map((entry) => entry.commandName),
-      ...getPhaseOnePaEntries().map((entry) => entry.commandName),
     ]
 
     for (const commandName of commandNames) {
       expect(commandConfig[commandName], `asset-health/help-command/command/${commandName}: 命令不可发现`).toBeDefined()
     }
 
+    expect(commandConfig['ae-doc-humanize'], 'asset-health/deprecated/command/ae-doc-humanize').toBeUndefined()
+    expect(commandConfig['ae-doc-structure'], 'asset-health/deprecated/command/ae-doc-structure').toBeUndefined()
     expect(commandConfig[`${COMMAND.SAVE_EXPERIENCE}-po`], 'asset-health/prompt-variant/command/ae-save-experience-po').toBeUndefined()
     expect(commandConfig[`${COMMAND.SAVE_EXPERIENCE}-pa`], 'asset-health/prompt-variant/command/ae-save-experience-pa').toBeUndefined()
     expect(commandConfig[`${COMMAND.AGENT_CREATOR}-po`], 'asset-health/prompt-variant/command/ae-agent-creator-po').toBeUndefined()
@@ -132,8 +125,8 @@ describe('资产健康巡检', () => {
     expect(commandConfig['ae-doc-humanize-pa'], 'asset-health/prompt-variant/command/ae-doc-humanize-pa').toBeUndefined()
     expect(commandConfig['ae-doc-structure-po'], 'asset-health/prompt-variant/command/ae-doc-structure-po').toBeUndefined()
     expect(commandConfig['ae-doc-structure-pa'], 'asset-health/prompt-variant/command/ae-doc-structure-pa').toBeUndefined()
-    expect(commandConfig[`${COMMAND.TASK_LOOP}-po`], 'asset-health/prompt-variant/command/ae-task-loop-po').toBeDefined()
-    expect(commandConfig[`${COMMAND.TASK_LOOP}-pa`], 'asset-health/prompt-variant/command/ae-task-loop-pa').toBeDefined()
+    expect(commandConfig[`${COMMAND.TASK_LOOP}-po`], 'asset-health/prompt-variant/command/ae-task-loop-po').toBeUndefined()
+    expect(commandConfig[`${COMMAND.TASK_LOOP}-pa`], 'asset-health/prompt-variant/command/ae-task-loop-pa').toBeUndefined()
     expect(commandConfig[`${COMMAND.GRAPH_BUILD}-po`], 'asset-health/prompt-variant/command/ae-graph-build-po').toBeUndefined()
     expect(commandConfig[`${COMMAND.GRAPH_BUILD}-pa`], 'asset-health/prompt-variant/command/ae-graph-build-pa').toBeUndefined()
     expect(commandConfig[`${COMMAND.HTML_BUNDLE}-po`], 'asset-health/prompt-variant/command/ae-html-bundle-po').toBeUndefined()
@@ -300,7 +293,6 @@ describe('资产健康巡检', () => {
     const documentedSkills = extractMarkdownSkillList(readme)
     const expectedCommands = [
       COMMAND.HELP,
-      COMMAND.IDEATE,
       COMMAND.BRAINSTORM,
       COMMAND.PRD,
       COMMAND.DESIGN,
@@ -330,8 +322,6 @@ describe('资产健康巡检', () => {
       COMMAND.TASK_LOOP,
       COMMAND.SQL,
       COMMAND.HANDOFF,
-      COMMAND.PROMPT_OPTIMIZE,
-      COMMAND.SAVE_EXPERIENCE,
       COMMAND.SKILL_CREATOR,
       COMMAND.AGENT_CREATOR,
       COMMAND.UPDATE,
@@ -347,9 +337,9 @@ describe('资产健康巡检', () => {
   it('builtin-config 命令场景文档应该与模型路由 catalog 一致', () => {
     const content = readFileSync('docs/builtin-config.md', 'utf8')
     const scenarios = [
-      [MODEL_SCENARIO.STANDARD, COMMAND.IDEATE],
+      [MODEL_SCENARIO.STANDARD, COMMAND.BRAINSTORM],
       [MODEL_SCENARIO.DEEP, COMMAND.PLAN],
-      [MODEL_SCENARIO.QUICK, COMMAND.PROMPT_OPTIMIZE],
+      [MODEL_SCENARIO.QUICK, COMMAND.GRAPH_QUERY],
       [MODEL_SCENARIO.VISION, COMMAND.CHROME_DEVTOOLS],
     ] as const
 
@@ -362,7 +352,7 @@ describe('资产健康巡检', () => {
       expect(documentedCommands).toEqual(expectedCommands)
     }
 
-    expect(extractMarkdownCommandList(content, MODEL_SCENARIO.STANDARD, COMMAND.IDEATE)).toContain(COMMAND.SKILL_CREATOR)
+    expect(extractMarkdownCommandList(content, MODEL_SCENARIO.STANDARD, COMMAND.BRAINSTORM)).toContain(COMMAND.SKILL_CREATOR)
     expect(content).not.toContain('/ae-save-session-flow')
     expect(content).not.toContain('/ae-asset-debug')
   })

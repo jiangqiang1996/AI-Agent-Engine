@@ -3,9 +3,9 @@ import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { COMMAND, PA_SUFFIX, PO_SUFFIX } from '../../src/schemas/ae-asset-schema.js'
+import { COMMAND } from '../../src/schemas/ae-asset-schema.js'
 import { MODEL_SCENARIO } from '../../src/schemas/model-scenario-schema.js'
-import { getPhaseOneEntries, getPhaseOnePaEntries, getPhaseOnePoEntries } from '../../src/services/ae-catalog.js'
+import { getPhaseOneEntries } from '../../src/services/ae-catalog.js'
 import {
   getAssetModelRoutingEntries,
   getCommandModelScenario,
@@ -14,18 +14,13 @@ import { createRuntimeAssetManifestFromRoot } from '../../src/services/runtime-a
 import { getFrontmatterString, parseFrontmatter } from '../../src/utils/frontmatter.js'
 
 describe('asset-model-routing-catalog', () => {
-  it('应该为所有内置命令和派生命令提供路由状态', () => {
+  it('应该为所有内置命令提供路由状态', () => {
     const entries = getAssetModelRoutingEntries().filter((entry) => entry.type === 'command')
     const routedNames = new Set(entries.map((entry) => entry.name))
 
-    for (const command of [...getPhaseOneEntries(), ...getPhaseOnePoEntries(), ...getPhaseOnePaEntries()]) {
+    for (const command of getPhaseOneEntries()) {
       expect(routedNames.has(command.commandName)).toBe(true)
     }
-  })
-
-  it('应该让提示词优化派生命令继承基础命令场景', () => {
-    expect(getCommandModelScenario(`${COMMAND.PLAN}${PO_SUFFIX}`)).toBe(getCommandModelScenario(COMMAND.PLAN))
-    expect(getCommandModelScenario(`${COMMAND.WORK}${PA_SUFFIX}`)).toBe(getCommandModelScenario(COMMAND.WORK))
   })
 
   it('复杂规划和审查命令不应该落到 quick', () => {

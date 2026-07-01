@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { COMMAND, PO_SUFFIX, SKILL } from '../../src/schemas/ae-asset-schema.js'
+import { COMMAND, SKILL } from '../../src/schemas/ae-asset-schema.js'
 import { aeHelpTool } from '../../src/tools/ae-help.tool.js'
 
 async function callHelp(query?: string): Promise<string> {
@@ -18,7 +18,6 @@ describe('ae-help 工具', () => {
 
     expect(text).toContain(SKILL.PLAN)
     expect(text).toContain(`/${COMMAND.PLAN}`)
-    expect(text).toContain(`/${COMMAND.PLAN}${PO_SUFFIX}`)
   })
 
   it('应该能返回 plan 技能详情', async () => {

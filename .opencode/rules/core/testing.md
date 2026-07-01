@@ -9,8 +9,8 @@
 ```
 tests/
 ├── tools/
-│   ├── ae-review-contract.tool.test.ts
-│   └── ae-prompt-optimize.tool.test.ts
+│   ├── ae-help.tool.test.ts
+│   └── ae-review-contract.tool.test.ts
 ├── services/
 │   ├── recovery-service.test.ts
 │   ├── graph-filter-suggestion-service.test.ts

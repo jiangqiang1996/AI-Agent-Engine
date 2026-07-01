@@ -3,7 +3,7 @@ import { join } from 'node:path'
 
 import { COMMAND } from '../schemas/ae-asset-schema.js'
 import { MODEL_SCENARIO, type ModelScenario } from '../schemas/model-scenario-schema.js'
-import { getAllAgentDefinitions, getPhaseOneEntries, getPhaseOnePaEntries, getPhaseOnePoEntries } from './ae-catalog.js'
+import { getAllAgentDefinitions, getPhaseOneEntries } from './ae-catalog.js'
 import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
 import { getFrontmatterString, parseFrontmatter } from '../utils/frontmatter.js'
 
@@ -20,7 +20,6 @@ export interface AssetModelRoutingEntry {
 }
 
 const COMMAND_SCENARIOS: Record<string, ModelScenario> = {
-  [COMMAND.IDEATE]: MODEL_SCENARIO.STANDARD,
   [COMMAND.BRAINSTORM]: MODEL_SCENARIO.STANDARD,
   [COMMAND.PRD]: MODEL_SCENARIO.STANDARD,
   [COMMAND.DESIGN]: MODEL_SCENARIO.DEEP,
@@ -36,7 +35,6 @@ const COMMAND_SCENARIOS: Record<string, ModelScenario> = {
   [COMMAND.WEB_FORGE]: MODEL_SCENARIO.DEEP,
   [COMMAND.COURSE_AUTO_PLAYER]: MODEL_SCENARIO.VISION,
   [COMMAND.HANDOFF]: MODEL_SCENARIO.STANDARD,
-  [COMMAND.PROMPT_OPTIMIZE]: MODEL_SCENARIO.QUICK,
   [COMMAND.TASK_LOOP]: MODEL_SCENARIO.DEEP,
   [COMMAND.SQL]: MODEL_SCENARIO.STANDARD,
   [COMMAND.SWAGGER_PARSER]: MODEL_SCENARIO.STANDARD,
@@ -61,18 +59,12 @@ const COMMAND_SCENARIOS: Record<string, ModelScenario> = {
 }
 
 export function getCommandModelScenario(commandName: string): ModelScenario | undefined {
-  if (commandName.endsWith('-po') || commandName.endsWith('-pa')) {
-    return COMMAND_SCENARIOS[commandName.slice(0, -3)]
-  }
-  if (commandName.endsWith('-auto')) {
-    return COMMAND_SCENARIOS[commandName.slice(0, -5)]
-  }
   return COMMAND_SCENARIOS[commandName]
 }
 
 export function getAssetModelRoutingEntries(manifest?: RuntimeAssetManifest): AssetModelRoutingEntry[] {
   const entries: AssetModelRoutingEntry[] = []
-  for (const command of [...getPhaseOneEntries(), ...getPhaseOnePoEntries(), ...getPhaseOnePaEntries()]) {
+  for (const command of getPhaseOneEntries()) {
     const scenario = getCommandModelScenario(command.commandName)
     entries.push({
       type: 'command',

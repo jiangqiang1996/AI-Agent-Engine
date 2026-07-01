@@ -46,13 +46,11 @@ description: 用于创建或更新 AE 插件内置技能，要求遵守 ae:skill
 2. 新建内置技能 `SKILL.md`，frontmatter 至少包含 `name`、`description` 和必要时的 `argument-hint`。
 3. 正文必须包含目标或角色、适用场景、输入处理、执行流程、边界、输出要求和验证方式。
 4. 在 `src/schemas/ae-asset-schema.ts` 中新增 `SKILL` 常量；`COMMAND` 由 `SKILL_COMMANDS` 派生时不手写重复命令名。
-5. 在 `AeSkillNameSchema` 枚举中同步新增技能，并根据被创建技能的使用场景自动判定是否加入 `PROMPT_OPTIMIZE_VARIANT_EXCLUDED_SKILLS`。
-6. 适合生成 `-po`、`-pa` 变体的场景：需求表达、创意生成、头脑风暴、计划、重构、实现、审查等可受益于提示词优化的开放式任务；这类技能不要加入排除列表，沿用默认派生变体。
-7. 不适合生成 `-po`、`-pa` 变体的场景：帮助查询、环境安装、浏览器验收、数据库或接口联调、文件打包、图谱查询、交接、经验保存、资产创建维护、需要精确参数或外部副作用的工具型任务；这类技能加入排除列表并在测试中断言无变体。
-8. 在 `src/services/ae-catalog.ts` 添加 catalog 条目，保持同文件既有分组风格和技能发现顺序。
-9. 在 `src/services/asset-model-routing-catalog.ts` 为命令添加模型场景；创建、更新、维护类技能通常使用 `standard`，规划、审查、执行类使用 `deep`。
-10. 仅当用户明确要求自定义命令模板，或默认 catalog 包装无法表达必要流程时，才创建 `src/assets/commands/<command>.md`；命令正文必须保留 `$ARGUMENTS`。
-11. 补充或更新相关测试，至少覆盖 schema 接受新技能、catalog 可发现、提示词优化变体策略和模型路由。
+5. 在 `AeSkillNameSchema` 枚举中同步新增技能。
+6. 在 `src/services/ae-catalog.ts` 添加 catalog 条目，保持同文件既有分组风格和技能发现顺序。
+7. 在 `src/services/asset-model-routing-catalog.ts` 为命令添加模型场景；创建、更新、维护类技能通常使用 `standard`，规划、审查、执行类使用 `deep`。
+8. 仅当用户明确要求自定义命令模板，或默认 catalog 包装无法表达必要流程时，才创建 `src/assets/commands/<command>.md`；命令正文必须保留 `$ARGUMENTS`。
+9. 补充或更新相关测试，至少覆盖 schema 接受新技能、catalog 可发现和模型路由。
 
 ## 更新流程
 
@@ -86,4 +84,3 @@ description: 用于创建或更新 AE 插件内置技能，要求遵守 ae:skill
 - 不把普通项目技能创建流程误写成 AE 内置技能流程。
 - 不新增旧式 `ae:skill-updater` 或平行更新入口。
 - 不跳过 `src/schemas/ae-asset-schema.ts`、`src/services/ae-catalog.ts` 和模型路由同步。
-- 不机械地为所有技能生成或禁止提示词优化变体；必须按被创建技能的使用场景给出判断，并用测试锁定结果。

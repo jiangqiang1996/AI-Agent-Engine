@@ -1,7 +1,6 @@
 import { z } from 'zod'
 
 export const SKILL = {
-  IDEATE: 'ae:ideate',
   BRAINSTORM: 'ae:brainstorm',
   PRD: 'ae:prd',
   DESIGN: 'ae:design',
@@ -16,7 +15,6 @@ export const SKILL = {
   CHROME_DEVTOOLS: 'ae:chrome-devtools',
   WEB_FORGE: 'ae:web-forge',
   HANDOFF: 'ae:handoff',
-  PROMPT_OPTIMIZE: 'ae:prompt-optimize',
   TASK_LOOP: 'ae:task-loop',
   SQL: 'ae:sql',
   SWAGGER_PARSER: 'ae:swagger-parser',
@@ -40,46 +38,6 @@ export const SKILL = {
   HELP: 'ae:help',
   UPDATE: 'ae:update',
 } as const
-
-export const PO_SUFFIX = '-po'
-export const PA_SUFFIX = '-pa'
-export const AUTO_SUFFIX = '-auto'
-
-export const PROMPT_OPTIMIZE_VARIANT_EXCLUDED_SKILLS = [
-  SKILL.AGENT_CREATOR,
-  SKILL.WORK_REPORT,
-  SKILL.MY_CODE_CHANGES,
-  SKILL.MERGE_BRANCH,
-  SKILL.REVIEW,
-  SKILL.CHROME_DEVTOOLS,
-  SKILL.WEB_FORGE,
-  SKILL.HANDOFF,
-  SKILL.PROMPT_OPTIMIZE,
-  SKILL.SQL,
-  SKILL.SWAGGER_PARSER,
-  SKILL.API_TESTER,
-  SKILL.SLIDES_FORGE,
-  SKILL.PPTX_FROM_OUTLINE,
-  SKILL.HTML_BUNDLE,
-  SKILL.HTML_TO_PPTX,
-  SKILL.MARKITDOWN,
-  SKILL.GRAPH_BUILD,
-  SKILL.GRAPH_QUERY,
-  SKILL.SAVE_EXPERIENCE,
-  SKILL.SKILL_CREATOR,
-  SKILL.STATIC_SERVER,
-  SKILL.COURSE_AUTO_PLAYER,
-  SKILL.DOCX,
-  SKILL.PDF,
-  SKILL.PPTX,
-  SKILL.XLSX,
-  SKILL.HELP,
-  SKILL.UPDATE,
-] as const
-
-export function hasPromptOptimizeVariant(skillName: string): boolean {
-  return !PROMPT_OPTIMIZE_VARIANT_EXCLUDED_SKILLS.some((excludedSkill) => excludedSkill === skillName)
-}
 
 type SkillToCommand<S extends string> = S extends `ae:${infer R}` ? `ae-${R}` : S
 
@@ -155,7 +113,6 @@ export const TOOL = {
   AE_HANDOFF: 'ae-handoff',
   AE_WORKTREE_HANDOFF: 'ae-worktree-handoff',
   AE_CREATE_SESSION: 'ae-create-session',
-  AE_PROMPT_OPTIMIZE: 'ae-prompt-optimize',
   AE_HELP: 'ae-help',
   AE_REVIEW_PROOF: 'ae-review-proof',
   AE_SWAGGER_PARSER: 'ae-swagger-parser',
@@ -184,7 +141,6 @@ export const AeModeSchema = z
 
 export const AeSkillNameSchema = z
   .enum([
-    SKILL.IDEATE,
     SKILL.BRAINSTORM,
     SKILL.PRD,
     SKILL.DESIGN,
@@ -199,7 +155,6 @@ export const AeSkillNameSchema = z
     SKILL.CHROME_DEVTOOLS,
     SKILL.WEB_FORGE,
     SKILL.HANDOFF,
-    SKILL.PROMPT_OPTIMIZE,
     SKILL.TASK_LOOP,
     SKILL.SQL,
     SKILL.SWAGGER_PARSER,
@@ -225,19 +180,8 @@ export const AeSkillNameSchema = z
   ])
   .describe('AE 技能名')
 
-const PO_COMMAND_NAMES = Object.values(SKILL_COMMANDS)
-  .filter((v) => hasPromptOptimizeVariant(v.replace(/^ae-/, 'ae:')))
-  .map((v) => `${v}${PO_SUFFIX}`)
-
-const PA_COMMAND_NAMES = Object.values(SKILL_COMMANDS)
-  .filter((v) => hasPromptOptimizeVariant(v.replace(/^ae-/, 'ae:')))
-  .map((v) => `${v}${PA_SUFFIX}`)
-
 const ALL_COMMAND_NAMES = [
   ...Object.values(COMMAND),
-  `${COMMAND.PROMPT_OPTIMIZE}${AUTO_SUFFIX}`,
-  ...PO_COMMAND_NAMES,
-  ...PA_COMMAND_NAMES,
 ] as [string, ...string[]]
 
 export const AeCommandNameSchema = z
@@ -251,7 +195,6 @@ export const AeAssetEntrySchema = z.object({
   argumentHint: z.string().optional().describe('参数提示'),
   skillFile: z.string().describe('技能文件路径，无关联技能时为空字符串'),
   customTemplate: z.string().optional().describe('自定义命令模板，command-registration.ts 优先于默认模板使用'),
-  allowPromptOptimizeVariant: z.boolean().optional().describe('是否生成 -po/-pa 命令变体'),
 })
 
 export const AgentStageSchema = z

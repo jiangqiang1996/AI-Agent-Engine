@@ -7,21 +7,10 @@ import {
   COMMAND,
   AGENT,
   skillDir,
-  PO_SUFFIX,
-  PA_SUFFIX,
-  AUTO_SUFFIX,
-  hasPromptOptimizeVariant,
 } from '../schemas/ae-asset-schema.js'
 import { getLifecycleCatalogDescription } from './lifecycle-contract.js'
 
 const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
-  {
-    skillName: SKILL.IDEATE,
-    commandName: COMMAND.IDEATE,
-    description: getLifecycleCatalogDescription('ideate'),
-    argumentHint: '[主题、机会、约束或痛点]',
-    skillFile: `src/assets/skills/${skillDir(SKILL.IDEATE)}/SKILL.md`,
-  },
   {
     skillName: SKILL.BRAINSTORM,
     commandName: COMMAND.BRAINSTORM,
@@ -33,7 +22,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillName: SKILL.PRD,
     commandName: COMMAND.PRD,
     description: getLifecycleCatalogDescription('prd'),
-    argumentHint: '[目标描述|需求文档路径|构思结果]',
+    argumentHint: '[目标描述|需求文档路径]',
     skillFile: `src/assets/skills/${skillDir(SKILL.PRD)}/SKILL.md`,
   },
   {
@@ -157,20 +146,6 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '会话交接：提取当前会话核心结论，创建独立新会话并注入上下文',
     argumentHint: '',
     skillFile: `src/assets/skills/${skillDir(SKILL.HANDOFF)}/SKILL.md`,
-  },
-  {
-    skillName: SKILL.PROMPT_OPTIMIZE,
-    commandName: COMMAND.PROMPT_OPTIMIZE,
-    description: '提示词优化：将用户随意输入优化为结构化 AI 对话提示词，确认后在新会话中自动执行',
-    argumentHint: '[auto] [提示词内容]',
-    skillFile: `src/assets/skills/${skillDir(SKILL.PROMPT_OPTIMIZE)}/SKILL.md`,
-  },
-  {
-    skillName: SKILL.PROMPT_OPTIMIZE,
-    commandName: `${COMMAND.PROMPT_OPTIMIZE}${AUTO_SUFFIX}`,
-    description: '提示词优化（auto 模式）：优化后跳过确认直接在新会话中执行',
-    argumentHint: '[提示词内容]',
-    skillFile: `src/assets/skills/${skillDir(SKILL.PROMPT_OPTIMIZE)}/SKILL.md`,
   },
   {
     skillName: SKILL.TASK_LOOP,
@@ -300,22 +275,6 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   },
 ]
 
-function buildPromptOptimizeVariantEntries(suffix: string, descriptionPrefix: string): AeAssetEntry[] {
-  return PHASE_ONE_ENTRIES
-    .filter((e) => e.allowPromptOptimizeVariant !== false && hasPromptOptimizeVariant(e.skillName))
-    .map((e) => ({
-      skillName: SKILL.PROMPT_OPTIMIZE,
-      commandName: `${e.commandName}${suffix}`,
-      description: `${descriptionPrefix}${e.description}`,
-      argumentHint: e.argumentHint,
-      skillFile: `src/assets/skills/${skillDir(SKILL.PROMPT_OPTIMIZE)}/SKILL.md`,
-    } satisfies AeAssetEntry))
-}
-
-const PHASE_ONE_PO_ENTRIES: AeAssetEntry[] = buildPromptOptimizeVariantEntries(PO_SUFFIX, '先优化提示词，再用 ')
-
-const PHASE_ONE_PA_ENTRIES: AeAssetEntry[] = buildPromptOptimizeVariantEntries(PA_SUFFIX, '先优化提示词（auto 模式），再用 ')
-
 const REVIEW_SPECIALIST_AGENT_NAMES = new Set<string>([
   AGENT.COHERENCE_REVIEWER,
   AGENT.FEASIBILITY_REVIEWER,
@@ -415,14 +374,6 @@ function buildAgentList(
 
 export function getPhaseOneEntries(): AeAssetEntry[] {
   return PHASE_ONE_ENTRIES.map((e) => AeAssetEntrySchema.parse(e))
-}
-
-export function getPhaseOnePoEntries(): AeAssetEntry[] {
-  return PHASE_ONE_PO_ENTRIES.map((e) => AeAssetEntrySchema.parse(e))
-}
-
-export function getPhaseOnePaEntries(): AeAssetEntry[] {
-  return PHASE_ONE_PA_ENTRIES.map((e) => AeAssetEntrySchema.parse(e))
 }
 
 export function getRequiredAgents(): AgentDefinition[] {

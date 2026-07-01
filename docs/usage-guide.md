@@ -1,12 +1,11 @@
 ﻿# AE 用户手册
 
-本手册说明 AI Agent Engine（AE）的常用流程、命令参数、命令变体、代理分工、工具边界和产物路径。当前运行时实际可用能力以 `/ae-help` 为准。
+本手册说明 AI Agent Engine（AE）的常用流程、命令参数、代理分工、工具边界和产物路径。当前运行时实际可用能力以 `/ae-help` 为准。
 
 ## 先选入口
 
 | 目标 | 用这个 |
 | --- | --- |
-| 不确定要做什么 | `/ae-ideate` |
 | 想多角度发散讨论一个主题 | `/ae-brainstorm` |
 | 产出需求文档 | `/ae-prd` |
 | 在需求和计划之间产出设计文档 | `/ae-design` |
@@ -28,7 +27,6 @@
 | HTML 单文件打包 | `/ae-html-bundle` |
 | 静态服务器 | `/ae-static-server` |
 | 构建或查询项目关系图谱 | `/ae-graph-build`、`/ae-graph-query` |
-| 提示词太散 | `/ae-prompt-optimize` |
 | 保存经验 | `/ae-save-experience` |
 | 交接到新会话 | `/ae-handoff` |
 | 查看完整帮助 | `/ae-help` |
@@ -111,9 +109,8 @@
 
 | 命令 | 参数 | 用途 | 关键边界 |
 | --- | --- | --- | --- |
-| `/ae-ideate` | `[功能、关注领域或约束]` | 生成并批判性评估多个可落地想法 | 不直接编码 |
 | `/ae-brainstorm` | `[讨论主题]` | 使用多个子代理从不同视角进行多轮发散讨论并汇总 | 不产出持久文档；需求沉淀转 `/ae-prd` |
-| `/ae-prd` | `[目标描述\|需求文档路径\|构思结果]` | 澄清目标、边界、约束、成功标准和待定问题，产出需求文档 | 产物是需求文档 |
+| `/ae-prd` | `[目标描述\|需求文档路径]` | 澄清目标、边界、约束、成功标准和待定问题，产出需求文档 | 产物是需求文档 |
 | `/ae-design` | `[需求文档路径\|旧 design\|裸描述]` | 产出设计文档，含概览、架构、接口、数据模型、测试用例与验收标准 | 供计划和审查对齐 |
 | `/ae-plan` | `[计划路径\|需求文档路径\|需求描述]` | 把需求拆成技术计划 | 复杂实现前优先使用 |
 | `/ae-refactor` | `[重构目标\|计划路径\|需求文档路径\|代码异味描述]` | 以消除技术债为优先约束生成重构计划 | 强调保持外部行为和测试护栏 |
@@ -126,8 +123,7 @@
 | `/ae-web-forge` | `[描述\|Figma URL\|截图\|路由] [--design\|--match\|--logic\|--inspect]` | 统一前端能力入口：自由设计、设计还原、交互逻辑、浏览器验收 | 先完成 chrome-devtools MCP 动态注册 |
 | `/ae-course-auto-player` | `[browser] <课程列表页面URL>` | 自动播放在线课程列表 | 先完成 chrome-devtools MCP 动态注册 |
 | `/ae-api-tester` | `[接口文档\|接口描述\|已有脚本路径\|业务流程描述]` | 以真实业务流程编排为主的自动化接口测试 | 支持登录认证与脚本生成 |
-| `/ae-handoff` | `—` | 提取上下文并创建独立新会话 | 用于交接，不用于提示词优化 |
-| `/ae-prompt-optimize` | `[auto] [提示词内容]` | 优化提示词并可在新会话执行 | 需要注入历史上下文时用 `/ae-handoff` |
+| `/ae-handoff` | `—` | 提取上下文并创建独立新会话 | 用于交接 |
 | `/ae-task-loop` | `[一句话目标描述]` | 循环执行和验证直到目标达成 | 不适合需求不清的大型功能 |
 | `/ae-sql` | `[SQL 语句]` | 通过 JDBC 连接数据库并执行 SQL | 执行前应确认目标库和语句风险 |
 | `/ae-swagger-parser` | `[source] [method:<HTTP_METHOD>] [path:<PATH>] [tag:<TAG>] [keyword:<TEXT>] [mode:overview\|detail]` | 解析 Swagger/OpenAPI 并输出联调摘要 | 不请求业务接口 |
@@ -148,28 +144,7 @@
 |------------------------------------| --- | --- |
 | `/ae-work-continue`                | 在 B worktree 查找交接文件并继续执行 `ae:work` | 仅用于 A→B worktree 转移后的目标工作空间；多个交接文件时先让用户选择 |
 | `/ae-commit`                       | 智能提交当前变更 | 只做本地提交；不等同于 push、PR、跳过 hooks 或改 Git 配置 |
-| `/ae-prompt-optimize-auto`         | 提示词优化（auto 模式）：优化后跳过确认直接执行 | 效果等同于 `/ae-prompt-optimize auto` |
 | `/ae-remove-local-branch-worktree` | 安全清理本地分支、worktree 和对应本地目录 | 删除分支、worktree 或目录前必须确认目标和风险 |
-
-## 命令变体
-
-`-po` 表示 prompt optimize：先优化提示词，确认后执行。`-pa` 表示 prompt auto：优化后跳过确认直接执行。
-
-**注意**：并非所有命令都支持 `-po`/`-pa` 变体，下表列出了所有支持的变体命令。未列出的命令不提供变体。
-
-| 基础命令 | 确认执行 | 自动执行 |
-| --- | --- | --- |
-| `/ae-ideate` | `/ae-ideate-po` | `/ae-ideate-pa` |
-| `/ae-brainstorm` | `/ae-brainstorm-po` | `/ae-brainstorm-pa` |
-| `/ae-prd` | `/ae-prd-po` | `/ae-prd-pa` |
-| `/ae-design` | `/ae-design-po` | `/ae-design-pa` |
-| `/ae-plan` | `/ae-plan-po` | `/ae-plan-pa` |
-| `/ae-refactor` | `/ae-refactor-po` | `/ae-refactor-pa` |
-| `/ae-work` | `/ae-work-po` | `/ae-work-pa` |
-| `/ae-task-loop` | `/ae-task-loop-po` | `/ae-task-loop-pa` |
-| `/ae-slides-outline` | `/ae-slides-outline-po` | `/ae-slides-outline-pa` |
-
-没有列出的命令不提供 `-po` 或 `-pa` 变体。
 
 ## 审查代理
 
@@ -247,8 +222,7 @@
 | `ae-review-contract` | 根据审查类型、范围特征和模式生成审查团队 | 不执行审查代理 |
 | `ae-chrome-devtools-mcp` | 检查或动态注册 chrome-devtools MCP（内部工具） | 用户应通过 `/ae-chrome-devtools` 命令操作浏览器能力；不安装 chrome-devtools-mcp，不替代真实 MCP 注册 |
 | `ae-help` | 生成当前运行时帮助 | 不修改配置 |
-| `ae-handoff` | 创建独立新会话并注入上下文 | 不做普通提示词优化 |
-| `ae-prompt-optimize` | 把优化后的提示词提交到新会话执行 | 不注入系统级历史上下文 |
+| `ae-handoff` | 创建独立新会话并注入上下文 | 不做提示词优化 |
 | `ae-swagger-parser` | 解析 Swagger/OpenAPI 规格 | 不请求业务接口 |
 | `ae-html-bundle` | 打包显式入口 HTML 和本地静态资源 | 不执行项目构建或联网抓取外链 |
 | `ae-markitdown` | 将本地文件转换为 Markdown | 不支持远程 URL，不处理音频/视频 |
@@ -312,7 +286,7 @@ AE 默认提供 `context7` 和 `gh_grep` 两个远程 MCP。项目级 `.opencode
 }
 ```
 
-`quick` 适合帮助和提示词优化，`standard` 适合常规任务，`deep` 适合计划、工作和审查，`vision` 适合浏览器截图和前端视觉任务，`audio` 适合音频任务，`video` 适合视频任务。完整合并规则见 [builtin-config.md](builtin-config.md)。
+`quick` 适合帮助和快速查询，`standard` 适合常规任务，`deep` 适合计划、工作和审查，`vision` 适合浏览器截图和前端视觉任务，`audio` 适合音频任务，`video` 适合视频任务。完整合并规则见 [builtin-config.md](builtin-config.md)。
 
 ## 安全边界
 

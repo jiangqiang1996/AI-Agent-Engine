@@ -57,10 +57,9 @@ describe('isFilePathCommand', () => {
     expect(isFilePathCommand('ae-markitdown')).toBe(true)
   })
 
-  it('应该识别 ae-markitdown 的 -po / -pa / -auto 变体', () => {
-    expect(isFilePathCommand('ae-markitdown-po')).toBe(true)
-    expect(isFilePathCommand('ae-markitdown-pa')).toBe(true)
-    expect(isFilePathCommand('ae-markitdown-auto')).toBe(true)
+  it('不应该识别 ae-markitdown 的 -po / -pa / -auto 变体（已移除变体）', () => {
+    expect(isFilePathCommand('ae-markitdown-po')).toBe(false)
+    expect(isFilePathCommand('ae-markitdown-pa')).toBe(false)
   })
 
   it('不应该把非路径型命令识别为路径型', () => {

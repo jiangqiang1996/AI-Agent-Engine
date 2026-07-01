@@ -26,7 +26,6 @@ export const aeCreateSessionTool: ToolDefinition = tool({
     '',
     '不适用场景：',
     '- 需要 ae:handoff 的结构化会话摘要提取',
-    '- 需要 ae:prompt-optimize 的提示词优化确认流程',
   ].join('\n'),
   args: {
     title: z.string().optional().describe('新会话标题；不提供或为空时自动生成'),

@@ -4,8 +4,8 @@ import { join } from 'node:path'
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { COMMAND, PA_SUFFIX, PO_SUFFIX, PROMPT_OPTIMIZE_VARIANT_EXCLUDED_SKILLS, SKILL } from '../../src/schemas/ae-asset-schema.js'
-import { getPhaseOneEntries, getPhaseOnePaEntries, getPhaseOnePoEntries } from '../../src/services/ae-catalog.js'
+import { COMMAND, SKILL } from '../../src/schemas/ae-asset-schema.js'
+import { getPhaseOneEntries } from '../../src/services/ae-catalog.js'
 import {
   buildCommandConfig,
   mergeDynamicCommands,
@@ -38,38 +38,14 @@ function isolateHome(root: string): void {
 }
 
 describe('command-registration', () => {
-  it('应该按排除列表跳过不适合提示词优化包装的命令变体', () => {
+  it('应该为 ae:refactor 生成基础命令', () => {
     const config = buildCommandConfig('__missing_commands_dir__')
-    const poEntries = getPhaseOnePoEntries()
-    const paEntries = getPhaseOnePaEntries()
-
-    for (const skillName of PROMPT_OPTIMIZE_VARIANT_EXCLUDED_SKILLS) {
-      const commandName = skillName.replace(/^ae:/, 'ae-')
-
-      expect(poEntries.some((entry) => entry.commandName === `${commandName}${PO_SUFFIX}`)).toBe(false)
-      expect(paEntries.some((entry) => entry.commandName === `${commandName}${PA_SUFFIX}`)).toBe(false)
-      expect(config[`${commandName}${PO_SUFFIX}`]).toBeUndefined()
-      expect(config[`${commandName}${PA_SUFFIX}`]).toBeUndefined()
-    }
-  })
-
-  it('应该为 ae:refactor 生成基础命令和提示词优化命令', () => {
-    const config = buildCommandConfig('__missing_commands_dir__')
-    const poCommand = `${COMMAND.REFACTOR}${PO_SUFFIX}`
-    const paCommand = `${COMMAND.REFACTOR}${PA_SUFFIX}`
 
     expect(config[COMMAND.REFACTOR]).toBeDefined()
     expect(config[COMMAND.REFACTOR]?.template).toContain(`使用 \`${SKILL.REFACTOR}\` 技能处理这次请求`)
-    expect(config[poCommand]).toBeDefined()
-    expect(config[poCommand]?.template).toContain(`先使用 \`${SKILL.PROMPT_OPTIMIZE}\` 技能优化以下用户输入`)
-    expect(config[poCommand]?.template).toContain(`使用 \`${SKILL.REFACTOR}\` 技能处理这次请求`)
-    expect(config[paCommand]).toBeDefined()
-    expect(config[paCommand]?.template).toContain(`先使用 \`${SKILL.PROMPT_OPTIMIZE}\` 技能以 auto 模式优化以下用户输入`)
-    expect(config[paCommand]?.template).toContain('跳过确认直接提交')
-    expect(config[paCommand]?.template).toContain(`使用 \`${SKILL.REFACTOR}\` 技能处理这次请求`)
   })
 
-  it('应该从磁盘命令注册 worktree 续执行命令且不生成提示词优化变体', () => {
+  it('应该从磁盘命令注册 worktree 续执行命令', () => {
     const config = buildCommandConfig(join(process.cwd(), 'src/assets/commands'))
 
     expect(getPhaseOneEntries().map((entry) => entry.commandName)).not.toContain(WORK_CONTINUE_COMMAND)
@@ -77,19 +53,13 @@ describe('command-registration', () => {
     expect(config[WORK_CONTINUE_COMMAND]?.template).toContain('ae/handoffs/*-worktree-handoff.md')
     expect(config[WORK_CONTINUE_COMMAND]?.template).toContain('如果找到多个交接文件')
     expect(config[WORK_CONTINUE_COMMAND]?.template).toContain('不得按裸提示词处理')
-    expect(config[`${WORK_CONTINUE_COMMAND}${PO_SUFFIX}`]).toBeUndefined()
-    expect(config[`${WORK_CONTINUE_COMMAND}${PA_SUFFIX}`]).toBeUndefined()
   })
 
   it('不应该再注册旧文档互转命令', () => {
     const config = buildCommandConfig('__missing_commands_dir__')
 
     expect(config['ae-doc-humanize']).toBeUndefined()
-    expect(config['ae-doc-humanize-po']).toBeUndefined()
-    expect(config['ae-doc-humanize-pa']).toBeUndefined()
     expect(config['ae-doc-structure']).toBeUndefined()
-    expect(config['ae-doc-structure-po']).toBeUndefined()
-    expect(config['ae-doc-structure-pa']).toBeUndefined()
   })
 
   it('应该为工具型和结构化输入命令只生成基础命令', () => {
@@ -103,68 +73,46 @@ describe('command-registration', () => {
       [SKILL.GRAPH_QUERY, COMMAND.GRAPH_QUERY],
     ] as const) {
       expect(config[commandName]?.template).toContain(`使用 \`${skillName}\` 技能处理这次请求`)
-      expect(config[`${commandName}${PO_SUFFIX}`]).toBeUndefined()
-      expect(config[`${commandName}${PA_SUFFIX}`]).toBeUndefined()
     }
   })
 
-  it('应该为 ae:task-loop 生成提示词优化命令', () => {
+  it('应该为 ae:task-loop 生成基础命令', () => {
     const config = buildCommandConfig('__missing_commands_dir__')
 
     expect(config[COMMAND.TASK_LOOP]).toBeDefined()
-    expect(config[`${COMMAND.TASK_LOOP}${PO_SUFFIX}`]).toBeDefined()
-    expect(config[`${COMMAND.TASK_LOOP}${PA_SUFFIX}`]).toBeDefined()
-    expect(config[`${COMMAND.TASK_LOOP}${PO_SUFFIX}`]?.template).toContain(`使用 \`${SKILL.TASK_LOOP}\` 技能处理这次请求`)
-    expect(config[`${COMMAND.TASK_LOOP}${PA_SUFFIX}`]?.template).toContain('auto 模式')
+    expect(config[COMMAND.TASK_LOOP]?.template).toContain(`使用 \`${SKILL.TASK_LOOP}\` 技能处理这次请求`)
   })
 
   it('应该为 ae:swagger-parser 只生成基础命令', () => {
     const config = buildCommandConfig('__missing_commands_dir__')
-    const poCommand = `${COMMAND.SWAGGER_PARSER}${PO_SUFFIX}`
-    const paCommand = `${COMMAND.SWAGGER_PARSER}${PA_SUFFIX}`
 
     expect(config[COMMAND.SWAGGER_PARSER]).toBeDefined()
     expect(config[COMMAND.SWAGGER_PARSER]?.template).toContain(SKILL.SWAGGER_PARSER)
-    expect(config[poCommand]).toBeUndefined()
-    expect(config[paCommand]).toBeUndefined()
   })
 
-  it('应该为 ae:web-forge 命令保留 chrome-devtools 环境门禁顺序且不生成提示词优化变体', () => {
+  it('应该为 ae:web-forge 命令保留 chrome-devtools 环境门禁顺序', () => {
     const config = buildCommandConfig('__missing_commands_dir__')
-    const poCommand = `${COMMAND.WEB_FORGE}${PO_SUFFIX}`
-    const paCommand = `${COMMAND.WEB_FORGE}${PA_SUFFIX}`
 
     const baseTemplate = config[COMMAND.WEB_FORGE]?.template ?? ''
     expect(baseTemplate).toContain(`先使用 \`${SKILL.CHROME_DEVTOOLS} action=register mode=autoConnect\` 技能完成浏览器 MCP 动态注册`)
     expect(baseTemplate).toContain('未完成 MCP 注册前不得执行任何浏览器控制命令')
     expect(baseTemplate.indexOf(SKILL.CHROME_DEVTOOLS)).toBeLessThan(baseTemplate.indexOf(SKILL.WEB_FORGE))
-
-    expect(config[poCommand]).toBeUndefined()
-    expect(config[paCommand]).toBeUndefined()
   })
 
   it('应该为 ae:skill-creator 只生成基础命令', () => {
     const config = buildCommandConfig('__missing_commands_dir__')
-    const poCommand = `${COMMAND.SKILL_CREATOR}${PO_SUFFIX}`
-    const paCommand = `${COMMAND.SKILL_CREATOR}${PA_SUFFIX}`
 
     expect(config[COMMAND.SKILL_CREATOR]).toBeDefined()
     expect(config[COMMAND.SKILL_CREATOR]?.template).toContain(`使用 \`${SKILL.SKILL_CREATOR}\` 技能处理这次请求`)
-    expect(config[poCommand]).toBeUndefined()
-    expect(config[paCommand]).toBeUndefined()
     expect(config['ae-save-session-flow']).toBeUndefined()
     expect(config['ae-asset-debug']).toBeUndefined()
   })
 
   it('应该为 ae:save-experience 只生成基础命令', () => {
     const config = buildCommandConfig('__missing_commands_dir__')
-    const poCommand = `${COMMAND.SAVE_EXPERIENCE}${PO_SUFFIX}`
-    const paCommand = `${COMMAND.SAVE_EXPERIENCE}${PA_SUFFIX}`
 
     expect(config[COMMAND.SAVE_EXPERIENCE]).toBeDefined()
     expect(config[COMMAND.SAVE_EXPERIENCE]?.template).toContain(`使用 \`${SKILL.SAVE_EXPERIENCE}\` 技能处理这次请求`)
-    expect(config[poCommand]).toBeUndefined()
-    expect(config[paCommand]).toBeUndefined()
   })
 
   it('应该保持 ae:swagger-parser catalog 与 SKILL.md frontmatter 名称一致', () => {

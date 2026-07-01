@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { COMMAND, PA_SUFFIX, PO_SUFFIX, SKILL } from '../../src/schemas/ae-asset-schema.js'
+import { COMMAND, SKILL } from '../../src/schemas/ae-asset-schema.js'
 import { generateHelpText } from '../../src/services/help-catalog-service.js'
 
 describe('help-catalog-service 集成', () => {
@@ -9,8 +9,6 @@ describe('help-catalog-service 集成', () => {
 
     expect(text).toContain(SKILL.SKILL_CREATOR)
     expect(text).toContain(`/${COMMAND.SKILL_CREATOR}`)
-    expect(text).not.toContain(`/${COMMAND.SKILL_CREATOR}${PO_SUFFIX}`)
-    expect(text).not.toContain(`/${COMMAND.SKILL_CREATOR}${PA_SUFFIX}`)
     expect(text).toContain('创建或更新 OpenCode 原生技能和命令')
     expect(text).toContain('--from-session')
   })
@@ -20,8 +18,6 @@ describe('help-catalog-service 集成', () => {
 
     expect(text).toContain(SKILL.REFACTOR)
     expect(text).toContain(`/${COMMAND.REFACTOR}`)
-    expect(text).toContain(`/${COMMAND.REFACTOR}${PO_SUFFIX}`)
-    expect(text).toContain(`/${COMMAND.REFACTOR}${PA_SUFFIX}`)
     expect(text).toContain('[重构目标\\|计划路径\\|需求文档路径\\|旧机制描述]')
   })
 
@@ -30,8 +26,6 @@ describe('help-catalog-service 集成', () => {
 
     expect(text).toContain(SKILL.MERGE_BRANCH)
     expect(text).toContain(`/${COMMAND.MERGE_BRANCH}`)
-    expect(text).not.toContain(`/${COMMAND.MERGE_BRANCH}${PO_SUFFIX}`)
-    expect(text).not.toContain(`/${COMMAND.MERGE_BRANCH}${PA_SUFFIX}`)
     expect(text).toContain('[来源分支名\\|本地 worktree 路径]')
   })
 
@@ -58,8 +52,6 @@ describe('help-catalog-service 集成', () => {
 
     expect(text).toContain(SKILL.WORK_REPORT)
     expect(text).toContain(`/${COMMAND.WORK_REPORT}`)
-    expect(text).not.toContain(`/${COMMAND.WORK_REPORT}${PO_SUFFIX}`)
-    expect(text).not.toContain(`/${COMMAND.WORK_REPORT}${PA_SUFFIX}`)
     expect(text).toContain('[日报\\|周报\\|时间段\\|提交范围]')
     expect(text).toContain('生成日报、周报或指定时间段工作总结')
   })
@@ -69,8 +61,6 @@ describe('help-catalog-service 集成', () => {
 
     expect(text).toContain(SKILL.WEB_FORGE)
     expect(text).toContain(`/${COMMAND.WEB_FORGE}`)
-    expect(text).not.toContain(`/${COMMAND.WEB_FORGE}${PO_SUFFIX}`)
-    expect(text).not.toContain(`/${COMMAND.WEB_FORGE}${PA_SUFFIX}`)
     expect(text).toContain(SKILL.CHROME_DEVTOOLS)
     expect(text).toContain('MCP 注册')
     expect(text).not.toContain('chrome-devtools 可用')

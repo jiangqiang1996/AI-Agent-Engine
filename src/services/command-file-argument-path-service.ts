@@ -2,12 +2,7 @@ import { fileURLToPath } from 'node:url'
 
 import type { Part } from '@opencode-ai/sdk'
 
-import {
-  FILE_PATH_COMMANDS,
-  AUTO_SUFFIX,
-  PO_SUFFIX,
-  PA_SUFFIX,
-} from '../schemas/ae-asset-schema.js'
+import { FILE_PATH_COMMANDS } from '../schemas/ae-asset-schema.js'
 
 type MutableTextPart = Extract<Part, { type: 'text' }>
 type MutableFilePart = Extract<Part, { type: 'file' }>
@@ -15,18 +10,13 @@ type MutableFilePart = Extract<Part, { type: 'file' }>
 const FILE_PATH_COMMAND_SET = new Set<string>(FILE_PATH_COMMANDS)
 
 /**
- * 判断命令是否为文件路径型命令（含 -po / -pa / -auto 变体）。
+ * 判断命令是否为文件路径型命令。
  *
  * 路径型命令的底层工具自行读取文件内容，LLM 只需看到路径文本即可调用工具；
  * 因此在 command.execute.before 钩子中会把 FilePart 转换为纯路径文本，
  * 避免二进制内容被发送给 LLM。
  */
 export function isFilePathCommand(command: string): boolean {
-  for (const suffix of [AUTO_SUFFIX, PA_SUFFIX, PO_SUFFIX]) {
-    if (command.endsWith(suffix)) {
-      return FILE_PATH_COMMAND_SET.has(command.slice(0, -suffix.length))
-    }
-  }
   return FILE_PATH_COMMAND_SET.has(command)
 }
 
