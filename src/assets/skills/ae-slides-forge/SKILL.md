@@ -18,7 +18,7 @@ argument-hint: "[大纲文件路径] [--design|--match] [现有 HTML 文件路�
 ## 不适用场景
 
 - 策划或修改大纲内容（使用 `ae:slides-outline`）
-- 生成 PPTX 格式幻灯片（使用 `ae:pptx` 或 `ae:html-to-pptx`）
+- 生成 PPTX 格式幻灯片（使用 `ae:pptx`）
 - 纯网页开发不涉及演示场景（使用 `ae:web-forge`）
 - 只需要将现有 HTML 打包为单文件（使用 `ae:html-bundle`）
 

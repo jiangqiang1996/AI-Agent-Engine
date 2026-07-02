@@ -183,13 +183,6 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillFile: `src/assets/skills/${skillDir(SKILL.HTML_BUNDLE)}/SKILL.md`,
   },
   {
-    skillName: SKILL.HTML_TO_PPTX,
-    commandName: COMMAND.HTML_TO_PPTX,
-    description: '将 HTML 文件或幻灯片目录转换为 PPTX 演示文稿，自动探测单文件或多文件目录格式，支持正则提取和浏览器渲染两种模式，浏览器模式通过 chrome-devtools MCP 提取精确布局与样式',
-    argumentHint: '[file=路径或目录] [title=标题] [output=输出路径] [slide_separator=section|hr|h1|auto] [browser_render=true]',
-    skillFile: `src/assets/skills/${skillDir(SKILL.HTML_TO_PPTX)}/SKILL.md`,
-  },
-  {
     skillName: SKILL.IMAGE,
     commandName: COMMAND.IMAGE,
     description: '将本地图片转换为 Markdown 描述，支持 JPG/PNG/GIF/WebP/BMP。通过 ae-image 工具实现，支持 outputMode 和 prompt 参数控制输出方式和识别重点。',

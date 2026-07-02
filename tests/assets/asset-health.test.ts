@@ -310,7 +310,6 @@ describe('资产健康巡检', () => {
       COMMAND.API_TESTER,
       COMMAND.SWAGGER_PARSER,
       COMMAND.HTML_BUNDLE,
-      COMMAND.HTML_TO_PPTX,
       COMMAND.IMAGE,
       COMMAND.DOCX,
       COMMAND.PDF,

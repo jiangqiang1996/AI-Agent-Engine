@@ -20,7 +20,7 @@ argument-hint: "[主题|需求描述|大纲文件路径|现有 HTML 幻灯片文
 ## 不适用场景
 
 - 生成 HTML 幻灯片（确认大纲后使用 `ae:slides-forge`）
-- 生成 PPTX 格式幻灯片（使用 `ae:pptx` 或 `ae:html-to-pptx`）
+- 生成 PPTX 格式幻灯片（使用 `ae:pptx`）
 - 纯网页开发不涉及演示场景（使用 `ae:web-forge`）
 
 ## 执行流程
