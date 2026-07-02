@@ -1,6 +1,6 @@
 ---
 name: ae:xlsx
-description: "创建、编辑、分析 Excel 电子表格（.xlsx），全面覆盖 exceljs 能力：完整单元格样式、合并、冻结、筛选、条件格式、数据验证、工作簿属性。支持增量操作 add-rows（追加行）和 add-sheet（添加工作表）。通过 ae-xlsx 工具实现，输出仍为 .xlsx。"
+description: "所有涉及 .xlsx 文件的读取、创建、编辑、分析和格式转换操作都必须使用本技能。包括：创建电子表格、编辑单元格和样式、分析工作表结构、追加行数据、添加工作表、将 XLSX 转为 Markdown 阅读。支持完整单元格样式、合并、冻结、筛选、条件格式和数据验证。禁止使用 Read 或 Bash 直接读取 .xlsx 文件内容，必须通过本技能的 to-markdown 或 analyze 操作。"
 argument-hint: "[创建|编辑|分析|追加行|添加工作表] [文件路径] [任务描述]"
 ---
 

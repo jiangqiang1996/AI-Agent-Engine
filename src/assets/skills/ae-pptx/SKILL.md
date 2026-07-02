@@ -1,6 +1,6 @@
 ---
 name: ae:pptx
-description: "创建、编辑、分析、追加、更新 PowerPoint 演示文稿（.pptx），支持元素化绘制、母版、章节、图表、媒体等全面能力。通过 ae-pptx 工具实现，输出仍为 .pptx。"
+description: "所有涉及 .pptx 文件的读取、创建、编辑、分析和格式转换操作都必须使用本技能。包括：创建演示文稿、编辑现有 PPTX、分析幻灯片结构、追加幻灯片、更新单张幻灯片、将 PPTX 转为 Markdown 阅读。禁止使用 Read 或 Bash 直接读取 .pptx 文件内容，必须通过本技能的 to-markdown 或 analyze 操作。"
 argument-hint: "[创建|编辑|分析|追加|更新] [文件路径] [任务描述]"
 ---
 
