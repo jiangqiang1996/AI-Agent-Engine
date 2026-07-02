@@ -20,7 +20,6 @@ argument-hint: "[大纲文件路径]"
 
 - 生成或修改大纲内容（使用 `ae:slides-outline`）
 - 生成 HTML 幻灯片（使用 `ae:slides-forge`）
-- 将 HTML 文件转为 PPTX（使用 `ae:pptx`）
 - 直接创建/编辑 PPTX 但无大纲参考（使用 `ae:pptx`，它支持自由创建、编辑和兼容模式布局）
 
 ## 执行流程
