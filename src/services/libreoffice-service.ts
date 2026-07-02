@@ -111,27 +111,52 @@ export function detectLibreOffice(): LibreOfficeDetectionResult {
   return { available: false, source: 'none', sofficePath: null }
 }
 
-const PORTABLE_DOWNLOAD_INFO: Record<string, { url: string; filename: string; extractType: string }> = {
-  win32: {
-    url: 'https://ftp.nluug.nl/office/LibreOfficePortable/LibreOfficePortable_24.8.4_Multilingual.paf.exe',
-    filename: 'LibreOfficePortable_24.8.4_Multilingual.paf.exe',
-    extractType: 'paf_exe',
-  },
-  linux: {
-    url: 'https://ftp.nluug.nl/office/libreoffice/stable/24.8.4/rpm/x86_64/LibreOffice_24.8.4_Linux_x86-64_rpm.tar.gz',
-    filename: 'LibreOffice_24.8.4_Linux_x86-64_rpm.tar.gz',
-    extractType: 'tar_gz',
-  },
-  darwin: {
-    url: 'https://ftp.nluug.nl/office/libreoffice/stable/24.8.4/mac/aarch64/LibreOffice_24.8.4_MacOS_aarch64.dmg',
-    filename: 'LibreOffice_24.8.4_MacOS_aarch64.dmg',
-    extractType: 'dmg',
-  },
+const ALIYUN_MIRROR_BASE = 'https://mirrors.aliyun.com/libreoffice'
+const LIBREOFFICE_PORTABLE_VERSION = '26.2.1'
+const LIBREOFFICE_STABLE_VERSION = '26.2.4'
+
+function getPlatformArch(): 'aarch64' | 'x86_64' {
+  return process.arch === 'arm64' ? 'aarch64' : 'x86_64'
+}
+
+function getDownloadInfo(currentPlatform: string): { url: string; filename: string; extractType: string } | null {
+  if (currentPlatform === 'win32') {
+    const filename = `LibreOfficePortable_${LIBREOFFICE_PORTABLE_VERSION}_MultilingualAll.paf.exe`
+    return {
+      url: `${ALIYUN_MIRROR_BASE}/portable/${LIBREOFFICE_PORTABLE_VERSION}/${filename}`,
+      filename,
+      extractType: 'paf_exe',
+    }
+  }
+
+  if (currentPlatform === 'linux') {
+    const arch = getPlatformArch()
+    const fileArch = arch === 'x86_64' ? 'x86-64' : arch
+    const filename = `LibreOffice_${LIBREOFFICE_STABLE_VERSION}_Linux_${fileArch}_rpm.tar.gz`
+    return {
+      url: `${ALIYUN_MIRROR_BASE}/stable/${LIBREOFFICE_STABLE_VERSION}/rpm/${arch}/${filename}`,
+      filename,
+      extractType: 'tar_gz',
+    }
+  }
+
+  if (currentPlatform === 'darwin') {
+    const arch = getPlatformArch()
+    const fileArch = arch === 'x86_64' ? 'x86-64' : arch
+    const filename = `LibreOffice_${LIBREOFFICE_STABLE_VERSION}_MacOS_${fileArch}.dmg`
+    return {
+      url: `${ALIYUN_MIRROR_BASE}/stable/${LIBREOFFICE_STABLE_VERSION}/mac/${arch}/${filename}`,
+      filename,
+      extractType: 'dmg',
+    }
+  }
+
+  return null
 }
 
 export async function downloadPortableLibreOffice(): Promise<LibreOfficeInstallResult> {
   const currentPlatform = platform() as string
-  const info = PORTABLE_DOWNLOAD_INFO[currentPlatform]
+  const info = getDownloadInfo(currentPlatform)
 
   if (!info) {
     return { success: false, sofficePath: null, error: `不支持的平台: ${currentPlatform}，请手动安装 LibreOffice` }
@@ -199,9 +224,16 @@ function extractPortableLinux(baseDir: string, downloadPath: string): LibreOffic
       const rpmsDir = join(baseDir, dir, 'RPMS')
       if (existsSync(rpmsDir)) {
         execSync(`cd "${rpmsDir}" && rpm2cpio *.rpm | cpio -idmv`, { timeout: 120000 })
-        const soffice = join(rpmsDir, 'opt', 'libreoffice24.8', 'program', 'soffice')
-        if (existsSync(soffice)) {
-          return { success: true, sofficePath: soffice }
+        const optDir = join(rpmsDir, 'opt')
+        if (existsSync(optDir)) {
+          for (const sub of readdirSync(optDir)) {
+            if (sub.startsWith('libreoffice')) {
+              const soffice = join(optDir, sub, 'program', 'soffice')
+              if (existsSync(soffice)) {
+                return { success: true, sofficePath: soffice }
+              }
+            }
+          }
         }
       }
     }

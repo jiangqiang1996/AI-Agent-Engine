@@ -26,9 +26,10 @@ LibreOffice 运行时管理者：检测和确保 LibreOffice 可用，供文档�
 2. **check**：调用 ae-libreoffice 工具 action=check，检测 LibreOffice 可用性
    - 如果可用：返回 soffice 路径，其他技能可继续视觉验证流程
    - 如果不可用：提示用户安装或下载便携版
-3. **install**：调用 ae-libreoffice 工具 action=install，下载便携版 LibreOffice 到 `~/.config/opencode/libreoffice/`
+3. **install**：调用 ae-libreoffice 工具 action=install，从阿里云镜像下载便携版 LibreOffice 到 `~/.config/opencode/libreoffice/`
    - 如果已就绪：直接返回路径
-   - 下载约 300MB，下载后永久缓存复用
+   - Windows 下载便携版（.paf.exe，约 300MB），Linux 下载 RPM 压缩包（.tar.gz），macOS 下载 DMG
+   - 下载后永久缓存复用
    - 下载失败时提示用户手动安装
 
 ## LibreOffice 检测优先级
@@ -41,7 +42,7 @@ LibreOffice 运行时管理者：检测和确保 LibreOffice 可用，供文档�
 
 - 只管理 LibreOffice 运行时，不执行文档操作
 - 其他技能需要视觉验证时必须先调用 ae:libreoffice 确认就绪
-- 便携版下载需要用户确认（约 300MB）
+- 便携版下载需要用户确认（约 300MB），从阿里云镜像下载绿色便携版本
 
 ## 输出要求
 
