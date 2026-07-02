@@ -183,9 +183,16 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillFile: `src/assets/skills/${skillDir(SKILL.HTML_BUNDLE)}/SKILL.md`,
   },
   {
+    skillName: SKILL.LIBREOFFICE,
+    commandName: COMMAND.LIBREOFFICE,
+    description: 'LibreOffice 运行时管理：检测、下载和管理 LibreOffice（系统安装或便携版），供 ae:pptx、ae:docx、ae:pdf 技能进行文档视觉验证时调用',
+    argumentHint: '[action=check|install]',
+    skillFile: `src/assets/skills/${skillDir(SKILL.LIBREOFFICE)}/SKILL.md`,
+  },
+  {
     skillName: SKILL.IMAGE,
     commandName: COMMAND.IMAGE,
-    description: '将本地图片转换为 Markdown 描述，支持 JPG/PNG/GIF/WebP/BMP。通过 ae-image 工具实现，支持 outputMode 和 prompt 参数控制输出方式和识别重点。',
+    description: '当当前模型不支持图像处理且需要读取或理解图片内容时，必须使用本技能将图片转为 Markdown 描述。支持 JPG/PNG/GIF/WebP/BMP 格式，支持 outputMode 和 prompt 参数控制输出方式和识别重点。模型支持 vision 时可直接用 Read 工具读取图片；模型不支持 vision 时禁止尝试直接读取图片文件，必须通过本技能转换。',
     argumentHint: 'file=图片路径 [format=jpg|png|gif|webp|bmp] [outputMode=file|inline] [prompt=识别提示词] [outputPath=路径]',
     skillFile: `src/assets/skills/${skillDir(SKILL.IMAGE)}/SKILL.md`,
   },

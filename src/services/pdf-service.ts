@@ -128,6 +128,7 @@ export type PdfOperation =
   | 'add-pages'
   | 'update-page'
   | 'to-markdown'
+  | 'to-image'
 
 export interface PdfInput {
   operation: PdfOperation
@@ -152,6 +153,8 @@ export interface PdfInput {
   /** 自定义 CJK 字体文件路径，用于覆盖默认系统字体搜索 */
   cjkFontPath?: string
   outputMode?: 'file' | 'inline'
+  /** to-image 操作：指定页码列表（1-based），省略则转换所有页 */
+  imagePages?: number[]
 }
 
 export interface PdfResult {
@@ -818,16 +821,45 @@ export async function processPdf(input: PdfInput): Promise<PdfResult> {
       return handleUpdatePage(input)
     case 'to-markdown':
       return handleToMarkdown(input)
+    case 'to-image':
+      return handleToImage(input)
   }
 }
 
 import { convertPdfToMarkdown } from './pdf-markdown-converter.js'
 import { loadDocumentFile } from './document-file-loader.js'
 import { writeMarkdownOutput } from './markdown-output-writer.js'
+import { pdfToImages } from './pdf-to-image-service.js'
+import { join } from 'node:path'
 
 async function handleToMarkdown(input: PdfInput): Promise<PdfResult> {
   if (!input.file) throw new Error('to-markdown 操作需要 file 参数')
   const { buffer } = await loadDocumentFile(input.file, input.worktree, 'PDF')
   const result = await convertPdfToMarkdown(buffer)
   return writeMarkdownOutput(result.markdown, input.worktree, 'pdf', input.outputPath, input.outputMode)
+}
+
+async function handleToImage(input: PdfInput): Promise<PdfResult> {
+  if (!input.file) throw new Error('to-image 操作需要 file 参数')
+  const filePath = join(input.worktree, input.file)
+  const outputDir = join(input.worktree, 'ae', 'documents', 'pdf')
+  const images = await pdfToImages({
+    filePath,
+    outputDir,
+    pageIndices: input.imagePages,
+    scale: 2.0,
+  })
+  if (images.length === 0) {
+    return { summary: 'PDF 转图片失败：未生成任何图片文件', content: '' }
+  }
+  const imageList = images.map(p => {
+    const match = p.match(/page_(\d+)\.png$/)
+    const pageNum = match ? parseInt(match[1]) : 0
+    return `第 ${pageNum} 页: ${p}`
+  }).join('\n')
+  return {
+    summary: `PDF 转图片完成，生成 ${images.length} 张页面图片`,
+    content: imageList,
+    outputPath: outputDir,
+  }
 }

@@ -23,6 +23,7 @@ export const SKILL = {
   SLIDES_OUTLINE: 'ae:slides-outline',
   SLIDES_FORGE: 'ae:slides-forge',
   PPTX_FROM_OUTLINE: 'ae:pptx-from-outline',
+  LIBREOFFICE: 'ae:libreoffice',
 
   IMAGE: 'ae:image',
   GRAPH_BUILD: 'ae:graph-build',
@@ -119,6 +120,7 @@ export const TOOL = {
   AE_REVIEW_PROOF: 'ae-review-proof',
   AE_SWAGGER_PARSER: 'ae-swagger-parser',
   AE_HTML_BUNDLE: 'ae-html-bundle',
+  AE_LIBREOFFICE: 'ae-libreoffice',
 
   AE_IMAGE: 'ae-image',
   AE_GRAPH_BUILD: 'ae-graph-build',
@@ -165,6 +167,7 @@ export const AeSkillNameSchema = z
     SKILL.SLIDES_FORGE,
     SKILL.PPTX_FROM_OUTLINE,
     SKILL.HTML_BUNDLE,
+    SKILL.LIBREOFFICE,
     SKILL.IMAGE,
     SKILL.GRAPH_BUILD,
     SKILL.GRAPH_QUERY,

@@ -1,7 +1,7 @@
 ---
 name: ae:docx
-description: "所有涉及 .docx 文件的读取、创建、编辑、分析和格式转换操作都必须使用本技能。包括：创建文档、编辑文本替换、分析段落和表格结构、修订追踪、追加内容块、更新单个块、将 DOCX 转为 Markdown 阅读。支持 11 种内容块、富文本运行、表格样式、节属性和文档元数据。禁止使用 Read 或 Bash 直接读取 .docx 文件内容，必须通过本技能的 to-markdown 或 analyze 操作。"
-argument-hint: "[创建|编辑|分析|修订|追加|更新块] [文件路径] [任务描述]"
+description: "所有涉及 .docx 文件的读取、创建、编辑、分析、格式转换和视觉验证操作都必须使用本技能。包括：创建文档、编辑文本替换、分析段落和表格结构、修订追踪、追加内容块、更新单个块、将 DOCX 转为 Markdown 阅读、将 DOCX 转为图片进行视觉验证。禁止使用 Read 或 Bash 直接读取 .docx 文件内容，必须通过本技能的 to-markdown 或 analyze 操作。创建或修改 DOCX 后必须通过 to-image 操作进行视觉验证。"
+argument-hint: "[创建|编辑|分析|修订|追加|更新块|视觉验证] [文件路径] [任务描述]"
 ---
 
 # ae:docx — Word 文档处理
@@ -17,12 +17,20 @@ argument-hint: "[创建|编辑|分析|修订|追加|更新块] [文件路径] [�
 | 场景 | 用本技能 to-markdown | 用本技能其他操作 |
 |------|---------------------|-----------------|
 | 只读理解文档内容 | ✅ 转 Markdown 供 LLM 阅读 | ❌ |
+| 只读理解文档视觉内容 | ❌ | ✅ to-image 转 PNG + ae:image 识别 |
 | 创建新文档 | ❌ | ✅ 输出 .docx |
 | 编辑现有文档 | ❌ | ✅ 输出 .docx |
 | 修订追踪（tracked changes） | ❌ | ✅ 输出 .docx |
 | 提取纯文本 | ✅ 优先用 to-markdown | 仅需结构化分析时用 analyze |
 
-**原则：只需读取内容时用 `to-markdown` 操作；需要创建或修改 .docx 文件时用其他操作。**
+**原则：只需读取内容时用 `to-markdown` 操作；需要创建或修改 .docx 文件时用其他操作。创建或修改后必须用 `to-image` 视觉验证。需要理解文档视觉内容但模型不支持 vision 时，走"to-image → ae:image"路径。**
+
+## 读取内容的两种路径
+
+- **文本提取**：`to-markdown` 将 DOCX 转为 Markdown，适合提取文字内容、标题层级和表格结构
+- **视觉理解**：`to-image` 将 DOCX 转为 PNG 图片，再用 `ae:image` 技能识别图片内容，适合理解排版、样式、表格布局和整体视觉效果
+
+当模型不支持 vision 时，必须走"to-image → ae:image"路径来理解文档视觉内容，禁止尝试直接读取 .docx 文件。
 
 ## 核心工作流：两阶段预览确认
 
@@ -299,6 +307,41 @@ argument-hint: "[创建|编辑|分析|修订|追加|更新块] [文件路径] [�
 ## 输出路径
 
 生成文件自动写入 `ae/documents/docx/` 子目录，文件名规则：`<名称>-<操作>-<时间戳>-<随机串>.docx`。如需自定义路径，传入 `outputPath` 参数。
+
+## 视觉验证（硬约束）
+
+**创建或修改 DOCX 后必须进行视觉验证。** 这是不可跳过的交付步骤。
+
+### 流程
+
+1. 先通过 `ae:libreoffice` 技能确认 LibreOffice 就绪（check 操作）
+2. 调用 `ae-docx` 工具 `operation=to-image`，传入刚生成/修改的 DOCX 文件路径
+3. 检查输出的 PNG 图片，确认页面内容、排版、样式符合预期
+4. 发现问题时使用 edit/update-block 修正，修正后再次 to-image 验证
+
+### to-image 操作
+
+参数：
+- `operation`：`to-image`
+- `file`：DOCX 文件路径（必填）
+- `pages`：指定页码列表（1-based），如 `[1, 3]` 只验证第1、3页；省略则转换所有页
+
+输出：每页对应一张 PNG 图片，写入 `ae/documents/docx/` 目录。
+
+DOCX 的 to-image 路径为：DOCX → PDF（LibreOffice soffice --convert-to pdf）→ PNG（pdfjs-dist + @napi-rs/canvas），需要 LibreOffice。
+
+### 何时必须验证
+
+- create 创建新文档后
+- edit 编辑文档后
+- track-changes 修订追踪后
+- append-blocks 追加内容后
+- update-block 更新内容块后
+
+### 何时可不验证
+
+- analyze（只读分析）
+- to-markdown（只读读取）
 
 ## 边界
 

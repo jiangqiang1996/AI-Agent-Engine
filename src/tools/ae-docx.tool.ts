@@ -223,6 +223,8 @@ export const aeDocxTool = tool({
     '- 需要以修订标记方式记录文档变更',
     '- 需要生成包含表格、图片、富文本的复杂文档',
     '- 需要向已有文档追加内容或修改单个内容块',
+    '- 创建或修改 DOCX 后需要视觉验证时，使用 to-image 操作（需要 LibreOffice）',
+    '- 需要理解 DOCX 视觉内容但模型不支持 vision 时，使用 to-image 转 PNG + ae:image 识别',
     '',
     '不适用场景：',
     '- 只需读取 DOCX 内容转为 Markdown 时，使用 to-markdown 操作',
@@ -230,12 +232,12 @@ export const aeDocxTool = tool({
   ].join('\n'),
   args: {
     operation: z
-      .enum(['create', 'edit', 'analyze', 'track-changes', 'append-blocks', 'update-block', 'to-markdown'])
+      .enum(['create', 'edit', 'analyze', 'track-changes', 'append-blocks', 'update-block', 'to-markdown', 'to-image'])
       .describe('操作类型'),
     file: z
       .string()
       .optional()
-      .describe('现有 DOCX 文件路径（edit/analyze/track-changes/append-blocks/update-block 操作必填）'),
+      .describe('现有 DOCX 文件路径（edit/analyze/track-changes/append-blocks/update-block/to-image 操作必填）'),
     title: z
       .string()
       .optional()
@@ -282,6 +284,10 @@ export const aeDocxTool = tool({
       .enum(['file', 'inline'])
       .optional()
       .describe('to-markdown 输出模式：file 写入文件（默认），inline 直接返回内容不写文件'),
+    pages: z
+      .array(z.number().int().min(1))
+      .optional()
+      .describe('to-image 操作：指定页码列表（1-based），如 [1,3] 只转换第1、3页；省略则转换所有页'),
   },
   execute: async (args, ctx) => {
     ctx.metadata({ title: `DOCX ${args.operation}`, metadata: { operation: args.operation } })
@@ -301,6 +307,7 @@ export const aeDocxTool = tool({
         block: args.block,
         outputPath: args.outputPath,
         outputMode: args.outputMode,
+        pages: args.pages,
       })
 
       return {

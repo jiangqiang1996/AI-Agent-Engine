@@ -1,7 +1,7 @@
 ---
 name: ae:pdf
-description: "所有涉及 .pdf 文件的读取、创建、编辑、合并、拆分和格式转换操作都必须使用本技能。包括：创建 PDF、合并或拆分 PDF、提取文本、填写表单、旋转/删除页面、添加水印、追加页面、局部更新、将 PDF 转为 Markdown 阅读。禁止使用 Read 或 Bash 直接读取 .pdf 文件内容，必须通过本技能的 to-markdown 或 extract-text 操作。"
-argument-hint: "[创建|合并|拆分|提取|表单|旋转|删除|水印|追加|更新] [文件路径] [任务描述]"
+description: "所有涉及 .pdf 文件的读取、创建、编辑、合并、拆分、格式转换和视觉验证操作都必须使用本技能。包括：创建 PDF、合并或拆分 PDF、提取文本、填写表单、旋转/删除页面、添加水印、追加页面、局部更新、将 PDF 转为 Markdown 阅读、将 PDF 转为图片进行视觉验证。禁止使用 Read 或 Bash 直接读取 .pdf 文件内容，必须通过本技能的 to-markdown 或 extract-text 操作。创建或修改 PDF 后必须通过 to-image 操作进行视觉验证。"
+argument-hint: "[创建|合并|拆分|提取|表单|旋转|删除|水印|追加|更新|视觉验证] [文件路径] [任务描述]"
 ---
 
 # ae:pdf — PDF 文档处理
@@ -17,6 +17,7 @@ argument-hint: "[创建|合并|拆分|提取|表单|旋转|删除|水印|追加|
 | 场景 | 用本技能 to-markdown | 用本技能其他操作 |
 |------|---------------------|-----------------|
 | 只读提取文本供 LLM 阅读 | ✅ 优先用 to-markdown | ❌ |
+| 只读理解 PDF 视觉内容 | ❌ | ✅ to-image 转 PNG + ae:image 识别 |
 | 创建新 PDF | ❌ | ✅ |
 | 合并/拆分 PDF | ❌ | ✅ |
 | 填写 PDF 表单 | ❌ | ✅ |
@@ -26,7 +27,14 @@ argument-hint: "[创建|合并|拆分|提取|表单|旋转|删除|水印|追加|
 | 在已有页面上叠加元素 | ❌ | ✅ |
 | 提取纯文本 | ✅ 优先用 to-markdown | 需配合其他操作时用 extract-text |
 
-**原则：只需读取文本时用 `to-markdown` 操作；需要创建或操作 PDF 文件时用其他操作。**
+**原则：只需读取文本时用 `to-markdown` 操作；需要创建或操作 PDF 文件时用其他操作。创建或修改后必须用 `to-image` 视觉验证。需要理解 PDF 视觉内容但模型不支持 vision 时，走"to-image → ae:image"路径。**
+
+## 读取内容的两种路径
+
+- **文本提取**：`to-markdown` 或 `extract-text` 将 PDF 转为 Markdown/纯文本，适合提取文字内容
+- **视觉理解**：`to-image` 将 PDF 转为 PNG 图片，再用 `ae:image` 技能识别图片内容，适合理解排版、图表、表单布局和整体视觉效果
+
+当模型不支持 vision 时，必须走"to-image → ae:image"路径来理解 PDF 视觉内容，禁止尝试直接读取 .pdf 文件。
 
 ## ⚠ 参数防坑规则（硬约束）
 
@@ -241,6 +249,42 @@ CJK 字体（通过嵌入系统 TTF/OTF 实现）：NotoSansSC（思源黑体常
 ## 输出路径
 
 生成文件自动写入 `ae/documents/pdf/` 子目录，文件名规则：`<名称>-<操作>-<时间戳>-<随机串>.pdf`。如需自定义路径，传入 `outputPath` 参数。
+
+## 视觉验证（硬约束）
+
+**创建或修改 PDF 后必须进行视觉验证。** 这是不可跳过的交付步骤。
+
+### 流程
+
+1. 调用 `ae-pdf` 工具 `operation=to-image`，传入刚生成/修改的 PDF 文件路径
+2. 检查输出的 PNG 图片，确认页面内容、布局、样式符合预期
+3. 发现问题时使用 edit/update-page 修正，修正后再次 to-image 验证
+
+### to-image 操作
+
+参数：
+- `operation`：`to-image`
+- `file`：PDF 文件路径（必填）
+- `imagePages`：指定页码列表（1-based），如 `[1, 3, 5]` 只验证第1、3、5页；省略则转换所有页
+
+输出：每页对应一张 PNG 图片，写入 `ae/documents/pdf/` 目录。
+
+PDF 的 to-image 操作基于 pdfjs-dist + @napi-rs/canvas 实现，无需 LibreOffice。
+
+### 何时必须验证
+
+- create 创建新 PDF 后
+- add-pages 追加页面后
+- update-page 更新页面后
+- fill-form 填写表单后
+- add-watermark 添加水印后
+- merge 合并 PDF 后
+
+### 何时可不验证
+
+- extract-text（只读提取）
+- to-markdown（只读读取）
+- rotate-pages / delete-pages（简单操作，如需确认可验证）
 
 ## 边界
 

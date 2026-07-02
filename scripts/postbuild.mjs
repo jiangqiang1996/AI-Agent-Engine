@@ -17,6 +17,13 @@ export async function bundlePluginEntry(entryPath, dependencyRoot = repoRoot) {
     platform: 'node',
     target: 'node22',
     nodePaths: [join(dependencyRoot, 'node_modules')],
+    external: [
+      '@napi-rs/canvas',
+      '@napi-rs/canvas-win32-x64-msvc',
+      '@napi-rs/canvas-darwin-x64',
+      '@napi-rs/canvas-darwin-arm64',
+      '@napi-rs/canvas-linux-x64-gnu',
+    ],
   })
   await rm(`${entryPath}.map`, { force: true })
   await rm(entryPath, { force: true })

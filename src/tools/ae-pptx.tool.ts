@@ -2,6 +2,7 @@ import { tool } from '@opencode-ai/plugin'
 import { z } from 'zod'
 
 import { TOOL } from '../schemas/ae-asset-schema.js'
+import { detectLibreOffice, convertToImages } from '../services/libreoffice-service.js'
 import { processPptx } from '../services/pptx-service.js'
 import { formatDocumentToolError } from '../utils/document-tool-errors.js'
 
@@ -358,6 +359,8 @@ export const aePptxTool = tool({
     '- 用户明确要求创建、编辑或分析 PPTX 文件',
     '- 需要富文本、图片、形状、表格、图表、媒体、母版、章节等高级功能',
     '- 需要向已有 PPTX 追加幻灯片或更新单张幻灯片',
+    '- 创建或修改 PPTX 后需要视觉验证时，使用 to-image 操作（需要 LibreOffice）',
+    '- 需要理解 PPTX 视觉内容但模型不支持 vision 时，使用 to-image 转 PNG + ae:image 识别',
     '',
     '不适用场景：',
     '- 只需读取 PPTX 内容转为 Markdown 时，使用 to-markdown 操作',
@@ -365,12 +368,12 @@ export const aePptxTool = tool({
   ].join('\n'),
   args: {
     operation: z
-      .enum(['create', 'edit', 'analyze', 'append-slides', 'update-slide', 'to-markdown'])
+      .enum(['create', 'edit', 'analyze', 'append-slides', 'update-slide', 'to-markdown', 'to-image'])
       .describe('操作类型'),
     file: z
       .string()
       .optional()
-      .describe('现有 PPTX 文件路径（edit/analyze/append-slides/update-slide 操作必填）'),
+      .describe('现有 PPTX 文件路径（edit/analyze/append-slides/update-slide/to-image 操作必填）'),
     title: z
       .string()
       .optional()
@@ -422,6 +425,10 @@ export const aePptxTool = tool({
       .enum(['file', 'inline'])
       .optional()
       .describe('to-markdown 输出模式：file 写入文件（默认），inline 直接返回内容不写文件'),
+    pages: z
+      .array(z.number().int().min(1))
+      .optional()
+      .describe('to-image 操作：指定幻灯片页码列表（1-based），如 [1,3,5] 只转换第1、3、5张幻灯片；省略则转换所有幻灯片'),
   },
   execute: async (args, ctx) => {
     ctx.metadata({ title: `PPTX ${args.operation}`, metadata: { operation: args.operation } })
@@ -443,6 +450,7 @@ export const aePptxTool = tool({
         elements: args.elements,
         outputPath: args.outputPath,
         outputMode: args.outputMode,
+        pages: args.pages,
       })
 
       return {

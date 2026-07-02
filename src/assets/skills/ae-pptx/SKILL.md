@@ -1,7 +1,7 @@
 ---
 name: ae:pptx
-description: "所有涉及 .pptx 文件的读取、创建、编辑、分析和格式转换操作都必须使用本技能。包括：创建演示文稿、编辑现有 PPTX、分析幻灯片结构、追加幻灯片、更新单张幻灯片、将 PPTX 转为 Markdown 阅读。禁止使用 Read 或 Bash 直接读取 .pptx 文件内容，必须通过本技能的 to-markdown 或 analyze 操作。"
-argument-hint: "[创建|编辑|分析|追加|更新] [文件路径] [任务描述]"
+description: "所有涉及 .pptx 文件的读取、创建、编辑、分析、格式转换和视觉验证操作都必须使用本技能。包括：创建演示文稿、编辑现有 PPTX、分析幻灯片结构、追加幻灯片、更新单张幻灯片、将 PPTX 转为 Markdown 阅读、将 PPTX 转为图片进行视觉验证。禁止使用 Read 或 bash 直接读取 .pptx 文件内容，必须通过本技能的 to-markdown 或 analyze 操作。创建或修改 PPTX 后必须通过 to-image 操作进行视觉验证。"
+argument-hint: "[创建|编辑|分析|追加|更新|视觉验证] [文件路径] [任务描述]"
 ---
 
 # ae:pptx — PowerPoint 演示文稿处理
@@ -17,13 +17,22 @@ argument-hint: "[创建|编辑|分析|追加|更新] [文件路径] [任务描�
 | 场景 | 用本技能 to-markdown | 用本技能其他操作 |
 |------|---------------------|-----------------|
 | 只读提取幻灯片文本 | 优先用 to-markdown | 不适用 |
+| 只读理解幻灯片视觉内容 | 不适用 | to-image 转 PNG + ae:image 识别 |
 | 创建新演示文稿 | 不适用 | 输出 .pptx |
 | 编辑现有演示文稿 | 不适用 | 输出 .pptx |
 | 分析幻灯片结构 | 不适用 | 返回文本和结构信息 |
 | 追加新幻灯片 | 不适用 | append-slides 输出 .pptx |
 | 更新单张幻灯片 | 不适用 | update-slide 输出 .pptx |
+| 视觉验证 | 不适用 | to-image 输出 PNG 图片 |
 
-**原则：只需读取内容时用 `to-markdown` 操作；需要创建或修改 .pptx 文件时用其他操作。**
+**原则：只需读取内容时用 `to-markdown` 操作；需要创建或修改 .pptx 文件时用其他操作。创建或修改后必须用 `to-image` 视觉验证。**
+
+## 读取内容的两种路径
+
+- **文本提取**：`to-markdown` 将 PPTX 转为 Markdown，适合提取文字内容、标题层级和表格结构
+- **视觉理解**：`to-image` 将 PPTX 转为 PNG 图片，再用 `ae:image` 技能识别图片内容，适合理解布局、样式、图表和整体视觉效果
+
+当模型不支持 vision 时，必须走"to-image → ae:image"路径来理解文档视觉内容，禁止尝试直接读取 .pptx 文件。
 
 ## 核心工作流：两阶段预览确认
 
@@ -254,6 +263,39 @@ argument-hint: "[创建|编辑|分析|追加|更新] [文件路径] [任务描�
 ## 输出路径
 
 生成文件自动写入 `ae/documents/pptx/` 子目录，文件名规则：`<名称>-<操作>-<时间戳>-<随机串>.pptx`。如需自定义路径，传入 `outputPath` 参数。
+
+## 视觉验证（硬约束）
+
+**创建或修改 PPTX 后必须进行视觉验证。** 这是不可跳过的交付步骤。
+
+### 流程
+
+1. 先通过 `ae:libreoffice` 技能确认 LibreOffice 就绪（check 操作）
+2. 调用 `ae-pptx` 工具 `operation=to-image`，传入刚生成/修改的 PPTX 文件路径
+3. 检查输出的 PNG 图片，确认幻灯片内容、布局、样式符合预期
+4. 发现问题时使用 edit/update-slide 修正，修正后再次 to-image 验证
+
+### to-image 操作
+
+参数：
+- `operation`：`to-image`
+- `file`：PPTX 文件路径（必填）
+- `pages`：指定幻灯片页码列表（1-based），如 `[1, 3, 5]` 只验证第1、3、5张幻灯片；省略则转换所有幻灯片
+
+输出：每张幻灯片对应一张 PNG 图片，写入 `ae/documents/pptx/` 目录。
+
+### 何时必须验证
+
+- create 创建新演示文稿后
+- edit 编辑现有演示文稿后
+- append-slides 追加幻灯片后
+- update-slide 更新单张幻灯片后
+
+### 何时可不验证
+
+- analyze（只读分析）
+- to-markdown（只读读取）
+- 未对文件做任何修改的纯查看场景
 
 ## 边界
 

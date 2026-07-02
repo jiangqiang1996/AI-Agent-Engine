@@ -142,6 +142,8 @@ export const aePdfTool = tool({
     '',
     '适用场景：',
     '- 用户明确要求创建、合并、拆分、提取文本、填写表单、旋转、删除页面、添加水印、追加页面或局部更新',
+    '- 创建或修改 PDF 后需要视觉验证时，使用 to-image 操作（无需 LibreOffice，基于 pdfjs-dist）',
+    '- 需要理解 PDF 视觉内容但模型不支持 vision 时，使用 to-image 转 PNG + ae:image 识别',
     '',
     '不适用场景：',
     '- 只需读取 PDF 内容转为 Markdown 时，使用 to-markdown 操作',
@@ -162,12 +164,13 @@ export const aePdfTool = tool({
         'add-pages',
         'update-page',
         'to-markdown',
+        'to-image',
       ])
       .describe('操作类型'),
     file: z
       .string()
       .optional()
-      .describe('现有 PDF 文件路径（add-pages/update-page/split/extract-text/fill-form/rotate-pages/delete-pages/add-watermark 操作必填）'),
+      .describe('现有 PDF 文件路径（add-pages/update-page/split/extract-text/fill-form/rotate-pages/delete-pages/add-watermark/to-image 操作必填）'),
     files: z
       .array(z.string())
       .optional()
@@ -224,6 +227,10 @@ export const aePdfTool = tool({
       .enum(['file', 'inline'])
       .optional()
       .describe('to-markdown 输出模式：file 写入文件（默认），inline 直接返回内容不写文件'),
+    imagePages: z
+      .array(z.number().int().min(1))
+      .optional()
+      .describe('to-image 操作：指定页码列表（1-based），如 [1,3,5] 只转换第1、3、5页；省略则转换所有页'),
   },
   execute: async (args, ctx) => {
     ctx.metadata({ title: `PDF ${args.operation}`, metadata: { operation: args.operation } })
@@ -246,6 +253,7 @@ export const aePdfTool = tool({
         outputPath: args.outputPath,
         cjkFontPath: args.cjkFontPath,
         outputMode: args.outputMode,
+        imagePages: args.imagePages,
       })
 
       return {

@@ -45,7 +45,7 @@ interface PptxSlideInstance {
 const SLIDE_XML_PATTERN = /^ppt\/slides\/slide\d+\.xml$/
 const SLIDE_TEXT_REGEX = /<a:t[^>]*>([^<]*)<\/a:t>/g
 
-export type PptxOperation = 'create' | 'edit' | 'analyze' | 'append-slides' | 'update-slide' | 'to-markdown'
+export type PptxOperation = 'create' | 'edit' | 'analyze' | 'append-slides' | 'update-slide' | 'to-markdown' | 'to-image'
 
 // ==================== 文本运行类型 ====================
 
@@ -300,6 +300,8 @@ export interface PptxInput {
   elements?: PptxInputElement[]
   outputPath?: string
   outputMode?: 'file' | 'inline'
+  /** to-image 操作：指定幻灯片页码列表（1-based），省略则转换所有幻灯片 */
+  pages?: number[]
 }
 
 export interface PptxResult {
@@ -1184,16 +1186,46 @@ export async function processPptx(input: PptxInput): Promise<PptxResult> {
       return handleUpdateSlide(input)
     case 'to-markdown':
       return handleToMarkdown(input)
+    case 'to-image':
+      return handleToImage(input)
   }
 }
 
 import { convertPptxToMarkdown } from './pptx-markdown-converter.js'
 import { loadDocumentFile } from './document-file-loader.js'
 import { writeMarkdownOutput } from './markdown-output-writer.js'
+import { detectLibreOffice, convertToImages } from './libreoffice-service.js'
+import { join } from 'node:path'
 
 async function handleToMarkdown(input: PptxInput): Promise<PptxResult> {
   if (!input.file) throw new Error('to-markdown 操作需要 file 参数')
   const { buffer } = await loadDocumentFile(input.file, input.worktree, 'PPTX')
   const result = await convertPptxToMarkdown(buffer)
   return writeMarkdownOutput(result.markdown, input.worktree, 'pptx', input.outputPath, input.outputMode)
+}
+
+async function handleToImage(input: PptxInput): Promise<PptxResult> {
+  if (!input.file) throw new Error('to-image 操作需要 file 参数')
+  const detection = detectLibreOffice()
+  if (!detection.available || !detection.sofficePath) {
+    throw new Error('LibreOffice 不可用。请先通过 ae:libreoffice 技能安装或下载 LibreOffice，再进行视觉验证。')
+  }
+  const filePath = join(input.worktree, input.file)
+  const outputDir = join(input.worktree, 'ae', 'documents', 'pptx')
+  const allImages = await convertToImages(filePath, outputDir, detection.sofficePath)
+  if (allImages.length === 0) {
+    return { summary: 'PPTX 转图片失败：未生成任何图片文件', content: '' }
+  }
+  const images = input.pages
+    ? allImages.filter((_, i) => input.pages!.includes(i + 1))
+    : allImages
+  const imageList = images.map(p => {
+    const idx = allImages.indexOf(p) + 1
+    return `幻灯片 ${idx}: ${p}`
+  }).join('\n')
+  return {
+    summary: `PPTX 转图片完成，生成 ${images.length} 张幻灯片图片`,
+    content: imageList,
+    outputPath: outputDir,
+  }
 }
