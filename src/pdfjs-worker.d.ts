@@ -1,3 +1,4 @@
 declare module 'pdfjs-dist/legacy/build/pdf.worker.mjs' {
-  export const WorkerMessageHandler: unknown
+  const workerSrc: string
+  export default workerSrc
 }

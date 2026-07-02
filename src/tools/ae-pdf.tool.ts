@@ -115,6 +115,7 @@ export const aePdfTool = tool({
     '- add-watermark：为所有页面添加文本水印（可配置字号、颜色、不透明度、旋转）',
     '- add-pages：向已有 PDF 追加新页面，页面结构与 create 的 pages 相同',
     '- update-page：在已有 PDF 的指定页面上叠加绘制新元素（文本/矩形/椭圆/直线/图片）',
+    '- to-markdown：将 PDF 内容完整转换为 Markdown，自动识别表格和表单结构',
     '',
     'CJK 字体支持：',
     '- 支持 NotoSansSC、NotoSansSCBold、SimHei、MSYH、MSYHBD 五种 CJK 字体',
@@ -143,7 +144,7 @@ export const aePdfTool = tool({
     '- 用户明确要求创建、合并、拆分、提取文本、填写表单、旋转、删除页面、添加水印、追加页面或局部更新',
     '',
     '不适用场景：',
-    '- 只需读取 PDF 内容转为 Markdown 时，使用 ae:markitdown',
+    '- 只需读取 PDF 内容转为 Markdown 时，使用 to-markdown 操作',
     '- 不支持远程 URL，仅处理当前工作区内本地文件',
     '- 不支持加密 PDF',
   ].join('\n'),
@@ -160,6 +161,7 @@ export const aePdfTool = tool({
         'add-watermark',
         'add-pages',
         'update-page',
+        'to-markdown',
       ])
       .describe('操作类型'),
     file: z
@@ -213,11 +215,15 @@ export const aePdfTool = tool({
     outputPath: z
       .string()
       .optional()
-      .describe('自定义输出路径；省略时自动生成到 ae/documents/pdf/'),
+      .describe('自定义输出路径；to-markdown 的 outputMode=file 时写入此路径或 ae/markdown/，其余操作写入 ae/documents/pdf/'),
     cjkFontPath: z
       .string()
       .optional()
       .describe('自定义 CJK 字体文件路径（.ttf 或 .otf），用于覆盖默认系统字体搜索；仅对 CJK 字体和含 CJK 字符的文本生效'),
+    outputMode: z
+      .enum(['file', 'inline'])
+      .optional()
+      .describe('to-markdown 输出模式：file 写入文件（默认），inline 直接返回内容不写文件'),
   },
   execute: async (args, ctx) => {
     ctx.metadata({ title: `PDF ${args.operation}`, metadata: { operation: args.operation } })
@@ -239,6 +245,7 @@ export const aePdfTool = tool({
         watermark: args.watermark,
         outputPath: args.outputPath,
         cjkFontPath: args.cjkFontPath,
+        outputMode: args.outputMode,
       })
 
       return {

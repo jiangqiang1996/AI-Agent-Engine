@@ -56,7 +56,7 @@ export function resolveModelScenario(
  * 命中时返回模型字符串（如 "anthropic/claude-3-5-sonnet"）；
  * 未配置或 context 缺失时返回 undefined，由调用方继承 opencode 当前默认模型。
  *
- * 适用于运行时按场景取模型（如 markitdown 工具按 vision 场景取模型识别图片）。
+ * 适用于运行时按场景取模型（如 ae:image 工具按 vision 场景取模型识别图片）。
  */
 export function getModelByScenario(
   context: ModelScenarioRoutingContext | undefined,

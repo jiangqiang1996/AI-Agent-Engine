@@ -311,7 +311,7 @@ describe('资产健康巡检', () => {
       COMMAND.SWAGGER_PARSER,
       COMMAND.HTML_BUNDLE,
       COMMAND.HTML_TO_PPTX,
-      COMMAND.MARKITDOWN,
+      COMMAND.IMAGE,
       COMMAND.DOCX,
       COMMAND.PDF,
       COMMAND.PPTX,

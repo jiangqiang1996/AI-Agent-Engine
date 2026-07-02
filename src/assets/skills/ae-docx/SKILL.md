@@ -8,17 +8,21 @@ argument-hint: "[创建|编辑|分析|修订|追加|更新块] [文件路径] [�
 
 创建、编辑、分析 `.docx` 文件。通过内置 `ae-docx` 工具实现，无需安装额外依赖。
 
-## 与 ae:markitdown 的边界
+## to-markdown 操作
 
-| 场景 | 用 ae:markitdown | 用 ae:docx |
-|------|------------------|------------|
+本技能的 `to-markdown` 操作可将 DOCX 转为 Markdown 供 LLM 阅读。支持 `outputMode` 参数控制输出方式：
+- `file`（默认）：写入 `ae/markdown/` 目录
+- `inline`：直接返回 Markdown 内容，不写文件
+
+| 场景 | 用本技能 to-markdown | 用本技能其他操作 |
+|------|---------------------|-----------------|
 | 只读理解文档内容 | ✅ 转 Markdown 供 LLM 阅读 | ❌ |
 | 创建新文档 | ❌ | ✅ 输出 .docx |
 | 编辑现有文档 | ❌ | ✅ 输出 .docx |
 | 修订追踪（tracked changes） | ❌ | ✅ 输出 .docx |
-| 提取纯文本 | ✅ 优先用 markitdown | 仅需结构化分析时用本技能 |
+| 提取纯文本 | ✅ 优先用 to-markdown | 仅需结构化分析时用 analyze |
 
-**原则：只需读取内容时用 `ae:markitdown`；需要创建或修改 .docx 文件时用本技能。**
+**原则：只需读取内容时用 `to-markdown` 操作；需要创建或修改 .docx 文件时用其他操作。**
 
 ## 核心工作流：两阶段预览确认
 

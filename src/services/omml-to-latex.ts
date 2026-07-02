@@ -1,4 +1,4 @@
-import { parseXml, type SimpleXmlNode } from '../xml-parser.js'
+import { parseXml, type SimpleXmlNode } from './xml-parser.js'
 
 /**
  * OMML (Office Math Markup Language) 转 LaTeX

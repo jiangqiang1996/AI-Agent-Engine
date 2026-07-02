@@ -2,7 +2,12 @@ import { getGlobalClient } from './client-holder.js'
 import { getModelScenarioRoutingContext } from './model-scenario-holder.js'
 import { getModelByScenario } from './model-scenario-routing-service.js'
 import { MODEL_SCENARIO } from '../schemas/model-scenario-schema.js'
-import { MarkitdownError } from './markitdown-errors.js'
+class VisionError extends Error {
+  constructor(public code: string, message: string) {
+    super(message)
+    this.name = 'VisionError'
+  }
+}
 
 const VISION_PROMPT = '请识别这张图片的内容，用结构化的 Markdown 描述。包括：图片类型、主要视觉元素、文字内容（如有）、布局结构。直接输出 Markdown，不要包装在代码块中。'
 
@@ -30,7 +35,15 @@ function buildImageDataUrl(buffer: Buffer, mime: string): string {
 /**
  * 从图片文件路径推断 MIME 类型。
  */
-function inferImageMime(filePath: string): string {
+function inferImageMime(filePath: string, format?: string): string {
+  if (format) {
+    const fmt = format.toLowerCase()
+    if (fmt === 'png') return 'image/png'
+    if (fmt === 'jpg' || fmt === 'jpeg') return 'image/jpeg'
+    if (fmt === 'gif') return 'image/gif'
+    if (fmt === 'webp') return 'image/webp'
+    if (fmt === 'bmp') return 'image/bmp'
+  }
   const lower = filePath.toLowerCase()
   if (lower.endsWith('.png')) return 'image/png'
   if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg'
@@ -54,6 +67,8 @@ function extractTextFromParts(parts: Array<{ type: string; text?: string }>): st
 export interface VisionRecognitionOptions {
   filePath: string
   imageBuffer: Buffer
+  prompt?: string
+  format?: string
 }
 
 export interface VisionRecognitionResult {
@@ -75,7 +90,7 @@ export async function recognizeImageWithVision(
 ): Promise<VisionRecognitionResult> {
   const client = getGlobalClient()
   if (!client) {
-    throw new MarkitdownError(
+    throw new VisionError(
       'image_vision_unavailable',
       '图片识别不可用：opencode 客户端未初始化，无法调用 vision 模型。',
     )
@@ -85,16 +100,16 @@ export async function recognizeImageWithVision(
   const visionModel = getModelByScenario(routingContext, MODEL_SCENARIO.VISION)
   const modelRef = parseModelReference(visionModel)
 
-  const mime = inferImageMime(options.filePath)
+  const mime = inferImageMime(options.filePath, options.format)
   const imageUrl = buildImageDataUrl(options.imageBuffer, mime)
 
   let sessionId: string | undefined
   try {
     const createRes = await client.session.create({
-      body: { title: 'markitdown-vision-临时识别' },
+      body: { title: 'vision-临时识别' },
     })
     if (createRes.error || !createRes.data?.id) {
-      throw new MarkitdownError(
+      throw new VisionError(
         'image_vision_unavailable',
         `图片识别不可用：创建临时会话失败 - ${createRes.error?.data?.message ?? createRes.error?.name ?? '未知错误'}`,
       )
@@ -103,7 +118,7 @@ export async function recognizeImageWithVision(
 
     const promptBody: Record<string, unknown> = {
       parts: [
-        { type: 'text', text: VISION_PROMPT },
+        { type: 'text', text: options.prompt ?? VISION_PROMPT },
         { type: 'file', mime, url: imageUrl },
       ],
       system: VISION_PROMPT,
@@ -119,7 +134,7 @@ export async function recognizeImageWithVision(
     })
 
     if (promptRes.error) {
-      throw new MarkitdownError(
+      throw new VisionError(
         'image_vision_failed',
         `vision 模型识别失败 - ${promptRes.error.data?.message ?? promptRes.error.name ?? '未知错误'}`,
       )
@@ -128,8 +143,8 @@ export async function recognizeImageWithVision(
     const markdown = extractTextFromParts(promptRes.data?.parts ?? [])
     return { markdown, modelUsed: visionModel }
   } catch (error) {
-    if (error instanceof MarkitdownError) throw error
-    throw new MarkitdownError(
+    if (error instanceof VisionError) throw error
+    throw new VisionError(
       'image_vision_failed',
       `vision 模型调用异常：${error instanceof Error ? error.message : String(error)}`,
     )

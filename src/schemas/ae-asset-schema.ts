@@ -24,7 +24,7 @@ export const SKILL = {
   SLIDES_FORGE: 'ae:slides-forge',
   PPTX_FROM_OUTLINE: 'ae:pptx-from-outline',
   HTML_TO_PPTX: 'ae:html-to-pptx',
-  MARKITDOWN: 'ae:markitdown',
+  IMAGE: 'ae:image',
   GRAPH_BUILD: 'ae:graph-build',
   GRAPH_QUERY: 'ae:graph-query',
   SAVE_EXPERIENCE: 'ae:save-experience',
@@ -59,7 +59,7 @@ export const COMMAND = {
  *
  * 新增命令时在此处添加命令名即可。
  */
-export const FILE_PATH_COMMANDS = [COMMAND.MARKITDOWN] as const
+export const FILE_PATH_COMMANDS = [COMMAND.IMAGE] as const
 
 export const AGENT = {
   CORRECTNESS_REVIEWER: 'correctness-reviewer',
@@ -119,7 +119,7 @@ export const TOOL = {
   AE_SWAGGER_PARSER: 'ae-swagger-parser',
   AE_HTML_BUNDLE: 'ae-html-bundle',
   AE_HTML_TO_PPTX: 'ae-html-to-pptx',
-  AE_MARKITDOWN: 'ae-markitdown',
+  AE_IMAGE: 'ae-image',
   AE_GRAPH_BUILD: 'ae-graph-build',
   AE_GRAPH_QUERY: 'ae-graph-query',
   AE_TASK_ANALYZER: 'ae-task-analyzer',
@@ -165,7 +165,7 @@ export const AeSkillNameSchema = z
     SKILL.PPTX_FROM_OUTLINE,
     SKILL.HTML_BUNDLE,
     SKILL.HTML_TO_PPTX,
-    SKILL.MARKITDOWN,
+    SKILL.IMAGE,
     SKILL.GRAPH_BUILD,
     SKILL.GRAPH_QUERY,
     SKILL.SAVE_EXPERIENCE,

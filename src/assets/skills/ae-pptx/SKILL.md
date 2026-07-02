@@ -8,18 +8,22 @@ argument-hint: "[创建|编辑|分析|追加|更新] [文件路径] [任务描�
 
 创建、编辑、分析、追加、更新 `.pptx` 文件。通过内置 `ae-pptx` 工具实现，无需安装额外依赖。底层使用 pptxgenjs，全面覆盖其 API 能力。
 
-## 与 ae:markitdown 的边界
+## to-markdown 操作
 
-| 场景 | 用 ae:markitdown | 用 ae:pptx |
-|------|------------------|------------|
-| 只读提取幻灯片文本 | 优先用 markitdown | 不适用 |
+本技能的 `to-markdown` 操作可将 PPTX 转为 Markdown 供 LLM 阅读。支持 `outputMode` 参数控制输出方式：
+- `file`（默认）：写入 `ae/markdown/` 目录
+- `inline`：直接返回 Markdown 内容，不写文件
+
+| 场景 | 用本技能 to-markdown | 用本技能其他操作 |
+|------|---------------------|-----------------|
+| 只读提取幻灯片文本 | 优先用 to-markdown | 不适用 |
 | 创建新演示文稿 | 不适用 | 输出 .pptx |
 | 编辑现有演示文稿 | 不适用 | 输出 .pptx |
 | 分析幻灯片结构 | 不适用 | 返回文本和结构信息 |
 | 追加新幻灯片 | 不适用 | append-slides 输出 .pptx |
 | 更新单张幻灯片 | 不适用 | update-slide 输出 .pptx |
 
-**原则：只需读取内容时用 `ae:markitdown`；需要创建或修改 .pptx 文件时用本技能。**
+**原则：只需读取内容时用 `to-markdown` 操作；需要创建或修改 .pptx 文件时用其他操作。**
 
 ## 核心工作流：两阶段预览确认
 

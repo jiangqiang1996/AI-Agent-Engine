@@ -111,9 +111,3 @@ export function getElementsByTagName(node: SimpleXmlNode, tagName: string): Simp
   }
   return result
 }
-
-export function getNodeData(node: SimpleXmlNode, tagName: string): string | null {
-  const nodes = getElementsByTagName(node, tagName)
-  if (nodes.length === 0) return null
-  return nodes[0].data || null
-}

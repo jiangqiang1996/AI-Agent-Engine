@@ -1,15 +1,14 @@
-import { MAX_CSV_ROWS, MAX_TABLE_COLUMNS } from './constants.js'
+import { MAX_TABLE_ROWS, MAX_TABLE_COLUMNS } from './markdown-constants.js'
 
 /**
  * 将二维字符串数组转换为 Markdown 表格
  * - 限制最大行数和列数，防止超大表格
  * - 自动补齐短行到最大列数
- * - CSV 和 XLSX 共享此实现
  */
 export function rowsToMarkdownTable(rows: string[][]): string {
   if (rows.length === 0) return ''
 
-  const limitedRows = rows.slice(0, MAX_CSV_ROWS)
+  const limitedRows = rows.slice(0, MAX_TABLE_ROWS)
   const maxCols = Math.min(
     Math.max(...limitedRows.map((r) => r.length)),
     MAX_TABLE_COLUMNS,

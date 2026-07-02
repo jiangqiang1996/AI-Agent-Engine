@@ -107,13 +107,13 @@ describe('AE catalog 一致性', () => {
     expect(entry?.argumentHint).toBe(frontmatter['argument-hint'])
   })
 
-  it('ae:markitdown 应注册为本地文件转 Markdown 入口', () => {
-    const entry = getPhaseOneEntries().find((item) => item.skillName === SKILL.MARKITDOWN)
-    const frontmatter = readFrontmatter('src/assets/skills/ae-markitdown/SKILL.md')
+  it('ae:image 应注册为图片转 Markdown 入口', () => {
+    const entry = getPhaseOneEntries().find((item) => item.skillName === SKILL.IMAGE)
+    const frontmatter = readFrontmatter('src/assets/skills/ae-image/SKILL.md')
 
     expect(entry).toBeDefined()
-    expect(entry?.commandName).toBe('ae-markitdown')
-    expect(entry?.skillFile).toBe('src/assets/skills/ae-markitdown/SKILL.md')
+    expect(entry?.commandName).toBe('ae-image')
+    expect(entry?.skillFile).toBe('src/assets/skills/ae-image/SKILL.md')
     expect(entry?.description).toBe(frontmatter.description)
     expect(entry?.argumentHint).toBe(frontmatter['argument-hint'])
   })

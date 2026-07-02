@@ -100,7 +100,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | Swagger/OpenAPI 摘要 | `/ae-swagger-parser` |
 | HTML 单文件打包 | `/ae-html-bundle` |
 | HTML 转 PPTX | `/ae-html-to-pptx` |
-| 本地文件转 Markdown | `/ae-markitdown` |
+| 图片转 Markdown 描述 | `/ae-image` |
 | 创建或编辑 DOCX | `/ae-docx` |
 | 创建或编辑 PDF | `/ae-pdf` |
 | 创建或编辑 PPTX | `/ae-pptx` |

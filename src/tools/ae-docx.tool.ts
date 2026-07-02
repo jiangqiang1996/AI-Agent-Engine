@@ -192,6 +192,7 @@ export const aeDocxTool = tool({
     '- track-changes：添加 Word 修订标记（w:del/w:ins），便于审阅变更',
     '- append-blocks：向已有 DOCX 追加内容块（增量追加，保留原有内容）',
     '- update-block：更新已有 DOCX 中指定索引的内容块（局部替换，不影响其他块）',
+    '- to-markdown：将 DOCX 内容完整转换为 Markdown，支持 OMML 数学公式转 LaTeX',
     '',
     'create 操作支持的高级特性：',
     '- 富文本运行（runs）：同一段落内混合多种样式（粗体、斜体、颜色、字号等）',
@@ -224,12 +225,12 @@ export const aeDocxTool = tool({
     '- 需要向已有文档追加内容或修改单个内容块',
     '',
     '不适用场景：',
-    '- 只需读取 DOCX 内容转为 Markdown 时，使用 ae:markitdown',
+    '- 只需读取 DOCX 内容转为 Markdown 时，使用 to-markdown 操作',
     '- 不支持远程 URL，仅处理当前工作区内本地文件',
   ].join('\n'),
   args: {
     operation: z
-      .enum(['create', 'edit', 'analyze', 'track-changes', 'append-blocks', 'update-block'])
+      .enum(['create', 'edit', 'analyze', 'track-changes', 'append-blocks', 'update-block', 'to-markdown'])
       .describe('操作类型'),
     file: z
       .string()
@@ -276,7 +277,11 @@ export const aeDocxTool = tool({
     outputPath: z
       .string()
       .optional()
-      .describe('自定义输出路径；省略时自动生成到 ae/documents/docx/'),
+      .describe('自定义输出路径；to-markdown 的 outputMode=file 时写入此路径或 ae/markdown/，其余操作写入 ae/documents/docx/'),
+    outputMode: z
+      .enum(['file', 'inline'])
+      .optional()
+      .describe('to-markdown 输出模式：file 写入文件（默认），inline 直接返回内容不写文件'),
   },
   execute: async (args, ctx) => {
     ctx.metadata({ title: `DOCX ${args.operation}`, metadata: { operation: args.operation } })
@@ -295,6 +300,7 @@ export const aeDocxTool = tool({
         blockIndex: args.blockIndex,
         block: args.block,
         outputPath: args.outputPath,
+        outputMode: args.outputMode,
       })
 
       return {

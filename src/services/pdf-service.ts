@@ -127,6 +127,7 @@ export type PdfOperation =
   | 'add-watermark'
   | 'add-pages'
   | 'update-page'
+  | 'to-markdown'
 
 export interface PdfInput {
   operation: PdfOperation
@@ -150,6 +151,7 @@ export interface PdfInput {
   outputPath?: string
   /** 自定义 CJK 字体文件路径，用于覆盖默认系统字体搜索 */
   cjkFontPath?: string
+  outputMode?: 'file' | 'inline'
 }
 
 export interface PdfResult {
@@ -814,5 +816,18 @@ export async function processPdf(input: PdfInput): Promise<PdfResult> {
       return handleAddPages(input)
     case 'update-page':
       return handleUpdatePage(input)
+    case 'to-markdown':
+      return handleToMarkdown(input)
   }
+}
+
+import { convertPdfToMarkdown } from './pdf-markdown-converter.js'
+import { loadDocumentFile } from './document-file-loader.js'
+import { writeMarkdownOutput } from './markdown-output-writer.js'
+
+async function handleToMarkdown(input: PdfInput): Promise<PdfResult> {
+  if (!input.file) throw new Error('to-markdown 操作需要 file 参数')
+  const { buffer } = await loadDocumentFile(input.file, input.worktree, 'PDF')
+  const result = await convertPdfToMarkdown(buffer)
+  return writeMarkdownOutput(result.markdown, input.worktree, 'pdf', input.outputPath, input.outputMode)
 }

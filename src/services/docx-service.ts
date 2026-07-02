@@ -34,7 +34,7 @@ import {
 
 import { generateDocumentOutputPath } from '../utils/document-output-path.js'
 
-export type DocxOperation = 'create' | 'edit' | 'analyze' | 'track-changes' | 'append-blocks' | 'update-block'
+export type DocxOperation = 'create' | 'edit' | 'analyze' | 'track-changes' | 'append-blocks' | 'update-block' | 'to-markdown'
 
 function escapeXml(s: string): string {
   return s
@@ -188,6 +188,7 @@ export interface DocxInput {
   blockIndex?: number
   block?: DocxContentBlock
   outputPath?: string
+  outputMode?: 'file' | 'inline'
 }
 
 export interface DocxResult {
@@ -1145,5 +1146,18 @@ export async function processDocx(input: DocxInput): Promise<DocxResult> {
       return handleAppendBlocks(input)
     case 'update-block':
       return handleUpdateBlock(input)
+    case 'to-markdown':
+      return handleToMarkdown(input)
   }
+}
+
+import { convertDocxToMarkdown } from './docx-markdown-converter.js'
+import { loadDocumentFile } from './document-file-loader.js'
+import { writeMarkdownOutput } from './markdown-output-writer.js'
+
+async function handleToMarkdown(input: DocxInput): Promise<DocxResult> {
+  if (!input.file) throw new Error('to-markdown 操作需要 file 参数')
+  const { buffer } = await loadDocumentFile(input.file, input.worktree, 'DOCX')
+  const result = await convertDocxToMarkdown(buffer)
+  return writeMarkdownOutput(result.markdown, input.worktree, 'docx', input.outputPath, input.outputMode)
 }

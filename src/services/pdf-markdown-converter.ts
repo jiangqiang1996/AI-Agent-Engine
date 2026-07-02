@@ -1,15 +1,11 @@
 import { createRequire } from 'node:module'
 import path from 'node:path'
-
-import { MarkitdownError } from '../../markitdown-errors.js'
-import type { ConverterInput, ConverterResult, DocumentConverter, SupportedFormat } from '../../markitdown-types.js'
+import type { MarkdownConversionResult } from './markdown-conversion-types.js'
 
 const PARTIAL_NUMBERING_PATTERN = /^\.\d+$/
 
 const nodeRequire = createRequire(import.meta.url)
 
-// pdfjs-dist 在 Node.js 中使用 useSystemFonts=false 时需要 standardFontDataUrl 和 cMapUrl 来定位
-// 标准字体和 CMap 数据文件；NodeBinaryDataFactory._fetch 使用 fs.readFile，需要纯文件路径而非 file:// URL。
 const PDFJS_DIST_ROOT = path.dirname(nodeRequire.resolve('pdfjs-dist/package.json'))
 const STANDARD_FONT_DATA_URL = `${PDFJS_DIST_ROOT.replace(/\\/g, '/')}/standard_fonts/`
 const CMAP_URL = `${PDFJS_DIST_ROOT.replace(/\\/g, '/')}/cmaps/`
@@ -20,8 +16,6 @@ function ensurePdfWorkerBootstrap(): Promise<void> {
   if (workerBootstrapPromise) return workerBootstrapPromise
   workerBootstrapPromise = (async () => {
     if ((globalThis as { pdfjsWorker?: unknown }).pdfjsWorker) return
-    // esbuild 会把动态 import 内联为同步模块，因此这里不依赖运行时 node_modules 解析；
-    // 加载后 worker 模块会自行把自身挂到 globalThis.pdfjsWorker，pdfjs 主线程读取该字段即可跳过 workerSrc 相对路径。
     const worker = await import('pdfjs-dist/legacy/build/pdf.worker.mjs')
     ;(globalThis as { pdfjsWorker?: unknown }).pdfjsWorker = worker
   })().catch((error) => {
@@ -121,39 +115,6 @@ function assemblePlainText(items: PdfTextItem[]): string {
   }
   if (currentLine) lines.push(currentLine)
   return lines.join('\n')
-}
-
-function toMarkdownTable(table: string[][], includeSeparator = true): string {
-  if (!table.length) return ''
-
-  const normalized = table.map((row) => row.map((cell) => (cell ?? '').toString()))
-  const filtered = normalized.filter((row) => row.some((cell) => cell.trim()))
-  if (!filtered.length) return ''
-
-  const numCols = Math.max(...filtered.map((r) => r.length))
-  const colWidths: number[] = []
-  for (let col = 0; col < numCols; col++) {
-    let maxLen = 0
-    for (const row of filtered) {
-      const cell = row[col] ?? ''
-      if (cell.length > maxLen) maxLen = cell.length
-    }
-    colWidths.push(maxLen)
-  }
-
-  const fmtRow = (row: string[]): string =>
-    '| ' +
-    Array.from({ length: numCols }, (_, i) => (row[i] ?? '').padEnd(colWidths[i])).join(' | ') +
-    ' |'
-
-  if (includeSeparator) {
-    const [header, ...rows] = filtered
-    const md: string[] = [fmtRow(header)]
-    md.push('| ' + colWidths.map((w) => '-'.repeat(w)).join(' | ') + ' |')
-    for (const row of rows) md.push(fmtRow(row))
-    return md.join('\n')
-  }
-  return filtered.map(fmtRow).join('\n')
 }
 
 function extractFormContentFromWords(words: Word[], pageWidth: number): string | null {
@@ -364,158 +325,52 @@ function extractFormContentFromWords(words: Word[], pageWidth: number): string |
   return resultLines.join('\n')
 }
 
-function extractTablesFromWords(words: Word[]): string[][][] {
-  if (!words.length) return []
+export async function convertPdfToMarkdown(buffer: Buffer): Promise<MarkdownConversionResult> {
+  await ensurePdfWorkerBootstrap()
 
-  const yTolerance = 5
-  const rowsByY = new Map<number, Word[]>()
-  for (const word of words) {
-    const yKey = Math.round(word.top / yTolerance) * yTolerance
-    if (!rowsByY.has(yKey)) rowsByY.set(yKey, [])
-    rowsByY.get(yKey)!.push(word)
-  }
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
 
-  const sortedYKeys = [...rowsByY.keys()].sort((a, b) => a - b)
+  const uint8 = new Uint8Array(buffer)
+  const loadingTask = pdfjs.getDocument({
+    data: uint8,
+    useSystemFonts: false,
+    standardFontDataUrl: STANDARD_FONT_DATA_URL,
+    cMapUrl: CMAP_URL,
+    cMapPacked: true,
+  })
+  const doc = await loadingTask.promise
 
-  const allXPositions: number[] = []
-  for (const wordsInRow of rowsByY.values()) {
-    for (const word of wordsInRow) allXPositions.push(word.x0)
-  }
-  if (!allXPositions.length) return []
+  const markdownChunks: string[] = []
+  let formPageCount = 0
 
-  allXPositions.sort((a, b) => a - b)
-  const xToleranceCol = 20
-  const columnStarts: number[] = []
-  for (const x of allXPositions) {
-    if (!columnStarts.length || x - columnStarts[columnStarts.length - 1] > xToleranceCol) {
-      columnStarts.push(x)
-    }
-  }
+  try {
+    for (let pageIdx = 1; pageIdx <= doc.numPages; pageIdx++) {
+      const page = await doc.getPage(pageIdx)
+      try {
+        const viewport = page.getViewport({ scale: 1 })
+        const pageWidth = viewport.width
+        const pageHeight = viewport.height
+        const textContent = await page.getTextContent()
+        const textItems = textContent.items.filter(isTextItem) as PdfTextItem[]
 
-  if (columnStarts.length < 3 || columnStarts.length > 10) return []
+        const words = extractWordsFromTextContent(textItems, pageHeight)
+        const formContent = extractFormContentFromWords(words, pageWidth)
 
-  const tableRows: string[][] = []
-  for (const yKey of sortedYKeys) {
-    const wordsInRow = [...rowsByY.get(yKey)!].sort((a, b) => a.x0 - b.x0)
-    const rowData: string[] = new Array(columnStarts.length).fill('')
-    for (const word of wordsInRow) {
-      let bestCol = 0
-      let minDist = Infinity
-      for (let i = 0; i < columnStarts.length; i++) {
-        const dist = Math.abs(word.x0 - columnStarts[i])
-        if (dist < minDist) {
-          minDist = dist
-          bestCol = i
+        if (formContent !== null) {
+          formPageCount++
+          if (formContent.trim()) markdownChunks.push(formContent)
+        } else {
+          const text = assemblePlainText(textItems).trim()
+          if (text) markdownChunks.push(text)
         }
-      }
-      if (rowData[bestCol]) rowData[bestCol] += ' ' + word.text
-      else rowData[bestCol] = word.text
-    }
-    const nonEmpty = rowData.filter((c) => c.trim()).length
-    if (nonEmpty >= 2) tableRows.push(rowData)
-  }
-
-  if (tableRows.length < 3) return []
-
-  let longCellCount = 0
-  let totalCellCount = 0
-  for (const row of tableRows) {
-    for (const cell of row) {
-      if (cell.trim()) {
-        totalCellCount++
-        if (cell.trim().length > 30) longCellCount++
+      } finally {
+        page.cleanup()
       }
     }
-  }
-  if (totalCellCount > 0 && longCellCount / totalCellCount > 0.3) return []
-
-  return [tableRows]
-}
-
-export class PdfConverter implements DocumentConverter {
-  format = 'pdf' as const satisfies SupportedFormat
-  priority = 100
-
-  accept(_filePath: string, format: SupportedFormat): boolean {
-    return format === 'pdf'
+  } finally {
+    await loadingTask.destroy()
   }
 
-  static async convertPdf(buffer: Buffer): Promise<ConverterResult> {
-    try {
-      return await PdfConverter.convertWithPdfjs(buffer)
-    } catch (error) {
-      throw new MarkitdownError(
-        'pdf_convert_failed',
-        `PDF 解析失败：${error instanceof Error ? error.message : String(error)}。请确认文件不是加密或损坏的 PDF。`,
-      )
-    }
-  }
-
-  private static async convertWithPdfjs(buffer: Buffer): Promise<ConverterResult> {
-    // 优先把 worker 模块挂到 globalThis.pdfjsWorker，让 pdfjs 跳过对 workerSrc 的相对路径 import；
-    // esbuild bundle 后 pdfjs 内部 "./pdf.worker.mjs" 相对路径无法解析，此路径绕开该问题。
-    await ensurePdfWorkerBootstrap()
-
-    const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
-
-    const uint8 = new Uint8Array(buffer)
-    const loadingTask = pdfjs.getDocument({
-      data: uint8,
-      useSystemFonts: false,
-      standardFontDataUrl: STANDARD_FONT_DATA_URL,
-      cMapUrl: CMAP_URL,
-      cMapPacked: true,
-    })
-    const doc = await loadingTask.promise
-
-    const markdownChunks: string[] = []
-    let formPageCount = 0
-
-    try {
-      for (let pageIdx = 1; pageIdx <= doc.numPages; pageIdx++) {
-        const page = await doc.getPage(pageIdx)
-        try {
-          const viewport = page.getViewport({ scale: 1 })
-          const pageWidth = viewport.width
-          const pageHeight = viewport.height
-          const textContent = await page.getTextContent()
-          const textItems = textContent.items.filter(isTextItem) as PdfTextItem[]
-
-          const words = extractWordsFromTextContent(textItems, pageHeight)
-          const formContent = extractFormContentFromWords(words, pageWidth)
-
-          if (formContent !== null) {
-            formPageCount++
-            if (formContent.trim()) markdownChunks.push(formContent)
-          } else {
-            const text = assemblePlainText(textItems).trim()
-            if (text) markdownChunks.push(text)
-          }
-        } finally {
-          page.cleanup()
-        }
-      }
-    } finally {
-      await loadingTask.destroy()
-    }
-
-    const markdown = mergePartialNumberingLines(markdownChunks.join('\n\n').trim())
-    return { markdown }
-  }
-
-  async convert(input: ConverterInput): Promise<ConverterResult> {
-    return PdfConverter.convertPdf(input.binaryContent)
-  }
-}
-
-export {
-  mergePartialNumberingLines,
-  extractFormContentFromWords,
-  extractTablesFromWords,
-  toMarkdownTable,
-  extractWordsFromTextContent,
-  assemblePlainText,
-  PARTIAL_NUMBERING_PATTERN,
-  type Word,
-  type PdfTextItem,
+  const markdown = mergePartialNumberingLines(markdownChunks.join('\n\n').trim())
+  return { markdown }
 }

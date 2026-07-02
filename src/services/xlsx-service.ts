@@ -5,7 +5,7 @@ import ExcelJS from 'exceljs'
 
 import { generateDocumentOutputPath } from '../utils/document-output-path.js'
 
-export type XlsxOperation = 'create' | 'edit' | 'analyze' | 'add-rows' | 'add-sheet'
+export type XlsxOperation = 'create' | 'edit' | 'analyze' | 'add-rows' | 'add-sheet' | 'to-markdown'
 
 // ==================== 样式类型 ====================
 
@@ -150,6 +150,7 @@ export interface XlsxInput {
   startRow?: number
   /** add-sheet 操作：单个工作表数据 */
   sheet?: XlsxSheetData
+  outputMode?: 'file' | 'inline'
 }
 
 export interface XlsxResult {
@@ -789,5 +790,18 @@ export async function processXlsx(input: XlsxInput): Promise<XlsxResult> {
       return handleAddRows(input)
     case 'add-sheet':
       return handleAddSheet(input)
+    case 'to-markdown':
+      return handleToMarkdown(input)
   }
+}
+
+import { convertXlsxToMarkdown } from './xlsx-markdown-converter.js'
+import { loadDocumentFile } from './document-file-loader.js'
+import { writeMarkdownOutput } from './markdown-output-writer.js'
+
+async function handleToMarkdown(input: XlsxInput): Promise<XlsxResult> {
+  if (!input.file) throw new Error('to-markdown 操作需要 file 参数')
+  const { buffer } = await loadDocumentFile(input.file, input.worktree, 'XLSX')
+  const result = await convertXlsxToMarkdown(buffer)
+  return writeMarkdownOutput(result.markdown, input.worktree, 'xlsx', input.outputPath, input.outputMode)
 }

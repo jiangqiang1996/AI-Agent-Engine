@@ -169,6 +169,7 @@ export const aeXlsxTool = tool({
     '- analyze：提取工作表信息（名称、行列数、前 5 行预览、合并单元格、冻结窗格、条件格式、数据验证）',
     '- add-rows：向已有工作表追加或插入行数据，支持指定起始行号',
     '- add-sheet：向已有工作簿添加新工作表，支持完整列定义、行数据、合并、冻结等',
+    '- to-markdown：将 XLSX 所有工作表内容转换为 Markdown 表格',
     '',
     '增量操作引导：',
     '- 大量数据（>100行）：先 create 创建初始数据，再 add-rows 分批追加，避免单次调用参数过大',
@@ -212,12 +213,12 @@ export const aeXlsxTool = tool({
     '- 需要公式、样式、合并、冻结、筛选、条件格式、数据验证等高级功能',
     '',
     '不适用场景：',
-    '- 只需读取 XLSX 内容转为 Markdown 时，使用 ae:markitdown',
+    '- 只需读取 XLSX 内容转为 Markdown 时，使用 to-markdown 操作',
     '- 不支持远程 URL，仅处理当前工作区内本地文件',
   ].join('\n'),
   args: {
     operation: z
-      .enum(['create', 'edit', 'analyze', 'add-rows', 'add-sheet'])
+      .enum(['create', 'edit', 'analyze', 'add-rows', 'add-sheet', 'to-markdown'])
       .describe('操作类型'),
     file: z
       .string()
@@ -269,7 +270,11 @@ export const aeXlsxTool = tool({
     outputPath: z
       .string()
       .optional()
-      .describe('自定义输出路径；create 操作省略时自动生成到 ae/documents/xlsx/；edit/add-rows/add-sheet 操作省略时默认覆盖源文件（原地更新）'),
+      .describe('自定义输出路径；to-markdown 的 outputMode=file 时写入此路径或 ae/markdown/，其余操作写入 ae/documents/xlsx/ 或覆盖源文件'),
+    outputMode: z
+      .enum(['file', 'inline'])
+      .optional()
+      .describe('to-markdown 输出模式：file 写入文件（默认），inline 直接返回内容不写文件'),
   },
   execute: async (args, ctx) => {
     ctx.metadata({ title: `XLSX ${args.operation}`, metadata: { operation: args.operation } })
@@ -290,6 +295,7 @@ export const aeXlsxTool = tool({
         rows: args.rows,
         startRow: args.startRow,
         sheet: args.sheet,
+        outputMode: args.outputMode,
       })
 
       return {

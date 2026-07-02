@@ -53,13 +53,12 @@ function filePart(options: {
 }
 
 describe('isFilePathCommand', () => {
-  it('应该识别 ae-markitdown 为路径型命令', () => {
-    expect(isFilePathCommand('ae-markitdown')).toBe(true)
+  it('应该识别 ae-image 为路径型命令', () => {
+    expect(isFilePathCommand('ae-image')).toBe(true)
   })
 
-  it('不应该识别 ae-markitdown 的 -po / -pa / -auto 变体（已移除变体）', () => {
-    expect(isFilePathCommand('ae-markitdown-po')).toBe(false)
-    expect(isFilePathCommand('ae-markitdown-pa')).toBe(false)
+  it('不应该识别 ae-image 的变体为路径型命令', () => {
+    expect(isFilePathCommand('ae-image-helper')).toBe(false)
   })
 
   it('不应该把非路径型命令识别为路径型', () => {
@@ -68,16 +67,16 @@ describe('isFilePathCommand', () => {
     expect(isFilePathCommand('ae-work')).toBe(false)
   })
 
-  it('不应该把与 markitdown 名称相似但非路径型的命令识别为路径型', () => {
-    expect(isFilePathCommand('ae-markitdown-helper')).toBe(false)
+  it('不应该把与 image 名称相似但非路径型的命令识别为路径型', () => {
+    expect(isFilePathCommand('ae-image-helper')).toBe(false)
   })
 })
 
 describe('convertFilePartsToPathText', () => {
   it('应该把文本中的 @file 引用替换为纯路径并移除 FilePart', () => {
     const parts: Part[] = [
-      textPart('使用 ae:markitdown 技能处理这次请求，并沿用参数：@docs/file.pdf'),
-      filePart({ reference: '@docs/file.pdf', path: 'docs/file.pdf' }),
+      textPart('使用 ae:image 技能处理这次请求，并沿用参数：@docs/image.png'),
+      filePart({ reference: '@docs/image.png', path: 'docs/image.png' }),
     ]
 
     convertFilePartsToPathText(parts)
@@ -85,7 +84,7 @@ describe('convertFilePartsToPathText', () => {
     expect(parts).toHaveLength(1)
     expect(parts[0]).toMatchObject({
       type: 'text',
-      text: '使用 ae:markitdown 技能处理这次请求，并沿用参数：docs/file.pdf',
+      text: '使用 ae:image 技能处理这次请求，并沿用参数：docs/image.png',
     })
   })
 
@@ -134,8 +133,8 @@ describe('convertFilePartsToPathText', () => {
 
   it('当文本中找不到引用时，应把路径追加到首个 TextPart 末尾', () => {
     const parts: Part[] = [
-      textPart('使用 ae:markitdown 处理'),
-      filePart({ reference: '@docs/missing.pdf', path: 'docs/missing.pdf' }),
+      textPart('使用 ae:image 处理'),
+      filePart({ reference: '@docs/missing.png', path: 'docs/missing.png' }),
     ]
 
     convertFilePartsToPathText(parts)
@@ -143,7 +142,7 @@ describe('convertFilePartsToPathText', () => {
     expect(parts).toHaveLength(1)
     expect(parts[0]).toMatchObject({
       type: 'text',
-      text: '使用 ae:markitdown 处理 docs/missing.pdf',
+      text: '使用 ae:image 处理 docs/missing.png',
     })
   })
 

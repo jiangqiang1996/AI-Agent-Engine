@@ -23,7 +23,7 @@
 | 接口测试 | `/ae-api-tester` |
 | 数据库查询或操作 | `/ae-sql` |
 | Swagger/OpenAPI 联调摘要 | `/ae-swagger-parser` |
-| 本地文件转 Markdown | `/ae-markitdown` |
+| 图片转 Markdown 描述 | `/ae-image` |
 | HTML 单文件打包 | `/ae-html-bundle` |
 | 静态服务器 | `/ae-static-server` |
 | 构建或查询项目关系图谱 | `/ae-graph-build`、`/ae-graph-query` |
@@ -88,13 +88,15 @@
 
 以真实业务流程编排为主、接口边界测试为辅的自动化接口测试，支持登录认证与接口请求脚本生成。
 
-### 本地文件转 Markdown
+### 图片转 Markdown
 
 ```text
-/ae-markitdown file=./report.pdf
+/ae-image file=./photo.jpg
 ```
 
-支持 HTML/CSV/TSV/JSON/DOCX/XLSX/PDF/PPTX/JPG/PNG 格式。转换结果写入 `ae/markitdown/` 子目录。
+将图片内容转为 Markdown 描述。支持 JPG/PNG/GIF/WebP/BMP 格式。转换结果写入 `ae/markdown/` 子目录。
+
+文档类文件（DOCX/XLSX/PDF/PPTX）的 Markdown 读取功能已迁入各文档技能的 `to-markdown` 操作。
 
 ### 探索性修复
 
@@ -128,7 +130,7 @@
 | `/ae-task-loop` | `[一句话目标描述]` | 循环执行和验证直到目标达成 | 不适合需求不清的大型功能 |
 | `/ae-sql` | `[SQL 语句]` | 通过 JDBC 连接数据库并执行 SQL | 执行前应确认目标库和语句风险 |
 | `/ae-swagger-parser` | `[source] [method:<HTTP_METHOD>] [path:<PATH>] [tag:<TAG>] [keyword:<TEXT>] [mode:overview\|detail]` | 解析 Swagger/OpenAPI 并输出联调摘要 | 不请求业务接口 |
-| `/ae-markitdown` | `file=路径 [format=格式] [outputPath=路径]` | 将本地文件转换为 Markdown | 支持 HTML/CSV/TSV/JSON/DOCX/XLSX/PDF/PPTX/JPG/PNG |
+| `/ae-image` | `file=图片路径 [format=jpg|png] [outputPath=路径]` | 将本地图片转换为 Markdown 描述 | 支持 JPG/PNG/GIF/WebP/BMP |
 | `/ae-html-bundle` | `[entry:<HTML_PATH>] [output:<HTML_PATH>] [external:keep\|fail]` | 将显式入口 HTML 和本地静态资源打包为自包含 HTML | 不执行项目构建，不联网抓取外链 |
 | `/ae-static-server` | `<路径> [端口] [-k]` | 创建静态服务器，用于预览指定静态页面 | 只做本地预览服务 |
 | `/ae-graph-build` | `[target:<PATH>] [mode:auto\|full\|incremental] [depth:shallow] [include:<PATH>...] [exclude:<PATH>...]` | 构建或增量维护项目文件关系图谱 | `include` 优先于 `exclude`，但不覆盖安全硬排除 |
@@ -227,7 +229,7 @@
 | `ae-handoff` | 创建独立新会话并注入上下文 | 不做提示词优化 |
 | `ae-swagger-parser` | 解析 Swagger/OpenAPI 规格 | 不请求业务接口 |
 | `ae-html-bundle` | 打包显式入口 HTML 和本地静态资源 | 不执行项目构建或联网抓取外链 |
-| `ae-markitdown` | 将本地文件转换为 Markdown | 不支持远程 URL，不处理音频/视频 |
+| `ae-image` | 将本地图片转换为 Markdown 描述 | 不支持远程 URL，不处理音频/视频 |
 | `ae-graph-build` | 构建或增量维护项目文件关系图谱 | 不分析运行时动态依赖或符号级调用链 |
 | `ae-graph-query` | 查询图谱中的依赖、影响范围、核心模块和健康状态 | 不构建图谱 |
 | `ae-task-analyzer` | 分析任务单元、文件范围和并行组 | 不修改项目文件 |
@@ -262,7 +264,7 @@
 | `ae/solutions/` | 历史方案、研究和经验沉淀 |
 | `ae/graphs/` | 项目文件关系图谱 |
 | `ae/reviews/` | 审查证明 |
-| `ae/markitdown/` | 文件转换产物 |
+| `ae/markdown/` | 文件转 Markdown 产物 |
 | `.opencode/rules/` | 项目长期规则，可由经验沉淀流程写入 |
 | `.opencode/ae.jsonc` | 项目级 AE 配置 |
 

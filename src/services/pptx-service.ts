@@ -45,7 +45,7 @@ interface PptxSlideInstance {
 const SLIDE_XML_PATTERN = /^ppt\/slides\/slide\d+\.xml$/
 const SLIDE_TEXT_REGEX = /<a:t[^>]*>([^<]*)<\/a:t>/g
 
-export type PptxOperation = 'create' | 'edit' | 'analyze' | 'append-slides' | 'update-slide'
+export type PptxOperation = 'create' | 'edit' | 'analyze' | 'append-slides' | 'update-slide' | 'to-markdown'
 
 // ==================== 文本运行类型 ====================
 
@@ -299,6 +299,7 @@ export interface PptxInput {
   /** update-slide 操作：新元素数组 */
   elements?: PptxInputElement[]
   outputPath?: string
+  outputMode?: 'file' | 'inline'
 }
 
 export interface PptxResult {
@@ -1181,5 +1182,18 @@ export async function processPptx(input: PptxInput): Promise<PptxResult> {
       return handleAppendSlides(input)
     case 'update-slide':
       return handleUpdateSlide(input)
+    case 'to-markdown':
+      return handleToMarkdown(input)
   }
+}
+
+import { convertPptxToMarkdown } from './pptx-markdown-converter.js'
+import { loadDocumentFile } from './document-file-loader.js'
+import { writeMarkdownOutput } from './markdown-output-writer.js'
+
+async function handleToMarkdown(input: PptxInput): Promise<PptxResult> {
+  if (!input.file) throw new Error('to-markdown 操作需要 file 参数')
+  const { buffer } = await loadDocumentFile(input.file, input.worktree, 'PPTX')
+  const result = await convertPptxToMarkdown(buffer)
+  return writeMarkdownOutput(result.markdown, input.worktree, 'pptx', input.outputPath, input.outputMode)
 }

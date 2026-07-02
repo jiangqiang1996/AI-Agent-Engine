@@ -314,6 +314,7 @@ export const aePptxTool = tool({
     '- analyze：提取所有幻灯片的文本内容',
     '- append-slides：向已有 PPTX 追加新幻灯片，保留原有幻灯片不变',
     '- update-slide：替换指定幻灯片的全部元素（0-based 索引）',
+    '- to-markdown：将 PPTX 所有幻灯片内容转换为 Markdown，含图片引用和演讲者备注',
     '',
     '元素化绘制（推荐模式）：',
     '- text：富文本（多运行、粗斜体、字号、颜色、字体、对齐、项目符号、行距、超链接、上下标、高亮、阴影、旋转）',
@@ -359,12 +360,12 @@ export const aePptxTool = tool({
     '- 需要向已有 PPTX 追加幻灯片或更新单张幻灯片',
     '',
     '不适用场景：',
-    '- 只需读取 PPTX 内容转为 Markdown 时，使用 ae:markitdown',
+    '- 只需读取 PPTX 内容转为 Markdown 时，使用 to-markdown 操作',
     '- 不支持远程 URL，仅处理当前工作区内本地文件',
   ].join('\n'),
   args: {
     operation: z
-      .enum(['create', 'edit', 'analyze', 'append-slides', 'update-slide'])
+      .enum(['create', 'edit', 'analyze', 'append-slides', 'update-slide', 'to-markdown'])
       .describe('操作类型'),
     file: z
       .string()
@@ -416,7 +417,11 @@ export const aePptxTool = tool({
     outputPath: z
       .string()
       .optional()
-      .describe('自定义输出路径；省略时自动生成到 ae/documents/pptx/'),
+      .describe('自定义输出路径；to-markdown 的 outputMode=file 时写入此路径或 ae/markdown/，其余操作写入 ae/documents/pptx/'),
+    outputMode: z
+      .enum(['file', 'inline'])
+      .optional()
+      .describe('to-markdown 输出模式：file 写入文件（默认），inline 直接返回内容不写文件'),
   },
   execute: async (args, ctx) => {
     ctx.metadata({ title: `PPTX ${args.operation}`, metadata: { operation: args.operation } })
@@ -437,6 +442,7 @@ export const aePptxTool = tool({
         slideIndex: args.slideIndex,
         elements: args.elements,
         outputPath: args.outputPath,
+        outputMode: args.outputMode,
       })
 
       return {
