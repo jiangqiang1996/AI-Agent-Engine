@@ -274,6 +274,13 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillFile: `src/assets/skills/${skillDir(SKILL.HELP)}/SKILL.md`,
   },
   {
+    skillName: SKILL.GRILL,
+    commandName: COMMAND.GRILL,
+    description: '面试式追问计划或设计决策，逐个问题压力测试直到达成共识',
+    argumentHint: '[计划文档路径|设计文档路径|方案描述]',
+    skillFile: `src/assets/skills/${skillDir(SKILL.GRILL)}/SKILL.md`,
+  },
+  {
     skillName: SKILL.UPDATE,
     commandName: COMMAND.UPDATE,
     description: '拉取 AE 插件最新代码并重新构建，完成本地更新',

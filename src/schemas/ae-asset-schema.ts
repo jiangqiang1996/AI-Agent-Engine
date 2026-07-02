@@ -37,6 +37,7 @@ export const SKILL = {
   XLSX: 'ae:xlsx',
   PROMPT_OPTIMIZE: 'ae:prompt-optimize',
   HELP: 'ae:help',
+  GRILL: 'ae:grill',
   UPDATE: 'ae:update',
 } as const
 
@@ -178,6 +179,7 @@ export const AeSkillNameSchema = z
     SKILL.XLSX,
     SKILL.PROMPT_OPTIMIZE,
     SKILL.HELP,
+    SKILL.GRILL,
     SKILL.UPDATE,
   ])
   .describe('AE 技能名')
