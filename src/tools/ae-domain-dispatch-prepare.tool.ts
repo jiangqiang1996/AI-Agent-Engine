@@ -5,6 +5,7 @@ import { AGENT } from '../schemas/ae-asset-schema.js'
 import {
   selectSpecialists,
   getCoordinationStrategy,
+  getDomainAgentName,
   type CoordinationConfig,
 } from '../services/domain-dispatch-service.js'
 
@@ -32,7 +33,7 @@ const SPECIALIST_PROMPT_TEMPLATES: Record<string, string> = {
   [AGENT.DESIGN_LENS_REVIEWER]: '你是一位设计视角审查者。审查缺失的设计决策、信息架构和交互状态。',
   [AGENT.TEST_CASE_REVIEWER]: '你是一位测试用例审查者。审查测试文档的结构完整性和覆盖完备性。',
   [AGENT.REQUIREMENTS_REVIEWER]: '你是一位需求审查者。审查目标清晰度、范围边界、验收标准可验证性和未决问题。',
-  [AGENT.PROTOTYPE_REVIEWER]: '你是一位原型审查者。审查交互完整性、状态覆盖、与需求一致性和实现可行性提示。',
+  [AGENT.PROTOTYPE_REVIEWER]: '你是一位原型审查者。审查交互完整性、状态覆盖、与需求的一致性以及实现可行性提示。',
   [AGENT.TRACEABILITY_REVIEWER]: '你是一位追溯审查者。审查需求、设计、原型、计划、测试和代码之间的链路断裂。',
   [AGENT.EVIDENCE_REVIEWER]: '你是一位证据审查者。审查事实性声明、命令输出、引用和交付证据是否可核验。',
   [AGENT.GOAL_ALIGNMENT_REVIEWER]: '你是一位目标对齐审查者。逐条校验变更是否达成审查目标。',
@@ -43,6 +44,58 @@ const SPECIALIST_PROMPT_TEMPLATES: Record<string, string> = {
 
 function getSpecialistPrompt(specialistName: string): string {
   return SPECIALIST_PROMPT_TEMPLATES[specialistName] ?? `你是一位专精代理: ${specialistName}。`
+}
+
+interface ConsistencyWarning {
+  field: string
+  message: string
+  severity: 'error' | 'warn' | 'info'
+}
+
+function checkKindDomainConsistency(
+  domain: string,
+  kind: string | undefined,
+): ConsistencyWarning[] {
+  const warnings: ConsistencyWarning[] = []
+
+  if (domain === 'development' && kind !== undefined) {
+    warnings.push({
+      field: 'kind',
+      message: `development 域不使用 kind 参数（kind 是审查类型标识: code/document/general 等）。你可能误用了 domain=development 来做代码审查；审查请用 domain=review，开发任务请移除 kind 参数。`,
+      severity: 'warn',
+    })
+  }
+
+  if ((domain === 'review' || domain === 'general') && kind === undefined) {
+    warnings.push({
+      field: 'kind',
+      message: `审查域建议传入 kind 参数（code/document/general/mixed/hybrid）以精确选择专精代理。未传入时将按默认逻辑推导，可能遗漏关键审查维度。`,
+      severity: 'info',
+    })
+  }
+
+  return warnings
+}
+
+interface DispatchGuard {
+  rule: string
+  allowedDegradation: string
+  forbiddenReasons: string[]
+  currentCount: number
+}
+
+function buildDispatchGuard(domain: string, count: number): DispatchGuard {
+  const domainAgentName = getDomainAgentName(domain)
+  return {
+    rule: `specialistCount=${count} > 0，禁止调用 ${domainAgentName}，必须直接 Task 调度全部 ${count} 个专精代理`,
+    allowedDegradation: `仅当平台硬性不支持多工具调用（需可验证证据）且 specialistCount > 20 时，才允许降级为调用 ${domainAgentName}`,
+    forbiddenReasons: [
+      '上下文成本 / token 经济顾虑',
+      '根因已定位或审查动力下降',
+      'LLM 主观判断"太多"或"不高效"',
+    ],
+    currentCount: count,
+  }
 }
 
 export const aeDomainDispatchPrepareTool = tool({
@@ -262,16 +315,21 @@ export const aeDomainDispatchPrepareTool = tool({
       const specialists = selectSpecialists(args.domain, taskIntent, domainContext)
       const strategyDomain = args.domain === 'general' ? 'review' : args.domain
       const strategy: CoordinationConfig = getCoordinationStrategy(strategyDomain)
+      const consistencyWarnings = checkKindDomainConsistency(args.domain, args.kind)
 
       if (specialists.length === 0) {
+        const isReviewDomain = args.domain === 'review' || args.domain === 'general'
+        const domainAgentName = getDomainAgentName(args.domain)
+        const consistencyHint = consistencyWarnings.length > 0
+          ? ` 一致性警告: ${consistencyWarnings.map((w) => w.message).join(' ')}`
+          : ''
         return JSON.stringify({
           domain: args.domain,
           strategy,
           tasks: [],
           specialistCount: 0,
-          fallbackHint: args.domain === 'review' || args.domain === 'general'
-            ? '未选中任何审查专精代理。请检查传入的标记参数是否正确，或考虑直接调用 @review-domain。'
-            : '未选中任何开发专精代理。请检查传入的标记参数是否正确，或考虑直接调用 @development-domain。',
+          consistencyWarnings,
+          fallbackHint: `未选中任何${isReviewDomain ? '审查' : '开发'}专精代理。请检查传入的标记参数是否正确。${consistencyHint} 如确认参数无误仍为空，可调用 ${domainAgentName}。`,
         }, null, 2)
       }
 
@@ -282,11 +340,15 @@ export const aeDomainDispatchPrepareTool = tool({
         selectionCriteria: s.selectionCriteria,
       }))
 
+      const dispatchGuard = buildDispatchGuard(args.domain, specialists.length)
+
       return JSON.stringify({
         domain: args.domain,
         strategy,
         tasks,
         specialistCount: specialists.length,
+        consistencyWarnings,
+        dispatchGuard,
       }, null, 2)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)

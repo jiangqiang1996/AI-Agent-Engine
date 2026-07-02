@@ -7,7 +7,11 @@ import {
   type SpecialistResult,
   type DomainFinding,
 } from '../schemas/ae-asset-schema.js'
-import { aggregateResults, type AggregationStrategy } from '../services/domain-dispatch-service.js'
+import {
+  aggregateResults,
+  DOMAIN_AGENT_NAMES,
+  type AggregationStrategy,
+} from '../services/domain-dispatch-service.js'
 
 const ToolSpecialistResultSchema = SpecialistResultSchema.extend({
   agentName: z.string().optional().describe('专精代理名称'),
@@ -16,6 +20,39 @@ const ToolSpecialistResultSchema = SpecialistResultSchema.extend({
     .optional()
     .describe('预解析的结构化发现列表，优先于从 output 文本中正则提取'),
 })
+
+interface GuardViolation {
+  code: string
+  message: string
+  severity: 'error' | 'warn'
+}
+
+function detectDegradationViolation(
+  dispatchedAgents: string[],
+  expectedCount?: number,
+): GuardViolation | null {
+  if (dispatchedAgents.length === 0) return null
+
+  const allDomainAgents = dispatchedAgents.every((name) => DOMAIN_AGENT_NAMES.has(name))
+  if (!allDomainAgents) return null
+
+  const domainAgentName = dispatchedAgents[0]
+  if (expectedCount !== undefined && expectedCount > 0) {
+    return {
+      code: 'DEGRADATION_VIOLATION',
+      message: `编排层通过 ae-domain-dispatch-prepare 获得了 ${expectedCount} 个专精代理（specialistCount > 0），但实际只调度了域代理 [${domainAgentName}]。这违反了不可降级硬约束：specialistCount > 0 时必须直接 Task 调度全部专精代理，不得降级为调用域代理。除非平台硬性不支持多工具调用（需可验证证据）且 specialistCount > 20，否则此降级行为违规。请检查编排层是否因上下文成本顾虑或根因已定位而错误降级。`,
+      severity: 'error',
+    }
+  }
+
+  if (expectedCount === 0) return null
+
+  return {
+    code: 'DOMAIN_AGENT_ONLY_DISPATCH',
+    message: `dispatchedAgents 仅包含域代理 [${domainAgentName}]，未包含任何专精代理。expectedSpecialistCount 未传入，无法确认是否曾调用 ae-domain-dispatch-prepare。请确认：1) 是否曾调用 ae-domain-dispatch-prepare；2) 返回的 specialistCount 是否 > 0；3) 若 > 0，是否因平台限制或专精 > 20 才降级。`,
+    severity: 'warn',
+  }
+}
 
 export const aeDomainDispatchAggregateTool = tool({
   description: [
@@ -26,6 +63,7 @@ export const aeDomainDispatchAggregateTool = tool({
     '- union 策略合并所有发现，同标题保留最高严重级别',
     '- 优先使用 results[].findings；缺失时正则提取兜底',
     '- 返回 DomainExecutionResult 及 dispatchManifest',
+    '- 内置降级违规检测：若 dispatchedAgents 仅含域代理名（review-domain/development-domain），会发出 guardViolation 警告',
     '',
     '适用场景：',
     '- ae:review/ae:work 编排层直接调度专精代理后聚合',
@@ -53,6 +91,10 @@ export const aeDomainDispatchAggregateTool = tool({
       .record(z.string(), z.string())
       .default({})
       .describe('跳过原因，key 为专精代理名称'),
+    expectedSpecialistCount: z
+      .number()
+      .optional()
+      .describe('ae-domain-dispatch-prepare 返回的 specialistCount，用于降级违规检测。若传入且 > 0，但 dispatchedAgents 仅含域代理名，会发出 error 级 guardViolation'),
   },
   execute: async (args, ctx) => {
     ctx.metadata({
@@ -77,6 +119,11 @@ export const aeDomainDispatchAggregateTool = tool({
         structuredFindings,
       )
 
+      const guardViolation = detectDegradationViolation(
+        args.dispatchedAgents,
+        args.expectedSpecialistCount,
+      )
+
       const result = {
         ...aggregated,
         dispatchManifest: {
@@ -84,6 +131,7 @@ export const aeDomainDispatchAggregateTool = tool({
           skipped: args.skippedAgents,
           skipReasons: args.skipReasons,
         },
+        ...(guardViolation ? { guardViolation } : {}),
       }
 
       return JSON.stringify(result, null, 2)

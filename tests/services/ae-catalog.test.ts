@@ -167,4 +167,17 @@ describe('AE catalog 一致性', () => {
     expect(entry).toBeDefined()
     expect(entry?.description).toContain('--from-session')
   })
+
+  it('ae:prompt-optimize 应注册为提示词优化入口并与 frontmatter 一致', () => {
+    const entries = getPhaseOneEntries()
+    const entry = entries.find((item) => item.skillName === SKILL.PROMPT_OPTIMIZE)
+    const frontmatter = readFrontmatter('src/assets/skills/ae-prompt-optimize/SKILL.md')
+
+    expect(entry).toBeDefined()
+    expect(entry?.commandName).toBe('ae-prompt-optimize')
+    expect(entry?.skillFile).toBe('src/assets/skills/ae-prompt-optimize/SKILL.md')
+    expect(entry?.description).toBe(frontmatter.description)
+    expect(entry?.argumentHint).toBe(frontmatter['argument-hint'])
+    expect(entry?.description).toContain('禁止与原始逻辑违背')
+  })
 })

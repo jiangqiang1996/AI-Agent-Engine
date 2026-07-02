@@ -218,6 +218,13 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillFile: `src/assets/skills/${skillDir(SKILL.SAVE_EXPERIENCE)}/SKILL.md`,
   },
   {
+    skillName: SKILL.PROMPT_OPTIMIZE,
+    commandName: COMMAND.PROMPT_OPTIMIZE,
+    description: '提示词优化工具：分析用户提示词与当前工作空间相关性后做最小优化，经用户确认后通过 ae-create-session 新开会话自动执行或暂停等待，禁止与原始逻辑违背',
+    argumentHint: '[提示词内容]',
+    skillFile: `src/assets/skills/${skillDir(SKILL.PROMPT_OPTIMIZE)}/SKILL.md`,
+  },
+  {
     skillName: SKILL.SKILL_CREATOR,
     commandName: COMMAND.SKILL_CREATOR,
     description: '创建或更新 OpenCode 原生技能和命令，支持只创建技能、只创建命令或同时创建；--from-session 模式从当前会话提取可复用流程',

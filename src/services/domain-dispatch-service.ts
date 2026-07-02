@@ -24,6 +24,24 @@ const DOMAIN_COORDINATION: Record<string, CoordinationConfig> = {
   development: { strategy: 'parallel-then-sequential', aggregation: 'merge' },
 }
 
+const DOMAIN_AGENT_BASE_MAP: Record<string, string> = {
+  review: AGENT.REVIEW_DOMAIN,
+  general: AGENT.REVIEW_DOMAIN,
+  development: AGENT.DEVELOPMENT_DOMAIN,
+}
+
+export function getDomainAgentName(domain: string): string {
+  const base = DOMAIN_AGENT_BASE_MAP[domain] ?? AGENT.REVIEW_DOMAIN
+  return `@${base}`
+}
+
+export const DOMAIN_AGENT_NAMES = new Set([
+  AGENT.REVIEW_DOMAIN,
+  AGENT.DEVELOPMENT_DOMAIN,
+  `@${AGENT.REVIEW_DOMAIN}`,
+  `@${AGENT.DEVELOPMENT_DOMAIN}`,
+])
+
 export function selectSpecialists(
   domain: string,
   taskIntent: TaskIntent,

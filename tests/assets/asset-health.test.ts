@@ -323,6 +323,7 @@ describe('资产健康巡检', () => {
       COMMAND.SQL,
       COMMAND.HANDOFF,
       COMMAND.SKILL_CREATOR,
+      COMMAND.PROMPT_OPTIMIZE,
       COMMAND.AGENT_CREATOR,
       COMMAND.UPDATE,
     ]

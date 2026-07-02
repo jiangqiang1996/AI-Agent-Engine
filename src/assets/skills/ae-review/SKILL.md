@@ -207,7 +207,22 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 
 ### 阶段三：调度（Dispatch）
 
-采用代码化调度：编排层直接通过 Task 工具并行调用审查专精代理，不经过 @review-domain 中转。**禁止在 specialistCount > 0 时直接调用 @review-domain**——此时必须走代码化调度路径（步骤 3.1 → 3.2 → 3.3）。
+采用代码化调度：编排层直接通过 Task 工具并行调用审查专精代理，不经过 @review-domain 中转。
+
+**不可降级硬约束**（来自 `@review-domain` 域代理定义，编排层必须遵守）：
+
+> 如果编排层已通过 `ae-domain-dispatch-prepare` 获得非空专精列表（`specialistCount > 0`），**不得调用 `@review-domain`**，必须走代码化调度路径（步骤 3.1 → 3.2 → 3.3）。
+
+无论专精数量多少（即使 10 个以上），都必须直接 Task 调度全部专精。以下理由**均不构成**降级为 `@review-domain` 的条件：
+- 上下文成本 / token 经济顾虑
+- 根因已定位、审查动力下降
+- "伪并行"或平台疑似不支持多工具调用（需真实证据）
+
+仅当满足**全部**以下条件时，才允许降级为通过 Task 调用 `@review-domain`：
+1. 平台**硬性技术不支持**在同一条消息中发出多个工具调用（需可验证证据，不是 LLM 主观判断）
+2. 且 `specialistCount > 20`（逐个串行发出 20 个以上 Task 不现实）
+
+不满足上述条件时，即使 `specialistCount` 高达 20，也必须逐个串行发出全部 Task 调用，**不得跳过任何一个专精代理**，**不得降级为调用域代理**。
 
 #### 步骤 3.1：准备调度
 
@@ -215,8 +230,10 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 - `tasks`：每个选中专精代理的 agent 名、prompt 模板和能力描述
 - `strategy`：协调策略（review 域为 parallel + union）
 - `specialistCount`：选中数量
+- `consistencyWarnings`：domain/kind 一致性校验警告数组（空数组表示无冲突）；编排层应展示给用户并据此复核调度参数
+- `dispatchGuard`：调度门禁结构，包含降级违规检测使用的 domainAgentName 和 specialistCount；编排层不得绕过此门禁调用域代理
 
-如果 `specialistCount` 为 0，退化为通过 Task 调用 `@review-domain`，构造 `DomainCallRequest` 传入。
+如果 `specialistCount` 为 0，退化为通过 Task 调用 `@review-domain`，构造 `DomainCallRequest` 传入。这是**唯一**允许调用 `@review-domain` 的场景。
 
 #### 步骤 3.2：并行调度专精代理
 
@@ -224,9 +241,9 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 
 **并行调度硬约束**：你必须在同一轮回复中一次性发出所有 Task 工具调用，禁止等上一个 Task 返回后再发出下一个。
 
-**平台并行行为说明**：OpenCode Task 工具支持在同一条消息中发出多个调用时并行执行。如果你的回复仅包含一个 Task 调用，它将串行执行——这是导致"伪并行"的常见原因。务必在同一条回复中包含所有 Task 调用。如果因上下文窗口限制无法一次发出所有调用，优先发出独立的子集，在下一轮继续发出剩余调用，但绝不跳过任何一个专精代理。
+**平台并行行为说明**：OpenCode Task 工具支持在同一条消息中发出多个调用时并行执行。如果你的回复仅包含一个 Task 调用，它将串行执行——这是导致"伪并行"的常见原因。务必在同一条回复中包含所有 Task 调用。
 
-**退化策略**：如果因上下文窗口限制确实无法在同一轮发出所有 Task 调用，且剩余专精超过 3 个，退化为通过 Task 调用 `@review-domain` 并构造 `DomainCallRequest`，将 `selectedSpecialists` 传入。
+**串行降级（非域代理降级）**：如果平台硬性不支持多工具调用（需可验证证据），退化为逐个串行发出全部 Task 调用。**不得因此跳过任何一个专精代理**，**不得因此降级为调用 `@review-domain`**（除非同时满足上方"专精 > 20"条件）。
 
 每个 Task 调用的 prompt 必须包含：
 
@@ -286,6 +303,7 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 - `dispatchedAgents`：实际调度的专精代理名称列表
 - `skippedAgents`：选中但未调度的专精代理名称列表（通常为空）
 - `skipReasons`：跳过原因
+- `expectedSpecialistCount`：步骤 3.1 中 `ae-domain-dispatch-prepare` 返回的 `specialistCount`（用于降级违规检测）
 
 工具返回 `DomainExecutionResult`，包含聚合后的发现、证据和 dispatchManifest。
 
@@ -293,11 +311,13 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 
 #### 调度一致性校验
 
-接收 `DomainExecutionResult` 后，检查 `dispatchManifest`：
+接收 `DomainExecutionResult` 后，检查 `dispatchManifest` 和 `guardViolation`：
 
+- 若返回结果包含 `guardViolation` 字段，**必须**在汇总阶段报告中以 `error` 级别标注降级违规，完整展示 `guardViolation.message`，并检查编排层是否错误降级
 - 若 `dispatchManifest.dispatched` 数量少于 prepare 工具返回的 `specialistCount`，在汇总阶段报告不一致，列出被跳过的专精和跳过原因
+- 若 `dispatchManifest.dispatched` 仅含域代理名（review-domain）但 `specialistCount > 0`，标记为"降级违规"，需审查编排层决策
 - 若 `dispatchManifest` 缺失，跳过校验并记录"无法校验"
-- 校验仅为报告性质，不阻断后续流程
+- 校验为报告性质，不阻断后续流程；但降级违规必须在最终交付中显式声明
 
 #### DispatchResults 输出
 

@@ -111,6 +111,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 数据库操作 | `/ae-sql` |
 | 会话交接 | `/ae-handoff` |
 | 创建技能 | `/ae-skill-creator` |
+| 提示词优化 | `/ae-prompt-optimize` |
 | 创建代理 | `/ae-agent-creator` |
 | 更新 AE 插件 | `/ae-update` |
 
@@ -131,8 +132,8 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 
 | 类型 | 当前快照 | 真源 |
 | --- | ---: | --- |
-| 技能 | 36 | `src/assets/skills/`、`src/schemas/ae-asset-schema.ts` |
-| 命令 | 39 | `src/services/command-registration.ts`、`src/assets/commands/` |
+| 技能 | 37 | `src/assets/skills/`、`src/schemas/ae-asset-schema.ts` |
+| 命令 | 40 | `src/services/command-registration.ts`、`src/assets/commands/` |
 | 代理 | 40 | `src/assets/agents/`、`src/services/agent-registration.ts` |
 | 工具 | 25 | `src/tools/` |
 | 规则 | 5 | `src/assets/rules/` |

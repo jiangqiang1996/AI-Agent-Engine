@@ -35,6 +35,7 @@ export const SKILL = {
   PDF: 'ae:pdf',
   PPTX: 'ae:pptx',
   XLSX: 'ae:xlsx',
+  PROMPT_OPTIMIZE: 'ae:prompt-optimize',
   HELP: 'ae:help',
   UPDATE: 'ae:update',
 } as const
@@ -175,6 +176,7 @@ export const AeSkillNameSchema = z
     SKILL.PDF,
     SKILL.PPTX,
     SKILL.XLSX,
+    SKILL.PROMPT_OPTIMIZE,
     SKILL.HELP,
     SKILL.UPDATE,
   ])

@@ -28,6 +28,7 @@
 | 静态服务器 | `/ae-static-server` |
 | 构建或查询项目关系图谱 | `/ae-graph-build`、`/ae-graph-query` |
 | 保存经验 | `/ae-save-experience` |
+| 提示词优化 | `/ae-prompt-optimize` |
 | 交接到新会话 | `/ae-handoff` |
 | 查看完整帮助 | `/ae-help` |
 
@@ -133,6 +134,7 @@
 | `/ae-graph-build` | `[target:<PATH>] [mode:auto\|full\|incremental] [depth:shallow] [include:<PATH>...] [exclude:<PATH>...]` | 构建或增量维护项目文件关系图谱 | `include` 优先于 `exclude`，但不覆盖安全硬排除 |
 | `/ae-graph-query` | `[mode:deps\|impact\|health\|filter\|path\|core\|stats\|pattern] [file:<PATH>] [target:<PATH>]` | 查询依赖、影响范围、核心模块和健康状态 | 图谱缺失时先构建 |
 | `/ae-save-experience` | `[经验摘要\|保存目标]` | 保存 solution，并按需提炼 rules | 不把临时结论直接当长期规则 |
+| `/ae-prompt-optimize` | `[提示词内容]` | 优化提示词并通过 ae-create-session 新开会话自动执行或暂停等待 | 禁止与原始逻辑违背 |
 | `/ae-agent-creator` | `[代理用途\|代理名称] [--global] [--command]` | 创建或更新 OpenCode 原生代理 | 默认项目级；全局级需显式指定 |
 | `/ae-skill-creator` | `<技能名或需求描述> [--global] [--no-command\|--command-only] [--from-session]` | 创建或更新 OpenCode 原生技能和命令 | 支持技能、命令或二者同时创建；`--from-session` 从当前会话沉淀技能 |
 | `/ae-help` | `[技能名或关键词]` | 查看运行时能力清单 | 权威只读入口 |

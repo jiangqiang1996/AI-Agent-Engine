@@ -92,6 +92,12 @@ describe('ae-asset-schema', () => {
     expect(registry[TOOL.AE_DOC_EXTRACT]).toHaveProperty('execute')
   })
 
+  it('接受提示词优化技能并派生命令名', () => {
+    expect(AeSkillNameSchema.parse(SKILL.PROMPT_OPTIMIZE)).toBe('ae:prompt-optimize')
+    expect(COMMAND.PROMPT_OPTIMIZE).toBe('ae-prompt-optimize')
+    expect(AeCommandNameSchema.parse(COMMAND.PROMPT_OPTIMIZE)).toBe('ae-prompt-optimize')
+  })
+
   it('不应该重新注册已废弃的浏览器环境入口', () => {
     const deprecatedSkill = ['ae', ':', 'setup'].join('')
     const deprecatedCommand = ['ae', '-', 'setup'].join('')

@@ -39,6 +39,10 @@ describe('asset-model-routing-catalog', () => {
     expect(getCommandModelScenario(COMMAND.WORK_REPORT)).toBe(MODEL_SCENARIO.STANDARD)
   })
 
+  it('prompt-optimize 命令应该引用 standard 场景', () => {
+    expect(getCommandModelScenario(COMMAND.PROMPT_OPTIMIZE)).toBe(MODEL_SCENARIO.STANDARD)
+  })
+
   it('html-bundle 命令应该引用 standard 场景', () => {
     expect(getCommandModelScenario(COMMAND.HTML_BUNDLE)).toBe(MODEL_SCENARIO.STANDARD)
   })
