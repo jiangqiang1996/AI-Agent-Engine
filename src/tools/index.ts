@@ -10,6 +10,7 @@ import { aeHelpTool } from './ae-help.tool.js'
 import { aeReviewProofTool } from './ae-review-proof.tool.js'
 import { aeSwaggerParserTool } from './ae-swagger-parser.tool.js'
 import { aeHtmlBundleTool } from './ae-html-bundle.tool.js'
+import { aeLibreofficeTool } from './ae-libreoffice.tool.js'
 import { aeImageTool } from './ae-image.tool.js'
 import { aeGraphBuildTool } from './ae-graph-build.tool.js'
 import { aeGraphQueryTool } from './ae-graph-query.tool.js'
@@ -37,6 +38,7 @@ export function createToolRegistry(): Record<string, ToolDefinition> {
     [TOOL.AE_REVIEW_PROOF]: aeReviewProofTool,
     [TOOL.AE_SWAGGER_PARSER]: aeSwaggerParserTool,
     [TOOL.AE_HTML_BUNDLE]: aeHtmlBundleTool,
+    [TOOL.AE_LIBREOFFICE]: aeLibreofficeTool,
 
     [TOOL.AE_IMAGE]: aeImageTool,
     [TOOL.AE_GRAPH_BUILD]: aeGraphBuildTool,
