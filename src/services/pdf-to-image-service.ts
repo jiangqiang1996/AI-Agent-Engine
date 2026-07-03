@@ -1,8 +1,13 @@
-import { mkdirSync, writeFileSync } from 'node:fs'
-import { join, resolve, basename } from 'node:path'
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
+import { join, resolve, basename, dirname } from 'node:path'
+import { createRequire } from 'node:module'
+import { pathToFileURL } from 'node:url'
+
+const require = createRequire(import.meta.url)
 
 let pdfjsModule: any = null
 let canvasModule: any = null
+let workerInitialized = false
 
 async function getPdfjsModule(): Promise<any> {
   if (!pdfjsModule) {
@@ -16,7 +21,76 @@ async function getPdfjsModule(): Promise<any> {
       }
     }
   }
+
+  if (!workerInitialized && pdfjsModule.GlobalWorkerOptions) {
+    const success = await setupPdfjsWorker(pdfjsModule)
+    if (success) {
+      workerInitialized = true
+    }
+  }
+
   return pdfjsModule
+}
+
+/**
+ * Node.js 环境下配置 pdfjs worker，避免 "No GlobalWorkerOptions.workerSrc specified" 错误。
+ * 按优先级尝试两种方案：file:// URL workerSrc、空字符串降级（fake worker）。
+ * 返回 true 表示成功配置，false 表示降级（后续调用可重试）。
+ *
+ * 注意：不使用 node:worker_threads Worker 方案，因为 pdfjs worker.mjs
+ * 依赖 fetch/Response 等 Web API，worker_threads 不提供这些。
+ */
+async function setupPdfjsWorker(pdfjs: any): Promise<boolean> {
+  // 方案1：设置 workerSrc 为 file:// URL（最可靠）
+  const workerPath = resolveWorkerPath()
+  if (workerPath) {
+    try {
+      pdfjs.GlobalWorkerOptions.workerSrc = pathToFileURL(workerPath).href
+      return true
+    } catch {
+      // file:// URL 设置失败，继续降级
+    }
+  }
+
+  // 方案2：空字符串，让 pdfjs 使用 fake worker（最后手段）
+  pdfjs.GlobalWorkerOptions.workerSrc = ''
+  return false
+}
+
+/**
+ * 解析 pdfjs worker 模块路径，兼容 legacy/build、build、.mjs、.js 多种结构。
+ */
+function resolveWorkerPath(): string | null {
+  const candidates = [
+    'pdfjs-dist/legacy/build/pdf.worker.mjs',
+    'pdfjs-dist/build/pdf.worker.mjs',
+    'pdfjs-dist/legacy/build/pdf.worker.js',
+    'pdfjs-dist/build/pdf.worker.js',
+  ]
+
+  for (const candidate of candidates) {
+    try {
+      const resolved = require.resolve(candidate)
+      if (resolved && existsSync(resolved)) return resolved
+    } catch {
+      // 继续尝试下一个候选路径
+    }
+  }
+
+  // 从主模块路径推断 worker 路径
+  for (const mainModule of ['pdfjs-dist/legacy/build/pdf.mjs', 'pdfjs-dist/build/pdf.mjs']) {
+    try {
+      const mainPath = require.resolve(mainModule)
+      for (const workerName of ['pdf.worker.mjs', 'pdf.worker.js']) {
+        const workerPath = join(dirname(mainPath), workerName)
+        if (existsSync(workerPath)) return workerPath
+      }
+    } catch {
+      // 继续
+    }
+  }
+
+  return null
 }
 
 async function getCanvasModule(): Promise<any> {
@@ -66,7 +140,6 @@ export async function pdfToImages(options: PdfToImageOptions): Promise<string[]>
   const { filePath, outputDir, pageIndices, scale = 2.0 } = options
 
   const pdfjs = await getPdfjsModule()
-  pdfjs.GlobalWorkerOptions.workerSrc = ''
 
   const canvasApi = await getCanvasModule()
   const canvasFactory = new NodeCanvasFactory(canvasApi)
