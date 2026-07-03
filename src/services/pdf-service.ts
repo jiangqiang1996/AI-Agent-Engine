@@ -13,10 +13,51 @@ import { generateDocumentOutputPath } from '../utils/document-output-path.js'
 import { isInsideRoot } from '../utils/path-utils.js'
 
 const require = createRequire(import.meta.url)
-const PdfParseModule = require('pdf-parse') as {
+
+/**
+ * pdf-parse 模块类型
+ */
+type PdfParseModule = {
   PDFParse: new (opts: { data: Buffer }) => {
     getText: () => Promise<{ text: string; total: number }>
   }
+}
+
+/**
+ * 延迟加载 pdf-parse，并在调用后备份/还原 global.Path2D 等全局变量。
+ *
+ * pdf-parse 内部通过 fake worker 加载 @napi-rs/canvas 时会设置
+ * global.Path2D / global.DOMMatrix / global.ImageData（@napi-rs/canvas 原生版）。
+ * 这会导致后续 pdfjs-dist 渲染 PDF 时误用 canvas 的 Path2D
+ * 替代浏览器 Path2D，触发 "Value is none of these types `String`, `Path`" 错误。
+ *
+ * 策略：在 require pdf-parse 前保存受影响的全局变量，require 后立即还原。
+ * 这样 extract-text 调用不会污染后续 to-image 渲染。
+ */
+let pdfParseModule: PdfParseModule | null = null
+
+const PDF_PARSE_GLOBAL_KEYS = ['Path2D', 'DOMMatrix', 'ImageData'] as const
+
+function getPdfParseModule(): PdfParseModule {
+  if (!pdfParseModule) {
+    const savedGlobals: Record<string, unknown> = {}
+    for (const key of PDF_PARSE_GLOBAL_KEYS) {
+      savedGlobals[key] = (globalThis as Record<string, unknown>)[key]
+    }
+    try {
+      pdfParseModule = require('pdf-parse') as PdfParseModule
+    } finally {
+      for (const key of PDF_PARSE_GLOBAL_KEYS) {
+        const saved = savedGlobals[key]
+        if (saved === undefined) {
+          delete (globalThis as Record<string, unknown>)[key]
+        } else {
+          ;(globalThis as Record<string, unknown>)[key] = saved
+        }
+      }
+    }
+  }
+  return pdfParseModule
 }
 
 /** RGB 颜色，分量范围 0-1 */
@@ -527,7 +568,7 @@ async function handleExtractText(input: PdfInput): Promise<PdfResult> {
     throw new Error('extract-text 操作需要 file 参数')
   }
   const dataBuffer = readFileSync(file)
-  const parser = new PdfParseModule.PDFParse({ data: dataBuffer })
+  const parser = new (getPdfParseModule().PDFParse)({ data: dataBuffer })
   const data = await parser.getText()
 
   return {
