@@ -220,7 +220,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   {
     skillName: SKILL.PROMPT_OPTIMIZE,
     commandName: COMMAND.PROMPT_OPTIMIZE,
-    description: '提示词优化工具：分析用户提示词与当前工作空间相关性后做最小优化，经用户确认后通过 ae-create-session 新开会话自动执行或暂停等待，禁止与原始逻辑违背',
+    description: '提示词优化工具：分析相关性后做最小优化，经确认后新开会话执行；当原始提示词不清晰或信息不足时，先追问澄清意图再优化，禁止与原始逻辑违背',
     argumentHint: '[提示词内容]',
     skillFile: `src/assets/skills/${skillDir(SKILL.PROMPT_OPTIMIZE)}/SKILL.md`,
   },
@@ -276,7 +276,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   {
     skillName: SKILL.GRILL,
     commandName: COMMAND.GRILL,
-    description: '面试式追问计划或设计决策，逐个问题压力测试直到达成共识',
+    description: '深度追问方案决策，一问一答推进共识；适用于用户提示词模糊信息不明确需要逐层澄清的场景，以及对已有计划或设计做构建前压力测试',
     argumentHint: '[计划文档路径|设计文档路径|方案描述]',
     skillFile: `src/assets/skills/${skillDir(SKILL.GRILL)}/SKILL.md`,
   },
