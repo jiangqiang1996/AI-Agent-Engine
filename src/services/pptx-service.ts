@@ -381,14 +381,28 @@ function toUnderlineProps(u?: { style?: string; color?: string }) {
   return r
 }
 
-function buildTextRuns(runs?: PptxTextRun[]): unknown[] | undefined {
+/**
+ * 构建文本运行数组，供 pptxgenjs addText 使用。
+ *
+ * pptxgenjs 对 textRuns 中未显式设置 color 的 run 会回退到主题默认色（Office Theme dk1 = #000000），
+ * 而不会继承元素级别 options 中的 color。这导致暗色背景幻灯片上大量正文文字变成不可见的纯黑。
+ *
+ * 修复策略：当元素级别设置了 color 但某个 run 未显式设置 color 时，将元素级 color 传播到该 run，
+ * 确保颜色不回退到主题默认黑色。
+ */
+function buildTextRuns(runs?: PptxTextRun[], elementColor?: string): unknown[] | undefined {
   if (!runs) return undefined
   return runs.map((run) => {
     const r: Record<string, unknown> = { text: run.text }
     if (run.bold !== undefined) r.bold = run.bold
     if (run.italic !== undefined) r.italic = run.italic
     if (run.fontSize !== undefined) r.fontSize = run.fontSize
-    if (run.color) r.color = run.color
+    // 若 run 未显式设置 color 但元素级别有 color，传播到 run 防止回退到主题默认黑色
+    if (run.color) {
+      r.color = run.color
+    } else if (elementColor) {
+      r.color = elementColor
+    }
     if (run.fontFace) r.fontFace = run.fontFace
     if (run.align) r.align = run.align
     if (run.valign) r.valign = run.valign
@@ -550,7 +564,7 @@ function buildMediaOptions(el: PptxInputElement): Record<string, unknown> {
 function drawElement(slide: PptxSlideInstance, el: PptxInputElement): void {
   switch (el.type) {
     case 'text': {
-      const textContent = el.textRuns ? buildTextRuns(el.textRuns) : (el.text ?? '')
+      const textContent = el.textRuns ? buildTextRuns(el.textRuns, el.color) : (el.text ?? '')
       const options = buildTextOptions(el)
       slide.addText(textContent as string, options)
       break

@@ -353,6 +353,7 @@ async function drawElement(
       const font = await getFont(doc, fontName, fontCache, customCjkFontPath, worktree)
       const size = el.fontSize ?? 12
       // toColor 已内置防御性归一化（值>1时自动从0-255范围归一化到0-1）
+      // 默认黑色适用于白底 PDF（常见场景）；暗背景 PDF 必须显式设置 color
       const color = toColor(el.color) ?? rgb(0, 0, 0)
       const lines = textContent.split('\n')
       const lineHeight = el.lineHeight ?? size + 6
