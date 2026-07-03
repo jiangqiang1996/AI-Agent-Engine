@@ -283,15 +283,15 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   {
     skillName: SKILL.INSTALL,
     commandName: COMMAND.INSTALL,
-    description: '安装或更新 AE 插件，自动判断已装则更新、未装则安装；支持全局和项目级两种范围',
+    description: '安装或更新 AE 插件，自动判断已装则更新、未装则安装；不传参数默认全局，一次授权直接执行',
     argumentHint: '[global|project]',
     skillFile: `src/assets/skills/${skillDir(SKILL.INSTALL)}/SKILL.md`,
   },
   {
     skillName: SKILL.UNINSTALL,
     commandName: COMMAND.UNINSTALL,
-    description: '卸载 AE 插件，删除桥接文件和克隆的仓库目录；支持全局和项目级两种范围',
-    argumentHint: '[global|project]',
+    description: '卸载 AE 插件，自动检测已安装范围后让用户选择卸载全局或项目级；一次授权直接执行',
+    argumentHint: '',
     skillFile: `src/assets/skills/${skillDir(SKILL.UNINSTALL)}/SKILL.md`,
   },
 ]

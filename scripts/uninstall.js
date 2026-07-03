@@ -3,32 +3,21 @@
 /**
  * AE 插件卸载脚本
  *
- * 用法：node scripts/uninstall.js [global|project]
- * - global（默认）：卸载 ~/.config/opencode/ai-agent-engine
- * - project：卸载 <当前项目根目录>/.opencode/ai-agent-engine
+ * 用法：
+ *   node scripts/uninstall.js --detect          输出安装状态 JSON（供 LLM 解析）
+ *   node scripts/uninstall.js --scope global --yes   卸载全局安装（跳过确认）
+ *   node scripts/uninstall.js --scope project --yes  卸载项目级安装（跳过确认）
+ *   node scripts/uninstall.js [global|project]       交互式卸载（默认）
  *
- * 删除桥接文件和克隆的仓库目录。
- * 脚本内置交互式 confirm，删除操作前会在终端等待用户确认。
+ * --detect：只检测安装状态，输出 JSON，不执行任何删除操作
+ * --scope <global|project>：指定卸载范围（可多次使用卸载多个范围）
+ * --yes / -y：跳过所有交互式确认，直接执行删除
  */
 
 import { existsSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 import { createInterface } from 'node:readline'
-
-const __dirname = dirname(fileURLToPath(import.meta.url))
-
-const rl = createInterface({ input: process.stdin, output: process.stdout })
-
-function confirm(message) {
-  return new Promise((resolve) => {
-    rl.question(`${message} [y/N] `, (answer) => {
-      const normalized = answer.trim().toLowerCase()
-      resolve(normalized === 'y' || normalized === 'yes')
-    })
-  })
-}
 
 function getPaths(scope) {
   const home = process.env[process.platform === 'win32' ? 'USERPROFILE' : 'HOME']
@@ -50,10 +39,35 @@ function getPaths(scope) {
   }
 }
 
-async function main() {
-  const arg = process.argv[2] || 'global'
-  const scope = arg === 'project' ? 'project' : 'global'
+function detectStatus() {
+  const scopes = ['global', 'project']
+  const result = {}
+  for (const scope of scopes) {
+    const paths = getPaths(scope)
+    const bridgeExists = existsSync(paths.bridgeFile)
+    const repoExists = existsSync(paths.repoDir)
+    const installed = bridgeExists || repoExists
+    result[scope] = { installed, bridgeExists, repoExists, bridgeFile: paths.bridgeFile, repoDir: paths.repoDir }
+  }
+  return result
+}
 
+function makeConfirm(autoYes) {
+  if (autoYes) {
+    return async () => true
+  }
+  const rl = createInterface({ input: process.stdin, output: process.stdout })
+  return async (message) => {
+    return new Promise((resolve) => {
+      rl.question(`${message} [y/N] `, (answer) => {
+        const normalized = answer.trim().toLowerCase()
+        resolve(normalized === 'y' || normalized === 'yes')
+      })
+    })
+  }
+}
+
+async function uninstallScope(scope, confirmFn) {
   const paths = getPaths(scope)
   console.log(`AE 插件卸载（${scope === 'project' ? '项目级' : '全局'}）`)
   console.log(`仓库目录: ${paths.repoDir}`)
@@ -63,8 +77,7 @@ async function main() {
   const repoExists = existsSync(paths.repoDir)
 
   if (!bridgeExists && !repoExists) {
-    console.log('\n未检测到 AE 插件安装，无需卸载。')
-    rl.close()
+    console.log(`\n未检测到 AE 插件安装（${scope === 'project' ? '项目级' : '全局'}），无需卸载。`)
     return
   }
 
@@ -72,10 +85,9 @@ async function main() {
   if (bridgeExists) targets.push(`桥接文件: ${paths.bridgeFile}`)
   if (repoExists) targets.push(`仓库目录: ${paths.repoDir}`)
 
-  const authorized = await confirm(`将删除以下内容:\n  ${targets.join('\n  ')}\n是否继续卸载？`)
+  const authorized = await confirmFn(`将删除以下内容:\n  ${targets.join('\n  ')}\n是否继续卸载？`)
   if (!authorized) {
     console.log('用户取消卸载。')
-    rl.close()
     return
   }
 
@@ -89,14 +101,46 @@ async function main() {
     console.log(`仓库目录已删除: ${paths.repoDir}`)
   }
 
-  rl.close()
   console.log(`\nAE 插件已卸载完成（${scope === 'project' ? '项目级' : '全局'}）`)
   console.log('请重启 opencode 以使变更生效。')
   console.log('验证方式：重启后尝试 /ae-help，该命令不再可用即表示卸载成功。')
 }
 
+function parseArgs(argv) {
+  const detect = argv.includes('--detect')
+  const yes = argv.includes('--yes') || argv.includes('-y')
+  const scopes = []
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === '--scope' && argv[i + 1]) {
+      scopes.push(argv[i + 1] === 'project' ? 'project' : 'global')
+      i++
+    }
+  }
+  if (scopes.length === 0) {
+    const positional = argv.filter((a) => !a.startsWith('-'))
+    const arg = positional[0] || 'global'
+    scopes.push(arg === 'project' ? 'project' : 'global')
+  }
+  return { detect, yes, scopes }
+}
+
+async function main() {
+  const { detect, yes: autoYes, scopes } = parseArgs(process.argv.slice(2))
+
+  if (detect) {
+    const status = detectStatus()
+    console.log(JSON.stringify(status, null, 2))
+    return
+  }
+
+  const confirmFn = makeConfirm(autoYes)
+
+  for (const scope of scopes) {
+    await uninstallScope(scope, confirmFn)
+  }
+}
+
 main().catch((err) => {
   console.error('卸载失败:', err.message)
-  rl.close()
   process.exit(1)
 })

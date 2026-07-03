@@ -10,33 +10,25 @@ AE 不要求业务项目采用本仓库结构。面向用户的运行时能力�
 
 把以下指令复制给 opencode AI 代理执行即可完成安装或更新：
 
-全局安装或更新：
-
 ```text
-Fetch and follow the global install instructions from https://gitee.com/jiangqiang1996/ai-agent-engine/raw/master/docs/INSTALL.md
+使用 ae:install 技能安装 AE 插件
 ```
 
 项目级安装或更新：
 
 ```text
-Fetch and follow the project-level install instructions from https://gitee.com/jiangqiang1996/ai-agent-engine/raw/master/docs/INSTALL.md
+使用 ae:install 技能安装 AE 插件（项目级），参数：project
 ```
 
-> 脚本会自动判断：已安装则更新，未安装则全新安装。脚本内置交互式 confirm，destructive 操作前会在终端等待确认。
+> 不传参数默认全局安装。脚本会自动判断：已安装则更新，未安装则全新安装。一次授权后直接执行，无需二次确认。
 
 ### 卸载
 
-全局卸载：
-
 ```text
-Fetch and follow the global uninstall instructions from https://gitee.com/jiangqiang1996/ai-agent-engine/raw/master/docs/INSTALL.md
+使用 ae:uninstall 技能卸载 AE 插件
 ```
 
-项目级卸载：
-
-```text
-Fetch and follow the project-level uninstall instructions from https://gitee.com/jiangqiang1996/ai-agent-engine/raw/master/docs/INSTALL.md
-```
+> 技能会自动检测全局和项目级安装状态，让你选择卸载范围。一次授权后直接执行，无需二次确认。
 
 ### 验证
 
@@ -201,17 +193,13 @@ AE 默认注入两个远程 MCP：
 /ae-install project
 ```
 
-卸载：
+卸载（自动检测安装范围，让你选择）：
 
 ```text
-# 全局（默认）
 /ae-uninstall
-
-# 项目级
-/ae-uninstall project
 ```
 
-`/ae-install` 和 `/ae-uninstall` 面向 AE 插件安装或源码维护目录。脚本内置交互式 confirm，涉及 `git reset --hard`、`git clean`、`git pull`、删除目录等 destructive 操作前会在终端等待用户确认。
+`/ae-install` 和 `/ae-uninstall` 面向 AE 插件安装或源码维护目录。一次授权后直接执行，无需二次确认。
 
 ## 开发
 

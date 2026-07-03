@@ -27,13 +27,18 @@ AE 支持两种安装模式：
 
 不传参数时默认执行全局安装。传入 `project` 时执行项目级安装。
 
-### 脚本自动完成
+### 流程说明
 
-`scripts/install.js` 会自动完成以下全部步骤：
+技能流程为：**一次授权确认 → 直接执行脚本**，无需二次确认。
+
+1. 技能确定安装范围（默认全局）
+2. 使用 question 工具向用户确认授权（包含路径和操作说明）
+3. 用户确认后执行 `node scripts/install.js --yes <scope>`
+
+`scripts/install.js --yes` 会跳过脚本内交互式确认，自动完成以下全部步骤：
 
 1. **检测安装状态**：判断目标目录是否已存在且是 git 仓库
 2. **已安装时（更新流程）**：
-   - 通过交互式 confirm 请求用户授权
    - `git reset --hard HEAD` + `git clean -fd --exclude=node_modules` + `git pull`
    - `npm install` + `npm run build`
    - 重新写入 server 桥接文件
@@ -41,8 +46,6 @@ AE 支持两种安装模式：
    - `git clone` 克隆仓库到目标目录
    - `npm install` + `npm run build`
    - 创建 server 桥接文件，指向 `dist/src/index.js`
-
-> 脚本内置交互式 confirm，destructive 操作前会在终端等待用户确认。
 
 ### 手动安装或更新
 
@@ -79,21 +82,21 @@ node scripts/install.js project
 使用 `ae:uninstall` 技能（或 `/ae-uninstall` 命令）：
 
 ```text
-# 全局卸载（默认）
 /ae-uninstall
-
-# 项目级卸载
-/ae-uninstall project
 ```
 
-### 脚本自动完成
+**不需要传入参数**。技能流程为：
 
-`scripts/uninstall.js` 会自动完成以下全部步骤：
+1. 自动检测全局和项目级安装状态（执行 `node scripts/uninstall.js --detect`）
+2. 使用 question 工具让用户选择卸载范围（全局、项目级、两者、或不卸载）
+3. 使用 question 工具一次性确认授权
+4. 用户确认后执行 `node scripts/uninstall.js --scope <scope> --yes`
+
+`scripts/uninstall.js --yes` 会跳过脚本内交互式确认，自动完成以下全部步骤：
 
 1. **检测安装状态**：判断桥接文件和仓库目录是否存在
-2. **通过交互式 confirm 请求用户授权**
-3. **删除桥接文件**：移除 `ae-server.js`
-4. **删除仓库目录**：移除克隆的 `ai-agent-engine` 目录
+2. **删除桥接文件**：移除 `ae-server.js`
+3. **删除仓库目录**：移除克隆的 `ai-agent-engine` 目录
 
 ### 手动卸载
 
@@ -113,6 +116,12 @@ cd .opencode/ai-agent-engine
 node scripts/uninstall.js project
 ```
 
+#### 检测安装状态
+
+```bash
+node scripts/uninstall.js --detect
+```
+
 > 卸载过程不会影响用户的 `opencode.json` 配置。
 
 ---
@@ -122,4 +131,4 @@ node scripts/uninstall.js project
 - 不要为非 opencode 运行时写安装配置
 - 项目级安装和全局安装可以共存，项目级优先加载
 - Windows 环境下 `~` 对应 `%USERPROFILE%`，`~/.config/opencode/` 实际路径为 `%USERPROFILE%\.config\opencode\`
-- 脚本内置交互式 confirm，所有 destructive 操作前会在终端等待用户确认
+- `/ae-install` 和 `/ae-uninstall` 一次授权后直接执行，无需二次确认
