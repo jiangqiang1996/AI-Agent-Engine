@@ -6,21 +6,37 @@ AE 不要求业务项目采用本仓库结构。面向用户的运行时能力�
 
 ## 快速开始
 
-### 安装
+### 安装或更新
 
-全局安装时，把这句话交给 opencode AI 代理执行：
+把以下指令复制给 opencode AI 代理执行即可完成安装或更新：
+
+全局安装或更新：
 
 ```text
 Fetch and follow the global install instructions from https://gitee.com/jiangqiang1996/ai-agent-engine/raw/master/docs/INSTALL.md
 ```
 
-项目级安装时，把这句话交给 opencode AI 代理执行：
+项目级安装或更新：
 
 ```text
 Fetch and follow the project-level install instructions from https://gitee.com/jiangqiang1996/ai-agent-engine/raw/master/docs/INSTALL.md
 ```
 
-安装前如果当前 opencode 环境已有 `oh-my-openagent`、`oh-my-opencode` 或 `superpowers`，先确认是否存在命令、规则或插件冲突。
+> 脚本会自动判断：已安装则更新，未安装则全新安装。脚本内置交互式 confirm，destructive 操作前会在终端等待确认。
+
+### 卸载
+
+全局卸载：
+
+```text
+Fetch and follow the global uninstall instructions from https://gitee.com/jiangqiang1996/ai-agent-engine/raw/master/docs/INSTALL.md
+```
+
+项目级卸载：
+
+```text
+Fetch and follow the project-level uninstall instructions from https://gitee.com/jiangqiang1996/ai-agent-engine/raw/master/docs/INSTALL.md
+```
 
 ### 验证
 
@@ -99,7 +115,6 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 接口测试 | `/ae-api-tester` |
 | Swagger/OpenAPI 摘要 | `/ae-swagger-parser` |
 | HTML 单文件打包 | `/ae-html-bundle` |
-| HTML 转 PPTX | `/ae-html-to-pptx` |
 | 图片转 Markdown 描述 | `/ae-image` |
 | 创建或编辑 DOCX | `/ae-docx` |
 | 创建或编辑 PDF | `/ae-pdf` |
@@ -113,7 +128,8 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 创建技能 | `/ae-skill-creator` |
 | 提示词优化 | `/ae-prompt-optimize` |
 | 创建代理 | `/ae-agent-creator` |
-| 更新 AE 插件 | `/ae-update` |
+| 安装或更新 AE 插件 | `/ae-install` |
+| 卸载 AE 插件 | `/ae-uninstall` |
 
 详细参数、代理分工、工具边界和产物路径见 [docs/usage-guide.md](docs/usage-guide.md)。配置合并和模型场景路由见 [docs/builtin-config.md](docs/builtin-config.md)。
 
@@ -132,8 +148,8 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 
 | 类型 | 当前快照 | 真源 |
 | --- | ---: | --- |
-| 技能 | 37 | `src/assets/skills/`、`src/schemas/ae-asset-schema.ts` |
-| 命令 | 40 | `src/services/command-registration.ts`、`src/assets/commands/` |
+| 技能 | 39 | `src/assets/skills/`、`src/schemas/ae-asset-schema.ts` |
+| 命令 | 42 | `src/services/command-registration.ts`、`src/assets/commands/` |
 | 代理 | 40 | `src/assets/agents/`、`src/services/agent-registration.ts` |
 | 工具 | 25 | `src/tools/` |
 | 规则 | 5 | `src/assets/rules/` |
@@ -175,29 +191,27 @@ AE 默认注入两个远程 MCP：
 
 ## 更新与卸载
 
-全局更新：
+安装或更新（自动判断已装则更新、未装则安装）：
 
 ```text
-/ae-update
+# 全局（默认）
+/ae-install
+
+# 项目级
+/ae-install project
 ```
 
-项目级更新：
+卸载：
 
 ```text
-/ae-update project
+# 全局（默认）
+/ae-uninstall
+
+# 项目级
+/ae-uninstall project
 ```
 
-`/ae-update` 面向 AE 插件安装或源码维护目录。涉及 `git reset --hard`、`git clean`、`git pull` 等本地 Git 写操作前，必须确认目标仓库和授权范围。
-
-卸载时，把对应指令交给 opencode AI 代理执行：
-
-```text
-Fetch and follow the global uninstall instructions from https://gitee.com/jiangqiang1996/ai-agent-engine/raw/master/docs/INSTALL.md
-```
-
-```text
-Fetch and follow the project-level uninstall instructions from https://gitee.com/jiangqiang1996/ai-agent-engine/raw/master/docs/INSTALL.md
-```
+`/ae-install` 和 `/ae-uninstall` 面向 AE 插件安装或源码维护目录。脚本内置交互式 confirm，涉及 `git reset --hard`、`git clean`、`git pull`、删除目录等 destructive 操作前会在终端等待用户确认。
 
 ## 开发
 
@@ -227,6 +241,6 @@ Fetch and follow the project-level uninstall instructions from https://gitee.com
 | --- | --- |
 | [docs/usage-guide.md](docs/usage-guide.md) | 用户手册、经典用法、能力说明、代理、工具、产物路径 |
 | [docs/builtin-config.md](docs/builtin-config.md) | MCP、`ae.jsonc`、模型场景路由和覆盖规则 |
-| [docs/INSTALL.md](docs/INSTALL.md) | 安装、更新、卸载代理执行说明 |
+| [docs/INSTALL.md](docs/INSTALL.md) | 安装或更新、卸载代理执行说明 |
 | [docs/development.md](docs/development.md) | 本仓库开发规范、架构和测试 |
 | `/ae-help` | 当前运行时权威帮助 |

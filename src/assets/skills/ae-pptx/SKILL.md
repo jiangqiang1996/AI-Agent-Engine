@@ -1,7 +1,7 @@
 ---
 name: ae:pptx
 description: "所有涉及 .pptx 文件的读取、创建、编辑、分析、格式转换和视觉验证操作都必须使用本技能。包括：创建演示文稿、编辑现有 PPTX、分析幻灯片结构、追加幻灯片、更新单张幻灯片、将 PPTX 转为 Markdown 阅读、将 PPTX 转为图片进行视觉验证。禁止使用 Read 或 bash 直接读取 .pptx 文件内容，必须通过本技能的 to-markdown 或 analyze 操作。创建或修改 PPTX 后必须通过 to-image 操作进行视觉验证。"
-argument-hint: "[创建|编辑|分析|追加|更新|视觉验证] [文件路径] [任务描述]"
+argument-hint: "[创建|编辑|分析|追加|更新] [文件路径] [任务描述]"
 ---
 
 # ae:pptx — PowerPoint 演示文稿处理

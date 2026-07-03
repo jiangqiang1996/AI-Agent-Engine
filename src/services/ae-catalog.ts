@@ -220,7 +220,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   {
     skillName: SKILL.PROMPT_OPTIMIZE,
     commandName: COMMAND.PROMPT_OPTIMIZE,
-    description: '提示词优化工具：分析相关性后做最小优化，经确认后新开会话执行；当原始提示词不清晰或信息不足时，先追问澄清意图再优化，禁止与原始逻辑违背',
+    description: '提示词优化工具：分析用户提示词与当前工作空间相关性后做最小优化，经用户确认后通过 ae-create-session 新开会话自动执行或暂停等待，禁止与原始逻辑违背。当用户原始提示词不清晰、模糊或信息不足时，先通过追问澄清意图再优化。',
     argumentHint: '[提示词内容]',
     skillFile: `src/assets/skills/${skillDir(SKILL.PROMPT_OPTIMIZE)}/SKILL.md`,
   },
@@ -281,11 +281,18 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillFile: `src/assets/skills/${skillDir(SKILL.GRILL)}/SKILL.md`,
   },
   {
-    skillName: SKILL.UPDATE,
-    commandName: COMMAND.UPDATE,
-    description: '拉取 AE 插件最新代码并重新构建，完成本地更新',
-    argumentHint: '[project]',
-    skillFile: `src/assets/skills/${skillDir(SKILL.UPDATE)}/SKILL.md`,
+    skillName: SKILL.INSTALL,
+    commandName: COMMAND.INSTALL,
+    description: '安装或更新 AE 插件，自动判断已装则更新、未装则安装；支持全局和项目级两种范围',
+    argumentHint: '[global|project]',
+    skillFile: `src/assets/skills/${skillDir(SKILL.INSTALL)}/SKILL.md`,
+  },
+  {
+    skillName: SKILL.UNINSTALL,
+    commandName: COMMAND.UNINSTALL,
+    description: '卸载 AE 插件，删除桥接文件和克隆的仓库目录；支持全局和项目级两种范围',
+    argumentHint: '[global|project]',
+    skillFile: `src/assets/skills/${skillDir(SKILL.UNINSTALL)}/SKILL.md`,
   },
 ]
 

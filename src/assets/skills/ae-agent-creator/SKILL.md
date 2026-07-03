@@ -116,4 +116,4 @@ node <skill-dir>/scripts/init_agent.mjs code-reviewer --global
 - 不跳过浏览器能力的 chrome-devtools MCP 门禁要求。
 - 不把 AE 插件源码仓库结构当作普通用户项目要求。
 - 不新增或引导寻找 `ae:agent-updater`；创建与更新都由 `ae:agent-creator` 承接。
-- 不把 `ae:update` 描述为代理内容更新器；它只属于 AE 插件安装或源码维护更新能力。
+- 不把 `ae:install` 描述为代理内容更新器；它只属于 AE 插件安装或源码维护能力。

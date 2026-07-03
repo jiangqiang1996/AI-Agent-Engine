@@ -140,7 +140,8 @@
 | `/ae-agent-creator` | `[代理用途\|代理名称] [--global] [--command]` | 创建或更新 OpenCode 原生代理 | 默认项目级；全局级需显式指定 |
 | `/ae-skill-creator` | `<技能名或需求描述> [--global] [--no-command\|--command-only] [--from-session]` | 创建或更新 OpenCode 原生技能和命令 | 支持技能、命令或二者同时创建；`--from-session` 从当前会话沉淀技能 |
 | `/ae-help` | `[技能名或关键词]` | 查看运行时能力清单 | 权威只读入口 |
-| `/ae-update` | `[project]` | 更新 AE 插件安装 | 只用于 AE 插件维护语境 |
+| `/ae-install` | `[global\|project]` | 安装或更新 AE 插件 | 自动判断已装则更新、未装则安装 |
+| `/ae-uninstall` | `[global\|project]` | 卸载 AE 插件 | 删除桥接文件和仓库目录 |
 
 ## 非技能基础命令
 
@@ -299,7 +300,7 @@ AE 默认提供 `context7` 和 `gh_grep` 两个远程 MCP。项目级 `.opencode
 | Git 写操作 | 提交、拉取、重置、清理、变基、推送都需要明确授权；`/ae-commit` 只代表本地提交 |
 | 远程协作 | 用户侧流程不提供 push、创建 PR、创建 Issue 或 Release 的远程写流程 |
 | 浏览器操作 | 实际执行任何 chrome-devtools-mcp 工具前必须先通过 `/ae-chrome-devtools` 完成 MCP 动态注册并确认连接就绪 |
-| 插件维护 | `/ae-update` 面向 AE 插件安装或源码维护，不是普通业务项目更新流程 |
+| 插件维护 | `/ae-install`、`/ae-uninstall` 面向 AE 插件安装或源码维护，不是普通业务项目更新流程 |
 
 ## 查看最新帮助
 

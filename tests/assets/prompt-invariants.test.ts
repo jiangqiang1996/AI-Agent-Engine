@@ -77,9 +77,9 @@ const INVARIANTS: Invariant[] = [
     mustNotContain: ['ae:save-rules'],
   },
   {
-    file: 'src/assets/skills/ae-update/SKILL.md',
-    label: 'ae:update 跨 shell 转译',
-    mustContain: ['Windows PowerShell 环境不要原样执行 `rm -f`', '取得用户对这些文件系统操作的明确授权'],
+    file: 'src/assets/skills/ae-install/SKILL.md',
+    label: 'ae:install 脚本执行',
+    mustContain: ['scripts/install.js', '交互式 confirm'],
     mustNotContain: [],
   },
   {

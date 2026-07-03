@@ -1,7 +1,7 @@
 ---
 name: ae:docx
 description: "所有涉及 .docx 文件的读取、创建、编辑、分析、格式转换和视觉验证操作都必须使用本技能。包括：创建文档、编辑文本替换、分析段落和表格结构、修订追踪、追加内容块、更新单个块、将 DOCX 转为 Markdown 阅读、将 DOCX 转为图片进行视觉验证。禁止使用 Read 或 Bash 直接读取 .docx 文件内容，必须通过本技能的 to-markdown 或 analyze 操作。创建或修改 DOCX 后必须通过 to-image 操作进行视觉验证。"
-argument-hint: "[创建|编辑|分析|修订|追加|更新块|视觉验证] [文件路径] [任务描述]"
+argument-hint: "[创建|编辑|分析|修订|追加|更新块] [文件路径] [任务描述]"
 ---
 
 # ae:docx — Word 文档处理
