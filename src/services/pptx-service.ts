@@ -1194,7 +1194,7 @@ export async function processPptx(input: PptxInput): Promise<PptxResult> {
 import { convertPptxToMarkdown } from './pptx-markdown-converter.js'
 import { loadDocumentFile } from './document-file-loader.js'
 import { writeMarkdownOutput } from './markdown-output-writer.js'
-import { detectLibreOffice, convertToImages } from './libreoffice-service.js'
+import { detectLibreOffice, convertToImagesViaPdf } from './libreoffice-service.js'
 import { join } from 'node:path'
 
 async function handleToMarkdown(input: PptxInput): Promise<PptxResult> {
@@ -1212,16 +1212,20 @@ async function handleToImage(input: PptxInput): Promise<PptxResult> {
   }
   const filePath = join(input.worktree, input.file)
   const outputDir = join(input.worktree, 'ae', 'documents', 'pptx')
-  const allImages = await convertToImages(filePath, outputDir, detection.sofficePath)
-  if (allImages.length === 0) {
+  const { images } = await convertToImagesViaPdf({
+    filePath,
+    outputDir,
+    sofficePath: detection.sofficePath,
+    pageNumbers: input.pages,
+    scale: 2.0,
+  })
+  if (images.length === 0) {
     return { summary: 'PPTX 转图片失败：未生成任何图片文件', content: '' }
   }
-  const images = input.pages
-    ? allImages.filter((_, i) => input.pages!.includes(i + 1))
-    : allImages
   const imageList = images.map(p => {
-    const idx = allImages.indexOf(p) + 1
-    return `幻灯片 ${idx}: ${p}`
+    const match = p.match(/page_(\d+)\.png$/)
+    const pageNum = match ? parseInt(match[1]) : 0
+    return `幻灯片 ${pageNum}: ${p}`
   }).join('\n')
   return {
     summary: `PPTX 转图片完成，生成 ${images.length} 张幻灯片图片`,

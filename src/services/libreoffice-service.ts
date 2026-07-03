@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs'
 import { execSync, spawn } from 'node:child_process'
 import { createWriteStream } from 'node:fs'
 import { homedir, platform } from 'node:os'
@@ -273,6 +273,12 @@ export async function convertToImages(
 ): Promise<string[]> {
   mkdirSync(outputDir, { recursive: true })
 
+  for (const f of readdirSync(outputDir)) {
+    if (f.endsWith(`.${format}`)) {
+      rmSync(join(outputDir, f), { force: true })
+    }
+  }
+
   const args = [
     '--headless',
     '--convert-to',
@@ -312,4 +318,44 @@ export async function convertToImages(
 
 export function getPortableDir(): string {
   return getPortableBaseDir()
+}
+
+export interface ConvertViaPdfOptions {
+  filePath: string
+  outputDir: string
+  sofficePath: string
+  pageNumbers?: number[]
+  scale?: number
+  intermediateDir?: string
+}
+
+export interface ConvertViaPdfResult {
+  images: string[]
+  intermediateDir: string
+}
+
+export async function convertToImagesViaPdf(options: ConvertViaPdfOptions): Promise<ConvertViaPdfResult> {
+  const { filePath, outputDir, sofficePath, pageNumbers, scale = 2.0, intermediateDir: customIntermediateDir } = options
+  const intermediateDir = customIntermediateDir ?? join(outputDir, '_intermediate')
+
+  try {
+    const pdfFiles = await convertToImages(filePath, intermediateDir, sofficePath, 'pdf')
+    if (pdfFiles.length === 0) {
+      return { images: [], intermediateDir }
+    }
+    const { pdfToImages } = await import('./pdf-to-image-service.js')
+    const images = await pdfToImages({
+      filePath: pdfFiles[0],
+      outputDir,
+      pageIndices: pageNumbers,
+      scale,
+    })
+    return { images, intermediateDir }
+  } finally {
+    try {
+      rmSync(intermediateDir, { recursive: true, force: true })
+    } catch {
+      // 中间目录清理失败不影响主流程
+    }
+  }
 }

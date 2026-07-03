@@ -80,33 +80,37 @@ export async function pdfToImages(options: PdfToImageOptions): Promise<string[]>
   const pagesToRender = pageIndices ?? Array.from({ length: totalPages }, (_, i) => i + 1)
   const outputFiles: string[] = []
 
-  for (const pageNum of pagesToRender) {
-    if (pageNum < 1 || pageNum > totalPages) {
-      continue
+  try {
+    for (const pageNum of pagesToRender) {
+      if (pageNum < 1 || pageNum > totalPages) {
+        continue
+      }
+
+      const page = await doc.getPage(pageNum)
+      const viewport = page.getViewport({ scale })
+
+      const canvasAndContext = canvasFactory.create(viewport.width, viewport.height)
+
+      try {
+        await page.render({
+          canvasContext: canvasAndContext.context as unknown as CanvasRenderingContext2D,
+          viewport,
+          canvas: canvasAndContext.canvas as unknown as HTMLCanvasElement,
+        }).promise
+
+        const pngData = canvasAndContext.canvas.toBuffer('image/png')
+        const outputFileName = `${basename(filePath, '.pdf')}_page_${pageNum}.png`
+        const outputPath = join(outputDir, outputFileName)
+
+        writeFileSync(outputPath, pngData)
+        outputFiles.push(outputPath)
+      } finally {
+        canvasFactory.destroy(canvasAndContext)
+      }
     }
-
-    const page = await doc.getPage(pageNum)
-    const viewport = page.getViewport({ scale })
-
-    const canvasAndContext = canvasFactory.create(viewport.width, viewport.height)
-
-    await page.render({
-      canvasContext: canvasAndContext.context as any,
-      viewport,
-      canvas: canvasAndContext.canvas as any,
-    }).promise
-
-    const pngData = canvasAndContext.canvas.toBuffer('image/png')
-    const outputFileName = `${basename(filePath, '.pdf')}_page_${pageNum}.png`
-    const outputPath = join(outputDir, outputFileName)
-
-    writeFileSync(outputPath, pngData)
-    outputFiles.push(outputPath)
-
-    canvasFactory.destroy(canvasAndContext)
+  } finally {
+    await doc.cleanup()
   }
-
-  await doc.cleanup()
 
   return outputFiles
 }

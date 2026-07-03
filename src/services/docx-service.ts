@@ -1158,8 +1158,7 @@ export async function processDocx(input: DocxInput): Promise<DocxResult> {
 import { convertDocxToMarkdown } from './docx-markdown-converter.js'
 import { loadDocumentFile } from './document-file-loader.js'
 import { writeMarkdownOutput } from './markdown-output-writer.js'
-import { detectLibreOffice, convertToImages as libreOfficeConvertToImages } from './libreoffice-service.js'
-import { pdfToImages } from './pdf-to-image-service.js'
+import { detectLibreOffice, convertToImagesViaPdf } from './libreoffice-service.js'
 import { join } from 'node:path'
 
 async function handleToMarkdown(input: DocxInput): Promise<DocxResult> {
@@ -1176,17 +1175,12 @@ async function handleToImage(input: DocxInput): Promise<DocxResult> {
     throw new Error('LibreOffice 不可用。请先通过 ae:libreoffice 技能安装或下载 LibreOffice，再进行视觉验证。')
   }
   const filePath = join(input.worktree, input.file)
-  const intermediateDir = join(input.worktree, 'ae', 'documents', 'docx', '_intermediate')
-  const pdfFiles = await libreOfficeConvertToImages(filePath, intermediateDir, detection.sofficePath, 'pdf')
-  if (pdfFiles.length === 0) {
-    return { summary: 'DOCX 转 PDF 失败：未生成 PDF 文件', content: '' }
-  }
   const outputDir = join(input.worktree, 'ae', 'documents', 'docx')
-  const pageIndices = input.pages
-  const images = await pdfToImages({
-    filePath: pdfFiles[0],
+  const { images } = await convertToImagesViaPdf({
+    filePath,
     outputDir,
-    pageIndices,
+    sofficePath: detection.sofficePath,
+    pageNumbers: input.pages,
     scale: 2.0,
   })
   if (images.length === 0) {
