@@ -129,7 +129,7 @@ export const aePdfTool = tool({
     '',
     '输出：',
     '- 生成文件自动写入 `ae/documents/pdf/` 子目录',
-    '- 文件名规则：`<名称>-<操作>-<时间戳>-<随机串>.pdf`',
+    '- 文件名规则：`<名称>-<操作>-<时间戳>-<随机串>.pdf`（非 ASCII 字符自动替换为连字符）',
     '- split 操作输出多个文件，路径通过 metadata.outputPaths 返回',
     '',
     '预览确认工作流：',

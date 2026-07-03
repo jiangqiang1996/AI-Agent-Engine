@@ -208,7 +208,7 @@ export const aeDocxTool = tool({
     '',
     '输出：',
     '- 生成文件自动写入 `ae/documents/docx/` 子目录',
-    '- 文件名规则：`<名称>-<操作>-<时间戳>-<随机串>.docx`',
+    '- 文件名规则：`<名称>-<操作>-<时间戳>-<随机串>.docx`（非 ASCII 字符自动替换为连字符）',
     '- 写入路径通过 metadata.outputPath 返回',
     '',
     '预览确认工作流：',

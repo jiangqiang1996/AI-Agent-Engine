@@ -199,7 +199,7 @@ export const aeXlsxTool = tool({
     '输出：',
     '- create 操作生成文件自动写入 ae/documents/xlsx/ 子目录',
     '- edit/add-rows/add-sheet 操作默认覆盖源文件（原地更新）',
-    '- 文件名规则：<名称>-<操作>-<时间戳>-<随机串>.xlsx（仅 create 操作）',
+    '- 文件名规则：<名称>-<操作>-<时间戳>-<随机串>.xlsx（仅 create 操作，非 ASCII 字符自动替换为连字符）',
     '',
     '预览确认工作流：',
     '- create 操作前，必须先向用户展示表格结构（工作表名、列定义、前几行示例）',

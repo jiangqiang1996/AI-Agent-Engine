@@ -321,7 +321,7 @@ CJK 字体（通过嵌入系统 TTF/OTF 实现）：NotoSansSC（思源黑体常
 
 ## 输出路径与原地修改
 
-- **create/merge** 操作：生成文件自动写入 `ae/documents/pdf/` 子目录，文件名规则：`<名称>-<操作>-<时间戳>-<随机串>.pdf`。如需自定义路径，传入 `outputPath` 参数
+- **create/merge** 操作：生成文件自动写入 `ae/documents/pdf/` 子目录，文件名规则：`<名称>-<操作>-<时间戳>-<随机串>.pdf`。文件名中的非 ASCII 字符（如中文标题）会自动替换为连字符，确保跨平台安全。如需自定义路径，传入 `outputPath` 参数
 - **add-pages/update-page/fill-form/add-watermark/rotate-pages/delete-pages** 操作：不指定 `outputPath` 时原地修改原文件（修改前自动备份为同目录 `.bak` 文件，修改成功后删除备份；修改失败则自动从备份恢复原文件）。指定 `outputPath` 时生成新文件，不修改原文件
 
 ## 视觉验证（硬约束）
