@@ -21,6 +21,11 @@ argument-hint: "file=图片路径 [format=jpg|png|gif|webp|bmp] [outputMode=file
 - 不支持音频、视频等非图片格式
 - 不支持远程 URL，仅处理当前工作区内本地文件
 
+## 关键约束
+
+- **模型不支持 vision 时禁止使用 Read 工具读取图片**：Read 工具读取 PNG/JPG 等图片文件时，如果当前模型不支持图像输入，会报错 "Cannot read image (this model does not support image input)"。此时必须通过本技能转换，不得尝试直接 Read 图片文件。
+- 所有 to-image 操作（ae:pptx、ae:docx、ae:pdf 的 to-image）生成的 PNG 图片，在模型不支持 vision 时，必须通过本技能识别，不得直接 Read。
+
 ## 核心工作流
 
 1. 接收用户提供的图片文件路径
