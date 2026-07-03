@@ -2,22 +2,68 @@ import { fileURLToPath } from 'node:url'
 
 import type { Part } from '@opencode-ai/sdk'
 
-import { FILE_PATH_COMMANDS } from '../schemas/ae-asset-schema.js'
-
 type MutableTextPart = Extract<Part, { type: 'text' }>
 type MutableFilePart = Extract<Part, { type: 'file' }>
 
-const FILE_PATH_COMMAND_SET = new Set<string>(FILE_PATH_COMMANDS)
+/**
+ * 文本类 MIME 前缀。
+ *
+ * 这些类型的文件内容可以被 LLM 直接理解，保留 FilePart 让 opencode
+ * 以原始内容形式传递给模型。
+ *
+ * 维护引导：新增需要保留 FilePart 的文本类 MIME 时，在此列表添加前缀；
+ * 图片类在 IMAGE_MIME_PREFIXES 添加。其余类型（PDF、DOCX 等）自动被转换为
+ * 纯路径文本，无需额外注册。
+ */
+const TEXT_MIME_PREFIXES = [
+  'text/',
+  'application/json',
+  'application/xml',
+  'application/javascript',
+  'application/x-yaml',
+  'application/toml',
+  'text/yaml',
+  'text/x-toml',
+]
 
 /**
- * 判断命令是否为文件路径型命令。
+ * 图片类 MIME 前缀。
  *
- * 路径型命令的底层工具自行读取文件内容，LLM 只需看到路径文本即可调用工具；
- * 因此在 command.execute.before 钩子中会把 FilePart 转换为纯路径文本，
- * 避免二进制内容被发送给 LLM。
+ * 支持 vision 的模型可以直接处理图片，保留 FilePart；
+ * ae:image 工具自身也会读取图片文件。
  */
-export function isFilePathCommand(command: string): boolean {
-  return FILE_PATH_COMMAND_SET.has(command)
+const IMAGE_MIME_PREFIXES = [
+  'image/',
+]
+
+/**
+ * 判断 FilePart 是否应被转换为路径文本。
+ *
+ * 文本文件（text/*、json、xml、yaml 等）和图片文件（image/*）
+ * 保留为 FilePart 让 LLM 直接处理内容；
+ * 其他类型（PDF、DOCX、PPTX、XLSX、ZIP 等）转换为纯路径，
+ * 由底层工具自行读取文件内容。
+ *
+ * MIME 包含 +json 或 +xml 子类型后缀的也被识别为文本类，
+ * 如 application/vnd.api+json、application/vnd.openxmlformats...+xml。
+ */
+export function isConvertibleFilePart(part: MutableFilePart): boolean {
+  const mime = part.mime?.toLowerCase() ?? ''
+  for (const prefix of TEXT_MIME_PREFIXES) {
+    if (mime.startsWith(prefix)) {
+      return false
+    }
+  }
+  for (const prefix of IMAGE_MIME_PREFIXES) {
+    if (mime.startsWith(prefix)) {
+      return false
+    }
+  }
+  // MIME 子类型包含 +json 或 +xml 后缀的也是文本类（如 application/vnd.api+json）
+  if (mime.includes('+json') || mime.includes('+xml')) {
+    return false
+  }
+  return true
 }
 
 function isFilePart(part: Part): part is MutableFilePart {
@@ -88,28 +134,29 @@ function replaceReferenceWithPath(text: string, reference: string, path: string)
 }
 
 /**
- * 把 parts 中的所有 FilePart 转换为纯文本路径：
- * 1. 收集所有 FilePart 的引用文本和路径
- * 2. 移除所有 FilePart
- * 3. 在 TextPart 中把 @file 引用替换为纯路径
- * 4. 若引用文本未匹配到任何 TextPart，把路径追加到首个 TextPart 末尾
+ * 把 parts 中符合条件的 FilePart 转换为纯文本路径：
+ * 1. 识别非文本、非图片的 FilePart
+ * 2. 收集这些 FilePart 的引用文本和路径
+ * 3. 移除这些 FilePart
+ * 4. 在 TextPart 中把 @file 引用替换为纯路径
+ * 5. 若引用文本未匹配到任何 TextPart，把路径追加到首个 TextPart 末尾
  *
- * 调用方应先通过 isFilePathCommand 判断是否需要转换。
+ * 保留文本类和图片类 FilePart 不做转换。
  */
-export function convertFilePartsToPathText(parts: Part[]): void {
-  const fileParts: MutableFilePart[] = []
+export function convertNonTextImageFilePartsToPath(parts: Part[]): void {
+  const convertibleFileParts: MutableFilePart[] = []
   for (const part of parts) {
-    if (isFilePart(part)) {
-      fileParts.push(part)
+    if (isFilePart(part) && isConvertibleFilePart(part)) {
+      convertibleFileParts.push(part)
     }
   }
 
-  if (fileParts.length === 0) {
+  if (convertibleFileParts.length === 0) {
     return
   }
 
   const references = new Map<string, string>()
-  for (const part of fileParts) {
+  for (const part of convertibleFileParts) {
     const reference = extractReferenceText(part)
     const path = extractFilePath(part)
     if (reference && path) {
@@ -120,7 +167,8 @@ export function convertFilePartsToPathText(parts: Part[]): void {
   }
 
   for (let i = parts.length - 1; i >= 0; i--) {
-    if (isFilePart(parts[i])) {
+    const part = parts[i]
+    if (isFilePart(part) && isConvertibleFilePart(part)) {
       parts.splice(i, 1)
     }
   }
