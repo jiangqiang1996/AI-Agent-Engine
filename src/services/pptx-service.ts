@@ -939,8 +939,11 @@ async function handleAppendSlides(input: PptxInput): Promise<PptxResult> {
     // 在 <p:sldIdLst> 中追加新幻灯片 ID 条目
     // OOXML 幻灯片 ID 格式：<p:sldId id="256" r:id="rId2"/>
     // id 从 256 开始，每张幻灯片递增
-    const sldIdLstMatch = presXml.match(/<p:sldIdLst[^>]*>/)
-    if (sldIdLstMatch) {
+    // 新条目必须追加到 </p:sldIdLst> 前面，确保追加的幻灯片出现在现有幻灯片之后
+    const sldIdLstCloseMatch = presXml.match(/<\/p:sldIdLst>/)
+    const sldIdLstSelfCloseMatch = !sldIdLstCloseMatch && presXml.match(/<p:sldIdLst\s*\/>/)
+
+    if (sldIdLstCloseMatch) {
       // 确定已有幻灯片最大 id
       const existingIds = presXml.matchAll(/<p:sldId id="(\d+)" r:id="rId\d+"\/>/g)
       let maxSlideId = 255
@@ -956,13 +959,24 @@ async function handleAppendSlides(input: PptxInput): Promise<PptxResult> {
         newIdEntries.push(`<p:sldId id="${newId}" r:id="${newRId}"/>`)
       }
 
-      // 在 sldIdLst 开始标签后插入新条目
-      const insertPos = presXml.indexOf(sldIdLstMatch[0]) + sldIdLstMatch[0].length
+      // 在 </p:sldIdLst> 前面插入新条目，确保追加的幻灯片在末尾
+      const insertPos = presXml.indexOf(sldIdLstCloseMatch[0])
       presXml =
         presXml.slice(0, insertPos) +
-        '\n' + newIdEntries.join('\n') +
+        newIdEntries.join('') +
         presXml.slice(insertPos)
 
+      existingZip.updateFile('ppt/presentation.xml', Buffer.from(presXml, 'utf8'))
+    } else if (sldIdLstSelfCloseMatch) {
+      // 自闭合 <p:sldIdLst/> 场景（如空演示文稿）：替换为含条目的闭合标签
+      const newIdEntries: string[] = []
+      let slideId = 256
+      for (let i = 0; i < newSlides.length; i++) {
+        const newRId = `rId${nextRIdStart + i}`
+        newIdEntries.push(`<p:sldId id="${slideId}" r:id="${newRId}"/>`)
+        slideId++
+      }
+      presXml = presXml.replace(sldIdLstSelfCloseMatch[0], `<p:sldIdLst>${newIdEntries.join('')}</p:sldIdLst>`)
       existingZip.updateFile('ppt/presentation.xml', Buffer.from(presXml, 'utf8'))
     }
   }
@@ -1223,7 +1237,8 @@ async function handleToImage(input: PptxInput): Promise<PptxResult> {
   if (!detection.available || !detection.sofficePath) {
     throw new Error('LibreOffice 不可用。请先通过 ae:libreoffice 技能安装或下载 LibreOffice，再进行视觉验证。')
   }
-  const filePath = join(input.worktree, input.file)
+  const { resolveDocumentPath } = await import('./document-file-loader.js')
+  const filePath = await resolveDocumentPath(input.file, input.worktree)
   const outputDir = join(input.worktree, 'ae', 'documents', 'pptx')
   const { images } = await convertToImagesViaPdf({
     filePath,
