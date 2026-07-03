@@ -9,6 +9,7 @@ import {
   getPortableDir,
   resolveLibreofficeConfigPath,
   resolveLibreofficeConfigPaths,
+  resolveSofficeFromPath,
   setLibreofficePathInConfig,
 } from '../services/libreoffice-service.js'
 
@@ -32,7 +33,7 @@ export const aeLibreofficeTool = tool({
   ].join('\n'),
   args: {
     action: z.enum(['check', 'install', 'config', 'set-path']).describe('操作类型：check 检测可用性，install 下载便携版，config 读取 ae.jsonc 配置，set-path 设置自定义路径到 ae.jsonc'),
-    sofficePath: z.string().optional().describe('set-path 操作必填：要写入 ae.jsonc 的 soffice 可执行文件路径'),
+    sofficePath: z.string().optional().describe('set-path 操作必填：soffice 可执行文件路径或便携版根目录（check 时会自动递归查找 soffice）'),
     configScope: z.enum(['project', 'global']).optional().describe('set-path 操作可选：写入项目级还是全局 ae.jsonc，默认 global'),
   },
   execute: async (args, ctx) => {
@@ -100,23 +101,26 @@ export const aeLibreofficeTool = tool({
 
     if (args.action === 'set-path') {
       if (!args.sofficePath) {
-        return 'set-path 操作必须提供 sofficePath 参数，指定 soffice 可执行文件路径。'
+        return 'set-path 操作必须提供 sofficePath 参数，指定 soffice 可执行文件路径或便携版根目录。'
       }
 
       ctx.metadata({ title: `设置 LibreOffice 路径到 ae.jsonc...` })
       const paths = resolveLibreofficeConfigPaths(ctx.worktree)
       const targetConfigPath = args.configScope === 'project' ? paths.project : paths.global
 
+      // 允许用户传入目录路径或可执行文件路径
       if (!existsSync(args.sofficePath)) {
-        return `指定的 soffice 路径不存在: ${args.sofficePath}\n请确认路径正确后再设置。`
+        return `指定的路径不存在: ${args.sofficePath}\n请确认路径正确后再设置。`
       }
 
-      const result = setLibreofficePathInConfig(targetConfigPath, args.sofficePath)
+      // 如果传入的是目录，先解析出实际的 soffice 可执行文件路径
+      const resolvedPath = resolveSofficeFromPath(args.sofficePath) ?? args.sofficePath
+      const result = setLibreofficePathInConfig(targetConfigPath, resolvedPath)
       if (result.success) {
         return [
           '# LibreOffice 路径设置成功',
           '',
-          `- soffice 路径：${args.sofficePath}`,
+          `- soffice 路径：${resolvedPath}`,
           `- 写入配置文件：${targetConfigPath}（${args.configScope ?? 'global'}级）`,
           '',
           '后续 check 操作将优先使用该配置路径。',

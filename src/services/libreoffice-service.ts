@@ -1,8 +1,10 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync, copyFileSync, lstatSync } from 'node:fs'
+import { randomUUID } from 'node:crypto'
 import { execSync, spawn } from 'node:child_process'
 import { createWriteStream } from 'node:fs'
 import { homedir, platform } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { basename, dirname, extname, join, resolve } from 'node:path'
+import { tmpdir } from 'node:os'
 import { pipeline } from 'node:stream/promises'
 import { Readable } from 'node:stream'
 import stripJsonComments from 'strip-json-comments'
@@ -42,7 +44,7 @@ const SYSTEM_SEARCH_PATHS: Record<string, string[]> = {
 }
 
 export function detectSystemLibreOffice(): string | null {
-  const currentPlatform = platform() as string
+  const currentPlatform = platform()
   const paths = SYSTEM_SEARCH_PATHS[currentPlatform] ?? []
 
   for (const p of paths) {
@@ -69,7 +71,7 @@ export function detectPortableLibreOffice(): string | null {
     return null
   }
 
-  const currentPlatform = platform() as string
+  const currentPlatform = platform()
 
   if (currentPlatform === 'win32') {
     const sofficePath = join(baseDir, 'LibreOfficePortable', 'App', 'libreoffice', 'program', 'soffice.exe')
@@ -101,7 +103,11 @@ export function detectPortableLibreOffice(): string | null {
 export function detectLibreOffice(configPath?: string): LibreOfficeDetectionResult {
   if (configPath) {
     if (existsSync(configPath)) {
-      return { available: true, source: 'config', sofficePath: configPath }
+      // 用户配置的可能是目录（如便携版根目录），也可能是可执行文件路径
+      const resolvedSoffice = resolveSofficeFromPath(configPath)
+      if (resolvedSoffice) {
+        return { available: true, source: 'config', sofficePath: resolvedSoffice }
+      }
     }
   }
 
@@ -116,6 +122,71 @@ export function detectLibreOffice(configPath?: string): LibreOfficeDetectionResu
   }
 
   return { available: false, source: 'none', sofficePath: null }
+}
+
+/**
+ * 从给定路径解析 soffice 可执行文件。
+ * 如果路径本身是文件且可执行，直接返回。
+ * 如果路径是目录，在常见便携版结构中递归查找 soffice。
+ */
+export function resolveSofficeFromPath(inputPath: string): string | null {
+  const currentPlatform = platform()
+  const sofficeNames = currentPlatform === 'win32' ? ['soffice.exe'] : ['soffice']
+  const programSubdirs = ['program', 'App/libreoffice/program', 'Contents/MacOS', 'Contents/program']
+
+  const stat = statSync(inputPath, { throwIfNoEntry: false })
+  if (stat?.isFile()) {
+    return inputPath
+  }
+
+  if (!stat?.isDirectory()) {
+    return null
+  }
+
+  for (const subdir of programSubdirs) {
+    for (const name of sofficeNames) {
+      const candidate = join(inputPath, subdir, name)
+      if (existsSync(candidate)) {
+        return candidate
+      }
+    }
+  }
+
+  // 深度优先搜索目录树（最多搜索 depth 0-3，共 4 层）查找 soffice
+  return searchSofficeInDir(inputPath, sofficeNames, 0)
+}
+
+function searchSofficeInDir(dir: string, sofficeNames: string[], depth: number): string | null {
+  if (depth > 3) return null
+
+  try {
+    const entries = readdirSync(dir)
+    // 防止在大型目录树中耗时过长
+    if (entries.length > 100) return null
+
+    for (const name of sofficeNames) {
+      const candidate = join(dir, name)
+      if (existsSync(candidate)) {
+        const stat = statSync(candidate, { throwIfNoEntry: false })
+        if (stat?.isFile()) return candidate
+      }
+    }
+
+    for (const entry of entries) {
+      const entryPath = join(dir, entry)
+      const entryStat = lstatSync(entryPath, { throwIfNoEntry: false })
+      // 跳过符号链接，防止遍历超出预期范围
+      if (!entryStat || entryStat.isSymbolicLink() || !entryStat.isDirectory()) {
+        continue
+      }
+      const found = searchSofficeInDir(entryPath, sofficeNames, depth + 1)
+      if (found) return found
+    }
+  } catch {
+    // 忽略权限错误
+  }
+
+  return null
 }
 
 const ALIYUN_MIRROR_BASE = 'https://mirrors.aliyun.com/libreoffice'
@@ -162,7 +233,7 @@ function getDownloadInfo(currentPlatform: string): { url: string; filename: stri
 }
 
 export async function downloadPortableLibreOffice(): Promise<LibreOfficeInstallResult> {
-  const currentPlatform = platform() as string
+  const currentPlatform = platform()
   const info = getDownloadInfo(currentPlatform)
 
   if (!info) {
@@ -276,8 +347,11 @@ export async function convertToImages(
   filePath: string,
   outputDir: string,
   sofficePath: string,
-  format: 'png' | 'pdf' = 'png',
+  format: 'png' | 'pdf' = 'pdf',
 ): Promise<string[]> {
+  // 注意：LibreOffice --convert-to png 只输出第一页/第一张幻灯片。
+  // 需要多页输出时，应使用 convertToImagesViaPdf（先转 PDF 再逐页转 PNG）。
+  // format 参数默认改为 'pdf' 以避免误用单页 PNG 模式。
   mkdirSync(outputDir, { recursive: true })
 
   for (const f of readdirSync(outputDir)) {
@@ -286,41 +360,62 @@ export async function convertToImages(
     }
   }
 
+  // 非 ASCII 路径可能导致 LibreOffice 加载失败，复制到临时目录使用 ASCII 安全名
+  // 每次调用使用独占的临时子目录，避免并发调用互相冲突
+  const hasNonAscii = /[^\x00-\x7F]/.test(filePath)
+  let actualFilePath = filePath
+  let tempDir: string | null = null
+
+  if (hasNonAscii) {
+    tempDir = join(tmpdir(), `ae-lo-convert-${process.pid}-${randomUUID()}`)
+    mkdirSync(tempDir, { recursive: true })
+    const ext = extname(filePath) || '.pptx'
+    const safeName = `ae_convert_${ext}`
+    actualFilePath = join(tempDir, safeName)
+    copyFileSync(filePath, actualFilePath)
+  }
+
   const args = [
     '--headless',
     '--convert-to',
     format,
     '--outdir',
     outputDir,
-    filePath,
+    actualFilePath,
   ]
 
-  return new Promise((resolve, reject) => {
-    const proc = spawn(sofficePath, args, { timeout: 60000 })
+  try {
+    return await new Promise<string[]>((resolve, reject) => {
+      const proc = spawn(sofficePath, args, { timeout: 60000 })
 
-    let stderr = ''
-    proc.stderr?.on('data', (data: Buffer) => {
-      stderr += data.toString()
+      let stderr = ''
+      proc.stderr?.on('data', (data: Buffer) => {
+        stderr += data.toString()
+      })
+
+      proc.on('close', (code) => {
+        if (code !== 0) {
+          reject(new Error(`LibreOffice 转换失败 (exit code ${code}): ${stderr}`))
+          return
+        }
+
+        const outputFiles = readdirSync(outputDir)
+          .filter(f => f.endsWith(`.${format}`))
+          .sort()
+          .map(f => join(outputDir, f))
+
+        resolve(outputFiles)
+      })
+
+      proc.on('error', (err) => {
+        reject(new Error(`LibreOffice 启动失败: ${err.message}`))
+      })
     })
-
-    proc.on('close', (code) => {
-      if (code !== 0) {
-        reject(new Error(`LibreOffice 转换失败 (exit code ${code}): ${stderr}`))
-        return
-      }
-
-      const outputFiles = readdirSync(outputDir)
-        .filter(f => f.endsWith(`.${format}`))
-        .sort()
-        .map(f => join(outputDir, f))
-
-      resolve(outputFiles)
-    })
-
-    proc.on('error', (err) => {
-      reject(new Error(`LibreOffice 启动失败: ${err.message}`))
-    })
-  })
+  } finally {
+    if (tempDir) {
+      try { rmSync(tempDir, { recursive: true, force: true }) } catch { /* 忽略清理失败 */ }
+    }
+  }
 }
 
 export interface LibreOfficeConfigResult {
