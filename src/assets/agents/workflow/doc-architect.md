@@ -1,4 +1,6 @@
 ---
+name: doc-architect
+model: $deep
 mode: subagent
 steps: 15
 description: "文档架构师：为 PPTX、DOCX、PDF、XLSX 等文档制定风格规格书和内容大纲，确保全文档风格统一。创建或大规模修改文档前由文档技能调度，输出风格规格书供技能执行。不负责实际文档生成或修改。"
