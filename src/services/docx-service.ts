@@ -1184,7 +1184,8 @@ async function handleToImage(input: DocxInput): Promise<DocxResult> {
   if (!detection.available || !detection.sofficePath) {
     throw new Error('LibreOffice 不可用。请先通过 ae:libreoffice 技能安装或下载 LibreOffice，再进行视觉验证。')
   }
-  const filePath = join(input.worktree, input.file)
+  const { resolveDocumentPath } = await import('./document-file-loader.js')
+  const filePath = await resolveDocumentPath(input.file, input.worktree)
   const outputDir = join(input.worktree, 'ae', 'documents', 'docx')
   const { images } = await convertToImagesViaPdf({
     filePath,

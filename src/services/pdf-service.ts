@@ -855,7 +855,8 @@ async function handleToMarkdown(input: PdfInput): Promise<PdfResult> {
 
 async function handleToImage(input: PdfInput): Promise<PdfResult> {
   if (!input.file) throw new Error('to-image 操作需要 file 参数')
-  const filePath = join(input.worktree, input.file)
+  const { resolveDocumentPath } = await import('./document-file-loader.js')
+  const filePath = await resolveDocumentPath(input.file, input.worktree)
   const outputDir = join(input.worktree, 'ae', 'documents', 'pdf')
   const images = await pdfToImages({
     filePath,
