@@ -218,7 +218,7 @@ export const aePdfTool = tool({
     outputPath: z
       .string()
       .optional()
-      .describe('自定义输出路径；to-markdown 的 outputMode=file 时写入此路径或 ae/markdown/，其余操作写入 ae/documents/pdf/'),
+      .describe('自定义输出路径。create/merge 操作写入 ae/documents/pdf/；add-pages/update-page/fill-form/add-watermark/rotate-pages/delete-pages 不指定时原地修改原文件（修改前自动备份为同目录 .bak 文件，修改成功后删除备份）；to-markdown 的 outputMode=file 时写入此路径或 ae/markdown/'),
     cjkFontPath: z
       .string()
       .optional()

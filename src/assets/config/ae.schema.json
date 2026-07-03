@@ -42,6 +42,11 @@
         }
       }
     },
+    "libreofficePath": {
+      "type": "string",
+      "minLength": 1,
+      "description": "LibreOffice soffice 可执行文件的绝对路径。设置后 ae:libreoffice check 将优先使用此路径检测 LibreOffice，而非自动搜索系统安装或便携版。"
+    },
     "modelScenarios": {
       "type": "object",
       "description": "模型场景到 opencode 模型标识的极简映射。稳定场景包括 quick、standard、deep、vision、audio、video；允许自定义场景键。",

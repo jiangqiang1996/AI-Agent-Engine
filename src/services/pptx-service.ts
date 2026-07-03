@@ -4,6 +4,8 @@ import path from 'node:path'
 
 import AdmZip from 'adm-zip'
 
+import { withBackup } from '../utils/file-backup.js'
+
 import { generateDocumentOutputPath } from '../utils/document-output-path.js'
 
 const require = createRequire(import.meta.url)
@@ -784,8 +786,10 @@ function handleEdit(input: PptxInput): PptxResult {
   const outputPath = input.outputPath ?? file
   if (outputPath !== file) {
     mkdirSync(path.dirname(outputPath), { recursive: true })
+    zip.writeZip(outputPath)
+  } else {
+    withBackup(file, () => zip.writeZip(outputPath))
   }
-  zip.writeZip(outputPath)
 
   return {
     outputPath,
@@ -1016,8 +1020,12 @@ async function handleAppendSlides(input: PptxInput): Promise<PptxResult> {
 
   // 7. 写回文件
   const outputPath = input.outputPath ?? file
-  mkdirSync(path.dirname(outputPath), { recursive: true })
-  existingZip.writeZip(outputPath)
+  if (outputPath !== file) {
+    mkdirSync(path.dirname(outputPath), { recursive: true })
+    existingZip.writeZip(outputPath)
+  } else {
+    withBackup(file, () => existingZip.writeZip(outputPath))
+  }
 
   const totalSlides = maxSlideNum + newSlides.length
 
@@ -1161,8 +1169,12 @@ async function handleUpdateSlide(input: PptxInput): Promise<PptxResult> {
 
   // 7. 写回文件
   const outputPath = input.outputPath ?? file
-  mkdirSync(path.dirname(outputPath), { recursive: true })
-  existingZip.writeZip(outputPath)
+  if (outputPath !== file) {
+    mkdirSync(path.dirname(outputPath), { recursive: true })
+    existingZip.writeZip(outputPath)
+  } else {
+    withBackup(file, () => existingZip.writeZip(outputPath))
+  }
 
   return {
     outputPath,
@@ -1194,7 +1206,7 @@ export async function processPptx(input: PptxInput): Promise<PptxResult> {
 import { convertPptxToMarkdown } from './pptx-markdown-converter.js'
 import { loadDocumentFile } from './document-file-loader.js'
 import { writeMarkdownOutput } from './markdown-output-writer.js'
-import { detectLibreOffice, convertToImagesViaPdf } from './libreoffice-service.js'
+import { detectLibreOffice, convertToImagesViaPdf, resolveLibreofficeConfigPath } from './libreoffice-service.js'
 import { join } from 'node:path'
 
 async function handleToMarkdown(input: PptxInput): Promise<PptxResult> {
@@ -1206,7 +1218,8 @@ async function handleToMarkdown(input: PptxInput): Promise<PptxResult> {
 
 async function handleToImage(input: PptxInput): Promise<PptxResult> {
   if (!input.file) throw new Error('to-image 操作需要 file 参数')
-  const detection = detectLibreOffice()
+  const configResult = resolveLibreofficeConfigPath(input.worktree)
+  const detection = detectLibreOffice(configResult.libreofficePath ?? undefined)
   if (!detection.available || !detection.sofficePath) {
     throw new Error('LibreOffice 不可用。请先通过 ae:libreoffice 技能安装或下载 LibreOffice，再进行视觉验证。')
   }

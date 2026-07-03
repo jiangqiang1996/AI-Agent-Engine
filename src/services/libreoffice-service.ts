@@ -1,14 +1,15 @@
-import { existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { execSync, spawn } from 'node:child_process'
 import { createWriteStream } from 'node:fs'
 import { homedir, platform } from 'node:os'
-import { join, resolve } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import { Readable } from 'node:stream'
+import stripJsonComments from 'strip-json-comments'
 
 export interface LibreOfficeDetectionResult {
   available: boolean
-  source: 'system' | 'portable' | 'none'
+  source: 'config' | 'system' | 'portable' | 'none'
   sofficePath: string | null
 }
 
@@ -97,7 +98,13 @@ export function detectPortableLibreOffice(): string | null {
   return null
 }
 
-export function detectLibreOffice(): LibreOfficeDetectionResult {
+export function detectLibreOffice(configPath?: string): LibreOfficeDetectionResult {
+  if (configPath) {
+    if (existsSync(configPath)) {
+      return { available: true, source: 'config', sofficePath: configPath }
+    }
+  }
+
   const systemPath = detectSystemLibreOffice()
   if (systemPath) {
     return { available: true, source: 'system', sofficePath: systemPath }
@@ -314,6 +321,81 @@ export async function convertToImages(
       reject(new Error(`LibreOffice 启动失败: ${err.message}`))
     })
   })
+}
+
+export interface LibreOfficeConfigResult {
+  libreofficePath: string | null
+  source: 'none' | 'project' | 'global'
+  projectConfigPath: string
+  globalConfigPath: string
+}
+
+export function resolveLibreofficeConfigPaths(worktree: string): { project: string; global: string } {
+  return {
+    project: join(worktree, '.opencode', 'ae.jsonc'),
+    global: join(homedir(), '.config', 'opencode', 'ae.jsonc'),
+  }
+}
+
+export function resolveLibreofficeConfigPath(worktree: string): LibreOfficeConfigResult {
+  const paths = resolveLibreofficeConfigPaths(worktree)
+  const emptyResult: LibreOfficeConfigResult = {
+    libreofficePath: null,
+    source: 'none',
+    projectConfigPath: paths.project,
+    globalConfigPath: paths.global,
+  }
+
+  const projectConfig = readConfigLayer(paths.project)
+  if (projectConfig?.libreofficePath && typeof projectConfig.libreofficePath === 'string') {
+    return { ...emptyResult, libreofficePath: projectConfig.libreofficePath, source: 'project' }
+  }
+
+  const globalConfig = readConfigLayer(paths.global)
+  if (globalConfig?.libreofficePath && typeof globalConfig.libreofficePath === 'string') {
+    return { ...emptyResult, libreofficePath: globalConfig.libreofficePath, source: 'global' }
+  }
+
+  return emptyResult
+}
+
+function readConfigLayer(configPath: string): Record<string, unknown> | undefined {
+  if (!existsSync(configPath)) return undefined
+  try {
+    const raw = readFileSync(configPath, 'utf8')
+    const stripped = stripJsonComments(raw)
+    const parsed = JSON.parse(stripped)
+    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>
+    }
+    return undefined
+  } catch {
+    return undefined
+  }
+}
+
+export interface SetLibreofficePathResult {
+  success: boolean
+  configPath: string
+  error?: string
+}
+
+export function setLibreofficePathInConfig(configPath: string, sofficePath: string): SetLibreofficePathResult {
+  const existingConfig = readConfigLayer(configPath)
+  const merged = { ...existingConfig, libreofficePath: sofficePath }
+  const content = JSON.stringify(merged, null, 2)
+
+  const dir = dirname(configPath)
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true })
+  }
+
+  try {
+    writeFileSync(configPath, content, 'utf8')
+    return { success: true, configPath }
+  } catch (err) {
+    return { success: false, configPath, error: `写入配置失败: ${String(err)}` }
+  }
 }
 
 export function getPortableDir(): string {

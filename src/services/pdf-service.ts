@@ -3,6 +3,8 @@ import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
 import path from 'node:path'
 
+import { withBackup } from '../utils/file-backup.js'
+
 import fontkit from '@pdf-lib/fontkit'
 import { PDFDocument, StandardFonts, degrees, rgb } from 'pdf-lib'
 import type { PDFFont, PDFImage, PDFPage } from 'pdf-lib'
@@ -572,8 +574,10 @@ async function handleFillForm(input: PdfInput): Promise<PdfResult> {
   const outputPath = input.outputPath ?? file
   if (outputPath !== file) {
     mkdirSync(path.dirname(outputPath), { recursive: true })
+    writeFileSync(outputPath, bytes)
+  } else {
+    withBackup(file, () => writeFileSync(outputPath, bytes))
   }
-  writeFileSync(outputPath, bytes)
 
   return {
     outputPath,
@@ -602,8 +606,10 @@ async function handleRotatePages(input: PdfInput): Promise<PdfResult> {
   const outputPath = input.outputPath ?? file
   if (outputPath !== file) {
     mkdirSync(path.dirname(outputPath), { recursive: true })
+    writeFileSync(outputPath, bytes)
+  } else {
+    withBackup(file, () => writeFileSync(outputPath, bytes))
   }
-  writeFileSync(outputPath, bytes)
 
   return {
     outputPath,
@@ -632,8 +638,10 @@ async function handleDeletePages(input: PdfInput): Promise<PdfResult> {
   const outputPath = input.outputPath ?? file
   if (outputPath !== file) {
     mkdirSync(path.dirname(outputPath), { recursive: true })
+    writeFileSync(outputPath, bytes)
+  } else {
+    withBackup(file, () => writeFileSync(outputPath, bytes))
   }
-  writeFileSync(outputPath, bytes)
 
   return {
     outputPath,
@@ -679,8 +687,10 @@ async function handleAddWatermark(input: PdfInput): Promise<PdfResult> {
   const outputPath = input.outputPath ?? file
   if (outputPath !== file) {
     mkdirSync(path.dirname(outputPath), { recursive: true })
+    writeFileSync(outputPath, bytes)
+  } else {
+    withBackup(file, () => writeFileSync(outputPath, bytes))
   }
-  writeFileSync(outputPath, bytes)
 
   return {
     outputPath,
@@ -741,8 +751,10 @@ async function handleAddPages(input: PdfInput): Promise<PdfResult> {
   const outputPath = input.outputPath ?? file
   if (outputPath !== file) {
     mkdirSync(path.dirname(outputPath), { recursive: true })
+    writeFileSync(outputPath, bytes)
+  } else {
+    withBackup(file, () => writeFileSync(outputPath, bytes))
   }
-  writeFileSync(outputPath, bytes)
 
   const totalCount = existingCount + pages.length
   return {
@@ -788,8 +800,10 @@ async function handleUpdatePage(input: PdfInput): Promise<PdfResult> {
   const outputPath = input.outputPath ?? file
   if (outputPath !== file) {
     mkdirSync(path.dirname(outputPath), { recursive: true })
+    writeFileSync(outputPath, bytes)
+  } else {
+    withBackup(file, () => writeFileSync(outputPath, bytes))
   }
-  writeFileSync(outputPath, bytes)
 
   return {
     outputPath,

@@ -375,6 +375,7 @@ const GILDED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'], s
   [AGENT.UI_MATCHER, 'workflow', '设计还原：以 Figma 设计稿、截图或文字设计规格为准精确还原实现'],
   [AGENT.LOGIC_WEAVER, 'workflow', '交互逻辑：前端交互实现与 API 集成'],
   [AGENT.BROWSER_INSPECTOR, 'workflow', '浏览器验收：端到端浏览器测试与回归验证'],
+  [AGENT.DOC_ARCHITECT, 'workflow', '文档架构师：为 PPTX/DOCX/PDF/XLSX 制定风格规格和内容结构'],
 ]
 
 function buildAgentList(
