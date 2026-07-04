@@ -6,29 +6,39 @@ AE 不要求业务项目采用本仓库结构。面向用户的运行时能力�
 
 ## 快速开始
 
-### 安装或更新
+### 安装、更新与卸载
 
-把以下指令复制给 opencode AI 代理执行即可完成安装或更新：
+首次安装时（AE 技能尚未可用），把以下指令复制给 opencode AI 代理执行：
 
-```text
-使用 ae:install 技能安装 AE 插件
-```
-
-项目级安装或更新：
+全局安装（所有项目共享 AE）：
 
 ```text
-使用 ae:install 技能安装 AE 插件（项目级），参数：project
+Fetch and follow the global install instructions from https://gitee.com/jiangqiang1996/ai-agent-engine/raw/master/docs/INSTALL.md
 ```
 
-> 不传参数默认全局安装。脚本会自动判断：已安装则更新，未安装则全新安装。一次授权后直接执行，无需二次确认。
-
-### 卸载
+项目级安装（仅当前项目，可与全局共存，项目级优先加载）：
 
 ```text
-使用 ae:uninstall 技能卸载 AE 插件
+Fetch and follow the project-level install instructions from https://gitee.com/jiangqiang1996/ai-agent-engine/raw/master/docs/INSTALL.md
 ```
 
-> 技能会自动检测全局和项目级安装状态，让你选择卸载范围。一次授权后直接执行，无需二次确认。
+安装完成后，后续更新或卸载可用 AE 内置命令。不传参数为全局操作，传 `project` 为项目级操作：
+
+```text
+# 全局更新
+/ae-install
+
+# 项目级更新
+/ae-install project
+```
+
+卸载无需传参数，命令会自动检测全局和项目级安装状态，让你选择卸载范围（全局、项目级、两者或不卸载）：
+
+```text
+/ae-uninstall
+```
+
+> 脚本会自动判断：已安装则更新，未安装则全新安装。项目级安装和全局安装可以共存，项目级优先加载。
 
 ### 验证
 
@@ -180,26 +190,6 @@ AE 默认注入两个远程 MCP：
 ```
 
 完整规则见 [docs/builtin-config.md](docs/builtin-config.md)。
-
-## 更新与卸载
-
-安装或更新（自动判断已装则更新、未装则安装）：
-
-```text
-# 全局（默认）
-/ae-install
-
-# 项目级
-/ae-install project
-```
-
-卸载（自动检测安装范围，让你选择）：
-
-```text
-/ae-uninstall
-```
-
-`/ae-install` 和 `/ae-uninstall` 面向 AE 插件安装或源码维护目录。一次授权后直接执行，无需二次确认。
 
 ## 开发
 
