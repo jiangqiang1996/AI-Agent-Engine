@@ -113,38 +113,41 @@ export function toUnderlineProps(u?: { style?: string; color?: string }) {
 /**
  * 构建文本运行数组，供 pptxgenjs addText 使用。
  *
- * pptxgenjs 对 textRuns 中未显式设置 color 的 run 会回退到主题默认色（Office Theme dk1 = #000000），
- * 而不会继承元素级别 options 中的 color。这导致暗色背景幻灯片上大量正文文字变成不可见的纯黑。
+ * pptxgenjs 的 addText 当接收数组参数时，每个元素需要 { text, options } 结构：
+ * 属性必须放在 options 子对象内，而非对象顶层。若属性直接放在顶层，pptxgenjs
+ * 不会读取 color/bold/fontSize/fontFace 等属性，导致回退到主题默认色（#000000）。
  *
- * 修复策略：当元素级别设置了 color 但某个 run 未显式设置 color 时，将元素级 color 传播到该 run，
- * 确保颜色不回退到主题默认黑色。
+ * 颜色传播：当 run 未显式设置 color 但元素级别有 color 时，将元素级 color
+ * 传播到 run 的 options.color，防止回退到主题默认黑色。
  */
 export function buildTextRuns(runs?: PptxTextRun[], elementColor?: string): unknown[] | undefined {
   if (!runs) return undefined
   return runs.map((run) => {
-    const r: Record<string, unknown> = { text: run.text }
-    if (run.bold !== undefined) r.bold = run.bold
-    if (run.italic !== undefined) r.italic = run.italic
-    if (run.fontSize !== undefined) r.fontSize = run.fontSize
+    const options: Record<string, unknown> = {}
+    if (run.bold !== undefined) options.bold = run.bold
+    if (run.italic !== undefined) options.italic = run.italic
+    if (run.fontSize !== undefined) options.fontSize = run.fontSize
     // 若 run 未显式设置 color 但元素级别有 color，传播到 run 防止回退到主题默认黑色
     if (run.color) {
-      r.color = run.color
+      options.color = run.color
     } else if (elementColor) {
-      r.color = elementColor
+      options.color = elementColor
     }
-    if (run.fontFace) r.fontFace = run.fontFace
-    if (run.align) r.align = run.align
-    if (run.valign) r.valign = run.valign
-    if (run.breakLine !== undefined) r.breakLine = run.breakLine
-    if (run.bullet !== undefined) r.bullet = toBulletProps(run.bullet)
-    if (run.underline) r.underline = toUnderlineProps(run.underline)
-    if (run.strike !== undefined) r.strike = run.strike
-    if (run.subscript !== undefined) r.subscript = run.subscript
-    if (run.superscript !== undefined) r.superscript = run.superscript
-    if (run.highlight) r.highlight = run.highlight
-    if (run.charSpacing !== undefined) r.charSpacing = run.charSpacing
-    if (run.hyperlink) r.hyperlink = toHyperlinkProps(run.hyperlink)
-    if (run.lang) r.lang = run.lang
+    if (run.fontFace) options.fontFace = run.fontFace
+    if (run.align) options.align = run.align
+    if (run.valign) options.valign = run.valign
+    if (run.breakLine !== undefined) options.breakLine = run.breakLine
+    if (run.bullet !== undefined) options.bullet = toBulletProps(run.bullet)
+    if (run.underline) options.underline = toUnderlineProps(run.underline)
+    if (run.strike !== undefined) options.strike = run.strike
+    if (run.subscript !== undefined) options.subscript = run.subscript
+    if (run.superscript !== undefined) options.superscript = run.superscript
+    if (run.highlight) options.highlight = run.highlight
+    if (run.charSpacing !== undefined) options.charSpacing = run.charSpacing
+    if (run.hyperlink) options.hyperlink = toHyperlinkProps(run.hyperlink)
+    if (run.lang) options.lang = run.lang
+    const r: Record<string, unknown> = { text: run.text }
+    if (Object.keys(options).length > 0) r.options = options
     return r
   })
 }
