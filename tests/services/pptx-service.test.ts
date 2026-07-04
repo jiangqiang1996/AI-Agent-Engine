@@ -570,4 +570,64 @@ describe('pptx-service', () => {
       expect(entries.some((e) => e.match(/^ppt\/slides\/slide\d+\.xml$/))).toBe(true)
     })
   })
+
+  describe('merge 操作', () => {
+    it('应合并两个 PPTX 文件的幻灯片', async () => {
+      const root = createRoot()
+
+      const create1 = await processPptx({
+        operation: 'create',
+        worktree: root,
+        slides: [{ title: '幻灯片A', layout: 'content' }],
+      })
+      const create2 = await processPptx({
+        operation: 'create',
+        worktree: root,
+        slides: [{ title: '幻灯片B', layout: 'content' }],
+      })
+
+      const result = await processPptx({
+        operation: 'merge',
+        worktree: root,
+        files: [create1.outputPath!, create2.outputPath!],
+      })
+
+      expect(result.outputPath).toBeTruthy()
+      expect(existsSync(result.outputPath!)).toBe(true)
+      expect(result.summary).toContain('2')
+
+      // 验证合并后包含两张幻灯片
+      const zip = new AdmZip(result.outputPath!)
+      const slideEntries = zip.getEntries().filter(e => /^ppt\/slides\/slide\d+\.xml$/.test(e.entryName))
+      expect(slideEntries.length).toBeGreaterThanOrEqual(2)
+
+      // 验证 presentation.xml 的 sldIdLst 包含两条
+      const presXml = zip.readAsText('ppt/presentation.xml')
+      const sldIdMatches = presXml.match(/<p:sldId\s/g) ?? []
+      expect(sldIdMatches.length).toBeGreaterThanOrEqual(2)
+    })
+
+    it('少于 2 个文件应抛出错误', async () => {
+      const root = createRoot()
+      const create1 = await processPptx({
+        operation: 'create',
+        worktree: root,
+        slides: [{ title: '单文件', layout: 'content' }],
+      })
+      await expect(
+        processPptx({
+          operation: 'merge',
+          worktree: root,
+          files: [create1.outputPath!],
+        }),
+      ).rejects.toThrow('2')
+    })
+
+    it('缺少 files 应抛出错误', async () => {
+      const root = createRoot()
+      await expect(
+        processPptx({ operation: 'merge', worktree: root }),
+      ).rejects.toThrow('2')
+    })
+  })
 })

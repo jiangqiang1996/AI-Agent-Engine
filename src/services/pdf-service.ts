@@ -11,6 +11,11 @@ import type { PDFFont, PDFImage, PDFPage } from 'pdf-lib'
 
 import { generateDocumentOutputPath } from '../utils/document-output-path.js'
 import { isInsideRoot } from '../utils/path-utils.js'
+import { convertPdfToMarkdown } from './pdf-markdown-converter.js'
+import { loadDocumentFile } from './document-file-loader.js'
+import { writeMarkdownOutput } from './markdown-output-writer.js'
+import { pdfToImages } from './pdf-to-image-service.js'
+import { join } from 'node:path'
 
 const require = createRequire(import.meta.url)
 
@@ -514,8 +519,8 @@ async function handleMerge(input: PdfInput): Promise<PdfResult> {
   }
   const merged = await PDFDocument.create()
 
-  for (const file of files) {
-    const src = await PDFDocument.load(readFileSync(file), { ignoreEncryption: true })
+  for (const filePath of files) {
+    const src = await PDFDocument.load(readFileSync(filePath), { ignoreEncryption: true })
     const pages = await merged.copyPages(src, src.getPageIndices())
     pages.forEach((p) => merged.addPage(p))
   }
@@ -550,7 +555,7 @@ async function handleSplit(input: PdfInput): Promise<PdfResult> {
       input.worktree,
       'split',
       'pdf',
-      `${file}-page${i + 1}`,
+      `page${i + 1}`,
     )
     mkdirSync(path.dirname(pagePath), { recursive: true })
     writeFileSync(pagePath, bytes)
@@ -854,39 +859,52 @@ async function handleUpdatePage(input: PdfInput): Promise<PdfResult> {
 }
 
 export async function processPdf(input: PdfInput): Promise<PdfResult> {
-  switch (input.operation) {
+  const { resolveDocumentPath } = await import('./document-file-loader.js')
+  const resolvedInput = { ...input }
+  if (input.file) {
+    try {
+      resolvedInput.file = await resolveDocumentPath(input.file, input.worktree)
+    } catch {
+      // 路径不存在时保留原始值，让 handler 的参数校验先执行
+    }
+  }
+  if (input.files) {
+    try {
+      resolvedInput.files = await Promise.all(
+        input.files.map((f) => resolveDocumentPath(f, input.worktree)),
+      )
+    } catch {
+      // 路径不存在时保留原始值
+    }
+  }
+
+  switch (resolvedInput.operation) {
     case 'create':
-      return handleCreate(input)
+      return handleCreate(resolvedInput)
     case 'merge':
-      return handleMerge(input)
+      return handleMerge(resolvedInput)
     case 'split':
-      return handleSplit(input)
+      return handleSplit(resolvedInput)
     case 'extract-text':
-      return handleExtractText(input)
+      return handleExtractText(resolvedInput)
     case 'fill-form':
-      return handleFillForm(input)
+      return handleFillForm(resolvedInput)
     case 'rotate-pages':
-      return handleRotatePages(input)
+      return handleRotatePages(resolvedInput)
     case 'delete-pages':
-      return handleDeletePages(input)
+      return handleDeletePages(resolvedInput)
     case 'add-watermark':
-      return handleAddWatermark(input)
+      return handleAddWatermark(resolvedInput)
     case 'add-pages':
-      return handleAddPages(input)
+      return handleAddPages(resolvedInput)
     case 'update-page':
-      return handleUpdatePage(input)
+      return handleUpdatePage(resolvedInput)
     case 'to-markdown':
-      return handleToMarkdown(input)
+      return handleToMarkdown(resolvedInput)
     case 'to-image':
-      return handleToImage(input)
+      return handleToImage(resolvedInput)
   }
 }
-
-import { convertPdfToMarkdown } from './pdf-markdown-converter.js'
-import { loadDocumentFile } from './document-file-loader.js'
-import { writeMarkdownOutput } from './markdown-output-writer.js'
-import { pdfToImages } from './pdf-to-image-service.js'
-import { join } from 'node:path'
 
 async function handleToMarkdown(input: PdfInput): Promise<PdfResult> {
   if (!input.file) throw new Error('to-markdown 操作需要 file 参数')
@@ -899,7 +917,7 @@ async function handleToImage(input: PdfInput): Promise<PdfResult> {
   if (!input.file) throw new Error('to-image 操作需要 file 参数')
   const { resolveDocumentPath } = await import('./document-file-loader.js')
   const filePath = await resolveDocumentPath(input.file, input.worktree)
-  const outputDir = join(input.worktree, 'ae', 'documents', 'pdf')
+  const outputDir = join(input.worktree, 'ae', 'documents', 'to-image')
   const images = await pdfToImages({
     filePath,
     outputDir,

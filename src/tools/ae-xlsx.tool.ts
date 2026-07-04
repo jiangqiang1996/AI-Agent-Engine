@@ -4,6 +4,12 @@ import { z } from 'zod'
 import { TOOL } from '../schemas/ae-asset-schema.js'
 import { processXlsx } from '../services/xlsx-service.js'
 import { formatDocumentToolError } from '../utils/document-tool-errors.js'
+import {
+  assessWriteDanger,
+  isInPlaceEditOutsideWorktree,
+  hasOutsideWorktreePaths,
+  buildOutsideWriteConfirmMessage,
+} from '../utils/document-path-security.js'
 
 // ==================== 样式 Schema ====================
 
@@ -169,7 +175,9 @@ export const aeXlsxTool = tool({
     '- analyze：提取工作表信息（名称、行列数、前 5 行预览、合并单元格、冻结窗格、条件格式、数据验证）',
     '- add-rows：向已有工作表追加或插入行数据，支持指定起始行号',
     '- add-sheet：向已有工作簿添加新工作表，支持完整列定义、行数据、合并、冻结等',
+    '- merge：合并多个 XLSX 文件为一个，自动处理工作表名冲突',
     '- to-markdown：将 XLSX 所有工作表内容转换为 Markdown 表格',
+    '- to-image：将 XLSX 转为 PNG 图片（需要 LibreOffice），用于视觉验证',
     '',
     '增量操作引导：',
     '- 大量数据（>100行）：先 create 创建初始数据，再 add-rows 分批追加，避免单次调用参数过大',
@@ -211,19 +219,25 @@ export const aeXlsxTool = tool({
     '适用场景：',
     '- 用户明确要求创建、编辑或分析 XLSX 文件',
     '- 需要公式、样式、合并、冻结、筛选、条件格式、数据验证等高级功能',
+    '- 创建或修改 XLSX 后需要视觉验证时，使用 to-image 操作（需要 LibreOffice）',
+    '- 需要理解 XLSX 视觉内容但模型不支持 vision 时，使用 to-image 转 PNG + ae:image 识别',
     '',
     '不适用场景：',
     '- 只需读取 XLSX 内容转为 Markdown 时，使用 to-markdown 操作',
-    '- 不支持远程 URL，仅处理当前工作区内本地文件',
+    '- 不支持远程 URL，仅处理本地文件（支持任意本地绝对路径）',
   ].join('\n'),
   args: {
     operation: z
-      .enum(['create', 'edit', 'analyze', 'add-rows', 'add-sheet', 'to-markdown'])
+      .enum(['create', 'edit', 'analyze', 'add-rows', 'add-sheet', 'merge', 'to-markdown', 'to-image'])
       .describe('操作类型'),
     file: z
       .string()
       .optional()
       .describe('现有 XLSX 文件路径（edit/analyze/add-rows/add-sheet 操作必填）'),
+    files: z
+      .array(z.string())
+      .optional()
+      .describe('要合并的 XLSX 文件路径列表（merge 操作必填，至少 2 个文件）'),
     sheets: z
       .array(sheetSchema)
       .optional()
@@ -270,20 +284,58 @@ export const aeXlsxTool = tool({
     outputPath: z
       .string()
       .optional()
-      .describe('自定义输出路径；to-markdown 的 outputMode=file 时写入此路径或 ae/markdown/，其余操作写入 ae/documents/xlsx/ 或覆盖源文件'),
+      .describe('自定义输出路径；merge 操作写入 ae/documents/xlsx/；to-markdown 的 outputMode=file 时写入此路径或 ae/markdown/，其余操作写入 ae/documents/xlsx/ 或覆盖源文件'),
     outputMode: z
       .enum(['file', 'inline'])
       .optional()
       .describe('to-markdown 输出模式：file 写入文件（默认），inline 直接返回内容不写文件'),
+    imagePages: z
+      .array(z.number().int().min(1))
+      .optional()
+      .describe('to-image 操作：指定页码列表（1-based），如 [1,3] 只转换第1、3页；省略则转换所有页'),
   },
   execute: async (args, ctx) => {
     ctx.metadata({ title: `XLSX ${args.operation}`, metadata: { operation: args.operation } })
+
+    const writeOps = ['create', 'edit', 'add-rows', 'add-sheet', 'merge'] as const
+    const fileOutputOps = ['to-markdown'] as const
+    if (writeOps.includes(args.operation as typeof writeOps[number]) ||
+        (fileOutputOps.includes(args.operation as typeof fileOutputOps[number]) && args.outputMode !== 'inline')) {
+      const dangerPaths: string[] = []
+      if (args.outputPath && assessWriteDanger(ctx.worktree, args.outputPath) === 'outside') {
+        dangerPaths.push(args.outputPath)
+      }
+      if (!args.outputPath && isInPlaceEditOutsideWorktree(ctx.worktree, args.file)) {
+        dangerPaths.push(args.file ?? '')
+      }
+      if (args.operation === 'merge' && hasOutsideWorktreePaths(ctx.worktree, args.files)) {
+        const outsideFiles = (args.files ?? []).filter(
+          (f) => hasOutsideWorktreePaths(ctx.worktree, [f]),
+        )
+        dangerPaths.push(...outsideFiles)
+      }
+      if (dangerPaths.length > 0) {
+        try {
+          await ctx.ask({
+            permission: 'file',
+            patterns: dangerPaths,
+            always: [],
+            metadata: {
+              action: buildOutsideWriteConfirmMessage(args.operation, 'XLSX', dangerPaths),
+            },
+          })
+        } catch {
+          return '用户拒绝了工作区外写入操作。'
+        }
+      }
+    }
 
     try {
       const result = await processXlsx({
         operation: args.operation,
         worktree: ctx.worktree,
         file: args.file,
+        files: args.files,
         sheets: args.sheets,
         sheetName: args.sheetName,
         cells: args.cells,
@@ -296,6 +348,7 @@ export const aeXlsxTool = tool({
         startRow: args.startRow,
         sheet: args.sheet,
         outputMode: args.outputMode,
+        imagePages: args.imagePages,
       })
 
       return {

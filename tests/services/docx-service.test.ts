@@ -647,4 +647,146 @@ describe('docx-service', () => {
       expect(existsSync(customPath)).toBe(true)
     })
   })
+
+  describe('merge 操作', () => {
+    it('应合并两个 DOCX 文件', async () => {
+      const root = createRoot()
+
+      const createResult1 = await processDocx({
+        operation: 'create',
+        worktree: root,
+        blocks: [{ type: 'paragraph', text: '文档一内容' }],
+      })
+      const createResult2 = await processDocx({
+        operation: 'create',
+        worktree: root,
+        blocks: [{ type: 'paragraph', text: '文档二内容' }],
+      })
+
+      const result = await processDocx({
+        operation: 'merge',
+        worktree: root,
+        files: [createResult1.outputPath!, createResult2.outputPath!],
+      })
+
+      expect(result.outputPath).toBeTruthy()
+      expect(existsSync(result.outputPath!)).toBe(true)
+      expect(result.summary).toContain('2')
+
+      // 验证合并后包含两份内容
+      const analyzeResult = await processDocx({
+        operation: 'analyze',
+        worktree: root,
+        file: result.outputPath!,
+      })
+      expect(analyzeResult.content).toContain('文档一内容')
+      expect(analyzeResult.content).toContain('文档二内容')
+    })
+
+    it('少于 2 个文件应抛出错误', async () => {
+      const root = createRoot()
+      await expect(
+        processDocx({
+          operation: 'merge',
+          worktree: root,
+          files: ['only-one.docx'],
+        }),
+      ).rejects.toThrow('2')
+    })
+
+    it('缺少 files 应抛出错误', async () => {
+      const root = createRoot()
+      await expect(
+        processDocx({ operation: 'merge', worktree: root }),
+      ).rejects.toThrow('2')
+    })
+
+    it('应合并三个 DOCX 文件', async () => {
+      const root = createRoot()
+
+      const files: string[] = []
+      for (let i = 0; i < 3; i++) {
+        const r = await processDocx({
+          operation: 'create',
+          worktree: root,
+          blocks: [{ type: 'paragraph', text: `文档${i + 1}内容` }],
+        })
+        files.push(r.outputPath!)
+      }
+
+      const result = await processDocx({
+        operation: 'merge',
+        worktree: root,
+        files,
+      })
+
+      expect(result.outputPath).toBeTruthy()
+      expect(existsSync(result.outputPath!)).toBe(true)
+      expect(result.summary).toContain('3')
+
+      const analyzeResult = await processDocx({
+        operation: 'analyze',
+        worktree: root,
+        file: result.outputPath!,
+      })
+      expect(analyzeResult.content).toContain('文档1内容')
+      expect(analyzeResult.content).toContain('文档2内容')
+      expect(analyzeResult.content).toContain('文档3内容')
+    })
+  })
+
+  describe('split 操作', () => {
+    it('应按分页符拆分文档', async () => {
+      const root = createRoot()
+
+      const createResult = await processDocx({
+        operation: 'create',
+        worktree: root,
+        blocks: [
+          { type: 'heading', level: 1, text: '第一部分' },
+          { type: 'paragraph', text: '第一部分正文' },
+          { type: 'page-break' },
+          { type: 'heading', level: 1, text: '第二部分' },
+          { type: 'paragraph', text: '第二部分正文' },
+        ],
+      })
+
+      const result = await processDocx({
+        operation: 'split',
+        worktree: root,
+        file: createResult.outputPath!,
+      })
+
+      expect(result.outputPaths).toBeTruthy()
+      expect(result.outputPaths!.length).toBeGreaterThanOrEqual(2)
+      for (const p of result.outputPaths!) {
+        expect(existsSync(p)).toBe(true)
+      }
+      expect(result.summary).toContain('2')
+    })
+
+    it('无法拆分的文档应抛出错误', async () => {
+      const root = createRoot()
+      const createResult = await processDocx({
+        operation: 'create',
+        worktree: root,
+        blocks: [{ type: 'paragraph', text: '只有一个段落，无法拆分' }],
+      })
+
+      await expect(
+        processDocx({
+          operation: 'split',
+          worktree: root,
+          file: createResult.outputPath!,
+        }),
+      ).rejects.toThrow()
+    })
+
+    it('缺少 file 应抛出错误', async () => {
+      const root = createRoot()
+      await expect(
+        processDocx({ operation: 'split', worktree: root }),
+      ).rejects.toThrow('file')
+    })
+  })
 })

@@ -4,6 +4,12 @@ import { z } from 'zod'
 import { TOOL } from '../schemas/ae-asset-schema.js'
 import { processPptx } from '../services/pptx-service.js'
 import { formatDocumentToolError } from '../utils/document-tool-errors.js'
+import {
+  assessWriteDanger,
+  isInPlaceEditOutsideWorktree,
+  hasOutsideWorktreePaths,
+  buildOutsideWriteConfirmMessage,
+} from '../utils/document-path-security.js'
 
 // ==================== 通用样式 Schema ====================
 
@@ -314,6 +320,7 @@ export const aePptxTool = tool({
     '- analyze：提取所有幻灯片的文本内容',
     '- append-slides：向已有 PPTX 追加新幻灯片，保留原有幻灯片不变',
     '- update-slide：替换指定幻灯片的全部元素（0-based 索引）',
+    '- merge：合并多个 PPTX 文件为一个，自动处理幻灯片 ID 和媒体资源',
     '- to-markdown：将 PPTX 所有幻灯片内容转换为 Markdown，含图片引用和演讲者备注',
     '',
     '元素化绘制（推荐模式）：',
@@ -371,16 +378,20 @@ export const aePptxTool = tool({
     '',
     '不适用场景：',
     '- 只需读取 PPTX 内容转为 Markdown 时，使用 to-markdown 操作',
-    '- 不支持远程 URL，仅处理当前工作区内本地文件',
+    '- 不支持远程 URL，仅处理本地文件（支持任意本地绝对路径）',
   ].join('\n'),
   args: {
     operation: z
-      .enum(['create', 'edit', 'analyze', 'append-slides', 'update-slide', 'to-markdown', 'to-image'])
+      .enum(['create', 'edit', 'analyze', 'append-slides', 'update-slide', 'merge', 'to-markdown', 'to-image'])
       .describe('操作类型'),
     file: z
       .string()
       .optional()
       .describe('现有 PPTX 文件路径（edit/analyze/append-slides/update-slide/to-image 操作必填）'),
+    files: z
+      .array(z.string())
+      .optional()
+      .describe('要合并的 PPTX 文件路径列表（merge 操作必填，至少 2 个文件）'),
     title: z
       .string()
       .optional()
@@ -427,7 +438,7 @@ export const aePptxTool = tool({
     outputPath: z
       .string()
       .optional()
-      .describe('自定义输出路径。create 操作写入 ae/documents/pptx/；edit/append-slides/update-slide 不指定时原地修改原文件（修改前自动备份为同目录 .bak 文件，修改成功后删除备份）；to-markdown 的 outputMode=file 时写入此路径或 ae/markdown/'),
+      .describe('自定义输出路径。create/merge 操作写入 ae/documents/pptx/；edit/append-slides/update-slide 不指定时原地修改原文件（修改前自动备份为同目录 .bak 文件，修改成功后删除备份）；to-markdown 的 outputMode=file 时写入此路径或 ae/markdown/'),
     outputMode: z
       .enum(['file', 'inline'])
       .optional()
@@ -440,11 +451,45 @@ export const aePptxTool = tool({
   execute: async (args, ctx) => {
     ctx.metadata({ title: `PPTX ${args.operation}`, metadata: { operation: args.operation } })
 
+    const writeOps = ['create', 'edit', 'append-slides', 'update-slide', 'merge'] as const
+    const fileOutputOps = ['to-markdown'] as const
+    if (writeOps.includes(args.operation as typeof writeOps[number]) ||
+        (fileOutputOps.includes(args.operation as typeof fileOutputOps[number]) && args.outputMode !== 'inline')) {
+      const dangerPaths: string[] = []
+      if (args.outputPath && assessWriteDanger(ctx.worktree, args.outputPath) === 'outside') {
+        dangerPaths.push(args.outputPath)
+      }
+      if (!args.outputPath && isInPlaceEditOutsideWorktree(ctx.worktree, args.file)) {
+        dangerPaths.push(args.file ?? '')
+      }
+      if (args.operation === 'merge' && hasOutsideWorktreePaths(ctx.worktree, args.files)) {
+        const outsideFiles = (args.files ?? []).filter(
+          (f) => hasOutsideWorktreePaths(ctx.worktree, [f]),
+        )
+        dangerPaths.push(...outsideFiles)
+      }
+      if (dangerPaths.length > 0) {
+        try {
+          await ctx.ask({
+            permission: 'file',
+            patterns: dangerPaths,
+            always: [],
+            metadata: {
+              action: buildOutsideWriteConfirmMessage(args.operation, 'PPTX', dangerPaths),
+            },
+          })
+        } catch {
+          return '用户拒绝了工作区外写入操作。'
+        }
+      }
+    }
+
     try {
       const result = await processPptx({
         operation: args.operation,
         worktree: ctx.worktree,
         file: args.file,
+        files: args.files,
         title: args.title,
         slides: args.slides,
         masters: args.masters,

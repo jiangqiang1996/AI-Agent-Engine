@@ -1,36 +1,23 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 
+import { isInsideRoot } from '../utils/path-utils.js'
+import {
+  normalizeUserFilePath,
+  rejectWindowsSpecialPath,
+  isOutsideWorktree,
+} from '../utils/document-path-security.js'
+
 const DEFAULT_MAX_FILE_BYTES = 100 * 1024 * 1024
 
 export interface FileLoaderResult {
   filePath: string
   buffer: Buffer
   fileSize: number
+  outsideWorktree: boolean
 }
 
-export function normalizeUserFilePath(file: string): string {
-  let normalized = file.trim()
-  if (normalized.startsWith('@')) normalized = normalized.slice(1)
-  const wrappers = [['"', '"'], ["'", "'"], ['`', '`']] as const
-  for (const [open, close] of wrappers) {
-    if (normalized.length >= 2 && normalized.startsWith(open) && normalized.endsWith(close)) {
-      normalized = normalized.slice(1, -1)
-      break
-    }
-  }
-  return normalized.trim()
-}
-
-function rejectWindowsSpecialPath(source: string): void {
-  if (
-    source.startsWith('\\\\') ||
-    source.startsWith('\\\\?\\') ||
-    /:[^\\/]+$/.test(source.replace(/^[a-zA-Z]:/, ''))
-  ) {
-    throw new Error('路径越界：不允许 UNC、扩展长度路径或备用数据流路径。')
-  }
-}
+export { normalizeUserFilePath, isOutsideWorktree }
 
 function resolveMaxBytes(): number {
   const envValue = process.env.AE_DOCUMENT_MAX_BYTES
@@ -41,9 +28,10 @@ function resolveMaxBytes(): number {
 }
 
 /**
- * 对已 normalize 的文件路径做完整安全校验和 resolve，
- * 返回 worktree 内的绝对路径。复用 loadDocumentFile 的
- * UNC 拒绝、realpath 解析和越界检测逻辑，但不读文件内容。
+ * 对已 normalize 的文件路径做安全校验和 resolve。
+ * 支持任意本地绝对路径（工作区内和工作区外均可读取），
+ * 仅拒绝 UNC/ADS 等危险路径模式。
+ * 不使用 fs.realpath 以避免 Windows 8.3 短名称转换副作用。
  */
 export async function resolveDocumentPath(file: string, worktree: string): Promise<string> {
   const rawFile = normalizeUserFilePath(file)
@@ -53,21 +41,15 @@ export async function resolveDocumentPath(file: string, worktree: string): Promi
 
   rejectWindowsSpecialPath(rawFile)
 
-  const root = await fs.realpath(worktree)
-  const target = path.resolve(root, rawFile)
-  let realTarget: string
+  const resolved = path.resolve(worktree, rawFile)
+
   try {
-    realTarget = await fs.realpath(target)
+    await fs.access(resolved)
   } catch {
-    throw new Error('路径不存在，请确认文件位于当前工作区内。')
+    throw new Error('路径不存在，请确认文件路径正确。')
   }
 
-  const relative = path.relative(root, realTarget)
-  if (relative.startsWith('..') || path.isAbsolute(relative)) {
-    throw new Error('路径越界：只能读取当前工作区内的文件。')
-  }
-
-  return realTarget
+  return resolved
 }
 
 export async function loadDocumentFile(
@@ -100,5 +82,7 @@ export async function loadDocumentFile(
     throw new Error(`${formatName} 读取失败：文件为空，请提供有效的文件内容。`)
   }
 
-  return { filePath: realTarget, buffer, fileSize: stat.size }
+  const outsideWorktree = !isInsideRoot(worktree, realTarget)
+
+  return { filePath: realTarget, buffer, fileSize: stat.size, outsideWorktree }
 }

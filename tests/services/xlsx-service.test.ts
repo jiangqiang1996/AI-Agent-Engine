@@ -763,4 +763,87 @@ describe('xlsx-service', () => {
     expect(existsSync(customPath)).toBe(true)
     expect(existsSync(sourcePath)).toBe(true)
   })
+
+  describe('merge 操作', () => {
+    it('应合并两个 XLSX 文件的工作表', async () => {
+      const root = createRoot()
+
+      const create1 = await processXlsx({
+        operation: 'create',
+        worktree: root,
+        sheets: [
+          {
+            name: 'Sheet1',
+            columns: [{ header: 'A', key: 'a' }],
+            rows: [{ a: 1 }],
+          },
+        ],
+      })
+      const create2 = await processXlsx({
+        operation: 'create',
+        worktree: root,
+        sheets: [
+          {
+            name: 'Sheet2',
+            columns: [{ header: 'B', key: 'b' }],
+            rows: [{ b: 2 }],
+          },
+        ],
+      })
+
+      const result = await processXlsx({
+        operation: 'merge',
+        worktree: root,
+        files: [create1.outputPath!, create2.outputPath!],
+      })
+
+      expect(result.outputPath).toBeTruthy()
+      expect(existsSync(result.outputPath!)).toBe(true)
+      expect(result.summary).toContain('2')
+
+      const analyzeResult = await processXlsx({
+        operation: 'analyze',
+        worktree: root,
+        file: result.outputPath!,
+      })
+      expect(analyzeResult.content).toContain('Sheet1')
+      expect(analyzeResult.content).toContain('Sheet2')
+    })
+
+    it('工作表名冲突时应自动重命名', async () => {
+      const root = createRoot()
+
+      const create1 = await processXlsx({
+        operation: 'create',
+        worktree: root,
+        sheets: [{ name: 'Data', columns: [{ header: 'X', key: 'x' }], rows: [{ x: 1 }] }],
+      })
+      const create2 = await processXlsx({
+        operation: 'create',
+        worktree: root,
+        sheets: [{ name: 'Data', columns: [{ header: 'Y', key: 'y' }], rows: [{ y: 2 }] }],
+      })
+
+      const result = await processXlsx({
+        operation: 'merge',
+        worktree: root,
+        files: [create1.outputPath!, create2.outputPath!],
+      })
+
+      const analyzeResult = await processXlsx({
+        operation: 'analyze',
+        worktree: root,
+        file: result.outputPath!,
+      })
+      expect(analyzeResult.content).toContain('Data')
+      expect(analyzeResult.content).toContain('Data_1')
+    })
+
+    it('缺少 files 应抛出错误', async () => {
+      const root = createRoot()
+      await expect(
+        processXlsx({ operation: 'merge', worktree: root }),
+      ).rejects.toThrow('2')
+    })
+  })
 })

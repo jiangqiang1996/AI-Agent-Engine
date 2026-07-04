@@ -4,6 +4,12 @@ import { z } from 'zod'
 import { TOOL } from '../schemas/ae-asset-schema.js'
 import { processPdf } from '../services/pdf-service.js'
 import { formatDocumentToolError } from '../utils/document-tool-errors.js'
+import {
+  assessWriteDanger,
+  isInPlaceEditOutsideWorktree,
+  hasOutsideWorktreePaths,
+  buildOutsideWriteConfirmMessage,
+} from '../utils/document-path-security.js'
 
 const colorSchema = z
   .object({
@@ -147,7 +153,7 @@ export const aePdfTool = tool({
     '',
     '不适用场景：',
     '- 只需读取 PDF 内容转为 Markdown 时，使用 to-markdown 操作',
-    '- 不支持远程 URL，仅处理当前工作区内本地文件',
+    '- 不支持远程 URL，仅处理本地文件（支持任意本地绝对路径）',
     '- 不支持加密 PDF',
   ].join('\n'),
   args: {
@@ -234,6 +240,42 @@ export const aePdfTool = tool({
   },
   execute: async (args, ctx) => {
     ctx.metadata({ title: `PDF ${args.operation}`, metadata: { operation: args.operation } })
+
+    const writeOps = [
+      'create', 'merge', 'fill-form', 'rotate-pages',
+      'delete-pages', 'add-watermark', 'add-pages', 'update-page', 'split',
+    ] as const
+    const fileOutputOps = ['to-markdown'] as const
+    if (writeOps.includes(args.operation as typeof writeOps[number]) ||
+        (fileOutputOps.includes(args.operation as typeof fileOutputOps[number]) && args.outputMode !== 'inline')) {
+      const dangerPaths: string[] = []
+      if (args.outputPath && assessWriteDanger(ctx.worktree, args.outputPath) === 'outside') {
+        dangerPaths.push(args.outputPath)
+      }
+      if (!args.outputPath && isInPlaceEditOutsideWorktree(ctx.worktree, args.file)) {
+        dangerPaths.push(args.file ?? '')
+      }
+      if (args.operation === 'merge' && hasOutsideWorktreePaths(ctx.worktree, args.files)) {
+        const outsideFiles = (args.files ?? []).filter(
+          (f) => hasOutsideWorktreePaths(ctx.worktree, [f]),
+        )
+        dangerPaths.push(...outsideFiles)
+      }
+      if (dangerPaths.length > 0) {
+        try {
+          await ctx.ask({
+            permission: 'file',
+            patterns: dangerPaths,
+            always: [],
+            metadata: {
+              action: buildOutsideWriteConfirmMessage(args.operation, 'PDF', dangerPaths),
+            },
+          })
+        } catch {
+          return '用户拒绝了工作区外写入操作。'
+        }
+      }
+    }
 
     try {
       const result = await processPdf({

@@ -4,6 +4,12 @@ import { z } from 'zod'
 import { TOOL } from '../schemas/ae-asset-schema.js'
 import { processDocx } from '../services/docx-service.js'
 import { formatDocumentToolError } from '../utils/document-tool-errors.js'
+import {
+  assessWriteDanger,
+  isInPlaceEditOutsideWorktree,
+  hasOutsideWorktreePaths,
+  buildOutsideWriteConfirmMessage,
+} from '../utils/document-path-security.js'
 
 // ==================== 文本运行样式 ====================
 
@@ -192,6 +198,8 @@ export const aeDocxTool = tool({
     '- track-changes：添加 Word 修订标记（w:del/w:ins），便于审阅变更',
     '- append-blocks：向已有 DOCX 追加内容块（增量追加，保留原有内容）',
     '- update-block：更新已有 DOCX 中指定索引的内容块（局部替换，不影响其他块）',
+    '- merge：合并多个 DOCX 文件为一个',
+    '- split：将 DOCX 按分节符或分页符拆分为多个文件',
     '- to-markdown：将 DOCX 内容完整转换为 Markdown，支持 OMML 数学公式转 LaTeX',
     '',
     'create 操作支持的高级特性：',
@@ -228,16 +236,20 @@ export const aeDocxTool = tool({
     '',
     '不适用场景：',
     '- 只需读取 DOCX 内容转为 Markdown 时，使用 to-markdown 操作',
-    '- 不支持远程 URL，仅处理当前工作区内本地文件',
+    '- 不支持远程 URL，仅处理本地文件（支持任意本地绝对路径）',
   ].join('\n'),
   args: {
     operation: z
-      .enum(['create', 'edit', 'analyze', 'track-changes', 'append-blocks', 'update-block', 'to-markdown', 'to-image'])
+      .enum(['create', 'edit', 'analyze', 'track-changes', 'append-blocks', 'update-block', 'merge', 'split', 'to-markdown', 'to-image'])
       .describe('操作类型'),
     file: z
       .string()
       .optional()
-      .describe('现有 DOCX 文件路径（edit/analyze/track-changes/append-blocks/update-block/to-image 操作必填）'),
+      .describe('现有 DOCX 文件路径（edit/analyze/track-changes/append-blocks/update-block/split/to-image 操作必填）'),
+    files: z
+      .array(z.string())
+      .optional()
+      .describe('要合并的 DOCX 文件路径列表（merge 操作必填，至少 2 个文件）'),
     title: z
       .string()
       .optional()
@@ -279,7 +291,7 @@ export const aeDocxTool = tool({
     outputPath: z
       .string()
       .optional()
-      .describe('自定义输出路径。create 操作写入 ae/documents/docx/；edit/track-changes/append-blocks/update-block 不指定时原地修改原文件（修改前自动备份为同目录 .bak 文件，修改成功后删除备份）；to-markdown 的 outputMode=file 时写入此路径或 ae/markdown/'),
+      .describe('自定义输出路径。create/merge 操作写入 ae/documents/docx/；split 不指定时自动生成 sectionN 文件路径；edit/track-changes/append-blocks/update-block 不指定时原地修改原文件（修改前自动备份为同目录 .bak 文件，修改成功后删除备份）；to-markdown 的 outputMode=file 时写入此路径或 ae/markdown/'),
     outputMode: z
       .enum(['file', 'inline'])
       .optional()
@@ -292,11 +304,47 @@ export const aeDocxTool = tool({
   execute: async (args, ctx) => {
     ctx.metadata({ title: `DOCX ${args.operation}`, metadata: { operation: args.operation } })
 
+    const writeOps = ['create', 'edit', 'track-changes', 'append-blocks', 'update-block', 'merge', 'split'] as const
+    const fileOutputOps = ['to-markdown'] as const
+    if (writeOps.includes(args.operation as typeof writeOps[number]) ||
+        (fileOutputOps.includes(args.operation as typeof fileOutputOps[number]) && args.outputMode !== 'inline')) {
+      const dangerPaths: string[] = []
+      if (args.outputPath) {
+        if (assessWriteDanger(ctx.worktree, args.outputPath) === 'outside') {
+          dangerPaths.push(args.outputPath)
+        }
+      }
+      if (!args.outputPath && isInPlaceEditOutsideWorktree(ctx.worktree, args.file)) {
+        dangerPaths.push(args.file ?? '')
+      }
+      if (args.operation === 'merge' && hasOutsideWorktreePaths(ctx.worktree, args.files)) {
+        const outsideFiles = (args.files ?? []).filter(
+          (f) => hasOutsideWorktreePaths(ctx.worktree, [f]),
+        )
+        dangerPaths.push(...outsideFiles)
+      }
+      if (dangerPaths.length > 0) {
+        try {
+          await ctx.ask({
+            permission: 'file',
+            patterns: dangerPaths,
+            always: [],
+            metadata: {
+              action: buildOutsideWriteConfirmMessage(args.operation, 'DOCX', dangerPaths),
+            },
+          })
+        } catch {
+          return '用户拒绝了工作区外写入操作。'
+        }
+      }
+    }
+
     try {
       const result = await processDocx({
         operation: args.operation,
         worktree: ctx.worktree,
         file: args.file,
+        files: args.files,
         title: args.title,
         blocks: args.blocks,
         sections: args.sections,
@@ -316,6 +364,7 @@ export const aeDocxTool = tool({
           tool: TOOL.AE_DOCX,
           operation: args.operation,
           outputPath: result.outputPath,
+          outputPaths: result.outputPaths,
           summary: result.summary,
         },
       }

@@ -4,8 +4,13 @@ import path from 'node:path'
 import ExcelJS from 'exceljs'
 
 import { generateDocumentOutputPath } from '../utils/document-output-path.js'
+import { convertXlsxToMarkdown } from './xlsx-markdown-converter.js'
+import { loadDocumentFile } from './document-file-loader.js'
+import { writeMarkdownOutput } from './markdown-output-writer.js'
+import { detectLibreOffice, convertToImagesViaPdf, resolveLibreofficeConfigPath } from './libreoffice-service.js'
+import { join } from 'node:path'
 
-export type XlsxOperation = 'create' | 'edit' | 'analyze' | 'add-rows' | 'add-sheet' | 'to-markdown'
+export type XlsxOperation = 'create' | 'edit' | 'analyze' | 'add-rows' | 'add-sheet' | 'merge' | 'to-markdown' | 'to-image'
 
 // ==================== 样式类型 ====================
 
@@ -136,6 +141,8 @@ export interface XlsxInput {
   operation: XlsxOperation
   worktree: string
   file?: string
+  /** merge 操作：要合并的 XLSX 文件路径列表 */
+  files?: string[]
   sheets?: XlsxSheetData[]
   sheetName?: string
   cells?: XlsxCellData[]
@@ -151,6 +158,8 @@ export interface XlsxInput {
   /** add-sheet 操作：单个工作表数据 */
   sheet?: XlsxSheetData
   outputMode?: 'file' | 'inline'
+  /** to-image 操作：指定页码列表（1-based），省略则转换所有页 */
+  imagePages?: number[]
 }
 
 export interface XlsxResult {
@@ -776,32 +785,193 @@ async function handleAddSheet(input: XlsxInput): Promise<XlsxResult> {
   }
 }
 
-// ==================== 入口 ====================
+// ==================== merge 操作 ====================
 
-export async function processXlsx(input: XlsxInput): Promise<XlsxResult> {
-  switch (input.operation) {
-    case 'create':
-      return handleCreate(input)
-    case 'edit':
-      return handleEdit(input)
-    case 'analyze':
-      return handleAnalyze(input)
-    case 'add-rows':
-      return handleAddRows(input)
-    case 'add-sheet':
-      return handleAddSheet(input)
-    case 'to-markdown':
-      return handleToMarkdown(input)
+async function handleMerge(input: XlsxInput): Promise<XlsxResult> {
+  const files = input.files
+  if (!files || files.length < 2) {
+    throw new Error('merge 操作需要至少 2 个文件路径')
+  }
+
+  // 读取第一个文件作为基础工作簿
+  const baseWb = new ExcelJS.Workbook()
+  await baseWb.xlsx.readFile(files[0])
+
+  // 记录已有工作表名，用于冲突处理
+  const existingNames = new Set<string>()
+  baseWb.eachSheet((ws) => existingNames.add(ws.name))
+
+  let copiedSheetCount = 0
+
+  // 逐个读取后续文件，复制每个工作表到基础工作簿
+  for (let fileIdx = 1; fileIdx < files.length; fileIdx++) {
+    const srcWb = new ExcelJS.Workbook()
+    await srcWb.xlsx.readFile(files[fileIdx])
+
+    srcWb.eachSheet((srcWs) => {
+      // 确定不冲突的工作表名
+      let targetName = srcWs.name
+      let suffix = 1
+      while (existingNames.has(targetName)) {
+        targetName = `${srcWs.name}_${suffix}`
+        suffix++
+      }
+      existingNames.add(targetName)
+
+      // 在基础工作簿中创建目标工作表
+      const destWs = baseWb.addWorksheet(targetName)
+
+      // 复制列定义（含样式）
+      const columns: Partial<ExcelJS.Column>[] = []
+      for (let colIdx = 1; colIdx <= srcWs.columnCount; colIdx++) {
+        const srcCol = srcWs.getColumn(colIdx)
+        const colDef: Partial<ExcelJS.Column> = {}
+        if (srcCol.key) colDef.key = srcCol.key
+        if (srcCol.width !== undefined) colDef.width = srcCol.width
+        if (srcCol.header) colDef.header = srcCol.header
+        if (srcCol.style) colDef.style = srcCol.style
+        if (srcCol.numFmt) colDef.numFmt = srcCol.numFmt
+        columns.push(colDef)
+      }
+      if (columns.length > 0) {
+        destWs.columns = columns
+      }
+
+      // 复制单元格值和完整样式
+      srcWs.eachRow({ includeEmpty: true }, (row, rowNum) => {
+        const destRow = destWs.getRow(rowNum)
+        row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+          const destCell = destRow.getCell(colNum)
+          if (cell.value !== null && cell.value !== undefined) {
+            destCell.value = cell.value as ExcelJS.CellValue
+          }
+          if (cell.font) destCell.font = cell.font
+          if (cell.fill) destCell.fill = cell.fill
+          if (cell.border) destCell.border = cell.border
+          if (cell.alignment) destCell.alignment = cell.alignment
+          if (cell.numFmt) destCell.numFmt = cell.numFmt
+        })
+        // 复制行高
+        if (row.height) destRow.height = row.height
+      })
+
+      // 复制合并单元格
+      const srcModel = srcWs.model as { merges?: string[] }
+      if (srcModel.merges && srcModel.merges.length > 0) {
+        for (const merge of srcModel.merges) {
+          destWs.mergeCells(merge)
+        }
+      }
+
+      // 复制自动筛选
+      if (srcWs.autoFilter) {
+        destWs.autoFilter = srcWs.autoFilter
+      }
+
+      // 复制工作表属性
+      if (srcWs.properties) {
+        destWs.properties = srcWs.properties
+      }
+
+      // 复制冻结窗格（views）
+      if (srcWs.views && srcWs.views.length > 0) {
+        destWs.views = srcWs.views
+      }
+
+      copiedSheetCount++
+    })
+  }
+
+  const outputPath =
+    input.outputPath ?? generateDocumentOutputPath(input.worktree, 'merge', 'xlsx')
+  mkdirSync(path.dirname(outputPath), { recursive: true })
+  await baseWb.xlsx.writeFile(outputPath)
+
+  const totalSheets = baseWb.worksheets.length
+  return {
+    outputPath,
+    summary: `已合并 ${files.length} 个 XLSX 文件，共 ${totalSheets} 个工作表（从后续文件新增 ${copiedSheetCount} 个）`,
   }
 }
 
-import { convertXlsxToMarkdown } from './xlsx-markdown-converter.js'
-import { loadDocumentFile } from './document-file-loader.js'
-import { writeMarkdownOutput } from './markdown-output-writer.js'
+// ==================== 入口 ====================
+
+export async function processXlsx(input: XlsxInput): Promise<XlsxResult> {
+  const { resolveDocumentPath } = await import('./document-file-loader.js')
+  const resolvedInput = { ...input }
+  if (input.file) {
+    try {
+      resolvedInput.file = await resolveDocumentPath(input.file, input.worktree)
+    } catch {
+      // 路径不存在时保留原始值，让 handler 的参数校验先执行
+    }
+  }
+  if (input.files) {
+    try {
+      resolvedInput.files = await Promise.all(
+        input.files.map((f) => resolveDocumentPath(f, input.worktree)),
+      )
+    } catch {
+      // 路径不存在时保留原始值
+    }
+  }
+
+  switch (resolvedInput.operation) {
+    case 'create':
+      return handleCreate(resolvedInput)
+    case 'edit':
+      return handleEdit(resolvedInput)
+    case 'analyze':
+      return handleAnalyze(resolvedInput)
+    case 'add-rows':
+      return handleAddRows(resolvedInput)
+    case 'add-sheet':
+      return handleAddSheet(resolvedInput)
+    case 'merge':
+      return handleMerge(resolvedInput)
+    case 'to-markdown':
+      return handleToMarkdown(resolvedInput)
+    case 'to-image':
+      return handleToImage(resolvedInput)
+  }
+}
 
 async function handleToMarkdown(input: XlsxInput): Promise<XlsxResult> {
   if (!input.file) throw new Error('to-markdown 操作需要 file 参数')
   const { buffer } = await loadDocumentFile(input.file, input.worktree, 'XLSX')
   const result = await convertXlsxToMarkdown(buffer)
   return writeMarkdownOutput(result.markdown, input.worktree, 'xlsx', input.outputPath, input.outputMode)
+}
+
+async function handleToImage(input: XlsxInput): Promise<XlsxResult> {
+  if (!input.file) throw new Error('to-image 操作需要 file 参数')
+  const configResult = resolveLibreofficeConfigPath(input.worktree)
+  const detection = detectLibreOffice(configResult.libreofficePath ?? undefined)
+  if (!detection.available || !detection.sofficePath) {
+    throw new Error('LibreOffice 不可用。请先通过 ae:libreoffice 技能安装或下载 LibreOffice，再进行视觉验证。')
+  }
+  const { resolveDocumentPath } = await import('./document-file-loader.js')
+  const filePath = await resolveDocumentPath(input.file, input.worktree)
+  const outputDir = join(input.worktree, 'ae', 'documents', 'to-image')
+  const { images } = await convertToImagesViaPdf({
+    filePath,
+    outputDir,
+    sofficePath: detection.sofficePath,
+    pageNumbers: input.imagePages,
+    scale: 2.0,
+    intermediateDir: join(input.worktree, 'ae', 'documents', 'to-image', '_intermediate'),
+  })
+  if (images.length === 0) {
+    return { summary: 'XLSX 转图片失败：未生成任何图片文件', content: '' }
+  }
+  const imageList = images.map(p => {
+    const match = p.match(/page_(\d+)\.png$/)
+    const pageNum = match ? parseInt(match[1]) : 0
+    return `第 ${pageNum} 页: ${p}`
+  }).join('\n')
+  return {
+    summary: `XLSX 转图片完成，生成 ${images.length} 张页面图片`,
+    content: imageList,
+    outputPath: outputDir,
+  }
 }
