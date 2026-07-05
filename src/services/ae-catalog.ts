@@ -115,13 +115,6 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillFile: `src/assets/skills/${skillDir(SKILL.SLIDES_OUTLINE)}/SKILL.md`,
   },
   {
-    skillName: SKILL.SLIDES_FORGE,
-    commandName: COMMAND.SLIDES_FORGE,
-    description: '传入确认后的幻灯片大纲文件，调用 ae:web-forge 生成按页拆分的多文件 HTML 幻灯片；内容必须完全符合大纲，禁止镀金',
-    argumentHint: '[大纲文件路径] [--design|--match] [现有 HTML 文件路径]',
-    skillFile: `src/assets/skills/${skillDir(SKILL.SLIDES_FORGE)}/SKILL.md`,
-  },
-  {
     skillName: SKILL.PPTX_FROM_OUTLINE,
     commandName: COMMAND.PPTX_FROM_OUTLINE,
     description: '传入确认后的幻灯片大纲文件，解析布局提示词与图表/线框描述，调用 ae-pptx 工具生成 PPTX 演示文稿；内容必须完全符合大纲，禁止镀金',
@@ -185,8 +178,8 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   {
     skillName: SKILL.LIBREOFFICE,
     commandName: COMMAND.LIBREOFFICE,
-    description: 'LibreOffice 运行时管理：检测、下载和管理 LibreOffice（系统安装或便携版），供 ae:pptx、ae:docx、ae:pdf 技能进行文档视觉验证时调用',
-    argumentHint: '[action=check|install]',
+    description: 'LibreOffice 运行时管理：检测、下载、配置和管理 LibreOffice（ae.jsonc 配置、系统安装或便携版），供 ae:pptx、ae:docx、ae:pdf、ae:xlsx 技能进行文档转换或视觉验证时调用',
+    argumentHint: '[action=check|install|config|set-path]',
     skillFile: `src/assets/skills/${skillDir(SKILL.LIBREOFFICE)}/SKILL.md`,
   },
   {

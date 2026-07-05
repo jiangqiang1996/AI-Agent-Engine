@@ -24,6 +24,12 @@
 | 数据库查询或操作 | `/ae-sql` |
 | Swagger/OpenAPI 联调摘要 | `/ae-swagger-parser` |
 | 图片转 Markdown 描述 | `/ae-image` |
+| 创建或编辑 DOCX | `/ae-docx` |
+| 创建或编辑 PDF | `/ae-pdf` |
+| 创建或编辑 PPTX | `/ae-pptx` |
+| 创建或编辑 XLSX | `/ae-xlsx` |
+| 幻灯片大纲生成 | `/ae-slides-outline` |
+| 大纲转 PPTX | `/ae-pptx-from-outline` |
 | HTML 单文件打包 | `/ae-html-bundle` |
 | 静态服务器 | `/ae-static-server` |
 | 构建或查询项目关系图谱 | `/ae-graph-build`、`/ae-graph-query` |

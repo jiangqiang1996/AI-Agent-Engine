@@ -122,6 +122,8 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 创建或编辑 PDF | `/ae-pdf` |
 | 创建或编辑 PPTX | `/ae-pptx` |
 | 创建或编辑 XLSX | `/ae-xlsx` |
+| 幻灯片大纲生成 | `/ae-slides-outline` |
+| 大纲转 PPTX | `/ae-pptx-from-outline` |
 | 静态服务器 | `/ae-static-server` |
 | 项目关系图谱 | `/ae-graph-build`、`/ae-graph-query` |
 | 探索性修复 | `/ae-task-loop` |
@@ -150,8 +152,8 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 
 | 类型 | 当前快照 | 真源 |
 | --- | ---: | --- |
-| 技能 | 39 | `src/assets/skills/`、`src/schemas/ae-asset-schema.ts` |
-| 命令 | 42 | `src/services/command-registration.ts`、`src/assets/commands/` |
+| 技能 | 38 | `src/assets/skills/`、`src/schemas/ae-asset-schema.ts` |
+| 命令 | 41 | `src/services/command-registration.ts`、`src/assets/commands/` |
 | 代理 | 40 | `src/assets/agents/`、`src/services/agent-registration.ts` |
 | 工具 | 25 | `src/tools/` |
 | 规则 | 5 | `src/assets/rules/` |

@@ -1,6 +1,7 @@
 ---
 name: ae:uninstall
 description: "卸载 AE 插件。自动检测已安装的范围，让用户选择卸载全局或项目级。"
+argument-hint: ""
 ---
 
 # AE 插件卸载

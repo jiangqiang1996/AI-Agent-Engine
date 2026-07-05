@@ -24,7 +24,7 @@ export const aeLibreofficeTool = tool({
     '- set-path：将 soffice 路径写入 ae.jsonc，后续 check 优先使用该配置路径',
     '',
     '适用场景：',
-    '- ae:pptx、ae:docx、ae:pdf 技能需要视觉验证时，先通过 ae:libreoffice 确认 LibreOffice 就绪',
+    '- ae:pptx、ae:docx、ae:pdf、ae:xlsx 技能需要文档转换或视觉验证时（如 to-image 转换 DOCX/PPTX/XLSX），先通过 ae:libreoffice 确认 LibreOffice 就绪',
     '- 下载或管理便携版 LibreOffice',
     '- 指定自定义 LibreOffice 安装路径（如非默认安装目录）',
     '',
@@ -53,7 +53,7 @@ export const aeLibreofficeTool = tool({
           `- 来源：${sourceLabel}`,
           `- soffice 路径：${result.sofficePath}`,
           '',
-          'LibreOffice 已就绪，可进行文档视觉验证。',
+          'LibreOffice 已就绪，可进行文档转换或视觉验证。',
         ].join('\n')
       }
 
@@ -65,7 +65,7 @@ export const aeLibreofficeTool = tool({
         '',
         `便携版存储路径：${portableDir}`,
         '',
-        '如需文档视觉验证能力，请执行以下任一操作：',
+        '如需文档转换或视觉验证能力，请执行以下任一操作：',
         '1. 系统安装 LibreOffice（https://www.libreoffice.org/download/）',
         '2. 调用本工具 action=install 自动下载便携版（约 300MB，下载后永久缓存复用）',
         '3. 调用本工具 action=set-path sofficePath=<路径> 将自定义路径写入 ae.jsonc',
@@ -156,7 +156,7 @@ export const aeLibreofficeTool = tool({
           `- soffice 路径：${result.sofficePath}`,
           `- 存储位置：${getPortableDir()}`,
           '',
-          'LibreOffice 已就绪，可进行文档视觉验证。',
+          'LibreOffice 已就绪，可进行文档转换或视觉验证。',
         ].join('\n')
       }
 

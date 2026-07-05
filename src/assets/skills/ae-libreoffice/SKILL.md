@@ -1,6 +1,6 @@
 ---
 name: ae:libreoffice
-description: LibreOffice 运行时管理：检测、下载、配置和管理 LibreOffice（ae.jsonc 配置、系统安装或便携版），供 ae:pptx、ae:docx、ae:pdf 技能进行文档视觉验证时调用
+description: LibreOffice 运行时管理：检测、下载、配置和管理 LibreOffice（ae.jsonc 配置、系统安装或便携版），供 ae:pptx、ae:docx、ae:pdf、ae:xlsx 技能进行文档转换或视觉验证时调用
 argument-hint: "[action=check|install|config|set-path]"
 ---
 
@@ -12,20 +12,20 @@ LibreOffice 运行时管理者：检测和确保 LibreOffice 可用，供文档�
 
 ## 适用场景
 
-- ae:pptx、ae:docx、ae:pdf 技能需要视觉验证时，先通过 ae:libreoffice 确认 LibreOffice 就绪
+- ae:pptx、ae:docx、ae:pdf、ae:xlsx 技能需要 LibreOffice 支持时（如 to-image 转换 DOCX/PPTX/XLSX），先通过 ae:libreoffice 确认 LibreOffice 就绪
 - 下载或管理便携版 LibreOffice
 - 指定自定义 LibreOffice 安装路径（如非默认安装目录），通过 ae.jsonc 配置管理
 
 ## 不适用场景
 
 - 不直接执行文档转换，只管理 LibreOffice 运行时可用性
-- 不替代 ae:pptx、ae:docx、ae:pdf 的文档操作能力
+- 不替代 ae:pptx、ae:docx、ae:pdf、ae:xlsx 的文档操作能力
 
 ## 执行流程
 
 1. 解析 `$ARGUMENTS`，判断操作类型（check / install / config / set-path）
 2. **check**：调用 ae-libreoffice 工具 action=check，按优先级检测 LibreOffice 可用性
-   - 如果可用：返回 soffice 路径和来源，其他技能可继续视觉验证流程
+   - 如果可用：返回 soffice 路径和来源，其他技能可继续文档转换流程
    - 如果不可用：提示用户安装、下载便携版或配置自定义路径
 3. **install**：调用 ae-libreoffice 工具 action=install，从阿里云镜像下载便携版 LibreOffice 到 `~/.config/opencode/libreoffice/`
    - 如果已就绪：直接返回路径
@@ -62,7 +62,7 @@ LibreOffice 运行时管理者：检测和确保 LibreOffice 可用，供文档�
 ## 边界
 
 - 只管理 LibreOffice 运行时，不执行文档操作
-- 其他技能需要视觉验证时必须先调用 ae:libreoffice 确认就绪
+- 其他技能需要 LibreOffice 支持时（如 DOCX/PPTX/XLSX to-image 转换）必须先调用 ae:libreoffice 确认可用性
 - 便携版下载需要用户确认（约 300MB），从阿里云镜像下载绿色便携版本
 - set-path 写入 ae.jsonc 时不会破坏已有配置，仅添加或更新 libreofficePath 字段
 
