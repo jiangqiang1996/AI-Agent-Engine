@@ -225,10 +225,26 @@ function translateShapeSlot(slot: SlotElement, globalStyle: GlobalStyle): PptxPa
 
 function translateTableSlot(
   slot: SlotElement,
-  tokenValue: unknown,
+  pageTokens: Record<string, unknown>,
   globalStyle: GlobalStyle,
 ): PptxPageElement {
-  const rows = Array.isArray(tokenValue) ? tokenValue : []
+  // data.table 模板的 slot 名是 "table"，但实际数据在 "rows" token 中
+  // 兼容 slot 名与 token 名相同的情况
+  const tokenValue = pageTokens['rows'] ?? pageTokens[slot.slot] ?? []
+  // 归一化 rows：把字符串/数字单元格转为 { text } 对象，兼容 string[][] 和 CellObj[][]
+  const rawRows = Array.isArray(tokenValue) ? tokenValue : []
+  const rows = rawRows.map((row) =>
+    Array.isArray(row)
+      ? row.map((cell) =>
+          typeof cell === 'string' || typeof cell === 'number'
+            ? { text: String(cell) }
+            : cell && typeof cell === 'object'
+              ? { text: (cell as { text?: unknown }).text ?? '', ...cell }
+              : { text: '' },
+        )
+      : [],
+  )
+  const colW = pageTokens['colW'] ?? undefined
   return {
     type: 'table' as const,
     x: slot.x,
@@ -236,6 +252,7 @@ function translateTableSlot(
     w: slot.w,
     h: slot.h,
     rows,
+    colW,
     fontSize: globalStyle.bodyStyle.fontSize,
     color: globalStyle.bodyStyle.color,
     fontFace: globalStyle.fonts.bodyFontFace,
@@ -269,13 +286,17 @@ export function translatePage(page: PageDesign, globalStyle: GlobalStyle): Trans
 
   for (const slot of template.slots) {
     // 跳过可选 slot 且无 token 值
+    // 注意：部分模板的 slot 名与 token 名不同（如 data.table 的 slot="rows" 对应 token="rows"，
+    // data.chart 的 slot="chart" 对应 tokens chartType/chartData）。
+    // 对 table/chart 类型，translateTableSlot/translateChartSlot 内部会从 pageTokens 中按 token 名取值。
     const tokenDef = template.tokens[slot.slot]
     const tokenValue = tokens[slot.slot]
-    if (tokenDef?.required && tokenValue === undefined) {
+    const isAggregateSlot = slot.type === 'table' || slot.type === 'chart'
+    if (tokenDef?.required && tokenValue === undefined && !isAggregateSlot) {
       errors.push(`页 ${page.id}: 必填 token "${slot.slot}" 未提供`)
       continue
     }
-    if (!tokenDef?.required && tokenValue === undefined && slot.type !== 'shape') {
+    if (!tokenDef?.required && tokenValue === undefined && slot.type !== 'shape' && !isAggregateSlot) {
       // 跳过可选且无值的非形状 slot
       continue
     }
@@ -296,7 +317,7 @@ export function translatePage(page: PageDesign, globalStyle: GlobalStyle): Trans
         element = translateShapeSlot(merged, globalStyle)
         break
       case 'table':
-        element = translateTableSlot(merged, tokenValue, globalStyle)
+        element = translateTableSlot(merged, tokens, globalStyle)
         break
       case 'chart':
         element = translateChartSlot(merged, tokens)

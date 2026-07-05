@@ -56,6 +56,8 @@ export const TokenValueSchema = z.union([
   z.boolean(),
   z.array(z.union([z.string(), z.number()])),
   z.array(z.object({}).passthrough()),
+  // 二维数组：用于 data.table 模板的 rows token（CellObj[][]）
+  z.array(z.array(z.union([z.string(), z.number(), z.object({}).passthrough()]))),
   z.record(z.string(), z.unknown()),
 ]).describe('Token 值：字符串、数字、数组或对象')
 

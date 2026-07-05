@@ -154,6 +154,55 @@ describe('pptx-template-translator', () => {
       // 应使用模板默认值
       expect(titleEl.x).not.toBe(1.0)
     })
+
+    it('应该翻译 data.table 模板并归一化字符串二维数组 rows', () => {
+      const page: PageDesign = {
+        id: 'p3',
+        template: 'data.table',
+        tokens: {
+          title: '资产表',
+          rows: [
+            ['类型', '数量'],
+            ['技能', '38'],
+            ['命令', '41'],
+          ],
+        },
+        locked: false,
+      }
+      const result = translatePage(page, mockGlobalStyle)
+      expect(result.pageId).toBe('p3')
+      const tableEl = result.elements.find((e) => e.type === 'table')
+      expect(tableEl).toBeDefined()
+      const rows = tableEl!.rows as unknown[]
+      expect(rows.length).toBe(3)
+      // 第一行表头应归一化为 { text } 对象
+      const firstRow = rows[0] as unknown[]
+      expect(firstRow.length).toBe(2)
+      expect((firstRow[0] as { text: string }).text).toBe('类型')
+      expect((firstRow[1] as { text: string }).text).toBe('数量')
+    })
+
+    it('应该翻译 data.table 模板并保留对象二维数组 rows', () => {
+      const page: PageDesign = {
+        id: 'p4',
+        template: 'data.table',
+        tokens: {
+          title: '对象表',
+          rows: [
+            [{ text: '列A' }, { text: '列B' }],
+            [{ text: '值1' }, { text: '值2' }],
+          ],
+        },
+        locked: false,
+      }
+      const result = translatePage(page, mockGlobalStyle)
+      const tableEl = result.elements.find((e) => e.type === 'table')
+      expect(tableEl).toBeDefined()
+      const rows = tableEl!.rows as unknown[]
+      const firstRow = rows[0] as { text: string }[]
+      expect(firstRow[0].text).toBe('列A')
+      expect(firstRow[1].text).toBe('列B')
+    })
   })
 
   describe('translateDesignFile', () => {
