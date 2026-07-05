@@ -1,0 +1,34 @@
+name: data.table
+description: 数据页：标题 + 表格
+category: data
+slots:
+  - type: text
+    slot: title
+    x: 0.5
+    y: 0.3
+    w: 12.33
+    h: 0.9
+    fontSize: 28
+    bold: true
+    align: left
+    valign: middle
+  - type: table
+    slot: table
+    x: 0.8
+    y: 1.6
+    w: 11.73
+    h: 5.0
+tokens:
+  title:
+    description: 页面标题
+    required: true
+    type: string
+  rows:
+    description: 表格行数据（二维数组，含表头行）
+    required: true
+    type: table_rows
+  colW:
+    description: 列宽数组（可选）
+    required: false
+    type: string
+layoutHint: 标题 + 表格

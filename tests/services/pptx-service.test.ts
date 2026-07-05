@@ -630,4 +630,204 @@ describe('pptx-service', () => {
       ).rejects.toThrow('2')
     })
   })
+
+  describe('SVG 矢量图形集成', () => {
+    it('create 操作应在 summary 中报告注入的 SVG 元素数量', async () => {
+      const root = createRoot()
+      const result = await processPptx({
+        operation: 'create',
+        worktree: root,
+        slides: [
+          {
+            elements: [
+              {
+                type: 'svg',
+                x: 1, y: 1, w: 3, h: 3,
+                svgPath: 'M10 10 L90 10 L90 90 L10 90 Z',
+                svgFill: '3B82F6',
+              },
+            ],
+          },
+        ],
+      })
+
+      expect(existsSync(result.outputPath!)).toBe(true)
+      expect(result.summary).toContain('SVG')
+      expect(result.summary).toContain('1')
+
+      // 验证生成的 PPTX 包含 SVG media 文件
+      const zip = new AdmZip(result.outputPath!)
+      const entries = zip.getEntries().map(e => e.entryName)
+      expect(entries.some(e => e.match(/^ppt\/media\/image\d+\.svg$/))).toBe(true)
+      expect(entries.some(e => e.match(/^ppt\/media\/image\d+\.png$/))).toBe(true)
+
+      // 验证 [Content_Types].xml 注册了 svg
+      const ct = zip.readAsText('[Content_Types].xml')
+      expect(ct).toContain('Extension="svg"')
+      expect(ct).toContain('image/svg+xml')
+
+      // 验证 slide XML 包含 ASVG 扩展
+      const slide1 = zip.readAsText('ppt/slides/slide1.xml')
+      expect(slide1).toContain('asvg:svgBlip')
+    })
+
+    it('create 操作应在 summary 中报告被跳过的 SVG 元素', async () => {
+      const root = createRoot()
+      const result = await processPptx({
+        operation: 'create',
+        worktree: root,
+        slides: [
+          {
+            elements: [
+              {
+                type: 'svg',
+                x: 1, y: 1, w: 3, h: 3,
+                svgPath: '', // 无效路径
+              },
+            ],
+          },
+        ],
+      })
+
+      expect(existsSync(result.outputPath!)).toBe(true)
+      expect(result.summary).toContain('跳过')
+    })
+
+    it('create 操作应混合渲染普通元素和 SVG 元素', async () => {
+      const root = createRoot()
+      const result = await processPptx({
+        operation: 'create',
+        worktree: root,
+        slides: [
+          {
+            elements: [
+              { type: 'text', text: '标题', x: 0.5, y: 0.3, w: 12, h: 1, fontSize: 28, bold: true },
+              {
+                type: 'svg',
+                x: 1, y: 2, w: 4, h: 4,
+                svgPath: 'M10 10 L90 10 L90 90 L10 90 Z',
+                svgFill: 'FF0000',
+              },
+              {
+                type: 'svg',
+                x: 6, y: 2, w: 4, h: 4,
+                svgPath: 'M0 0 L100 0 L50 100 Z',
+                svgFill: '00FF00',
+              },
+            ],
+          },
+        ],
+      })
+
+      expect(existsSync(result.outputPath!)).toBe(true)
+      expect(result.summary).toContain('2')
+
+      // 验证同 slide 上 2 个 SVG 元素都注入
+      const zip = new AdmZip(result.outputPath!)
+      const slide1 = zip.readAsText('ppt/slides/slide1.xml')
+      const svgBlipCount = (slide1.match(/asvg:svgBlip/g) || []).length
+      expect(svgBlipCount).toBe(2)
+    })
+
+    it('create 操作含 SVG 但 SVG 注入失败时仍保留 PPTX', async () => {
+      const root = createRoot()
+      const result = await processPptx({
+        operation: 'create',
+        worktree: root,
+        slides: [
+          {
+            elements: [
+              { type: 'text', text: '文本', x: 1, y: 1 },
+              {
+                type: 'svg',
+                x: 1, y: 2, w: 3, h: 3,
+                svgPath: 'M10 10 L90 10',
+              },
+            ],
+          },
+        ],
+      })
+
+      // PPTX 应存在
+      expect(existsSync(result.outputPath!)).toBe(true)
+      // summary 应包含幻灯片数
+      expect(result.summary).toContain('1 张幻灯片')
+    })
+
+    it('append-slides 操作应支持含 SVG 的新幻灯片', async () => {
+      const root = createRoot()
+
+      // 先创建一个基础 PPTX
+      const createResult = await processPptx({
+        operation: 'create',
+        worktree: root,
+        slides: [{ title: '第一页', layout: 'content' }],
+      })
+
+      // 追加含 SVG 的幻灯片
+      const result = await processPptx({
+        operation: 'append-slides',
+        worktree: root,
+        file: createResult.outputPath!,
+        slides: [
+          {
+            elements: [
+              { type: 'text', text: 'SVG 页', x: 0.5, y: 0.3 },
+              {
+                type: 'svg',
+                x: 2, y: 2, w: 4, h: 4,
+                svgPath: 'M10 10 L90 10 L90 90 L10 90 Z',
+                svgFill: '3B82F6',
+              },
+            ],
+          },
+        ],
+      })
+
+      expect(existsSync(result.outputPath!)).toBe(true)
+      // 验证追加后包含 2 张幻灯片
+      const zip = new AdmZip(result.outputPath!)
+      const slideEntries = zip.getEntries().filter(e => /^ppt\/slides\/slide\d+\.xml$/.test(e.entryName))
+      expect(slideEntries.length).toBeGreaterThanOrEqual(2)
+    })
+
+    it('update-slide 操作应支持含 SVG 的元素', async () => {
+      const root = createRoot()
+
+      // 先创建一个 2 页 PPTX
+      const createResult = await processPptx({
+        operation: 'create',
+        worktree: root,
+        slides: [
+          { title: '第一页', layout: 'content' },
+          { title: '第二页', layout: 'content' },
+        ],
+      })
+
+      // 更新第 2 页（索引 1）为含 SVG 的幻灯片
+      const result = await processPptx({
+        operation: 'update-slide',
+        worktree: root,
+        file: createResult.outputPath!,
+        slideIndex: 1,
+        elements: [
+          { type: 'text', text: '更新后', x: 0.5, y: 0.3 },
+          {
+            type: 'svg',
+            x: 2, y: 2, w: 5, h: 3,
+            svgPath: 'M0 0 L100 0 L100 100 L0 100 Z',
+            svgFill: 'FF0000',
+          },
+        ],
+      })
+
+      expect(existsSync(result.outputPath!)).toBe(true)
+      expect(result.summary).toContain('第 2 张')
+
+      // 验证第 2 页包含 SVG
+      const zip = new AdmZip(result.outputPath!)
+      const slide2 = zip.readAsText('ppt/slides/slide2.xml')
+      expect(slide2).toContain('asvg:svgBlip')
+    })
+  })
 })

@@ -223,6 +223,19 @@ const mediaElementSchema = z.object({
   mediaCover: z.string().optional().describe('封面图片路径'),
 }).describe('媒体元素')
 
+const HEX_COLOR_PATTERN = /^[0-9A-Fa-f]{3,8}$/
+
+const svgElementSchema = z.object({
+  type: z.literal('svg').describe('元素类型：SVG 矢量图形（Office 2016+ 原生矢量渲染）'),
+  ...elementBaseFields,
+  svgPath: z.string().min(1).max(10000).describe('SVG path 的 d 属性内容，如 "M10 10 L90 10 L90 90 L10 90 Z"。仅支持纯 path 命令（M/L/C/Z/H/V/Q/A），不支持 text/filter/clipPath/mask/gradient'),
+  svgFill: z.string().regex(HEX_COLOR_PATTERN).optional().describe('填充颜色 HEX 值（不含 #），如 FF0000 表示红色'),
+  stroke: z.string().regex(HEX_COLOR_PATTERN).optional().describe('描边颜色 HEX 值（不含 #）'),
+  strokeWidth: z.number().min(0).max(100).optional().describe('描边宽度（非负数）'),
+  viewBoxW: z.number().min(1).optional().describe('SVG viewBox 宽度，默认 100'),
+  viewBoxH: z.number().min(1).optional().describe('SVG viewBox 高度，默认 100'),
+}).describe('SVG 矢量图形元素')
+
 const elementSchema = z.union([
   textElementSchema,
   imageElementSchema,
@@ -230,7 +243,8 @@ const elementSchema = z.union([
   tableElementSchema,
   chartElementSchema,
   mediaElementSchema,
-]).describe('幻灯片元素（text/image/shape/table/chart/media）')
+  svgElementSchema,
+]).describe('幻灯片元素（text/image/shape/table/chart/media/svg）')
 
 // ==================== 幻灯片 Schema ====================
 
@@ -238,7 +252,7 @@ const slideSchema = z.object({
   elements: z
     .array(elementSchema)
     .optional()
-    .describe('元素数组（推荐模式，支持 text/image/shape/table/chart/media 元素自由组合）'),
+    .describe('元素数组（推荐模式，支持 text/image/shape/table/chart/media/svg 元素自由组合）'),
   title: z.string().optional().describe('标题文本（兼容模式，与 elements 二选一）'),
   body: z.string().optional().describe('正文内容（兼容模式）'),
   layout: z.enum(['title', 'section', 'content', 'blank']).optional().describe('布局类型（兼容模式，默认 content）'),
@@ -330,6 +344,7 @@ export const aePptxTool = tool({
     '- table：表格（单元格合并、边框、填充、对齐、自动分页）',
     '- chart：图表（bar、line、pie、doughnut、area、scatter、radar、bubble）',
     '- media：媒体（音频、视频、在线媒体，含封面）',
+    '- svg：SVG 矢量图形（Office 2016+ 原生矢量渲染，仅支持 path 命令，由 AdmZip 后处理注入 ASVG 扩展）',
     '',
     '增量操作策略：',
     '- 大型演示文稿（>5张幻灯片）：先 create 创建初始部分（≤5张），再 append-slides 分批追加（每次≤5张）',

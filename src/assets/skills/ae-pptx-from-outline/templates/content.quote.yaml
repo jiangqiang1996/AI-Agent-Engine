@@ -1,0 +1,42 @@
+name: content.quote
+description: 引语页：大字引语 + 署名
+category: content
+slots:
+  - type: text
+    slot: quote
+    x: 1.5
+    y: 1.8
+    w: 10.33
+    h: 3.0
+    fontSize: 28
+    italic: true
+    align: center
+    valign: middle
+  - type: text
+    slot: attribution
+    x: 3.0
+    y: 5.0
+    w: 7.33
+    h: 0.6
+    fontSize: 16
+    align: center
+    valign: top
+  - type: shape
+    slot: quote_mark
+    shape: rect
+    x: 0.5
+    y: 1.5
+    w: 0.06
+    h: 3.5
+    fill:
+      type: solid
+tokens:
+  quote:
+    description: 引语文本（最多 3 行）
+    required: true
+    type: string
+  attribution:
+    description: 署名（姓名 + 角色）
+    required: true
+    type: string
+layoutHint: 大字引语 + 署名 + 左侧装饰条

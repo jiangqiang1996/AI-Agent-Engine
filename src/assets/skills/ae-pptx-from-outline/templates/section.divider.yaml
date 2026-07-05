@@ -1,0 +1,43 @@
+name: section.divider
+description: 章节分隔页：居中章节标题 + 可选编号
+category: section
+slots:
+  - type: text
+    slot: section_number
+    x: 5.67
+    y: 2.5
+    w: 2.0
+    h: 0.6
+    fontSize: 14
+    align: center
+    valign: middle
+  - type: text
+    slot: title
+    x: 1.0
+    y: 3.2
+    w: 11.33
+    h: 1.2
+    fontSize: 36
+    bold: true
+    align: center
+    valign: middle
+  - type: shape
+    slot: divider
+    shape: line
+    x: 5.17
+    y: 4.6
+    w: 3.0
+    h: 0.02
+    line:
+      type: solid
+      width: 1.5
+tokens:
+  section_number:
+    description: 章节编号（如 01, 02）
+    required: false
+    type: string
+  title:
+    description: 章节标题
+    required: true
+    type: string
+layoutHint: 居中章节标题 + 编号 + 装饰线

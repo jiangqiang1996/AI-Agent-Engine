@@ -332,6 +332,11 @@ export function drawElement(slide: PptxSlideInstance, el: PptxInputElement): voi
       slide.addMedia(options)
       break
     }
+    case 'svg': {
+      // SVG 矢量图形元素不在 PptxGenJS 阶段渲染，由 pptx-service.ts 的
+      // AdmZip 后处理注入 ASVG 扩展完成。此处为空 case，仅用于类型完整性。
+      break
+    }
   }
 }
 

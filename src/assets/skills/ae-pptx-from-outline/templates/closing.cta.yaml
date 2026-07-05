@@ -1,0 +1,56 @@
+name: closing.cta
+description: 结束页：居中标题 + 行动号召 + 联系信息
+category: closing
+slots:
+  - type: text
+    slot: title
+    x: 1.0
+    y: 2.0
+    w: 11.33
+    h: 1.2
+    fontSize: 36
+    bold: true
+    align: center
+    valign: middle
+  - type: text
+    slot: cta
+    x: 3.0
+    y: 3.4
+    w: 7.33
+    h: 0.8
+    fontSize: 20
+    align: center
+    valign: middle
+  - type: text
+    slot: contact
+    x: 3.0
+    y: 4.5
+    w: 7.33
+    h: 0.6
+    fontSize: 14
+    align: center
+    valign: top
+  - type: shape
+    slot: divider
+    shape: line
+    x: 5.17
+    y: 5.4
+    w: 3.0
+    h: 0.02
+    line:
+      type: solid
+      width: 1.5
+tokens:
+  title:
+    description: 结束标题（如"感谢观看"）
+    required: true
+    type: string
+  cta:
+    description: 行动号召文本
+    required: false
+    type: string
+  contact:
+    description: 联系信息
+    required: false
+    type: string
+layoutHint: 居中标题 + CTA + 联系信息 + 装饰线

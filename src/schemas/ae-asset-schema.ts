@@ -126,6 +126,7 @@ export const TOOL = {
   AE_DOCX: 'ae-docx',
   AE_PDF: 'ae-pdf',
   AE_PPTX: 'ae-pptx',
+  AE_PPTX_FROM_DESIGN: 'ae-pptx-from-design',
   AE_XLSX: 'ae-xlsx',
 } as const
 

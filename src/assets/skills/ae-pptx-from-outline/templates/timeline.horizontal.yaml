@@ -1,0 +1,174 @@
+name: timeline.horizontal
+description: 时间线页：标题 + 水平时间线（3-5 个节点）
+category: timeline
+slots:
+  - type: text
+    slot: title
+    x: 0.5
+    y: 0.3
+    w: 12.33
+    h: 0.9
+    fontSize: 28
+    bold: true
+    align: left
+    valign: middle
+  - type: shape
+    slot: timeline_line
+    shape: line
+    x: 1.0
+    y: 3.75
+    w: 11.33
+    h: 0.02
+    line:
+      type: solid
+      width: 2
+  - type: text
+    slot: node_1_time
+    x: 0.5
+    y: 2.5
+    w: 2.8
+    h: 0.5
+    fontSize: 14
+    bold: true
+    align: center
+    valign: bottom
+  - type: shape
+    slot: node_1_dot
+    shape: ellipse
+    x: 1.8
+    y: 3.65
+    w: 0.2
+    h: 0.2
+    fill:
+      type: solid
+  - type: text
+    slot: node_1_label
+    x: 0.5
+    y: 4.0
+    w: 2.8
+    h: 2.0
+    fontSize: 14
+    align: center
+    valign: top
+  - type: text
+    slot: node_2_time
+    x: 3.47
+    y: 2.5
+    w: 2.8
+    h: 0.5
+    fontSize: 14
+    bold: true
+    align: center
+    valign: bottom
+  - type: shape
+    slot: node_2_dot
+    shape: ellipse
+    x: 4.77
+    y: 3.65
+    w: 0.2
+    h: 0.2
+    fill:
+      type: solid
+  - type: text
+    slot: node_2_label
+    x: 3.47
+    y: 4.0
+    w: 2.8
+    h: 2.0
+    fontSize: 14
+    align: center
+    valign: top
+  - type: text
+    slot: node_3_time
+    x: 6.43
+    y: 2.5
+    w: 2.8
+    h: 0.5
+    fontSize: 14
+    bold: true
+    align: center
+    valign: bottom
+  - type: shape
+    slot: node_3_dot
+    shape: ellipse
+    x: 7.73
+    y: 3.65
+    w: 0.2
+    h: 0.2
+    fill:
+      type: solid
+  - type: text
+    slot: node_3_label
+    x: 6.43
+    y: 4.0
+    w: 2.8
+    h: 2.0
+    fontSize: 14
+    align: center
+    valign: top
+  - type: text
+    slot: node_4_time
+    x: 9.4
+    y: 2.5
+    w: 2.8
+    h: 0.5
+    fontSize: 14
+    bold: true
+    align: center
+    valign: bottom
+  - type: shape
+    slot: node_4_dot
+    shape: ellipse
+    x: 10.7
+    y: 3.65
+    w: 0.2
+    h: 0.2
+    fill:
+      type: solid
+  - type: text
+    slot: node_4_label
+    x: 9.4
+    y: 4.0
+    w: 2.8
+    h: 2.0
+    fontSize: 14
+    align: center
+    valign: top
+tokens:
+  title:
+    description: 页面标题
+    required: true
+    type: string
+  node_1_time:
+    description: 节点 1 时间
+    required: true
+    type: string
+  node_1_label:
+    description: 节点 1 说明
+    required: true
+    type: string
+  node_2_time:
+    description: 节点 2 时间
+    required: true
+    type: string
+  node_2_label:
+    description: 节点 2 说明
+    required: true
+    type: string
+  node_3_time:
+    description: 节点 3 时间
+    required: true
+    type: string
+  node_3_label:
+    description: 节点 3 说明
+    required: true
+    type: string
+  node_4_time:
+    description: 节点 4 时间（可选）
+    required: false
+    type: string
+  node_4_label:
+    description: 节点 4 说明（可选）
+    required: false
+    type: string
+layoutHint: 标题 + 水平时间线 3-4 节点

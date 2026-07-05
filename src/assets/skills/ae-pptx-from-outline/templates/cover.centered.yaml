@@ -1,0 +1,43 @@
+name: cover.centered
+description: 封面页：居中大标题 + 下方副标题 + 底部装饰线
+category: cover
+slots:
+  - type: text
+    slot: title
+    x: 0.5
+    y: 2.2
+    w: 12.33
+    h: 1.5
+    fontSize: 44
+    bold: true
+    align: center
+    valign: middle
+  - type: text
+    slot: subtitle
+    x: 1.5
+    y: 3.8
+    w: 10.33
+    h: 0.8
+    fontSize: 20
+    align: center
+    valign: top
+  - type: shape
+    slot: divider
+    shape: line
+    x: 5.17
+    y: 4.8
+    w: 3.0
+    h: 0.02
+    line:
+      type: solid
+      width: 2
+tokens:
+  title:
+    description: 主标题文本
+    required: true
+    type: string
+  subtitle:
+    description: 副标题文本
+    required: false
+    type: string
+layoutHint: 居中大标题 + 副标题 + 装饰线

@@ -3,7 +3,6 @@ import { createRequire } from 'node:module'
 import path from 'node:path'
 
 import AdmZip from 'adm-zip'
-import type { IZipEntry } from 'adm-zip'
 
 import { withBackup } from '../utils/file-backup.js'
 
@@ -15,6 +14,7 @@ import { writeMarkdownOutput } from './markdown-output-writer.js'
 import { detectLibreOffice, convertToImagesViaPdf, resolveLibreofficeConfigPath } from './libreoffice-service.js'
 import { join } from 'node:path'
 import { handleMerge } from './pptx-merge.js'
+import { injectSvgElements, extractSvgSpecs } from './pptx-svg-injector.js'
 
 export type { PptxSlideInstance } from './pptx-element-builder.js'
 
@@ -132,7 +132,7 @@ export interface PptxTableCell {
 }
 
 export interface PptxInputElement {
-  type: 'text' | 'image' | 'shape' | 'table' | 'chart' | 'media'
+  type: 'text' | 'image' | 'shape' | 'table' | 'chart' | 'media' | 'svg'
   // 通用位置
   x?: number | string
   y?: number | string
@@ -194,6 +194,13 @@ export interface PptxInputElement {
   mediaPath?: string
   mediaLink?: string
   mediaCover?: string
+  // svg（矢量图形，由 AdmZip 后处理注入 ASVG 扩展，不走 PptxGenJS addImage）
+  svgPath?: string
+  svgFill?: string
+  stroke?: string
+  strokeWidth?: number
+  viewBoxW?: number
+  viewBoxH?: number
 }
 
 // ==================== 幻灯片类型 ====================
@@ -350,7 +357,32 @@ async function handleCreate(input: PptxInput): Promise<PptxResult> {
     buildSlide(pptx, slideContent)
   }
 
-  const data = await pptx.write({ outputType: 'nodebuffer' })
+  let data = await pptx.write({ outputType: 'nodebuffer' })
+
+  // SVG 矢量图形后处理注入：绕过 PptxGenJS addImage 的假 PNG fallback，
+  // 用 AdmZip 直操作 OOXML 嵌入 ASVG 扩展（Office 2016+ 原生矢量渲染）
+  // 失败时保留已生成的 PPTX，不阻断 create 操作
+  const { specs: svgSpecs, skipped: extractSkipped } = extractSvgSpecs(slides)
+  let svgSummary = ''
+  if (svgSpecs.length > 0 || extractSkipped.length > 0) {
+    try {
+      let injectedCount = 0
+      let allSkipped = extractSkipped
+      if (svgSpecs.length > 0) {
+        const injectionResult = injectSvgElements(data, svgSpecs)
+        data = injectionResult.buffer
+        injectedCount = injectionResult.result.injectedCount
+        allSkipped = [...extractSkipped, ...injectionResult.result.skipped]
+      }
+      svgSummary = `，注入 ${injectedCount} 个 SVG 矢量元素`
+      if (allSkipped.length > 0) {
+        svgSummary += `（跳过 ${allSkipped.length} 个: ${allSkipped.map(s => s.reason).join('; ')}）`
+      }
+    } catch (err) {
+      svgSummary = `，SVG 注入失败: ${(err as Error).message}，已保留不含 SVG 的 PPTX`
+    }
+  }
+
   const outputPath =
     input.outputPath ?? generateDocumentOutputPath(input.worktree, 'create', 'pptx', input.title)
   mkdirSync(path.dirname(outputPath), { recursive: true })
@@ -358,7 +390,7 @@ async function handleCreate(input: PptxInput): Promise<PptxResult> {
 
   return {
     outputPath,
-    summary: `已创建 PPTX 文件，包含 ${slides.length} 张幻灯片`,
+    summary: `已创建 PPTX 文件，包含 ${slides.length} 张幻灯片${svgSummary}`,
   }
 }
 
@@ -638,7 +670,41 @@ async function handleAppendSlides(input: PptxInput): Promise<PptxResult> {
     existingZip.updateFile('[Content_Types].xml', Buffer.from(ctXml, 'utf8'))
   }
 
-  // 7. 写回文件
+  // 7. SVG 矢量图形后处理注入
+  // 注意：extractSvgSpecs 返回的 slideIndex 是相对于 newSlides 数组的索引（0-based），
+  // 需要调整为已有 PPTX 中的实际幻灯片索引（maxSlideNum + 原索引）
+  let svgSummary = ''
+  const { specs: rawSvgSpecs, skipped: extractSkipped } = extractSvgSpecs(newSlides)
+  const svgSpecs = rawSvgSpecs.map(s => ({ ...s, slideIndex: maxSlideNum + s.slideIndex }))
+  if (svgSpecs.length > 0 || extractSkipped.length > 0) {
+    try {
+      let injectedCount = 0
+      let allSkipped = extractSkipped
+      if (svgSpecs.length > 0) {
+        const finalBuffer = existingZip.toBuffer()
+        const injectionResult = injectSvgElements(finalBuffer, svgSpecs)
+        const newZip = new AdmZip(injectionResult.buffer)
+        for (const entry of newZip.getEntries()) {
+          const existing = existingZip.getEntry(entry.entryName)
+          if (existing) {
+            existingZip.updateFile(entry.entryName, entry.getData())
+          } else {
+            existingZip.addFile(entry.entryName, entry.getData())
+          }
+        }
+        injectedCount = injectionResult.result.injectedCount
+        allSkipped = [...extractSkipped, ...injectionResult.result.skipped]
+      }
+      svgSummary = `，注入 ${injectedCount} 个 SVG 矢量元素`
+      if (allSkipped.length > 0) {
+        svgSummary += `（跳过 ${allSkipped.length} 个: ${allSkipped.map(s => s.reason).join('; ')}）`
+      }
+    } catch (err) {
+      svgSummary = `，SVG 注入失败: ${(err as Error).message}`
+    }
+  }
+
+  // 8. 写回文件
   const outputPath = input.outputPath ?? file
   if (outputPath !== file) {
     mkdirSync(path.dirname(outputPath), { recursive: true })
@@ -651,7 +717,7 @@ async function handleAppendSlides(input: PptxInput): Promise<PptxResult> {
 
   return {
     outputPath,
-    summary: `已追加 ${newSlides.length} 张幻灯片，文件现有 ${totalSlides} 张幻灯片`,
+    summary: `已追加 ${newSlides.length} 张幻灯片，文件现有 ${totalSlides} 张幻灯片${svgSummary}`,
   }
 }
 
@@ -787,7 +853,36 @@ async function handleUpdateSlide(input: PptxInput): Promise<PptxResult> {
     existingZip.updateFile('[Content_Types].xml', Buffer.from(ctXml, 'utf8'))
   }
 
-  // 7. 写回文件
+  // 7. SVG 矢量图形后处理注入（与 create 操作一致）
+  // 注意：extractSvgSpecs 返回的 slideIndex 是相对于传入数组的索引（0），
+  // 需要调整为已有 PPTX 中的实际幻灯片编号（targetSlideNum - 1）
+  let svgSummary = ''
+  const { specs: rawSvgSpecs, skipped: extractSkipped } = extractSvgSpecs([{ elements }])
+  const svgSpecs = rawSvgSpecs.map(s => ({ ...s, slideIndex: targetSlideNum - 1 }))
+  if (svgSpecs.length > 0 || extractSkipped.length > 0) {
+    try {
+      let injectedCount = 0
+      let allSkipped = extractSkipped
+      if (svgSpecs.length > 0) {
+        const finalBuffer = existingZip.toBuffer()
+        const injectionResult = injectSvgElements(finalBuffer, svgSpecs)
+        const newZip = new AdmZip(injectionResult.buffer)
+        for (const entry of newZip.getEntries()) {
+          existingZip.updateFile(entry.entryName, entry.getData())
+        }
+        injectedCount = injectionResult.result.injectedCount
+        allSkipped = [...extractSkipped, ...injectionResult.result.skipped]
+      }
+      svgSummary = `，注入 ${injectedCount} 个 SVG 矢量元素`
+      if (allSkipped.length > 0) {
+        svgSummary += `（跳过 ${allSkipped.length} 个: ${allSkipped.map(s => s.reason).join('; ')}）`
+      }
+    } catch (err) {
+      svgSummary = `，SVG 注入失败: ${(err as Error).message}`
+    }
+  }
+
+  // 8. 写回文件
   const outputPath = input.outputPath ?? file
   if (outputPath !== file) {
     mkdirSync(path.dirname(outputPath), { recursive: true })
@@ -798,7 +893,7 @@ async function handleUpdateSlide(input: PptxInput): Promise<PptxResult> {
 
   return {
     outputPath,
-    summary: `已更新第 ${slideIndex + 1} 张幻灯片（索引 ${slideIndex}），包含 ${elements.length} 个元素`,
+    summary: `已更新第 ${slideIndex + 1} 张幻灯片（索引 ${slideIndex}），包含 ${elements.length} 个元素${svgSummary}`,
   }
 }
 

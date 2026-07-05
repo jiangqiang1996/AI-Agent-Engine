@@ -1,0 +1,43 @@
+name: content.image-focus
+description: 图片为主页面：大图 + 标题 + 简短文字辅助
+category: content
+slots:
+  - type: text
+    slot: title
+    x: 0.5
+    y: 0.3
+    w: 12.33
+    h: 0.9
+    fontSize: 28
+    bold: true
+    align: left
+    valign: middle
+  - type: image
+    slot: main_image
+    x: 0.8
+    y: 1.6
+    w: 7.5
+    h: 5.4
+  - type: text
+    slot: caption
+    x: 8.8
+    y: 1.6
+    w: 3.73
+    h: 5.4
+    fontSize: 16
+    align: left
+    valign: top
+tokens:
+  title:
+    description: 页面标题
+    required: true
+    type: string
+  main_image:
+    description: 主图路径或 base64
+    required: true
+    type: string
+  caption:
+    description: 图片说明文字
+    required: true
+    type: string
+layoutHint: 左图右文，图片为主

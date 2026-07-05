@@ -1,241 +1,338 @@
 ---
 name: ae:pptx-from-outline
-description: 传入确认后的幻灯片大纲文件，解析布局提示词与图表/线框描述，调用 ae-pptx 工具生成 PPTX 演示文稿；内容必须完全符合大纲，禁止镀金
+description: "传入确认后的幻灯片大纲文件，通过模板化布局+结构化设计文件生成高一致性 PPTX。调度 @doc-architect 选择模板并填充 tokens 写入设计文件，用户可编辑设计文件控制最终设计（含 overrides 坐标级微调），再通过 ae-pptx-from-design 工具翻译+断言+生成。"
 argument-hint: "[大纲文件路径]"
 ---
 
-# ae:pptx-from-outline — 大纲转 PPTX
+# ae:pptx-from-outline — 大纲转 PPTX（模板驱动）
 
-将确认后的幻灯片大纲（Markdown 文件）转换为 PowerPoint 演示文稿。底层调用 `ae-pptx` 工具，遵循两阶段预览确认流程。
+将确认后的幻灯片大纲（Markdown 文件）转换为高标准、高一致性的 PowerPoint 演示文稿。采用**模板化布局**架构：14 个预定义 YAML 模板覆盖封面/章节/内容/数据/时间线/对比/结束 7 大类，`@doc-architect` 根据大纲内容选择模板并填充 tokens，写入结构化设计文件（YAML）作为真源，用户可编辑设计文件控制最终设计，最后通过 `ae-pptx-from-design` 工具翻译+断言+生成 PPTX。
 
-大纲是内容真源，本技能禁止镀金——不扩展、不补充、不虚构任何大纲中未明确出现的内容。
+大纲是内容真源，本技能禁止镀金——不扩展、不补充、不虚构任何大纲中未明确出现的内容。模板的 slot 和 token 定义是布局约束，`@doc-architect` 只能在模板定义的 slot 内填入大纲内容，不得增减文字。
 
 ## 适用场景
 
 - 用户已通过 `ae:slides-outline` 产出确认的大纲文件，需要生成 PPTX 格式演示文稿
 - 用户自行编写了符合大纲格式的 Markdown 文件，需要转为 PPTX
-- 用户需要对已有大纲微调布局或图表样式后生成 PPTX
+- 用户希望交付物具备专业设计标准与全册风格统一
+- 用户希望能在生成前编辑设计文件控制最终设计（含坐标级微调）
 
 ## 不适用场景
 
 - 生成或修改大纲内容（使用 `ae:slides-outline`）
 - 直接创建/编辑 PPTX 但无大纲参考（使用 `ae:pptx`，它支持自由创建、编辑和兼容模式布局）
+- 只做小范围文本替换或单页修改（使用 `ae:pptx` 的 edit/update-slide 直接处理）
+
+## 架构概览
+
+```
+大纲文件 (Markdown)
+    │
+    ▼
+阶段 0: 解析大纲
+    │  提取每页标题/正文/表格/图表/用户布局描述
+    ▼
+阶段 1: @doc-architect 全局设计
+    │  输出 globalStyle（配色/字体/布局基准/形状一致性/主题锁定）
+    ▼
+阶段 2: @doc-architect 逐页选模板+填 tokens
+    │  从 14 个模板中选择，填入 tokens，写入设计文件 (YAML)
+    │  用户可编辑设计文件（含 overrides 坐标级微调）
+    ▼
+阶段 3: ae-pptx-from-design translate-and-generate
+    │  纯函数翻译器 → 17 条结构化断言 → 生成 PPTX
+    ▼
+阶段 4: 视觉验证（可选）
+    │  ae-pptx to-image + ae:image
+    ▼
+阶段 5: 交付
+```
 
 ## 执行流程
 
-### 1. 读取大纲
+### 阶段 0：读取与解析大纲
 
-读取 `$ARGUMENTS` 中指定的大纲文件路径。文件必须是已确认的 Markdown 大纲。
-
-如果参数不是文件路径或文件不存在，向用户说明并终止流程。
-
-### 2. 解析大纲结构
+读取 `$ARGUMENTS` 中指定的大纲文件路径。文件必须是已确认的 Markdown 大纲。如果参数不是文件路径或文件不存在，向用户说明并终止流程。
 
 逐页解析大纲中的以下信息：
 
-- **页编号与标题**：从 Markdown 结构中提取每页幻灯片的编号、标题和正文内容。支持以下标题格式变体：`## 第 1 页：标题`、`## Slide 1: Title`、`## 1. 标题`，以及其他以二级标题开头且包含页码信息的格式
-- **布局提示词**：识别大纲中的 `[layout: <描述>]` 标记，作为该页的布局设计依据
-  - 如果大纲包含布局提示词，遵循提示词设计该页元素布局
-  - 如果大纲不含布局提示词，根据内容类型自动推断最合适的布局
-- **图表描述**：识别大纲中的 mermaid 代码块或图表描述段落，映射为 `ae-pptx` 的 chart 元素
-- **线框/流程描述**：识别大纲中的 ASCII 线框图或结构描述，映射为 shape + text 元素组合
-- **表格内容**：识别大纲中的 Markdown 表格，映射为 `ae-pptx` 的 table 元素
+- **页编号与标题**：支持 `## 第 1 页：标题`、`## Slide 1: Title`、`## 1. 标题` 等格式变体
+- **用户布局描述**：识别每页的 `[layout: <描述>]` 标记
+- **正文内容**：逐字提取，不增减
+- **表格内容**：识别 Markdown 表格，保留原始行列数据
+- **图表描述**：识别 mermaid 代码块或图表描述段落
+- **线框/流程描述**：识别 ASCII 线框图或结构描述
 
-### 3. 布局映射
+### 阶段 1：调度 @doc-architect 全局设计
 
-#### 自动布局推断规则（大纲无 `[layout:]` 提示词时）
+通过 Task 工具调度 `@doc-architect` 子代理，传入大纲全部内容。
 
-| 内容类型 | 默认布局 | 说明 |
-|----------|----------|------|
-| 仅标题 + 副标题 | title | 居中标题，适合封面/章节页 |
-| 标题 + 项目符号列表 | content | 标题在顶部，列表在下方 |
-| 标题 + 表格 | content | 标题在顶部，表格居中 |
-| 标题 + 图表描述 | content | 标题在顶部，图表居中 |
-| 标题 + 图片 + 文字 | left-right | 左文右图或左图右文 |
-| 标题 + 多段图文 | bento | 不对称网格布局 |
-| 纯结尾/致谢页 | section | 居中简短内容 |
+`@doc-architect` 输出 `globalStyle`，包含：
 
-#### 支持的布局提示词
+| 维度 | 规格项 |
+|---|---|
+| theme | `dark` 或 `light`（全册锁定） |
+| colors | primary, accent（唯一）, background, text, title, muted |
+| fonts | headFontFace, bodyFontFace（必须 CJK 兼容）, monoFontFace |
+| titleStyle | fontSize(24-60), bold, color |
+| bodyStyle | fontSize(14-24), color, align |
+| layout | size, margin(≥0.3), titleAreaY, titleAreaH, contentStartY, elementGap(≥0.15) |
+| shapeConsistency | `rounded` / `sharp` / `pill` |
+| accentColorLock | true（强调色锁定） |
 
-大纲中每页标题行前或正文开头可添加 `[layout: <描述>]`，支持的描述：
+**阶段一确认**：向用户展示全局风格规格书，请求确认。
 
-- `[layout: title]` — 封面/标题页：大标题居中
-- `[layout: section]` — 章节分隔页：居中标题 + 可选副标题
-- `[layout: content]` — 内容页：标题在顶部，正文在下方
-- `[layout: left-right]` — 左右分栏：左文字右视觉元素
-- `[layout: right-left]` — 右左分栏：右文字左视觉元素
-- `[layout: two-column]` — 双栏等宽对比
-- `[layout: bento]` — 不对称网格
-- `[layout: image-focus]` — 图片为主，文字辅助
-- `[layout: quote]` — 引语页：大字引语 + 署名
-- `[layout: blank]` — 空白页：仅背景 + 可选小标题
+### 阶段 2：逐页选模板+填 tokens+写设计文件
 
-### 4. 图表与线框映射
+`@doc-architect` 根据全局规格 + 每页内容 + 用户布局描述，为每页选择模板并填充 tokens。
 
-#### mermaid 代码块映射
+#### 可用模板（14 个）
 
-| mermaid 类型 | PPTX 元素 | 说明 |
-|--------------|-----------|------|
-| `pie` | chart (pie/doughnut) | 提取数据点映射为饼图 |
-| `bar` / `gantt` | chart (bar) | 提取类别与数值映射为柱状图 |
-| `line` / `sequenceDiagram` | chart (line) | 提取序列映射为折线图 |
-| `graph TD/LR` | shape + text 组合 | 流程图映射为形状连线组合 |
-| `mindmap` | shape + text 组合 | 思维导图映射为嵌套形状布局 |
+| 分类 | 模板名 | 用途 |
+|---|---|---|
+| cover | `cover.centered` | 居中大标题封面 |
+| cover | `cover.split` | 左文右图分栏封面 |
+| section | `section.divider` | 章节分隔页 |
+| content | `content.bullets` | 标题+项目符号列表 |
+| content | `content.text` | 标题+正文段落 |
+| content | `content.two-column` | 双栏对比 |
+| content | `content.quote` | 引语+署名 |
+| content | `content.image-focus` | 图片为主+文字辅助 |
+| data | `data.chart` | 标题+图表(bar/line/pie) |
+| data | `data.table` | 标题+表格 |
+| data | `data.kpi-cards` | KPI 卡片网格(2-4 个) |
+| timeline | `timeline.horizontal` | 水平时间线(3-4 节点) |
+| comparison | `comparison.split` | 左右分屏 VS 对比 |
+| closing | `closing.cta` | 结束页+CTA+联系信息 |
 
-映射规则：
-- 提取 mermaid 代码块中的数据点（标签、数值、节点关系）
-- 选择最接近的 PPTX chart 类型渲染数据型图表
-- 流程/关系型图表使用 shape 元素组合渲染（矩形、椭圆、箭头连线）
-- 无法精确映射时降级为 text 元素展示图表描述文字，不跳过该页内容
+查看模板详细 slot 和 token 定义：调用 `ae-pptx-from-design` 工具 `list-templates` 操作。
 
-#### ASCII 线框映射
+#### 选模板规则
 
-识别用字符绘制的线框图（如 `+---+`、`|` 等构成的布局框），映射为 shape + table 组合：
-- 线框中的框 → rect/roundRect shape
-- 线框中的文字 → shape 内 text 元素
-- 线框中的箭头线 → line shape
-- 线框中的网格结构 → table 元素
+- 用户有 `[layout:]` 描述 → 匹配最接近的模板
+- 用户无描述 → `@doc-architect` 根据内容类型自动选择
+- mermaid 图表 → `data.chart`
+- Markdown 表格 → `data.table`
+- 列表内容 → `content.bullets`
+- 对比内容 → `comparison.split` 或 `content.two-column`
+- 时间线 → `timeline.horizontal`
+- 封面 → `cover.centered` 或 `cover.split`
+- 章节标题 → `section.divider`
+- 结束页 → `closing.cta`
 
-无法精确映射时降级为 text 元素展示原文。
+#### 设计文件格式（YAML）
 
-同一页包含多种特殊内容（图表 + 线框 + 表格）时，按以下优先级映射：表格 > 图表 > 线框。优先级高的内容占据主要布局区域，其余内容缩小或降级为 text 展示。
+```yaml
+version: 1
+title: "演示文稿标题"
+outlinePath: "ae/documents/slides/xxx-outline.md"
+globalStyle:
+  theme: dark
+  colors:
+    primary: "1A2028"
+    accent: "4ADE80"
+    background: "0F1419"
+    text: "E5E7EB"
+    title: "F9FAFB"
+    muted: "9CA3AF"
+  fonts:
+    headFontFace: "Microsoft YaHei"
+    bodyFontFace: "Microsoft YaHei"
+    monoFontFace: "Consolas"
+  titleStyle:
+    fontSize: 32
+    bold: true
+    color: "F9FAFB"
+  bodyStyle:
+    fontSize: 18
+    color: "E5E7EB"
+    align: left
+  layout:
+    size: "LAYOUT_WIDE"
+    margin: 0.5
+    titleAreaY: 0.3
+    titleAreaH: 0.9
+    contentStartY: 1.5
+    elementGap: 0.2
+  shapeConsistency: rounded
+  accentColorLock: true
+pages:
+  - id: p1
+    template: "cover.centered"
+    tokens:
+      title: "AI Agent Engine 培训"
+      subtitle: "从入门到精通"
+    locked: false
+    layoutHint: "居中大标题封面"
+  - id: p2
+    template: "content.bullets"
+    tokens:
+      title: "核心能力"
+      bullets:
+        - "技能编排"
+        - "文档生成"
+        - "代码审查"
+    overrides:
+      title:
+        color: "4ADE80"
+        x: 0.8
+      bullets:
+        fontSize: 20
+    locked: false
+  - id: p3
+    template: "data.chart"
+    tokens:
+      title: "性能对比"
+      chartType: "bar"
+      chartData:
+        - name: "Series 1"
+          labels: ["A", "B", "C"]
+          values: [10, 20, 15]
+    locked: false
+```
 
-### 5. 预览确认（阶段一）
+#### overrides 坐标级微调
 
-在调用 `ae-pptx` 工具前，向用户展示即将生成的内容结构：
+用户可在设计文件的 `overrides` 字段中对单个 slot 的属性进行微调（shallow merge）：
 
-- 每页列出：页码 | 布局类型 | 元素清单（类型、位置、关键内容摘要）
-- 图表页标注：数据来源（mermaid 代码块 / 表格）→ 映射的 chart 类型
-- 线框页标注：原始描述 → 映射的 shape 组合
-- 总页数 + 演示文稿标题
+```yaml
+overrides:
+  <slot_name>:
+    x: 0.8           # 微调 X 坐标
+    y: 1.5           # 微调 Y 坐标
+    w: 10.0          # 微调宽度
+    h: 5.0           # 微调高度
+    color: "4ADE80"  # 微调颜色
+    fontSize: 20     # 微调字号
+    bold: true       # 微调粗体
+    align: center    # 微调对齐
+    fill:            # 微调填充
+      type: solid
+      color: "1A2028"
+    line:            # 微调线条
+      type: solid
+      color: "4ADE80"
+      width: 2
+    fontFace: "SimHei"
+    valign: middle
+```
 
-直接向用户请求确认（确认 / 需要修改 / 取消）。
+**locked 页**：`locked: true` 的页，AI 不得写入 overrides，由用户手动控制。
 
-如果用户需要修改，根据修改意见调整布局或映射方案后再次预览，直到用户确认。
+设计文件写入路径：`ae/documents/slides/<主题>-design.yaml`
 
-### 6. 执行生成（阶段二）
+**阶段二确认**：向用户展示设计文件路径与逐页设计摘要，请求确认。用户可：
+- 确认 → 进入阶段 3
+- 需要修改 → 用户直接编辑设计文件后回复确认
 
-用户确认后，调用 `ae-pptx` 工具的 `create` 操作，将大纲逐页转换为 `slides` 数组。超过 10 页时，先用 `create` 生成前 3 页，再用 `append-slides` 分批追加后续页面，每批 3 页，避免单次调用参数过大导致 JSON 解析错误。分批粒度根据实际验证：3 页/批在 CJK 内容场景下稳定可用；8 页/批或更大 payload 会触发 JSON 解析失败。
+### 阶段 3：翻译+断言+生成
 
-- 每页幻灯片使用 `elements` 元素化绘制模式
-- 根据布局提示词或自动推断结果设计每页元素的位置、尺寸和样式
-- 大纲正文内容逐字映射到 text 元素的 text/textRuns，不增减文字
-- **CJK 字体映射**：中文、日文、韩文等 CJK 字符必须使用 CJK 兼容字体（如 `Microsoft YaHei`、`SimHei`、`Noto Sans CJK`），不得使用 Helvetica、Courier 等不含 CJK 字形的西方字体，否则渲染为空白或黑框
-- **统一字体策略**：页面标题和正文统一使用 CJK 兼容字体（如 `Microsoft YaHei`），英文/代码辅助文本可搭配西方字体（如 `Courier New`），但同一页内 CJK 文本不得混入不含 CJK 字形的字体
-- 表格映射为 table 元素，保留原始行列数据
-- 图表映射为 chart 元素，提取原始数据点
-- 流程/线框映射为 shape + text 组合
-- 如果 `ae-pptx` 工具调用失败，将错误信息完整返回给用户，不静默重试
+调用 `ae-pptx-from-design` 工具 `translate-and-generate` 操作：
 
-### 6.1 内容质量规范
+1. **翻译**：纯函数翻译器读取设计文件 + 模板，将 tokens 填入模板 slots，合并 overrides，输出 ae-pptx 元素数组
+2. **断言**：17 条结构化断言检查（确定性、毫秒级）：
+   - A1 必填 token 完整性
+   - A2 页面尺寸内（安全区）
+   - A3 元素不重叠
+   - A4 字号最小值（≥10pt）
+   - A5 字号最大值（≤60pt）
+   - A6 标题与正文字号差（≥8pt）
+   - A7 WCAG AA 对比度（正文≥4.5:1，标题≥3:1）
+   - A8 主题锁定（全册一致）
+   - A9 强调色唯一性
+   - A10 CJK 字体兼容
+   - A11 元素间距（≥0.15 英寸）
+   - A12 内容区起始 Y
+   - A13 overrides 安全区
+   - A14 overrides 不导致重叠
+   - A15 overrides 字号范围（8-72）
+   - A16 overrides 对比度
+   - A17 overrides 主题一致
+3. **生成**：断言通过后，调用 ae-pptx create（第一页）+ append-slides（后续页）
 
-调用 `ae-pptx` 工具生成元素时，必须遵守以下内容质量硬约束。违反任何一条即为交付失败。
+阻断错误时停止生成，向用户报告错误并建议修改设计文件。
 
-#### 字体大小标准
+### 阶段 4：视觉验证（可选）
 
-| 元素角色 | 最小字号（磅） | 建议字号范围 | 说明 |
-|----------|---------------|-------------|------|
-| 页面标题 | 24 | 28-36 | 每页最醒目文字，不得小于 24pt |
-| 正文段落 | 14 | 16-20 | 主要阅读内容，不得小于 14pt |
-| 列表项 | 12 | 14-18 | 项目符号或编号列表，不得小于 12pt |
-| 表格正文 | 10 | 12-14 | 表格单元格内容，不得小于 10pt |
-| 辅助标注 | 8 | 10-12 | 脚注、来源说明、坐标轴标签等，不得小于 8pt |
-| 图表数据标签 | 8 | 10-12 | 图表内数字/类别文字，不得小于 8pt |
+如需视觉验证：
 
-- 标题与正文字号差必须 ≥ 8pt，确保层级可区分
-- 同一角色元素在同一演示文稿中字号保持一致，不得逐页随意变化
-- 大纲中无字号要求时，按建议字号范围的中值选取
+1. 调用 `ae-pptx` 工具 `to-image` 操作转 PNG
+2. 调用 `ae:image` 识别 PNG 内容
+3. 与设计文件逐页对比
 
-#### 颜色对比度硬约束
+视觉验证为辅助验证，结构化断言（阶段 3）为主验证。
 
-- **前景色（文字/图标）与背景色对比度不得低于 WCAG AA 标准**：正文文字最低 4.5:1，大标题最低 3:1
-- **禁止前景色与背景色相似**：两者色差必须足够大，确保在任何显示环境下文字清晰可读
-  - 深色背景（如 #050505、#111111、#1A1A1A）上必须使用高对比前景色（如 #FFFFFF、#EAEAEA、#F0F0F0）
-  - 浅色背景（如 #FFFFFF、#F5F5F5、#FAFAFA）上必须使用深色前景色（如 #111111、#1A1A1A、#333333）
-  - 禁止在深色背景上使用深色文字（如 #333333 on #111111），禁止在浅色背景上使用浅色文字（如 #CCCCCC on #FFFFFF）
-- **强调色不得同时作为前景色和背景色**：强调色仅用于标签、边框、图标等小面积装饰元素，不得作为大面积背景或正文文字颜色
-- **同一演示文稿中背景色系锁定**：所有页面使用同一背景色系（全深色或全浅色），不得中途翻转导致对比度规则失效
-- 若大纲指定了风格色系（如 Dark Tech），必须在该色系内遵守对比度规则；大纲未指定时，默认选择深色背景 + 高对比前景色方案
-
-#### 布局合理性规范
-
-- **元素间距统一**：相邻元素间距至少 0.15 英寸（约 10pt），标题与正文间距至少 0.25 英寸（约 18pt）
-- **内容不溢出**：所有文字必须在元素边界内完整显示，不得裁剪或溢出；文字过长时缩小字号（不低于最小字号）或拆分为多个元素
-- **层级分明**：每页最多 3 层字号层级（标题 > 正文 > 辅助），不得出现 4 层以上字号混用
-- **对齐一致**：同一页内同角色元素对齐方式保持一致（标题统一居中或统一左对齐，正文统一对齐方式）
-- **空白区域充裕**：每页至少保留 10% 的空白区域，不得将内容填满整页；页面边距至少 0.5 英寸（约 36pt）
-- **元素位置不重叠**：任何两个可见元素不得在同一坐标区域重叠，除非是刻意叠层设计（如背景色块 + 前景文字）
-- **表格与图表尺寸合理**：表格宽度不超过页面宽度 90%，图表尺寸适配内容量，不得出现过小或过大导致阅读困难
-
-### 7. 交付
+### 阶段 5：交付
 
 生成完成后，提供：
-- PPTX 文件路径（`ae/documents/pptx/` 目录下）
-- 总页数摘要
-- 布局方案概述（每页布局类型）
-- 图表映射说明（哪些 mermaid/ASCII 映射为哪些 PPTX 元素类型）
-- 颜色对比度校验声明：每页前景色与背景色对比度是否满足 WCAG AA 标准
 
-## 大纲格式约定
+- PPTX 文件路径
+- 设计文件路径
+- 总页数
+- 全局风格规格摘要
+- 断言结果（通过/错误/警告）
+- 视觉验证结果（如执行）
 
-输入大纲应遵循以下 Markdown 格式（与 `ae:slides-outline` 产出一致）：
+## 内容质量硬约束
 
-```markdown
-# 幻灯片大纲：主题标题
+### 字号标准
 
-## 第 1 页：封面标题
-[layout: title]
-内容文案...
+| 元素角色 | 最小字号 | 建议范围 |
+|---|---|---|
+| 页面标题 | 24pt | 28-36pt |
+| 正文段落 | 14pt | 16-20pt |
+| 列表项 | 12pt | 14-18pt |
+| 表格正文 | 10pt | 12-14pt |
+| 辅助标注 | 8pt | 10-12pt |
 
-## 第 2 页：章节标题
-[layout: content]
-- 要点一
-- 要点二
+### 颜色对比度
 
-## 第 3 页：数据展示
-[layout: content]
+- 前景/背景对比度 ≥ WCAG AA（正文 4.5:1，大标题 3:1）
+- 全册背景色系锁定，不得中途翻转
 
-```mermaid
-pie title 市场份额
-"A产品": 40
-"B产品": 35
-"C产品": 25
-```
+### CJK 字体
 
-## 第 4 页：流程说明
-[layout: left-right]
+- 所有 CJK 字符必须使用 CJK 兼容字体
 
-+----------+     +----------+
-|  步骤 1  | --> |  步骤 2  |
-+----------+     +----------+
+## 用户控制路径
 
-## 第 N 页：结束页
-[layout: section]
-感谢观看
-```
+### 路径 A：编辑设计文件
 
-每页以 `## 第 X 页：标题` 开头，可选 `[layout: 描述]`，后续为正文内容。
+用户直接编辑 `ae/documents/slides/<主题>-design.yaml`：
+
+- 修改 `globalStyle` 调整全册配色/字体/布局
+- 修改 `pages[].tokens` 调整内容映射
+- 添加 `pages[].overrides` 微调坐标/颜色/字号
+- 设置 `pages[].locked: true` 锁定页
+
+编辑后重新调用 `ae-pptx-from-design translate-and-generate` 生成。
+
+### 路径 B：对话式精化
+
+在阶段二确认时，用户用自然语言描述修改意图：
+
+- "把第 3 页的标题改成绿色"
+- "第 5 页的图表再大一点"
+- "全册正文字号调到 20"
+
+LLM 将语义意图映射为设计文件的具体属性变更。
 
 ## 边界
 
-- 大纲是内容真源，禁止镀金：不增减文字、不虚构数据、不补充大纲未出现的要点
-- 预览确认前不得调用 `ae-pptx` 工具
+- 大纲是内容真源，禁止镀金
+- 设计文件是生成与验证的真源
+- 模板的 slot 和 token 定义是布局约束，不得超出模板定义添加元素
+- 阶段一、阶段二确认前不得生成 PPTX
 - 不生成 HTML 幻灯片
-- 图表/线框映射无法精确还原时降级为 text 展示，不跳过内容
-- 本技能只产出 PPTX 文件，不修改大纲文件
-- 如大纲未经确认，提示用户先使用 `ae:slides-outline` 完成确认
-- **颜色对比度硬约束**：任何前景色与背景色对比度不得低于 WCAG AA 标准；违反此约束即为交付失败，不得以大纲未指定为由跳过
-- **CJK 字体硬约束**：所有 CJK 字符必须使用 CJK 兼容字体渲染，使用不含 CJK 字形的西方字体导致文字不可见即为交付失败
-- **分批生成硬约束**：超过 10 页的 PPTX 必须分批生成（create 3 页 + append-slides 每批 3 页），不分批导致 JSON 解析失败即为流程错误
-
-## 输出要求
-
-- 产出为 PPTX 文件，路径在 `ae/documents/pptx/` 目录下
-- 交付时提供：文件路径 + 页数摘要 + 布局方案概述 + 图表映射说明
+- 本技能只产出 PPTX 文件与设计文件，不修改原大纲文件
+- 结构化断言为主验证，视觉验证为辅助
+- locked 页 AI 不得写入 overrides
 
 ## 验证方式
 
-- PPTX 文件是否成功生成且可打开
-- 每页内容是否与大纲原文一致（文字不增减）
-- 布局是否遵循大纲中的 `[layout:]` 提示词（如有）或自动推断结果
-- 图表/线框是否合理映射（mermaid → chart，ASCII → shape 组合）
+- 17 条结构化断言全部通过（无阻断错误）
+- PPTX 文件成功生成且可打开
+- 设计文件存在且内容完整
+- 每页内容与大纲原文一致（文字不增减）
+- 每页布局遵循设计文件
+- 用户布局描述被遵循（如有）

@@ -101,7 +101,16 @@ description: "文档架构师：为 PPTX、DOCX、PDF、XLSX 等文档制定风�
 
 根据全局内容大纲，为每一页/每一块制定具体设计：
 
-- **PPTX**：每页的元素清单（text/image/shape/table/chart）、坐标位置（x/y/w/h，英寸）、样式参数（字号/颜色/对齐等）
+- **PPTX（模板驱动模式，用于 ae:pptx-from-outline）**：为每页选择模板并填充 tokens，写入结构化设计文件（YAML），而非直接设计元素坐标
+  - 从 14 个预定义模板中选择最匹配的模板（cover.centered, cover.split, section.divider, content.bullets, content.text, content.two-column, content.quote, content.image-focus, data.chart, data.table, data.kpi-cards, timeline.horizontal, comparison.split, closing.cta）
+  - 根据大纲内容填充模板的 tokens（标题、正文、图表数据等）
+  - 用户有 `[layout:]` 描述时匹配最接近的模板
+  - 不得增减大纲文字，tokens 值必须来自大纲原文
+  - 不计算坐标——坐标由模板预定义，用户可通过 overrides 微调
+  - 可选写入 `overrides` 字段（坐标/颜色/字号级微调），但 locked 页不得写入
+  - 输出结构化设计文件（YAML 格式，schema 见 pptx-design-schema.ts）
+  - 可先调用 `ae-pptx-from-design list-templates` 查看可用模板及其 slot/token 定义
+- **PPTX（自由模式，用于 ae:pptx 直接调度）**：每页的元素清单（text/image/shape/table/chart）、坐标位置（x/y/w/h，英寸）、样式参数（字号/颜色/对齐等）
 - **DOCX**：每个内容块的类型和参数（heading level/text/rows 等）
 - **PDF**：每页的元素列表和坐标
 - **XLSX**：每个工作表的列定义、行数据、单元格样式
@@ -115,7 +124,8 @@ description: "文档架构师：为 PPTX、DOCX、PDF、XLSX 等文档制定风�
 
 调用对应的文档工具按逐页设计生成文档：
 
-- **PPTX**：调用 `ae-pptx` 工具，先 `create` 初始幻灯片（≤5张），再 `append-slides` 分批追加
+- **PPTX（模板驱动模式）**：调用 `ae-pptx-from-design` 工具 `translate-and-generate` 操作，从设计文件翻译+断言+生成一步完成
+- **PPTX（自由模式）**：调用 `ae-pptx` 工具，先 `create` 初始幻灯片（≤5张），再 `append-slides` 分批追加
 - **DOCX**：调用 `ae-docx` 工具，先 `create` 初始内容块（≤80个），再 `append-blocks` 分批追加
 - **PDF**：调用 `ae-pdf` 工具，先 `create` 初始页面（≤30页），再 `add-pages` 分批追加
 - **XLSX**：调用 `ae-xlsx` 工具，`create` 创建工作表

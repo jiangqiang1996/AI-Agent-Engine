@@ -25,6 +25,7 @@ import { aeBackgroundExecTool } from './ae-background-exec.tool.js'
 import { aeDocxTool } from './ae-docx.tool.js'
 import { aePdfTool } from './ae-pdf.tool.js'
 import { aePptxTool } from './ae-pptx.tool.js'
+import { aePptxFromDesignTool } from './ae-pptx-from-design.tool.js'
 import { aeXlsxTool } from './ae-xlsx.tool.js'
 
 export function createToolRegistry(): Record<string, ToolDefinition> {
@@ -54,6 +55,7 @@ export function createToolRegistry(): Record<string, ToolDefinition> {
     [TOOL.AE_DOCX]: aeDocxTool,
     [TOOL.AE_PDF]: aePdfTool,
     [TOOL.AE_PPTX]: aePptxTool,
+    [TOOL.AE_PPTX_FROM_DESIGN]: aePptxFromDesignTool,
     [TOOL.AE_XLSX]: aeXlsxTool,
   }
 }

@@ -1,0 +1,84 @@
+name: content.two-column
+description: 内容页：顶部标题 + 双栏对比内容
+category: content
+slots:
+  - type: text
+    slot: title
+    x: 0.5
+    y: 0.3
+    w: 12.33
+    h: 0.9
+    fontSize: 28
+    bold: true
+    align: left
+    valign: middle
+  - type: text
+    slot: left_title
+    x: 0.5
+    y: 1.6
+    w: 5.67
+    h: 0.6
+    fontSize: 20
+    bold: true
+    align: left
+    valign: middle
+  - type: text
+    slot: left_body
+    x: 0.5
+    y: 2.4
+    w: 5.67
+    h: 4.6
+    fontSize: 16
+    align: left
+    valign: top
+  - type: text
+    slot: right_title
+    x: 7.17
+    y: 1.6
+    w: 5.67
+    h: 0.6
+    fontSize: 20
+    bold: true
+    align: left
+    valign: middle
+  - type: text
+    slot: right_body
+    x: 7.17
+    y: 2.4
+    w: 5.67
+    h: 4.6
+    fontSize: 16
+    align: left
+    valign: top
+  - type: shape
+    slot: divider
+    shape: line
+    x: 6.665
+    y: 1.6
+    w: 0.0
+    h: 5.4
+    line:
+      type: solid
+      width: 1
+tokens:
+  title:
+    description: 页面标题
+    required: true
+    type: string
+  left_title:
+    description: 左栏标题
+    required: true
+    type: string
+  left_body:
+    description: 左栏正文（字符串或字符串数组）
+    required: true
+    type: string
+  right_title:
+    description: 右栏标题
+    required: true
+    type: string
+  right_body:
+    description: 右栏正文（字符串或字符串数组）
+    required: true
+    type: string
+layoutHint: 顶部标题 + 双栏对比

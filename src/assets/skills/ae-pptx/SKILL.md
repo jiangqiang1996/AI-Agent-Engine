@@ -170,6 +170,25 @@ argument-hint: "[创建|编辑|分析|追加|更新] [文件路径] [任务描�
 | mediaLink | 在线媒体链接 |
 | mediaCover | 封面图片路径 |
 
+**svg — SVG 矢量图形元素（Office 2016+ 原生矢量渲染）**
+
+通过 ASVG 扩展（`asvg:svgBlip`）在 PPTX 中嵌入原生 SVG，由 AdmZip 后处理注入；旧版 PowerPoint 显示 1×1 透明 PNG 占位符（OOXML 规范要求的 fallback 结构）。
+
+| 属性 | 说明 |
+|------|------|
+| svgPath | SVG path 的 `d` 属性内容，如 `M10 10 L90 10 L90 90 L10 90 Z`。仅支持纯 path 命令（M/L/C/Z/H/V/Q/A），不支持 text/filter/clipPath/mask/gradient |
+| svgFill | 填充颜色 HEX（不含 `#`），如 `FF0000` |
+| stroke | 描边颜色 HEX |
+| strokeWidth | 描边宽度 |
+| viewBoxW | SVG viewBox 宽度，默认 100 |
+| viewBoxH | SVG viewBox 高度，默认 100 |
+
+限制：
+- 仅支持单条 `<path>` 元素；不支持多路径、文本、滤镜、剪裁、遮罩、渐变。
+- path 数据会经过 ASVG 白名单校验，非法命令或字符会被跳过并记录到 `skipped` 列表。
+- PowerPoint 2016 之前的版本不支持原生 SVG，会显示 1×1 透明 PNG 占位符（OOXML 规范合规结构，非降级）。
+- **仅 create 操作支持 SVG 注入**；append-slides 和 update-slide 操作中的 SVG 元素会被静默跳过。
+
 #### 幻灯片级属性
 
 | 属性 | 说明 |
@@ -224,7 +243,7 @@ argument-hint: "[创建|编辑|分析|追加|更新] [文件路径] [任务描�
 
 参数：`file`（已有 PPTX 文件路径，必填）、`slides`（新幻灯片数组，必填）
 
-向已有 PPTX 文件末尾追加新幻灯片。新幻灯片的结构与 create 的 slides 参数完全相同，支持所有元素类型（text、image、shape、table、chart、media）和幻灯片级属性（background、notes 等）。
+向已有 PPTX 文件末尾追加新幻灯片。新幻灯片的结构与 create 的 slides 参数完全相同，支持所有元素类型（text、image、shape、table、chart、media；svg 元素仅在 create 操作中支持 ASVG 注入，append-slides 中的 svg 元素会被静默跳过）和幻灯片级属性（background、notes 等）。
 
 底层通过 AdmZip 打开已有 PPTX 的 ZIP 结构，用 pptxgenjs 生成仅包含新幻灯片的临时 PPTX，然后将临时 PPTX 中的幻灯片 XML 及关联资源（图片、关系文件）合并到已有 PPTX 中，自动处理幻灯片编号和内容类型引用。
 
