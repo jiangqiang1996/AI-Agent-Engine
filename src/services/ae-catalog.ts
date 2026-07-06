@@ -213,8 +213,8 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   {
     skillName: SKILL.PROMPT_OPTIMIZE,
     commandName: COMMAND.PROMPT_OPTIMIZE,
-    description: '提示词优化工具：分析用户提示词与当前工作空间相关性后做最小优化，经用户确认后通过 ae-create-session 新开会话自动执行或暂停等待，禁止与原始逻辑违背。当用户原始提示词不清晰、模糊或信息不足时，先通过追问澄清意图再优化。',
-    argumentHint: '[提示词内容]',
+    description: '提示词优化工具：分析用户提示词与当前工作空间相关性后做最小优化，经用户确认后通过 ae-create-session 新开会话自动执行或暂停等待，禁止与原始逻辑违背。当用户原始提示词不清晰、模糊或信息不足时，先通过追问澄清意图再优化。支持 mode=auto 直接提交并自动执行、mode=pause 直接提交并暂停，跳过提交确认提问。',
+    argumentHint: '[提示词内容] [mode=auto|pause]',
     skillFile: `src/assets/skills/${skillDir(SKILL.PROMPT_OPTIMIZE)}/SKILL.md`,
   },
   {
