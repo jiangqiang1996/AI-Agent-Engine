@@ -44,8 +44,7 @@ const WorktreeHandoffInputSchema = z.object({
     .describe('worktree 创建结果描述'),
   plan_path: z
     .string()
-    .optional()
-    .describe('可选计划文档相对路径，例如 ae/plans/xxx-plan.md；未迁移或不存在时不传'),
+    .describe('计划文档相对路径，例如 ae/plans/xxx-plan.md。worktree 交接必须携带计划文件路径；无上游 ae:plan 产物时，A 会话必须在交接前生成上下文派生计划文件并迁移到 B worktree。'),
   requirements_path: z
     .string()
     .optional()
@@ -67,7 +66,7 @@ const WorktreeHandoffInputSchema = z.object({
     .describe('设计是否由计划文档承载'),
   execution_baseline: z
     .string()
-    .describe('执行基线声明，描述进入 B 后必须遵守的基线约束'),
+    .describe('执行基线声明，描述进入 B 后必须遵守的基线约束，例如"必须从 ae:work 阶段 1 的任务分析继续执行"'),
   verification_requirements: z
     .string()
     .describe('验证要求摘要，描述交付前必须运行的验证命令和标准'),
@@ -82,7 +81,9 @@ export const aeWorktreeHandoffTool: ToolDefinition = tool({
     '- 交接文件采用结构化章节和 resume_entrypoint 作为真源',
     '- 返回简短交接提示，供 A 会话最后回复使用',
     '- A→B Startup Proof 按固定 schema 逐字段输出，不允许遗漏',
-    '- 需求、计划、设计、图谱和 AE 项目配置路径都是可选上下文；只在真实存在且已迁移时传入，工具不会假定它们必然存在',
+    '- 需求、设计、图谱和 AE 项目配置路径都是可选上下文；只在真实存在且已迁移时传入，工具不会假定它们必然存在',
+    '- plan_path 是必填字段；worktree 交接必须携带计划文件路径',
+    '- 无上游 ae:plan 产物时，A 会话必须在交接前生成上下文派生计划文件：采用 ae:plan 格式（## 概览 + ## 实现单元 + ## 验证要求），内容从当前会话的工作状态、已确定决策和剩余待办推导，不触发 ae:plan 技能本身，写入 ae/plans/ 目录并迁移到 B worktree 后传入本工具',
     '- source_session_id=unavailable 时强制要求 session_evidence',
     '- 自动创建目标目录并写入文件',
     '',
@@ -128,15 +129,13 @@ export const aeWorktreeHandoffTool: ToolDefinition = tool({
       covered_command_args: args.covered_command_args,
       final_command_args: args.final_command_args,
       creation_result: args.creation_result,
+      plan_path: args.plan_path,
       design_borne_by_plan: args.design_borne_by_plan,
       execution_baseline: args.execution_baseline,
       verification_requirements: args.verification_requirements,
     }
     if (args.session_evidence !== undefined) {
       input.session_evidence = args.session_evidence
-    }
-    if (args.plan_path !== undefined) {
-      input.plan_path = args.plan_path
     }
     if (args.requirements_path !== undefined) {
       input.requirements_path = args.requirements_path

@@ -30,6 +30,55 @@ describe('ae-worktree-handoff 工具', () => {
 
     expect(tool.args.graph_path).toBeDefined()
     expect(tool.args.ae_config_path).toBeDefined()
+    expect(tool.args.plan_path).toBeDefined()
+  })
+
+  it('应该在 plan_path 为空字符串时拒绝执行', async () => {
+    const targetDir = createTempDir()
+    const tool = aeWorktreeHandoffTool as unknown as ToolLike
+    const output = await tool.execute({
+      source_session_id: 'sess-123',
+      source_worktree: 'D:\\proj\\main',
+      target_worktree: targetDir,
+      branch: 'feat/test',
+      head: 'abc1234',
+      head_message: 'test',
+      authorization_source: 'test',
+      authorization_scope: 'test',
+      covered_command_args: 'test',
+      final_command_args: 'test',
+      creation_result: 'test',
+      plan_path: '',
+      design_borne_by_plan: false,
+      execution_baseline: 'test',
+      verification_requirements: 'test',
+    }, { metadata: () => {} })
+
+    expect(output).toContain('plan_path 不能为空')
+  })
+
+  it('应该在 plan_path 为纯空白时拒绝执行', async () => {
+    const targetDir = createTempDir()
+    const tool = aeWorktreeHandoffTool as unknown as ToolLike
+    const output = await tool.execute({
+      source_session_id: 'sess-123',
+      source_worktree: 'D:\\proj\\main',
+      target_worktree: targetDir,
+      branch: 'feat/test',
+      head: 'abc1234',
+      head_message: 'test',
+      authorization_source: 'test',
+      authorization_scope: 'test',
+      covered_command_args: 'test',
+      final_command_args: 'test',
+      creation_result: 'test',
+      plan_path: '   ',
+      design_borne_by_plan: false,
+      execution_baseline: 'test',
+      verification_requirements: 'test',
+    }, { metadata: () => {} })
+
+    expect(output).toContain('plan_path 不能为空')
   })
 
   it('应该把图谱和 AE 项目配置路径转发到交接文件', async () => {
@@ -47,6 +96,7 @@ describe('ae-worktree-handoff 工具', () => {
       covered_command_args: 'git worktree add ../worktrees/feat-graph-config -b feat/graph-config HEAD',
       final_command_args: 'git worktree add "../worktrees/feat-graph-config" -b "feat/graph-config" HEAD',
       creation_result: 'Git worktree 创建成功',
+      plan_path: 'ae/plans/test-plan.md',
       graph_path: 'ae/graphs/',
       ae_config_path: '.opencode/ae.jsonc',
       design_borne_by_plan: true,

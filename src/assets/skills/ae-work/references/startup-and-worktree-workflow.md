@@ -58,6 +58,36 @@ git log --oneline -1
 - 创建 B 后，A 会话不得再写入 A worktree 的任何文件，也不得在 B 中修改代码、测试或其他项目文件；仅允许按下条迁移可选上下文和写入唯一规范交接文件。
 - A 会话只允许在 B 写入真实存在且已确定为执行基线的需求/计划/设计产物、`ae/graphs/`、`.opencode/ae.jsonc`，以及唯一规范交接文件 `ae/handoffs/<timestamp>-worktree-handoff.md`。迁移前必须用文件系统工具或等价 shell 文件系统命令确认源路径存在并复制；即使这些路径被 `.gitignore` 忽略，也必须按真实文件系统存在性迁移；不得用 `git status`、`git ls-files`、Git diff 或图谱结果判断它们不存在。其中 `.opencode/ae.jsonc` 只能作为已确定的 AE 项目配置上下文迁移并在交接文件中显式记录；未迁移的需求/计划/设计、图谱或 AE 项目配置产物不在交接文件中出现，不得声称已复制。
 
+### 上下文派生计划生成（无上游计划时必需）
+
+当 A 会话准备创建 B worktree 交接，但当前任务没有上游 `ae:plan` 产物时，A 会话必须在交接前内联生成上下文派生计划文件。此步骤是 `plan_path` 必填后的强制补位，不得跳过。
+
+**触发条件**：A 会话准备调用 `ae-worktree-handoff` 工具，但当前任务无上游 `ae:plan` 产物（即 `ae/plans/` 中没有与当前任务对应的计划文件）。
+
+**生成要求**：
+
+- 文件路径：`ae/plans/<timestamp>-<sanitized-task-name>-plan.md`，命名格式与 `ae:plan` 产出一致
+- 文件格式：YAML frontmatter（`type: plan`、`status: drafted`、`date`、`title`、`depth: standard`、`format: human-readable-plan`）+ 正文结构
+- frontmatter 必须包含 `sharded: false`
+- 正文必须包含：来源与目标、范围（包含/不包含/约束）、需求追溯、高层技术设计（关键决策）、实现单元（每个单元含目标、覆盖需求、唯一产出物、依赖、文件、方法、需遵循的模式、测试场景、验证命令）、风险与应对、一致性检查
+
+**内容要求**：
+
+- 详细但不镀金：只记录 A 会话已确定的任务上下文、实现方案和验证要求，不添加未讨论的功能或抽象
+- 不蔓延：实现单元的范围与 A 会话已确认的任务边界一致
+- 不遗漏：所有 A 会话讨论过的实现步骤都必须记录
+
+**与 `ae:plan` 技能的区别**：
+
+- 上下文派生计划是轻量内联生成，不触发 `ae:plan` 的深度澄清、头脑风暴或交互式深化
+- 不调用 `ae:plan` 技能；A 会话直接从已确定的任务上下文结构化写入文件
+- 计划状态为 `drafted`，不需要 `ae:plan` 的状态流转
+
+**迁移要求**：
+
+- 生成后必须迁移到 B worktree，并在交接文件的 `plan_path` 中引用
+- B worktree 中 `plan_path` 指向的文件必须真实存在
+
 ### 交接文件生成（必须调用工具）
 
 - **禁止自行拼接交接 Markdown**，必须调用 `ae-worktree-handoff` 工具生成交接文件。
@@ -65,6 +95,7 @@ git log --oneline -1
 - A→B 启动证明必须包含 source_session_id、source_worktree、target_worktree、branch、head、授权来源、命令参数、创建结果、迁移产物状态和执行基线；迁移产物状态只列出实际迁移的需求/计划/设计、`ae/graphs/` 和 `.opencode/ae.jsonc`，未迁移的不出现。
 - 调用工具时传入所有必填参数；工具会按固定模板生成 Markdown、写入目标 B worktree 并返回 A 会话最终回复使用的简短交接提示。
 - `source_session_id`：运行时可见时记录；不可见时传 `unavailable`，并**同时**传入 `session_evidence`（可引用的消息或会话证据），否则工具会返回错误。
+- `plan_path` 是必填字段；A 会话必须在交接前确保计划文件存在并迁移到 B worktree，然后传入计划文件的相对路径。
 - `execution_baseline`：描述进入 B 后必须遵守的基线约束，例如"必须从 ae:work 阶段 1 的任务分析继续执行，优先执行计划的 U0 决策门"。
 - `verification_requirements`：描述交付前必须运行的验证命令和标准，例如"交付前至少运行相关 Vitest、npm run typecheck 和必要的 npm run build"。
 
