@@ -1,8 +1,8 @@
 import { tool, type ToolDefinition } from '@opencode-ai/plugin'
 import { z } from 'zod'
 import { Effect } from 'effect'
-import { readFile, readdir } from 'node:fs/promises'
-import { existsSync, statSync, readdirSync as readDirSync } from 'node:fs'
+import { readFile } from 'node:fs/promises'
+import { existsSync } from 'node:fs'
 import { join, resolve, normalize, relative } from 'node:path'
 
 import { getGlobalClient } from '../services/client-holder.js'
@@ -67,21 +67,6 @@ function findPlanFileFromHistory(
   return null
 }
 
-function findLatestPlanFile(plansDir: string): string | null {
-  if (!existsSync(plansDir)) return null
-
-  try {
-    const files = readDirSync(plansDir)
-      .filter((f) => f.endsWith('.md') && f.endsWith('-plan.md'))
-      .map((f) => ({ name: f, mtime: statSync(join(plansDir, f)).mtime.getTime() }))
-      .sort((a, b) => b.mtime - a.mtime)
-
-    return files.length > 0 ? join(plansDir, files[0].name) : null
-  } catch {
-    return null
-  }
-}
-
 export const aeHandoffTool: ToolDefinition = tool({
   description: [
     '基于当前会话创建独立的新交接会话，自动提取核心上下文注入新会话，并直接在终端打开新窗口。',
@@ -125,7 +110,6 @@ export const aeHandoffTool: ToolDefinition = tool({
     const ctx = context as { history?: Array<{ content?: string }> }
     if (ctx.history && Array.isArray(ctx.history)) {
       const planFile = findPlanFileFromHistory(ctx.history, plansDir, workDir)
-        ?? findLatestPlanFile(plansDir)
 
       if (planFile) {
         try {

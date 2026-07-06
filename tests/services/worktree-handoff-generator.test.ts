@@ -106,40 +106,46 @@ describe('worktree-handoff-generator', () => {
       expect('error' in result).toBe(true)
     })
 
-    it('无计划和需求文档时不应在交接文件中提及这些文件', () => {
+    it('无需求文档时不应在交接文件中提及需求文件', () => {
       const result = generateHandoffMarkdown(validInput({
-        plan_path: undefined,
         requirements_path: undefined,
         design_borne_by_plan: false,
       }))
       expect('error' in result).toBe(false)
       if ('error' in result) return
 
-      expect(result.markdown).not.toContain('- plan:')
       expect(result.markdown).not.toContain('- requirements:')
-      expect(result.markdown).not.toContain('- design:')
-      expect(result.markdown).not.toContain('  - plan:')
       expect(result.markdown).not.toContain('  - requirements:')
-      expect(result.markdown).not.toContain('  - design:')
-      expect(result.markdown).toContain('本交接文件是本次续执行的唯一必需输入')
-      expect(result.markdown).toContain('以执行基线、启动证明和验证要求构建待办')
-      expect(result.markdown).not.toContain('计划文档路径为')
-      expect(result.markdown).not.toContain('需求文档路径为')
+      expect(result.markdown).toContain('- plan:')
+      expect(result.markdown).toContain('计划文档是本次执行的可选实现基线')
     })
 
-    it('design_borne_by_plan=true 且无 plan_path 时不应提及设计由计划承载', () => {
+    it('plan_path 为空时应报错', () => {
+      const result = generateHandoffMarkdown(validInput({ plan_path: '' }))
+      expect('error' in result).toBe(true)
+      if ('error' in result) {
+        expect(result.error).toContain('plan_path')
+      }
+    })
+
+    it('plan_path 为空白时应报错', () => {
+      const result = generateHandoffMarkdown(validInput({ plan_path: '   ' }))
+      expect('error' in result).toBe(true)
+      if ('error' in result) {
+        expect(result.error).toContain('plan_path')
+      }
+    })
+
+    it('design_borne_by_plan=true 且有 plan_path 时应提及设计由计划承载', () => {
       const result = generateHandoffMarkdown(validInput({
-        plan_path: undefined,
-        requirements_path: undefined,
         design_borne_by_plan: true,
       }))
       expect('error' in result).toBe(false)
       if ('error' in result) return
 
-      expect(result.markdown).not.toContain('由计划文档承载')
-      expect(result.markdown).not.toContain('- plan:')
-      expect(result.markdown).toContain('本交接文件是本次续执行的唯一必需输入')
-      expect(result.markdown).not.toContain('设计由计划承载')
+      expect(result.markdown).toContain('由计划文档承载')
+      expect(result.markdown).toContain('- plan:')
+      expect(result.markdown).not.toContain('本交接文件是本次续执行的唯一必需输入')
     })
 
     it('source_worktree 为空时应报错', () => {

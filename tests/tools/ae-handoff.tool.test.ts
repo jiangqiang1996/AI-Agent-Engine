@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Effect } from 'effect'
+import { join, dirname } from 'node:path'
+import { mkdirSync, writeFileSync, rmSync } from 'node:fs'
 
 vi.mock('../../src/services/client-holder.js', () => ({
   getGlobalClient: vi.fn(),
@@ -82,6 +84,61 @@ describe('ae-handoff 工具', () => {
     expect(result).toContain('会话交接成功')
     expect(result).toContain('/sessions/session-1')
     expect(result).toContain('用户请求：用户请求')
+  })
+
+  it('history 中包含计划文件路径但路径格式不被正则匹配时，pendingTasks 不被增强', async () => {
+    mockGetGlobalClient.mockReturnValue({} as never)
+    mockExecuteHandoff.mockImplementation((ctx, client, extractResult) => {
+      return Effect.succeed({
+        success: true,
+        sessionId: 'session-1',
+        sessionUrl: '/sessions/session-1',
+        fallbackMode: false,
+        navigated: true,
+        extractedSummary: {
+          userRequests: extractResult.userRequests,
+          goal: extractResult.goal,
+          workCompleted: extractResult.workCompleted,
+          currentState: extractResult.currentState,
+          pendingTasks: extractResult.pendingTasks,
+          keyFiles: extractResult.keyFiles,
+          importantDecisions: extractResult.importantDecisions,
+          explicitConstraints: extractResult.explicitConstraints,
+          contextForContinuation: extractResult.contextForContinuation,
+          compressionLevel: extractResult.compressionLevel,
+        },
+      })
+    })
+
+    const { aeHandoffTool: tool } = await import('../../src/tools/ae-handoff.tool.js')
+    const definition = tool as unknown as {
+      execute: (args: Record<string, unknown>, ctx: Record<string, unknown>) => Promise<string>
+    }
+
+    const testPlanPath = join(process.cwd(), 'ae', 'plans', 'test-plan.md')
+    mkdirSync(dirname(testPlanPath), { recursive: true })
+    writeFileSync(testPlanPath, '# 测试计划\n\n## 实现单元\n\n- [ ] **单元 1：实现功能 A**\n')
+
+    try {
+      const result = await definition.execute(args, {
+        metadata: vi.fn(),
+        worktree: process.cwd(),
+        directory: process.cwd(),
+        sessionID: 'test-session',
+        abort: new AbortController().signal,
+        history: [
+          { content: '我们参考了 ./ae/plans/test-plan.md 中的方案' },
+        ],
+      })
+
+      expect(mockExecuteHandoff).toHaveBeenCalled()
+      const callArgs = mockExecuteHandoff.mock.calls[0]
+      const enrichedPending = callArgs[2].pendingTasks
+      expect(enrichedPending).toBe('待办')
+    } finally {
+      rmSync(testPlanPath, { force: true })
+      try { rmSync(dirname(testPlanPath), { recursive: true, force: true }) } catch {}
+    }
   })
 
   it('降级模式：输出上下文普通消息注入提示', async () => {

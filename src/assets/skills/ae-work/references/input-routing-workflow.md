@@ -12,7 +12,11 @@
 
 不重新审查、深化或转换需求、设计或计划，不触发 `ae:brainstorm`、`ae:plan` 或 `ae:review domain=document`。
 
-除非交接文件缺失、可观察的当前目录或 `git rev-parse --show-toplevel` 输出与目标 B worktree 不一致，或用户明确要求重新审查，否则直接进入任务分析和阶段 2 执行。若交接文件引用的需求、计划、设计路径、图谱目录或 AE 项目配置不存在，只记录 `optional_context_missing`，不得回到 A worktree 查找或补迁移。`/ae-work-continue` 只是查找交接文件后调用 `ae:work <交接文件>` 的便捷包装，不维护独立继续执行流程。
+除非交接文件缺失、可观察的当前目录或 `git rev-parse --show-toplevel` 输出与目标 B worktree 不一致，交接文件 `plan_path` 指向的计划文件在 B worktree 中不存在，或用户明确要求重新审查，否则直接进入任务分析和阶段 2 执行。若交接文件引用的需求、设计路径、图谱目录或 AE 项目配置不存在，只记录 `optional_context_missing`，不得回到 A worktree 查找或补迁移。
+
+交接文件 `plan_path` 指向的计划文件在 B worktree 中不存在时：**停止执行，提示用户确认 plan_path 是否正确或是否需要回到 A 会话重新生成迁移计划文件。禁止搜索替代计划、扫描 `ae/plans/` 目录寻找其他计划文件或尝试从上游产物重建计划。**`/ae-work-continue` 只是查找交接文件后调用 `ae:work <交接文件>` 的便捷包装，不维护独立继续执行流程。
+
+交接文件未引用 `plan_path`（如旧格式交接文件缺少该字段）：**停止执行，提示用户该交接文件格式不符合当前规范，需要回到 A 会话重新生成交接文件。禁止跳过 plan_path 缺失继续执行或尝试从会话历史推断计划路径。**
 
 ### 计划文档
 

@@ -10,7 +10,7 @@
 
 调用规则：
 
-- worktree 交接输入：按 B worktree 继续执行路径提取可选计划路径；有计划路径且文件存在时使用 `mode:plan`，无计划、计划路径不存在，或工具无法从计划提取单元时，必须从交接文件的 `## A→B Startup Proof`、`## Execution Baseline` 和验证要求手动构建待办。
+- worktree 交接输入：plan_path 指向的计划文件在 B worktree 中真实存在时使用 `mode:plan`；plan_path 不存在时停止执行，提示用户确认路径正确性或回到 A 会话重新迁移，禁止手动构建待办绕行或扫描 `ae/plans/` 目录寻找替代计划。
 - 计划文档输入：使用 `mode:plan`，传入计划路径。
 - 裸提示词输入：优先使用轻量任务分解；需要升级时才使用 `mode:scan`，传入任务描述。
 
