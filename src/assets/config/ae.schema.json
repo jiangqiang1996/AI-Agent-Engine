@@ -47,6 +47,21 @@
       "minLength": 1,
       "description": "LibreOffice soffice 可执行文件的绝对路径。设置后 ae:libreoffice check 将优先使用此路径检测 LibreOffice，而非自动搜索系统安装或便携版。"
     },
+    "brainstorm": {
+      "type": "array",
+      "description": "头脑风暴模型列表。每项为 provider/model 格式，1-3 个。每个模型扮演所有视角角色，形成跨模型认知多样性。未配置时 fallback 到 modelScenarios.deep。",
+      "minItems": 1,
+      "maxItems": 3,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^[^/]+/[^/]+$"
+      },
+      "examples": [
+        ["anthropic/claude-3-5-sonnet"],
+        ["anthropic/claude-3-5-sonnet", "openai/gpt-4o"]
+      ]
+    },
     "modelScenarios": {
       "type": "object",
       "description": "模型场景到 opencode 模型标识的极简映射。稳定场景包括 quick、standard、deep、vision、audio、video；允许自定义场景键。",

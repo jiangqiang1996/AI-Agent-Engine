@@ -12,10 +12,12 @@ import {
 import {registerMcp} from './services/mcp-registration.js'
 import {
     collectModelScenarioSources,
+    collectBrainstormSources,
     resolveBuiltinOpencodeConfigPaths,
 } from './services/builtin-opencode-config-service.js'
 import {createModelScenarioRoutingContext, resolveModelReference,} from './services/model-scenario-routing-service.js'
 import { setModelScenarioRoutingContext } from './services/model-scenario-holder.js'
+import { setBrainstormConfig } from './services/brainstorm-config-holder.js'
 import {registerRulesInstructions} from './services/rules-instructions-service.js'
 import {injectBuiltinRulesIntoSystem} from './services/rules-system-transform-service.js'
 import {createRuntimeAssetManifest} from './services/runtime-asset-manifest.js'
@@ -66,10 +68,12 @@ function mergeCommandConfigWithRouting(
     manifest: ReturnType<typeof createRuntimeAssetManifest>,
     hostWorktree: string,
 ): void {
+    const configPaths = resolveBuiltinOpencodeConfigPaths(manifest, hostWorktree)
     const routingContext = createModelScenarioRoutingContext(
-        collectModelScenarioSources(resolveBuiltinOpencodeConfigPaths(manifest, hostWorktree)),
+        collectModelScenarioSources(configPaths),
     )
     setModelScenarioRoutingContext(routingContext)
+    setBrainstormConfig(collectBrainstormSources(configPaths))
     const dynamicHasPriority = isProjectPluginInstall(manifest, hostWorktree)
     config.command = mergeProjectCommandOverrides(
         mergeDynamicCommands(buildCommandConfig(manifest.commandsDir, routingContext), config.command, dynamicHasPriority),

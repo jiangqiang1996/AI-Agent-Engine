@@ -27,6 +27,7 @@ import { aePdfTool } from './ae-pdf.tool.js'
 import { aePptxTool } from './ae-pptx.tool.js'
 import { aePptxFromDesignTool } from './ae-pptx-from-design.tool.js'
 import { aeXlsxTool } from './ae-xlsx.tool.js'
+import { aeBrainstormTool } from './ae-brainstorm.tool.js'
 
 export function createToolRegistry(): Record<string, ToolDefinition> {
   return {
@@ -57,5 +58,6 @@ export function createToolRegistry(): Record<string, ToolDefinition> {
     [TOOL.AE_PPTX]: aePptxTool,
     [TOOL.AE_PPTX_FROM_DESIGN]: aePptxFromDesignTool,
     [TOOL.AE_XLSX]: aeXlsxTool,
+    [TOOL.AE_BRAINSTORM]: aeBrainstormTool,
   }
 }

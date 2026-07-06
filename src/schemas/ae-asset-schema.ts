@@ -128,6 +128,7 @@ export const TOOL = {
   AE_PPTX: 'ae-pptx',
   AE_PPTX_FROM_DESIGN: 'ae-pptx-from-design',
   AE_XLSX: 'ae-xlsx',
+  AE_BRAINSTORM: 'ae-brainstorm',
 } as const
 
 export const AeModeSchema = z

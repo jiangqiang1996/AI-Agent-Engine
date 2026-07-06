@@ -11,6 +11,7 @@ import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
 
 type McpConfig = NonNullable<Config['mcp']>
 export type ModelScenariosConfig = Record<string, string>
+export type BrainstormConfig = string[]
 export type BuiltinOpencodeConfigLayerName = '插件内置' | '全局' | '项目级'
 
 export interface ModelScenarioSource {
@@ -24,6 +25,7 @@ export interface BuiltinOpencodeConfig {
   $schema?: string
   mcp?: McpConfig
   modelScenarios?: ModelScenariosConfig
+  brainstorm?: BrainstormConfig
   [key: string]: unknown
 }
 
@@ -221,6 +223,8 @@ function mergeConfigObject(
       merged[key] = mergeMcpConfig(lowPriorityValue, highPriorityValue, allowNewMcpEntries)
     } else if (mergeTopLevelMcp && key === 'modelScenarios') {
       merged[key] = mergeModelScenariosConfig(lowPriorityValue, highPriorityValue)
+    } else if (mergeTopLevelMcp && key === 'brainstorm') {
+      merged[key] = highPriorityValue
     } else if (isRecord(lowPriorityValue) && isRecord(highPriorityValue)) {
       merged[key] = mergeConfigObject(lowPriorityValue, highPriorityValue, false, allowNewMcpEntries)
     } else {
@@ -294,6 +298,25 @@ function validateModelScenariosConfig(config: BuiltinOpencodeConfig, label = 'bu
   }
 }
 
+function validateBrainstormConfig(config: BuiltinOpencodeConfig, label = 'builtin-opencode'): void {
+  if (!('brainstorm' in config)) return
+
+  const brainstorm = config.brainstorm
+  if (!Array.isArray(brainstorm)) {
+    throw new Error(`${label} brainstorm 必须是字符串数组`)
+  }
+
+  if (brainstorm.length < 1 || brainstorm.length > 3) {
+    throw new Error(`${label} brainstorm 必须包含 1-3 个模型`)
+  }
+
+  for (const model of brainstorm) {
+    if (typeof model !== 'string' || model !== model.trim() || !/^[^/]+\/[^/]+$/.test(model)) {
+      throw new Error(`${label} brainstorm 每项必须是 "provider/model" 格式，且 provider 和 model 均非空`)
+    }
+  }
+}
+
 export function resolveBuiltinOpencodeConfigPaths(
   manifest: RuntimeAssetManifest,
   worktree: string,
@@ -313,6 +336,7 @@ export function loadBuiltinOpencodeConfig(paths: BuiltinOpencodeConfigPaths): Bu
   }, {})
   validateMcpConfig(config)
   validateModelScenariosConfig(config)
+  validateBrainstormConfig(config)
   return config
 }
 
@@ -368,6 +392,18 @@ export function collectModelScenarioSources(paths: BuiltinOpencodeConfigPaths): 
   }
 
   return sources
+}
+
+export function collectBrainstormSources(
+  paths: BuiltinOpencodeConfigPaths,
+): BrainstormConfig | undefined {
+  const effective = resolveEffectiveConfigProperty(
+    paths,
+    ['brainstorm'],
+    (config, layer) => validateBrainstormConfig(config, `${layer.label} builtin-opencode 配置`),
+  )
+  if (!effective) return undefined
+  return effective.value as BrainstormConfig
 }
 
 export function loadBuiltinMcpConfigFromPaths(paths: BuiltinOpencodeConfigPaths): McpConfig {

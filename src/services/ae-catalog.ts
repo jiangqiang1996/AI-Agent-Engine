@@ -14,8 +14,8 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   {
     skillName: SKILL.BRAINSTORM,
     commandName: COMMAND.BRAINSTORM,
-    description: '头脑风暴：使用多个子代理从不同视角进行多轮讨论，汇总讨论结果',
-    argumentHint: '[讨论主题]',
+    description: '多模型多视角头脑风暴：通过 ae-brainstorm 工具执行两阶段结构化讨论（纯视角生成 + 跨模型碰撞汇总），自动识别真分歧、共识和盲区',
+    argumentHint: '[讨论主题] [perspectives=optimist,critic,pragmatist] [rounds=1]',
     skillFile: `src/assets/skills/${skillDir(SKILL.BRAINSTORM)}/SKILL.md`,
   },
   {
