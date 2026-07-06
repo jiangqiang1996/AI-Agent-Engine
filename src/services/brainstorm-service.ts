@@ -1,5 +1,8 @@
 import { getGlobalClient } from './client-holder.js'
 import { resolveBrainstormModels } from './brainstorm-config-service.js'
+import { getModelByScenario } from './model-scenario-routing-service.js'
+import { getModelScenarioRoutingContext } from './model-scenario-holder.js'
+import { MODEL_SCENARIO } from '../schemas/model-scenario-schema.js'
 
 function parseModelReference(model: string | undefined): { providerID: string; modelID: string } | undefined {
   if (!model) return undefined
@@ -285,17 +288,22 @@ export async function executeBrainstorm(options: BrainstormOptions): Promise<Bra
     throw new Error('所有视角讨论均失败，无法进行汇总')
   }
 
+  const synthesisModel = getModelByScenario(
+    getModelScenarioRoutingContext() ?? undefined,
+    MODEL_SCENARIO.DEEP,
+  )
+
   onProgress?.({
     phase: 'synthesis',
     current: totalPerspectiveSessions + 1,
     total: totalSessions,
     round: rounds,
-    model: successfulOutputs[0]?.model,
+    model: synthesisModel,
     perspectiveName: undefined,
     status: 'running',
   })
 
-  const synthesisModelRef = parseModelReference(successfulOutputs[0]?.model)
+  const synthesisModelRef = parseModelReference(synthesisModel)
   const synthesisPrompt = buildSynthesisPrompt(topic, successfulOutputs)
 
   let synthesis: string
@@ -312,7 +320,7 @@ export async function executeBrainstorm(options: BrainstormOptions): Promise<Bra
       current: totalPerspectiveSessions + 1,
       total: totalSessions,
       round: rounds,
-      model: successfulOutputs[0]?.model,
+      model: synthesisModel,
       perspectiveName: undefined,
       status: 'failed',
     })
@@ -324,7 +332,7 @@ export async function executeBrainstorm(options: BrainstormOptions): Promise<Bra
     current: totalPerspectiveSessions + 1,
     total: totalSessions,
     round: rounds,
-    model: successfulOutputs[0]?.model,
+    model: synthesisModel,
     perspectiveName: undefined,
     status: 'success',
   })
