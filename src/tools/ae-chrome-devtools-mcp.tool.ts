@@ -147,6 +147,9 @@ export const aeChromeDevtoolsMcpTool = tool({
     '- mode=autoConnect：自动发现并连接已运行的浏览器实例，无需 --remote-debugging-port；指定 browser 参数可连接 Edge、Brave、Vivaldi 等非 Chrome 浏览器',
     '- mode=isolated：启动独立的新浏览器实例（独立配置文件，适合自动化测试）；指定 browser 参数可启动非 Chrome 浏览器（如 Edge）',
     '',
+    '浏览器启动选项（仅 mode=isolated 时生效，连接已有浏览器的模式不适用）：',
+    '- headless=true：以无头模式运行（不显示浏览器窗口），适合 CI 环境或无需视觉观察的自动化任务',
+    '',
     '连接活跃浏览器的步骤（connect 模式）：',
     '1. 在浏览器中访问 inspect#remote-debugging 页面启用远程调试（推荐），或以命令行参数启动：Chrome 运行 `chrome --remote-debugging-port=<端口>`，Edge 运行 `msedge --remote-debugging-port=<端口>`',
     '2. 调用 register 并指定 browser 和 port，例如 `action=register browser=Edge port=54522`',
@@ -159,7 +162,7 @@ export const aeChromeDevtoolsMcpTool = tool({
     '适用场景：',
     '- ae:chrome-devtools 技能在使用浏览器工具前确认或注册 MCP 服务',
     '- 需要连接活跃浏览器复用登录态和调试会话',
-    '- 需要启动独立浏览器进行自动化测试',
+    '- 需要启动独立浏览器进行自动化测试（可配合 headless 选项）',
     '',
     '不适用场景：',
     '- 不负责直接执行浏览器操作，只管理 MCP 服务的生命周期',
@@ -180,6 +183,9 @@ export const aeChromeDevtoolsMcpTool = tool({
     ),
     port: z.number().int().min(1).max(65535).optional().describe(
       '浏览器远程调试端口号（mode=connect 时必填），由用户以 --remote-debugging-port 启动浏览器后提供',
+    ),
+    headless: z.boolean().optional().describe(
+      '是否以无头模式运行浏览器（不显示浏览器窗口）。仅 mode=isolated 时生效；mode=connect 和 autoConnect 连接的是已有浏览器实例，此参数不适用。适合 CI 环境、服务器环境或无需视觉观察的自动化任务',
     ),
   },
   execute: async (args, ctx) => {
@@ -226,16 +232,27 @@ export const aeChromeDevtoolsMcpTool = tool({
         }
       }
 
+      if (args.headless && args.mode !== 'isolated') {
+        return [
+          `headless 选项仅在 mode=isolated 时生效，当前模式为 ${args.mode}（连接已有浏览器实例，无法控制其是否显示窗口）。`,
+          '如需使用无头模式，请改用 action=register mode=isolated。',
+        ].join('\n')
+      }
+
       if (args.mode === 'isolated') {
         const browserLabel = args.browser ?? 'Chrome'
-        ctx.metadata({ title: `注册 chrome-devtools MCP（独立 ${browserLabel}）...` })
+        const modeSuffix = args.headless ? ' 无头' : ''
+        ctx.metadata({ title: `注册 chrome-devtools MCP（独立 ${browserLabel}${modeSuffix}）...` })
 
-        let isolatedCommand: string[] = [...BASE_COMMAND]
+        let isolatedCommand: string[] = [...BASE_COMMAND, '--isolated=true']
         if (args.browser && args.browser !== 'Chrome') {
           const execPath = await findBrowserExecutable(args.browser)
           if (execPath) {
-            isolatedCommand = [...BASE_COMMAND, '--executablePath', execPath]
+            isolatedCommand = [...isolatedCommand, '--executablePath', execPath]
           }
+        }
+        if (args.headless) {
+          isolatedCommand = [...isolatedCommand, '--headless=true']
         }
 
         try {
@@ -253,9 +270,10 @@ export const aeChromeDevtoolsMcpTool = tool({
           const statuses = result.data as Record<string, { status: string }> | undefined
           const newStatus = statuses?.[MCP_NAME]
           if (newStatus?.status === 'connected') {
+            const suffix = args.headless ? '（无头模式）' : ''
             return {
-              output: `已注册 chrome-devtools MCP 并启动独立 ${browserLabel} 实例，工具可用。请立即调用 chrome-devtools_list_pages 验证连接。`,
-              metadata: { connected: true, status: 'connected', mode: 'isolated', browser: args.browser },
+              output: `已注册 chrome-devtools MCP 并启动独立 ${browserLabel} 实例${suffix}，工具可用。请立即调用 chrome-devtools_list_pages 验证连接。`,
+              metadata: { connected: true, status: 'connected', mode: 'isolated', browser: args.browser, headless: args.headless },
             }
           }
 

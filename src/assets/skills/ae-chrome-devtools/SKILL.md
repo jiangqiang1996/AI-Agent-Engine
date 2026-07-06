@@ -1,7 +1,7 @@
 ---
 name: ae:chrome-devtools
 description: "chrome-devtools-mcp 浏览器能力中枢：启动或接管浏览器，打开 URL，执行指定任务。ae:chrome-devtools 是 ae-chrome-devtools-mcp 工具的唯一管理入口，上层技能和代理不应直接调用 ae-chrome-devtools-mcp。"
-argument-hint: "[url] [action] [mode] [browser] [port] [task=任务描述]"
+argument-hint: "[url] [action] [mode] [browser] [port] [headless] [task=任务描述]"
 ---
 
 # chrome-devtools-mcp 浏览器能力中枢
@@ -44,6 +44,7 @@ argument-hint: "[url] [action] [mode] [browser] [port] [task=任务描述]"
 | `mode` | 否 | 注册模式（仅 action=register 时有效）：`autoConnect` / `connect` / `isolated`。默认 `autoConnect`。 |
 | `browser` | 否 | 浏览器类型：`Chrome` / `Edge` / `Brave` / `Vivaldi`。mode=connect 时必填。 |
 | `port` | 否 | 远程调试端口号（1-65535）。mode=connect 时必填。 |
+| `headless` | 否 | 是否无头模式（不显示浏览器窗口）。仅 mode=isolated 时生效。值：`true` / `false`。默认 `false`。 |
 
 参数解析规则（三级策略）：
 1. 显式命名：`key=value`、`key:value`、`--key=value` 直接绑定，优先级最高
@@ -56,25 +57,41 @@ argument-hint: "[url] [action] [mode] [browser] [port] [task=任务描述]"
    | autoConnect / connect / isolated | mode |
    | Chrome / Edge / Brave / Vivaldi | browser |
    | 独立纯数字 1-65535 | port |
+   | true / false（且上下文提及无头/headless） | headless |
 
    ❌ 否定示例：`检查 connect 模块的性能` 中的 connect 不推断为 action
 
-3. 顺序兜底：值特征有交集时，按 `url → action → mode → browser → port → task` 顺序匹配
+3. 顺序兜底：值特征有交集时，按 `url → action → mode → browser → port → headless → task` 顺序匹配
 
 **内部调用约定**：当本技能被其他技能自动调用时，所有参数必须使用显式命名格式（如 `action=register mode=autoConnect`），不依赖值特征推断。
 
 ## 输入处理
 
-1. 解析用户输入中的参数（url、task、action、mode、browser、port），按三级解析策略推断。
+1. 解析用户输入中的参数（url、task、action、mode、browser、port、headless），按三级解析策略推断。
 2. 根据 action 参数或自动推断决定 MCP 操作：
    - 若 `action=disconnect`：调用 `ae-chrome-devtools-mcp action=disconnect` 断开连接。
-   - 若 `action=register` 或 MCP 未连接：执行 MCP 注册流程，使用 mode、browser、port 透传参数。
+   - 若 `action=register` 或 MCP 未连接：执行 MCP 注册流程，使用 mode、browser、port、headless 透传参数。
    - 若未指定 action 且 MCP 已连接：跳过注册，直接进入后续操作。
 3. MCP 注册流程中，若提供了 mode，使用指定模式；否则默认 `autoConnect`。
 4. MCP 注册完成并验证连接可用后，若提供了 url，自动调用 `chrome-devtools_new_page` 打开目标页面。
 5. 若提供了 task 或用户意图中包含浏览器任务，使用 `chrome-devtools_*` 工具执行任务。需要查阅工具用法时参考 `references/browser-tools.md`。
 6. 若用户只询问概念或工具选择，可基于本技能说明回答，但仍要提示实际执行前必须完成 MCP 注册。
 7. 对涉及登录、上传、下载、剪贴板、网络拦截、授权头或代理的请求，先说明敏感边界并避免要求用户暴露密钥或密码。
+
+### headless 语义推断
+
+headless 仅在 `mode=isolated` 下生效。当用户未显式提供该参数时，按以下规则从自然语言推断：
+
+**headless 推断关键词：**
+- 推断为 `true`：用户提及"无头"、"headless"、"不显示浏览器"、"不弹窗"、"后台运行"、"后台执行"、"无界面"、"无UI"、"静默运行"、"CI 环境"、"服务器环境"、"无人值守"、"自动化测试无界面"
+- 推断为 `false`（硬约束，优先级高于 true 推断）：用户提及"显示浏览器"、"弹出浏览器"、"有界面"、"看浏览器"、"可视化"、"需要观察"，或任务涉及"手动登录"、"需要登录"、"验证码"、"扫码"、"扫码登录"、"人机验证"、"滑块验证"、"图形验证码"、"短信验证码"、"需要人工干预"、"需要人工操作"、"需要用户确认"
+- 无法推断时：若上下文明确为 isolated 模式且任务为自动化测试/CI/服务器场景，默认 `true`；否则不传该参数（等同于 false）
+
+**推断不确定时的澄清原则：**
+- 仅当 headless 的意图无法从上下文自信推断，且该参数对任务执行有实质影响时，向用户提出**一个**澄清问题
+- 若任务明显不需要无头模式（如调试、截图验收、交互验证），不询问 headless，直接使用默认（false）
+- 若任务明显在 CI/服务器/自动化测试场景，不询问 headless，直接推断为 true
+- **硬约束覆盖**：任务涉及手动登录、验证码识别、扫码、人机验证等需要人工干预的环节时，headless **必须**为 false，即使任务在 CI/服务器/自动化测试场景或用户提及了无头关键词，也以人工干预需求为准；此规则不询问、不降级
 
 ## 无参数默认流程
 
@@ -114,6 +131,16 @@ argument-hint: "[url] [action] [mode] [browser] [port] [task=任务描述]"
 ```
 
 流程：启动独立 Chrome 实例 → 验证连接可用 → 等待后续指令。
+
+### 无头模式自动化测试
+
+```
+/ae-chrome-devtools https://example.com action=register mode=isolated headless=true task=检查页面加载性能
+```
+
+流程：启动独立无头 Chrome → 验证连接 → 打开 `https://example.com` → 执行性能检查任务。
+
+> 无头模式下不显示浏览器窗口，适合 CI 环境、服务器或无需视觉观察的自动化任务。
 
 ### 不指定 URL，仅执行调试任务
 
@@ -166,11 +193,14 @@ argument-hint: "[url] [action] [mode] [browser] [port] [task=任务描述]"
 
 ### isolated 独立浏览器
 
-适用于需要干净环境或自动化测试的场景。
+适用于需要干净环境或自动化测试的场景。支持 `headless`（无头模式）选项。
 
 1. 使用 `ae:chrome-devtools action=register mode=isolated`（默认启动 Chrome）或 `ae:chrome-devtools action=register mode=isolated browser=Edge`（启动指定浏览器）。
-2. MCP 会启动独立的新浏览器实例（专用配置文件）。
-3. 注册成功后，**必须**立即调用 `chrome-devtools_list_pages` 列出当前页面以验证连接可用。
+2. 需要无头模式时追加 `headless=true`。
+3. MCP 会启动独立的新浏览器实例（专用配置文件）。
+4. 注册成功后，**必须**立即调用 `chrome-devtools_list_pages` 列出当前页面以验证连接可用。
+
+> headless 仅在 isolated 模式下生效。connect 和 autoConnect 连接的是已有浏览器实例，无法控制其是否显示窗口。传入时工具会返回提示。
 
 ## 输出要求
 
