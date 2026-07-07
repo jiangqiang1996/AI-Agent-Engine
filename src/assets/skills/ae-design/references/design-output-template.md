@@ -358,7 +358,7 @@ status: "active"
 1. **统计 design.md 总行数** - 包含 frontmatter、Split Manifest、overview、实施约束、跨维度映射表和所有维度章节
 2. **≤ 300 行** - 所有维度内联在 design.md 中，Split Manifest 状态为 `unified`，无需拆分
 3. **> 300 行** - 全部维度章节拆出为独立子文件，Split Manifest 状态为 `split`
-4. **design.md 保留内容** - frontmatter + Split Manifest + overview + 实施约束 + 跨维度映射表 + 引用说明
+4. **design.md 保留内容** - 见下方「始终内联的章节」
 5. **Split Manifest 更新** - 记录每个拆出文件的 file、section、lines、sub_split 状态
 
 #### 始终内联的章节
@@ -371,7 +371,7 @@ status: "active"
 
 #### 拆分停止条件
 
-- design.md 仅剩 overview + 实施约束 + 跨维度映射表 + Split Manifest + 引用说明时停止
+- design.md 仅剩上方「始终内联的章节」加引用说明时停止
 
 ### 二级拆分
 
