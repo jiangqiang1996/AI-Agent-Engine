@@ -383,6 +383,14 @@ const GILDED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'], s
   [AGENT.LOGIC_WEAVER, 'workflow', '交互逻辑：前端交互实现与 API 集成'],
   [AGENT.BROWSER_INSPECTOR, 'workflow', '浏览器验收：端到端浏览器测试与回归验证'],
   [AGENT.DOC_ARCHITECT, 'workflow', '文档架构师：为 PPTX/DOCX/PDF/XLSX 制定风格规格和内容结构'],
+  [AGENT.UI_UX_DESIGNER, 'workflow', 'UI/UX 设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 ui-ux.md 设计契约，含设计读数、信息架构、页面规格、组件契约、设计 Token 和交互状态机'],
+  [AGENT.ARCHITECTURE_DESIGNER, 'workflow', '架构设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 architecture.md 设计契约，含模块边界、依赖方向、分层规则、数据流和错误传播链'],
+  [AGENT.API_DESIGNER, 'workflow', '接口设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 api.md 设计契约，含端点清单、TypeScript interface、认证授权、错误码体系和幂等性声明'],
+  [AGENT.DATABASE_DESIGNER, 'workflow', '数据库设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 database.md 设计契约，含 ER 模型、表结构、关系与外键、迁移策略和敏感字段标注'],
+  [AGENT.TEST_CASES_DESIGNER, 'workflow', '测试用例设计维度专精代理：根据 prd 需求、其他维度契约和 ae:grill 追问结果产出 test-cases.md 设计契约，含覆盖矩阵、P0-P3 用例、行为契约规格和维度覆盖追溯'],
+  [AGENT.SECURITY_DESIGNER, 'workflow', '安全设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 security.md 设计契约，含威胁模型、信任边界、认证授权流程、数据分级和密钥管理'],
+  [AGENT.OBSERVABILITY_DESIGNER, 'workflow', '可观测性设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 observability.md 设计契约，含日志规范、指标体系、告警规则、健康检查和 SLO/SLI 定义'],
+  [AGENT.NON_FUNCTIONAL_DESIGNER, 'workflow', '非功能设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 non-functional.md 设计契约，含性能目标、并发模型、事务边界、缓存策略和容量规划'],
 ]
 
 function buildAgentList(

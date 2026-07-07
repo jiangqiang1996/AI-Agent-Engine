@@ -167,6 +167,50 @@ describe('资产健康巡检', () => {
 
   
 
+  it('ae:design 维度专精代理应该全部注册且文件存在', () => {
+    const designAgents = [
+      'ui-ux-designer',
+      'architecture-designer',
+      'api-designer',
+      'database-designer',
+      'test-cases-designer',
+      'security-designer',
+      'observability-designer',
+      'non-functional-designer',
+    ]
+    const definitions = getAllAgentDefinitions()
+    const definitionNames = new Set(definitions.map((agent) => agent.name))
+
+    for (const agentName of designAgents) {
+      expect(definitionNames.has(agentName), `asset-health/design-agent/registration/${agentName}: 维度专精代理未注册`).toBe(true)
+      const agentPath = join(process.cwd(), 'src/assets/agents/workflow', `${agentName}.md`)
+      expect(existsSync(agentPath), `asset-health/design-agent/file/${agentName}: 缺少代理文件`).toBe(true)
+    }
+  })
+
+  it('ae:design 维度模板文件应该全部存在且与 dimension-triggers 索引一致', () => {
+    const dimensionTriggersContent = readFileSync('src/assets/skills/ae-design/references/dimension-triggers.md', 'utf8')
+    const expectedTemplates = [
+      'overview-template.md',
+      'ui-ux-template.md',
+      'architecture-template.md',
+      'api-template.md',
+      'database-template.md',
+      'test-cases-template.md',
+      'security-template.md',
+      'observability-template.md',
+      'non-functional-template.md',
+      'cross-dimension-mapping.md',
+      'design-output-template.md',
+    ]
+    for (const template of expectedTemplates) {
+      const templatePath = join(process.cwd(), 'src/assets/skills/ae-design/references', template)
+      expect(existsSync(templatePath), `asset-health/design-template/file/${template}: 维度模板文件缺失`).toBe(true)
+      const referencedFromList = template === 'design-output-template.md' || template === 'cross-dimension-mapping.md' || template === 'overview-template.md' || dimensionTriggersContent.includes(template)
+      expect(referencedFromList, `asset-health/design-template/reference/${template}: 维度模板未在 dimension-triggers.md 或 SKILL.md 中引用`).toBe(true)
+    }
+  })
+
   it('旧文档互转资产和等价转换代理不应该存在或注册', () => {
     const agentNames = getAllAgentDefinitions().map((entry) => entry.name)
     const entries = getPhaseOneEntries()

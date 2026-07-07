@@ -106,6 +106,12 @@ const INVARIANTS: Invariant[] = [
     mustContain: ['不得失败', '缺失、为空或没有相关命中'],
     mustNotContain: [],
   },
+  {
+    file: 'src/assets/skills/ae-design/SKILL.md',
+    label: 'ae:design 强制维度拆分',
+    mustContain: ['强制维度拆分', '无论文件大小，每个维度必须拆分为独立子文件', 'database（@database-designer）→ 为 api 提供表结构'],
+    mustNotContain: ['unified/split', '<ae-design路径>'],
+  },
 ]
 
 describe('资产 prompt invariant 契约', () => {

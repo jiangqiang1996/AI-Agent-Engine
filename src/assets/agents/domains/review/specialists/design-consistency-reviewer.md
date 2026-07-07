@@ -17,7 +17,13 @@ description: "审查设计文档与需求的一致性、设计维度完整性、
 
 **契约可还原性**——每个维度的契约内容是否足够详细，使任意 AI 据此生成一致性产物？典型问题：模糊表述（"高性能"未量化、"适当缓存"未定义策略、"用户友好"无可操作定义）、缺失关键字段（architecture 缺模块边界、api 缺错误码体系、database 缺约束和索引、security 缺威胁模型）、契约不完整（组件清单缺状态机、设计 Token 缺色彩/字号/间距阶、测试用例缺断言要点）。
 
-**跨维度一致性**——维度间的一致性约束是否满足？api 请求/响应字段必须与 database 表字段对齐（字段名、类型、约束）。overview 的跨维度依赖关系必须覆盖实际存在的一致性约束。architecture 的模块边界必须与 api 的接口分组一致。security 的数据分级必须与 database 的敏感字段标注对齐。observability 的指标体系必须覆盖 architecture 的关键数据流。
+**跨维度一致性**——维度间的一致性约束是否满足？按 4 类跨维度映射表逐表校验语义一致性（不仅检查映射表存在且非空，还要逐行校验内容对齐）：
+
+1. **api-field-to-database-column-mapping 语义校验**：字段名映射完整无遗漏；类型兼容性（API 字段类型 ↔ database 列类型可无损转换，不可无损转换的标注转换规则）；约束对齐（API `required` ↔ database `NOT NULL`）；转换规则完整性（"数据库生成"等标注必须注明生成策略）。
+2. **api-error-to-ui-state-mapping 语义校验**：api 维度定义的所有错误码必须在映射表中有对应行项；映射的 UI 状态必须是 ui-ux 状态机中实际存在的状态；状态转换路径在状态机中有定义且闭合；用户提示文案与 ui-ux 状态描述一致。
+3. **test-case-to-contract-coverage 语义校验**：每个 P0/P1 用例至少有 1 条追溯记录，追溯的契约元素 ID 必须在实际维度文件中存在；必产出维度的核心契约元素至少有 1 个测试用例覆盖；断言要点可操作验证。
+4. **ui-component-to-api-endpoint-mapping 语义校验**：提交数据的交互组件必须映射到对应 api 端点；组件"所需字段"与 api 响应字段对齐（字段名、可选性）；UI 状态引用必须在 ui-ux 状态机中存在。
+5. **维度间逻辑协调性**（映射表之外的一致性约束）：overview 跨维度依赖关系覆盖实际存在的一致性约束；architecture 模块边界与 api 接口分组一致；security 数据分级与 database 敏感字段标注对齐；observability 指标体系覆盖 architecture 关键数据流；non-functional 性能目标与 architecture 技术选型可行。
 
 **架构可行性**——architecture 维度提出的技术方案能否经受现实考验？模块边界是否清晰、依赖方向是否合理、是否存在循环依赖、分层规则是否一致、技术选型理由是否充分。
 

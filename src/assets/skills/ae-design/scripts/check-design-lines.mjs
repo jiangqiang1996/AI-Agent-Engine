@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // ae:design 产物行数校验脚本
-// 用法: node <ae-design路径>/scripts/check-design-lines.mjs <design目录路径> [--threshold 300]
+// 用法: node <ae-design技能目录>/scripts/check-design-lines.mjs <design目录路径> [--threshold 300]
 // 退出码: 0 = 通过, 1 = 有超标文件
 
 import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs'
@@ -9,7 +9,7 @@ import { resolve, join } from 'node:path'
 const args = process.argv.slice(2)
 
 if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
-  console.log('用法: node <ae-design路径>/scripts/check-design-lines.mjs <design目录路径> [--threshold N]')
+  console.log('用法: node <ae-design技能目录>/scripts/check-design-lines.mjs <design目录路径> [--threshold N]')
   console.log('')
   console.log('参数:')
   console.log('  <design目录路径>  ae:design 产物目录，支持绝对路径和相对路径')

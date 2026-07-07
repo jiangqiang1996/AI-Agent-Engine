@@ -7,16 +7,18 @@
 ```
 ae/designs/
 └── user-auth-2026-06-24/          # 需求描述名-日期
-    ├── design.md                   # 元文件（含 frontmatter + overview + Split Manifest）
-    ├── architecture.md             # 拆分子文件（仅 split 状态时存在）
-    ├── api.md                      # 拆分子文件
-    ├── database.md                 # 拆分子文件
-    ├── ui-ux.md                    # 拆分子文件
-    ├── test-cases.md               # 拆分子文件
-    ├── security.md                 # 拆分子文件
-    ├── observability.md            # 拆分子文件
-    └── non-functional.md           # 拆分子文件
+    ├── design.md                   # 元文件（含 frontmatter + overview + Split Manifest + 实施约束 + 跨维度映射表）
+    ├── architecture.md             # 维度子文件（由 @architecture-designer 产出）
+    ├── api.md                      # 维度子文件（由 @api-designer 产出）
+    ├── database.md                 # 维度子文件（由 @database-designer 产出）
+    ├── ui-ux.md                    # 维度子文件（由 @ui-ux-designer 产出）
+    ├── test-cases.md               # 维度子文件（由 @test-cases-designer 产出）
+    ├── security.md                 # 维度子文件（由 @security-designer 产出）
+    ├── observability.md            # 维度子文件（由 @observability-designer 产出）
+    └── non-functional.md           # 维度子文件（由 @non-functional-designer 产出）
 ```
+
+**强制拆分规则：** 无论文件大小，每个维度必须拆分为独立子文件（`<维度名>.md`），不在 design.md 中内联维度内容。overview、实施约束和跨维度映射表始终内联在 design.md 中。
 
 **"需求描述名"来源规则（D12）：**
 - prd 文档作为输入时：从 prd 文件名提取（如 `user-auth-prd.md` → `user-auth`）
@@ -29,169 +31,6 @@ ae/designs/
 ---
 
 ## design.md 元文件模板
-
-### Unified 状态（所有维度内联）
-
-```markdown
----
-version: "1.0"
-supersedes: null
-last_updated: "2026-06-24"
-design_name: "user-auth"
-status: "active"
----
-
-# 设计契约：用户认证系统
-
-## Split Manifest
-
-- status: unified
-- total_lines: 280
-- threshold: 300
-- inline_sections:
-  - overview
-  - implementation_constraints
-  - cross_dimension_mapping
-  - architecture
-  - api
-  - database
-  - ui-ux
-  - test-cases
-  - security
-  - observability
-  - non-functional
-- split_files: []
-
----
-
-## 设计总览
-
-### 设计读数
-（一句话声明设计意图、任务类型和设计家族）
-
-### 范围映射
-（prd 需求条目 → design 维度的对应关系表）
-
-### 产物清单
-（本次产出的维度文件列表和状态）
-
-### 契约版本
-- 版本号：1.0
-- 前序版本：无
-- 变更摘要：初始设计
-
-### 跨维度依赖关系
-（记录维度间的一致性约束）
-
-### 设计决策记录（ADR）
-（记录关键设计决策和理由，使用稳定 ID ADR-XXX）
-
----
-
-## 实施约束
-
-### 环境变量清单
-
-| 变量名 | 类型 | 默认值 | 是否必需 | 描述 |
-|--------|------|--------|---------|------|
-| DATABASE_URL | string | - | 是 | 数据库连接字符串 |
-| JWT_SECRET | string | - | 是 | JWT 签名密钥 |
-| LOG_LEVEL | enum | INFO | 否 | 日志级别 |
-
-### 依赖版本矩阵
-
-| 依赖名 | 版本范围 | 用途 | 是否生产依赖 |
-|--------|---------|------|------------|
-| react | ^18.0.0 | UI 框架 | 是 |
-| express | ^4.18.0 | HTTP 服务 | 是 |
-| vitest | ^1.0.0 | 测试框架 | 否 |
-
-### 配置项清单
-
-| 配置键 | 配置路径 | 默认值 | 环境覆盖 | 描述 |
-|--------|---------|--------|---------|------|
-| port | server.port | 3000 | PORT | 服务端口 |
-| corsOrigins | security.cors | [] | CORS_ORIGINS | 允许的 CORS 来源 |
-
-### 目录结构约定
-
-| 路径 | 用途 |
-|------|------|
-| src/server/ | 服务端入口 |
-| src/routes/ | API 路由 |
-| src/services/ | 业务逻辑 |
-| src/repositories/ | 数据访问 |
-| src/components/ | UI 组件 |
-
-### 构建与运行命令
-
-| 命令 | 用途 |
-|------|------|
-| npm run build | 构建 |
-| npm run dev | 开发模式 |
-| npm test | 测试 |
-| npm run lint | 代码检查 |
-
----
-
-## 跨维度映射表
-
-引用 `references/design-dimensions.md` 中定义的 4 类映射模板：
-
-### api-field-to-database-column-mapping
-（API 请求/响应字段 ↔ 数据库表字段映射表）
-
-### api-error-to-ui-state-mapping
-（API 错误码 ↔ UI 交互状态机映射表）
-
-### test-case-to-contract-coverage
-（测试用例 ↔ 维度契约元素覆盖追溯表）
-
-### ui-component-to-api-endpoint-mapping
-（UI 组件 ↔ API 端点映射表）
-
----
-
-## 架构设计
-（architecture 维度内容）
-
----
-
-## 接口设计
-（api 维度内容）
-
----
-
-## 数据库设计
-（database 维度内容）
-
----
-
-## UI/UX 设计
-（ui-ux 维度内容）
-
----
-
-## 测试用例设计
-（test-cases 维度内容）
-
----
-
-## 安全设计
-（security 维度内容）
-
----
-
-## 可观测性设计
-（observability 维度内容）
-
----
-
-## 非功能设计
-（non-functional 维度内容）
-```
-
-### Split 状态（维度拆分为子文件）
 
 ```markdown
 ---
@@ -207,7 +46,7 @@ status: "active"
 ## Split Manifest
 
 - status: split
-- total_lines: 340
+- total_lines: 560
 - threshold: 300
 - inline_sections:
   - overview
@@ -259,6 +98,14 @@ status: "active"
     section: security
     lines: 150
     sub_split: false
+  - file: observability.md
+    section: observability
+    lines: 120
+    sub_split: false
+  - file: non-functional.md
+    section: non-functional
+    lines: 100
+    sub_split: false
 
 ---
 
@@ -275,7 +122,7 @@ status: "active"
 
 | 维度 | 文件 | 状态 | 版本 |
 |------|------|------|------|
-| overview | design.md（内联） | split | 1.0 |
+| overview | design.md（内联） | inline | 1.0 |
 | architecture | architecture.md | split | 1.0 |
 | api | api.md（引用清单） | split | 1.0 |
 | api-endpoints | api-endpoints.md | sub-split | 1.0 |
@@ -288,6 +135,8 @@ status: "active"
 | ui-ux | ui-ux.md | split | 1.0 |
 | test-cases | test-cases.md | split | 1.0 |
 | security | security.md | split | 1.0 |
+| observability | observability.md | split | 1.0 |
+| non-functional | non-functional.md | split | 1.0 |
 
 ### 契约版本
 - 版本号：1.0
@@ -298,7 +147,7 @@ status: "active"
 （记录维度间的一致性约束）
 
 ### 设计决策记录（ADR）
-（记录关键设计决策和理由，使用稳定 ID ADR-XXX）
+（记录关键设计决策和理由，使用稳定 ID ADR-XXX，从 ae:grill 追问结果提炼）
 
 ---
 
@@ -347,19 +196,17 @@ status: "active"
 
 ## 拆分规则
 
-### 一级拆分
+### 一级拆分（强制）
 
 #### 触发条件
 
-`design.md` 总行数超过 **300 行** 时触发一级拆分。`design.md` 自身豁免 300 行校验，但作为导航索引文件，超过 300 行时必须将所有维度章节拆出。
+**无论 design.md 总行数大小，所有维度必须拆分为独立子文件。** design.md 自身豁免 300 行校验，作为导航索引文件，只保留 overview、实施约束、跨维度映射表和 Split Manifest。
 
 #### 拆分步骤
 
-1. **统计 design.md 总行数** - 包含 frontmatter、Split Manifest、overview、实施约束、跨维度映射表和所有维度章节
-2. **≤ 300 行** - 所有维度内联在 design.md 中，Split Manifest 状态为 `unified`，无需拆分
-3. **> 300 行** - 全部维度章节拆出为独立子文件，Split Manifest 状态为 `split`
-4. **design.md 保留内容** - 见下方「始终内联的章节」
-5. **Split Manifest 更新** - 记录每个拆出文件的 file、section、lines、sub_split 状态
+1. **产出 overview 和跨维度映射表骨架** - 主代理产出 overview、实施约束和跨维度映射表骨架，内联在 design.md 中
+2. **调度维度子代理** - 按产出顺序逐个调度维度专精子代理产出独立子文件
+3. **Split Manifest 更新** - 记录每个拆出文件的 file、section、lines、sub_split 状态
 
 #### 始终内联的章节
 
@@ -368,10 +215,6 @@ status: "active"
 - implementation_constraints（实施约束）
 - cross_dimension_mapping（跨维度映射表）
 - Split Manifest
-
-#### 拆分停止条件
-
-- design.md 仅剩上方「始终内联的章节」加引用说明时停止
 
 ### 二级拆分
 
@@ -401,16 +244,16 @@ status: "active"
 
 ### 校验机制
 
-使用 `<ae-design路径>/scripts/check-design-lines.mjs` 校验产物文件行数：
+使用 ae:design 技能目录下的 `scripts/check-design-lines.mjs` 校验产物文件行数：
 
 - **校验范围**：一级拆分文件（`<维度名>.md`），不包括 design.md 和二级子文件（`<维度名>-<章节名>.md`）
 - **校验规则**：一级拆分文件行数 ≤ 300 行
 - **失败处理**：校验脚本退出码 1 时，对超标文件重新拆分
-- **用法**：`node <ae-design路径>/scripts/check-design-lines.mjs <design目录路径> [--threshold N]`
+- **用法**：`node <ae-design技能目录>/scripts/check-design-lines.mjs <design目录路径> [--threshold N]`
 
 ### 示例
 
-假设 design.md 有 2500 行，各维度行数：
+假设各维度行数：
 - overview: 150 行（不拆，始终内联）
 - implementation_constraints: 80 行（不拆，始终内联）
 - cross_dimension_mapping: 60 行（不拆，始终内联）
@@ -487,7 +330,7 @@ last_updated: "2026-06-24"
 （章节内容）
 ```
 
-`contract_elements` 字段为可选；ae:review 遇到缺失时降级为手动检查。各维度的 contract_elements 取值参考 `references/design-dimensions.md` 中对应维度的"契约元素（MVCE）"章节。
+`contract_elements` 字段为可选；ae:review 遇到缺失时降级为手动检查。各维度的 contract_elements 取值参考 `references/` 目录下对应维度的模板文件中"契约元素（MVCE）"章节。
 
 **命名规则：** `contract_elements` 使用 snake_case 英文标识，从 MVCE 元素的中文名称按"动词+名词"或"名词组合"规则转换（如"模块边界表"→`module_boundary`、"错误传播链"→`error_propagation`）。命名应保持简洁、可读、可机器匹配。
 
@@ -538,7 +381,7 @@ last_updated: "2026-06-24"
 拆分后，跨维度一致性校验需要读取所有子文件：
 - 读取 Split Manifest 获取子文件列表
 - 逐个读取子文件内容
-- 执行以下校验项（与 SKILL.md 阶段 3 一致，共 9 项）：
+- 执行以下校验项（与 SKILL.md 阶段 5 一致，共 9 项）：
   1. api ↔ database 一致性（字段名、类型、约束对齐）
   2. ui-ux ↔ api 一致性（数据展示与响应字段对齐）
   3. overview 依赖关系完整性（跨维度依赖覆盖实际一致性约束）
