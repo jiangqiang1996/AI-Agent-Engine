@@ -188,10 +188,16 @@ overview 始终内联在 `design.md` 中，包含：
 #### 2.4 维度拆分决策
 
 产出全部维度后，评估 `design.md` 总行数：
-- **≤ 1800 行**：所有维度内联在 `design.md` 中，Split Manifest 状态为 `unified`
-- **> 1800 行**：按章节行数从大到小拆出为独立子文件，overview、实施约束和跨维度映射表始终内联，Split Manifest 状态为 `split`
+- **≤ 300 行**：所有维度内联在 `design.md` 中，Split Manifest 状态为 `unified`
+- **> 300 行**：全部维度拆出为独立子文件，overview、实施约束和跨维度映射表始终内联，Split Manifest 状态为 `split`
 
-拆分规则和子文件命名规范见 `references/design-output-template.md`。
+拆分后，对每个维度子文件再次评估行数：
+- **维度子文件 ≤ 300 行**：保持为独立子文件，不继续拆分
+- **维度子文件 > 300 行**：按 `###` 子章节拆出为二级子文件 `<维度名>-<章节名>.md`；已拆分到章节级的文件不再继续拆分，其行数不参与校验
+
+使用 `<ae-design路径>/scripts/check-design-lines.mjs` 校验所有非章节级文件行数，超出 300 行的文件需重新拆分。
+
+拆分规则、子文件命名规范、Split Manifest 格式和二级拆分细则见 `references/design-output-template.md`。
 
 ### 阶段 3：跨维度一致性校验
 
@@ -204,6 +210,8 @@ overview 始终内联在 `design.md` 中，包含：
 5. **api 错误码 ↔ ui-ux 交互状态机映射一致性** - api 错误码必须在 ui-ux 交互状态机中有对应的状态转换和用户提示（映射表 `api-error-to-ui-state-mapping` 必须存在且非空）
 6. **test-cases 用例 ↔ 维度契约元素覆盖追溯** - 每个 P0/P1 用例必须追溯到至少一个维度的契约元素（映射表 `test-case-to-contract-coverage` 必须存在且非空，每条 P0/P1 用例至少有一条追溯记录）
 7. **overview 跨维度映射表 ↔ 实际维度内容一致性** - overview 的跨维度映射表必须与实际维度产出的内容对齐（4 类映射表必须存在且与维度内容一致）
+8. **跨维度映射表完整性** - 4 类映射表必须存在且非空（维度未产出时标注 N/A 并说明理由）
+9. **实施约束与 architecture/api 一致性** - 目录结构约定与模块边界表对齐、环境变量清单与认证授权流程对齐
 
 发现不一致时，在此阶段修复后再进入 review 闭环。映射表缺失时补全，映射表与维度内容不一致时以维度内容为准更新映射表。
 

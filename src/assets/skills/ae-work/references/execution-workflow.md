@@ -17,7 +17,7 @@
 
 **检测：** 检查 `ae/designs/` 下是否存在与当前任务匹配的 design 目录。匹配规则：计划路径或交接文件中引用了 design 目录，或按计划标题/需求描述名在 `ae/designs/` 下找到对应目录。
 
-**契约读取：** 读取 `design.md` 及其 Split Manifest 引用的各维度子文件。Split Manifest `status: unified` 时从 `design.md` 内联章节读取；`status: split` 时按 Split Manifest 引用的子文件路径读取。
+**契约读取：** 读取 `design.md` 及其 Split Manifest 引用的各维度子文件。Split Manifest `status: unified` 时从 `design.md` 内联章节读取；`status: split` 时按 Split Manifest 引用的子文件路径读取；当维度子文件的 `sub_split: true` 时，进一步读取其 `sub_files` 中的二级子文件获取实际内容。
 
 **对照依据准备：** 将以下维度作为实现对照依据，按 Split Manifest 声明的维度清单确定哪些维度存在：
 - `ui-ux`：布局家族、组件契约、token、状态机

@@ -46,8 +46,8 @@ status: "active"
 ## Split Manifest
 
 - status: unified
-- total_lines: 850
-- threshold: 1800
+- total_lines: 280
+- threshold: 300
 - inline_sections:
   - overview
   - implementation_constraints
@@ -207,8 +207,8 @@ status: "active"
 ## Split Manifest
 
 - status: split
-- total_lines: 2500
-- threshold: 1800
+- total_lines: 340
+- threshold: 300
 - inline_sections:
   - overview
   - implementation_constraints
@@ -217,22 +217,48 @@ status: "active"
 - split_files:
   - file: architecture.md
     section: architecture
-    lines: 380
+    lines: 280
+    sub_split: false
   - file: api.md
     section: api
-    lines: 520
+    lines: 50
+    sub_split: true
+    sub_files:
+      - file: api-endpoints.md
+        section: api-endpoints
+        lines: 180
+      - file: api-auth.md
+        section: api-auth
+        lines: 120
+      - file: api-errors.md
+        section: api-errors
+        lines: 90
+      - file: api-versions.md
+        section: api-versions
+        lines: 60
   - file: database.md
     section: database
-    lines: 350
+    lines: 30
+    sub_split: true
+    sub_files:
+      - file: database-tables.md
+        section: database-tables
+        lines: 200
+      - file: database-migrations.md
+        section: database-migrations
+        lines: 100
   - file: ui-ux.md
     section: ui-ux
-    lines: 420
+    lines: 280
+    sub_split: false
   - file: test-cases.md
     section: test-cases
     lines: 280
+    sub_split: false
   - file: security.md
     section: security
     lines: 150
+    sub_split: false
 
 ---
 
@@ -251,8 +277,14 @@ status: "active"
 |------|------|------|------|
 | overview | design.md（内联） | split | 1.0 |
 | architecture | architecture.md | split | 1.0 |
-| api | api.md | split | 1.0 |
-| database | database.md | split | 1.0 |
+| api | api.md（引用清单） | split | 1.0 |
+| api-endpoints | api-endpoints.md | sub-split | 1.0 |
+| api-auth | api-auth.md | sub-split | 1.0 |
+| api-errors | api-errors.md | sub-split | 1.0 |
+| api-versions | api-versions.md | sub-split | 1.0 |
+| database | database.md（引用清单） | split | 1.0 |
+| database-tables | database-tables.md | sub-split | 1.0 |
+| database-migrations | database-migrations.md | sub-split | 1.0 |
 | ui-ux | ui-ux.md | split | 1.0 |
 | test-cases | test-cases.md | split | 1.0 |
 | security | security.md | split | 1.0 |
@@ -315,55 +347,110 @@ status: "active"
 
 ## 拆分规则
 
-### 触发条件
+### 一级拆分
 
-`design.md` 总行数超过 **1800 行** 时触发拆分。
+#### 触发条件
 
-**阈值调整说明：** 原阈值为 1500 行。新增"实施约束"和"跨维度映射表"两个始终内联的章节后，design.md 基础行数有所增长，因此将阈值从 1500 调整为 1800，避免轻量级设计过早触发拆分。
+`design.md` 总行数超过 **300 行** 时触发一级拆分。`design.md` 自身豁免 300 行校验，但作为导航索引文件，超过 300 行时必须将所有维度章节拆出。
 
-### 拆分步骤
+#### 拆分步骤
 
-1. **统计各维度章节行数** - 从 design.md 中统计每个 `## 维度名` 章节的行数
-2. **按行数从大到小排序** - 优先拆出行数最多的维度
-3. **逐个拆出** - 将维度章节内容移动到独立子文件，design.md 中保留引用说明
-4. **overview、实施约束、跨维度映射表始终内联** - 这三个章节永远不拆出
-5. **Split Manifest 更新** - 更新 design.md 中的 Split Manifest 章节，记录拆分状态
+1. **统计 design.md 总行数** - 包含 frontmatter、Split Manifest、overview、实施约束、跨维度映射表和所有维度章节
+2. **≤ 300 行** - 所有维度内联在 design.md 中，Split Manifest 状态为 `unified`，无需拆分
+3. **> 300 行** - 全部维度章节拆出为独立子文件，Split Manifest 状态为 `split`
+4. **design.md 保留内容** - frontmatter + Split Manifest + overview + 实施约束 + 跨维度映射表 + 引用说明
+5. **Split Manifest 更新** - 记录每个拆出文件的 file、section、lines、sub_split 状态
 
-### 拆分停止条件
+#### 始终内联的章节
 
-- design.md 剩余行数 ≤ 1800 行时停止拆分
-- 或仅剩 overview、实施约束、跨维度映射表和 Split Manifest 时停止
+以下章节永远不拆出，始终内联在 design.md 中：
+- overview（设计总览）
+- implementation_constraints（实施约束）
+- cross_dimension_mapping（跨维度映射表）
+- Split Manifest
+
+#### 拆分停止条件
+
+- design.md 仅剩 overview + 实施约束 + 跨维度映射表 + Split Manifest + 引用说明时停止
+
+### 二级拆分
+
+#### 触发条件
+
+一级拆分后，某个维度子文件（如 `api.md`）行数超过 **300 行** 时触发二级拆分。
+
+#### 拆分步骤
+
+1. **统计维度子文件行数** - 包含 frontmatter 和维度正文
+2. **≤ 300 行** - 保持为独立子文件，不继续拆分
+3. **> 300 行** - 按 `###` 子章节拆出为二级子文件
+4. **维度子文件变为引用清单** - 原 `<维度名>.md` 只保留 frontmatter + 引用说明，正文移至二级子文件
+5. **Split Manifest 更新** - 在 `sub_files` 中记录每个二级子文件
+
+#### 二级子文件命名
+
+- 文件名：`<维度名>-<章节名>.md`（如 `api-endpoints.md`、`api-auth.md`、`api-errors.md`）
+- 维度名和章节名均使用 kebab-case
+- 文件位于 design.md 同级目录
+- 章节名取自 `###` 标题的 kebab-case 形式（如 `### 端点清单` → `endpoints`、`### 认证授权` → `auth`）
+
+#### 拆分停止条件
+
+- 已拆分到 `###` 章节级的文件不再继续拆分，其行数不参与校验
+- 即使某个 `###` 章节内容本身超过 300 行，也不继续拆分
+
+### 校验机制
+
+使用 `<ae-design路径>/scripts/check-design-lines.mjs` 校验产物文件行数：
+
+- **校验范围**：一级拆分文件（`<维度名>.md`），不包括 design.md 和二级子文件（`<维度名>-<章节名>.md`）
+- **校验规则**：一级拆分文件行数 ≤ 300 行
+- **失败处理**：校验脚本退出码 1 时，对超标文件重新拆分
+- **用法**：`node <ae-design路径>/scripts/check-design-lines.mjs <design目录路径> [--threshold N]`
 
 ### 示例
 
 假设 design.md 有 2500 行，各维度行数：
-- overview: 150 行（不拆）
+- overview: 150 行（不拆，始终内联）
 - implementation_constraints: 80 行（不拆，始终内联）
 - cross_dimension_mapping: 60 行（不拆，始终内联）
-- architecture: 380 行 → 拆出
-- api: 520 行 → 拆出
-- database: 350 行 → 拆出
-- ui-ux: 420 行 → 拆出
-- test-cases: 280 行 → 拆出
-- security: 150 行 → 拆出
-- observability: 0 行（未产出）
-- non-functional: 0 行（未产出）
+- architecture: 280 行 → 拆出，≤ 300 不再二级拆分
+- api: 520 行 → 拆出，> 300 触发二级拆分
+  - api-endpoints.md: 180 行
+  - api-auth.md: 120 行
+  - api-errors.md: 90 行
+  - api-versions.md: 60 行
+  - api.md（引用清单）: 50 行
+- database: 350 行 → 拆出，> 300 但已是独立维度文件，按 `###` 二级拆分
+  - database-tables.md: 200 行
+  - database-migrations.md: 100 行
+  - database.md（引用清单）: 30 行
+- ui-ux: 280 行 → 拆出，≤ 300 不再二级拆分
+- test-cases: 280 行 → 拆出，≤ 300 不再二级拆分
+- security: 150 行 → 拆出，≤ 300 不再二级拆分
 
-拆出 architecture + api + database + ui-ux + test-cases + security 后：
-- design.md 剩余：150 (overview) + 80 (实施约束) + 60 (跨维度映射表) + 50 (Split Manifest + 引用说明) = 340 行 ≤ 1800
-- 拆分停止
+拆分后 design.md 剩余：150 (overview) + 80 (实施约束) + 60 (跨维度映射表) + 50 (Split Manifest + 引用说明) = 340 行
+
+校验脚本只检查 architecture.md (280)、database.md (30, 引用清单)、ui-ux.md (280)、test-cases.md (280)、security.md (150)，全部 ≤ 300，校验通过。api-endpoints.md 等二级子文件跳过校验。
 
 ---
 
 ## 子文件命名规则和 frontmatter 规范
 
-### 子文件命名
+### 一级子文件命名
 
 - 文件名：`<维度名>.md`（如 `architecture.md`、`api.md`、`database.md`）
 - 维度名使用 kebab-case（如 `ui-ux.md`、`test-cases.md`、`non-functional.md`）
 - 文件位于 design.md 同级目录
 
-### 子文件 frontmatter
+### 二级子文件命名
+
+- 文件名：`<维度名>-<章节名>.md`（如 `api-endpoints.md`、`api-auth.md`、`database-tables.md`）
+- 章节名取自 `###` 标题的 kebab-case 形式
+- 文件位于 design.md 同级目录（不创建子目录）
+- 二级子文件跳过行数校验
+
+### 一级子文件 frontmatter
 
 每个拆分子文件包含 frontmatter，其中 `contract_elements` 记录该子文件的 MVCE（最小可验证契约元素）清单，供 ae:review 的 auto 修复快速识别该子文件应有的契约元素：
 
@@ -374,11 +461,30 @@ design_version: "1.0"
 section: "architecture"
 parent: "design.md"
 contract_elements: [module_boundary, dependency_direction, layering_rule, data_flow, tech_selection, error_propagation, cross_layer_sync, negative_space]
+sub_split: false
 last_updated: "2026-06-24"
 ---
 
 # 架构设计
 （维度内容）
+```
+
+### 二级子文件 frontmatter
+
+二级拆分子文件使用 `sub_split: true` 标记父文件已二级拆分，自身包含 `section` 字段标识所属章节：
+
+```markdown
+---
+design_name: "user-auth"
+design_version: "1.0"
+section: "api-endpoints"
+parent: "api.md"
+dimension: "api"
+last_updated: "2026-06-24"
+---
+
+# 接口设计 - 端点清单
+（章节内容）
 ```
 
 `contract_elements` 字段为可选；ae:review 遇到缺失时降级为手动检查。各维度的 contract_elements 取值参考 `references/design-dimensions.md` 中对应维度的"契约元素（MVCE）"章节。
@@ -387,7 +493,7 @@ last_updated: "2026-06-24"
 
 ### 子文件引用方式
 
-design.md 中对拆分子文件的引用：
+design.md 中对一级拆分子文件的引用：
 
 ```markdown
 ---
@@ -400,7 +506,31 @@ design.md 中对拆分子文件的引用：
 
 ## 接口设计
 
-> 本维度内容已拆分至 `api.md`。
+> 本维度内容已拆分至 `api.md`，其中部分章节已二级拆分，详见 Split Manifest。
+```
+
+### 二级拆分后维度文件的引用方式
+
+维度子文件二级拆分后，原 `<维度名>.md` 变为引用清单：
+
+```markdown
+---
+design_name: "user-auth"
+design_version: "1.0"
+section: "api"
+parent: "design.md"
+sub_split: true
+last_updated: "2026-06-24"
+---
+
+# 接口设计
+
+> 本维度已按章节二级拆分，内容分布在以下子文件中：
+
+- [端点清单](api-endpoints.md)
+- [认证授权](api-auth.md)
+- [错误码体系](api-errors.md)
+- [版本策略](api-versions.md)
 ```
 
 ### 跨维度一致性校验

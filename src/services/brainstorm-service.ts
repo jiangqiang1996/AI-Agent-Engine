@@ -81,7 +81,7 @@ export interface BrainstormProgress {
   round: number
   model: string | undefined
   perspectiveName: string | undefined
-  status: 'running' | 'success' | 'failed'
+  status: 'running' | 'success' | 'failed' | 'retrying'
 }
 
 export interface PerspectiveOutput {
@@ -187,6 +187,83 @@ function buildSynthesisPrompt(topic: string, outputs: PerspectiveOutput[]): stri
   return `讨论主题：${topic}\n\n${viewMatrix}\n${detailSections}\n\n请根据以上多模型多视角讨论结果，进行汇总分析。`
 }
 
+const ADAPTIVE_POOL_MIN_CONCURRENCY = 2
+const ADAPTIVE_POOL_MAX_RETRIES = 2
+const BACKOFF_BASE_MS = 1000
+const BACKOFF_MAX_MS = 8000
+
+function isRateLimitLikeError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false
+  const msg = error.message.toLowerCase()
+  return /rate[\s_-]*limit|429|too\s*many|quota|capacity|throttl|resource[\s_-]*exhausted|overloaded|usage[\s_-]*limit/.test(msg)
+}
+
+type AdaptivePoolResult<T> =
+  | { status: 'fulfilled'; value: T }
+  | { status: 'rejected'; reason: Error }
+
+function backoffDelay(attempt: number): Promise<void> {
+  const base = Math.min(BACKOFF_MAX_MS, BACKOFF_BASE_MS * 2 ** (attempt - 1))
+  const jitter = Math.floor(Math.random() * 300)
+  return new Promise<void>((r) => setTimeout(r, base + jitter))
+}
+
+/**
+ * 自适应并发池：初始全量并行，遇到速率限制错误时自动减半并发数并重试，
+ * 直到并发数降至 ADAPTIVE_POOL_MIN_CONCURRENCY 或重试次数耗尽。
+ */
+async function adaptiveConcurrentPool<T>(
+  tasks: Array<() => Promise<T>>,
+  initialConcurrency: number = tasks.length,
+  onTaskStart?: (index: number, attempt: number) => void,
+): Promise<Array<AdaptivePoolResult<T>>> {
+  if (tasks.length === 0) return []
+
+  let currentConcurrency = Math.max(ADAPTIVE_POOL_MIN_CONCURRENCY, Math.min(initialConcurrency, tasks.length))
+  const results: Array<AdaptivePoolResult<T>> = new Array(tasks.length)
+  const retryCount = new Uint8Array(tasks.length)
+
+  type QueueItem = { index: number; attempt: number }
+  const queue: QueueItem[] = tasks.map((_, i) => ({ index: i, attempt: 1 }))
+  let active = 0
+  let resolveDone!: () => void
+  const done = new Promise<void>((r) => { resolveDone = r })
+
+  const runTask = async (item: QueueItem) => {
+    try {
+      onTaskStart?.(item.index, item.attempt)
+      const value = await tasks[item.index]()
+      results[item.index] = { status: 'fulfilled', value }
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err))
+      if (isRateLimitLikeError(error) && retryCount[item.index] < ADAPTIVE_POOL_MAX_RETRIES) {
+        retryCount[item.index]++
+        currentConcurrency = Math.max(ADAPTIVE_POOL_MIN_CONCURRENCY, Math.ceil(currentConcurrency / 2))
+        await backoffDelay(item.attempt)
+        queue.push({ index: item.index, attempt: item.attempt + 1 })
+      } else {
+        results[item.index] = { status: 'rejected', reason: error }
+      }
+    }
+    active--
+    spawn()
+    if (active === 0 && queue.length === 0) resolveDone()
+  }
+
+  const spawn = () => {
+    while (active < currentConcurrency && queue.length > 0) {
+      const item = queue.shift()
+      if (item === undefined) break
+      active++
+      runTask(item)
+    }
+  }
+
+  spawn()
+  await done
+  return results
+}
+
 export async function executeBrainstorm(options: BrainstormOptions): Promise<BrainstormResult> {
   const { topic, onProgress } = options
   const selectedPerspectiveIds: string[] = options.perspectives ?? [...DEFAULT_PERSPECTIVE_IDS]
@@ -218,67 +295,81 @@ export async function executeBrainstorm(options: BrainstormOptions): Promise<Bra
         .join('\n')
     }
 
+    const roundTaskMeta: Array<{
+      model: string | undefined
+      modelRef: { providerID: string; modelID: string } | undefined
+      perspective: PerspectiveDef
+      userPrompt: string
+      progressIndex: number
+    }> = []
+
     for (const model of effectiveModels) {
       const modelRef = parseModelReference(model)
       for (const perspective of selectedPerspectives) {
         sessionIndex++
-        onProgress?.({
-          phase: 'perspective',
-          current: sessionIndex,
-          total: totalSessions,
-          round,
-          model,
-          perspectiveName: perspective.name,
-          status: 'running',
-        })
-
         let userPrompt = `讨论主题：${topic}\n\n请从${perspective.role}的角度出发进行讨论。`
         if (previousSummary) {
           userPrompt += `\n\n以下是前一轮各视角讨论的摘要，请在此基础上补充、深化或提出新角度：\n\n${previousSummary}`
         }
+        roundTaskMeta.push({ model, modelRef, perspective, userPrompt, progressIndex: sessionIndex })
+      }
+    }
 
-        try {
-          const content = await runTemporarySession(
-            `brainstorm-r${round}-${perspective.id}`,
-            userPrompt,
-            perspective.systemPrompt,
-            modelRef,
-          )
-          perspectiveOutputs.push({
-            model,
-            perspectiveId: perspective.id,
-            perspectiveName: perspective.name,
-            round,
-            content,
-          })
-          onProgress?.({
-            phase: 'perspective',
-            current: sessionIndex,
-            total: totalSessions,
-            round,
-            model,
-            perspectiveName: perspective.name,
-            status: 'success',
-          })
-        } catch (error) {
-          perspectiveOutputs.push({
-            model,
-            perspectiveId: perspective.id,
-            perspectiveName: perspective.name,
-            round,
-            content: '',
-            error: error instanceof Error ? error.message : String(error),
-          })
-          onProgress?.({
-            phase: 'perspective',
-            current: sessionIndex,
-            total: totalSessions,
-            round,
-            model,
-            perspectiveName: perspective.name,
-            status: 'failed',
-          })
-        }
+    const poolResults = await adaptiveConcurrentPool(
+      roundTaskMeta.map((meta) => () =>
+        runTemporarySession(
+          `brainstorm-r${round}-${meta.perspective.id}`,
+          meta.userPrompt,
+          meta.perspective.systemPrompt,
+          meta.modelRef,
+        ),
+      ),
+      roundTaskMeta.length,
+      (taskIndex, attempt) => {
+        const meta = roundTaskMeta[taskIndex]
+        onProgress?.({
+          phase: 'perspective',
+          current: meta.progressIndex,
+          total: totalSessions,
+          round,
+          model: meta.model,
+          perspectiveName: meta.perspective.name,
+          status: attempt > 1 ? 'retrying' : 'running',
+        })
+      },
+    )
+
+    for (let i = 0; i < poolResults.length; i++) {
+      const result = poolResults[i]
+      const meta = roundTaskMeta[i]
+      const baseOutput = {
+        model: meta.model,
+        perspectiveId: meta.perspective.id,
+        perspectiveName: meta.perspective.name,
+        round,
+      }
+      if (result.status === 'fulfilled') {
+        perspectiveOutputs.push({ ...baseOutput, content: result.value })
+        onProgress?.({
+          phase: 'perspective',
+          current: meta.progressIndex,
+          total: totalSessions,
+          round,
+          model: meta.model,
+          perspectiveName: meta.perspective.name,
+          status: 'success',
+        })
+      } else {
+        perspectiveOutputs.push({ ...baseOutput, content: '', error: result.reason.message })
+        onProgress?.({
+          phase: 'perspective',
+          current: meta.progressIndex,
+          total: totalSessions,
+          round,
+          model: meta.model,
+          perspectiveName: meta.perspective.name,
+          status: 'failed',
+        })
       }
     }
   }
