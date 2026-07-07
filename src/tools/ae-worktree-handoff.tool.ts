@@ -48,19 +48,19 @@ const WorktreeHandoffInputSchema = z.object({
   requirements_path: z
     .string()
     .optional()
-    .describe('可选需求文档相对路径，例如 ae/prds/xxx.md；未迁移或不存在时不传'),
+    .describe('需求文档相对路径，例如 ae/prds/xxx.md。A 端条件必选：当前任务对应的上游需求产物真实存在时必须迁移并传入（即使被 .gitignore 忽略也按物理存在迁移）；不存在时不传'),
   design_path: z
     .string()
     .optional()
-    .describe('可选设计文档相对路径；设计由计划承载、未迁移或不存在时无需传值'),
+    .describe('设计文档相对路径。A 端条件必选：上游设计产物真实存在时必须迁移并传入（即使被 .gitignore 忽略也按物理存在迁移）；设计由计划承载时置 design_borne_by_plan=true 而非传本字段；不存在时不传'),
   graph_path: z
     .string()
     .optional()
-    .describe('可选图谱目录相对路径；仅在 ae/graphs/ 真实存在且已迁移时传入'),
+    .describe('图谱目录相对路径。A 端条件必选：ae/graphs/ 真实存在时必须迁移并传入（即使被 .gitignore 忽略也按物理存在迁移）；不存在时不传'),
   ae_config_path: z
     .string()
     .optional()
-    .describe('可选 AE 项目配置相对路径；仅在 .opencode/ae.jsonc 真实存在时传入'),
+    .describe('AE 项目配置相对路径。A 端条件必选：.opencode/ae.jsonc 真实存在时必须迁移并传入（即使被 .gitignore 忽略也按物理存在迁移）；不存在时不传'),
   design_borne_by_plan: z
     .boolean()
     .describe('设计是否由计划文档承载'),
@@ -81,9 +81,9 @@ export const aeWorktreeHandoffTool: ToolDefinition = tool({
     '- 交接文件采用结构化章节和 resume_entrypoint 作为真源',
     '- 返回简短交接提示，供 A 会话最后回复使用',
     '- A→B Startup Proof 按固定 schema 逐字段输出，不允许遗漏',
-    '- 需求、设计、图谱和 AE 项目配置路径都是可选上下文；只在真实存在且已迁移时传入，工具不会假定它们必然存在',
+    '- 需求、设计、图谱和 AE 项目配置路径在 A 端是条件必选：当上游产物或物理文件真实存在时必须迁移并传入；不存在时不传。B 端缺失时降级为可选上下文，不阻断继续执行（plan_path 除外，缺失时硬阻断）',
     '- plan_path 是必填字段；worktree 交接必须携带计划文件路径',
-    '- 无上游 ae:plan 产物时，A 会话必须在交接前生成上下文派生计划文件：采用 ae:plan 格式（## 概览 + ## 实现单元 + ## 验证要求），内容从当前会话的工作状态、已确定决策和剩余待办推导，不触发 ae:plan 技能本身，写入 ae/plans/ 目录并迁移到 B worktree 后传入本工具',
+    '- 无上游 ae:plan 产物时，A 会话必须在交接前生成上下文派生计划文件：采用 ae:plan 格式（正文结构详见 startup-and-worktree-workflow.md 的上下文派生计划生成章节），内容从当前会话的工作状态、已确定决策和剩余待办推导，不触发 ae:plan 技能本身，写入 ae/plans/ 目录并迁移到 B worktree 后传入本工具',
     '- source_session_id=unavailable 时强制要求 session_evidence',
     '- 自动创建目标目录并写入文件',
     '',

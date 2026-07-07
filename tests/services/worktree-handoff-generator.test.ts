@@ -117,7 +117,7 @@ describe('worktree-handoff-generator', () => {
       expect(result.markdown).not.toContain('- requirements:')
       expect(result.markdown).not.toContain('  - requirements:')
       expect(result.markdown).toContain('- plan:')
-      expect(result.markdown).toContain('计划文档是本次执行的可选实现基线')
+      expect(result.markdown).toContain('计划文档是本次执行的实现基线')
     })
 
     it('plan_path 为空时应报错', () => {

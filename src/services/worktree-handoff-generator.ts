@@ -6,7 +6,7 @@ import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
 
 const BRANCH_PREFIX_PATTERN = /^(feat|fix|refactor|docs|test|chore)\//
 
-/** A→B worktree 交接输入参数，包含来源/目标 worktree 信息、Git 授权证据和执行基线。 */
+/** A→B worktree 交接输入参数，包含来源/目标 worktree 信息、Git 授权证据和执行基线。需求/设计/图谱/AE 配置路径在 A 端条件必选：上游产物或物理文件存在时必须迁移并传入；B 端缺失时降级为可选上下文。 */
 export interface WorktreeHandoffInput {
   source_session_id: string
   session_evidence?: string
@@ -167,7 +167,7 @@ function buildExecutionBaselineSection(input: WorktreeHandoffInput, handoffRelPa
   const lines: string[] = []
   lines.push('## Execution Baseline')
   lines.push('')
-  lines.push(`- 计划文档是本次执行的可选实现基线；进入 B worktree 后不得重新审查、深化或转换本次需求、设计或计划。`)
+  lines.push(`- 计划文档是本次执行的实现基线；进入 B worktree 后不得重新审查、深化或转换本次需求、设计或计划。`)
   lines.push(`- ${input.execution_baseline}`)
   lines.push(`- 验证命令：${input.verification_requirements}`)
   lines.push(`- 续执行入口：在目标 B worktree 中调用 ae:work，并把 ${handoffRelPath} 作为唯一任务输入。`)

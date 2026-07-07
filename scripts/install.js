@@ -110,7 +110,7 @@ async function updateExisting(paths, confirmFn) {
 
   await runCommand('git', ['reset', '--hard', 'HEAD'], { cwd: paths.repoDir })
   await runCommand('git', ['clean', '-fd', '--exclude=node_modules'], { cwd: paths.repoDir })
-  await runCommand('git', ['pull'], { cwd: paths.repoDir })
+  await runCommand('git', ['pull', 'origin', 'master'], { cwd: paths.repoDir })
 
   console.log('\n安装依赖...')
   await runCommand('npm', ['install'], { cwd: paths.repoDir })

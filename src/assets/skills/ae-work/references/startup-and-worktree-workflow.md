@@ -6,9 +6,9 @@
 
 计划文档输入必须完整阅读工作文档，视为决策产物，并检查每个单元的 `Execution note`、`Deferred to Implementation`、`Scope Boundaries`。若用户明确要求 TDD，即使计划无 Execution note 也要遵循。
 
-B worktree 继续执行路径必须解析交接文件并产出 `handoff_context`：目标 B worktree、可选的需求文档路径、可选的计划文档路径、可选的设计文档路径、可选的图谱目录、可选的 AE 项目配置路径、A→B 启动证明和执行基线声明。交接文件是唯一必需文件；需求、计划、设计、图谱目录和 AE 项目配置只在交接文件引用且当前 B worktree 中真实存在时读取。存在性判断必须使用文件系统视角，不得依赖 `git status`、`git ls-files` 或其他会受 `.gitignore` 影响的 Git 视角。继续执行以结构化章节和 `resume_entrypoint` 为真源。
+B worktree 继续执行路径必须解析交接文件并产出 `handoff_context`：目标 B worktree、需求文档路径、计划文档路径、设计文档路径、图谱目录、AE 项目配置路径、A→B 启动证明和执行基线声明。交接文件是唯一必需文件；需求、设计、图谱目录和 AE 项目配置在 A 端条件必选迁移（上游产物或物理文件存在时必须迁移），plan_path 为无条件必选（无上游产物时 A 端须生成上下文派生计划并迁移）；B 端只在交接文件引用且当前 B worktree 中真实存在时读取，缺失时降级为可选上下文不阻断继续执行（plan_path 除外，缺失时硬阻断）。存在性判断必须使用文件系统视角，不得依赖 `git status`、`git ls-files` 或其他会受 `.gitignore` 影响的 Git 视角。继续执行以结构化章节和 `resume_entrypoint` 为真源。
 
-B worktree 继续执行必须校验当前目录和 `git rev-parse --show-toplevel` 输出是否与目标 B worktree 一致；不一致时停止并报告，不得回到 A worktree 写文件。交接文件缺少执行基线声明或启动证明时停止；交接文件未提供需求/计划/设计路径、图谱目录或 AE 项目配置，或引用路径在 B 中不存在时，只记录可选上下文缺失，不得在 B 中补做文档审查或回 A 补迁移。
+B worktree 继续执行必须校验当前目录和 `git rev-parse --show-toplevel` 输出是否与目标 B worktree 一致；不一致时停止并报告，不得回到 A worktree 写文件。交接文件缺少执行基线声明或启动证明时停止；交接文件未提供需求/设计路径、图谱目录或 AE 项目配置，或引用路径在 B 中不存在时，只记录可选上下文缺失，不得在 B 中补做文档审查或回 A 补迁移。交接文件未提供 `plan_path` 或 `plan_path` 在 B 中不存在时停止执行，按 input-routing-workflow 的停止执行规则处理。
 
 ## Git 状态检查
 
@@ -55,8 +55,8 @@ git log --oneline -1
 仅当用户选择创建 worktree 时执行本节。创建 worktree 前必须获得用户对具体 `git worktree add` 命令参数的明确授权。
 
 - 本地目录固定为 `../worktrees/<name>`，`<name>` 使用分支名或任务名净化后的短名。
-- 创建 B 后，A 会话不得再写入 A worktree 的任何文件，也不得在 B 中修改代码、测试或其他项目文件；仅允许按下条迁移可选上下文和写入唯一规范交接文件。
-- A 会话只允许在 B 写入真实存在且已确定为执行基线的需求/计划/设计产物、`ae/graphs/`、`.opencode/ae.jsonc`，以及唯一规范交接文件 `ae/handoffs/<timestamp>-worktree-handoff.md`。迁移前必须用文件系统工具或等价 shell 文件系统命令确认源路径存在并复制；即使这些路径被 `.gitignore` 忽略，也必须按真实文件系统存在性迁移；不得用 `git status`、`git ls-files`、Git diff 或图谱结果判断它们不存在。其中 `.opencode/ae.jsonc` 只能作为已确定的 AE 项目配置上下文迁移并在交接文件中显式记录；未迁移的需求/计划/设计、图谱或 AE 项目配置产物不在交接文件中出现，不得声称已复制。
+- 创建 B 后，A 会话不得再写入 A worktree 的任何文件，也不得在 B 中修改代码、测试或其他项目文件；仅允许迁移真实存在且已确定为执行基线的需求/设计产物、`ae/graphs/`、`.opencode/ae.jsonc`（A 端条件必选迁移义务）以及 plan_path（无条件必选），以及写入唯一规范交接文件。
+- A 会话只允许在 B 写入真实存在且已确定为执行基线的需求/设计产物、`ae/graphs/`、`.opencode/ae.jsonc`、plan_path（含上下文派生计划），以及唯一规范交接文件 `ae/handoffs/<timestamp>-worktree-handoff.md`。A 端迁移义务：需求/设计产物、`ae/graphs/`、`.opencode/ae.jsonc` 在 A worktree 中真实存在时必须迁移到 B（即使路径被 `.gitignore` 忽略），plan_path 无条件必选（无上游 ae:plan 产物时须生成上下文派生计划并迁移）；迁移前必须用文件系统工具或等价 shell 文件系统命令确认源路径存在并复制；不得用 `git status`、`git ls-files`、Git diff 或图谱结果判断它们不存在；其中 `.opencode/ae.jsonc` 只能作为已确定的 AE 项目配置上下文迁移并在交接文件中显式记录；未迁移的需求/设计、图谱或 AE 项目配置产物不在交接文件中出现，不得声称已复制。
 
 ### 上下文派生计划生成（无上游计划时必需）
 
