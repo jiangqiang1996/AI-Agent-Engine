@@ -25,6 +25,8 @@ export const SKILL = {
   LIBREOFFICE: 'ae:libreoffice',
 
   IMAGE: 'ae:image',
+  AUDIO: 'ae:audio',
+  VIDEO: 'ae:video',
   GRAPH_BUILD: 'ae:graph-build',
   GRAPH_QUERY: 'ae:graph-query',
   SAVE_EXPERIENCE: 'ae:save-experience',
@@ -113,6 +115,8 @@ export const TOOL = {
   AE_LIBREOFFICE: 'ae-libreoffice',
 
   AE_IMAGE: 'ae-image',
+  AE_AUDIO: 'ae-audio',
+  AE_VIDEO: 'ae-video',
   AE_GRAPH_BUILD: 'ae-graph-build',
   AE_GRAPH_QUERY: 'ae-graph-query',
   AE_TASK_ANALYZER: 'ae-task-analyzer',
@@ -160,6 +164,8 @@ export const AeSkillNameSchema = z
     SKILL.PPTX_FROM_OUTLINE,
     SKILL.LIBREOFFICE,
     SKILL.IMAGE,
+    SKILL.AUDIO,
+    SKILL.VIDEO,
     SKILL.GRAPH_BUILD,
     SKILL.GRAPH_QUERY,
     SKILL.SAVE_EXPERIENCE,

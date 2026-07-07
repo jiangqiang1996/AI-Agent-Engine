@@ -12,6 +12,8 @@ import { aeSwaggerParserTool } from './ae-swagger-parser.tool.js'
 import { aeHtmlBundleTool } from './ae-html-bundle.tool.js'
 import { aeLibreofficeTool } from './ae-libreoffice.tool.js'
 import { aeImageTool } from './ae-image.tool.js'
+import { aeAudioTool } from './ae-audio.tool.js'
+import { aeVideoTool } from './ae-video.tool.js'
 import { aeGraphBuildTool } from './ae-graph-build.tool.js'
 import { aeGraphQueryTool } from './ae-graph-query.tool.js'
 import { aeTaskAnalyzerTool } from './ae-task-analyzer.tool.js'
@@ -43,6 +45,8 @@ export function createToolRegistry(): Record<string, ToolDefinition> {
     [TOOL.AE_LIBREOFFICE]: aeLibreofficeTool,
 
     [TOOL.AE_IMAGE]: aeImageTool,
+    [TOOL.AE_AUDIO]: aeAudioTool,
+    [TOOL.AE_VIDEO]: aeVideoTool,
     [TOOL.AE_GRAPH_BUILD]: aeGraphBuildTool,
     [TOOL.AE_GRAPH_QUERY]: aeGraphQueryTool,
     [TOOL.AE_TASK_ANALYZER]: aeTaskAnalyzerTool,

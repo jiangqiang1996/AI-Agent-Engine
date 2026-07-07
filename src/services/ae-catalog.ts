@@ -185,9 +185,23 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   {
     skillName: SKILL.IMAGE,
     commandName: COMMAND.IMAGE,
-    description: '当当前模型不支持图像处理且需要读取或理解图片内容时，必须使用本技能将图片转为 Markdown 描述。支持 JPG/PNG/GIF/WebP/BMP 格式，支持 outputMode 和 prompt 参数控制输出方式和识别重点。模型支持 vision 时可直接用 Read 工具读取图片；模型不支持 vision 时禁止尝试直接读取图片文件，必须通过本技能转换。',
+    description: '将本地图片转换为 Markdown 描述。通过 ae.jsonc 中 modelScenarios.vision 配置的模型识别图片内容，未配置时由 opencode 自行分配模型。支持 JPG/PNG/GIF/WebP/BMP 格式，识别提示词由调用方通过 prompt 参数传入。模型支持 vision 时可直接用 Read 工具读取图片；模型不支持 vision 时禁止尝试直接读取图片文件，必须通过本技能转换。',
     argumentHint: 'file=图片路径 [format=jpg|png|gif|webp|bmp] [outputMode=file|inline] [prompt=识别提示词] [outputPath=路径]',
     skillFile: `src/assets/skills/${skillDir(SKILL.IMAGE)}/SKILL.md`,
+  },
+  {
+    skillName: SKILL.AUDIO,
+    commandName: COMMAND.AUDIO,
+    description: '将本地音频转换为 Markdown 描述。通过 ae.jsonc 中 modelScenarios.audio 配置的模型识别音频内容，未配置时由 opencode 自行分配模型。支持 MP3/WAV/OGG/FLAC/M4A/AAC 格式，识别提示词由调用方通过 prompt 参数传入。模型支持音频输入时可直接用 Read 工具读取；模型不支持音频时禁止尝试直接读取音频文件，必须通过本技能转换。',
+    argumentHint: 'file=音频路径 [format=mp3|wav|ogg|flac|m4a|aac] [outputMode=file|inline] [prompt=识别提示词] [outputPath=路径]',
+    skillFile: `src/assets/skills/${skillDir(SKILL.AUDIO)}/SKILL.md`,
+  },
+  {
+    skillName: SKILL.VIDEO,
+    commandName: COMMAND.VIDEO,
+    description: '将本地视频转换为 Markdown 描述。通过 ae.jsonc 中 modelScenarios.video 配置的模型识别视频内容，未配置时由 opencode 自行分配模型。支持 MP4/WebM/AVI/MOV/MKV/FLV 格式，识别提示词由调用方通过 prompt 参数传入。模型支持视频输入时可直接用 Read 工具读取；模型不支持视频时禁止尝试直接读取视频文件，必须通过本技能转换。',
+    argumentHint: 'file=视频路径 [format=mp4|webm|avi|mov|mkv|flv] [outputMode=file|inline] [prompt=识别提示词] [outputPath=路径]',
+    skillFile: `src/assets/skills/${skillDir(SKILL.VIDEO)}/SKILL.md`,
   },
   {
     skillName: SKILL.GRAPH_BUILD,

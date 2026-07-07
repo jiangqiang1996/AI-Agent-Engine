@@ -7,14 +7,14 @@ import { recognizeMediaWithModel } from '../services/vision-service.js'
 import { writeMarkdownOutput } from '../services/markdown-output-writer.js'
 import { formatDocumentToolError } from '../utils/document-tool-errors.js'
 
-export const aeImageTool = tool({
+export const aeAudioTool = tool({
   description: [
-    '将本地图片转换为 Markdown 描述。',
+    '将本地音频转换为 Markdown 描述。',
     '',
     '功能说明：',
-    '- 读取 JPG/PNG/GIF/WebP/BMP 图片',
-    '- 调用 modelScenarios.vision 配置的模型识别图片内容，未配置时由 opencode 自行分配模型',
-    '- 返回结构化 Markdown 描述，支持文字、图表、UI 截图等识别',
+    '- 读取 MP3/WAV/OGG/FLAC/M4A/AAC 音频',
+    '- 调用 modelScenarios.audio 配置的模型识别音频内容，未配置时由 opencode 自行分配模型',
+    '- 返回结构化 Markdown 描述，支持语音转写、背景声音识别、情绪分析等',
     '- 支持 prompt 参数指定识别重点，覆盖默认提示词',
     '- 支持 outputMode 参数：file 写入文件（默认），inline 直接返回内容',
     '',
@@ -23,22 +23,22 @@ export const aeImageTool = tool({
     '- outputMode=inline 时直接返回 Markdown 内容，不写文件',
     '',
     '适用场景：',
-    '- 用户需要将图片内容转为可阅读的 Markdown 文本',
-    '- 需要识别图片中的文字、图表、UI 截图等',
-    '- 需要定向识别图片特定内容（通过 prompt 参数）',
+    '- 用户需要将音频内容转为可阅读的 Markdown 文本',
+    '- 需要识别音频中的语音、对话、环境声音、音乐等',
+    '- 需要定向识别音频特定内容（通过 prompt 参数）',
     '',
     '不适用场景：',
     '- 不支持远程 URL，仅处理当前工作区内本地文件',
-    '- 不支持 SVG（SVG 可用 Read 工具直接读取）',
+    '- 不支持图片、视频等非音频格式',
   ].join('\n'),
   args: {
     file: z
       .string()
-      .describe('图片文件路径（JPG/PNG/GIF/WebP/BMP），位于当前工作区内'),
+      .describe('音频文件路径（MP3/WAV/OGG/FLAC/M4A/AAC），位于当前工作区内'),
     format: z
-      .enum(['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'])
+      .enum(['mp3', 'wav', 'ogg', 'flac', 'm4a', 'aac'])
       .optional()
-      .describe('显式指定图片格式；省略时根据文件扩展名自动推断'),
+      .describe('显式指定音频格式；省略时根据文件扩展名自动推断'),
     outputPath: z
       .string()
       .optional()
@@ -50,33 +50,33 @@ export const aeImageTool = tool({
     prompt: z
       .string()
       .optional()
-      .describe('图片识别提示词；指定时覆盖默认提示，用于定向识别图片特定内容'),
+      .describe('音频识别提示词；指定时覆盖默认提示，用于定向识别音频特定内容'),
   },
   execute: async (args, ctx) => {
-    ctx.metadata({ title: `Image → Markdown`, metadata: { file: args.file } })
+    ctx.metadata({ title: `Audio → Markdown`, metadata: { file: args.file } })
 
     try {
-      const { buffer, filePath } = await loadDocumentFile(args.file, ctx.worktree, '图片')
+      const { buffer, filePath } = await loadDocumentFile(args.file, ctx.worktree, '音频')
       const result = await recognizeMediaWithModel({
         filePath,
         mediaBuffer: buffer,
         prompt: args.prompt,
         format: args.format,
-        kind: 'image',
+        kind: 'audio',
       })
-      const markdown = result.markdown || '（vision 模型未返回有效识别内容）'
-      const output = writeMarkdownOutput(markdown, ctx.worktree, 'image', args.outputPath, args.outputMode)
+      const markdown = result.markdown || '（音频模型未返回有效识别内容）'
+      const output = writeMarkdownOutput(markdown, ctx.worktree, 'audio', args.outputPath, args.outputMode)
 
       return {
         output: output.content,
         metadata: {
-          tool: TOOL.AE_IMAGE,
+          tool: TOOL.AE_AUDIO,
           outputPath: output.outputPath,
           summary: output.summary,
         },
       }
     } catch (error) {
-      return formatDocumentToolError('图片', error)
+      return formatDocumentToolError('音频', error)
     }
   },
 })
