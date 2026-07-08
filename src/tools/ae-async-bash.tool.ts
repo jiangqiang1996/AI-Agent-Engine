@@ -1,9 +1,32 @@
+import { randomBytes } from 'node:crypto'
 import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 
 import { tool } from '@opencode-ai/plugin'
 import { z } from 'zod'
+
+const LOG_BASE_DIR = 'ae/logs'
+
+function formatTimestamp(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return (
+    `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}` +
+    `-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`
+  )
+}
+
+/**
+ * 生成默认日志文件路径：ae/logs/<command>-<timestamp>-<random>.log
+ * 文件名中的非 ASCII 字符替换为连字符，确保跨平台与 shell 安全。
+ */
+function generateDefaultLogPath(worktree: string, command: string): string {
+  const safeName = command.replace(/[^\x20-\x7E]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '') || 'command'
+  const timestamp = formatTimestamp(new Date())
+  const random = randomBytes(3).toString('hex')
+  const fileName = `${safeName}-${timestamp}-${random}.log`
+  return path.join(worktree, LOG_BASE_DIR, fileName)
+}
 
 export const aeAsyncBashTool = tool({
   description: [
@@ -12,8 +35,19 @@ export const aeAsyncBashTool = tool({
     '功能说明：',
     '- 以 detached 子进程启动命令，父进程（工具）立即返回',
     '- 子进程在后台独立运行，不受会话或 opencode 进程生命周期影响',
-    '- 可选将 stdout/stderr 重定向到日志文件，便于后续排查',
-    '- 返回子进程 PID，便于后续管理或终止',
+    '- 始终将 stdout/stderr 以追加形式写入日志文件，并返回日志文件路径',
+    '- 不指定 logPath 时，自动生成到当前项目 ae/logs/ 目录下的日志文件',
+    '- 返回子进程 PID 和日志文件路径，便于后续排查或终止',
+    '- 不返回错误码或退出码：子进程真实执行状态需通过读取日志文件判断',
+    '',
+    '输出与日志读取指引（重要）：',
+    '- 返回值中包含 "日志路径" 字段，指向一个 .log 文件',
+    '- 该日志文件是动态追加写入的：子进程持续运行期间，stdout/stderr 会不断追加到文件末尾',
+    '- 要判断命令是否真正启动成功，需读取该日志文件查看输出内容',
+    '- 读取日志后建议等待若干秒再读一次，对比两次内容以确认子进程仍在产出输出或已稳定',
+    '- 日志中出现错误堆栈、异常信息或进程已退出的提示，即代表执行失败',
+    '- 日志长时间无新增内容且无监听端口/服务就绪标志，也视为启动异常',
+    '- 禁止因调用本工具失败或日志显示失败而降级使用 bash 工具执行阻塞型命令',
     '',
     '适用场景：',
     '- 启动本地开发服务器、静态服务器等需要长期运行的进程',
@@ -26,13 +60,14 @@ export const aeAsyncBashTool = tool({
     '',
     '注意事项：',
     '- 命令通过 shell 执行，支持管道、重定向等 shell 语法',
-    '- 不指定 logPath 时，子进程输出将被丢弃',
+    '- 日志文件始终以追加模式写入，保留历史输出',
     '- 子进程不会随会话结束而终止，需用户手动管理进程生命周期',
+    '- 调用失败时禁止降级使用 bash 工具执行阻塞型命令（如 web 服务）',
   ].join('\n'),
   args: {
     command: z.string().min(1).describe('要在后台执行的 shell 命令'),
     cwd: z.string().optional().describe('工作目录，默认为当前会话目录'),
-    logPath: z.string().optional().describe('日志文件路径（相对或绝对），子进程 stdout 和 stderr 将追加写入此文件；不指定则丢弃输出'),
+    logPath: z.string().optional().describe('日志文件路径（相对或绝对），子进程 stdout 和 stderr 将追加写入此文件；不指定则自动生成到 ae/logs/ 目录'),
   },
   execute: async (args, ctx) => {
     const cwd = args.cwd ? path.resolve(ctx.directory, args.cwd) : ctx.directory
@@ -41,31 +76,27 @@ export const aeAsyncBashTool = tool({
       return `错误: 工作目录 "${cwd}" 不存在`
     }
 
-    let stdio: ['ignore', number, number] | ['ignore', 'ignore', 'ignore'] = ['ignore', 'ignore', 'ignore']
-    let logFd: number | null = null
-    let resolvedLogPath: string | null = null
-
-    if (args.logPath) {
-      resolvedLogPath = path.resolve(cwd, args.logPath)
-      const logDir = path.dirname(resolvedLogPath)
-      if (!fs.existsSync(logDir)) {
-        fs.mkdirSync(logDir, { recursive: true })
-      }
-      logFd = fs.openSync(resolvedLogPath, 'a')
-      stdio = ['ignore', logFd, logFd]
+    const resolvedLogPath = args.logPath ? path.resolve(cwd, args.logPath) : generateDefaultLogPath(cwd, args.command)
+    const logDir = path.dirname(resolvedLogPath)
+    if (!fs.existsSync(logDir)) {
+      fs.mkdirSync(logDir, { recursive: true })
     }
 
+    let logFd: number | null = null
     let child: ReturnType<typeof spawn>
+
     try {
+      logFd = fs.openSync(resolvedLogPath, 'a')
       child = spawn(args.command, {
         cwd,
         detached: true,
         shell: true,
-        stdio,
+        stdio: ['ignore', logFd, logFd],
       })
     } catch (e) {
       if (logFd !== null) fs.closeSync(logFd)
-      return `错误: 启动命令失败 — ${e instanceof Error ? e.message : String(e)}`
+      const reason = e instanceof Error ? e.message : String(e)
+      return `错误: 启动命令失败 — ${reason}。日志路径: ${resolvedLogPath}`
     }
 
     child.unref()
@@ -77,36 +108,29 @@ export const aeAsyncBashTool = tool({
     const pid = child.pid
 
     if (pid === undefined) {
-      return `错误: 子进程启动失败，未能获取 PID`
+      return `错误: 子进程启动失败，未能获取 PID。日志路径: ${resolvedLogPath}`
     }
 
-    await new Promise((r) => setTimeout(r, 500))
-
-    try {
-      if (child.exitCode !== null) {
-        return `错误: 命令启动后立即退出，退出码 ${child.exitCode}。${resolvedLogPath ? `请查看日志: ${resolvedLogPath}` : ''}`
-      }
-    } catch {
-      // child 已 unref，访问 exitCode 可能抛出，忽略
-    }
-
-    ctx.metadata({ title: `异步命令已启动 (PID: ${pid})`, metadata: { pid, command: args.command } })
+    ctx.metadata({ title: `异步命令已启动 (PID: ${pid})`, metadata: { pid, command: args.command, logPath: resolvedLogPath } })
 
     const lines = [
       '异步命令已启动',
       `PID: ${pid}`,
       `命令: ${args.command}`,
       `工作目录: ${cwd}`,
+      `日志路径: ${resolvedLogPath}`,
+      '',
+      '子进程在后台独立运行，不会阻塞当前会话。',
+      '该日志文件是动态追加写入的：子进程持续运行期间，stdout/stderr 会不断追加到文件末尾。',
+      '请读取上述日志文件分析执行情况；建议等待若干秒后再次读取，对比内容以确认子进程状态。',
+      '日志出现错误堆栈/异常/进程退出提示即代表失败；长时间无新增输出也视为启动异常。',
+      '禁止因本工具失败而降级使用 bash 工具执行阻塞型命令。',
     ]
-    if (resolvedLogPath) {
-      lines.push(`日志: ${resolvedLogPath}`)
-    }
-    lines.push('', '命令在后台独立运行，不会阻塞当前会话。')
 
     return {
       title: `异步命令已启动 (PID: ${pid})`,
       output: lines.join('\n'),
-      metadata: { pid, command: args.command, cwd, logPath: resolvedLogPath ?? undefined },
+      metadata: { pid, command: args.command, cwd, logPath: resolvedLogPath },
     }
   },
 })
