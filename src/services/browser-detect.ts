@@ -371,3 +371,79 @@ export function buildDetectionAdvice(results: BrowserDetectionResult[]): string[
 
   return lines
 }
+
+/** 智能注册决策结果 */
+export type SmartResolveResult =
+  | { mode: 'isolated'; browser?: string; headless?: boolean }
+  | { mode: 'connect'; browser: string; port: number }
+  | { output: string; metadata: Record<string, unknown> }
+
+/**
+ * 按技能 4 场景智能决策注册参数
+ *
+ * 场景1: browser + headless → isolated
+ * 场景2: browser + !headless → detect → debuggable?connect : isolated
+ * 场景3: !browser + headless → detect installed → isolated
+ * 场景4: !browser + !headless → detect running → one?connect : multi?ask : none?isolated
+ */
+export async function resolveSmartRegister(
+  browser: string | undefined,
+  headless: boolean | undefined,
+): Promise<SmartResolveResult> {
+  // 场景1：指定 browser + headless
+  if (browser && headless) {
+    return { mode: 'isolated', browser, headless }
+  }
+
+  // 场景2：指定 browser + 非无头
+  if (browser && !headless) {
+    const r = await detectBrowser(browser)
+    if (r.debuggable && r.port) {
+      return { mode: 'connect', browser, port: r.port }
+    }
+    if (r.processRunning) {
+      return {
+        output: `${browser} 正在运行但未启用远程调试。请在浏览器中访问 inspect#remote-debugging 页面启用远程调试后重试，或追加 headless=true 使用无头模式。`,
+        metadata: { connected: false, status: 'not_debuggable', browser },
+      }
+    }
+    return { mode: 'isolated', browser }
+  }
+
+  // 场景3：未指定 browser + headless
+  if (!browser && headless) {
+    const results = await Promise.all([...BROWSER_NAMES].map((b) => detectBrowser(b)))
+    const installed = results.filter((r) => r.installed)
+    if (installed.length === 0) {
+      return {
+        output: '未检测到已安装的 Chromium 内核浏览器。请先安装 Chrome、Edge、Brave 或 Vivaldi。',
+        metadata: { connected: false, status: 'no_browser_installed' },
+      }
+    }
+    return { mode: 'isolated', browser: installed[0].browser, headless }
+  }
+
+  // 场景4：未指定 browser + 非无头
+  const results = await Promise.all([...BROWSER_NAMES].map((b) => detectBrowser(b)))
+  const debuggable = results.filter((r) => r.debuggable)
+  if (debuggable.length === 1) {
+    return { mode: 'connect', browser: debuggable[0].browser, port: debuggable[0].port! }
+  }
+  if (debuggable.length > 1) {
+    const lines = debuggable.map(
+      (r) => `  ${r.browser}（端口 ${r.port}）：action=register mode=connect browser=${r.browser} port=${r.port}`,
+    )
+    return {
+      output: ['检测到多个正在运行且可调试的浏览器，请选择一个接管：', ...lines].join('\n'),
+      metadata: { connected: false, status: 'multiple_debuggable' },
+    }
+  }
+  const installed = results.filter((r) => r.installed)
+  if (installed.length === 0) {
+    return {
+      output: '未检测到运行中的浏览器，也未检测到已安装的 Chromium 内核浏览器。请先安装 Chrome、Edge、Brave 或 Vivaldi。',
+      metadata: { connected: false, status: 'no_browser_installed' },
+    }
+  }
+  return { mode: 'isolated', browser: installed[0].browser }
+}
