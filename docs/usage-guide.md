@@ -248,7 +248,7 @@
 | `ae-domain-dispatch-aggregate` | 将专精代理结果按策略聚合为 DomainExecutionResult | 单一代理执行无需聚合 |
 | `ae-review-proof` | 写入 ae:review 结构化审查证明 | 不替代真实代码或文档审查 |
 | `ae-timer` | 倒计时等待工具，暂停会话指定时长后继续 | 不用于轮询或精确毫秒级定时 |
-| `ae-background-exec` | 在后台启动长期运行的命令并立即返回 | 不等待命令完成，不获取退出码 |
+| `ae-async-bash` | 在后台启动长期运行的命令并立即返回 | 不等待命令完成，不获取退出码 |
 
 ## 前端能力怎么选
 

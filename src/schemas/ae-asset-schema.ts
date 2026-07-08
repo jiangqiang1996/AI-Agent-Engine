@@ -134,7 +134,7 @@ export const TOOL = {
   AE_TIMER: 'ae-timer',
   AE_DOMAIN_DISPATCH_PREPARE: 'ae-domain-dispatch-prepare',
   AE_DOMAIN_DISPATCH_AGGREGATE: 'ae-domain-dispatch-aggregate',
-  AE_BACKGROUND_EXEC: 'ae-background-exec',
+  AE_ASYNC_BASH: 'ae-async-bash',
   AE_DOCX: 'ae-docx',
   AE_PDF: 'ae-pdf',
   AE_PPTX: 'ae-pptx',

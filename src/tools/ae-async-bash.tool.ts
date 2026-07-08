@@ -5,9 +5,9 @@ import path from 'node:path'
 import { tool } from '@opencode-ai/plugin'
 import { z } from 'zod'
 
-export const aeBackgroundExecTool = tool({
+export const aeAsyncBashTool = tool({
   description: [
-    '后台命令执行器：启动指定命令后立即返回，不等待命令完成，不阻塞当前会话。',
+    '异步命令执行器：bash 工具的非阻塞版本，启动指定命令后立即返回，禁止阻塞当前上下文。',
     '',
     '功能说明：',
     '- 以 detached 子进程启动命令，父进程（工具）立即返回',
@@ -90,10 +90,10 @@ export const aeBackgroundExecTool = tool({
       // child 已 unref，访问 exitCode 可能抛出，忽略
     }
 
-    ctx.metadata({ title: `后台命令已启动 (PID: ${pid})`, metadata: { pid, command: args.command } })
+    ctx.metadata({ title: `异步命令已启动 (PID: ${pid})`, metadata: { pid, command: args.command } })
 
     const lines = [
-      '后台命令已启动',
+      '异步命令已启动',
       `PID: ${pid}`,
       `命令: ${args.command}`,
       `工作目录: ${cwd}`,
@@ -104,7 +104,7 @@ export const aeBackgroundExecTool = tool({
     lines.push('', '命令在后台独立运行，不会阻塞当前会话。')
 
     return {
-      title: `后台命令已启动 (PID: ${pid})`,
+      title: `异步命令已启动 (PID: ${pid})`,
       output: lines.join('\n'),
       metadata: { pid, command: args.command, cwd, logPath: resolvedLogPath ?? undefined },
     }
