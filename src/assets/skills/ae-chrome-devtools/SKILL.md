@@ -40,8 +40,8 @@ argument-hint: "[url] [action] [mode] [browser] [port] [headless] [task=任务�
 |------|------|------|
 | `url` | 否 | 目标页面 URL。传入后，MCP 注册完成并验证连接可用时自动打开该页面。 |
 | `task` | 否 | 要在浏览器中执行的任务描述。未提供时根据 url 或用户意图推断。 |
-| `action` | 否 | MCP 操作：`register` / `disconnect`。默认自动推断（未连接则注册）。 |
-| `mode` | 否 | 注册模式（仅 action=register 时有效）：`autoConnect` / `connect` / `isolated`。默认 `autoConnect`。 |
+| `action` | 否 | MCP 操作：`check` / `register` / `disconnect` / `detect`。默认自动推断（未连接则注册）。`detect` 不参与自动推断，需显式指定。 |
+| `mode` | 否 | 注册模式（仅 action=register 时有效）：`connect`（默认）/ `autoConnect` / `isolated`。未显式指定时默认 `connect`，由 ae:chrome-devtools 技能按智能连接决策流程覆盖为最优模式。 |
 | `browser` | 否 | 浏览器类型：`Chrome` / `Edge` / `Brave` / `Vivaldi`。mode=connect 时必填。 |
 | `port` | 否 | 远程调试端口号（1-65535）。mode=connect 时必填。 |
 | `headless` | 否 | 是否无头模式（不显示浏览器窗口）。仅 mode=isolated 时生效。值：`true` / `false`。默认 `false`。 |
@@ -53,13 +53,13 @@ argument-hint: "[url] [action] [mode] [browser] [port] [headless] [task=任务�
    | 值模式 | 推断为 |
    |--------|--------|
    | http:// 或 https:// 开头 | url |
-   | register / disconnect | action |
+   | register / disconnect / detect / check | action |
    | autoConnect / connect / isolated | mode |
    | Chrome / Edge / Brave / Vivaldi | browser |
    | 独立纯数字 1-65535 | port |
    | true / false（且上下文提及无头/headless） | headless |
 
-   ❌ 否定示例：`检查 connect 模块的性能` 中的 connect 不推断为 action
+   否定示例：`检查 connect 模块的性能` 中的 connect 不推断为 action
 
 3. 顺序兜底：值特征有交集时，按 `url → action → mode → browser → port → headless → task` 顺序匹配
 
@@ -70,9 +70,12 @@ argument-hint: "[url] [action] [mode] [browser] [port] [headless] [task=任务�
 1. 解析用户输入中的参数（url、task、action、mode、browser、port、headless），按三级解析策略推断。
 2. 根据 action 参数或自动推断决定 MCP 操作：
    - 若 `action=disconnect`：调用 `ae-chrome-devtools-mcp action=disconnect` 断开连接。
-   - 若 `action=register` 或 MCP 未连接：执行 MCP 注册流程，使用 mode、browser、port、headless 透传参数。
+   - 若 `action=detect`：调用 `ae-chrome-devtools-mcp action=detect` 检测浏览器环境，返回检测结果和建议。
+   - 若 `action=register` 或 MCP 未连接：执行 MCP 注册流程。
    - 若未指定 action 且 MCP 已连接：跳过注册，直接进入后续操作。
-3. MCP 注册流程中，若提供了 mode，使用指定模式；否则默认 `autoConnect`。
+3. MCP 注册流程中：
+   - 若用户显式提供了 `mode`，使用指定模式，透传 browser、port、headless 参数。
+   - 若用户未提供 `mode`，按**智能连接决策流程**（见下方章节）自动选择注册模式。
 4. MCP 注册完成并验证连接可用后，若提供了 url，自动调用 `chrome-devtools_new_page` 打开目标页面。
 5. 若提供了 task 或用户意图中包含浏览器任务，使用 `chrome-devtools_*` 工具执行任务。需要查阅工具用法时参考 `references/browser-tools.md`。
 6. 若用户只询问概念或工具选择，可基于本技能说明回答，但仍要提示实际执行前必须完成 MCP 注册。
@@ -93,14 +96,94 @@ headless 仅在 `mode=isolated` 下生效。当用户未显式提供该参数时
 - 若任务明显在 CI/服务器/自动化测试场景，不询问 headless，直接推断为 true
 - **硬约束覆盖**：任务涉及手动登录、验证码识别、扫码、人机验证等需要人工干预的环节时，headless **必须**为 false，即使任务在 CI/服务器/自动化测试场景或用户提及了无头关键词，也以人工干预需求为准；此规则不询问、不降级
 
+## 智能连接决策流程
+
+当用户未显式指定 `mode` 参数时，根据 `browser` 和 `headless` 两个参数的组合，自动选择最优连接方式。此流程是 `ae:chrome-devtools` 的默认行为，用户显式指定 `mode` 时跳过智能决策，直接使用指定模式。
+
+### 决策矩阵
+
+| 场景 | browser | headless | 决策 |
+|------|---------|----------|------|
+| 1 | 指定 | true | 直接使用 isolated 模式启动该浏览器 + headless |
+| 2 | 指定 | 未指定或 false | 检测该浏览器是否可接管 → 是则接管，否则 isolated 启动 |
+| 3 | 未指定 | true | 检测已安装浏览器 → 仅一个则直接用，多个则自动选优先级最高的，isolated + headless |
+| 4 | 未指定 | 未指定或 false | 检测可接管的浏览器 → 仅一个则接管，多个则让用户选 |
+
+### 场景 1：指定浏览器 + 无头模式
+
+用户指定了 `browser` 且 `headless=true`，直接启动独立浏览器：
+
+1. 调用 `ae-chrome-devtools-mcp action=register mode=isolated browser=<指定> headless=true`
+2. 验证连接 → 打开 URL → 执行任务
+
+### 场景 2：指定浏览器 + 非无头模式
+
+用户指定了 `browser`，`headless` 未指定或为 `false`，优先接管可调试的浏览器：
+
+1. 调用 `ae-chrome-devtools-mcp action=detect browser=<指定>`
+2. 检测结果中该浏览器 `debuggable=true`（运行中且启用远程调试）：
+   - 有 port → 调用 `action=register mode=connect browser=<指定> port=<检测到的端口>`
+   - 接管已有浏览器，复用登录态和会话
+3. 检测结果中该浏览器 `debuggable=false`：
+   - 若 `processRunning=true`（运行中但未启用远程调试）：提示用户在浏览器中访问 inspect#remote-debugging 页面启用远程调试后重试，或使用 isolated 模式启动新实例
+   - 若 `processRunning=false`（未运行）：调用 `action=register mode=isolated browser=<指定>` 启动新的浏览器实例
+4. 验证连接 → 打开 URL → 执行任务
+
+### 场景 3：未指定浏览器 + 无头模式
+
+用户未指定 `browser`，但 `headless=true`，检测已安装的浏览器：
+
+1. 调用 `ae-chrome-devtools-mcp action=detect`
+2. 仅检测到一个已安装浏览器（`installed=true`）：
+   - 直接使用该浏览器：`action=register mode=isolated browser=<检测到的> headless=true`
+3. 检测到多个已安装浏览器：
+   - 自动选择优先级最高的（Chrome > Edge > Brave > Vivaldi，即 detect 返回结果中 installedBrowsers 的第一个）
+   - 调用 `action=register mode=isolated browser=<选中> headless=true`
+4. 未检测到已安装浏览器：
+   - 提示用户安装 Chromium 内核浏览器
+5. 验证连接 → 打开 URL → 执行任务
+
+### 场景 4：未指定浏览器 + 非无头模式
+
+用户未指定 `browser`，`headless` 未指定或为 `false`，优先接管可调试的浏览器：
+
+1. 调用 `ae-chrome-devtools-mcp action=detect`
+2. 仅检测到一个可调试浏览器（`debuggable=true`）：
+   - 有 port → 调用 `action=register mode=connect browser=<检测到的> port=<端口>` 接管
+   - connect 模式需要明确的端口参数，适用于已知端口的场景
+3. 检测到多个可调试浏览器：
+   - 向用户展示检测到的浏览器列表和端口
+   - 让用户选择一个，然后按 `mode=connect` 注册
+4. 未检测到可调试浏览器但有运行中但未启用远程调试的浏览器：
+   - 提示用户在浏览器中访问 inspect#remote-debugging 页面启用远程调试后重试
+   - 或使用 `action=register mode=isolated browser=<运行中的浏览器>` 启动独立实例
+5. 未检测到运行中的浏览器但有已安装浏览器：
+   - 按 installed 列表选择优先级最高的浏览器（Chrome > Edge > Brave > Vivaldi）
+   - 调用 `action=register mode=isolated browser=<选中>`（非无头）
+6. 验证连接 → 打开 URL → 执行任务
+
+### detect action 用法
+
+`detect` action 用于智能决策流程的环境检测阶段，是纯只读操作（不注册 MCP、不连接浏览器）。返回当前系统中：
+
+- 已安装的 Chromium 内核浏览器（通过可执行文件路径检测）
+- 运行中的浏览器进程（通过进程列表检测）
+- 可接管的浏览器（运行中且启用了远程调试，通过 DevToolsActivePort 文件 + 端口可达性验证）
+- 每个浏览器的检测结果和建议的连接方式
+
+调用方式：
+- 检测全部浏览器：`ae-chrome-devtools-mcp action=detect`
+- 检测指定浏览器：`ae-chrome-devtools-mcp action=detect browser=Edge`
+
+检测结果用于决策矩阵中判断使用哪种注册模式。
+
 ## 无参数默认流程
 
 1. 调用 `ae-chrome-devtools-mcp action=check` 检查 MCP 连接状态。
 2. 已连接时，展示当前可用操作和已打开页面。
-3. 未连接时，提示用户选择注册方式：
-   - **autoConnect**（推荐）：自动发现已运行的浏览器
-   - **connect**：指定浏览器+端口连接
-   - **isolated**：启动独立浏览器
+3. 未连接时，按**智能连接决策流程**场景 4 处理：
+   - 调用 `ae-chrome-devtools-mcp action=detect` 检测浏览器环境
+   - 根据检测结果自动选择注册方式（详见智能连接决策流程章节）
 4. 注册完成后，**必须**执行 `chrome-devtools_list_pages` 列出当前页面以验证连接可用；此步骤不可省略，list_pages 失败则说明注册未生效。
 5. 根据用户目标执行后续操作。
 
@@ -112,7 +195,39 @@ headless 仅在 `mode=isolated` 下生效。当用户未显式提供该参数时
 /ae-chrome-devtools https://example.com 检查页面加载性能
 ```
 
-流程：自动检查 MCP → 未连接则默认 autoConnect 注册 → 验证连接 → 打开 `https://example.com` → 执行性能检查任务。
+流程：自动检查 MCP → 未连接则按智能决策流程检测浏览器环境 → 自动选择注册方式 → 验证连接 → 打开 `https://example.com` → 执行性能检查任务。
+
+### 指定浏览器无头模式（场景 1）
+
+```
+/ae-chrome-devtools https://example.com browser=Edge headless=true task=检查页面加载性能
+```
+
+流程：直接使用 isolated 模式启动无头 Edge → 验证连接 → 打开 `https://example.com` → 执行性能检查任务。
+
+### 指定浏览器接管运行中实例（场景 2）
+
+```
+/ae-chrome-devtools https://example.com browser=Edge task=填写登录表单
+```
+
+流程：检测 Edge 是否可接管 → 可接管则 connect 接管 → 不可接管则 isolated 启动 → 验证连接 → 打开 `https://example.com` → 填写登录表单。
+
+### 未指定浏览器无头模式（场景 3）
+
+```
+/ae-chrome-devtools https://example.com headless=true task=检查页面加载性能
+```
+
+流程：检测已安装浏览器 → 自动选择一个 → isolated 无头启动 → 验证连接 → 打开 `https://example.com` → 执行性能检查任务。
+
+### 仅检测浏览器环境
+
+```
+/ae-chrome-devtools action=detect
+```
+
+流程：检测所有已安装和运行中的 Chromium 内核浏览器 → 返回检测结果和建议的连接方式。
 
 ### 指定浏览器和模式注册并执行任务（显式命名）
 
@@ -148,13 +263,15 @@ headless 仅在 `mode=isolated` 下生效。当用户未显式提供该参数时
 /ae-chrome-devtools task=排查当前页面的控制台错误
 ```
 
-流程：检查 MCP → 未连接则注册 → 选择已有页面 → 查看控制台消息排查错误。
+流程：检查 MCP → 未连接则按智能决策流程注册 → 选择已有页面 → 查看控制台消息排查错误。
 
 ## 注册方式
 
 ### autoConnect 自动发现（推荐）
 
 自动发现并连接已运行的浏览器实例，无需手动指定调试端口。支持 Chrome、Edge、Brave、Vivaldi 等 Chromium 系浏览器。
+
+> autoConnect 模式需要 Chrome >= M144；非 Chrome 浏览器需对应版本支持 autoConnect 协议。版本不足时改用 connect 模式。
 
 前置条件（推荐途径 A，也可用途径 B）：
 

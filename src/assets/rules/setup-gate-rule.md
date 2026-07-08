@@ -33,3 +33,5 @@
 ## 机器可校验状态
 
 `ae:chrome-devtools` 技能内部调用 `ae-chrome-devtools-mcp action=check` 获取当前 MCP 注册和连接状态（`name`、`status`：connected/disabled/failed/needs_auth/needs_client_registration）。MCP 未注册、注册失败或连接状态非 `connected` 时，等同于未完成浏览器 MCP 动态注册。
+
+`ae-chrome-devtools-mcp action=detect` 用于检测浏览器环境（已安装、运行中、可接管），是纯只读操作，不注册 MCP 也不连接浏览器，不触发门禁约束。detect 的结果供 `ae:chrome-devtools` 技能智能决策注册模式，但 detect 本身不替代 register 确认步骤。
