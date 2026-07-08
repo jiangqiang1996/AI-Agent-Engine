@@ -138,7 +138,7 @@ remote MCP 的最终 URL 当前允许 `http` / `https`，建议优先使用 `htt
 | `audio` | 音频任务 | 支持音频输入 |
 | `video` | 视频任务 | 支持视频输入 |
 
-允许使用自定义场景键；AE 内置资产当前使用 quick、standard、deep、vision 四个稳定场景，audio 和 video 为预留场景，首版无内置资产使用。
+允许使用自定义场景键；AE 内置资产当前使用 quick、standard、deep、vision 四个稳定场景，audio 和 video 为预留场景，首版无内置资产使用。`/ae-audio`、`/ae-video` 命令本身使用 `standard` 场景执行；命令内部的媒体识别另由 `modelScenarios.audio`/`video` 配置的模型完成，与命令路由场景相互独立。
 
 ## 配置方式
 
@@ -206,7 +206,7 @@ model: $deep
 
 | 资产 | 场景 |
 | --- | --- |
-| `/ae-brainstorm`、`/ae-prd`、`/ae-agent-creator`、`/ae-work-report`、`/ae-my-code-changes`、`/ae-handoff`、`/ae-sql`、`/ae-swagger-parser`、`/ae-api-tester`、`/ae-html-bundle`、`/ae-image`、`/ae-graph-build`、`/ae-save-experience`、`/ae-prompt-optimize`、`/ae-skill-creator`、`/ae-static-server`、`/ae-docx`、`/ae-pdf`、`/ae-pptx`、`/ae-xlsx`、`/ae-install`、`/ae-uninstall` | `standard` |
+| `/ae-brainstorm`、`/ae-prd`、`/ae-agent-creator`、`/ae-work-report`、`/ae-my-code-changes`、`/ae-handoff`、`/ae-sql`、`/ae-swagger-parser`、`/ae-api-tester`、`/ae-html-bundle`、`/ae-image`、`/ae-audio`、`/ae-video`、`/ae-graph-build`、`/ae-save-experience`、`/ae-prompt-optimize`、`/ae-skill-creator`、`/ae-static-server`、`/ae-docx`、`/ae-pdf`、`/ae-pptx`、`/ae-xlsx`、`/ae-install`、`/ae-uninstall` | `standard` |
 | `/ae-design`、`/ae-plan`、`/ae-refactor`、`/ae-work`、`/ae-merge-branch`、`/ae-review`、`/ae-web-forge`、`/ae-slides-outline`、`/ae-pptx-from-outline`、`/ae-task-loop`、`/ae-grill` | `deep` |
 | `/ae-libreoffice`、`/ae-graph-query`、`/ae-help` | `quick` |
 | `/ae-chrome-devtools`、`/ae-course-auto-player` | `vision` |
