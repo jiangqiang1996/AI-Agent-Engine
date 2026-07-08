@@ -218,6 +218,13 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillFile: `src/assets/skills/${skillDir(SKILL.GRAPH_QUERY)}/SKILL.md`,
   },
   {
+    skillName: SKILL.PROJECT_EXPLORE,
+    commandName: COMMAND.PROJECT_EXPLORE,
+    description: '探索和分析任意文件集合的结构与关系——代码项目、文档库、配置仓库、数据目录、复刻前调研。@explore 增强版：增加分类识别、关系映射、模式推断和复刻指南',
+    argumentHint: '[target] [focus=structure|content|relations|patterns|all] [depth=quick|standard|deep] [output=summary|profile|both]',
+    skillFile: `src/assets/skills/${skillDir(SKILL.PROJECT_EXPLORE)}/SKILL.md`,
+  },
+  {
     skillName: SKILL.SAVE_EXPERIENCE,
     commandName: COMMAND.SAVE_EXPERIENCE,
     description: '统一经验沉淀入口：先保存 solution，再按需提炼 rules',
