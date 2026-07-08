@@ -3,7 +3,11 @@ name: ui-ux-designer
 model: $deep
 mode: subagent
 steps: 25
-tools: ['read', 'write', 'glob', 'grep']
+tools:
+  read: true
+  write: true
+  glob: true
+  grep: true
 description: "UI/UX 设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 ui-ux.md 设计契约，含设计读数、信息架构、页面规格、组件契约、设计 Token、交互状态机和无障碍要求。"
 ---
 

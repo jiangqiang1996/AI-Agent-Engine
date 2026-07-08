@@ -3,7 +3,11 @@ name: non-functional-designer
 model: $deep
 mode: subagent
 steps: 25
-tools: ['read', 'write', 'glob', 'grep']
+tools:
+  read: true
+  write: true
+  glob: true
+  grep: true
 description: "非功能设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 non-functional.md 设计契约，含性能目标、并发模型、事务边界、缓存策略和容量规划。"
 ---
 

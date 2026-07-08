@@ -132,22 +132,34 @@ function validateGraphConfig(config: BuiltinOpencodeConfig, layer: ConfigLayer):
   }
 }
 
-/** 按 builtin-opencode 配置优先级加载图谱过滤配置。 */
+/** 按 builtin-opencode 配置优先级加载图谱过滤配置。graph.include/exclude 采用跨层合并去重而非替换。 */
 export function loadGraphConfig(worktree: string, builtinConfigFile = createRuntimeAssetManifest(import.meta.url).builtinConfigFile): GraphConfig {
   const paths = resolveBuiltinOpencodeConfigPaths({ ...createRuntimeAssetManifest(import.meta.url), builtinConfigFile }, worktree)
-  let merged: BuiltinOpencodeConfig = {}
+  const includeAccumulator: string[] = []
+  const excludeAccumulator: string[] = []
   for (const layer of graphConfigLayers(paths)) {
     const config = readGraphConfigLayer(layer.path, layer.label, layer.required)
     if (!config) {
       continue
     }
     validateGraphConfig(config, layer)
-    merged = mergeBuiltinOpencodeConfig(merged, config)
+    const graph = isRecord(config.graph) ? config.graph : {}
+    if (Array.isArray(graph.include)) {
+      for (const item of graph.include) {
+        if (typeof item === 'string') {
+          includeAccumulator.push(item)
+        }
+      }
+    }
+    if (Array.isArray(graph.exclude)) {
+      for (const item of graph.exclude) {
+        if (typeof item === 'string') {
+          excludeAccumulator.push(item)
+        }
+      }
+    }
   }
-  const graph = isRecord(merged.graph) ? merged.graph : {}
-  const include = Array.isArray(graph.include) ? graph.include.filter((item): item is string => typeof item === 'string') : []
-  const exclude = Array.isArray(graph.exclude) ? graph.exclude.filter((item): item is string => typeof item === 'string') : []
-  return { include: [...new Set(include)], exclude: [...new Set(exclude)] }
+  return { include: [...new Set(includeAccumulator)], exclude: [...new Set(excludeAccumulator)] }
 }
 
 function escapeRegex(value: string): string {

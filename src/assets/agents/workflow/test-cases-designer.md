@@ -3,7 +3,11 @@ name: test-cases-designer
 model: $deep
 mode: subagent
 steps: 25
-tools: ['read', 'write', 'glob', 'grep']
+tools:
+  read: true
+  write: true
+  glob: true
+  grep: true
 description: "测试用例设计维度专精代理：根据 prd 需求、其他维度契约和 ae:grill 追问结果产出 test-cases.md 设计契约，含覆盖矩阵、P0-P3 用例、行为契约规格和维度覆盖追溯。"
 ---
 

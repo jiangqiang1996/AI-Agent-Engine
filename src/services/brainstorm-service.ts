@@ -4,7 +4,7 @@ import { getModelByScenario } from './model-scenario-routing-service.js'
 import { getModelScenarioRoutingContext } from './model-scenario-holder.js'
 import { MODEL_SCENARIO } from '../schemas/model-scenario-schema.js'
 
-function parseModelReference(model: string | undefined): { providerID: string; modelID: string } | undefined {
+export function parseModelReference(model: string | undefined): { providerID: string; modelID: string } | undefined {
   if (!model) return undefined
   const slashIndex = model.indexOf('/')
   if (slashIndex <= 0) return undefined
@@ -14,7 +14,7 @@ function parseModelReference(model: string | undefined): { providerID: string; m
   }
 }
 
-function extractTextFromParts(parts: Array<{ type: string; text?: string }>): string {
+export function extractTextFromParts(parts: Array<{ type: string; text?: string }>): string {
   return parts
     .filter((part) => part.type === 'text' && typeof part.text === 'string')
     .map((part) => part.text as string)
@@ -30,7 +30,7 @@ interface PerspectiveDef {
   systemPrompt: string
 }
 
-function buildPerspectivePrompt(role: string, focus: string, sectionLabel: string): string {
+export function buildPerspectivePrompt(role: string, focus: string, sectionLabel: string): string {
   return `你是一个${role}讨论者。你对任何话题都关注${focus}。
 你的任务是从${role}的角度对给定主题进行发散讨论。
 输出必须使用以下结构化格式：
@@ -102,6 +102,7 @@ export interface BrainstormResult {
   perspectiveNames: string[]
   totalSessions: number
   failedCount: number
+  cleanupWarnings: string[]
 }
 
 export interface BrainstormOptions {
@@ -120,6 +121,7 @@ async function runTemporarySession(
   userPrompt: string,
   systemPrompt: string,
   modelRef: { providerID: string; modelID: string } | undefined,
+  onCleanupError?: (error: Error) => void,
 ): Promise<string> {
   const client = getGlobalClient()
   if (!client) {
@@ -155,12 +157,74 @@ async function runTemporarySession(
     return extractTextFromParts(promptRes.data?.parts ?? [])
   } finally {
     if (sessionId) {
-      try { await client.session.delete({ path: { id: sessionId } }) } catch { /* 临时会话清理失败不影响主流程 */ }
+      try {
+        await client.session.delete({ path: { id: sessionId } })
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error(String(err))
+        onCleanupError?.(new Error(`[${title}] 临时会话 ${sessionId} 清理失败 - ${error.message}`))
+      }
     }
   }
 }
 
-function buildSynthesisPrompt(topic: string, outputs: PerspectiveOutput[]): string {
+const CORE_VIEWPOINT_HEADING = /^#{1,6}\s*核心观点\s*$/i
+const SENTENCE_BOUNDARY = /(?<=[。！？!?；;])|(?<=\n)|$/u
+
+export function extractCoreViewpoint(content: string): string {
+  if (!content) return ''
+
+  const lines = content.split('\n')
+  let inSection = false
+  const collected: string[] = []
+
+  for (const rawLine of lines) {
+    const line = rawLine.trimEnd()
+    const trimmed = line.trim()
+
+    if (CORE_VIEWPOINT_HEADING.test(trimmed)) {
+      inSection = true
+      continue
+    }
+
+    if (inSection) {
+      if (/^#{1,6}\s+/.test(trimmed) && trimmed.length > 0) break
+      if (!trimmed) continue
+
+      const bulletMatch = trimmed.match(/^(?:[-*•]|\d+[.)、])\s*(.+)$/)
+      if (bulletMatch) {
+        collected.push(bulletMatch[1].trim())
+        if (collected.length >= 3) break
+        continue
+      }
+
+      const prose = trimmed
+      if (collected.length === 0) {
+        collected.push(prose)
+      } else {
+        collected[0] = `${collected[0]}；${prose}`
+      }
+      if (collected[0].length >= 80) break
+    }
+  }
+
+  if (collected.length > 0) {
+    return collected.slice(0, 3).join('；')
+  }
+
+  const firstContentLine = lines
+    .map((l) => l.trim())
+    .find((trimmed) => trimmed.length > 0 && !/^#{1,6}\s+/.test(trimmed))
+  if (!firstContentLine) return ''
+
+  const text = firstContentLine.replace(/^#{1,6}\s+/, '')
+  const boundary = text.search(SENTENCE_BOUNDARY)
+  if (boundary > 0 && boundary < text.length) {
+    return text.slice(0, boundary).trim()
+  }
+  return text.slice(0, 80).trim()
+}
+
+export function buildSynthesisPrompt(topic: string, outputs: PerspectiveOutput[]): string {
   const models = [...new Set(outputs.map((o) => modelDisplayLabel(o.model)))]
   const uniquePerspectives = [...new Set(outputs.map((o) => o.perspectiveName))]
 
@@ -172,9 +236,8 @@ function buildSynthesisPrompt(topic: string, outputs: PerspectiveOutput[]): stri
       if (matching.length === 0) return '-'
       const content = matching[0].content
       if (!content) return '-'
-      const lines = content.split('\n').filter((l) => l.trim())
-      const coreSection = lines.filter((l) => /^[-*•]/.test(l) || /^\d+\./.test(l))
-      return coreSection.slice(0, 3).join('；') || content.slice(0, 80)
+      const summary = extractCoreViewpoint(content)
+      return summary || '-'
     })
     viewMatrix += `| ${pName} | ${cells.join(' | ')} |\n`
   }
@@ -192,7 +255,7 @@ const ADAPTIVE_POOL_MAX_RETRIES = 2
 const BACKOFF_BASE_MS = 1000
 const BACKOFF_MAX_MS = 8000
 
-function isRateLimitLikeError(error: unknown): boolean {
+export function isRateLimitLikeError(error: unknown): boolean {
   if (!(error instanceof Error)) return false
   const msg = error.message.toLowerCase()
   return /rate[\s_-]*limit|429|too\s*many|quota|capacity|throttl|resource[\s_-]*exhausted|overloaded|usage[\s_-]*limit/.test(msg)
@@ -281,6 +344,10 @@ export async function executeBrainstorm(options: BrainstormOptions): Promise<Bra
   const totalPerspectiveSessions = selectedPerspectives.length * effectiveModels.length * rounds
   const totalSessions = totalPerspectiveSessions + 1 // +1 synthesis
   const perspectiveOutputs: PerspectiveOutput[] = []
+  const cleanupWarnings: string[] = []
+  const collectCleanupWarning = (error: Error): void => {
+    cleanupWarnings.push(error.message)
+  }
   let sessionIndex = 0
 
   for (let round = 1; round <= rounds; round++) {
@@ -322,6 +389,7 @@ export async function executeBrainstorm(options: BrainstormOptions): Promise<Bra
           meta.userPrompt,
           meta.perspective.systemPrompt,
           meta.modelRef,
+          collectCleanupWarning,
         ),
       ),
       roundTaskMeta.length,
@@ -404,6 +472,7 @@ export async function executeBrainstorm(options: BrainstormOptions): Promise<Bra
       synthesisPrompt,
       SYNTHESIS_SYSTEM_PROMPT,
       synthesisModelRef,
+      collectCleanupWarning,
     )
   } catch (error) {
     onProgress?.({
@@ -438,5 +507,6 @@ export async function executeBrainstorm(options: BrainstormOptions): Promise<Bra
     perspectiveNames: selectedPerspectives.map((p) => p.name),
     totalSessions,
     failedCount,
+    cleanupWarnings,
   }
 }

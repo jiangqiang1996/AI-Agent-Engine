@@ -186,7 +186,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillName: SKILL.IMAGE,
     commandName: COMMAND.IMAGE,
     description: '将本地图片转换为 Markdown 描述。通过 ae.jsonc 中 modelScenarios.vision 配置的模型识别图片内容，未配置时由 opencode 自行分配模型。支持 JPG/PNG/GIF/WebP/BMP 格式，识别提示词由调用方通过 prompt 参数传入。模型支持 vision 时可直接用 Read 工具读取图片；模型不支持 vision 时禁止尝试直接读取图片文件，必须通过本技能转换。',
-    argumentHint: 'file=图片路径 [format=jpg|png|gif|webp|bmp] [outputMode=file|inline] [prompt=识别提示词] [outputPath=路径]',
+    argumentHint: 'file=图片路径 [format=jpg|jpeg|png|gif|webp|bmp] [outputMode=file|inline] [prompt=识别提示词] [outputPath=路径]',
     skillFile: `src/assets/skills/${skillDir(SKILL.IMAGE)}/SKILL.md`,
   },
   {

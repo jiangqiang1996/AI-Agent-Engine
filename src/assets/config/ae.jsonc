@@ -16,7 +16,9 @@
   },
   "graph": {
     "exclude": [
-      "ae/graphs"
+      "ae/graphs",
+      "**/dist",
+      "**/node_modules"
     ]
   }
 }

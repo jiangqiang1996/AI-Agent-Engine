@@ -3,7 +3,11 @@ name: api-designer
 model: $deep
 mode: subagent
 steps: 25
-tools: ['read', 'write', 'glob', 'grep']
+tools:
+  read: true
+  write: true
+  glob: true
+  grep: true
 description: "接口设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 api.md 设计契约，含端点清单、TypeScript interface、认证授权、错误码体系、版本策略和幂等性声明。"
 ---
 

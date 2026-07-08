@@ -3,7 +3,11 @@ name: architecture-designer
 model: $deep
 mode: subagent
 steps: 25
-tools: ['read', 'write', 'glob', 'grep']
+tools:
+  read: true
+  write: true
+  glob: true
+  grep: true
 description: "架构设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 architecture.md 设计契约，含模块边界、依赖方向、分层规则、数据流、错误传播链和跨层状态同步机制。"
 ---
 

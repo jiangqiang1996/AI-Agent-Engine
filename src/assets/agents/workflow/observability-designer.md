@@ -3,7 +3,11 @@ name: observability-designer
 model: $deep
 mode: subagent
 steps: 25
-tools: ['read', 'write', 'glob', 'grep']
+tools:
+  read: true
+  write: true
+  glob: true
+  grep: true
 description: "可观测性设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 observability.md 设计契约，含日志规范、指标体系、告警规则、健康检查和 SLO/SLI 定义。"
 ---
 

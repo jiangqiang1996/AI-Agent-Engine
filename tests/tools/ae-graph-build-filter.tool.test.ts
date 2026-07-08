@@ -36,7 +36,7 @@ describe('ae-graph-build 过滤与排除规则', () => {
   it('未授权时不应该保存明显需要排除的目录到项目级 ae.jsonc', async () => {
     const root = createTempRoot()
     write(root, 'src/a.ts', '')
-    write(root, 'node_modules/pkg/index.js', 'export const ignored = true')
+    write(root, 'vendor/pkg/index.js', 'export const ignored = true')
 
     const result = await aeGraphBuildTool.execute({ mode: 'full' }, createMockContext(root))
     const parsed = JSON.parse(result as string) as {
@@ -47,7 +47,7 @@ describe('ae-graph-build 过滤与排除规则', () => {
     }
 
     expect(parsed.savedExcludes).toEqual([])
-    expect(parsed.excludeRules).not.toContain('**/node_modules')
+    expect(parsed.excludeRules).not.toContain('**/vendor')
     expect(existsSync(join(root, '.opencode', 'ae.jsonc'))).toBe(false)
     expect(parsed.activeNodes).toBeGreaterThan(0)
     expect(parsed.filterCandidateSummary.rawFileCount).toBe(2)
@@ -58,7 +58,7 @@ describe('ae-graph-build 过滤与排除规则', () => {
     const root = createTempRoot()
     write(root, 'src/a.ts', '')
     write(root, 'src/logo.svg', '<svg />')
-    write(root, 'dist/bundle.js', '')
+    write(root, 'build/bundle.js', '')
 
     const result = await aeGraphBuildTool.execute({ mode: 'full' }, createMockContext(root))
     const parsed = JSON.parse(result as string) as {
@@ -69,7 +69,7 @@ describe('ae-graph-build 过滤与排除规则', () => {
     }
 
     expect(parsed.filterCandidateSummary.extensionCandidates).toContainEqual(expect.objectContaining({ value: '.svg', count: 1, suggestedRule: '**/*.svg' }))
-    expect(parsed.filterCandidateSummary.pathSegmentCandidates).toContainEqual(expect.objectContaining({ value: 'dist', count: 1, suggestedRule: '**/dist' }))
+    expect(parsed.filterCandidateSummary.pathSegmentCandidates).toContainEqual(expect.objectContaining({ value: 'build', count: 1, suggestedRule: '**/build' }))
   })
 
   it('应该只基于本次 target 范围提示过滤候选', async () => {
@@ -101,34 +101,34 @@ describe('ae-graph-build 过滤与排除规则', () => {
   it('未持久化排除规则时当前构建不应该排除候选目录', async () => {
     const root = createTempRoot()
     write(root, 'src/a.ts', '')
-    write(root, 'node_modules/pkg/index.js', 'export const ignored = true')
+    write(root, 'vendor/pkg/index.js', 'export const ignored = true')
 
     await aeGraphBuildTool.execute({ mode: 'full' }, createMockContext(root))
     const queryResult = await aeGraphQueryTool.execute({ mode: 'filter' }, createMockContext(root))
     const query = JSON.parse(queryResult as string) as { result: { files: Array<{ relativePath: string }> } }
 
-    expect(query.result.files.some((file) => file.relativePath === 'node_modules/pkg/index.js')).toBe(true)
+    expect(query.result.files.some((file) => file.relativePath === 'vendor/pkg/index.js')).toBe(true)
   })
 
   it('应该在用户明确选择后保存未覆盖的明显排除规则', async () => {
     const root = createTempRoot()
     write(root, 'src/a.ts', '')
-    write(root, 'node_modules/pkg/index.js', 'export const ignored = true')
+    write(root, 'vendor/pkg/index.js', 'export const ignored = true')
 
     const result = await aeGraphBuildTool.execute({
       mode: 'full',
-      filterDecisions: { exclude: ['**/node_modules'] },
+      filterDecisions: { exclude: ['**/vendor'] },
     }, createAllowExcludeContext(root))
     const parsed = JSON.parse(result as string) as { savedExcludes: string[]; excludeRules: string[]; activeNodes: number }
     const queryResult = await aeGraphQueryTool.execute({ mode: 'filter' }, createMockContext(root))
     const query = JSON.parse(queryResult as string) as { result: { files: Array<{ relativePath: string }> } }
     const config = readFileSync(join(root, '.opencode', 'ae.jsonc'), 'utf8')
 
-    expect(parsed.savedExcludes).toContain('**/node_modules')
-    expect(parsed.excludeRules).toContain('**/node_modules')
-    expect(config).toContain('**/node_modules')
+    expect(parsed.savedExcludes).toContain('**/vendor')
+    expect(parsed.excludeRules).toContain('**/vendor')
+    expect(config).toContain('**/vendor')
     expect(parsed.activeNodes).toBeGreaterThan(0)
-    expect(query.result.files.some((file) => file.relativePath === 'node_modules/pkg/index.js')).toBe(false)
+    expect(query.result.files.some((file) => file.relativePath === 'vendor/pkg/index.js')).toBe(false)
     expect(query.result.files.some((file) => file.relativePath === 'src/a.ts')).toBe(true)
   })
 

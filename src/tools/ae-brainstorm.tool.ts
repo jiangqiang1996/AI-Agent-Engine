@@ -100,6 +100,12 @@ export const aeBrainstormTool = tool({
       if (result.failedCount > 0) {
         output += `\n> ⚠ ${result.failedCount} 个视角讨论失败，结果可能不完整\n`
       }
+      if (result.cleanupWarnings.length > 0) {
+        output += `\n> ⚠ ${result.cleanupWarnings.length} 个临时会话清理失败，可能残留资源：\n`
+        for (const warning of result.cleanupWarnings) {
+          output += `> - ${warning}\n`
+        }
+      }
       output += `\n---\n\n${result.synthesis}\n`
 
       return {
@@ -111,6 +117,7 @@ export const aeBrainstormTool = tool({
           perspectiveCount: result.perspectiveNames.length,
           failedCount: result.failedCount,
           totalSessions: result.totalSessions,
+          cleanupWarningCount: result.cleanupWarnings.length,
         },
       }
     } catch (error) {

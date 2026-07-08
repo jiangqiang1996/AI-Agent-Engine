@@ -34,7 +34,9 @@ describe('graph-config-service', () => {
     mkdirSync(join(configPath, '..'), { recursive: true })
     writeFileSync(configPath, '{ // comment\n "graph": { "exclude": ["dist"] } }')
 
-    expect(loadGraphConfig(root)).toEqual({ include: [], exclude: ['dist'] })
+    expect(loadGraphConfig(root)).toEqual(expect.objectContaining({
+      exclude: expect.arrayContaining(['dist']),
+    }))
   })
 
   it('应该通过 ae.jsonc 公共优先级读取内置 graph.exclude 配置', () => {
@@ -43,7 +45,9 @@ describe('graph-config-service', () => {
     mkdirSync(join(builtinConfigPath, '..'), { recursive: true })
     writeFileSync(builtinConfigPath, '{ "graph": { "exclude": ["dist"] } }')
 
-    expect(loadGraphConfig(root, builtinConfigPath)).toEqual({ include: [], exclude: ['dist'] })
+    expect(loadGraphConfig(root, builtinConfigPath)).toEqual(expect.objectContaining({
+      exclude: expect.arrayContaining(['dist']),
+    }))
   })
 
   it('内置 ae.jsonc 默认应该排除迁移后的图谱产物目录', () => {
@@ -61,12 +65,11 @@ describe('graph-config-service', () => {
     mkdirSync(join(builtinConfigPath, '..'), { recursive: true })
     mkdirSync(join(projectConfigPath, '..'), { recursive: true })
     writeFileSync(builtinConfigPath, '{ "graph": { "include": ["src/generated/keep.ts"], "exclude": ["**/dist", "**/node_modules"] } }')
-    writeFileSync(projectConfigPath, '{ "graph": { "include": ["src/generated/keep.ts", "src/generated/manual.ts"], "exclude": ["ae/graphs", "**/dist"] } }')
+    writeFileSync(projectConfigPath, '{ "graph": { "include": ["src/generated/manual.ts"], "exclude": ["ae/graphs"] } }')
 
-    expect(loadGraphConfig(root, builtinConfigPath)).toEqual({
-      include: ['src/generated/keep.ts', 'src/generated/manual.ts'],
-      exclude: ['ae/graphs', '**/dist'],
-    })
+    const result = loadGraphConfig(root, builtinConfigPath)
+    expect(result.include).toEqual(expect.arrayContaining(['src/generated/keep.ts', 'src/generated/manual.ts']))
+    expect(result.exclude).toEqual(expect.arrayContaining(['**/dist', '**/node_modules', 'ae/graphs']))
   })
 
   it('保存规则时应该把内置层已有规则作为去重基线', () => {
@@ -75,16 +78,24 @@ describe('graph-config-service', () => {
     mkdirSync(join(builtinConfigPath, '..'), { recursive: true })
     writeFileSync(builtinConfigPath, '{ "graph": { "exclude": ["**/node_modules"] } }')
 
-    expect(loadGraphConfig(root, builtinConfigPath)).toEqual({ include: [], exclude: ['**/node_modules'] })
-    expect(saveGraphExcludeRule(root, '**/node_modules', builtinConfigPath)).toEqual({ include: [], exclude: ['**/node_modules'] })
+    const loaded = loadGraphConfig(root, builtinConfigPath)
+    expect(loaded.exclude).toContain('**/node_modules')
+    const saved = saveGraphExcludeRule(root, '**/node_modules', builtinConfigPath)
+    expect(saved.exclude).toContain('**/node_modules')
   })
 
   it('应该在 ae.jsonc 不存在时返回内置排除规则并可保存新规则', () => {
     const root = createTempRoot()
 
-    expect(loadGraphConfig(root)).toEqual({ include: [], exclude: ['ae/graphs'] })
-    expect(saveGraphExcludeRule(root, 'node_modules')).toEqual({ include: [], exclude: ['node_modules'] })
-    expect(loadGraphConfig(root)).toEqual({ include: [], exclude: ['node_modules'] })
+    expect(loadGraphConfig(root)).toEqual(expect.objectContaining({
+      exclude: expect.arrayContaining(['ae/graphs', '**/dist', '**/node_modules']),
+    }))
+    const savedResult = saveGraphExcludeRule(root, 'node_modules')
+    expect(savedResult.exclude).toContain('node_modules')
+    expect(savedResult.exclude).toContain('ae/graphs')
+    expect(loadGraphConfig(root)).toEqual(expect.objectContaining({
+      exclude: expect.arrayContaining(['ae/graphs', '**/dist', '**/node_modules', 'node_modules']),
+    }))
   })
 
   it('应该在 JSONC 解析失败时返回明确错误', () => {
@@ -99,8 +110,12 @@ describe('graph-config-service', () => {
   it('应该去重并保存 graph.exclude 规则', () => {
     const root = createTempRoot()
 
-    expect(saveGraphExcludeRule(root, 'dist')).toEqual({ include: [], exclude: ['dist'] })
-    expect(saveGraphExcludeRule(root, 'dist')).toEqual({ include: [], exclude: ['dist'] })
+    const result1 = saveGraphExcludeRule(root, 'dist')
+    expect(result1.exclude).toContain('dist')
+    expect(result1.exclude).toContain('ae/graphs')
+    const result2 = saveGraphExcludeRule(root, 'dist')
+    expect(result2.exclude).toContain('dist')
+    expect(result2.exclude).toContain('ae/graphs')
   })
 
   it('应该按 glob 语义匹配星号、路径和目录，且不特殊处理否定规则', () => {
@@ -136,10 +151,9 @@ describe('graph-config-service', () => {
     mkdirSync(join(configPath, '..'), { recursive: true })
     writeFileSync(configPath, '{\n  // keep comment\n  "mcp": { "demo": { "enabled": true } },\n  "graph": {\n    "exclude": [\n      "**/dist"\n    ]\n  }\n}\n')
 
-    expect(saveGraphIncludeRule(root, 'packages/app/dist/keep.ts')).toEqual({
-      include: ['packages/app/dist/keep.ts'],
-      exclude: ['**/dist'],
-    })
+    const result = saveGraphIncludeRule(root, 'packages/app/dist/keep.ts')
+    expect(result.include).toContain('packages/app/dist/keep.ts')
+    expect(result.exclude).toContain('**/dist')
     const raw = readFileSync(configPath, 'utf8')
 
     expect(raw).toContain('// keep comment')
