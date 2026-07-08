@@ -108,7 +108,7 @@ type AgentConfig = z.infer<typeof AgentConfigSchema>
 ## 代码格式
 
 - 缩进: 2 个空格
-- 行宽: 120 字符
+- 行宽: 220 字符
 - 分号: 不使用分号
 - 引号: 单引号
 - 尾随逗号: 多行时使用
