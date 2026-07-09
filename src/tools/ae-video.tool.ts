@@ -2,7 +2,7 @@ import { tool } from '@opencode-ai/plugin'
 import { z } from 'zod'
 
 import { TOOL } from '../schemas/ae-asset-schema.js'
-import { loadDocumentFile } from '../services/document-file-loader.js'
+import { readMediaContent } from '../services/media-content-service.js'
 import { recognizeMediaWithModel } from '../services/vision-service.js'
 import { writeMarkdownOutput } from '../services/markdown-output-writer.js'
 import { formatDocumentToolError } from '../utils/document-tool-errors.js'
@@ -13,6 +13,7 @@ export const aeVideoTool = tool({
     '',
     '功能说明：',
     '- 读取 MP4/WebM/AVI/MOV/MKV/FLV 视频',
+    '- 通过 magic bytes 检测视频 MIME 类型，扩展名作为 fallback',
     '- 调用 modelScenarios.video 配置的模型识别视频内容，未配置时由 opencode 自行分配模型',
     '- 返回结构化 Markdown 描述，支持场景时间线、对话转写、字幕识别、动作事件等',
     '- 支持 prompt 参数指定识别重点，覆盖默认提示词',
@@ -56,12 +57,10 @@ export const aeVideoTool = tool({
     ctx.metadata({ title: `Video → Markdown`, metadata: { file: args.file } })
 
     try {
-      const { buffer, filePath } = await loadDocumentFile(args.file, ctx.worktree, '视频')
+      const media = await readMediaContent(args.file, ctx.worktree, 'video', args.format)
       const result = await recognizeMediaWithModel({
-        filePath,
-        mediaBuffer: buffer,
+        media,
         prompt: args.prompt,
-        format: args.format,
         kind: 'video',
       })
       const markdown = result.markdown || '（视频模型未返回有效识别内容）'

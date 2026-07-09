@@ -3,6 +3,9 @@ import { getModelScenarioRoutingContext } from './model-scenario-holder.js'
 import { getModelByScenario } from './model-scenario-routing-service.js'
 import { MODEL_SCENARIO, type ModelScenario } from '../schemas/model-scenario-schema.js'
 
+import type { MediaContent, MediaKind } from './media-content-service.js'
+import { buildDataUrl } from './media-content-service.js'
+
 class VisionError extends Error {
   constructor(public code: string, message: string) {
     super(message)
@@ -31,83 +34,6 @@ function parseModelReference(model: string | undefined): { providerID: string; m
 }
 
 /**
- * 从 Buffer 生成 data URL。
- */
-function buildDataUrl(buffer: Buffer, mime: string): string {
-  return `data:${mime};base64,${buffer.toString('base64')}`
-}
-
-/**
- * 从图片文件路径推断 MIME 类型。
- */
-function inferImageMime(filePath: string, format?: string): string {
-  if (format) {
-    const fmt = format.toLowerCase()
-    if (fmt === 'png') return 'image/png'
-    if (fmt === 'jpg' || fmt === 'jpeg') return 'image/jpeg'
-    if (fmt === 'gif') return 'image/gif'
-    if (fmt === 'webp') return 'image/webp'
-    if (fmt === 'bmp') return 'image/bmp'
-  }
-  const lower = filePath.toLowerCase()
-  if (lower.endsWith('.png')) return 'image/png'
-  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg'
-  if (lower.endsWith('.gif')) return 'image/gif'
-  if (lower.endsWith('.webp')) return 'image/webp'
-  if (lower.endsWith('.bmp')) return 'image/bmp'
-  return 'image/jpeg'
-}
-
-/**
- * 从音频文件路径推断 MIME 类型。
- */
-function inferAudioMime(filePath: string, format?: string): string {
-  if (format) {
-    const fmt = format.toLowerCase()
-    if (fmt === 'mp3') return 'audio/mpeg'
-    if (fmt === 'wav') return 'audio/wav'
-    if (fmt === 'ogg') return 'audio/ogg'
-    if (fmt === 'flac') return 'audio/flac'
-    if (fmt === 'm4a') return 'audio/mp4'
-    if (fmt === 'aac') return 'audio/aac'
-  }
-  const lower = filePath.toLowerCase()
-  if (lower.endsWith('.mp3')) return 'audio/mpeg'
-  if (lower.endsWith('.wav')) return 'audio/wav'
-  if (lower.endsWith('.ogg')) return 'audio/ogg'
-  if (lower.endsWith('.flac')) return 'audio/flac'
-  if (lower.endsWith('.m4a')) return 'audio/mp4'
-  if (lower.endsWith('.aac')) return 'audio/aac'
-  return 'audio/mpeg'
-}
-
-/**
- * 从视频文件路径推断 MIME 类型。
- *
- * 兼容性提示：MP4/WebM 为多数多模态模型原生支持；
- * MKV/FLV/AVI 等容器格式可能被部分模型拒绝，调用方应在错误信息中提示用户转码。
- */
-function inferVideoMime(filePath: string, format?: string): string {
-  if (format) {
-    const fmt = format.toLowerCase()
-    if (fmt === 'mp4') return 'video/mp4'
-    if (fmt === 'webm') return 'video/webm'
-    if (fmt === 'avi') return 'video/x-msvideo'
-    if (fmt === 'mov') return 'video/quicktime'
-    if (fmt === 'mkv') return 'video/x-matroska'
-    if (fmt === 'flv') return 'video/x-flv'
-  }
-  const lower = filePath.toLowerCase()
-  if (lower.endsWith('.mp4')) return 'video/mp4'
-  if (lower.endsWith('.webm')) return 'video/webm'
-  if (lower.endsWith('.avi')) return 'video/x-msvideo'
-  if (lower.endsWith('.mov')) return 'video/quicktime'
-  if (lower.endsWith('.mkv')) return 'video/x-matroska'
-  if (lower.endsWith('.flv')) return 'video/x-flv'
-  return 'video/mp4'
-}
-
-/**
  * 从 session.prompt 返回的 parts 中提取纯文本。
  */
 function extractTextFromParts(parts: Array<{ type: string; text?: string }>): string {
@@ -118,13 +44,14 @@ function extractTextFromParts(parts: Array<{ type: string; text?: string }>): st
     .trim()
 }
 
-export type MediaKind = 'image' | 'audio' | 'video'
+export type { MediaKind } from './media-content-service.js'
 
 export interface MediaRecognitionOptions {
-  filePath: string
-  mediaBuffer: Buffer
+  /** 通过 readMediaContent 读取的媒体内容 */
+  media: MediaContent
+  /** 识别提示词；指定时覆盖默认提示 */
   prompt?: string
-  format?: string
+  /** 媒体类型 */
   kind: MediaKind
 }
 
@@ -145,12 +72,6 @@ function getScenarioForKind(kind: MediaKind): ModelScenario {
   return MODEL_SCENARIO.VISION
 }
 
-function inferMimeForKind(kind: MediaKind, filePath: string, format?: string): string {
-  if (kind === 'audio') return inferAudioMime(filePath, format)
-  if (kind === 'video') return inferVideoMime(filePath, format)
-  return inferImageMime(filePath, format)
-}
-
 /**
  * 调用配置的多模态模型识别图片/音频/视频内容，返回 Markdown 描述。
  *
@@ -159,6 +80,8 @@ function inferMimeForKind(kind: MediaKind, filePath: string, format?: string): s
  * - 视频优先使用 modelScenarios.video 配置的模型；
  * - 未配置时使用 opencode 当前默认模型；
  * - 通过创建临时会话、禁用所有工具、指定 system prompt 实现纯识别调用。
+ *
+ * @param options.media 通过 readMediaContent 读取的 MediaContent
  */
 export async function recognizeMediaWithModel(
   options: MediaRecognitionOptions,
@@ -172,7 +95,7 @@ export async function recognizeMediaWithModel(
     )
   }
 
-  if (!options.mediaBuffer?.length) {
+  if (!options.media.content) {
     const label = options.kind === 'image' ? '图片' : options.kind === 'audio' ? '音频' : '视频'
     throw new VisionError(
       `${options.kind}_recognition_unavailable`,
@@ -185,8 +108,8 @@ export async function recognizeMediaWithModel(
   const modelSpec = getModelByScenario(routingContext, scenario)
   const modelRef = parseModelReference(modelSpec)
 
-  const mime = inferMimeForKind(options.kind, options.filePath, options.format)
-  const dataUrl = buildDataUrl(options.mediaBuffer, mime)
+  const { mime } = options.media
+  const dataUrl = buildDataUrl(options.media)
 
   let sessionId: string | undefined
   try {

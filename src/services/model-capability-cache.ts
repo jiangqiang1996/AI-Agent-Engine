@@ -1,4 +1,4 @@
-import type { OpencodeClient } from '@opencode-ai/sdk'
+import type { Message, Part } from '@opencode-ai/sdk'
 
 import { getGlobalClient } from './client-holder.js'
 
@@ -14,6 +14,17 @@ export interface ModelMediaCapability {
 }
 
 type MediaModality = keyof ModelMediaCapability
+
+/**
+ * 能力查询结果。
+ * - known=true 时 caps 是从 provider.list() 获取的真实能力。
+ * - known=false 时能力未知（缓存未加载/加载失败/模型不在列表中），
+ *   caps 返回全 true（不降级），由调用方决定是否设置 needsMediaHint。
+ */
+export interface CapabilityStatus {
+  known: boolean
+  caps: ModelMediaCapability
+}
 
 /**
  * 从 MIME 类型推断媒体 modality。
@@ -47,6 +58,23 @@ const CACHE_TTL_MS = 5 * 60 * 1000
 
 const SESSION_MAP_MAX = 1000
 const _sessionModelMap = new Map<string, string>()
+
+/**
+ * needsMediaHint 标志：当模型能力未知时设置，
+ * 由 system.transform hook 读取并注入系统提示，
+ * 引导 LLM 在遇到媒体读取错误时调用 ae-image/ae-audio/ae-video 工具。
+ */
+let _needsMediaHint = false
+
+export function setNeedsMediaHint(value: boolean): void {
+  _needsMediaHint = value
+}
+
+export function getAndClearNeedsMediaHint(): boolean {
+  const value = _needsMediaHint
+  _needsMediaHint = false
+  return value
+}
 
 /**
  * 从 client.provider.list() 加载所有模型的能力数据。
@@ -123,17 +151,20 @@ async function getCapabilityCache(): Promise<Map<string, ModelMediaCapability>> 
 }
 
 /**
- * 获取模型的完整媒体能力。
- * 未知模型返回全 true（保守策略，不阻断）。
+ * 查询指定模型的能力状态。
+ * - 缓存命中 → { known: true, caps: 真实能力 }
+ * - 缓存未命中 → { known: false, caps: FULL_CAPABILITY }（不降级，但调用方应设置 needsMediaHint）
  */
-export async function getCapabilities(modelKey: string): Promise<ModelMediaCapability> {
+export async function getCapabilityStatus(modelKey: string): Promise<CapabilityStatus> {
   const cache = await getCapabilityCache()
-  return cache.get(modelKey) ?? FULL_CAPABILITY
+  const caps = cache.get(modelKey)
+  if (caps) return { known: true, caps }
+  return { known: false, caps: FULL_CAPABILITY }
 }
 
 /**
  * 缓存 sessionID → modelKey 映射。
- * 由 chat.message hook 填充，供 command.execute.before 和 messages.transform 查询。
+ * 由 chat.message hook 填充，供 command.execute.before 查询。
  * 使用 LRU 淘汰策略防止内存泄漏。
  */
 export function cacheSessionModel(sessionID: string, providerID: string, modelID: string): void {
@@ -145,14 +176,36 @@ export function cacheSessionModel(sessionID: string, providerID: string, modelID
 }
 
 /**
- * 从 sessionID 获取模型能力。
- * 先查 sessionID→modelKey 映射，再查能力缓存。
- * 缓存未命中时返回全 true（保守策略）。
+ * 从 sessionID 获取模型能力（用于 command.execute.before）。
+ * 返回 CapabilityStatus，调用方按 known 字段决定后续行为。
  */
-export async function getCapabilitiesBySession(sessionID: string): Promise<ModelMediaCapability> {
+export async function getCapabilityStatusBySession(sessionID: string): Promise<CapabilityStatus> {
   const modelKey = _sessionModelMap.get(sessionID)
-  if (!modelKey) return FULL_CAPABILITY
-  return getCapabilities(modelKey)
+  if (!modelKey) return { known: false, caps: FULL_CAPABILITY }
+  return getCapabilityStatus(modelKey)
+}
+
+/**
+ * 消息历史项类型（与 experimental.chat.messages.transform hook 的 output 一致）。
+ */
+interface MessageHistoryItem {
+  info: Message
+  parts: Part[]
+}
+
+/**
+ * 从消息历史中提取当前模型 key。
+ * 取最后一条 user 消息的 model 字段（与 opencode prompt loop 中 getModel 逻辑一致）。
+ * 不同代理使用不同模型时，每次都从最新 user 消息获取，保证准确性。
+ */
+export function extractModelKeyFromMessages(messages: MessageHistoryItem[]): string | undefined {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const info = messages[i]?.info
+    if (info?.role === 'user' && info.model) {
+      return makeModelKey(info.model.providerID, info.model.modelID)
+    }
+  }
+  return undefined
 }
 
 /**
@@ -163,4 +216,5 @@ export function resetCapabilityCacheForTesting(): void {
   _cacheLoading = null
   _cacheTimestamp = 0
   _sessionModelMap.clear()
+  _needsMediaHint = false
 }

@@ -25,10 +25,11 @@ import {registerSkillsPath} from './services/skills-path-service.js'
 import {createToolRegistry} from './tools/index.js'
 import {setGlobalClient} from './services/client-holder.js'
 import {dedupeCommandFileArgumentParts} from './services/command-file-argument-dedupe-service.js'
-import {convertUnsupportedFilePartsToPath} from './services/command-file-argument-path-service.js'
-import {getCapabilitiesBySession} from './services/model-capability-cache.js'
+import {degradeMediaFileParts, hasUnresolvedMedia} from './services/media-degradation-service.js'
+import {getCapabilityStatusBySession, setNeedsMediaHint} from './services/model-capability-cache.js'
 import {chatMessageHook} from './hooks/media-fallback-chat-message.hook.js'
 import {messagesTransformHook} from './hooks/media-fallback-messages-transform.hook.js'
+import {injectMediaHintIfNeeded} from './hooks/media-fallback-system-transform.hook.js'
 
 interface RuntimeConfigShape {
     command?: Record<string, {
@@ -134,11 +135,15 @@ const plugin: Plugin = async (input) => {
         },
         'experimental.chat.system.transform': async (_input, output) => {
             await injectBuiltinRulesIntoSystem(manifest, output)
+            injectMediaHintIfNeeded(output.system)
         },
         'command.execute.before': async (input, output) => {
             try {
-                const caps = await getCapabilitiesBySession(input.sessionID)
-                convertUnsupportedFilePartsToPath(output.parts, caps)
+                const status = await getCapabilityStatusBySession(input.sessionID)
+                degradeMediaFileParts(output.parts, status)
+                if (hasUnresolvedMedia(output.parts, status)) {
+                    setNeedsMediaHint(true)
+                }
                 dedupeCommandFileArgumentParts(output.parts)
             } catch {
                 // 降级失败时不阻断命令执行

@@ -27,6 +27,7 @@ argument-hint: "file=图片路径 [format=jpg|jpeg|png|gif|webp|bmp] [outputMode
 
 - **模型不支持 vision 时禁止使用 Read 工具读取图片**：Read 工具读取 PNG/JPG 等图片文件时，如果当前模型不支持图像输入，会报错 "Cannot read image (this model does not support image input)"。此时必须通过本技能转换，不得尝试直接 Read 图片文件。
 - 所有 to-image 操作（ae:pptx、ae:docx、ae:pdf、ae:xlsx 的 to-image）生成的 PNG 图片，在模型不支持 vision 时，必须通过本技能识别，不得直接 Read。
+- **自动调用，不询问用户**：当检测到模型不支持图片输入、或 Read 读取图片报错时，必须立即自动调用本技能，不得向用户提问是否调用、不得列出可选方案让用户选择、不得停下来等待用户确认。直接调用，拿到结果后继续完成任务。
 
 ## 模型配置
 
@@ -58,6 +59,7 @@ argument-hint: "file=图片路径 [format=jpg|jpeg|png|gif|webp|bmp] [outputMode
 - outputMode=file 时转换结果自动写入 `ae/markdown/` 子目录，文件名规则：`image-to-markdown-<时间戳>-<随机串>.md`
 - prompt 参数指定时，覆盖默认识别提示词，用于定向识别（如"识别图片中的表格数据"、"提取 UI 界面中的按钮和文字"）
 - 不需要用户确认即可执行（只读操作，不修改原图）
+- **file 参数必须是真实、完整、物理存在的路径**：禁止仅传文件名。路径来源不确定时，先用 `glob` 或 `bash` 的 `Test-Path`/`ls` 确认文件物理存在再调用。被 `.gitignore` 忽略的文件只要物理存在就应正常处理，不得以 Git 状态判断存在性
 
 ## prompt 参数使用指南
 
