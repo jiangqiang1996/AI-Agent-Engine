@@ -62,7 +62,7 @@ MCP 已在配置中声明、用户声称已配置、或本地进程检查成功�
 2. 无头模式（更快） - 在后台运行
 ```
 
-用户选择选项 1 时，使用 `ae:chrome-devtools action=register mode=isolated` 注册有头浏览器；选项 2 时使用无头模式。
+用户选择选项 1 时，使用 `ae:chrome-devtools action=register` 注册有头浏览器（技能自动 detect 并启动）；选项 2 时使用 `ae:chrome-devtools action=register headless=true` 无头模式。
 
 ### 3. 确定测试范围
 

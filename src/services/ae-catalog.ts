@@ -92,7 +92,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillName: SKILL.CHROME_DEVTOOLS,
     commandName: COMMAND.CHROME_DEVTOOLS,
     description: 'chrome-devtools-mcp 浏览器能力中枢：启动或接管浏览器，打开 URL，执行指定任务。ae:chrome-devtools 是 ae-chrome-devtools-mcp 工具的唯一管理入口，上层技能和代理不应直接调用 ae-chrome-devtools-mcp。',
-    argumentHint: '[url] [action] [mode] [browser] [port] [headless] [task=任务描述]',
+    argumentHint: '[url] [action] [browser] [port] [headless] [task=任务描述]',
     skillFile: `src/assets/skills/${skillDir(SKILL.CHROME_DEVTOOLS)}/SKILL.md`,
   },
   {
@@ -102,7 +102,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     argumentHint: '[描述|Figma URL|截图路径|页面路由] [--design|--match|--logic|--inspect]',
     skillFile: `src/assets/skills/${skillDir(SKILL.WEB_FORGE)}/SKILL.md`,
     customTemplate: [
-      `先使用 \`${SKILL.CHROME_DEVTOOLS} action=register mode=autoConnect\` 技能完成浏览器 MCP 动态注册；`,
+      `先使用 \`${SKILL.CHROME_DEVTOOLS} action=register\` 技能完成浏览器 MCP 动态注册；`,
       '未完成 MCP 注册前不得执行任何浏览器控制命令。',
       `MCP 就绪后，再使用 \`${SKILL.WEB_FORGE}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`,
     ].join(''),

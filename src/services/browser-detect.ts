@@ -7,7 +7,10 @@ import * as path from 'node:path'
 
 const execAsync = promisify(exec)
 
-export const BROWSER_NAMES = ['Chrome', 'Edge', 'Brave', 'Vivaldi'] as const
+// chrome-devtools-mcp 官方正式支持 Chrome 和 Chrome for Testing；
+// Edge、Chromium 等其他 Chromium 内核浏览器可能可用但不保证
+// 本服务检测 Chrome、Edge、Chromium 三种常见浏览器，用于辅助决策连接方式
+export const BROWSER_NAMES = ['Chrome', 'Edge', 'Chromium'] as const
 
 /** DevToolsActivePort 文件解析结果 */
 interface DevToolsActivePort {
@@ -19,11 +22,16 @@ interface DevToolsActivePort {
 export interface BrowserDetectionResult {
   browser: string
   installed: boolean
+  /** 浏览器可执行文件路径（供 --executablePath 使用） */
+  executablePath: string | null
   /** 进程是否正在运行 */
   processRunning: boolean
   /** 运行中且启用了远程调试（DevToolsActivePort 文件存在且端口可达） */
   debuggable: boolean
+  /** 远程调试端口（供 --browserUrl 使用） */
   port?: number
+  /** 完整 WebSocket 端点（供 --wsEndpoint 使用） */
+  wsEndpoint?: string
 }
 
 export function getBrowserUserDataDirs(browser: string): string[] {
@@ -35,17 +43,14 @@ export function getBrowserUserDataDirs(browser: string): string[] {
     win32: {
       Chrome: [path.join(process.env.LOCALAPPDATA ?? '', 'Google', 'Chrome', 'User Data')],
       Edge: [path.join(process.env.LOCALAPPDATA ?? '', 'Microsoft', 'Edge', 'User Data')],
-      Brave: [path.join(process.env.LOCALAPPDATA ?? '', 'BraveSoftware', 'Brave-Browser', 'User Data')],
-      Vivaldi: [path.join(process.env.LOCALAPPDATA ?? '', 'Vivaldi', 'User Data')],
+      Chromium: [path.join(process.env.LOCALAPPDATA ?? '', 'Chromium', 'User Data')],
     },
     darwin: {
       Chrome: [path.join(home, 'Library', 'Application Support', 'Google', 'Chrome')],
       Edge: [path.join(home, 'Library', 'Application Support', 'Microsoft Edge')],
-      Brave: [path.join(home, 'Library', 'Application Support', 'BraveSoftware', 'Brave-Browser')],
-      Vivaldi: [path.join(home, 'Library', 'Application Support', 'Vivaldi')],
+      Chromium: [path.join(home, 'Library', 'Application Support', 'Chromium')],
     },
     linux: {
-      // 标准安装 + Snap + Flatpak 三类路径
       Chrome: [
         path.join(xdgConfig, 'google-chrome'),
         path.join(home, 'snap', 'chromium', 'common', 'chromium'),
@@ -55,14 +60,10 @@ export function getBrowserUserDataDirs(browser: string): string[] {
         path.join(xdgConfig, 'microsoft-edge'),
         path.join(home, '.var', 'app', 'com.microsoft.Edge', 'config', 'microsoft-edge'),
       ],
-      Brave: [
-        path.join(xdgConfig, 'BraveSoftware', 'Brave-Browser'),
-        path.join(home, 'snap', 'brave', 'common', 'BraveSoftware', 'Brave-Browser'),
-        path.join(home, '.var', 'app', 'com.brave.Browser', 'config', 'BraveSoftware', 'Brave-Browser'),
-      ],
-      Vivaldi: [
-        path.join(xdgConfig, 'vivaldi'),
-        path.join(home, '.var', 'app', 'com.vivaldi.Vivaldi', 'config', 'vivaldi'),
+      Chromium: [
+        path.join(xdgConfig, 'chromium'),
+        path.join(home, 'snap', 'chromium', 'common', 'chromium'),
+        path.join(home, '.var', 'app', 'org.chromium.Chromium', 'config', 'chromium'),
       ],
     },
   }
@@ -83,7 +84,6 @@ async function readDevToolsActivePort(userDataDir: string): Promise<DevToolsActi
   const filePath = path.join(userDataDir, 'DevToolsActivePort')
   try {
     const content = await fs.readFile(filePath, 'utf-8')
-    // 对齐官方实现：按行分割后 trim 每行、过滤空行
     const lines = content
       .split(/\r?\n/)
       .map((line) => line.trim())
@@ -91,7 +91,6 @@ async function readDevToolsActivePort(userDataDir: string): Promise<DevToolsActi
     if (lines.length >= 2) {
       const port = parseInt(lines[0], 10)
       const wsPath = lines[1]
-      // 端口范围校验 + wsPath 格式校验
       if (!isNaN(port) && port >= 1 && port <= 65535 && isValidWsPath(wsPath)) {
         return { port, wsPath }
       }
@@ -129,30 +128,23 @@ function getBrowserExecutablePaths(browser: string): string[] {
         path.join(pf86, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
         path.join(pf, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
       ],
-      Brave: [
-        path.join(pf, 'BraveSoftware', 'Brave-Browser', 'Application', 'brave.exe'),
-        path.join(localAppData, 'BraveSoftware', 'Brave-Browser', 'Application', 'brave.exe'),
-      ],
-      Vivaldi: [
-        path.join(localAppData, 'Vivaldi', 'Application', 'vivaldi.exe'),
-        path.join(pf, 'Vivaldi', 'Application', 'vivaldi.exe'),
+      Chromium: [
+        path.join(pf, 'Chromium', 'Application', 'chrome.exe'),
+        path.join(pf86, 'Chromium', 'Application', 'chrome.exe'),
+        path.join(localAppData, 'Chromium', 'Application', 'chrome.exe'),
       ],
     },
     darwin: {
       Chrome: ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'],
       Edge: ['/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge'],
-      Brave: ['/Applications/Brave Browser.app/Contents/MacOS/Brave Browser'],
-      Vivaldi: ['/Applications/Vivaldi.app/Contents/MacOS/Vivaldi'],
+      Chromium: ['/Applications/Chromium.app/Contents/MacOS/Chromium'],
     },
     linux: {
       Chrome: [
         '/usr/bin/google-chrome-stable',
         '/usr/bin/google-chrome',
-        '/usr/bin/chromium',
-        '/usr/bin/chromium-browser',
         '/usr/local/bin/google-chrome',
         '/snap/bin/google-chrome',
-        '/snap/bin/chromium',
         '/var/lib/flatpak/exports/bin/com.google.Chrome',
         path.join(home, '.local', 'share', 'flatpak', 'exports', 'bin', 'com.google.Chrome'),
       ],
@@ -163,21 +155,13 @@ function getBrowserExecutablePaths(browser: string): string[] {
         '/var/lib/flatpak/exports/bin/com.microsoft.Edge',
         path.join(home, '.local', 'share', 'flatpak', 'exports', 'bin', 'com.microsoft.Edge'),
       ],
-      Brave: [
-        '/usr/bin/brave-browser-stable',
-        '/usr/bin/brave-browser',
-        '/usr/local/bin/brave-browser',
-        '/snap/bin/brave',
-        '/var/lib/flatpak/exports/bin/com.brave.Browser',
-        path.join(home, '.local', 'share', 'flatpak', 'exports', 'bin', 'com.brave.Browser'),
-      ],
-      Vivaldi: [
-        '/usr/bin/vivaldi-stable',
-        '/usr/bin/vivaldi',
-        '/usr/local/bin/vivaldi',
-        '/opt/vivaldi/vivaldi',
-        '/var/lib/flatpak/exports/bin/com.vivaldi.Vivaldi',
-        path.join(home, '.local', 'share', 'flatpak', 'exports', 'bin', 'com.vivaldi.Vivaldi'),
+      Chromium: [
+        '/usr/bin/chromium',
+        '/usr/bin/chromium-browser',
+        '/usr/local/bin/chromium',
+        '/snap/bin/chromium',
+        '/var/lib/flatpak/exports/bin/org.chromium.Chromium',
+        path.join(home, '.local', 'share', 'flatpak', 'exports', 'bin', 'org.chromium.Chromium'),
       ],
     },
   }
@@ -203,27 +187,26 @@ const PROC_NAMES: Record<string, Record<string, string>> = {
   win32: {
     Chrome: 'chrome.exe',
     Edge: 'msedge.exe',
-    Brave: 'brave.exe',
-    Vivaldi: 'vivaldi.exe',
+    Chromium: 'chrome.exe',
   },
   darwin: {
     Chrome: 'Google Chrome',
     Edge: 'Microsoft Edge',
-    Brave: 'Brave Browser',
-    Vivaldi: 'Vivaldi',
+    Chromium: 'Chromium',
   },
   linux: {
     Chrome: 'chrome',
     Edge: 'microsoft-edge',
-    Brave: 'brave',
-    Vivaldi: 'vivaldi',
+    Chromium: 'chromium',
   },
 }
 
 async function isProcessRunning(browser: string): Promise<boolean> {
   const platform = process.platform
   const procName = PROC_NAMES[platform]?.[browser]
-  if (!procName) return false
+  if (!procName) {
+    return false
+  }
 
   try {
     if (platform === 'win32') {
@@ -234,15 +217,15 @@ async function isProcessRunning(browser: string): Promise<boolean> {
       return stdout.toLowerCase().includes(procName.toLowerCase())
     }
 
-    // darwin + linux：优先 pgrep -x 精确匹配进程名（避免匹配 chrome-devtools-mcp 自身进程）
     try {
       const { stdout } = await execAsync(`pgrep -x "${procName}"`, { timeout: 5000 })
-      if (stdout.trim().length > 0) return true
+      if (stdout.trim().length > 0) {
+        return true
+      }
     } catch {
       // pgrep 不可用或无匹配，降级到 ps
     }
 
-    // 降级方案：ps -eo comm= 只输出进程名列，避免全命令行匹配误报
     const { stdout: psOut } = await execAsync(
       `ps -eo comm= | grep -x "${procName}"`,
       { timeout: 5000 },
@@ -278,24 +261,26 @@ async function isPortReachable(port: number): Promise<boolean> {
 }
 
 export async function detectBrowser(browser: string): Promise<BrowserDetectionResult> {
-  const installed = !!(await findBrowserExecutable(browser))
+  const executablePath = await findBrowserExecutable(browser)
+  const installed = !!executablePath
   const udDirs = getBrowserUserDataDirs(browser)
   const activePort = await readDevToolsActivePortFromDirs(udDirs)
 
   let debuggable = false
   let port: number | undefined
+  let wsEndpoint: string | undefined
   if (activePort) {
-    // .catch 兜底防止同步异常导致 Promise reject
     const reachable = await isPortReachable(activePort.port).catch(() => false)
     if (reachable) {
       debuggable = true
       port = activePort.port
+      wsEndpoint = `ws://127.0.0.1:${activePort.port}${activePort.wsPath}`
     }
   }
 
   const processRunning = debuggable || (await isProcessRunning(browser))
 
-  return { browser, installed, processRunning, debuggable, port }
+  return { browser, installed, executablePath, processRunning, debuggable, port, wsEndpoint }
 }
 
 export function summarizeDetection(results: BrowserDetectionResult[]): string {
@@ -303,17 +288,19 @@ export function summarizeDetection(results: BrowserDetectionResult[]): string {
     const parts = [r.browser, `installed=${r.installed}`]
     if (r.debuggable && r.port) {
       parts.push(`debuggable=true port=${r.port}`)
+      if (r.wsEndpoint) parts.push(`wsEndpoint=${r.wsEndpoint}`)
     } else if (r.processRunning) {
       parts.push('processRunning=true debuggable=false')
     } else {
       parts.push('processRunning=false')
     }
+    if (r.executablePath) parts.push(`executablePath=${r.executablePath}`)
     return parts.join(' ')
   })
   return lines.join('\n')
 }
 
-/** 构建检测建议文本（从 execute 中提取，便于独立测试） */
+/** 构建检测建议文本 */
 export function buildDetectionAdvice(results: BrowserDetectionResult[]): string[] {
   const installed = results.filter((r) => r.installed)
   const debuggable = results.filter((r) => r.debuggable)
@@ -326,124 +313,50 @@ export function buildDetectionAdvice(results: BrowserDetectionResult[]): string[
   if (debuggable.length === 1) {
     const rb = debuggable[0]
     lines.push(`建议：检测到 ${rb.browser} 正在运行并启用远程调试（端口 ${rb.port}）。`)
-    lines.push(`  接管方式：action=register mode=connect browser=${rb.browser} port=${rb.port}`)
-    if (rb.browser !== 'Chrome') {
-      lines.push(`  或 autoConnect：action=register mode=autoConnect browser=${rb.browser}`)
-    } else {
-      lines.push('  或 autoConnect：action=register mode=autoConnect')
+    if (rb.wsEndpoint) {
+      lines.push(`  接管参数：["--wsEndpoint", "${rb.wsEndpoint}"]`)
     }
+    lines.push(`  或使用：["--browserUrl", "http://127.0.0.1:${rb.port}"]`)
   } else if (debuggable.length > 1) {
     lines.push('建议：检测到多个浏览器正在运行并启用远程调试，请选择一个接管：')
     for (const rb of debuggable) {
-      lines.push(`  ${rb.browser}（端口 ${rb.port}）：action=register mode=connect browser=${rb.browser} port=${rb.port}`)
+      lines.push(`  ${rb.browser}（端口 ${rb.port}）：["--wsEndpoint", "${rb.wsEndpoint}"]`)
     }
   } else if (runningNotDebuggable.length > 0) {
     const names = runningNotDebuggable.map((r) => r.browser).join('、')
     lines.push(`建议：检测到 ${names} 正在运行但未启用远程调试。`)
     lines.push('  请在浏览器中访问 inspect#remote-debugging 页面启用远程调试后重试，')
-    lines.push('  或使用 isolated 模式启动独立浏览器：')
+    lines.push('  或使用 --isolated 启动独立浏览器：')
     for (const ib of runningNotDebuggable) {
-      const browserArg = ib.browser !== 'Chrome' ? ` browser=${ib.browser}` : ''
-      lines.push(`  action=register mode=isolated${browserArg}`)
+      if (ib.executablePath) {
+        lines.push(`  ${ib.browser}：["--isolated", "--executablePath", "${ib.executablePath}"]`)
+      }
     }
   } else if (installed.length > 0) {
     const names = installed.map((r) => r.browser).join('、')
     lines.push(`建议：未检测到运行中的浏览器，但已安装 ${names}。可启动独立浏览器：`)
     if (installed.length === 1) {
       const ib = installed[0]
-      const browserArg = ib.browser !== 'Chrome' ? ` browser=${ib.browser}` : ''
-      lines.push(`  action=register mode=isolated${browserArg}`)
-      lines.push(`  无头模式：action=register mode=isolated${browserArg} headless=true`)
+      if (ib.executablePath) {
+        lines.push(`  ["--isolated", "--executablePath", "${ib.executablePath}"]`)
+        lines.push(`  无头模式：["--isolated", "--headless", "--executablePath", "${ib.executablePath}"]`)
+      }
     } else {
       const preferred = installed[0]
-      const preferredArg = preferred.browser !== 'Chrome' ? ` browser=${preferred.browser}` : ''
-      lines.push(`  自动选择优先级最高的 ${preferred.browser}：action=register mode=isolated${preferredArg}`)
+      if (preferred.executablePath) {
+        lines.push(`  自动选择优先级最高的 ${preferred.browser}：["--isolated", "--executablePath", "${preferred.executablePath}"]`)
+      }
       lines.push('  其他浏览器：')
       for (const ib of installed.slice(1)) {
-        const browserArg = ib.browser !== 'Chrome' ? ` browser=${ib.browser}` : ''
-        lines.push(`  ${ib.browser}：action=register mode=isolated${browserArg}`)
+        if (ib.executablePath) {
+          lines.push(`  ${ib.browser}：["--isolated", "--executablePath", "${ib.executablePath}"]`)
+        }
       }
-      lines.push('  无头模式追加 headless=true')
+      lines.push('  无头模式追加 "--headless"')
     }
   } else {
-    lines.push('建议：未检测到已安装的 Chromium 内核浏览器。请先安装 Chrome、Edge、Brave 或 Vivaldi。')
+    lines.push('建议：未检测到已安装的 Chromium 内核浏览器。请先安装 Chrome（chrome-devtools-mcp 官方正式支持 Chrome 和 Chrome for Testing，其他 Chromium 浏览器可能可用但不保证）。')
   }
 
   return lines
-}
-
-/** 智能注册决策结果 */
-export type SmartResolveResult =
-  | { mode: 'isolated'; browser?: string; headless?: boolean }
-  | { mode: 'connect'; browser: string; port: number }
-  | { output: string; metadata: Record<string, unknown> }
-
-/**
- * 按技能 4 场景智能决策注册参数
- *
- * 场景1: browser + headless → isolated
- * 场景2: browser + !headless → detect → debuggable?connect : isolated
- * 场景3: !browser + headless → detect installed → isolated
- * 场景4: !browser + !headless → detect running → one?connect : multi?ask : none?isolated
- */
-export async function resolveSmartRegister(
-  browser: string | undefined,
-  headless: boolean | undefined,
-): Promise<SmartResolveResult> {
-  // 场景1：指定 browser + headless
-  if (browser && headless) {
-    return { mode: 'isolated', browser, headless }
-  }
-
-  // 场景2：指定 browser + 非无头
-  if (browser && !headless) {
-    const r = await detectBrowser(browser)
-    if (r.debuggable && r.port) {
-      return { mode: 'connect', browser, port: r.port }
-    }
-    if (r.processRunning) {
-      return {
-        output: `${browser} 正在运行但未启用远程调试。请在浏览器中访问 inspect#remote-debugging 页面启用远程调试后重试，或追加 headless=true 使用无头模式。`,
-        metadata: { connected: false, status: 'not_debuggable', browser },
-      }
-    }
-    return { mode: 'isolated', browser }
-  }
-
-  // 场景3：未指定 browser + headless
-  if (!browser && headless) {
-    const results = await Promise.all([...BROWSER_NAMES].map((b) => detectBrowser(b)))
-    const installed = results.filter((r) => r.installed)
-    if (installed.length === 0) {
-      return {
-        output: '未检测到已安装的 Chromium 内核浏览器。请先安装 Chrome、Edge、Brave 或 Vivaldi。',
-        metadata: { connected: false, status: 'no_browser_installed' },
-      }
-    }
-    return { mode: 'isolated', browser: installed[0].browser, headless }
-  }
-
-  // 场景4：未指定 browser + 非无头
-  const results = await Promise.all([...BROWSER_NAMES].map((b) => detectBrowser(b)))
-  const debuggable = results.filter((r) => r.debuggable)
-  if (debuggable.length === 1) {
-    return { mode: 'connect', browser: debuggable[0].browser, port: debuggable[0].port! }
-  }
-  if (debuggable.length > 1) {
-    const lines = debuggable.map(
-      (r) => `  ${r.browser}（端口 ${r.port}）：action=register mode=connect browser=${r.browser} port=${r.port}`,
-    )
-    return {
-      output: ['检测到多个正在运行且可调试的浏览器，请选择一个接管：', ...lines].join('\n'),
-      metadata: { connected: false, status: 'multiple_debuggable' },
-    }
-  }
-  const installed = results.filter((r) => r.installed)
-  if (installed.length === 0) {
-    return {
-      output: '未检测到运行中的浏览器，也未检测到已安装的 Chromium 内核浏览器。请先安装 Chrome、Edge、Brave 或 Vivaldi。',
-      metadata: { connected: false, status: 'no_browser_installed' },
-    }
-  }
-  return { mode: 'isolated', browser: installed[0].browser }
 }

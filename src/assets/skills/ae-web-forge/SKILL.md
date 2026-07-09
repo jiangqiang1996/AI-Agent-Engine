@@ -155,23 +155,25 @@ MCP 已在配置中声明、用户声称已配置或本地进程检查成功，�
 
 **验收降级与浏览器重试：**
 
-浏览器验收受阻时不得立即阻断交付，必须按以下策略依次尝试多种浏览器和注册模式：
+浏览器验收受阻时不得立即阻断交付，必须按以下策略依次尝试多种浏览器和注册方式。`ae:chrome-devtools` 已从 mode-based 重构为 mcpArgs 透传层，以下调用使用智能决策流程（不传 mcpArgs，由技能根据 browser/headless 参数和 detect 结果自动构造）：
 
-1. **Chrome autoConnect**（默认首选） → 调用 `ae:chrome-devtools action=register mode=autoConnect`
-2. **Edge autoConnect** → 调用 `ae:chrome-devtools action=register mode=autoConnect browser=Edge`
-3. **Chrome/Edge connect**（提示用户提供调试端口） → 调用 `ae:chrome-devtools action=register mode=connect browser=<用户指定> port=<用户指定>`
-4. **Chrome isolated** → 调用 `ae:chrome-devtools action=register mode=isolated`
-5. **Edge isolated** → 调用 `ae:chrome-devtools action=register mode=isolated browser=Edge`
+1. **Chrome autoConnect**（默认首选） → 调用 `ae:chrome-devtools action=register`（未指定 browser，技能自动 detect 运行中可调试的 Chrome 并接管，或新启动 Chrome 实例）
+2. **Edge autoConnect** → 调用 `ae:chrome-devtools action=register browser=Edge`（技能自动 detect Edge 运行状态，接管或新启动）
+3. **Chrome/Edge connect**（提示用户提供调试端口） → 调用 `ae:chrome-devtools action=register browser=<用户指定> port=<用户指定>`（显式提供 port 时跳过 detect，直接用 --browserUrl 连接）
+4. **Chrome isolated** → 调用 `ae:chrome-devtools action=register headless=true`（无已安装浏览器运行时，detect 获取 executablePath 后以 --isolated 启动无头实例）
+5. **Edge isolated** → 调用 `ae:chrome-devtools action=register browser=Edge headless=true`（同上，指定 Edge）
+
+> autoConnect 能力（Chrome >= M144 从用户数据目录连接）由 `ae:chrome-devtools` 技能的智能连接决策流程自动处理，上层调用方只需提供 browser/headless 参数或省略让技能自动决策。
 
 每种模式尝试后必须调用 `chrome-devtools_list_pages` 验证连接可用；成功则继续验收流程，失败则自动尝试下一种模式。用户明确拒绝启动浏览器时跳过对应模式，继续尝试后续模式。
 
 **阻断条件（仅当以下全部满足时方可阻断交付）：**
 
-- 所有 5 种注册模式均失败（自动尝试或用户拒绝后跳过的模式均计为失败）
+- 所有 5 种注册方式均失败（自动尝试或用户拒绝后跳过的模式均计为失败）
 - 用户明确拒绝启动任何浏览器
 - 用户明确拒绝重新执行验收
 
-阻断时：不得跳过验收直接交付产出文件，不得声明任务完成，不得继续执行步骤 3（输出总结）。唯一允许的输出是标注"验收阻断：所有浏览器注册模式均失败"的状态报告，含已尝试的浏览器和模式列表、阻断原因、用户后续可自行验收的指引。该报告不得作为交付凭证。
+阻断时：不得跳过验收直接交付产出文件，不得声明任务完成，不得继续执行步骤 3（输出总结）。唯一允许的输出是标注"验收阻断：所有浏览器注册方式均失败"的状态报告，含已尝试的浏览器和方式列表、阻断原因、用户后续可自行验收的指引。该报告不得作为交付凭证。
 
 ### 步骤 3：输出总结
 
