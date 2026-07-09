@@ -4,7 +4,6 @@ import type { Part } from '@opencode-ai/sdk'
 
 import {
   mimeToModality,
-  type CapabilityStatus,
   type ModelMediaCapability,
 } from './model-capability-cache.js'
 
@@ -48,14 +47,13 @@ function isTextMime(mime: string): boolean {
  * - 文本类文件（text/*、json、xml、yaml 等）→ 不降级
  * - data: URL 内联内容（截图粘贴等，无磁盘路径）→ 不降级
  * - 有 modality 的媒体（image/audio/video/pdf）：
- *   - 模型已知支持 → 不降级
- *   - 模型已知不支持 → 降级
- *   - 模型能力未知 → 不降级（设置 needsMediaHint 标志，由 system.transform 注入提示）
+ *   - 模型支持 → 不降级
+ *   - 模型不支持 → 降级
  * - 无 modality 的二进制（DOCX/XLSX/ZIP 等）→ 始终降级
  */
 export function shouldDegradeForModel(
   part: MutableFilePart,
-  status: CapabilityStatus,
+  caps: ModelMediaCapability,
 ): boolean {
   const mime = part.mime?.toLowerCase() ?? ''
 
@@ -69,8 +67,7 @@ export function shouldDegradeForModel(
 
   const modality = mimeToModality(mime)
   if (modality) {
-    if (!status.known) return false
-    return !status.caps[modality]
+    return !caps[modality]
   }
 
   return true
@@ -184,11 +181,11 @@ function buildDegradationHint(degradedFiles: Array<{ path: string; mime: string 
  */
 export function degradeMediaFileParts(
   parts: Part[],
-  status: CapabilityStatus,
+  caps: ModelMediaCapability,
 ): void {
   const degradableFileParts: MutableFilePart[] = []
   for (const part of parts) {
-    if (isFilePart(part) && shouldDegradeForModel(part, status)) {
+    if (isFilePart(part) && shouldDegradeForModel(part, caps)) {
       degradableFileParts.push(part)
     }
   }
@@ -217,7 +214,7 @@ export function degradeMediaFileParts(
   // 移除需要降级的 FilePart
   for (let i = parts.length - 1; i >= 0; i--) {
     const part = parts[i]
-    if (isFilePart(part) && shouldDegradeForModel(part, status)) {
+    if (isFilePart(part) && shouldDegradeForModel(part, caps)) {
       parts.splice(i, 1)
     }
   }
@@ -262,21 +259,4 @@ export function degradeMediaFileParts(
   }
 }
 
-/**
- * 判断 parts 中是否有需要降级但因能力未知而未降级的媒体文件。
- * 用于决定是否设置 needsMediaHint 标志。
- */
-export function hasUnresolvedMedia(parts: Part[], status: CapabilityStatus): boolean {
-  if (status.known) return false
 
-  for (const part of parts) {
-    if (!isFilePart(part)) continue
-    const mime = part.mime?.toLowerCase() ?? ''
-    if (isTextMime(mime)) continue
-    if (part.url?.startsWith('data:')) continue
-    const modality = mimeToModality(mime)
-    if (modality) return true
-  }
-
-  return false
-}

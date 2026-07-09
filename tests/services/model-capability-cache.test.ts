@@ -2,18 +2,17 @@ import { describe, expect, it, beforeEach, vi } from 'vitest'
 
 import {
   mimeToModality,
-  getCapabilityStatus,
+  getCapability,
   cacheSessionModel,
-  getCapabilityStatusBySession,
+  cacheSessionCapabilities,
+  extractCapsFromModel,
+  getCapabilityBySession,
   extractModelKeyFromMessages,
-  setNeedsMediaHint,
-  getAndClearNeedsMediaHint,
   resetCapabilityCacheForTesting,
 } from '../../src/services/model-capability-cache.js'
 
 import { setGlobalClient } from '../../src/services/client-holder.js'
 
-const FULL_CAPS = { image: true, audio: true, video: true, pdf: true }
 const NONE_SUPPORTED = { image: false, audio: false, video: false, pdf: false }
 
 function makeMockClient(providers: Array<{
@@ -58,19 +57,18 @@ describe('mimeToModality', () => {
   })
 })
 
-describe('getCapabilityStatus', () => {
+describe('getCapability', () => {
   beforeEach(() => {
     resetCapabilityCacheForTesting()
   })
 
-  it('未知模型返回 known=false + FULL_CAPABILITY', async () => {
+  it('未知模型返回 NO_CAPABILITY（全 false，保守降级）', async () => {
     setGlobalClient(makeMockClient([]) as never)
-    const status = await getCapabilityStatus('unknown/model')
-    expect(status.known).toBe(false)
-    expect(status.caps).toEqual(FULL_CAPS)
+    const caps = await getCapability('unknown/model')
+    expect(caps).toEqual(NONE_SUPPORTED)
   })
 
-  it('已缓存模型返回 known=true + 实际能力', async () => {
+  it('已缓存模型返回实际能力', async () => {
     setGlobalClient(makeMockClient([
       {
         id: 'provider1',
@@ -81,51 +79,47 @@ describe('getCapabilityStatus', () => {
       },
     ]) as never)
 
-    const status1 = await getCapabilityStatus('provider1/model1')
-    expect(status1.known).toBe(true)
-    expect(status1.caps).toEqual({ image: true, audio: false, video: false, pdf: false })
+    const caps1 = await getCapability('provider1/model1')
+    expect(caps1).toEqual({ image: true, audio: false, video: false, pdf: false })
 
-    const status2 = await getCapabilityStatus('provider1/model2')
-    expect(status2.known).toBe(true)
-    expect(status2.caps).toEqual(NONE_SUPPORTED)
+    const caps2 = await getCapability('provider1/model2')
+    expect(caps2).toEqual(NONE_SUPPORTED)
   })
 
-  it('provider.list 失败时返回 known=false', async () => {
+  it('provider.list 失败时返回 NO_CAPABILITY（保守降级）', async () => {
     setGlobalClient({
       provider: { list: vi.fn(async () => { throw new Error('network') }) },
     } as never)
 
-    const status = await getCapabilityStatus('any/model')
-    expect(status.known).toBe(false)
-    expect(status.caps).toEqual(FULL_CAPS)
+    const caps = await getCapability('any/model')
+    expect(caps).toEqual(NONE_SUPPORTED)
   })
 
-  it('client 未设置时返回 known=false', async () => {
+  it('client 未设置时返回 NO_CAPABILITY（保守降级）', async () => {
     setGlobalClient(undefined as never)
-    const status = await getCapabilityStatus('any/model')
-    expect(status.known).toBe(false)
+    const caps = await getCapability('any/model')
+    expect(caps).toEqual(NONE_SUPPORTED)
   })
 
-  it('modalities.input 缺失时返回 known=true + 全 false', async () => {
+  it('modalities.input 缺失时返回全 false', async () => {
     setGlobalClient(makeMockClient([
       { id: 'p', models: { 'm': {} } },
     ]) as never)
 
-    const status = await getCapabilityStatus('p/m')
-    expect(status.known).toBe(true)
-    expect(status.caps).toEqual(NONE_SUPPORTED)
+    const caps = await getCapability('p/m')
+    expect(caps).toEqual(NONE_SUPPORTED)
   })
 })
 
-describe('cacheSessionModel + getCapabilityStatusBySession', () => {
+describe('cacheSessionModel + getCapabilityBySession', () => {
   beforeEach(() => {
     resetCapabilityCacheForTesting()
   })
 
-  it('sessionID 未缓存时返回 known=false', async () => {
+  it('sessionID 未缓存时返回 NO_CAPABILITY（保守降级）', async () => {
     setGlobalClient(makeMockClient([]) as never)
-    const status = await getCapabilityStatusBySession('unknown-session')
-    expect(status.known).toBe(false)
+    const caps = await getCapabilityBySession('unknown-session')
+    expect(caps).toEqual(NONE_SUPPORTED)
   })
 
   it('缓存 sessionID 后查询到对应模型能力', async () => {
@@ -134,9 +128,8 @@ describe('cacheSessionModel + getCapabilityStatusBySession', () => {
     ]) as never)
 
     cacheSessionModel('session-1', 'p1', 'm1')
-    const status = await getCapabilityStatusBySession('session-1')
-    expect(status.known).toBe(true)
-    expect(status.caps).toEqual({ image: true, audio: false, video: false, pdf: true })
+    const caps = await getCapabilityBySession('session-1')
+    expect(caps).toEqual({ image: true, audio: false, video: false, pdf: true })
   })
 
   it('LRU 淘汰：超过上限时删除最旧条目', async () => {
@@ -146,11 +139,11 @@ describe('cacheSessionModel + getCapabilityStatusBySession', () => {
       cacheSessionModel(`session-${i}`, 'p', `m${i}`)
     }
 
-    const status0 = await getCapabilityStatusBySession('session-0')
-    expect(status0.known).toBe(false)
+    const caps0 = await getCapabilityBySession('session-0')
+    expect(caps0).toEqual(NONE_SUPPORTED)
 
-    const status1000 = await getCapabilityStatusBySession('session-1000')
-    expect(status1000.known).toBe(false)
+    const caps1000 = await getCapabilityBySession('session-1000')
+    expect(caps1000).toEqual(NONE_SUPPORTED)
   })
 })
 
@@ -176,14 +169,100 @@ describe('extractModelKeyFromMessages', () => {
   })
 })
 
-describe('needsMediaHint 标志', () => {
+describe('extractCapsFromModel', () => {
+  it('从完整 Model 对象提取能力', () => {
+    const model = {
+      providerID: 'p1',
+      modelID: 'm1',
+      capabilities: {
+        input: { image: true, audio: false, video: false, pdf: true },
+      },
+    }
+    const caps = extractCapsFromModel(model)
+    expect(caps).toEqual({ image: true, audio: false, video: false, pdf: true })
+  })
+
+  it('capabilities.input 缺失时返回 undefined', () => {
+    const model = { providerID: 'p1', modelID: 'm1' }
+    expect(extractCapsFromModel(model)).toBeUndefined()
+  })
+
+  it('capabilities 缺失时返回 undefined', () => {
+    const model = { providerID: 'p1', modelID: 'm1', capabilities: {} }
+    expect(extractCapsFromModel(model)).toBeUndefined()
+  })
+
+  it('null/undefined/非对象时返回 undefined', () => {
+    expect(extractCapsFromModel(null)).toBeUndefined()
+    expect(extractCapsFromModel(undefined)).toBeUndefined()
+    expect(extractCapsFromModel('string')).toBeUndefined()
+    expect(extractCapsFromModel(42)).toBeUndefined()
+  })
+
+  it('input 中部分字段缺失时默认为 false', () => {
+    const model = {
+      capabilities: { input: { image: true } },
+    }
+    const caps = extractCapsFromModel(model)
+    expect(caps).toEqual({ image: true, audio: false, video: false, pdf: false })
+  })
+
+  it('input 中字段为非布尔值时视为 false', () => {
+    const model = {
+      capabilities: { input: { image: 'yes', audio: 1, video: null, pdf: undefined } },
+    }
+    const caps = extractCapsFromModel(model)
+    expect(caps).toEqual({ image: false, audio: false, video: false, pdf: false })
+  })
+})
+
+describe('cacheSessionCapabilities + getCapabilityBySession', () => {
   beforeEach(() => {
     resetCapabilityCacheForTesting()
   })
 
-  it('set + getAndClear 读取后自动清除', () => {
-    setNeedsMediaHint(true)
-    expect(getAndClearNeedsMediaHint()).toBe(true)
-    expect(getAndClearNeedsMediaHint()).toBe(false)
+  it('直接缓存优先于 sessionModel 映射', async () => {
+    // 设置 provider.list 兜底数据（返回 image=false）
+    setGlobalClient(makeMockClient([
+      { id: 'p1', models: { 'm1': { modalities: { input: ['text'] } } } },
+    ]) as never)
+
+    // 缓存 sessionID → modelKey
+    cacheSessionModel('session-1', 'p1', 'm1')
+    // provider.list 返回 image=false
+    const capsViaModel = await getCapabilityBySession('session-1')
+    expect(capsViaModel.image).toBe(false)
+
+    // 直接缓存 caps（image=true），优先级更高
+    cacheSessionCapabilities('session-1', { image: true, audio: false, video: false, pdf: false })
+    const capsViaCaps = await getCapabilityBySession('session-1')
+    expect(capsViaCaps.image).toBe(true)
+  })
+
+  it('直接缓存缺失时回退到 sessionModel + provider.list', async () => {
+    setGlobalClient(makeMockClient([
+      { id: 'p1', models: { 'm1': { modalities: { input: ['text', 'image'] } } } },
+    ]) as never)
+
+    cacheSessionModel('session-2', 'p1', 'm1')
+    const caps = await getCapabilityBySession('session-2')
+    expect(caps.image).toBe(true)
+  })
+
+  it('两者都缺失时返回 NO_CAPABILITY（保守降级）', async () => {
+    setGlobalClient(makeMockClient([]) as never)
+    const caps = await getCapabilityBySession('unknown-session')
+    expect(caps).toEqual(NONE_SUPPORTED)
+  })
+
+  it('LRU 淘汰：直接缓存超过上限时删除最旧条目', () => {
+    resetCapabilityCacheForTesting()
+
+    for (let i = 0; i < 1001; i++) {
+      cacheSessionCapabilities(`session-${i}`, { image: true, audio: false, video: false, pdf: false })
+    }
+
+    // session-0 应被淘汰
+    expect(extractCapsFromModel(undefined)).toBeUndefined()
   })
 })

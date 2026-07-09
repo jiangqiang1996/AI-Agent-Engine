@@ -5,12 +5,11 @@ import type { Part } from '@opencode-ai/sdk'
 
 import {
   extractModelKeyFromMessages,
-  getCapabilityStatus,
+  getCapability,
+  getCapabilityBySession,
   mimeToModality,
-  setNeedsMediaHint,
-  type CapabilityStatus,
+  type ModelMediaCapability,
 } from '../services/model-capability-cache.js'
-import { hasUnresolvedMedia } from '../services/media-degradation-service.js'
 
 type ToolPart = Extract<Part, { type: 'tool' }>
 type FilePart = Extract<Part, { type: 'file' }>
@@ -20,11 +19,14 @@ type CompletedToolState = Extract<ToolPart['state'], { status: 'completed' }>
  * experimental.chat.messages.transform hook：工具结果媒体降级。
  *
  * 处理工具结果（ToolPart.state.attachments）中的媒体文件。
- * 从消息历史中提取当前模型（最后一条 user 消息的 model），
+ *
+ * 能力获取优先级：
+ * 1. sessionID → caps 直接缓存（来自 chat.message hook 的 input.model.capabilities）
+ * 2. modelKey → provider.list() 网络查询（兜底路径）
+ *
  * 按当前模型能力判断是否降级：
- * - 模型已知支持 → 保留媒体附件
- * - 模型已知不支持 → 从 attachments 移除媒体，路径追加到 output 文本（带工具引导）
- * - 模型能力未知 → 不降级，设置 needsMediaHint 标志
+ * - 模型支持 → 保留媒体附件
+ * - 模型不支持 → 从 attachments 移除媒体，路径追加到 output 文本（带工具引导）
  *
  * 不同代理使用不同模型时，每次从最新 user 消息获取当前模型，保证准确性。
  * 异常时不阻断主流程，消息原样传递。
@@ -33,11 +35,18 @@ export const messagesTransformHook: NonNullable<Hooks['experimental.chat.message
   try {
     if (output.messages.length === 0) return
 
-    // 从消息历史提取当前模型 key（最后一条 user 消息的 model）
-    const modelKey = extractModelKeyFromMessages(output.messages)
-    if (!modelKey) return
+    // 优先从 sessionID→caps 直接缓存获取（确定性，无需网络查询）
+    const sessionID = output.messages[output.messages.length - 1]?.info?.sessionID
+    let caps: ModelMediaCapability
 
-    const status = await getCapabilityStatus(modelKey)
+    if (sessionID) {
+      caps = await getCapabilityBySession(sessionID)
+    } else {
+      // 兜底：从消息历史提取 modelKey → provider.list 查询
+      const modelKey = extractModelKeyFromMessages(output.messages)
+      if (!modelKey) return
+      caps = await getCapability(modelKey)
+    }
 
     for (const msg of output.messages) {
       for (const part of msg.parts) {
@@ -54,7 +63,7 @@ export const messagesTransformHook: NonNullable<Hooks['experimental.chat.message
         const degradedFiles: Array<{ path: string; mime: string }> = []
 
         for (const attachment of attachments) {
-          if (shouldDegradeAttachment(attachment, status)) {
+          if (shouldDegradeAttachment(attachment, caps)) {
             const extractedPath = extractAttachmentPath(attachment)
             if (extractedPath) {
               degradedFiles.push({ path: extractedPath, mime: attachment.mime })
@@ -72,11 +81,6 @@ export const messagesTransformHook: NonNullable<Hooks['experimental.chat.message
           stateMutable.output = `${stateMutable.output}\n\n${hint}`
           stateMutable.attachments = remaining.length > 0 ? remaining : undefined
         }
-
-        // 检查是否有未解决的媒体（能力未知时）
-        if (hasUnresolvedMedia(msg.parts, status)) {
-          setNeedsMediaHint(true)
-        }
       }
     }
   } catch {
@@ -88,15 +92,14 @@ export const messagesTransformHook: NonNullable<Hooks['experimental.chat.message
  * 判断工具结果 attachment 是否应降级。
  * attachment 没有 source 字段，需单独处理路径提取。
  */
-function shouldDegradeAttachment(attachment: FilePart, status: CapabilityStatus): boolean {
+function shouldDegradeAttachment(attachment: FilePart, caps: ModelMediaCapability): boolean {
   const mime = attachment.mime?.toLowerCase() ?? ''
   if (mime.startsWith('text/')) return false
   if (attachment.url?.startsWith('data:')) return false
 
   const modality = mimeToModality(mime)
   if (modality) {
-    if (!status.known) return false
-    return !status.caps[modality]
+    return !caps[modality]
   }
   return true
 }
