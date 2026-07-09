@@ -2,6 +2,8 @@ import { fileURLToPath } from 'node:url'
 
 import type { Part } from '@opencode-ai/sdk'
 
+import { mimeToModality, type ModelMediaCapability } from './model-capability-cache.js'
+
 type MutableTextPart = Extract<Part, { type: 'text' }>
 type MutableFilePart = Extract<Part, { type: 'file' }>
 
@@ -12,8 +14,7 @@ type MutableFilePart = Extract<Part, { type: 'file' }>
  * 以原始内容形式传递给模型。
  *
  * 维护引导：新增需要保留 FilePart 的文本类 MIME 时，在此列表添加前缀；
- * 图片类在 IMAGE_MIME_PREFIXES 添加。其余类型（PDF、DOCX 等）自动被转换为
- * 纯路径文本，无需额外注册。
+ * 媒体类（image/audio/video/pdf）由模型能力动态判断，无需在此注册。
  */
 const TEXT_MIME_PREFIXES = [
   'text/',
@@ -27,42 +28,41 @@ const TEXT_MIME_PREFIXES = [
 ]
 
 /**
- * 图片类 MIME 前缀。
- *
- * 支持 vision 的模型可以直接处理图片，保留 FilePart；
- * ae:image 工具自身也会读取图片文件。
+ * 判断 MIME 是否为文本类。
+ * 文本类文件始终保留为 FilePart，LLM 可直接读取内容。
  */
-const IMAGE_MIME_PREFIXES = [
-  'image/',
-]
+function isTextMime(mime: string): boolean {
+  const lower = mime.toLowerCase()
+  for (const prefix of TEXT_MIME_PREFIXES) {
+    if (lower.startsWith(prefix)) {
+      return true
+    }
+  }
+  if (lower.includes('+json') || lower.includes('+xml')) {
+    return true
+  }
+  return false
+}
 
 /**
- * 判断 FilePart 是否应被转换为路径文本。
+ * 判断 FilePart 是否应被转换为路径文本（基于模型能力动态判断）。
  *
- * 文本文件（text/*、json、xml、yaml 等）和图片文件（image/*）
- * 保留为 FilePart 让 LLM 直接处理内容；
- * 其他类型（PDF、DOCX、PPTX、XLSX、ZIP 等）转换为纯路径，
- * 由底层工具自行读取文件内容。
- *
- * MIME 包含 +json 或 +xml 子类型后缀的也被识别为文本类，
- * 如 application/vnd.api+json、application/vnd.openxmlformats...+xml。
+ * - 文本类文件（text/*、json、xml、yaml 等）→ 保留
+ * - 有 modality 的媒体（image/audio/video/pdf）→ 按模型能力判断，不支持则转换
+ * - 无 modality 的二进制（DOCX/XLSX/ZIP 等）→ 始终转换
  */
-export function isConvertibleFilePart(part: MutableFilePart): boolean {
+export function shouldConvertForModel(part: MutableFilePart, capability: ModelMediaCapability): boolean {
   const mime = part.mime?.toLowerCase() ?? ''
-  for (const prefix of TEXT_MIME_PREFIXES) {
-    if (mime.startsWith(prefix)) {
-      return false
-    }
-  }
-  for (const prefix of IMAGE_MIME_PREFIXES) {
-    if (mime.startsWith(prefix)) {
-      return false
-    }
-  }
-  // MIME 子类型包含 +json 或 +xml 后缀的也是文本类（如 application/vnd.api+json）
-  if (mime.includes('+json') || mime.includes('+xml')) {
+
+  if (isTextMime(mime)) {
     return false
   }
+
+  const modality = mimeToModality(mime)
+  if (modality) {
+    return !capability[modality]
+  }
+
   return true
 }
 
@@ -103,7 +103,7 @@ function extractReferenceText(part: MutableFilePart): string | undefined {
  * 优先使用 source.path（opencode 解析时记录的路径）；
  * 缺失时从 url（file:// URL）转换为文件系统路径。
  */
-function extractFilePath(part: MutableFilePart): string | undefined {
+export function extractFilePath(part: MutableFilePart): string | undefined {
   const sourcePath = part.source?.path?.trim()
   if (sourcePath) {
     return sourcePath
@@ -134,19 +134,19 @@ function replaceReferenceWithPath(text: string, reference: string, path: string)
 }
 
 /**
- * 把 parts 中符合条件的 FilePart 转换为纯文本路径：
- * 1. 识别非文本、非图片的 FilePart
+ * 把 parts 中模型不支持的 FilePart 转换为纯文本路径：
+ * 1. 根据 caps 判断哪些 FilePart 需要转换
  * 2. 收集这些 FilePart 的引用文本和路径
  * 3. 移除这些 FilePart
  * 4. 在 TextPart 中把 @file 引用替换为纯路径
  * 5. 若引用文本未匹配到任何 TextPart，把路径追加到首个 TextPart 末尾
  *
- * 保留文本类和图片类 FilePart 不做转换。
+ * 文本类文件保留；媒体类按模型能力判断；无 modality 的二进制始终转换。
  */
-export function convertNonTextImageFilePartsToPath(parts: Part[]): void {
+export function convertUnsupportedFilePartsToPath(parts: Part[], capability: ModelMediaCapability): void {
   const convertibleFileParts: MutableFilePart[] = []
   for (const part of parts) {
-    if (isFilePart(part) && isConvertibleFilePart(part)) {
+    if (isFilePart(part) && shouldConvertForModel(part, capability)) {
       convertibleFileParts.push(part)
     }
   }
@@ -168,7 +168,7 @@ export function convertNonTextImageFilePartsToPath(parts: Part[]): void {
 
   for (let i = parts.length - 1; i >= 0; i--) {
     const part = parts[i]
-    if (isFilePart(part) && isConvertibleFilePart(part)) {
+    if (isFilePart(part) && shouldConvertForModel(part, capability)) {
       parts.splice(i, 1)
     }
   }

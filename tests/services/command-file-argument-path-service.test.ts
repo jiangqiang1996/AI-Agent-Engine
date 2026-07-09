@@ -2,9 +2,13 @@ import { describe, expect, it } from 'vitest'
 import type { Part } from '@opencode-ai/sdk'
 
 import {
-  convertNonTextImageFilePartsToPath,
-  isConvertibleFilePart,
+  convertUnsupportedFilePartsToPath,
+  shouldConvertForModel,
 } from '../../src/services/command-file-argument-path-service.js'
+import type { ModelMediaCapability } from '../../src/services/model-capability-cache.js'
+
+const ALL_SUPPORTED: ModelMediaCapability = { image: true, audio: true, video: true, pdf: true }
+const NONE_SUPPORTED: ModelMediaCapability = { image: false, audio: false, video: false, pdf: false }
 
 function textPart(text: string): Extract<Part, { type: 'text' }> {
   return {
@@ -54,86 +58,74 @@ function filePart(options: {
   }
 }
 
-describe('isConvertibleFilePart', () => {
-  it('应该把 PDF 标记为可转换', () => {
+describe('shouldConvertForModel', () => {
+  it('模型不支持 PDF 时应转换 PDF', () => {
     const part = filePart({ mime: 'application/pdf' })
-    expect(isConvertibleFilePart(part)).toBe(true)
+    expect(shouldConvertForModel(part, NONE_SUPPORTED)).toBe(true)
   })
 
-  it('应该把 DOCX 标记为可转换', () => {
-    const part = filePart({ mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })
-    expect(isConvertibleFilePart(part)).toBe(true)
+  it('模型支持 PDF 时应保留 PDF', () => {
+    const part = filePart({ mime: 'application/pdf' })
+    expect(shouldConvertForModel(part, ALL_SUPPORTED)).toBe(false)
   })
 
-  it('应该把 PPTX 标记为可转换', () => {
-    const part = filePart({ mime: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' })
-    expect(isConvertibleFilePart(part)).toBe(true)
-  })
-
-  it('应该把 XLSX 标记为可转换', () => {
-    const part = filePart({ mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-    expect(isConvertibleFilePart(part)).toBe(true)
-  })
-
-  it('应该把 ZIP 标记为可转换', () => {
-    const part = filePart({ mime: 'application/zip' })
-    expect(isConvertibleFilePart(part)).toBe(true)
-  })
-
-  it('不应该把 text/markdown 标记为可转换', () => {
-    const part = filePart({ mime: 'text/markdown' })
-    expect(isConvertibleFilePart(part)).toBe(false)
-  })
-
-  it('不应该把 text/plain 标记为可转换', () => {
-    const part = filePart({ mime: 'text/plain' })
-    expect(isConvertibleFilePart(part)).toBe(false)
-  })
-
-  it('不应该把 application/json 标记为可转换', () => {
-    const part = filePart({ mime: 'application/json' })
-    expect(isConvertibleFilePart(part)).toBe(false)
-  })
-
-  it('不应该把 image/png 标记为可转换', () => {
+  it('模型不支持图片时应转换 PNG', () => {
     const part = filePart({ mime: 'image/png' })
-    expect(isConvertibleFilePart(part)).toBe(false)
+    expect(shouldConvertForModel(part, NONE_SUPPORTED)).toBe(true)
   })
 
-  it('不应该把 image/jpeg 标记为可转换', () => {
-    const part = filePart({ mime: 'image/jpeg' })
-    expect(isConvertibleFilePart(part)).toBe(false)
+  it('模型支持图片时应保留 PNG', () => {
+    const part = filePart({ mime: 'image/png' })
+    expect(shouldConvertForModel(part, ALL_SUPPORTED)).toBe(false)
   })
 
-  it('不应该把 image/webp 标记为可转换', () => {
-    const part = filePart({ mime: 'image/webp' })
-    expect(isConvertibleFilePart(part)).toBe(false)
+  it('模型不支持音频时应转换 WAV', () => {
+    const part = filePart({ mime: 'audio/wav' })
+    expect(shouldConvertForModel(part, NONE_SUPPORTED)).toBe(true)
   })
 
-  it('不应该把 application/xml 标记为可转换', () => {
-    const part = filePart({ mime: 'application/xml' })
-    expect(isConvertibleFilePart(part)).toBe(false)
+  it('模型支持音频时应保留 WAV', () => {
+    const part = filePart({ mime: 'audio/wav' })
+    expect(shouldConvertForModel(part, ALL_SUPPORTED)).toBe(false)
   })
 
-  it('不应该把 application/javascript 标记为可转换', () => {
-    const part = filePart({ mime: 'application/javascript' })
-    expect(isConvertibleFilePart(part)).toBe(false)
+  it('模型不支持视频时应转换 MP4', () => {
+    const part = filePart({ mime: 'video/mp4' })
+    expect(shouldConvertForModel(part, NONE_SUPPORTED)).toBe(true)
   })
 
-  it('mime 为空时应该标记为可转换', () => {
-    const part = filePart({ mime: '' })
-    expect(isConvertibleFilePart(part)).toBe(true)
+  it('模型支持视频时应保留 MP4', () => {
+    const part = filePart({ mime: 'video/mp4' })
+    expect(shouldConvertForModel(part, ALL_SUPPORTED)).toBe(false)
+  })
+
+  it('DOCX/XLSX/PPTX/ZIP 等无 modality 的二进制始终转换', () => {
+    expect(shouldConvertForModel(filePart({ mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), ALL_SUPPORTED)).toBe(true)
+    expect(shouldConvertForModel(filePart({ mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), ALL_SUPPORTED)).toBe(true)
+    expect(shouldConvertForModel(filePart({ mime: 'application/zip' }), ALL_SUPPORTED)).toBe(true)
+  })
+
+  it('文本类文件始终保留', () => {
+    expect(shouldConvertForModel(filePart({ mime: 'text/markdown' }), NONE_SUPPORTED)).toBe(false)
+    expect(shouldConvertForModel(filePart({ mime: 'text/plain' }), NONE_SUPPORTED)).toBe(false)
+    expect(shouldConvertForModel(filePart({ mime: 'application/json' }), NONE_SUPPORTED)).toBe(false)
+    expect(shouldConvertForModel(filePart({ mime: 'application/xml' }), NONE_SUPPORTED)).toBe(false)
+    expect(shouldConvertForModel(filePart({ mime: 'application/javascript' }), NONE_SUPPORTED)).toBe(false)
+  })
+
+  it('mime 为空时始终转换', () => {
+    expect(shouldConvertForModel(filePart({ mime: '' }), ALL_SUPPORTED)).toBe(true)
   })
 })
 
-describe('convertNonTextImageFilePartsToPath', () => {
+describe('convertUnsupportedFilePartsToPath', () => {
   it('应该把 PDF 的 @file 引用替换为纯路径并移除 FilePart', () => {
     const parts: Part[] = [
       textPart('使用 ae:image 技能处理这次请求，并沿用参数：@docs/file.pdf'),
       filePart({ mime: 'application/pdf', reference: '@docs/file.pdf', path: 'docs/file.pdf', filename: 'file.pdf' }),
     ]
 
-    convertNonTextImageFilePartsToPath(parts)
+    convertUnsupportedFilePartsToPath(parts, NONE_SUPPORTED)
 
     expect(parts).toHaveLength(1)
     expect(parts[0]).toMatchObject({
@@ -142,7 +134,35 @@ describe('convertNonTextImageFilePartsToPath', () => {
     })
   })
 
-  it('应该只转换非文本/非图片的 FilePart，保留文本和图片 FilePart', () => {
+  it('模型不支持图片时应该转换 PNG 引用', () => {
+    const parts: Part[] = [
+      textPart('参数：@pic.png'),
+      filePart({ mime: 'image/png', reference: '@pic.png', path: 'pic.png', filename: 'pic.png', url: 'file:///repo/pic.png' }),
+    ]
+
+    convertUnsupportedFilePartsToPath(parts, NONE_SUPPORTED)
+
+    expect(parts).toHaveLength(1)
+    expect(parts[0]).toMatchObject({
+      type: 'text',
+      text: '参数：pic.png',
+    })
+  })
+
+  it('模型支持图片时应该保留 PNG FilePart', () => {
+    const parts: Part[] = [
+      textPart('参数：@pic.png'),
+      filePart({ mime: 'image/png', reference: '@pic.png', path: 'pic.png', filename: 'pic.png', url: 'file:///repo/pic.png' }),
+    ]
+
+    convertUnsupportedFilePartsToPath(parts, ALL_SUPPORTED)
+
+    expect(parts).toHaveLength(2)
+    expect(parts[0]).toMatchObject({ type: 'text', text: '参数：@pic.png' })
+    expect(parts[1]).toMatchObject({ type: 'file', mime: 'image/png' })
+  })
+
+  it('应该只转换模型不支持的 FilePart，保留文本和模型支持的 FilePart', () => {
     const parts: Part[] = [
       textPart('参数：@doc.md @pic.png @data.pdf'),
       filePart({ mime: 'text/markdown', reference: '@doc.md', path: 'doc.md', filename: 'doc.md', url: 'file:///repo/doc.md' }),
@@ -150,7 +170,8 @@ describe('convertNonTextImageFilePartsToPath', () => {
       filePart({ mime: 'application/pdf', reference: '@data.pdf', path: 'data.pdf', filename: 'data.pdf', url: 'file:///repo/data.pdf' }),
     ]
 
-    convertNonTextImageFilePartsToPath(parts)
+    const caps: ModelMediaCapability = { image: true, audio: false, video: false, pdf: false }
+    convertUnsupportedFilePartsToPath(parts, caps)
 
     expect(parts).toHaveLength(3)
     expect(parts[0]).toMatchObject({ type: 'text', text: '参数：@doc.md @pic.png data.pdf' })
@@ -177,7 +198,7 @@ describe('convertNonTextImageFilePartsToPath', () => {
       }),
     ]
 
-    convertNonTextImageFilePartsToPath(parts)
+    convertUnsupportedFilePartsToPath(parts, NONE_SUPPORTED)
 
     expect(parts).toHaveLength(1)
     expect(parts[0]).toMatchObject({
@@ -192,7 +213,7 @@ describe('convertNonTextImageFilePartsToPath', () => {
       filePart({ mime: 'application/pdf', noSource: true, filename: 'file.pdf', url: 'file:///repo/docs/file.pdf' }),
     ]
 
-    convertNonTextImageFilePartsToPath(parts)
+    convertUnsupportedFilePartsToPath(parts, NONE_SUPPORTED)
 
     expect(parts).toHaveLength(1)
     const textPartResult = parts[0] as Extract<Part, { type: 'text' }>
@@ -207,7 +228,7 @@ describe('convertNonTextImageFilePartsToPath', () => {
       filePart({ mime: 'application/pdf', reference: '@docs/missing.pdf', path: 'docs/missing.pdf' }),
     ]
 
-    convertNonTextImageFilePartsToPath(parts)
+    convertUnsupportedFilePartsToPath(parts, NONE_SUPPORTED)
 
     expect(parts).toHaveLength(1)
     expect(parts[0]).toMatchObject({
@@ -221,14 +242,14 @@ describe('convertNonTextImageFilePartsToPath', () => {
       filePart({ mime: 'application/pdf', reference: '@docs/file.pdf', path: 'docs/file.pdf' }),
     ]
 
-    convertNonTextImageFilePartsToPath(parts)
+    convertUnsupportedFilePartsToPath(parts, NONE_SUPPORTED)
 
     expect(parts).toHaveLength(0)
   })
 
   it('当 parts 为空时应安全返回', () => {
     const parts: Part[] = []
-    convertNonTextImageFilePartsToPath(parts)
+    convertUnsupportedFilePartsToPath(parts, NONE_SUPPORTED)
     expect(parts).toHaveLength(0)
   })
 
@@ -237,7 +258,7 @@ describe('convertNonTextImageFilePartsToPath', () => {
       textPart('纯文本参数'),
       filePart({ mime: 'text/markdown' }),
     ]
-    convertNonTextImageFilePartsToPath(parts)
+    convertUnsupportedFilePartsToPath(parts, NONE_SUPPORTED)
     expect(parts).toHaveLength(2)
     expect(parts[0]).toMatchObject({ type: 'text', text: '纯文本参数' })
     expect(parts[1]).toMatchObject({ type: 'file', mime: 'text/markdown' })
@@ -249,7 +270,7 @@ describe('convertNonTextImageFilePartsToPath', () => {
       filePart({ mime: 'application/pdf', reference: '@docs/file.pdf', path: 'docs/file.pdf' }),
     ]
 
-    convertNonTextImageFilePartsToPath(parts)
+    convertUnsupportedFilePartsToPath(parts, NONE_SUPPORTED)
 
     expect(parts).toHaveLength(1)
     expect(parts[0]).toMatchObject({
@@ -270,7 +291,7 @@ describe('convertNonTextImageFilePartsToPath', () => {
       }),
     ]
 
-    convertNonTextImageFilePartsToPath(parts)
+    convertUnsupportedFilePartsToPath(parts, NONE_SUPPORTED)
 
     expect(parts).toHaveLength(1)
     const textPartResult = parts[0] as Extract<Part, { type: 'text' }>
@@ -291,7 +312,7 @@ describe('convertNonTextImageFilePartsToPath', () => {
       }),
     ]
 
-    convertNonTextImageFilePartsToPath(parts)
+    convertUnsupportedFilePartsToPath(parts, NONE_SUPPORTED)
 
     expect(parts).toHaveLength(1)
     expect(parts[0]).toMatchObject({ type: 'text', text: '参数：file.pdf' })

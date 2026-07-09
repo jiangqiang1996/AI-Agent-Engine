@@ -25,7 +25,10 @@ import {registerSkillsPath} from './services/skills-path-service.js'
 import {createToolRegistry} from './tools/index.js'
 import {setGlobalClient} from './services/client-holder.js'
 import {dedupeCommandFileArgumentParts} from './services/command-file-argument-dedupe-service.js'
-import {convertNonTextImageFilePartsToPath} from './services/command-file-argument-path-service.js'
+import {convertUnsupportedFilePartsToPath} from './services/command-file-argument-path-service.js'
+import {getCapabilitiesBySession} from './services/model-capability-cache.js'
+import {chatMessageHook} from './hooks/media-fallback-chat-message.hook.js'
+import {messagesTransformHook} from './hooks/media-fallback-messages-transform.hook.js'
 
 interface RuntimeConfigShape {
     command?: Record<string, {
@@ -132,10 +135,17 @@ const plugin: Plugin = async (input) => {
         'experimental.chat.system.transform': async (_input, output) => {
             await injectBuiltinRulesIntoSystem(manifest, output)
         },
-        'command.execute.before': async (_input, output) => {
-            convertNonTextImageFilePartsToPath(output.parts)
-            dedupeCommandFileArgumentParts(output.parts)
+        'command.execute.before': async (input, output) => {
+            try {
+                const caps = await getCapabilitiesBySession(input.sessionID)
+                convertUnsupportedFilePartsToPath(output.parts, caps)
+                dedupeCommandFileArgumentParts(output.parts)
+            } catch {
+                // 降级失败时不阻断命令执行
+            }
         },
+        'chat.message': chatMessageHook,
+        'experimental.chat.messages.transform': messagesTransformHook,
         tool: createToolRegistry(),
     }
 }
