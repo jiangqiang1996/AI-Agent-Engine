@@ -121,19 +121,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     argumentHint: '[大纲文件路径]',
     skillFile: `src/assets/skills/${skillDir(SKILL.PPTX_FROM_OUTLINE)}/SKILL.md`,
   },
-  {
-    skillName: SKILL.COURSE_AUTO_PLAYER,
-    commandName: COMMAND.COURSE_AUTO_PLAYER,
-    description: `通过 ${SKILL.CHROME_DEVTOOLS} 完成浏览器 MCP 注册后，自动播放在线课程列表`,
-    argumentHint: '[browser] <课程列表页面URL>',
-    skillFile: `src/assets/skills/${skillDir(SKILL.COURSE_AUTO_PLAYER)}/SKILL.md`,
-    customTemplate: [
-      `先使用 \`${SKILL.CHROME_DEVTOOLS} action=register mode=autoConnect\` 技能完成浏览器 MCP 动态注册；`,
-      '未完成 MCP 注册前不得执行任何浏览器控制命令。',
-      `MCP 就绪后，再使用 \`${SKILL.COURSE_AUTO_PLAYER}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`,
-    ].join(''),
-  },
-  {
+{
     skillName: SKILL.HANDOFF,
     commandName: COMMAND.HANDOFF,
     description: '会话交接：提取当前会话核心结论，创建独立新会话并注入上下文',

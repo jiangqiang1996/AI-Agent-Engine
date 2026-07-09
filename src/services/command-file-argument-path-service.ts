@@ -50,11 +50,16 @@ function isTextMime(mime: string): boolean {
  * - 文本类文件（text/*、json、xml、yaml 等）→ 保留
  * - 有 modality 的媒体（image/audio/video/pdf）→ 按模型能力判断，不支持则转换
  * - 无 modality 的二进制（DOCX/XLSX/ZIP 等）→ 始终转换
+ * - data: URL 内联内容（截图粘贴等）→ 始终保留，无磁盘路径可转换
  */
 export function shouldConvertForModel(part: MutableFilePart, capability: ModelMediaCapability): boolean {
   const mime = part.mime?.toLowerCase() ?? ''
 
   if (isTextMime(mime)) {
+    return false
+  }
+
+  if (part.url?.startsWith('data:')) {
     return false
   }
 

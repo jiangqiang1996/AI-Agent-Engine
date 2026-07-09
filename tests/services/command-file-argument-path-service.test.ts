@@ -116,6 +116,14 @@ describe('shouldConvertForModel', () => {
   it('mime 为空时始终转换', () => {
     expect(shouldConvertForModel(filePart({ mime: '' }), ALL_SUPPORTED)).toBe(true)
   })
+
+  it('data: URL 内联图片始终保留（无磁盘路径可转换）', () => {
+    expect(shouldConvertForModel(filePart({ mime: 'image/png', url: 'data:image/png;base64,iVBOR=' }), NONE_SUPPORTED)).toBe(false)
+  })
+
+  it('data: URL 内联 PDF 始终保留', () => {
+    expect(shouldConvertForModel(filePart({ mime: 'application/pdf', url: 'data:application/pdf;base64,JVBERi0=' }), NONE_SUPPORTED)).toBe(false)
+  })
 })
 
 describe('convertUnsupportedFilePartsToPath', () => {

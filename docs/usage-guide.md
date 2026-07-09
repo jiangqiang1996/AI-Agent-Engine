@@ -19,7 +19,6 @@
 | 审查文档 | `/ae-review domain:document <文档路径>` |
 | 重构或技术债治理 | `/ae-refactor` |
 | 前端设计、还原、交互或验收 | `/ae-web-forge` |
-| 自动播放课程 | `/ae-course-auto-player` |
 | 接口测试 | `/ae-api-tester` |
 | 数据库查询或操作 | `/ae-sql` |
 | Swagger/OpenAPI 联调摘要 | `/ae-swagger-parser` |
@@ -130,7 +129,6 @@
 | `/ae-review` | `[mode:*] [domain:code\|domain:document] [from:<ref>] [full] [full:<path>] [session] [plan:<path>] [路径...]` | 审查代码、文档、计划、全量路径或会话变更 | 代码域和文档域分开处理 |
 | `/ae-chrome-devtools` | `[url] [action] [mode] [browser] [port] [task=任务描述]` | 浏览器能力中枢，负责 MCP 动态注册、目标选择和浏览器控制 | 确认 chrome-devtools MCP 连接就绪 |
 | `/ae-web-forge` | `[描述\|Figma URL\|截图\|路由] [--design\|--match\|--logic\|--inspect]` | 统一前端能力入口：自由设计、设计还原、交互逻辑、浏览器验收 | 先完成 chrome-devtools MCP 动态注册 |
-| `/ae-course-auto-player` | `[browser] <课程列表页面URL>` | 自动播放在线课程列表 | 先完成 chrome-devtools MCP 动态注册 |
 | `/ae-api-tester` | `[接口文档\|接口描述\|已有脚本路径\|业务流程描述]` | 以真实业务流程编排为主的自动化接口测试 | 支持登录认证与脚本生成 |
 | `/ae-handoff` | `—` | 提取上下文并创建独立新会话 | 用于交接 |
 | `/ae-task-loop` | `[一句话目标描述]` | 循环执行和验证直到目标达成 | 不适合需求不清的大型功能 |

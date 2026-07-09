@@ -113,7 +113,6 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 代码或文档审查 | `/ae-review` |
 | 前端设计、还原、交互或验收 | `/ae-web-forge` |
 | chrome-devtools 浏览器能力 | `/ae-chrome-devtools` |
-| 自动播放课程 | `/ae-course-auto-player` |
 | 接口测试 | `/ae-api-tester` |
 | Swagger/OpenAPI 摘要 | `/ae-swagger-parser` |
 | HTML 单文件打包 | `/ae-html-bundle` |

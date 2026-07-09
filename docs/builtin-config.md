@@ -209,7 +209,7 @@ model: $deep
 | `/ae-brainstorm`、`/ae-prd`、`/ae-agent-creator`、`/ae-work-report`、`/ae-my-code-changes`、`/ae-handoff`、`/ae-sql`、`/ae-swagger-parser`、`/ae-api-tester`、`/ae-html-bundle`、`/ae-image`、`/ae-audio`、`/ae-video`、`/ae-graph-build`、`/ae-save-experience`、`/ae-prompt-optimize`、`/ae-skill-creator`、`/ae-static-server`、`/ae-docx`、`/ae-pdf`、`/ae-pptx`、`/ae-xlsx`、`/ae-install`、`/ae-uninstall` | `standard` |
 | `/ae-design`、`/ae-plan`、`/ae-refactor`、`/ae-work`、`/ae-merge-branch`、`/ae-review`、`/ae-web-forge`、`/ae-slides-outline`、`/ae-pptx-from-outline`、`/ae-task-loop`、`/ae-grill` | `deep` |
 | `/ae-libreoffice`、`/ae-graph-query`、`/ae-help` | `quick` |
-| `/ae-chrome-devtools`、`/ae-course-auto-player` | `vision` |
+| `/ae-chrome-devtools` | `vision` |
 | `@repo-research-analyst`、`@web-researcher` | `standard` |
 | `@ui-architect`、`@ui-matcher`、`@browser-inspector` | `vision` |
 | `@logic-weaver`、`@spec-flow-analyzer`、全部 28 个审查专精代理 | `deep` |
