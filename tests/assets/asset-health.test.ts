@@ -336,7 +336,7 @@ describe('资产健康巡检', () => {
     const commandConfig = buildCommandConfig(join(process.cwd(), 'src/assets/commands'))
     const documentedSkills = extractMarkdownSkillList(readme)
     const expectedCommands = [
-      COMMAND.HELP,
+      'ae-help',
       COMMAND.BRAINSTORM,
       COMMAND.PRD,
       COMMAND.DESIGN,
@@ -369,8 +369,8 @@ describe('资产健康巡检', () => {
       COMMAND.SKILL_CREATOR,
       COMMAND.PROMPT_OPTIMIZE,
       COMMAND.AGENT_CREATOR,
-      COMMAND.INSTALL,
-      COMMAND.UNINSTALL,
+      'ae-install',
+      'ae-uninstall',
     ]
 
     expect(readme).toContain(`| 命令 | ${Object.keys(commandConfig).length} |`)

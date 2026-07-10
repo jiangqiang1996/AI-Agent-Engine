@@ -269,32 +269,11 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillFile: `src/assets/skills/${skillDir(SKILL.XLSX)}/SKILL.md`,
   },
   {
-    skillName: SKILL.HELP,
-    commandName: COMMAND.HELP,
-    description: '列出 AE 插件中所有可调用的技能、命令和代理的帮助信息',
-    argumentHint: '[技能名或关键词]',
-    skillFile: `src/assets/skills/${skillDir(SKILL.HELP)}/SKILL.md`,
-  },
-  {
     skillName: SKILL.GRILL,
     commandName: COMMAND.GRILL,
     description: '深度追问方案决策，一问一答推进共识；适用于用户提示词模糊信息不明确需要逐层澄清的场景，以及对已有计划或设计做构建前压力测试',
     argumentHint: '[计划文档路径|设计文档路径|方案描述]',
     skillFile: `src/assets/skills/${skillDir(SKILL.GRILL)}/SKILL.md`,
-  },
-  {
-    skillName: SKILL.INSTALL,
-    commandName: COMMAND.INSTALL,
-    description: '安装或更新 AE 插件，自动判断已装则更新、未装则安装；不传参数默认全局，一次授权直接执行',
-    argumentHint: '[global|project]',
-    skillFile: `src/assets/skills/${skillDir(SKILL.INSTALL)}/SKILL.md`,
-  },
-  {
-    skillName: SKILL.UNINSTALL,
-    commandName: COMMAND.UNINSTALL,
-    description: '卸载 AE 插件，自动检测已安装范围后让用户选择卸载全局或项目级；一次授权直接执行',
-    argumentHint: '',
-    skillFile: `src/assets/skills/${skillDir(SKILL.UNINSTALL)}/SKILL.md`,
   },
 ]
 

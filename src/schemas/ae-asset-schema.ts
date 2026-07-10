@@ -38,10 +38,7 @@ STATIC_SERVER: 'ae:static-server',
   PPTX: 'ae:pptx',
   XLSX: 'ae:xlsx',
   PROMPT_OPTIMIZE: 'ae:prompt-optimize',
-  HELP: 'ae:help',
   GRILL: 'ae:grill',
-  INSTALL: 'ae:install',
-  UNINSTALL: 'ae:uninstall',
 } as const
 
 type SkillToCommand<S extends string> = S extends `ae:${infer R}` ? `ae-${R}` : S
@@ -185,10 +182,7 @@ SKILL.STATIC_SERVER,
     SKILL.PPTX,
     SKILL.XLSX,
     SKILL.PROMPT_OPTIMIZE,
-    SKILL.HELP,
     SKILL.GRILL,
-    SKILL.INSTALL,
-    SKILL.UNINSTALL,
   ])
   .describe('AE 技能名')
 

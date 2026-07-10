@@ -1,10 +1,8 @@
 ---
-name: ae:install
-description: "安装或更新 AE 插件。自动判断：已安装则拉取最新代码并重新构建，未安装则全新安装。支持全局和项目级两种范围。"
-argument-hint: "[global|project]"
+description: 安装或更新 AE 插件，自动判断已装则更新、未装则安装，一次授权直接执行
+model: $standard
+subtask: false
 ---
-
-# AE 插件安装或更新
 
 安装或更新 AI Agent Engine 插件。自动判断当前范围是否已安装：
 
@@ -18,7 +16,7 @@ argument-hint: "[global|project]"
 
 ## 第零步：确定安装范围
 
-检查用户传入的参数：
+检查 `$ARGUMENTS`：
 
 - 如果参数为 `project` 或用户明确要求项目级安装，scope 为 `project`
 - 如果参数为 `global`、未传参数或参数为空，scope 为 `global`（默认）
