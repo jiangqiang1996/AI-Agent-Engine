@@ -6,6 +6,9 @@ import { z } from 'zod'
 import { TOOL } from '../schemas/ae-asset-schema.js'
 import { executeGraphQuery } from '../services/graph-query-service.js'
 import { graphDatabaseExists } from '../services/graph-storage-service.js'
+import { evaluateGraphFreshnessBasis } from '../services/graph-freshness-service.js'
+import { loadGraphConfig } from '../services/graph-config-service.js'
+import { appendGraphUsageRecord } from '../services/graph-usage-logger.js'
 import { isInsideRoot, resolvePathWithBase, toRepoRelativePath } from '../utils/path-utils.js'
 
 type QueryMode = 'deps' | 'impact' | 'health' | 'filter' | 'path' | 'core' | 'stats' | 'pattern'
@@ -63,10 +66,17 @@ export const aeGraphQueryTool = tool({
     pattern_type: z.enum(['cycle', 'long', 'all']).optional().describe('pattern 模式：cycle/long/all。'),
   },
   execute: async (args, ctx) => {
+    const startedAt = Date.now()
     const worktree = resolve(ctx.worktree)
     const baseDirectory = resolve(ctx.directory ?? ctx.worktree)
     const mode = args.mode as QueryMode
     if (!graphDatabaseExists(worktree)) {
+      appendGraphUsageRecord(worktree, {
+        tool: 'ae-graph-query',
+        queryMode: mode,
+        resultStatus: 'not_found',
+        elapsedMs: Date.now() - startedAt,
+      })
       return '未找到文件关系图谱，请先执行 ae-graph-build 构建图谱。'
     }
     try {
@@ -89,9 +99,28 @@ export const aeGraphQueryTool = tool({
         top: args.top,
         patternType: args.pattern_type,
       })
+      const freshnessStatus = (result as { freshness?: { status?: string } }).freshness?.status
+      const resultStatus = (result as { status?: string }).status === 'diagnostic' ? 'diagnostic' : 'success'
+      appendGraphUsageRecord(worktree, {
+        tool: 'ae-graph-query',
+        queryMode: mode,
+        scopeRoot,
+        targetFile: file ?? target,
+        freshnessStatus,
+        resultStatus,
+        resultSize: JSON.stringify(result).length,
+        elapsedMs: Date.now() - startedAt,
+      })
       return JSON.stringify({ ...result as Record<string, unknown>, tool: TOOL.AE_GRAPH_QUERY }, null, 2)
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
+      const resultStatus = error instanceof SyntaxError ? 'diagnostic' : 'error'
+      appendGraphUsageRecord(worktree, {
+        tool: 'ae-graph-query',
+        queryMode: mode,
+        resultStatus,
+        elapsedMs: Date.now() - startedAt,
+      })
       if (error instanceof SyntaxError) {
         return JSON.stringify({
           status: 'diagnostic',

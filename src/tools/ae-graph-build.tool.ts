@@ -31,6 +31,7 @@ import {
   getGraphPathDecision,
   type GraphFilterCandidateSummary,
 } from '../services/graph-filter-suggestion-service.js'
+import { appendGraphUsageRecord } from '../services/graph-usage-logger.js'
 import { isInsideRoot, pathContainsSymlink, resolvePathWithBase, toPosixPath } from '../utils/path-utils.js'
 import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
 import { ARTIFACT_STAGE } from '../services/graph/build-stage.js'
@@ -355,13 +356,14 @@ export const aeGraphBuildTool = tool({
     let storage: ReturnType<typeof createGraphStorage> | undefined
     let currentBuildFingerprint: string | undefined
     let currentBuildScopeRoot: string | undefined
+    // 提前赋值 scopeRoot 默认值，确保 catch 块中可用
+    const scopeRoot = toPosixPath(relative(worktree, target) || '.')
     try {
       let config = mergeGraphRules(loadGraphConfig(worktree), args)
       const savedDecisions = await persistGraphFilterDecisions(worktree, args.filterDecisions, ctx)
       if (savedDecisions.savedIncludes.length > 0 || savedDecisions.savedExcludes.length > 0) {
         config = mergeGraphRules(loadGraphConfig(worktree), args)
       }
-      const scopeRoot = toPosixPath(relative(worktree, target) || '.')
       const requestedMode = args.mode ?? 'auto'
       const preliminaryInput = normalizeGraphBuildInput({
         worktree,
@@ -423,6 +425,15 @@ export const aeGraphBuildTool = tool({
           writeQueryIndex(worktree, scopeRoot, storage)
           storage.closeDatabase()
           storage = undefined
+          appendGraphUsageRecord(worktree, {
+            tool: 'ae-graph-build',
+            mode: effectiveMode,
+            scopeRoot,
+            freshnessStatus: 'fresh',
+            resultStatus: 'success',
+            resultSize: 0,
+            elapsedMs: Date.now() - startedAt,
+          })
           return JSON.stringify({
             message: 'Git diff 无变更，图谱无需更新',
             mode: effectiveMode,
@@ -535,6 +546,16 @@ export const aeGraphBuildTool = tool({
       writeQueryIndex(worktree, scopeRoot, storage)
       const activeSummary = storage.getActiveVersionSummary(worktree, scopeRoot)
 
+      appendGraphUsageRecord(worktree, {
+        tool: 'ae-graph-build',
+        mode: effectiveMode,
+        scopeRoot,
+        freshnessStatus: inputChangedDuringBuild ? 'maybe_stale' : 'fresh',
+        resultStatus: 'success',
+        resultSize: parsed.files.length + artifactNodeCount,
+        elapsedMs: Date.now() - startedAt,
+      })
+
       return JSON.stringify({
         mode: effectiveMode,
         modeReason: effectiveMode === 'full' ? (diff.warning ?? (rulesChanged ? '图谱过滤规则变化，已全量重建' : (diff.hasStructuralChange ? '检测到新增、删除、重命名或未跟踪文件，已保守全量构建' : '未找到可复用 active version 或用户请求 full'))) : '仅检测到可安全增量刷新的修改文件',
@@ -590,6 +611,13 @@ export const aeGraphBuildTool = tool({
           recoverBy: '请修复失败原因后重新执行 ae-graph-build。',
         })
       }
+      appendGraphUsageRecord(worktree, {
+        tool: 'ae-graph-build',
+        mode: args.mode ?? 'auto',
+        scopeRoot: currentBuildScopeRoot,
+        resultStatus: 'error',
+        elapsedMs: Date.now() - startedAt,
+      })
       return `文件关系图谱构建失败：${message}`
     } finally {
       storage?.closeDatabase()

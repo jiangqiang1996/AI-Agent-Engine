@@ -29,6 +29,7 @@ import {degradeMediaFileParts} from './services/media-degradation-service.js'
 import {getCapabilityBySession} from './services/model-capability-cache.js'
 import {chatMessageHook} from './hooks/media-fallback-chat-message.hook.js'
 import {messagesTransformHook} from './hooks/media-fallback-messages-transform.hook.js'
+import {createLocalDepsInjectionHook} from './hooks/local-deps-injection.hook.js'
 
 interface RuntimeConfigShape {
     command?: Record<string, {
@@ -146,6 +147,7 @@ const plugin: Plugin = async (input) => {
         },
         'chat.message': chatMessageHook,
         'experimental.chat.messages.transform': messagesTransformHook,
+        'tool.execute.after': createLocalDepsInjectionHook(input.worktree),
         tool: createToolRegistry(),
     }
 }

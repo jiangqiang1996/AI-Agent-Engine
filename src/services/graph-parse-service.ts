@@ -11,7 +11,7 @@ import { isInsideRoot, pathContainsSymlink, toPosixPath } from '../utils/path-ut
 import { getGraphPathDecision, graphFileTypeForPath, isSupportedGraphFile } from './graph-filter-suggestion-service.js'
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024
-const RESOLVABLE_EXTENSIONS = [
+export const RESOLVABLE_EXTENSIONS = [
   '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.py', '.java', '.go', '.rs', '.c', '.cpp', '.h', '.rb', '.php',
   '.swift', '.kt', '.scala', '.vue', '.svelte', '.css', '.scss', '.less', '.html', '.sql', '.prisma', '.graphql',
   '.md', '.txt', '.rst', '.adoc', '.json', '.jsonc', '.yaml', '.yml', '.toml', '.xml',
