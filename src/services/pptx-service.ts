@@ -36,7 +36,7 @@ export interface PptxBullet {
   type?: 'bullet' | 'number'
   characterCode?: string
   indent?: number
-  numberType?: string
+  numberType?: 'alphaUpper' | 'alphaLower' | 'romanUpper' | 'romanLower' | 'number' | 'decimal'
   numberStartAt?: number
 }
 
@@ -57,8 +57,8 @@ export interface PptxTextRun {
   valign?: 'top' | 'middle' | 'bottom'
   breakLine?: boolean
   bullet?: boolean | PptxBullet
-  underline?: { style?: string; color?: string }
-  strike?: boolean | string
+  underline?: { style?: 'none' | 'single' | 'double' | 'dash' | 'dot' | 'wave'; color?: string }
+  strike?: boolean | 'none' | 'single' | 'double' | 'doubleStrike'
   subscript?: boolean
   superscript?: boolean
   highlight?: string
@@ -461,6 +461,25 @@ function handleAnalyze(input: PptxInput): PptxResult {
 
 // ==================== append-slides 操作 ====================
 
+const EMU_PER_INCH = 914400
+const EXISTING_LAYOUT_NAME = '__EXISTING_LAYOUT__'
+
+function applyExistingLayout(zipEntries: AdmZip, pptx: PptxInstance): void {
+  const presEntry = zipEntries.getEntries().find((e) => e.entryName === 'ppt/presentation.xml')
+  if (presEntry) {
+    const xml = presEntry.getData().toString('utf8')
+    const m = xml.match(/<p:sldSz\s+cx="(\d+)"\s+cy="(\d+)"/)
+    if (m) {
+      const widthIn = parseInt(m[1], 10) / EMU_PER_INCH
+      const heightIn = parseInt(m[2], 10) / EMU_PER_INCH
+      pptx.defineLayout({ name: EXISTING_LAYOUT_NAME, width: widthIn, height: heightIn })
+      pptx.layout = EXISTING_LAYOUT_NAME
+      return
+    }
+  }
+  pptx.layout = 'LAYOUT_WIDE'
+}
+
 async function handleAppendSlides(input: PptxInput): Promise<PptxResult> {
   const file = input.file
   const newSlides = input.slides
@@ -490,7 +509,7 @@ async function handleAppendSlides(input: PptxInput): Promise<PptxResult> {
 
   // 2. 用 pptxgenjs 创建临时 PPTX（仅包含新幻灯片）
   const tempPptx = new PptxGenJS()
-  tempPptx.layout = 'LAYOUT_WIDE'
+  applyExistingLayout(existingZip, tempPptx)
   for (const slideContent of newSlides) {
     buildSlide(tempPptx, slideContent)
   }
@@ -517,6 +536,21 @@ async function handleAppendSlides(input: PptxInput): Promise<PptxResult> {
   const newSlideXmls: string[] = []
   const nextRIdStart = maxRIdNum + 1
 
+  // 确定已有 PPTX 中最大媒体文件编号（ppt/media/imageN.ext）
+  let maxMediaNum = 0
+  const mediaExtSet = new Set<string>()
+  for (const entry of existingEntries) {
+    const m = entry.entryName.match(/^ppt\/media\/media(\d+)\.(\w+)$/)
+    if (m) {
+      const num = parseInt(m[1], 10)
+      if (num > maxMediaNum) maxMediaNum = num
+      mediaExtSet.add(m[2])
+    }
+  }
+  let nextMediaNum = maxMediaNum + 1
+  const tempMediaNameMap = new Map<string, string>()
+  const tempMediaToReplace: string[] = []
+
   for (let i = 0; i < newSlides.length; i++) {
     const targetSlideNum = maxSlideNum + i + 1
     const tempSlideNum = i + 1
@@ -527,19 +561,43 @@ async function handleAppendSlides(input: PptxInput): Promise<PptxResult> {
     const tempSlideEntry = tempEntries.find((e) => e.entryName === tempSlideName)
     if (!tempSlideEntry) continue
 
-    existingZip.addFile(targetSlideName, tempSlideEntry.getData())
+    let tempSlideData = tempSlideEntry.getData()
+    // 临时 PPTX 的媒体文件可能与已有文件同名（如 media1.png），需要重编号到已避免冲突的位置
+    const collectedNewMediaNames: string[] = []
+
+    for (const tempEntry of tempEntries) {
+      if (tempEntry.entryName.startsWith('ppt/media/')) {
+        // 仅处理该幻灯片 rels 引用到的媒体，避免遍历不相关文件
+        // 先收集需要处理的临时媒体名
+        const tempMediaName = tempEntry.entryName
+        const ext = tempMediaName.split('.').pop() ?? 'png'
+        const newName = `ppt/media/media${nextMediaNum}.${ext}`
+        if (!tempMediaNameMap.has(tempMediaName)) {
+          tempMediaNameMap.set(tempMediaName, newName)
+          nextMediaNum++
+          collectedNewMediaNames.push(newName)
+        }
+      }
+    }
+
+    // 重写 slide XML 中的媒体引用路径
+    let slideXml = tempSlideData.toString('utf8')
+    for (const [oldName, newName] of tempMediaNameMap) {
+      const oldBase = oldName.split('/').pop()!
+      const newBase = newName.split('/').pop()!
+      slideXml = slideXml.split(oldBase).join(newBase)
+    }
+    tempSlideData = Buffer.from(slideXml, 'utf8')
+
+    existingZip.addFile(targetSlideName, tempSlideData)
     newSlideXmls.push(targetSlideName)
 
     // 提取临时幻灯片关系文件
     const tempSlideRelsName = `ppt/slides/_rels/slide${tempSlideNum}.xml.rels`
     const tempSlideRelsEntry = tempEntries.find((e) => e.entryName === tempSlideRelsName)
     if (tempSlideRelsEntry) {
-      // OOXML slide rels 中 rId 是文件作用域的，只需在该 .rels 文件内唯一
-      // 不需要重编号 rId，因为 slide XML 仍引用原始 rId（如 r:id="rId3"）
-      // 重编号会导致 XML 引用与 rels 映射不一致，破坏图片和布局引用
       let relsContent = tempSlideRelsEntry.getData().toString('utf8')
       // 仅修改 Target 路径中引用其他幻灯片的编号（如 slide2.xml → slideN.xml）
-      // 不修改 rId 编号
       const slideTargetPattern = /Target="slides\/slide(\d+)\.xml"/g
       for (const m of relsContent.matchAll(slideTargetPattern)) {
         const oldTargetNum = parseInt(m[1], 10)
@@ -549,21 +607,35 @@ async function handleAppendSlides(input: PptxInput): Promise<PptxResult> {
           `Target="slides/slide${newTargetNum}.xml"`,
         )
       }
+      // 重写 rels 中的媒体文件名映射
+      for (const [oldName, newName] of tempMediaNameMap) {
+        const oldBase = oldName.split('/').pop()!
+        const newBase = newName.split('/').pop()!
+        relsContent = relsContent.split(oldBase).join(newBase)
+      }
       existingZip.addFile(
         `ppt/slides/_rels/slide${targetSlideNum}.xml.rels`,
         Buffer.from(relsContent, 'utf8'),
       )
     }
 
-    // 提取临时 PPTX 中的媒体文件
+    // 提取临时 PPTX 中的媒体文件并按新编号写入
     for (const tempEntry of tempEntries) {
       if (tempEntry.entryName.startsWith('ppt/media/')) {
-        // 检查是否已存在同名文件
-        const existingMedia = existingEntries.find(
-          (e) => e.entryName === tempEntry.entryName,
-        )
-        if (!existingMedia) {
-          existingZip.addFile(tempEntry.entryName, tempEntry.getData())
+        const renamedPath = tempMediaNameMap.get(tempEntry.entryName)
+        if (renamedPath) {
+          if (!tempMediaToReplace.includes(renamedPath)) {
+            existingZip.addFile(renamedPath, tempEntry.getData())
+            tempMediaToReplace.push(renamedPath)
+          }
+        } else {
+          // 未映射的媒体文件，按原逻辑处理
+          const existingMedia = existingEntries.find(
+            (e) => e.entryName === tempEntry.entryName,
+          )
+          if (!existingMedia) {
+            existingZip.addFile(tempEntry.entryName, tempEntry.getData())
+          }
         }
       }
     }
@@ -765,7 +837,7 @@ async function handleUpdateSlide(input: PptxInput): Promise<PptxResult> {
 
   // 2. 用 pptxgenjs 创建临时 PPTX（仅包含1张更新幻灯片）
   const tempPptx = new PptxGenJS()
-  tempPptx.layout = 'LAYOUT_WIDE'
+  applyExistingLayout(existingZip, tempPptx)
   const slideContent: PptxSlideContent = { elements }
   buildSlide(tempPptx, slideContent)
   const tempData = await tempPptx.write({ outputType: 'nodebuffer' })
@@ -775,8 +847,37 @@ async function handleUpdateSlide(input: PptxInput): Promise<PptxResult> {
   const tempSlideEntry = tempZip.getEntries().find(
     (e) => e.entryName === 'ppt/slides/slide1.xml',
   )
+
+  // 确定已有 PPTX 中最大媒体文件编号
+  let maxMediaNum = 0
+  for (const entry of existingEntries) {
+    const m = entry.entryName.match(/^ppt\/media\/media(\d+)\.(\w+)$/)
+    if (m) {
+      const num = parseInt(m[1], 10)
+      if (num > maxMediaNum) maxMediaNum = num
+    }
+  }
+  let nextMediaNum = maxMediaNum + 1
+  const tempMediaNameMap = new Map<string, string>()
+
+  // 收集临时 ZIP 中所有媒体文件并重编号
+  for (const tempEntry of tempZip.getEntries()) {
+    if (tempEntry.entryName.startsWith('ppt/media/')) {
+      const ext = tempEntry.entryName.split('.').pop() ?? 'png'
+      const newName = `ppt/media/media${nextMediaNum}.${ext}`
+      tempMediaNameMap.set(tempEntry.entryName, newName)
+      nextMediaNum++
+    }
+  }
+
   if (tempSlideEntry) {
-    existingZip.updateFile(targetSlideEntry, tempSlideEntry.getData())
+    let slideXml = tempSlideEntry.getData().toString('utf8')
+    for (const [oldName, newName] of tempMediaNameMap) {
+      const oldBase = oldName.split('/').pop()!
+      const newBase = newName.split('/').pop()!
+      slideXml = slideXml.split(oldBase).join(newBase)
+    }
+    existingZip.updateFile(targetSlideEntry, Buffer.from(slideXml, 'utf8'))
   }
 
   // 4. 更新 slide 的关系文件（替换而非追加）
@@ -786,7 +887,13 @@ async function handleUpdateSlide(input: PptxInput): Promise<PptxResult> {
   const targetSlideRelsEntry = `ppt/slides/_rels/slide${targetSlideNum}.xml.rels`
 
   if (tempSlideRelsEntry) {
-    existingZip.updateFile(targetSlideRelsEntry, tempSlideRelsEntry.getData())
+    let relsContent = tempSlideRelsEntry.getData().toString('utf8')
+    for (const [oldName, newName] of tempMediaNameMap) {
+      const oldBase = oldName.split('/').pop()!
+      const newBase = newName.split('/').pop()!
+      relsContent = relsContent.split(oldBase).join(newBase)
+    }
+    existingZip.updateFile(targetSlideRelsEntry, Buffer.from(relsContent, 'utf8'))
   } else {
     // 临时幻灯片无关系文件时，移除已有的关系文件
     const existingRels = existingEntries.find(
@@ -797,14 +904,19 @@ async function handleUpdateSlide(input: PptxInput): Promise<PptxResult> {
     }
   }
 
-  // 5. 提取临时 PPTX 中的媒体文件并插入到已有 PPTX
+  // 5. 提取临时 PPTX 中的媒体文件并按新编号插入到已有 PPTX
   for (const tempEntry of tempZip.getEntries()) {
     if (tempEntry.entryName.startsWith('ppt/media/')) {
-      const existingMedia = existingEntries.find(
-        (e) => e.entryName === tempEntry.entryName,
-      )
-      if (!existingMedia) {
-        existingZip.addFile(tempEntry.entryName, tempEntry.getData())
+      const renamedPath = tempMediaNameMap.get(tempEntry.entryName)
+      if (renamedPath) {
+        existingZip.addFile(renamedPath, tempEntry.getData())
+      } else {
+        const existingMedia = existingEntries.find(
+          (e) => e.entryName === tempEntry.entryName,
+        )
+        if (!existingMedia) {
+          existingZip.addFile(tempEntry.entryName, tempEntry.getData())
+        }
       }
     }
   }
@@ -868,7 +980,12 @@ async function handleUpdateSlide(input: PptxInput): Promise<PptxResult> {
         const injectionResult = injectSvgElements(finalBuffer, svgSpecs)
         const newZip = new AdmZip(injectionResult.buffer)
         for (const entry of newZip.getEntries()) {
-          existingZip.updateFile(entry.entryName, entry.getData())
+          const existing = existingZip.getEntry(entry.entryName)
+          if (existing) {
+            existingZip.updateFile(entry.entryName, entry.getData())
+          } else {
+            existingZip.addFile(entry.entryName, entry.getData())
+          }
         }
         injectedCount = injectionResult.result.injectedCount
         allSkipped = [...extractSkipped, ...injectionResult.result.skipped]

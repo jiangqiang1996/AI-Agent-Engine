@@ -1,6 +1,4 @@
-﻿import { existsSync } from 'node:fs'
-
-import type {
+﻿import type {
   PptxInputElement,
   PptxTextRun,
   PptxShapeFill,
@@ -102,7 +100,7 @@ export function toBulletProps(bullet?: boolean | PptxBullet) {
   return b
 }
 
-export function toUnderlineProps(u?: { style?: string; color?: string }) {
+export function toUnderlineProps(u?: { style?: 'none' | 'single' | 'double' | 'dash' | 'dot' | 'wave'; color?: string }) {
   if (!u) return undefined
   const r: Record<string, unknown> = {}
   if (u.style) r.style = u.style
@@ -120,8 +118,8 @@ export function toUnderlineProps(u?: { style?: string; color?: string }) {
  * 颜色传播：当 run 未显式设置 color 但元素级别有 color 时，将元素级 color
  * 传播到 run 的 options.color，防止回退到主题默认黑色。
  */
-export function buildTextRuns(runs?: PptxTextRun[], elementColor?: string): unknown[] | undefined {
-  if (!runs) return undefined
+export function buildTextRuns(runs: PptxTextRun[], elementColor?: string): unknown[] {
+  if (!runs || runs.length === 0) return []
   return runs.map((run) => {
     const options: Record<string, unknown> = {}
     if (run.bold !== undefined) options.bold = run.bold
@@ -193,9 +191,12 @@ export function buildImageOptions(el: PptxInputElement): Record<string, unknown>
   if (el.h !== undefined) opts.h = toCoord(el.h)
   if (el.imagePath) opts.path = el.imagePath
   if (el.imageData) {
-    // pptxgenjs 要求 base64 数据带 MIME 前缀，如 "image/png;base64,..."
     let data = el.imageData
-    if (!data.startsWith('image/')) {
+    if (data.startsWith('data:')) {
+      // Data URI 格式 "data:image/png;base64,..."：pptxgenjs 期望不带 "data:" 前缀
+      data = data.slice(5)
+    } else if (!data.startsWith('image/')) {
+      // 裸 base64：需补 MIME 前缀
       const mime = data.startsWith('/9j/') ? 'image/jpeg' : 'image/png'
       data = `${mime};base64,${data}`
     }
@@ -234,9 +235,8 @@ export function buildShapeOptions(el: PptxInputElement): Record<string, unknown>
 
 export function buildTableCell(cell: PptxTableCell): unknown {
   const r: Record<string, unknown> = {}
-  if (cell.text !== undefined) r.text = cell.text
-  if (cell.rowspan !== undefined) r.rowSpan = cell.rowspan
-  if (cell.colspan !== undefined) r.colSpan = cell.colspan
+  if (cell.rowspan !== undefined) r.rowspan = cell.rowspan
+  if (cell.colspan !== undefined) r.colspan = cell.colspan
   if (cell.fill) r.fill = toFillProps(cell.fill)
   if (cell.border) r.border = cell.border
   if (cell.bold !== undefined) r.bold = cell.bold
@@ -296,7 +296,7 @@ export function buildMediaOptions(el: PptxInputElement): Record<string, unknown>
 export function drawElement(slide: PptxSlideInstance, el: PptxInputElement): void {
   switch (el.type) {
     case 'text': {
-      const textContent = el.textRuns ? buildTextRuns(el.textRuns, el.color) : (el.text ?? '')
+      const textContent = (el.textRuns && el.textRuns.length > 0) ? buildTextRuns(el.textRuns, el.color) : (el.text ?? '')
       const options = buildTextOptions(el)
       slide.addText(textContent as string, options)
       break

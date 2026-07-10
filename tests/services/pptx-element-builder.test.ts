@@ -219,9 +219,9 @@ describe('pptx-element-builder', () => {
   })
 
   describe('buildTextRuns', () => {
-    it('应该返回 undefined 当 runs 为空', () => {
-      expect(buildTextRuns(undefined)).toBeUndefined()
-      expect(buildTextRuns(undefined, 'FF0000')).toBeUndefined()
+    it('应该返回空数组当 runs 为空', () => {
+      expect(buildTextRuns([])).toEqual([])
+      expect(buildTextRuns([], 'FF0000')).toEqual([])
     })
 
     it('应该把 run 属性放在 options 子对象内', () => {
@@ -418,8 +418,8 @@ describe('pptx-element-builder', () => {
 
     it('应该映射 rowspan 和 colspan', () => {
       const result = buildTableCell({ text: 'merged', rowspan: 2, colspan: 3 }) as { options: Record<string, unknown> }
-      expect(result.options.rowSpan).toBe(2)
-      expect(result.options.colSpan).toBe(3)
+      expect(result.options.rowspan).toBe(2)
+      expect(result.options.colspan).toBe(3)
     })
 
     it('应该映射样式属性', () => {

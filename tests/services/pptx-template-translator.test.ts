@@ -79,7 +79,7 @@ describe('pptx-template-translator', () => {
       expect(result.background?.color).toBe('0F1419')
     })
 
-    it('应该翻译 content.bullets 模板并生成带项目符号的 textRuns', () => {
+    it('应该翻译 content.bullets 模板并生成带项目符号的独立 text 元素', () => {
       const page: PageDesign = {
         id: 'p2',
         template: 'content.bullets',
@@ -90,11 +90,13 @@ describe('pptx-template-translator', () => {
         locked: false,
       }
       const result = translatePage(page, mockGlobalStyle)
-      expect(result.elements.length).toBe(2) // title + bullets
-      const bulletsEl = result.elements[1]
-      expect(bulletsEl.type).toBe('text')
-      expect(Array.isArray(bulletsEl.textRuns)).toBe(true)
-      expect((bulletsEl.textRuns as unknown[]).length).toBe(3)
+      // title + 3 个独立 bullet text 元素
+      expect(result.elements.length).toBe(4)
+      const bulletEls = result.elements.slice(1)
+      for (const el of bulletEls) {
+        expect(el.type).toBe('text')
+        expect(el.bullet).toBeDefined()
+      }
     })
 
     it('应该跳过可选 slot 且无值时', () => {

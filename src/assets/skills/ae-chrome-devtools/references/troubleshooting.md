@@ -43,7 +43,7 @@ DEBUG=* npx chrome-devtools-mcp@latest --log-file=/path/to/chrome-devtools-mcp.l
 
 ### `Error [ERR_MODULE_NOT_FOUND]: Cannot find module ...`
 
-通常表示使用了不支持的 Node 版本，或 `npm`/`npx` 缓存损坏。清缓存并重装：
+通常表示使用了不支持的 Node 版本，或 `npm`/`npx` 缓存损坏。清缓存并重装（注意：以下命令会删除 npm 缓存数据，执行前需获得用户明确授权）：
 
 ```bash
 rm -rf ~/.npm/_npx

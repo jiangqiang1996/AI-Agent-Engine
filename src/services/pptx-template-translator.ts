@@ -147,31 +147,35 @@ function translateTextSlot(
   slot: SlotElement,
   tokenValue: unknown,
   globalStyle: GlobalStyle,
-): PptxPageElement {
+): PptxPageElement | PptxPageElement[] {
   const isTitleSlot = slot.fontSize !== undefined && slot.fontSize >= 24
   const fontFace = resolveFontFace(slot, globalStyle)
   const color = resolveColor(slot, globalStyle, isTitleSlot)
+  const fontSize = slot.fontSize ?? globalStyle.bodyStyle.fontSize
+  const bold = slot.bold ?? (isTitleSlot ? globalStyle.titleStyle.bold : undefined)
 
-  // 如果 token 值是数组，构建带项目符号的 textRuns
+  // 如果 token 值是数组，为每个数组项生成独立的 text 元素（每个带 bullet）
+  // 遵守 ae-pptx 工具硬约束：项目符号列表项必须是独立的 text 元素，不能用 textRuns+breakLine
   if (Array.isArray(tokenValue)) {
-    const textRuns = (tokenValue as (string | number)[]).map((item, idx) => ({
-      text: String(item),
-      fontSize: slot.fontSize ?? globalStyle.bodyStyle.fontSize,
-      color,
-      fontFace,
-      bullet: idx === 0 ? { type: 'bullet' as const } : { type: 'bullet' as const },
-      breakLine: true,
-    }))
-    return {
+    const items = tokenValue as (string | number)[]
+    const slotH = slot.h ?? 0.5
+    const itemH = slotH / Math.max(items.length, 1)
+    return items.map((item, idx) => ({
       type: 'text' as const,
       x: slot.x,
-      y: slot.y,
+      y: slot.y !== undefined ? slot.y + idx * itemH : undefined,
       w: slot.w,
-      h: slot.h,
-      textRuns,
+      h: itemH,
+      text: String(item),
+      fontSize,
+      color,
+      fontFace,
+      bold,
+      italic: slot.italic,
       align: slot.align,
       valign: slot.valign,
-    }
+      bullet: { type: 'bullet' as const },
+    }))
   }
 
   // 字符串/数字 → 单文本
@@ -182,8 +186,8 @@ function translateTextSlot(
     w: slot.w,
     h: slot.h,
     text: String(tokenValue ?? ''),
-    fontSize: slot.fontSize,
-    bold: slot.bold,
+    fontSize,
+    bold,
     italic: slot.italic,
     color,
     fontFace,
@@ -305,28 +309,32 @@ export function translatePage(page: PageDesign, globalStyle: GlobalStyle): Trans
     const merged = page.locked ? slot : mergeOverride(slot, overrides[slot.slot], globalStyle)
 
     // 根据类型翻译
-    let element: PptxPageElement
+    let result: PptxPageElement | PptxPageElement[]
     switch (merged.type) {
       case 'text':
-        element = translateTextSlot(merged, tokenValue, globalStyle)
+        result = translateTextSlot(merged, tokenValue, globalStyle)
         break
       case 'image':
-        element = translateImageSlot(merged, tokenValue)
+        result = translateImageSlot(merged, tokenValue)
         break
       case 'shape':
-        element = translateShapeSlot(merged, globalStyle)
+        result = translateShapeSlot(merged, globalStyle)
         break
       case 'table':
-        element = translateTableSlot(merged, tokens, globalStyle)
+        result = translateTableSlot(merged, tokens, globalStyle)
         break
       case 'chart':
-        element = translateChartSlot(merged, tokens)
+        result = translateChartSlot(merged, tokens)
         break
       default:
         errors.push(`页 ${page.id}: 未知元素类型 "${merged.type}"`)
         continue
     }
-    elements.push(element)
+    if (Array.isArray(result)) {
+      elements.push(...result)
+    } else {
+      elements.push(result)
+    }
   }
 
   return {

@@ -18,7 +18,7 @@ export interface BrowserTextStyle {
   italic?: boolean
   fontFace?: string
   align?: 'left' | 'center' | 'right' | 'justify'
-  underline?: boolean | { style: string }
+  underline?: boolean | { style: 'none' | 'single' | 'double' | 'dash' | 'dot' | 'wave' }
   lineSpacing?: number
   paraSpaceBefore?: number
   paraSpaceAfter?: number
@@ -32,7 +32,7 @@ export interface BrowserBullet {
   indent?: number
   type?: 'bullet' | 'number'
   numberStartAt?: number
-  numberType?: string
+  numberType?: 'alphaUpper' | 'alphaLower' | 'romanUpper' | 'romanLower' | 'number' | 'decimal'
 }
 
 export interface BrowserTextRun {
@@ -42,7 +42,7 @@ export interface BrowserTextRun {
   fontSize?: number
   color?: string
   fontFace?: string
-  underline?: boolean | { style: string }
+  underline?: boolean | { style: 'none' | 'single' | 'double' | 'dash' | 'dot' | 'wave' }
   bullet?: boolean | BrowserBullet
   breakLine?: boolean
   subscript?: boolean
@@ -972,8 +972,8 @@ function mapRuns(runs: BrowserTextRun[], sx: number, sy: number): PptxTextRun[] 
   })
 }
 
-function propagateUnderlineToRuns(runs: PptxTextRun[], underline: boolean | { style: string }): void {
-  const mappedUnderline = underline === true ? { style: 'single' } : underline === false ? undefined : underline
+function propagateUnderlineToRuns(runs: PptxTextRun[], underline: boolean | { style: 'none' | 'single' | 'double' | 'dash' | 'dot' | 'wave' }): void {
+  const mappedUnderline = underline === true ? { style: 'single' as const } : underline === false ? undefined : underline
   if (!mappedUnderline) return
   for (const run of runs) {
     if (!run.underline) run.underline = mappedUnderline

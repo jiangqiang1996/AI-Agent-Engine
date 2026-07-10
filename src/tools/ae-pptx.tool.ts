@@ -17,7 +17,7 @@ const bulletSchema = z.object({
   type: z.enum(['bullet', 'number']).optional().describe('项目符号类型'),
   characterCode: z.string().optional().describe('自定义符号字符码'),
   indent: z.number().optional().describe('缩进级别'),
-  numberType: z.string().optional().describe('编号类型，如 alphaUpper、romanLower'),
+  numberType: z.enum(['alphaUpper', 'alphaLower', 'romanUpper', 'romanLower', 'number', 'decimal']).optional().describe('编号类型'),
   numberStartAt: z.number().optional().describe('编号起始值'),
 }).describe('项目符号配置')
 
@@ -28,14 +28,14 @@ const hyperlinkSchema = z.object({
 }).describe('超链接配置')
 
 const shapeFillSchema = z.object({
-  color: z.string().optional().describe('填充颜色 HEX 值，如 FF0000'),
-  transparency: z.number().optional().describe('透明度 0-100'),
+  color: z.string().regex(/^[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/).optional().describe('填充颜色 HEX 值，如 FF0000'),
+  transparency: z.number().min(0).max(100).optional().describe('透明度 0-100'),
   type: z.enum(['none', 'solid']).optional().describe('填充类型'),
 }).describe('形状填充')
 
 const borderSchema = z.object({
   type: z.enum(['none', 'dash', 'solid']).optional().describe('边框类型'),
-  color: z.string().optional().describe('边框颜色 HEX 值'),
+  color: z.string().regex(/^[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/).optional().describe('边框颜色 HEX 值'),
   pt: z.number().optional().describe('边框粗细（磅）'),
 }).describe('单边边框')
 
@@ -52,13 +52,13 @@ const shadowSchema = z.object({
   blur: z.number().optional().describe('模糊半径（磅）'),
   angle: z.number().optional().describe('阴影角度（度）'),
   offset: z.number().optional().describe('阴影偏移（磅）'),
-  color: z.string().optional().describe('阴影颜色 HEX 值'),
+  color: z.string().regex(/^[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/).optional().describe('阴影颜色 HEX 值'),
   rotateWithShape: z.boolean().optional().describe('是否随形状旋转'),
 }).describe('阴影配置')
 
 const backgroundSchema = z.object({
-  color: z.string().optional().describe('背景颜色 HEX 值'),
-  transparency: z.number().optional().describe('透明度 0-100'),
+  color: z.string().regex(/^[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/).optional().describe('背景颜色 HEX 值'),
+  transparency: z.number().min(0).max(100).optional().describe('透明度 0-100'),
   path: z.string().optional().describe('背景图片路径'),
   data: z.string().optional().describe('背景图片 Base64 数据'),
 }).describe('幻灯片背景')
@@ -70,17 +70,17 @@ const textRunSchema = z.object({
   bold: z.boolean().optional().describe('粗体'),
   italic: z.boolean().optional().describe('斜体'),
   fontSize: z.number().optional().describe('字号'),
-  color: z.string().optional().describe('颜色 HEX 值'),
+  color: z.string().regex(/^[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/).optional().describe('颜色 HEX 值'),
   fontFace: z.string().optional().describe('字体名称'),
   align: z.enum(['left', 'center', 'right', 'justify']).optional().describe('对齐方式'),
   valign: z.enum(['top', 'middle', 'bottom']).optional().describe('垂直对齐'),
   breakLine: z.boolean().optional().describe('是否在此运行后换行'),
   bullet: z.union([z.boolean(), bulletSchema]).optional().describe('项目符号'),
   underline: z.object({
-    style: z.string().optional().describe('下划线样式'),
-    color: z.string().optional().describe('下划线颜色'),
+    style: z.enum(['none', 'single', 'double', 'dash', 'dot', 'wave']).optional().describe('下划线样式'),
+    color: z.string().regex(/^[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/).optional().describe('下划线颜色'),
   }).optional().describe('下划线'),
-  strike: z.union([z.boolean(), z.string()]).optional().describe('删除线'),
+  strike: z.union([z.boolean(), z.enum(['none', 'single', 'double', 'doubleStrike'])]).optional().describe('删除线'),
   subscript: z.boolean().optional().describe('下标'),
   superscript: z.boolean().optional().describe('上标'),
   highlight: z.string().optional().describe('高亮颜色 HEX 值'),
@@ -100,7 +100,7 @@ const tableCellSchema = z.object({
   bold: z.boolean().optional().describe('粗体'),
   italic: z.boolean().optional().describe('斜体'),
   fontSize: z.number().optional().describe('字号'),
-  color: z.string().optional().describe('颜色 HEX 值'),
+  color: z.string().regex(/^[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/).optional().describe('颜色 HEX 值'),
   align: z.enum(['left', 'center', 'right', 'justify']).optional().describe('对齐方式'),
   valign: z.enum(['top', 'middle', 'bottom']).optional().describe('垂直对齐'),
   hyperlink: hyperlinkSchema.optional().describe('超链接'),
@@ -134,7 +134,7 @@ const textElementSchema = z.object({
   fontSize: z.number().optional().describe('字号'),
   bold: z.boolean().optional().describe('粗体'),
   italic: z.boolean().optional().describe('斜体'),
-  color: z.string().optional().describe('颜色 HEX 值'),
+  color: z.string().regex(/^[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/).optional().describe('颜色 HEX 值'),
   fontFace: z.string().optional().describe('字体名称'),
   align: z.enum(['left', 'center', 'right', 'justify']).optional().describe('对齐方式'),
   valign: z.enum(['top', 'middle', 'bottom']).optional().describe('垂直对齐'),
@@ -164,7 +164,7 @@ const imageElementSchema = z.object({
   imageData: z.string().optional().describe('图片 Base64 数据'),
   altText: z.string().optional().describe('替代文本'),
   rounding: z.boolean().optional().describe('是否圆角裁剪'),
-  transparency: z.number().optional().describe('透明度 0-100'),
+  transparency: z.number().min(0).max(100).optional().describe('透明度 0-100'),
   flipH: z.boolean().optional().describe('水平翻转'),
   flipV: z.boolean().optional().describe('垂直翻转'),
   rotate: z.number().optional().describe('旋转角度'),
@@ -176,7 +176,7 @@ const imageElementSchema = z.object({
 const shapeElementSchema = z.object({
   type: z.literal('shape').describe('元素类型：形状'),
   ...elementBaseFields,
-  shape: z.string().describe('形状名称，如 rect、roundRect、ellipse、triangle、line、chevron、arrowRight、star5、heart'),
+  shape: z.enum(['rect', 'roundRect', 'ellipse', 'triangle', 'line', 'chevron', 'arrowRight', 'arrowLeft', 'arrowUp', 'arrowDown', 'star5', 'star6', 'star8', 'heart', 'pentagon', 'hexagon', 'diamond', 'parallelogram', 'trapezoid', 'plus', 'minus', 'cloud', 'callout', 'actionButton']).describe('形状名称'),
   align: z.enum(['left', 'center', 'right', 'justify']).optional().describe('对齐方式'),
   fill: shapeFillSchema.optional().describe('填充'),
   line: shapeLineSchema.optional().describe('线条/边框'),
@@ -185,7 +185,7 @@ const shapeElementSchema = z.object({
   flipH: z.boolean().optional().describe('水平翻转'),
   flipV: z.boolean().optional().describe('垂直翻转'),
   rectRadius: z.number().optional().describe('圆角半径（英寸）'),
-  points: z.array(z.any()).optional().describe('自定义形状顶点数组'),
+  points: z.array(z.unknown()).optional().describe('自定义形状顶点数组'),
   hyperlink: hyperlinkSchema.optional().describe('超链接'),
 }).describe('形状元素')
 
@@ -200,7 +200,7 @@ const tableElementSchema = z.object({
   autoPageHeaderRows: z.number().optional().describe('表头行数'),
   align: z.enum(['left', 'center', 'right', 'justify']).optional().describe('表格对齐'),
   fontSize: z.number().optional().describe('字号'),
-  color: z.string().optional().describe('文字颜色 HEX 值'),
+  color: z.string().regex(/^[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/).optional().describe('文字颜色 HEX 值'),
   fontFace: z.string().optional().describe('字体名称'),
   fill: shapeFillSchema.optional().describe('表格填充'),
   margin: z.union([z.number(), z.tuple([z.number(), z.number(), z.number(), z.number()])]).optional().describe('单元格内边距'),
@@ -209,9 +209,9 @@ const tableElementSchema = z.object({
 const chartElementSchema = z.object({
   type: z.literal('chart').describe('元素类型：图表'),
   ...elementBaseFields,
-  chartType: z.string().describe('图表类型，如 bar、line、pie、doughnut、area、scatter、radar、bubble'),
-  chartData: z.array(z.any()).describe('图表数据数组'),
-  chartOptions: z.any().optional().describe('图表选项（标题、图例、轴等）'),
+  chartType: z.enum(['bar', 'line', 'pie', 'doughnut', 'area', 'scatter', 'radar', 'bubble']).describe('图表类型'),
+  chartData: z.array(z.unknown()).describe('图表数据数组'),
+  chartOptions: z.unknown().optional().describe('图表选项（标题、图例、轴等）'),
 }).describe('图表元素')
 
 const mediaElementSchema = z.object({
@@ -269,12 +269,12 @@ const slideSchema = z.object({
 const masterObjectSchema = z.object({
   text: z.object({
     text: z.string(),
-    options: z.any().optional().describe('母版文本对象选项'),
+    options: z.unknown().optional().describe('母版文本对象选项'),
   }).optional().describe('母版文本对象'),
-  image: z.any().optional().describe('母版图片对象'),
-  rect: z.any().optional().describe('母版矩形对象'),
-  line: z.any().optional().describe('母版线条对象'),
-  chart: z.any().optional().describe('母版图表对象'),
+  image: z.unknown().optional().describe('母版图片对象'),
+  rect: z.unknown().optional().describe('母版矩形对象'),
+  line: z.unknown().optional().describe('母版线条对象'),
+  chart: z.unknown().optional().describe('母版图表对象'),
   placeholder: z.object({
     options: z.object({
       name: z.string(),

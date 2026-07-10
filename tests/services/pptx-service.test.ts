@@ -361,7 +361,7 @@ describe('pptx-service', () => {
                 textRuns: [
                   {
                     text: '带下划线和删除线',
-                    underline: { style: 'sng', color: 'FF0000' },
+                    underline: { style: 'single', color: 'FF0000' },
                     strike: true,
                     bold: true,
                   },
