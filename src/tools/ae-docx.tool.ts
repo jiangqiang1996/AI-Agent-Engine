@@ -11,6 +11,14 @@ import {
   buildOutsideWriteConfirmMessage,
 } from '../utils/document-path-security.js'
 
+// ==================== 共享 Schema ====================
+
+const colorHexSchema = z.string().regex(/^#?[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/).describe('颜色（十六进制，如 FF0000 或 #FF0000）')
+
+const highlightSchema = z.enum(['yellow', 'green', 'red', 'cyan', 'magenta', 'blue', 'darkBlue', 'darkCyan', 'darkGreen', 'darkMagenta', 'darkRed', 'darkYellow', 'darkGray', 'lightGray', 'black', 'white', 'none']).optional()
+
+const borderStyleSchema = z.enum(['single', 'dashed', 'dotted', 'double', 'none', 'thick', 'wave', 'inset', 'outset', 'triple', 'dotDash', 'dotDotDash', 'dashSmallGap', 'doubleWave', 'nil']).optional()
+
 // ==================== 文本运行样式 ====================
 
 const runStyleSchema = z.object({
@@ -22,25 +30,31 @@ const runStyleSchema = z.object({
   doubleStrike: z.boolean().optional().describe('双删除线'),
   subscript: z.boolean().optional().describe('下标'),
   superscript: z.boolean().optional().describe('上标'),
-  color: z.string().optional().describe('字体颜色（十六进制，如 FF0000）'),
+  color: colorHexSchema.optional().describe('字体颜色（十六进制，如 FF0000）'),
   fontSize: z.number().min(1).max(200).optional().describe('字号（磅）'),
   fontFace: z.string().optional().describe('字体名称'),
-  highlight: z.string().optional().describe('高亮颜色（如 yellow, green, red, cyan）'),
+  highlight: highlightSchema,
   breakAfter: z.boolean().optional().describe('运行后换行'),
 })
 
-// ==================== 超链接运行 ====================
+// ==================== 超链接 ====================
 
 const hyperlinkRunSchema = z.object({
   text: z.string().describe('链接显示文本'),
   url: z.string().describe('链接 URL'),
   bold: z.boolean().optional().describe('粗体'),
   italics: z.boolean().optional().describe('斜体'),
-  color: z.string().optional().describe('字体颜色（十六进制）'),
+  color: colorHexSchema.optional().describe('字体颜色（十六进制）'),
   underline: z.enum(['single', 'double', 'none']).optional().describe('下划线类型'),
 })
 
 // ==================== 表格单元格样式 ====================
+
+const tableBorderSideSchema = z.object({
+  style: borderStyleSchema.describe('边框样式'),
+  size: z.number().min(0).optional().describe('边框粗细（1/8 磅）'),
+  color: colorHexSchema.optional().describe('边框颜色（十六进制）'),
+}).optional()
 
 const tableCellStyleSchema = z.object({
   width: z.object({
@@ -48,31 +62,15 @@ const tableCellStyleSchema = z.object({
     type: z.enum(['pct', 'dxa']).optional().describe('宽度类型：pct=百分比, dxa=缇'),
   }).optional().describe('单元格宽度'),
   shading: z.object({
-    fill: z.string().describe('背景色（十六进制）'),
+    fill: colorHexSchema.describe('背景色（十六进制）'),
     type: z.enum(['clear', 'solid']).optional().describe('底纹类型'),
   }).optional().describe('单元格底纹'),
   verticalAlign: z.enum(['top', 'center', 'bottom']).optional().describe('垂直对齐'),
   borders: z.object({
-    top: z.object({
-      style: z.string().optional().describe('边框样式（如 single, double, dashed, dotted, none）'),
-      size: z.number().min(0).optional().describe('边框粗细（1/8 磅）'),
-      color: z.string().optional().describe('边框颜色（十六进制）'),
-    }).optional(),
-    bottom: z.object({
-      style: z.string().optional().describe('边框样式'),
-      size: z.number().min(0).optional().describe('边框粗细'),
-      color: z.string().optional().describe('边框颜色'),
-    }).optional(),
-    left: z.object({
-      style: z.string().optional().describe('边框样式'),
-      size: z.number().min(0).optional().describe('边框粗细'),
-      color: z.string().optional().describe('边框颜色'),
-    }).optional(),
-    right: z.object({
-      style: z.string().optional().describe('边框样式'),
-      size: z.number().min(0).optional().describe('边框粗细'),
-      color: z.string().optional().describe('边框颜色'),
-    }).optional(),
+    top: tableBorderSideSchema,
+    bottom: tableBorderSideSchema,
+    left: tableBorderSideSchema,
+    right: tableBorderSideSchema,
   }).optional().describe('单元格边框'),
   margin: z.object({
     top: z.number().min(0).optional().describe('上边距（缇）'),
@@ -85,7 +83,7 @@ const tableCellStyleSchema = z.object({
   bold: z.boolean().optional().describe('粗体'),
   italics: z.boolean().optional().describe('斜体'),
   fontSize: z.number().min(1).max(200).optional().describe('字号（磅）'),
-  color: z.string().optional().describe('字体颜色（十六进制）'),
+  color: colorHexSchema.optional().describe('字体颜色（十六进制）'),
   align: z.enum(['left', 'center', 'right', 'justify']).optional().describe('水平对齐'),
 })
 
@@ -109,10 +107,10 @@ const contentBlockSchema = z.object({
   italics: z.boolean().optional().describe('斜体'),
   underline: z.enum(['single', 'double', 'dash', 'dot', 'wave', 'none']).optional().describe('下划线类型'),
   strike: z.boolean().optional().describe('删除线'),
-  color: z.string().optional().describe('字体颜色（十六进制）'),
+  color: colorHexSchema.optional().describe('字体颜色（十六进制）'),
   fontSize: z.number().min(1).max(200).optional().describe('字号（磅）'),
   fontFace: z.string().optional().describe('字体名称'),
-  highlight: z.string().optional().describe('高亮颜色'),
+  highlight: highlightSchema,
   align: z.enum(['left', 'center', 'right', 'justify']).optional().describe('段落对齐'),
   spacing: z.object({
     before: z.number().min(0).optional().describe('段前间距（缇）'),
@@ -120,8 +118,8 @@ const contentBlockSchema = z.object({
     line: z.number().min(0).optional().describe('行距（缇，如 240=单倍行距）'),
   }).optional().describe('段落间距'),
   indent: z.object({
-    left: z.number().optional().describe('左缩进（缇）'),
-    right: z.number().optional().describe('右缩进（缇）'),
+    left: z.number().min(0).optional().describe('左缩进（缇）'),
+    right: z.number().min(0).optional().describe('右缩进（缇）'),
     firstLine: z.number().optional().describe('首行缩进（缇）'),
   }).optional().describe('段落缩进'),
   // runs

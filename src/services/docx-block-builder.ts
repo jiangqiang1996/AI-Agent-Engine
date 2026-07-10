@@ -37,7 +37,7 @@ export function escapeXml(s: string): string {
     .replace(/>/g, '&gt;')
 }
 
-// ==================== 鏂囨湰杩愯鏍峰紡 ====================
+// ==================== 文本运行样式 ====================
 
 export interface DocxRunStyle {
   text: string
@@ -55,7 +55,7 @@ export interface DocxRunStyle {
   breakAfter?: boolean
 }
 
-// ==================== 超链接?====================
+// ==================== 超链接 ====================
 
 export interface DocxHyperlinkRun {
   text: string
@@ -66,7 +66,7 @@ export interface DocxHyperlinkRun {
   underline?: 'single' | 'double' | 'none'
 }
 
-// ==================== 表格单元格样式?====================
+// ==================== 表格单元格样式 ====================
 
 export interface DocxTableCellStyle {
   width?: { size: number; type?: 'pct' | 'dxa' }
@@ -88,7 +88,7 @@ export interface DocxTableCellStyle {
   align?: 'left' | 'center' | 'right' | 'justify'
 }
 
-// ==================== 鍐呭鍧楃被鍨?====================
+// ==================== 内容块类型 ====================
 
 export interface DocxContentBlock {
   type:
@@ -143,7 +143,7 @@ export interface DocxTableCell {
   style?: DocxTableCellStyle
 }
 
-// ==================== 鑺傚睘鎬?====================
+// ==================== 节属性 ====================
 
 export interface DocxSectionProps {
   pageSize?: { width?: number; height?: number; orientation?: 'portrait' | 'landscape' }
@@ -154,7 +154,7 @@ export interface DocxSectionProps {
   columnSpacing?: number
 }
 
-// ==================== 文档元数据?====================
+// ==================== 文档元数据 ====================
 
 export interface DocxDocumentMeta {
   title?: string
@@ -173,7 +173,7 @@ export interface DocxInput {
   operation: DocxOperation
   worktree: string
   file?: string
-  /** merge 鎿嶄綔锛氳鍚堝苟鐨?DOCX 鏂囦欢璺緞鍒楄〃 */
+  /** merge 操作：要合并的 DOCX 文件路径列表 */
   files?: string[]
   title?: string
   blocks?: DocxContentBlock[]
@@ -185,7 +185,7 @@ export interface DocxInput {
   block?: DocxContentBlock
   outputPath?: string
   outputMode?: 'file' | 'inline'
-  /** to-image 鎿嶄綔锛氭寚瀹氶〉鐮佸垪琛紙1-based锛夛紝鐪佺暐鍒欒浆鎹㈡墍鏈夐〉 */
+  /** to-image 操作：指定页码列表（1-based），省略则转换所有页 */
   pages?: number[]
 }
 
@@ -249,7 +249,7 @@ export function buildTextRun(run: DocxRunStyle): TextRun {
   if (run.subscript !== undefined) props.subScript = run.subscript
   if (run.superscript !== undefined) props.superScript = run.superscript
   if (run.color) props.color = run.color
-  if (run.fontSize !== undefined) props.size = run.fontSize * 2 // docx 浣跨敤鍗婄
+  if (run.fontSize !== undefined) props.size = run.fontSize * 2 // docx 使用半磅
   if (run.fontFace) props.font = run.fontFace
   if (run.highlight) props.highlight = run.highlight
   if (run.breakAfter) props.break = 1
@@ -372,9 +372,12 @@ export function buildBlockTextRun(block: DocxContentBlock): TextRun {
 }
 
 export function buildImageRun(block: DocxContentBlock): ImageRun {
+  const raw = block.imageData ?? ''
+  const commaIdx = raw.indexOf(',')
+  const base64Data = commaIdx >= 0 ? raw.slice(commaIdx + 1) : raw
   const data = block.imagePath
     ? readFileSync(block.imagePath)
-    : Buffer.from(block.imageData ?? '', 'base64')
+    : Buffer.from(base64Data, 'base64')
 
   return new ImageRun({
     data,
@@ -510,7 +513,7 @@ export function buildSection(sectionProps: DocxSectionProps | undefined, childre
       if (sectionProps.pageSize.orientation) {
         ps.orientation = sectionProps.pageSize.orientation === 'landscape' ? PageOrientation.LANDSCAPE : PageOrientation.PORTRAIT
       }
-      section.properties = { ...(section.properties as object ?? {}), page: ps }
+      section.properties = { ...((section.properties as object) ?? {}), page: ps }
     }
     if (sectionProps.margins) {
       const m: Record<string, unknown> = {}
@@ -521,7 +524,7 @@ export function buildSection(sectionProps: DocxSectionProps | undefined, childre
       if (sectionProps.margins.header !== undefined) m.header = convertInchesToTwip(sectionProps.margins.header)
       if (sectionProps.margins.footer !== undefined) m.footer = convertInchesToTwip(sectionProps.margins.footer)
       const existing = (section.properties as Record<string, unknown> | undefined) ?? {}
-      section.properties = { ...existing, page: { ...(existing.page as object ?? {}), margin: m } }
+      section.properties = { ...existing, page: { ...((existing.page as object) ?? {}), margin: m } }
     }
     if (sectionProps.headers) {
       const headers: Record<string, unknown> = {}

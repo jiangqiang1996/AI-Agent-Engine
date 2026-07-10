@@ -37,3 +37,18 @@ export function withBackup<T>(filePath: string, operation: () => T): T {
     throw error
   }
 }
+
+export async function withBackupAsync<T>(filePath: string, operation: () => Promise<T>): Promise<T> {
+  if (!existsSync(filePath)) {
+    return operation()
+  }
+  const backupPath = createBackup(filePath)
+  try {
+    const result = await operation()
+    removeBackup(backupPath)
+    return result
+  } catch (error) {
+    restoreFromBackup(backupPath, filePath)
+    throw error
+  }
+}

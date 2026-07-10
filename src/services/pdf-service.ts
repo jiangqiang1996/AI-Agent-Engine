@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
-import path from 'node:path'
+import path, { join } from 'node:path'
 
 import { withBackup } from '../utils/file-backup.js'
 
@@ -15,9 +15,11 @@ import { convertPdfToMarkdown } from './pdf-markdown-converter.js'
 import { loadDocumentFile } from './document-file-loader.js'
 import { writeMarkdownOutput } from './markdown-output-writer.js'
 import { pdfToImages } from './pdf-to-image-service.js'
-import { join } from 'node:path'
 
 const require = createRequire(import.meta.url)
+
+/** PDF extract-text 返回给 LLM 的最大字符数，超出截断 */
+const PDF_EXTRACT_TEXT_MAX_CHARS = 8000
 
 /**
  * pdf-parse 模块类型
@@ -577,9 +579,13 @@ async function handleExtractText(input: PdfInput): Promise<PdfResult> {
   const parser = new (getPdfParseModule().PDFParse)({ data: dataBuffer })
   const data = await parser.getText()
 
+  const fullText = data.text ?? ''
+  const truncated = fullText.length > PDF_EXTRACT_TEXT_MAX_CHARS
+  const content = truncated ? fullText.slice(0, PDF_EXTRACT_TEXT_MAX_CHARS) : fullText
+
   return {
-    summary: `已提取文本，共 ${data.total} 页`,
-    content: data.text.slice(0, 8000),
+    summary: `已提取文本，共 ${data.total} 页${truncated ? `（文本已截断至前 ${PDF_EXTRACT_TEXT_MAX_CHARS} 字符，完整文本长度 ${fullText.length} 字符）` : ''}`,
+    content,
   }
 }
 

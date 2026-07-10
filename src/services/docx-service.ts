@@ -1,5 +1,5 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import path from 'node:path'
+import path, { join } from 'node:path'
 
 import AdmZip from 'adm-zip'
 import { withBackup } from '../utils/file-backup.js'
@@ -47,7 +47,6 @@ import { convertDocxToMarkdown } from './docx-markdown-converter.js'
 import { loadDocumentFile } from './document-file-loader.js'
 import { writeMarkdownOutput } from './markdown-output-writer.js'
 import { detectLibreOffice, convertToImagesViaPdf, resolveLibreofficeConfigPath } from './libreoffice-service.js'
-import { join } from 'node:path'
 
 export type { DocxOperation, DocxInput, DocxResult, DocxContentBlock, DocxRunStyle, DocxHyperlinkRun, DocxTableCellStyle, DocxTableCell, DocxSectionProps, DocxDocumentMeta } from './docx-block-builder.js'
 

@@ -47,8 +47,8 @@ const alignmentSchema = z.object({
   horizontal: z.enum(['left', 'center', 'right', 'fill', 'justify', 'centerContinuous', 'distributed']).optional().describe('水平对齐'),
   vertical: z.enum(['top', 'middle', 'bottom', 'distributed', 'justify']).optional().describe('垂直对齐'),
   wrapText: z.boolean().optional().describe('是否自动换行'),
-  textRotation: z.number().optional().describe('文字旋转角度（0-180）'),
-  indent: z.number().optional().describe('缩进级别'),
+  textRotation: z.number().min(0).max(180).optional().describe('文字旋转角度（0-180）'),
+  indent: z.number().min(0).optional().describe('缩进级别'),
   shrinkToFit: z.boolean().optional().describe('是否缩小字体以填充'),
 }).describe('对齐样式')
 

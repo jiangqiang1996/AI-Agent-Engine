@@ -1,14 +1,32 @@
 import { mkdirSync } from 'node:fs'
-import path from 'node:path'
+import path, { join } from 'node:path'
 
 import ExcelJS from 'exceljs'
 
 import { generateDocumentOutputPath } from '../utils/document-output-path.js'
+import { withBackupAsync } from '../utils/file-backup.js'
 import { convertXlsxToMarkdown } from './xlsx-markdown-converter.js'
 import { loadDocumentFile } from './document-file-loader.js'
 import { writeMarkdownOutput } from './markdown-output-writer.js'
 import { detectLibreOffice, convertToImagesViaPdf, resolveLibreofficeConfigPath } from './libreoffice-service.js'
-import { join } from 'node:path'
+
+async function writeXlsxFile(wb: ExcelJS.Workbook, outputPath: string, file: string): Promise<void> {
+  if (outputPath !== file) {
+    mkdirSync(path.dirname(outputPath), { recursive: true })
+    await wb.xlsx.writeFile(outputPath)
+  } else {
+    await withBackupAsync(file, () => wb.xlsx.writeFile(outputPath))
+  }
+}
+
+/** exceljs Worksheet 类型未暴露 dataValidations，运行时通过内部 model 访问；升级 exceljs 时需验证此路径 */
+function getDataValidationManager(ws: ExcelJS.Worksheet): {
+  dataValidations: { add: (address: string, validation: unknown) => void }
+} {
+  return ws as unknown as {
+    dataValidations: { add: (address: string, validation: unknown) => void }
+  }
+}
 
 export type XlsxOperation = 'create' | 'edit' | 'analyze' | 'add-rows' | 'add-sheet' | 'merge' | 'to-markdown' | 'to-image'
 
@@ -351,9 +369,7 @@ function applyDataValidation(ws: ExcelJS.Worksheet, dv: XlsxDataValidation): voi
   if (dv.promptTitle !== undefined) validation.promptTitle = dv.promptTitle
 
   // exceljs Worksheet 类型未暴露 dataValidations，但运行时存在
-  const wsWithDv = ws as unknown as {
-    dataValidations: { add: (address: string, validation: unknown) => void }
-  }
+  const wsWithDv = getDataValidationManager(ws)
   const ranges = dv.ranges || []
   for (const range of ranges) {
     wsWithDv.dataValidations.add(range, validation)
@@ -455,8 +471,7 @@ async function handleCreate(input: XlsxInput): Promise<XlsxResult> {
 
   const outputPath =
     input.outputPath ?? generateDocumentOutputPath(input.worktree, 'create', 'xlsx')
-  mkdirSync(path.dirname(outputPath), { recursive: true })
-  await wb.xlsx.writeFile(outputPath)
+  await writeXlsxFile(wb, outputPath, '')
 
   return {
     outputPath,
@@ -524,10 +539,7 @@ async function handleEdit(input: XlsxInput): Promise<XlsxResult> {
   }
 
   const outputPath = input.outputPath ?? file
-  if (outputPath !== file) {
-    mkdirSync(path.dirname(outputPath), { recursive: true })
-  }
-  await wb.xlsx.writeFile(outputPath)
+  await writeXlsxFile(wb, outputPath, file)
 
   return {
     outputPath,
@@ -674,10 +686,7 @@ async function handleAddRows(input: XlsxInput): Promise<XlsxResult> {
 
   const totalRows = ws.rowCount
   const outputPath = input.outputPath ?? file
-  if (outputPath !== file) {
-    mkdirSync(path.dirname(outputPath), { recursive: true })
-  }
-  await wb.xlsx.writeFile(outputPath)
+  await writeXlsxFile(wb, outputPath, file)
 
   return {
     outputPath,
@@ -774,10 +783,7 @@ async function handleAddSheet(input: XlsxInput): Promise<XlsxResult> {
 
   const totalSheets = wb.worksheets.length
   const outputPath = input.outputPath ?? file
-  if (outputPath !== file) {
-    mkdirSync(path.dirname(outputPath), { recursive: true })
-  }
-  await wb.xlsx.writeFile(outputPath)
+  await writeXlsxFile(wb, outputPath, file)
 
   return {
     outputPath,
@@ -878,14 +884,32 @@ async function handleMerge(input: XlsxInput): Promise<XlsxResult> {
         destWs.views = srcWs.views
       }
 
+      // 复制条件格式
+      const srcCfList = (srcWs.model as { conditionalFormattings?: ExcelJS.ConditionalFormattingOptions[] }).conditionalFormattings
+      if (srcCfList && srcCfList.length > 0) {
+        for (const cf of srcCfList) {
+          destWs.addConditionalFormatting(cf)
+        }
+      }
+
+      // 复制数据验证
+      const srcDvModel = (srcWs.model as { dataValidations?: Record<string, unknown> }).dataValidations
+      if (srcDvModel) {
+        const destWsDv = getDataValidationManager(destWs)
+        for (const [range, dv] of Object.entries(srcDvModel)) {
+          if (dv !== undefined) {
+            destWsDv.dataValidations.add(range, dv)
+          }
+        }
+      }
+
       copiedSheetCount++
     })
   }
 
   const outputPath =
     input.outputPath ?? generateDocumentOutputPath(input.worktree, 'merge', 'xlsx')
-  mkdirSync(path.dirname(outputPath), { recursive: true })
-  await baseWb.xlsx.writeFile(outputPath)
+  await writeXlsxFile(baseWb, outputPath, '')
 
   const totalSheets = baseWb.worksheets.length
   return {
