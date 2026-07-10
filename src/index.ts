@@ -24,6 +24,7 @@ import {createRuntimeAssetManifest} from './services/runtime-asset-manifest.js'
 import {registerSkillsPath} from './services/skills-path-service.js'
 import {createToolRegistry} from './tools/index.js'
 import {setGlobalClient} from './services/client-holder.js'
+import {resolveOpencodePaths} from './services/opencode-path-service.js'
 import {dedupeCommandFileArgumentParts} from './services/command-file-argument-dedupe-service.js'
 import {degradeMediaFileParts} from './services/media-degradation-service.js'
 import {getCapabilityBySession} from './services/model-capability-cache.js'
@@ -121,6 +122,7 @@ const plugin: Plugin = async (input) => {
     const manifest = createRuntimeAssetManifest(import.meta.url)
     const hostWorktree = input.worktree
     setGlobalClient(input.client)
+    await resolveOpencodePaths()
 
     return {
         config: async (config) => {

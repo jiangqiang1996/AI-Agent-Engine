@@ -2,12 +2,13 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, wri
 import { randomUUID } from 'node:crypto'
 import { execSync, spawn } from 'node:child_process'
 import { createWriteStream } from 'node:fs'
-import { homedir, platform } from 'node:os'
+import { platform } from 'node:os'
 import { basename, dirname, extname, join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { pipeline } from 'node:stream/promises'
 import { Readable } from 'node:stream'
 import stripJsonComments from 'strip-json-comments'
+import { getOpencodeGlobalConfigDir } from './opencode-path-service.js'
 
 export interface LibreOfficeDetectionResult {
   available: boolean
@@ -24,7 +25,7 @@ export interface LibreOfficeInstallResult {
 const PORTABLE_DIR_NAME = 'libreoffice'
 
 function getPortableBaseDir(): string {
-  return join(homedir(), '.config', 'opencode', PORTABLE_DIR_NAME)
+  return join(getOpencodeGlobalConfigDir(), PORTABLE_DIR_NAME)
 }
 
 const SYSTEM_SEARCH_PATHS: Record<string, string[]> = {
@@ -428,7 +429,7 @@ export interface LibreOfficeConfigResult {
 export function resolveLibreofficeConfigPaths(worktree: string): { project: string; global: string } {
   return {
     project: join(worktree, '.opencode', 'ae.jsonc'),
-    global: join(homedir(), '.config', 'opencode', 'ae.jsonc'),
+    global: join(getOpencodeGlobalConfigDir(), 'ae.jsonc'),
   }
 }
 

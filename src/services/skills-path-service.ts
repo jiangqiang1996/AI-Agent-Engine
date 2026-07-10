@@ -3,6 +3,7 @@ import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
 
 import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
+import { getOpencodeGlobalConfigDir } from './opencode-path-service.js'
 
 interface SkillPathConfig {
   skills?: {
@@ -22,7 +23,7 @@ export async function registerSkillsPath(
 export function orderSkillPaths(existingPaths: string[], dynamicSkillsDir: string, worktree: string): string[] {
   const paths = uniquePaths([...existingPaths, dynamicSkillsDir])
   const projectDirect = join(worktree, '.opencode', 'skills')
-  const globalDirect = join(homedir(), '.config', 'opencode', 'skills')
+  const globalDirect = join(getOpencodeGlobalConfigDir(), 'skills')
   const directPaths = [globalDirect, projectDirect].filter((path) => existsSync(path) || hasPath(paths, path))
   const buckets = {
     unknown: [] as string[],

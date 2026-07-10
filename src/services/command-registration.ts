@@ -1,5 +1,4 @@
 import { readdirSync, readFileSync } from 'node:fs'
-import { homedir } from 'node:os'
 import { basename, join } from 'node:path'
 
 import type { Config } from '@opencode-ai/plugin'
@@ -9,6 +8,7 @@ import { getPhaseOneEntries } from './ae-catalog.js'
 import { getCommandModelScenario } from './asset-model-routing-catalog.js'
 import type { ModelScenarioRoutingContext } from './model-scenario-routing-service.js'
 import { getModelByScenario, resolveModelReference } from './model-scenario-routing-service.js'
+import { getOpencodeGlobalConfigDir } from './opencode-path-service.js'
 
 const ARGUMENTS_PLACEHOLDER = '$ARGUMENTS'
 
@@ -143,7 +143,7 @@ export function mergeProjectCommandOverrides(
 ): NonNullable<Config['command']> {
   const result: NonNullable<Config['command']> = { ...commands }
   const directCommandDirs = [
-    join(homedir(), '.config', 'opencode', 'commands'),
+    join(getOpencodeGlobalConfigDir(), 'commands'),
     join(worktree, '.opencode', 'commands'),
   ]
 

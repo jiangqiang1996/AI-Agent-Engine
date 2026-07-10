@@ -1,5 +1,4 @@
 import { readFileSync } from 'node:fs'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
 
 import type { Config } from '@opencode-ai/plugin'
@@ -8,6 +7,7 @@ import stripJsonComments from 'strip-json-comments'
 import { isRegularFile } from '../utils/path-utils.js'
 
 import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
+import { getOpencodeGlobalConfigDir } from './opencode-path-service.js'
 
 type McpConfig = NonNullable<Config['mcp']>
 export type ModelScenariosConfig = Record<string, string>
@@ -323,7 +323,7 @@ export function resolveBuiltinOpencodeConfigPaths(
 ): BuiltinOpencodeConfigPaths {
   return {
     projectConfigFile: join(worktree, '.opencode', 'ae.jsonc'),
-    globalConfigFile: join(homedir(), '.config', 'opencode', 'ae.jsonc'),
+    globalConfigFile: join(getOpencodeGlobalConfigDir(), 'ae.jsonc'),
     builtinConfigFile: manifest.builtinConfigFile,
   }
 }

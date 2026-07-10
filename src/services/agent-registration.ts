@@ -1,11 +1,11 @@
 import { readdirSync, readFileSync } from 'node:fs'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
 
 import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
 import { getAllAgentDefinitions } from './ae-catalog.js'
 import type { ModelScenarioRoutingContext } from './model-scenario-routing-service.js'
 import { resolveModelReference } from './model-scenario-routing-service.js'
+import { getOpencodeGlobalConfigDir } from './opencode-path-service.js'
 import { getFrontmatterString, parseFrontmatter } from '../utils/frontmatter.js'
 
 interface AgentConfigShape {
@@ -117,7 +117,7 @@ export function registerAgents(
   config.agent = {
     ...(dynamicHasPriority ? config.agent : dynamicAgents),
     ...(dynamicHasPriority ? dynamicAgents : config.agent),
-    ...loadAgentFiles(join(homedir(), '.config', 'opencode', 'agents'), routingContext),
+    ...loadAgentFiles(join(getOpencodeGlobalConfigDir(), 'agents'), routingContext),
     ...loadAgentFiles(join(worktree, '.opencode', 'agents'), routingContext),
   }
 }

@@ -46,7 +46,7 @@ export const aeLibreofficeTool = tool({
       if (result.available) {
         const sourceLabel = result.source === 'config'
           ? `ae.jsonc 配置（${configResult.source}级）`
-          : result.source === 'system' ? '系统安装' : '便携版（~/.config/opencode/libreoffice/）'
+          : result.source === 'system' ? '系统安装' : '便携版'
         return [
           '# LibreOffice 可用性检测结果：可用',
           '',
