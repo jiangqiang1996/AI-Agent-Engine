@@ -92,28 +92,50 @@ export const aeAsyncBashTool = tool({
       fs.mkdirSync(logDir, { recursive: true })
     }
 
-    let logFd: number | null = null
+    // 预创建日志文件，确保调用方可立即读取
+    const touchFd = fs.openSync(resolvedLogPath, 'a')
+    fs.closeSync(touchFd)
+
+    const isWin32 = process.platform === 'win32'
+    const quotedLogPath = `"${resolvedLogPath}"`
+
     let child: ReturnType<typeof spawn>
 
     try {
-      logFd = fs.openSync(resolvedLogPath, 'a')
-      child = spawn(args.command, {
+      // 使用平台原生后台 + 重定向机制，让 shell 自行管理子进程后台运行和日志写入。
+      // Node.js 只负责 spawn shell，不参与 I/O 转发，避免事件循环退出导致 pipe 数据丢失。
+      //
+      // Windows: start /B "title" cmd /c "command >> log 2>&1"
+      //   - start /B 启动后台进程（无新窗口）
+      //   - 重定向在 cmd /c 子 shell 中执行，确保 stdout/stderr 均写入日志
+      //
+      // Unix: sh -c 'command >> log 2>&1 &'
+      //   - 末尾 & 将命令放入后台
+      //   - >> 和 2>&1 由 sh 处理重定向
+      const fullCommand = isWin32
+        ? `start /B "ae-async" cmd /c "${args.command} >> ${quotedLogPath} 2>&1"`
+        : `${args.command} >> ${quotedLogPath} 2>&1 &`
+
+      child = spawn(fullCommand, {
         cwd,
         detached: true,
         shell: true,
-        stdio: ['ignore', logFd, logFd],
+        stdio: ['ignore', 'ignore', 'ignore'],
       })
     } catch (e) {
-      if (logFd !== null) fs.closeSync(logFd)
       const reason = e instanceof Error ? e.message : String(e)
       return `错误: 启动命令失败 — ${reason}。日志路径: ${resolvedLogPath}`
     }
 
-    child.unref()
+    child.on('error', (err) => {
+      try {
+        fs.appendFileSync(resolvedLogPath, `\n[spawn error] ${err.message}\n`)
+      } catch {
+        // 忽略写入错误
+      }
+    })
 
-    if (logFd !== null) {
-      fs.closeSync(logFd)
-    }
+    child.unref()
 
     const pid = child.pid
 
