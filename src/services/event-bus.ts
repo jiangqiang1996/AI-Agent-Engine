@@ -1,4 +1,4 @@
-﻿type EventHandler = (event: SessionEventData) => void
+type EventHandler = (event: SessionEventData) => void
 
 export interface SessionEventData {
   type: string
@@ -32,7 +32,8 @@ export function dispatchSessionEvent(event: SessionEventData): void {
     try {
       sub.handler(event)
     } catch {
-      // 鍗曚釜璁㈤槄鑰呭紓甯镐笉褰卞搷鍏朵粬璁㈤槄鑰?    }
+      // 单个订阅者异常不影响其他订阅者
+    }
   }
 }
 
