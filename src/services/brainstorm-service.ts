@@ -117,7 +117,7 @@ function modelDisplayLabel(model: string | undefined): string {
   return model ?? 'opencode 动态模型'
 }
 
-async function runTemporarySession(
+async function runSubSession(
   title: string,
   userPrompt: string,
   systemPrompt: string,
@@ -129,10 +129,16 @@ async function runTemporarySession(
     throw new Error('opencode 客户端未初始化')
   }
 
-  const subSession = await createSubSession(client, {
-    ...(parentSessionID ? { parentID: parentSessionID } : {}),
-    title,
-  })
+  let subSession: { id: string }
+  try {
+    subSession = await createSubSession(client, {
+      ...(parentSessionID ? { parentID: parentSessionID } : {}),
+      title,
+    })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    throw new Error(`[${title}] 创建子会话失败 - ${msg}`)
+  }
 
   const promptOptions: PromptOptions = {
     sessionID: subSession.id,
@@ -369,7 +375,7 @@ export async function executeBrainstorm(options: BrainstormOptions): Promise<Bra
 
     const poolResults = await adaptiveConcurrentPool(
       roundTaskMeta.map((meta) => () =>
-        runTemporarySession(
+        runSubSession(
           `brainstorm-r${round}-${meta.perspective.id}`,
           meta.userPrompt,
           meta.perspective.systemPrompt,
@@ -452,7 +458,7 @@ export async function executeBrainstorm(options: BrainstormOptions): Promise<Bra
 
   let synthesis: string
   try {
-    synthesis = await runTemporarySession(
+    synthesis = await runSubSession(
       'brainstorm-synthesis',
       synthesisPrompt,
       SYNTHESIS_SYSTEM_PROMPT,

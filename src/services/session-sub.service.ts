@@ -4,6 +4,25 @@ import { extractSessionID, subscribeSessionEvents } from './event-bus.js'
 
 type V1Client = OpencodeClient
 
+function extractSdkError(error: unknown, fallback: string): string {
+  if (typeof error === 'string') return error
+  if (error && typeof error === 'object') {
+    const e = error as Record<string, unknown>
+    if (typeof e.message === 'string') return e.message
+    if (typeof e.name === 'string') return e.name
+    try { return JSON.stringify(e) } catch { return fallback }
+  }
+  return String(error)
+}
+
+function asString(val: unknown, fallback = ''): string {
+  return typeof val === 'string' ? val : fallback
+}
+
+function asRecord(val: unknown): Record<string, unknown> | undefined {
+  return typeof val === 'object' && val !== null ? val as Record<string, unknown> : undefined
+}
+
 export interface SubSessionOptions {
   parentID?: string
   title?: string
@@ -44,58 +63,22 @@ export interface PromptResult {
   raw: unknown
 }
 
-export function createSubSession(client: V1Client, options: SubSessionOptions): Promise<CreatedSubSession> {
-  return (async () => {
-    const res = await client.session.create({
-      body: {
-        ...(options.parentID ? { parentID: options.parentID } : {}),
-        ...(options.title ? { title: options.title } : {}),
-      },
-      ...(options.directory ? { query: { directory: options.directory } } : {}),
-    })
-    if (res.error) {
-      const err = res.error as Record<string, unknown>
-      throw new Error((err.message as string) ?? (err.name as string) ?? '创建子会话失败')
-    }
-    const session = res.data as { id: string; title: string } | undefined
-    if (!session?.id) throw new Error('创建子会话返回数据缺少 id')
-    return { id: session.id, title: session.title ?? options.title ?? '' }
-  })()
-}
-
-export function injectContext(client: V1Client, sessionID: string, text: string, directory?: string): Promise<void> {
-  return (async () => {
-    const res = await client.session.prompt({
-      path: { id: sessionID },
-      body: {
-        noReply: true,
-        parts: [{ type: 'text', text }],
-      },
-      ...(directory ? { query: { directory } } : {}),
-    })
-    if (res.error) {
-      const err = res.error as Record<string, unknown>
-      throw new Error((err.message as string) ?? '上下文注入失败')
-    }
-  })()
-}
-
-export function injectSystemPrompt(client: V1Client, sessionID: string, system: string, directory?: string): Promise<void> {
-  return (async () => {
-    const res = await client.session.prompt({
-      path: { id: sessionID },
-      body: {
-        noReply: true,
-        system,
-        parts: [{ type: 'text', text: system }],
-      },
-      ...(directory ? { query: { directory } } : {}),
-    })
-    if (res.error) {
-      const err = res.error as Record<string, unknown>
-      throw new Error((err.message as string) ?? '系统提示注入失败')
-    }
-  })()
+export async function createSubSession(client: V1Client, options: SubSessionOptions): Promise<CreatedSubSession> {
+  const res = await client.session.create({
+    body: {
+      ...(options.parentID ? { parentID: options.parentID } : {}),
+      ...(options.title ? { title: options.title } : {}),
+    },
+    ...(options.directory ? { query: { directory: options.directory } } : {}),
+  })
+  if (res.error) {
+    throw new Error(extractSdkError(res.error, '创建子会话失败'))
+  }
+  const session = asRecord(res.data)
+  const id = session && typeof session.id === 'string' ? session.id : undefined
+  if (!id) throw new Error('创建子会话返回数据缺少 id')
+  const title = session && typeof session.title === 'string' ? session.title : (options.title ?? '')
+  return { id, title }
 }
 
 function mapProgressEvent(event: { type: string; properties: Record<string, unknown> }): ProgressEvent | null {
@@ -106,49 +89,50 @@ function mapProgressEvent(event: { type: string; properties: Record<string, unkn
 
   switch (event.type) {
     case 'message.part.updated': {
-      const part = props.part as Record<string, unknown> | undefined
+      const part = asRecord(props.part)
       if (!part) return null
-      const partType = part.type as string
+      const partType = asString(part.type)
 
       if (partType === 'text') {
-        const text = (part.text as string) ?? ''
-        const delta = (props.delta as string) ?? ''
+        const text = asString(part.text)
+        const delta = asString(props.delta)
         return { kind: 'text', sessionID, text: delta || text }
       }
       if (partType === 'reasoning') {
-        return { kind: 'reasoning', sessionID, text: (part.text as string) ?? '' }
+        return { kind: 'reasoning', sessionID, text: asString(part.text) }
       }
       if (partType === 'tool') {
-        const state = part.state as Record<string, unknown> | undefined
-        const toolName = (part.tool as string) ?? 'unknown'
-        if (state?.status === 'running') {
-          return { kind: 'tool_start', sessionID, tool: toolName, input: (state.input as Record<string, unknown>) ?? {} }
+        const state = asRecord(part.state)
+        const toolName = asString(part.tool, 'unknown')
+        const stateStatus = asString(state?.status)
+        if (stateStatus === 'running') {
+          return { kind: 'tool_start', sessionID, tool: toolName, input: asRecord(state?.input) ?? {} }
         }
-        if (state?.status === 'completed') {
-          return { kind: 'tool_end', sessionID, tool: toolName, output: (state.output as string) ?? '' }
+        if (stateStatus === 'completed') {
+          return { kind: 'tool_end', sessionID, tool: toolName, output: asString(state?.output) }
         }
-        if (state?.status === 'error') {
-          return { kind: 'tool_end', sessionID, tool: toolName, output: '', error: (state.error as string) ?? '' }
+        if (stateStatus === 'error') {
+          return { kind: 'tool_end', sessionID, tool: toolName, output: '', error: asString(state?.error) }
         }
       }
       if (partType === 'step-start') {
         return { kind: 'step_start', sessionID }
       }
       if (partType === 'step-finish') {
-        return { kind: 'step_finish', sessionID, reason: (part.reason as string) ?? '' }
+        return { kind: 'step_finish', sessionID, reason: asString(part.reason) }
       }
       return null
     }
     case 'session.status': {
-      const status = props.status as Record<string, unknown> | undefined
-      return { kind: 'status', sessionID, status: (status?.type as string) ?? 'unknown' }
+      const status = asRecord(props.status)
+      return { kind: 'status', sessionID, status: asString(status?.type, 'unknown') }
     }
     case 'session.idle': {
       return { kind: 'status', sessionID, status: 'idle' }
     }
     case 'session.error': {
-      const error = props.error as Record<string, unknown> | undefined
-      return { kind: 'error', sessionID, message: (error?.message as string) ?? '未知错误' }
+      const error = asRecord(props.error)
+      return { kind: 'error', sessionID, message: asString(error?.message, '未知错误') }
     }
     default:
       return null
@@ -178,13 +162,18 @@ function formatProgress(event: ProgressEvent): string {
   }
 }
 
-export async function promptAndWait(
-  client: V1Client,
-  options: PromptOptions,
-): Promise<PromptResult> {
-  const { sessionID, text, system, noReply, directory, model, tools, onProgress } = options
+function buildPromptBody(options: PromptOptions): Record<string, unknown> {
+  return {
+    parts: [{ type: 'text', text: options.text }],
+    ...(options.system ? { system: options.system } : {}),
+    ...(options.noReply ? { noReply: true } : {}),
+    ...(options.model ? { model: options.model } : {}),
+    ...(options.tools ? { tools: options.tools } : {}),
+  }
+}
 
-  const unsub = subscribeSessionEvents(
+function createSessionSubscription(sessionID: string, onProgress?: (event: ProgressEvent) => void): () => void {
+  return subscribeSessionEvents(
     (event) => {
       const progress = mapProgressEvent({
         type: event.type,
@@ -196,69 +185,25 @@ export async function promptAndWait(
     },
     (event) => event.sessionID === sessionID,
   )
-
-  try {
-    const res = await client.session.prompt({
-      path: { id: sessionID },
-      body: {
-        parts: [{ type: 'text', text }],
-        ...(system ? { system } : {}),
-        ...(noReply ? { noReply: true } : {}),
-        ...(model ? { model } : {}),
-        ...(tools ? { tools } : {}),
-      },
-      ...(directory ? { query: { directory } } : {}),
-    })
-
-    if (res.error) {
-      const err = res.error as Record<string, unknown>
-      throw new Error((err.message as string) ?? '发送提示词失败')
-    }
-
-    const data = res.data as { info: Record<string, unknown>; parts: Array<Record<string, unknown>> } | undefined
-    if (!data) throw new Error('提示词返回数据为空')
-
-    return extractPromptResult(sessionID, data)
-  } finally {
-    unsub()
-  }
 }
 
 export async function promptAsyncAndWait(
   client: V1Client,
   options: PromptOptions,
 ): Promise<PromptResult> {
-  const { sessionID, text, system, noReply, directory, model, tools, onProgress, abortSignal } = options
+  const { sessionID, directory, abortSignal, onProgress } = options
 
-  const unsub = subscribeSessionEvents(
-    (event) => {
-      const progress = mapProgressEvent({
-        type: event.type,
-        properties: event.properties,
-      })
-      if (progress) {
-        onProgress?.(progress)
-      }
-    },
-    (event) => event.sessionID === sessionID,
-  )
+  const unsub = createSessionSubscription(sessionID, onProgress)
 
   try {
     const res = await client.session.promptAsync({
       path: { id: sessionID },
-      body: {
-        parts: [{ type: 'text', text }],
-        ...(system ? { system } : {}),
-        ...(noReply ? { noReply: true } : {}),
-        ...(model ? { model } : {}),
-        ...(tools ? { tools } : {}),
-      },
+      body: buildPromptBody(options) as Parameters<typeof client.session.promptAsync>[0]['body'],
       ...(directory ? { query: { directory } } : {}),
     })
 
     if (res.error) {
-      const err = res.error as Record<string, unknown>
-      throw new Error((err.message as string) ?? '异步发送提示词失败')
+      throw new Error(extractSdkError(res.error, '异步发送提示词失败'))
     }
 
     await waitForSessionIdle(client, sessionID, directory, abortSignal)
@@ -268,8 +213,7 @@ export async function promptAsyncAndWait(
       ...(directory ? { query: { directory } } : {}),
     })
     if (messagesRes.error) {
-      const err = messagesRes.error as Record<string, unknown>
-      throw new Error((err.message as string) ?? '获取消息失败')
+      throw new Error(extractSdkError(messagesRes.error, '获取消息失败'))
     }
 
     const messages = (messagesRes.data as Array<{ info: Record<string, unknown>; parts: Array<Record<string, unknown>> }>) ?? []
@@ -296,70 +240,28 @@ async function waitForSessionIdle(
       ...(directory ? { query: { directory } } : {}),
     })
     if (res.error) {
-      const err = res.error as Record<string, unknown>
-      throw new Error((err.message as string) ?? '获取会话状态失败')
+      throw new Error(extractSdkError(res.error, '获取会话状态失败'))
     }
 
     const statuses = (res.data as Record<string, { type: string }>) ?? {}
     const status = statuses[sessionID]
-    if (!status || status.type === 'idle') return
+    if (!status) {
+      // 会话尚未注册到状态映射，可能是创建延迟，继续轮询
+    } else if (status.type === 'idle') {
+      return
+    } else if (status.type === 'error' || status.type === 'aborted') {
+      throw new Error(`会话 ${sessionID} 状态异常: ${status.type}`)
+    }
 
-    const interval = Math.min(baseIntervalMs * Math.pow(1.5, Math.floor(i / 10)), maxIntervalMs)
-    await sleep(interval)
+    const baseInterval = Math.min(baseIntervalMs * Math.pow(1.5, Math.floor(i / 10)), maxIntervalMs)
+    const jitter = Math.floor(Math.random() * 300)
+    await sleep(baseInterval + jitter, abortSignal)
   }
 
   throw new Error(`等待会话 ${sessionID} 完成超时`)
 }
 
-export async function getSessionMessages(
-  client: V1Client,
-  sessionID: string,
-  directory?: string,
-): Promise<Array<{ info: Record<string, unknown>; parts: Array<Record<string, unknown>> }>> {
-  const res = await client.session.messages({
-    path: { id: sessionID },
-    ...(directory ? { query: { directory } } : {}),
-  })
-  if (res.error) {
-    const err = res.error as Record<string, unknown>
-    throw new Error((err.message as string) ?? '获取消息失败')
-  }
-  return (res.data as Array<{ info: Record<string, unknown>; parts: Array<Record<string, unknown>> }>) ?? []
-}
-
-export async function abortSession(client: V1Client, sessionID: string, directory?: string): Promise<void> {
-  const res = await client.session.abort({
-    path: { id: sessionID },
-    ...(directory ? { query: { directory } } : {}),
-  })
-  if (res.error) {
-    const err = res.error as Record<string, unknown>
-    throw new Error((err.message as string) ?? '中止会话失败')
-  }
-}
-
-export async function sendCommand(
-  client: V1Client,
-  sessionID: string,
-  command: string,
-  args?: string,
-  directory?: string,
-): Promise<void> {
-  const res = await client.session.command({
-    path: { id: sessionID },
-    body: {
-      command,
-      arguments: args ?? '',
-    },
-    ...(directory ? { query: { directory } } : {}),
-  })
-  if (res.error) {
-    const err = res.error as Record<string, unknown>
-    throw new Error((err.message as string) ?? '发送命令失败')
-  }
-}
-
-export function extractAssistantText(messages: Array<{ info: Record<string, unknown>; parts: Array<Record<string, unknown>> }>): string {
+function extractAssistantText(messages: Array<{ info: Record<string, unknown>; parts: Array<Record<string, unknown>> }>): string {
   const texts: string[] = []
   for (const msg of messages) {
     if (msg.info.role !== 'assistant') continue
@@ -372,7 +274,7 @@ export function extractAssistantText(messages: Array<{ info: Record<string, unkn
   return texts.join('\n')
 }
 
-export function extractLastAssistantText(messages: Array<{ info: Record<string, unknown>; parts: Array<Record<string, unknown>> }>): string {
+function extractLastAssistantText(messages: Array<{ info: Record<string, unknown>; parts: Array<Record<string, unknown>> }>): string {
   for (let i = messages.length - 1; i >= 0; i--) {
     const msg = messages[i]
     if (msg.info.role !== 'assistant') continue
@@ -387,56 +289,23 @@ export function extractLastAssistantText(messages: Array<{ info: Record<string, 
   return ''
 }
 
-export function extractToolCalls(messages: Array<{ info: Record<string, unknown>; parts: Array<Record<string, unknown>> }>): Array<{ tool: string; input: Record<string, unknown>; output: string; error?: string }> {
+function extractToolCalls(messages: Array<{ info: Record<string, unknown>; parts: Array<Record<string, unknown>> }>): Array<{ tool: string; input: Record<string, unknown>; output: string; error?: string }> {
   const calls: Array<{ tool: string; input: Record<string, unknown>; output: string; error?: string }> = []
   for (const msg of messages) {
     if (msg.info.role !== 'assistant') continue
     for (const part of msg.parts) {
       if (part.type !== 'tool') continue
-      const state = part.state as Record<string, unknown> | undefined
+      const state = asRecord(part.state)
       if (!state) continue
       calls.push({
-        tool: (part.tool as string) ?? 'unknown',
-        input: (state.input as Record<string, unknown>) ?? {},
-        output: (state.output as string) ?? '',
-        ...(state.error ? { error: state.error as string } : {}),
+        tool: asString(part.tool, 'unknown'),
+        input: asRecord(state.input) ?? {},
+        output: asString(state.output),
+        ...(typeof state.error === 'string' ? { error: state.error } : {}),
       })
     }
   }
   return calls
-}
-
-function extractPromptResult(
-  sessionID: string,
-  data: { info: Record<string, unknown>; parts: Array<Record<string, unknown>> },
-): PromptResult {
-  const parts = data.parts ?? []
-  const texts: string[] = []
-  const toolCalls: Array<{ tool: string; input: Record<string, unknown>; output: string; error?: string }> = []
-
-  for (const part of parts) {
-    if (part.type === 'text' && typeof part.text === 'string' && part.text.trim()) {
-      texts.push(part.text)
-    }
-    if (part.type === 'tool') {
-      const state = part.state as Record<string, unknown> | undefined
-      if (state) {
-        toolCalls.push({
-          tool: (part.tool as string) ?? 'unknown',
-          input: (state.input as Record<string, unknown>) ?? {},
-          output: (state.output as string) ?? '',
-          ...(state.error ? { error: state.error as string } : {}),
-        })
-      }
-    }
-  }
-
-  return {
-    sessionID,
-    assistantText: texts.join('\n'),
-    toolCalls,
-    raw: data,
-  }
 }
 
 function extractPromptResultFromMessages(
@@ -451,8 +320,15 @@ function extractPromptResultFromMessages(
   }
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+function sleep(ms: number, abortSignal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (abortSignal?.aborted) return reject(new Error('已中止'))
+    const timer = setTimeout(resolve, ms)
+    abortSignal?.addEventListener('abort', () => {
+      clearTimeout(timer)
+      reject(new Error('已中止'))
+    }, { once: true })
+  })
 }
 
 export { formatProgress }

@@ -30,6 +30,7 @@ import {getCapabilityBySession} from './services/model-capability-cache.js'
 import {chatMessageHook} from './hooks/media-fallback-chat-message.hook.js'
 import {messagesTransformHook} from './hooks/media-fallback-messages-transform.hook.js'
 import {createLocalDepsInjectionHook} from './hooks/local-deps-injection.hook.js'
+import {dispatchSessionEvent, extractSessionID} from './services/event-bus.js'
 
 interface RuntimeConfigShape {
     command?: Record<string, {
@@ -148,6 +149,20 @@ const plugin: Plugin = async (input) => {
         'chat.message': chatMessageHook,
         'experimental.chat.messages.transform': messagesTransformHook,
         'tool.execute.after': createLocalDepsInjectionHook(input.worktree),
+        event: async (eventInput) => {
+            const sessionID = extractSessionID({
+                type: eventInput.event.type,
+                properties: eventInput.event.properties as Record<string, unknown>,
+            })
+            if (sessionID) {
+                dispatchSessionEvent({
+                    type: eventInput.event.type,
+                    sessionID,
+                    properties: eventInput.event.properties as Record<string, unknown>,
+                    raw: eventInput.event,
+                })
+            }
+        },
         tool: createToolRegistry(),
     }
 }

@@ -27,7 +27,8 @@ export function subscribeSessionEvents(handler: EventHandler, filter?: SessionFi
 }
 
 export function dispatchSessionEvent(event: SessionEventData): void {
-  for (const sub of _subscriptions) {
+  const subs = [..._subscriptions]
+  for (const sub of subs) {
     if (sub.filter && !sub.filter(event)) continue
     try {
       sub.handler(event)
@@ -49,4 +50,10 @@ export function extractSessionID(event: { type: string; properties: Record<strin
     if (typeof part.sessionID === 'string') return part.sessionID
   }
   return undefined
+}
+
+/** 重置事件总线状态，仅供测试调用 */
+export function resetEventBus(): void {
+  _subscriptions = []
+  _nextId = 1
 }
