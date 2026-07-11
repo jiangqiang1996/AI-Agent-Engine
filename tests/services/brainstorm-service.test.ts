@@ -24,8 +24,18 @@ vi.mock('../../src/services/brainstorm-config-service.js', () => ({
   resolveBrainstormModels: vi.fn(() => ({ models: [], source: 'test' })),
 }))
 
+vi.mock('../../src/services/session-sub.service.js', () => ({
+  promptAsyncAndWait: vi.fn(),
+  createSubSession: vi.fn(async (_client: unknown, options: { title: string; parentID?: string }) => {
+    return { id: `session-${++globalSessionCounter}`, title: options.title }
+  }),
+}))
+
+let globalSessionCounter = 0
+
 import { getGlobalClient } from '../../src/services/client-holder.js'
 import { resolveBrainstormModels } from '../../src/services/brainstorm-config-service.js'
+import { promptAsyncAndWait, createSubSession } from '../../src/services/session-sub.service.js'
 
 const mockGetGlobalClient = vi.mocked(getGlobalClient)
 const mockResolveBrainstormModels = vi.mocked(resolveBrainstormModels)
@@ -347,38 +357,23 @@ describe('brainstorm-service - PERSPECTIVE_IDS 和 DEFAULT_PERSPECTIVE_IDS', () 
 })
 
 describe('brainstorm-service - executeBrainstorm 集成流程', () => {
-  type SessionStore = Map<string, { promptCount: number; deleted: boolean; lastParts: unknown[] }>
-
-  function createMockClient(sessionResponses: Map<string, unknown[]>): {
+  function createMockClient(): {
     client: unknown
-    sessions: SessionStore
+    sessions: Map<string, { created: boolean }>
   } {
-    const sessions: SessionStore = new Map()
+    const sessions = new Map<string, { created: boolean }>()
 
     const client = {
       session: {
         create: vi.fn(async ({ body }: { body: { title: string } }) => {
           const id = `session-${sessions.size + 1}`
-          sessions.set(id, { promptCount: 0, deleted: false, lastParts: [] })
+          sessions.set(id, { created: true })
           return { data: { id, title: body.title }, error: undefined }
         }),
-        prompt: vi.fn(async ({ path, body }: { path: { id: string }; body: { parts: unknown[]; system?: string } }) => {
-          const session = sessions.get(path.id)
-          if (!session) {
-            return { error: { name: 'NotFoundError', data: { message: '会话不存在' } } }
-          }
-          session.promptCount++
-          const parts = sessionResponses.get(path.id) ?? [{ type: 'text', text: '默认响应' }]
-          session.lastParts = parts
-          return { data: { parts }, error: undefined }
-        }),
         delete: vi.fn(async ({ path }: { path: { id: string } }) => {
-          const session = sessions.get(path.id)
-          if (session) {
-            session.deleted = true
-          }
-          return { data: undefined, error: undefined }
-        }),
+      sessions.delete(path.id)
+      return { data: undefined, error: undefined }
+    }),
       },
     }
 
@@ -386,6 +381,7 @@ describe('brainstorm-service - executeBrainstorm 集成流程', () => {
   }
 
   beforeEach(() => {
+    globalSessionCounter = 0
     setBrainstormConfig(undefined)
     setModelScenarioRoutingContext(createModelScenarioRoutingContext(new Map()))
     vi.clearAllMocks()
@@ -396,15 +392,18 @@ describe('brainstorm-service - executeBrainstorm 集成流程', () => {
     vi.restoreAllMocks()
   })
 
-  it('应该创建并清理所有临时会话，返回汇总结果', async () => {
-    const sessionResponses = new Map<string, unknown[]>()
-    sessionResponses.set('session-1', [{ type: 'text', text: '## 核心观点\n- 批评者洞察' }])
-    sessionResponses.set('session-2', [{ type: 'text', text: '## 核心观点\n- 乐观派洞察' }])
-    sessionResponses.set('session-3', [{ type: 'text', text: '## 核心观点\n- 实用主义者洞察' }])
-    sessionResponses.set('session-4', [{ type: 'text', text: '## 汇总结果' }])
+  it('应该创建所有临时会话，返回汇总结果', async () => {
+    const sessionTexts = new Map<string, string>()
+    sessionTexts.set('session-1', '## 核心观点\n- 批评者洞察')
+    sessionTexts.set('session-2', '## 核心观点\n- 乐观派洞察')
+    sessionTexts.set('session-3', '## 核心观点\n- 实用主义者洞察')
+    sessionTexts.set('session-4', '## 汇总结果')
+    vi.mocked(promptAsyncAndWait).mockImplementation(async (_client, options) => {
+      const text = sessionTexts.get(options.sessionID) ?? '默认响应'
+      return { sessionID: options.sessionID, assistantText: text, toolCalls: [], raw: { parts: [{ type: 'text', text }] } }
+    })
 
-    const { client, sessions } = createMockClient(sessionResponses)
-    mockGetGlobalClient.mockReturnValue(client as never)
+    mockGetGlobalClient.mockReturnValue({} as never)
 
     const { executeBrainstorm } = await import('../../src/services/brainstorm-service.js')
 
@@ -417,21 +416,14 @@ describe('brainstorm-service - executeBrainstorm 集成流程', () => {
     expect(result.perspectives).toHaveLength(3)
     expect(result.totalSessions).toBe(4)
     expect(result.failedCount).toBe(0)
-    expect(result.cleanupWarnings).toEqual([])
     expect(result.synthesis).toBe('## 汇总结果')
     expect(result.modelsUsed).toEqual([undefined])
-
-    for (const session of sessions.values()) {
-      expect(session.deleted).toBe(true)
-    }
   })
 
   it('会话创建失败时所有视角应失败并抛出"所有视角讨论均失败"', async () => {
     const client = {
       session: {
         create: vi.fn(async () => ({ error: { name: 'Error', data: { message: '创建失败' } }, data: undefined })),
-        prompt: vi.fn(),
-        delete: vi.fn(),
       },
     }
     mockGetGlobalClient.mockReturnValue(client as never)
@@ -454,7 +446,7 @@ describe('brainstorm-service - executeBrainstorm 集成流程', () => {
   })
 
   it('无效视角 ID 应抛出异常', async () => {
-    const { client } = createMockClient(new Map())
+    const { client } = createMockClient()
     mockGetGlobalClient.mockReturnValue(client as never)
 
     const { executeBrainstorm } = await import('../../src/services/brainstorm-service.js')
@@ -468,8 +460,6 @@ describe('brainstorm-service - executeBrainstorm 集成流程', () => {
     const client = {
       session: {
         create: vi.fn(async () => ({ error: { name: 'Error', data: { message: '总是失败' } }, data: undefined })),
-        prompt: vi.fn(),
-        delete: vi.fn(),
       },
     }
     mockGetGlobalClient.mockReturnValue(client as never)
@@ -481,29 +471,17 @@ describe('brainstorm-service - executeBrainstorm 集成流程', () => {
     ).rejects.toThrow('所有视角讨论均失败')
   })
 
-  it('临时会话清理失败时应收集 cleanupWarnings 而非静默忽略', async () => {
-    const sessionResponses = new Map<string, unknown[]>()
-    sessionResponses.set('session-1', [{ type: 'text', text: '## 核心观点\n- 批评者洞察' }])
-    sessionResponses.set('session-2', [{ type: 'text', text: '## 汇总' }])
+  it('临时会话不再删除，子会话保留供 TUI 查看', async () => {
+    const sessionTexts = new Map<string, string>()
+    sessionTexts.set('session-1', '## 核心观点\n- 批评者洞察')
+    sessionTexts.set('session-2', '## 汇总')
+    vi.mocked(promptAsyncAndWait).mockImplementation(async (_client, options) => {
+      const text = sessionTexts.get(options.sessionID) ?? '默认'
+      return { sessionID: options.sessionID, assistantText: text, toolCalls: [], raw: { parts: [{ type: 'text', text }] } }
+    })
 
-    const sessions = new Map<string, { deleted: boolean }>()
-    const client = {
-      session: {
-        create: vi.fn(async () => {
-          const id = `session-${sessions.size + 1}`
-          sessions.set(id, { deleted: false })
-          return { data: { id }, error: undefined }
-        }),
-        prompt: vi.fn(async ({ path }: { path: { id: string } }) => {
-          const parts = sessionResponses.get(path.id) ?? [{ type: 'text', text: '默认' }]
-          return { data: { parts }, error: undefined }
-        }),
-        delete: vi.fn(async ({ path }: { path: { id: string } }) => {
-          throw new Error('网络错误：删除失败')
-        }),
-      },
-    }
-    mockGetGlobalClient.mockReturnValue(client as never)
+    const mockDelete = vi.fn(async () => ({ data: undefined, error: undefined }))
+    mockGetGlobalClient.mockReturnValue({ session: { delete: mockDelete } } as never)
 
     const { executeBrainstorm } = await import('../../src/services/brainstorm-service.js')
 
@@ -513,35 +491,27 @@ describe('brainstorm-service - executeBrainstorm 集成流程', () => {
       rounds: 1,
     })
 
-    expect(result.cleanupWarnings.length).toBe(2)
-    expect(result.cleanupWarnings[0]).toContain('清理失败')
-    expect(result.cleanupWarnings[0]).toContain('删除失败')
+    expect(mockDelete).not.toHaveBeenCalled()
   })
 
   it('部分视角失败时仍应完成汇总', async () => {
-    const sessionResponses = new Map<string, unknown[]>()
-    sessionResponses.set('session-1', [{ type: 'text', text: '## 核心观点\n- 批评者洞察' }])
-    sessionResponses.set('session-3', [{ type: 'text', text: '## 汇总' }])
+    const sessionTexts = new Map<string, string>()
+    sessionTexts.set('session-1', '## 核心观点\n- 批评者洞察')
+    sessionTexts.set('session-3', '## 汇总')
+    vi.mocked(promptAsyncAndWait).mockImplementation(async (_client, options) => {
+      const text = sessionTexts.get(options.sessionID) ?? '默认'
+      return { sessionID: options.sessionID, assistantText: text, toolCalls: [], raw: { parts: [{ type: 'text', text }] } }
+    })
 
-    let createCount = 0
-    const client = {
-      session: {
-        create: vi.fn(async () => {
-          createCount++
-          if (createCount === 2) {
-            return { error: { name: 'Error', data: { message: '第二个会话失败' } }, data: undefined }
-          }
-          const id = `session-${createCount}`
-          return { data: { id }, error: undefined }
-        }),
-        prompt: vi.fn(async ({ path }: { path: { id: string } }) => {
-          const parts = sessionResponses.get(path.id) ?? [{ type: 'text', text: '默认' }]
-          return { data: { parts }, error: undefined }
-        }),
-        delete: vi.fn(async () => ({ data: undefined, error: undefined })),
-      },
-    }
-    mockGetGlobalClient.mockReturnValue(client as never)
+    let createCallCount = 0
+    vi.mocked(createSubSession).mockImplementation(async (_client: unknown, options: { title?: string; parentID?: string }) => {
+      createCallCount++
+      if (createCallCount === 2) {
+        throw new Error('创建临时会话失败 - 第二个会话失败')
+      }
+      return { id: `session-${createCallCount}`, title: options.title ?? '' }
+    })
+    mockGetGlobalClient.mockReturnValue({} as never)
 
     const { executeBrainstorm } = await import('../../src/services/brainstorm-service.js')
 
@@ -559,11 +529,15 @@ describe('brainstorm-service - executeBrainstorm 集成流程', () => {
   })
 
   it('应该正确传递 onProgress 进度回调', async () => {
-    const sessionResponses = new Map<string, unknown[]>()
-    sessionResponses.set('session-1', [{ type: 'text', text: '## 核心观点\n- 批评者洞察' }])
-    sessionResponses.set('session-2', [{ type: 'text', text: '## 汇总' }])
+    const sessionTexts = new Map<string, string>()
+    sessionTexts.set('session-1', '## 核心观点\n- 批评者洞察')
+    sessionTexts.set('session-2', '## 汇总')
+    vi.mocked(promptAsyncAndWait).mockImplementation(async (_client, options) => {
+      const text = sessionTexts.get(options.sessionID) ?? '默认响应'
+      return { sessionID: options.sessionID, assistantText: text, toolCalls: [], raw: { parts: [{ type: 'text', text }] } }
+    })
 
-    const { client } = createMockClient(sessionResponses)
+    const { client } = createMockClient()
     mockGetGlobalClient.mockReturnValue(client as never)
 
     const { executeBrainstorm } = await import('../../src/services/brainstorm-service.js')
@@ -587,6 +561,7 @@ describe('brainstorm-service - executeBrainstorm 集成流程', () => {
 
 describe('brainstorm-service - 速率限制降级', () => {
   beforeEach(() => {
+    globalSessionCounter = 0
     setBrainstormConfig(undefined)
     setModelScenarioRoutingContext(createModelScenarioRoutingContext(new Map()))
     vi.clearAllMocks()
@@ -598,26 +573,20 @@ describe('brainstorm-service - 速率限制降级', () => {
   })
 
   it('遇到速率限制错误时应重试并最终成功', async () => {
+    const sessionTexts = new Map<string, string>()
+    sessionTexts.set('session-1', '## 核心观点\n- 洞察')
+    sessionTexts.set('session-2', '## 汇总')
     let promptCallCount = 0
-    const sessions = new Map<string, boolean>()
-    const client = {
-      session: {
-        create: vi.fn(async () => {
-          const id = `session-${sessions.size + 1}`
-          sessions.set(id, false)
-          return { data: { id }, error: undefined }
-        }),
-        prompt: vi.fn(async ({ path }: { path: { id: string } }) => {
-          promptCallCount++
-          if (promptCallCount === 1) {
-            throw new Error('Rate limit exceeded')
-          }
-          return { data: { parts: [{ type: 'text', text: '## 核心观点\n- 洞察' }] }, error: undefined }
-        }),
-        delete: vi.fn(async () => ({ data: undefined, error: undefined })),
-      },
-    }
-    mockGetGlobalClient.mockReturnValue(client as never)
+    vi.mocked(promptAsyncAndWait).mockImplementation(async (_client, options) => {
+      promptCallCount++
+      if (promptCallCount === 1) {
+        throw new Error('Rate limit exceeded')
+      }
+      const text = sessionTexts.get(options.sessionID) ?? '默认'
+      return { sessionID: options.sessionID, assistantText: text, toolCalls: [], raw: { parts: [{ type: 'text', text }] } }
+    })
+
+    mockGetGlobalClient.mockReturnValue({} as never)
 
     const { executeBrainstorm } = await import('../../src/services/brainstorm-service.js')
 

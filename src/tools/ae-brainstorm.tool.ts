@@ -15,7 +15,7 @@ export const aeBrainstormTool = tool({
     '功能说明：',
     '- 根据 ae.jsonc brainstorm 配置（字符串数组）选择讨论模型，未配置时 fallback 到 modelScenarios.deep',
     '- 每个模型独立扮演所有选定视角（乐观派、批评者、实用主义者、创新者、系统思维）',
-    '- 阶段 1：纯视角生成——每个 (模型, 视角) 组合独立临时会话，要求结构化输出',
+    '- 阶段 1：纯视角生成——每个 (模型, 视角) 组合创建子会话，思考过程实时可见',
     '- 阶段 2：跨模型碰撞汇总——构建观点矩阵，识别真分歧、共识、碰撞洞见和盲区',
     '- 执行期间实时输出进度（当前/总数、模型、视角、状态）',
     '',
@@ -68,6 +68,7 @@ export const aeBrainstormTool = tool({
         topic: args.topic,
         perspectives,
         rounds,
+        parentSessionID: ctx.sessionID,
         onProgress: (p) => {
           const modelLabel = p.model ?? '动态模型'
           if (p.phase === 'synthesis') {
@@ -100,12 +101,6 @@ export const aeBrainstormTool = tool({
       if (result.failedCount > 0) {
         output += `\n> ⚠ ${result.failedCount} 个视角讨论失败，结果可能不完整\n`
       }
-      if (result.cleanupWarnings.length > 0) {
-        output += `\n> ⚠ ${result.cleanupWarnings.length} 个临时会话清理失败，可能残留资源：\n`
-        for (const warning of result.cleanupWarnings) {
-          output += `> - ${warning}\n`
-        }
-      }
       output += `\n---\n\n${result.synthesis}\n`
 
       return {
@@ -117,7 +112,6 @@ export const aeBrainstormTool = tool({
           perspectiveCount: result.perspectiveNames.length,
           failedCount: result.failedCount,
           totalSessions: result.totalSessions,
-          cleanupWarningCount: result.cleanupWarnings.length,
         },
       }
     } catch (error) {

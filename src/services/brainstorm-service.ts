@@ -3,6 +3,7 @@ import { resolveBrainstormModels } from './brainstorm-config-service.js'
 import { getModelByScenario } from './model-scenario-routing-service.js'
 import { getModelScenarioRoutingContext } from './model-scenario-holder.js'
 import { MODEL_SCENARIO } from '../schemas/model-scenario-schema.js'
+import { promptAsyncAndWait, createSubSession, type PromptOptions } from './session-sub.service.js'
 
 export function parseModelReference(model: string | undefined): { providerID: string; modelID: string } | undefined {
   if (!model) return undefined
@@ -102,7 +103,6 @@ export interface BrainstormResult {
   perspectiveNames: string[]
   totalSessions: number
   failedCount: number
-  cleanupWarnings: string[]
 }
 
 export interface BrainstormOptions {
@@ -110,6 +110,7 @@ export interface BrainstormOptions {
   perspectives?: string[]
   rounds?: number
   onProgress?: (progress: BrainstormProgress) => void
+  parentSessionID?: string
 }
 
 function modelDisplayLabel(model: string | undefined): string {
@@ -121,49 +122,37 @@ async function runTemporarySession(
   userPrompt: string,
   systemPrompt: string,
   modelRef: { providerID: string; modelID: string } | undefined,
-  onCleanupError?: (error: Error) => void,
+  parentSessionID?: string,
 ): Promise<string> {
   const client = getGlobalClient()
   if (!client) {
     throw new Error('opencode 客户端未初始化')
   }
 
-  let sessionId: string | undefined
+  const subSession = await createSubSession(client, {
+    ...(parentSessionID ? { parentID: parentSessionID } : {}),
+    title,
+  })
+
+  const promptOptions: PromptOptions = {
+    sessionID: subSession.id,
+    text: userPrompt,
+    system: systemPrompt,
+    tools: {},
+    ...(modelRef ? { model: modelRef } : {}),
+  }
+
   try {
-    const createRes = await client.session.create({ body: { title } })
-    if (createRes.error || !createRes.data?.id) {
-      throw new Error(`[${title}] 创建临时会话失败 - ${createRes.error?.data?.message ?? '未知错误'}`)
+    const result = await promptAsyncAndWait(client, promptOptions)
+    return result.assistantText
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    try {
+      await client.session.delete({ path: { id: subSession.id } })
+    } catch {
+      // best-effort 清理失败的孤儿会话
     }
-    sessionId = createRes.data.id
-
-    const promptBody: Record<string, unknown> = {
-      parts: [{ type: 'text', text: userPrompt }],
-      system: systemPrompt,
-      tools: {},
-    }
-    if (modelRef) {
-      promptBody.model = modelRef
-    }
-
-    const promptRes = await client.session.prompt({
-      path: { id: sessionId },
-      body: promptBody as Parameters<typeof client.session.prompt>[0]['body'],
-    })
-
-    if (promptRes.error) {
-      throw new Error(`[${title}] 模型调用失败 - ${promptRes.error.data?.message ?? promptRes.error.name ?? '未知错误'}`)
-    }
-
-    return extractTextFromParts(promptRes.data?.parts ?? [])
-  } finally {
-    if (sessionId) {
-      try {
-        await client.session.delete({ path: { id: sessionId } })
-      } catch (err) {
-        const error = err instanceof Error ? err : new Error(String(err))
-        onCleanupError?.(new Error(`[${title}] 临时会话 ${sessionId} 清理失败 - ${error.message}`))
-      }
-    }
+    throw new Error(`[${title}] 模型调用失败 - ${msg}`)
   }
 }
 
@@ -328,7 +317,7 @@ async function adaptiveConcurrentPool<T>(
 }
 
 export async function executeBrainstorm(options: BrainstormOptions): Promise<BrainstormResult> {
-  const { topic, onProgress } = options
+  const { topic, onProgress, parentSessionID } = options
   const selectedPerspectiveIds: string[] = options.perspectives ?? [...DEFAULT_PERSPECTIVE_IDS]
   const rounds = Math.min(Math.max(options.rounds ?? 1, 1), 2)
 
@@ -344,10 +333,6 @@ export async function executeBrainstorm(options: BrainstormOptions): Promise<Bra
   const totalPerspectiveSessions = selectedPerspectives.length * effectiveModels.length * rounds
   const totalSessions = totalPerspectiveSessions + 1 // +1 synthesis
   const perspectiveOutputs: PerspectiveOutput[] = []
-  const cleanupWarnings: string[] = []
-  const collectCleanupWarning = (error: Error): void => {
-    cleanupWarnings.push(error.message)
-  }
   let sessionIndex = 0
 
   for (let round = 1; round <= rounds; round++) {
@@ -389,7 +374,7 @@ export async function executeBrainstorm(options: BrainstormOptions): Promise<Bra
           meta.userPrompt,
           meta.perspective.systemPrompt,
           meta.modelRef,
-          collectCleanupWarning,
+          parentSessionID,
         ),
       ),
       roundTaskMeta.length,
@@ -472,7 +457,7 @@ export async function executeBrainstorm(options: BrainstormOptions): Promise<Bra
       synthesisPrompt,
       SYNTHESIS_SYSTEM_PROMPT,
       synthesisModelRef,
-      collectCleanupWarning,
+      parentSessionID,
     )
   } catch (error) {
     onProgress?.({
@@ -507,6 +492,5 @@ export async function executeBrainstorm(options: BrainstormOptions): Promise<Bra
     perspectiveNames: selectedPerspectives.map((p) => p.name),
     totalSessions,
     failedCount,
-    cleanupWarnings,
   }
 }
