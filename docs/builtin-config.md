@@ -211,7 +211,7 @@ model: $deep
 | `/ae-libreoffice`、`/ae-graph-query` | `quick` |
 | `/ae-chrome-devtools` | `vision` |
 | `@repo-research-analyst`、`@web-researcher` | `standard` |
-| `@ui-architect`、`@ui-matcher`、`@browser-inspector` | `vision` |
+| `@ui-architect`、`@browser-inspector` | `vision` |
 | `@logic-weaver`、`@spec-flow-analyzer`、全部 28 个审查专精代理 | `deep` |
 | `@review-domain`、`@development-domain`、`@frontend-dev`、`@backend-dev`、`@debug-fix` | 继承 opencode 当前默认模型（未声明 `model` frontmatter） |
 | 未列出的内置命令 | 继承 opencode 当前默认模型 |

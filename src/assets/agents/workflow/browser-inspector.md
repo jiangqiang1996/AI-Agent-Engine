@@ -249,7 +249,7 @@ chrome-devtools_take_screenshot filePath=ae/screenshot/页面名称-完整.png f
 1. 截图错误状态：`chrome-devtools_take_screenshot filePath=ae/screenshot/error.png`
 2. 记录失败详情，不自行修改代码
 3. 在输出中标注问题类型，建议上层调度对应代理：
-   - UI/视觉问题 → 建议 `@ui-architect` 或 `@ui-matcher`
+   - UI/视觉问题 → 建议 `@ui-architect`
    - 交互/接口问题 → 建议 `@logic-weaver`
 
 ### 11. 测试总结

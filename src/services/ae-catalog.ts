@@ -110,8 +110,8 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   {
     skillName: SKILL.WEB_FORGE,
     commandName: COMMAND.WEB_FORGE,
-    description: `统一前端能力入口：通过四问题分析选择子代理，强制浏览器验收收尾，最多 3 轮返工修复+回归。需先完成 ${SKILL.CHROME_DEVTOOLS} MCP 注册，子代理 @ui-architect、@ui-matcher、@logic-weaver、@browser-inspector`,
-    argumentHint: '[描述|Figma URL|截图路径|页面路由] [--design|--match|--logic|--inspect]',
+    description: `前端开发统一入口：自动识别技术栈与可复用资产，自适应组合设计/实现/验证阶段，支持无人值守模式。需先完成 ${SKILL.CHROME_DEVTOOLS} MCP 注册，子代理 @ui-architect、@logic-weaver、@browser-inspector`,
+    argumentHint: '[描述|Figma URL|截图路径|页面路由] [--auto|--design|--logic|--inspect]',
     skillFile: `src/assets/skills/${skillDir(SKILL.WEB_FORGE)}/SKILL.md`,
     tier: 'tools',
     customTemplate: [
@@ -373,9 +373,8 @@ const REQUIRED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'],
 ]
 
 const GILDED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'], string]> = [
-  [AGENT.UI_ARCHITECT, 'workflow', '自由设计：无 Figma 约束的初版 UI 设计实现与视觉验证'],
-  [AGENT.UI_MATCHER, 'workflow', '设计还原：以 Figma 设计稿、截图或文字设计规格为准精确还原实现'],
-  [AGENT.LOGIC_WEAVER, 'workflow', '交互逻辑：前端交互实现与 API 集成'],
+  [AGENT.UI_ARCHITECT, 'workflow', '视觉设计与实现：自由设计或设计稿还原，根据输入自动切换模式'],
+  [AGENT.LOGIC_WEAVER, 'workflow', '前端代码实现：交互逻辑、API联调、状态管理、组件开发、重构、性能优化'],
   [AGENT.BROWSER_INSPECTOR, 'workflow', '浏览器验收：端到端浏览器测试与回归验证'],
   [AGENT.DOC_ARCHITECT, 'workflow', '文档架构师：为 PPTX/DOCX/PDF/XLSX 制定风格规格和内容结构'],
   [AGENT.UI_UX_DESIGNER, 'workflow', 'UI/UX 设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 ui-ux.md 设计契约，含设计读数、信息架构、页面规格、组件契约、设计 Token 和交互状态机'],

@@ -73,7 +73,7 @@
 /ae-web-forge --inspect http://localhost:3000/login
 ```
 
-只要实际使用 chrome-devtools-mcp 工具，必须先通过 `/ae-chrome-devtools` 完成 chrome-devtools MCP 动态注册并确认连接就绪。`/ae-web-forge` 是统一前端能力入口，通过子代理 `@ui-architect`（自由设计）、`@ui-matcher`（设计还原）、`@logic-weaver`（交互逻辑）、`@browser-inspector`（浏览器验收）交错执行。
+只要实际使用 chrome-devtools-mcp 工具，必须先通过 `/ae-chrome-devtools` 完成 chrome-devtools MCP 动态注册并确认连接就绪。`/ae-web-forge` 是前端开发统一入口，自动识别技术栈与可复用资产，通过子代理 `@ui-architect`（视觉设计与实现）、`@logic-weaver`（前端代码实现）、`@browser-inspector`（浏览器验收）自适应组合执行。
 
 ### Swagger/OpenAPI
 
@@ -200,9 +200,8 @@
 | `@repo-research-analyst` | 研究仓库结构、文档、约定和实现模式 | 只做仓库研究，不替代实现 |
 | `@web-researcher` | 做外部网络研究、竞品扫描和跨领域类比 | 用于外部上下文，不读取本地私有代码 |
 | `@spec-flow-analyzer` | 分析规格、计划或功能描述中的用户流程缺口 | 不直接写代码 |
-| `@ui-architect` | 无 Figma 约束的自由 UI 设计实现与一轮视觉验证 | 先完成 chrome-devtools MCP 动态注册；不负责设计还原 |
-| `@ui-matcher` | 以 Figma 设计稿或截图为准同步视觉差异 | 先完成 chrome-devtools MCP 动态注册；不自由发挥设计方向 |
-| `@logic-weaver` | 前端交互逻辑实现与 API 集成 | 不负责视觉设计 |
+| `@ui-architect` | 视觉设计与实现：自由设计或设计稿还原，根据输入自动切换模式 | 先完成 chrome-devtools MCP 动态注册；不负责接口联调 |
+| `@logic-weaver` | 前端代码实现：交互逻辑、API联调、状态管理、组件开发、重构、性能优化 | 不负责视觉设计 |
 | `@browser-inspector` | 端到端浏览器测试与回归验证 | 先完成 chrome-devtools MCP 动态注册；不做审美设计迭代 |
 
 ## 域代理

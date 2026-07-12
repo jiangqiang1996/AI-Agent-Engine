@@ -96,7 +96,7 @@ chrome-devtools MCP 支持三种注册模式：autoConnect（自动发现已运�
 
 本规则适用于一切**不支持幂等性执行**的操作，包括但不限于：服务启动（web 服务器、watch 进程、长连接服务等）、浏览器实例（chrome-devtools-mcp 启动的浏览器等）、浏览器标签页、`ae-async-bash` 服务启动、占用端口或留下持续运行状态的任何操作。凡是"重复执行会产生多个并存实例、占用资源或导致状态冲突"的操作均适用本规则。
 
-具体覆盖场景包括：内置技能（`ae:web-forge` 等）、工作流代理（`@ui-architect`/`@ui-matcher`/`@logic-weaver`/`@browser-inspector`）、命令（`/ae-web-forge` 等）、自动执行的新会话、直接工具调用（`chrome-devtools_navigate_page`/`take_snapshot`/`click`/`fill`/`take_screenshot` 等）、子代理，以及未来新增的任何使用 chrome-devtools-mcp 工具或产生持久副作用的技能/代理/命令/工具。
+具体覆盖场景包括：内置技能（`ae:web-forge` 等）、工作流代理（`@ui-architect`/`@logic-weaver`/`@browser-inspector`）、命令（`/ae-web-forge` 等）、自动执行的新会话、直接工具调用（`chrome-devtools_navigate_page`/`take_snapshot`/`click`/`fill`/`take_screenshot` 等）、子代理，以及未来新增的任何使用 chrome-devtools-mcp 工具或产生持久副作用的技能/代理/命令/工具。
 
 ## 4. 与现有规则的关系
 

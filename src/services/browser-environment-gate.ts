@@ -19,7 +19,6 @@ const BROWSER_KEYWORDS = [
   SKILL.WEB_FORGE,
   `/${COMMAND.WEB_FORGE}`,
   '@ui-architect',
-  '@ui-matcher',
   '@logic-weaver',
   '@browser-inspector',
 ]
