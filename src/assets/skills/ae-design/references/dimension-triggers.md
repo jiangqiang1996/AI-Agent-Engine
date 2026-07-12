@@ -8,7 +8,7 @@
 |---------|---------|-----------|--------------|
 | 不可逆决策 | API 签名/schema/认证模型变更 | api、database、security | - |
 | 结构性变更 | 新增模块/跨模块依赖/公共配置 | overview、architecture | - |
-| 用户界面变更 | 页面/交互/组件变更 | overview、ui-ux、test-cases | - |
+| 用户界面变更 | 页面/交互/组件变更 | overview、design-spec、ui-ux、test-cases | - |
 | 数据持久化 | 新建表/字段变更/迁移 | overview、database、test-cases | - |
 | 用户数据输入 | 涉及用户提交数据 | - | security 提升为必产出 |
 | 生产部署 | 涉及生产环境部署或变更 | - | observability 提升为必产出 |
@@ -40,6 +40,7 @@
 | 维度 | 模板文件 | 子代理 | 始终内联 |
 |------|---------|--------|---------|
 | overview | `overview-template.md` | 主代理产出 | 是 |
+| design-spec | 无（透传维度） | `@ui-design-spec` | N/A（透传） |
 | ui-ux | `ui-ux-template.md` | `@ui-ux-designer` | 否 |
 | architecture | `architecture-template.md` | `@architecture-designer` | 否 |
 | api | `api-template.md` | `@api-designer` | 否 |

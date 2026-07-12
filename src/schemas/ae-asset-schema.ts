@@ -86,6 +86,7 @@ export const AGENT = {
   LOGIC_WEAVER: 'logic-weaver',
   BROWSER_INSPECTOR: 'browser-inspector',
   UI_UX_DESIGNER: 'ui-ux-designer',
+  UI_DESIGN_SPEC: 'ui-design-spec',
   ARCHITECTURE_DESIGNER: 'architecture-designer',
   API_DESIGNER: 'api-designer',
   DATABASE_DESIGNER: 'database-designer',

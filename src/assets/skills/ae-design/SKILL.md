@@ -59,6 +59,7 @@ argument-hint: "[需求文档路径|旧 design|裸描述]"
 | 维度 | 子代理 | 产出文件 | 始终内联 |
 |------|--------|---------|---------|
 | overview | 主代理产出 | design.md（内联） | 是 |
+| design-spec | `@ui-design-spec` | 设计决策包（透传给 `@ui-ux-designer`，不产出独立文件） | N/A（透传） |
 | ui-ux | `@ui-ux-designer` | ui-ux.md | 否 |
 | architecture | `@architecture-designer` | architecture.md | 否 |
 | api | `@api-designer` | api.md | 否 |
@@ -111,11 +112,13 @@ argument-hint: "[需求文档路径|旧 design|裸描述]"
 风险信号识别清单（任一命中即触发对应风险维度，详见 `references/dimension-triggers.md`）：
 - **不可逆决策风险**：API 签名变更、数据模型 schema 变更、认证模型变更 → 强制必产出 api、database、security
 - **结构性变更风险**：新增模块、跨模块依赖调整、公共配置修改 → 强制必产出 overview、architecture
-- **用户界面变更风险**：页面新增、交互流程调整、UI 组件复用 → 强制必产出 overview、ui-ux、test-cases
+- **用户界面变更风险**：页面新增、交互流程调整、UI 组件复用 → 强制必产出 overview、design-spec、ui-ux、test-cases
 - **数据持久化风险**：新建表、字段变更、迁移脚本 → 强制必产出 overview、database、test-cases
 - **用户数据输入**（条件必产出）：涉及用户提交数据 → security 提升为必产出
 - **生产部署**（条件必产出）：涉及生产环境部署或变更 → observability 提升为必产出
 - **性能敏感**（条件必产出）：涉及高并发/大数据量/实时性 → non-functional 提升为必产出
+
+> design-spec 没有独立的风险信号触发条目，它作为 ui-ux 的附属维度出现在必产出列表中。当 ui-ux 被触发时，design-spec 自动作为其前置依赖执行。
 
 #### 1.2 风险维度触发规则
 
@@ -168,6 +171,8 @@ argument-hint: "[需求文档路径|旧 design|裸描述]"
 | security | 认证模型、授权模型、数据分级、密钥管理 |
 | observability | 日志结构、监控指标、告警阈值、SLO 目标 |
 | non-functional | 性能目标、并发模型、缓存策略、容量规划 |
+
+> design-spec 不需要 ae:grill 追问。`@ui-design-spec` 有自己的设计决策推断流程（需求推断 → 旋钮配置 → 设计体系选择 → 风格变体推荐 → 负向设计空间 → 输出），由步骤 1 的风险信号触发后自主执行。
 
 #### 2.3 追问结果带回
 
@@ -224,12 +229,13 @@ overview 始终内联在 `design.md` 中，按 `references/overview-template.md`
 建议产出顺序（按依赖关系）：
 1. architecture（@architecture-designer）→ 为 api/database 提供模块边界和分层规则
 2. database（@database-designer）→ 为 api 提供表结构（T-XXX）用于字段对齐
-3. api（@api-designer）→ 与 database 字段对齐，为 ui-ux 提供端点引用
-4. ui-ux（@ui-ux-designer）→ 与 api 端点对齐
-5. security（@security-designer）→ 与 api/database 对齐
-6. observability（@observability-designer）→ 与 architecture/api 对齐
-7. non-functional（@non-functional-designer）→ 与 architecture/database 对齐
-8. test-cases（@test-cases-designer）→ 追溯所有维度契约元素（最后产出，确保覆盖全部维度）
+3. api（@api-designer）→ 与 database 字段对齐，为 ui-ux 提供端点
+4. design-spec（@ui-design-spec）→ 为 ui-ux 提供设计读数、三旋钮、设计体系、风格变体、负向设计空间等设计决策包
+5. ui-ux（@ui-ux-designer）→ 接收 design-spec 决策包，与 api 端点对齐
+6. security（@security-designer）→ 与 api/database 对齐
+7. observability（@observability-designer）→ 与 architecture/api 对齐
+8. non-functional（@non-functional-designer）→ 与 architecture/database 对齐
+9. test-cases（@test-cases-designer）→ 追溯所有维度契约元素（最后产出，确保覆盖全部维度）
 
 > security/observability/non-functional 之间无跨维度依赖，可并行调度以缩短流程。
 
@@ -241,6 +247,7 @@ overview 始终内联在 `design.md` 中，按 `references/overview-template.md`
 - **overview 上下文**：设计读数、范围映射、跨维度依赖关系、稳定 ID 体系
 - **契约模板路径**：`references/<维度名>-template.md`
 - **跨维度依赖**：已产出维度契约的稳定 ID 和契约元素
+- **设计决策包**（仅 `@ui-ux-designer`）：由 `@ui-design-spec` 产出的设计决策包，包含设计读数、三旋钮配置、设计体系选择、风格变体推荐、负向设计空间、排版建议、色彩建议和布局关键约束
 
 子代理产出后返回：
 - 产出文件路径
@@ -266,7 +273,7 @@ overview 始终内联在 `design.md` 中，按 `references/overview-template.md`
 
 #### 4.4 维度拆分决策
 
-**强制拆分规则：** 无论文件大小，每个维度必须拆分为独立子文件（`<维度名>.md`），不在 design.md 中内联维度内容。overview、实施约束和跨维度映射表始终内联在 design.md 中。
+**强制拆分规则：** 无论文件大小，每个维度必须拆分为独立子文件（`<维度名>.md`），不在 design.md 中内联维度内容。overview、实施约束和跨维度映射表始终内联在 design.md 中。design-spec 维度为透传维度，不产出独立文件，不参与拆分规则和行数校验。
 
 拆分后，对每个维度子文件评估行数：
 - **维度子文件 ≤ 300 行**：保持为独立子文件，不继续拆分
@@ -301,6 +308,7 @@ overview 始终内联在 `design.md` 中，按 `references/overview-template.md`
 11. **security ↔ database** - security 数据分级与 database 敏感字段标注对齐
 12. **observability ↔ architecture** - observability 指标体系覆盖 architecture 关键数据流
 13. **non-functional ↔ architecture** - non-functional 性能目标与 architecture 技术选型可行
+14. **design-spec ↔ ui-ux** - ui-ux 契约中的设计读数、三旋钮取值和负向设计空间必须与 design-spec 产出的设计决策包一致；design-spec 是 ui-ux 的前置依赖，ui-ux 产出时引用决策包参数保证一致性
 
 发现不一致时，在此阶段修复后再进入 review 闭环。映射表缺失时补全，映射表与维度内容不一致时以维度内容为准更新映射表。语义对齐问题（字段类型不兼容、状态机路径断裂、追溯 ID 不存在等）在此阶段修复，减少 review 阶段发现量。
 

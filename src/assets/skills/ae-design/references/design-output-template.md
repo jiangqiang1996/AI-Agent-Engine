@@ -381,7 +381,7 @@ last_updated: "2026-06-24"
 拆分后，跨维度一致性校验需要读取所有子文件：
 - 读取 Split Manifest 获取子文件列表
 - 逐个读取子文件内容
-- 执行以下校验项（与 SKILL.md 阶段 5 一致，共 9 项）：
+- 执行以下校验项（与 SKILL.md 阶段 5 一致，以 SKILL.md 为准）：
   1. api ↔ database 一致性（字段名、类型、约束对齐）
   2. ui-ux ↔ api 一致性（数据展示与响应字段对齐）
   3. overview 依赖关系完整性（跨维度依赖覆盖实际一致性约束）
@@ -391,3 +391,8 @@ last_updated: "2026-06-24"
   7. overview 跨维度映射表 ↔ 实际维度内容一致性（4 类映射表存在且与维度内容一致）
   8. 跨维度映射表完整性（4 类映射表必须存在且非空）
   9. 实施约束与 architecture/api 一致性（目录结构约定与模块边界表对齐、环境变量清单与认证授权流程对齐）
+  10. architecture ↔ api（模块边界与接口分组一致）
+  11. security ↔ database（数据分级与敏感字段标注对齐）
+  12. observability ↔ architecture（指标体系覆盖关键数据流）
+  13. non-functional ↔ architecture（性能目标与技术选型可行）
+  14. design-spec ↔ ui-ux（ui-ux 契约中的设计读数、三旋钮取值和负向设计空间与 design-spec 产出的设计决策包一致）
