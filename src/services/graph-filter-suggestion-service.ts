@@ -11,7 +11,6 @@ const HARD_EXCLUDED_AE_RUNTIME_PATHS = [
   docsAePath(DOCS_AE_SUBDIRS.HANDOFFS),
   docsAePath(DOCS_AE_SUBDIRS.REVIEWS),
   'ae/screenshot',
-  'ae/static-server',
 ]
 const SENSITIVE_FILENAMES = [/^\.env/, /credential/i, /secret/i, /password/i, /token/i, /private[-_]?key/i]
 const HARD_EXCLUDED_EXTENSIONS = new Set([

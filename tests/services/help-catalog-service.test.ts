@@ -172,8 +172,8 @@ describe('help-catalog-service', () => {
   describe('filterCatalog', () => {
     const catalog = {
       skills: [
-        { name: 'ae:brainstorm', description: '头脑风暴', argumentHint: '', commandName: 'ae-brainstorm' },
-        { name: 'ae:plan', description: '制定计划', argumentHint: '', commandName: 'ae-plan' },
+        { name: 'ae:brainstorm', description: '头脑风暴', argumentHint: '', commandName: 'ae-brainstorm', tier: 'core' },
+        { name: 'ae:plan', description: '制定计划', argumentHint: '', commandName: 'ae-plan', tier: 'core' },
       ],
       commands: [
         { name: 'ae-brainstorm', description: '头脑风暴', category: '基础命令' },
@@ -226,6 +226,7 @@ describe('help-catalog-service', () => {
               description: '为重构任务创建结构化计划',
               argumentHint: '[重构目标|计划路径|需求文档路径|旧机制描述]',
               commandName: COMMAND.REFACTOR,
+              tier: 'core',
             },
           ],
           commands: [
@@ -272,7 +273,7 @@ describe('help-catalog-service', () => {
   describe('formatHelpCatalog', () => {
     it('应该生成包含技能、命令和代理的 Markdown', () => {
       const catalog = {
-        skills: [{ name: 'ae:brainstorm', description: '头脑风暴', argumentHint: '[主题|范围]', commandName: 'ae-brainstorm' }],
+        skills: [{ name: 'ae:brainstorm', description: '头脑风暴', argumentHint: '[主题|范围]', commandName: 'ae-brainstorm', tier: 'core' }],
         commands: [
           { name: 'ae-brainstorm', description: '头脑风暴', category: '基础命令' },
         ],
@@ -295,7 +296,7 @@ describe('help-catalog-service', () => {
 
     it('应该为空参数技能显示占位符', () => {
       const catalog = {
-        skills: [{ name: 'ae:help', description: '查看帮助', argumentHint: '', commandName: 'ae-help' }],
+        skills: [{ name: 'ae:help', description: '查看帮助', argumentHint: '', commandName: 'ae-help', tier: 'core' }],
         commands: [],
         agents: [],
       }
@@ -307,7 +308,7 @@ describe('help-catalog-service', () => {
 
     it('应该显示 save-experience 且不显示旧 save-rules 入口', () => {
       const catalog = {
-        skills: [{ name: SKILL.SAVE_EXPERIENCE, description: '统一经验沉淀入口', argumentHint: '[经验摘要|保存目标]', commandName: COMMAND.SAVE_EXPERIENCE }],
+        skills: [{ name: SKILL.SAVE_EXPERIENCE, description: '统一经验沉淀入口', argumentHint: '[经验摘要|保存目标]', commandName: COMMAND.SAVE_EXPERIENCE, tier: 'tools' }],
         commands: [{ name: COMMAND.SAVE_EXPERIENCE, description: '统一经验沉淀入口', category: '基础命令' }],
         agents: [],
       }
@@ -457,6 +458,7 @@ describe('help-catalog-service', () => {
           description: '头脑风暴',
           argumentHint: '[主题]',
           skillFile: 'src/assets/skills/ae-brainstorm/SKILL.md',
+          tier: 'core',
         },
       ] as ReturnType<typeof aeCatalog.getPhaseOneEntries>)
       vi.mocked(aeCatalog.getAllAgentDefinitions).mockReturnValue([])
@@ -474,8 +476,8 @@ describe('help-catalog-service', () => {
   describe('resolveDetail', () => {
     const catalog = {
       skills: [
-        { name: 'ae:plan', description: '制定计划', argumentHint: '[目标]', commandName: 'ae-plan' },
-        { name: 'ae:brainstorm', description: '头脑风暴', argumentHint: '[主题]', commandName: 'ae-brainstorm' },
+        { name: 'ae:plan', description: '制定计划', argumentHint: '[目标]', commandName: 'ae-plan', tier: 'core' },
+        { name: 'ae:brainstorm', description: '头脑风暴', argumentHint: '[主题]', commandName: 'ae-brainstorm', tier: 'core' },
       ],
       commands: [
         { name: 'ae-plan', description: '制定计划', category: '基础命令' },

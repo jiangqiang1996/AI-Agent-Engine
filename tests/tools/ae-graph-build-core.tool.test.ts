@@ -336,7 +336,6 @@ describe('ae-graph-build 工具', () => {
     execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.com', 'commit', '-m', 'test'], { cwd: root, stdio: 'ignore' })
     await aeGraphBuildTool.execute({ mode: 'full' }, createMockContext(root))
 
-    write(root, 'ae/static-server/.static-server-info.json', '{}')
     write(root, 'ae/screenshot/page.png', 'image')
     write(root, 'ae/reviews/run/metadata.json', '{}')
     const result = await aeGraphBuildTool.execute({ mode: 'auto' }, createMockContext(root))

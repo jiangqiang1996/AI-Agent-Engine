@@ -129,8 +129,6 @@ describe('资产健康巡检', () => {
     expect(commandConfig[`${COMMAND.TASK_LOOP}-pa`], 'asset-health/prompt-variant/command/ae-task-loop-pa').toBeUndefined()
     expect(commandConfig[`${COMMAND.GRAPH_BUILD}-po`], 'asset-health/prompt-variant/command/ae-graph-build-po').toBeUndefined()
     expect(commandConfig[`${COMMAND.GRAPH_BUILD}-pa`], 'asset-health/prompt-variant/command/ae-graph-build-pa').toBeUndefined()
-    expect(commandConfig[`${COMMAND.HTML_BUNDLE}-po`], 'asset-health/prompt-variant/command/ae-html-bundle-po').toBeUndefined()
-    expect(commandConfig[`${COMMAND.HTML_BUNDLE}-pa`], 'asset-health/prompt-variant/command/ae-html-bundle-pa').toBeUndefined()
     expect(commandConfig[`${COMMAND.GRAPH_QUERY}-po`], 'asset-health/prompt-variant/command/ae-graph-query-po').toBeUndefined()
     expect(commandConfig[`${COMMAND.GRAPH_QUERY}-pa`], 'asset-health/prompt-variant/command/ae-graph-query-pa').toBeUndefined()
     expect(commandConfig[`${COMMAND.CHROME_DEVTOOLS}-po`], 'asset-health/prompt-variant/command/ae-chrome-devtools-po').toBeUndefined()
@@ -273,18 +271,6 @@ describe('资产健康巡检', () => {
     expect(routingEntry).toMatchObject({ type: 'command', name: COMMAND.SAVE_EXPERIENCE, scenario: 'standard' })
   })
 
-  it('应该注册 ae:html-bundle 技术栈无关 bundle 入口', () => {
-    const entries = getPhaseOneEntries()
-    const htmlBundle = entries.find((entry) => entry.skillName === SKILL.HTML_BUNDLE)
-    const skillText = readFileSync('src/assets/skills/ae-html-bundle/SKILL.md', 'utf8')
-
-    expect(htmlBundle?.commandName).toBe(COMMAND.HTML_BUNDLE)
-    expect(getCommandModelScenario(COMMAND.HTML_BUNDLE)).toBe(MODEL_SCENARIO.STANDARD)
-    expect(skillText).toContain('不推断 React、Vite、Webpack、Parcel')
-    expect(skillText).toContain('不联网抓取外部 URL')
-    expect(skillText).toContain('ae-html-bundle')
-  })
-
   it('应该拒绝残留的 ae:save-rules 技能和磁盘命令', () => {
     const skillFiles = listMarkdownFiles(join(process.cwd(), 'src/assets/skills'))
     const skillNames = skillFiles.map((file) => parseFrontmatter(readFileSync(file, 'utf8')).data.name)
@@ -352,7 +338,6 @@ describe('资产健康巡检', () => {
       COMMAND.CHROME_DEVTOOLS,
       COMMAND.API_TESTER,
       COMMAND.SWAGGER_PARSER,
-      COMMAND.HTML_BUNDLE,
       COMMAND.IMAGE,
       COMMAND.DOCX,
       COMMAND.PDF,
@@ -360,7 +345,6 @@ describe('资产健康巡检', () => {
       COMMAND.XLSX,
       COMMAND.SLIDES_OUTLINE,
       COMMAND.PPTX_FROM_OUTLINE,
-      COMMAND.STATIC_SERVER,
       COMMAND.GRAPH_BUILD,
       COMMAND.GRAPH_QUERY,
       COMMAND.TASK_LOOP,

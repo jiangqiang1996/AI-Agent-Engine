@@ -94,7 +94,6 @@ function isReviewRuntimePath(filePath: string): boolean {
     || normalized.startsWith(`${docsAePath(DOCS_AE_SUBDIRS.REVIEWS)}/`)
     || normalized.startsWith(`${docsAePath(DOCS_AE_SUBDIRS.HANDOFFS)}/`)
     || normalized.startsWith('ae/screenshot/')
-    || normalized.startsWith('ae/static-server/')
 }
 
 function normalizeReviewStatusSummary(statusSummary: string): string {

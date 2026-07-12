@@ -7,12 +7,13 @@ import { buildAgentConfig } from './agent-registration.js'
 import { getAssetModelRoutingEntries, type AssetModelRoutingEntry } from './asset-model-routing-catalog.js'
 import { createRuntimeAssetManifest, createRuntimeAssetManifestFromRoot, type RuntimeAssetManifest } from './runtime-asset-manifest.js'
 
-/** 技能条目，包含名称、描述、参数提示和关联命令。 */
+/** 技能条目，包含名称、描述、参数提示、关联命令和层级。 */
 export interface SkillEntry {
   name: string
   description: string
   argumentHint: string
   commandName: string
+  tier: string
 }
 
 /** 命令条目，包含名称、描述和分类。 */
@@ -41,6 +42,7 @@ function buildSkillEntries(): SkillEntry[] {
       description: e.description,
       argumentHint: e.argumentHint || '',
       commandName: e.commandName,
+      tier: e.tier,
     })
   }
 
@@ -156,21 +158,40 @@ export function formatHelpCatalog(catalog: HelpCatalog, query?: string): string 
 
   lines.push('')
 
-  // 技能
+  // 技能（按 tier 分组）
   if (catalog.skills.length > 0) {
+    const tierOrder: Array<{ tier: string; label: string; desc: string }> = [
+      { tier: 'core', label: '核心工程流程', desc: 'PRD/设计/计划/实现/审查/交付主链路' },
+      { tier: 'docs', label: '文档生成', desc: 'DOCX/PDF/PPTX/XLSX 等' },
+      { tier: 'tools', label: '辅助工具', desc: '浏览器/图谱/接口/媒体识别等' },
+      { tier: 'meta', label: '维护与配置', desc: '技能/代理创建与配置管理' },
+    ]
+    const byTier = new Map<string, SkillEntry[]>()
+    for (const skill of catalog.skills) {
+      const list = byTier.get(skill.tier) ?? []
+      list.push(skill)
+      byTier.set(skill.tier, list)
+    }
+
     lines.push('## 技能')
     lines.push('')
-    lines.push('| 技能 | 命令 | 参数 | 说明 |')
-    lines.push('|------|------|------|------|')
 
-    for (const skill of catalog.skills) {
-      const command = `/${skill.commandName}`
-      const argumentHint = skill.argumentHint || '—'
-      lines.push(
-        `| \`${escapeMarkdownTableCell(skill.name)}\` | \`${escapeMarkdownTableCell(command)}\` | \`${escapeMarkdownTableCell(argumentHint)}\` | ${escapeMarkdownTableCell(skill.description)} |`,
-      )
+    for (const { tier, label, desc } of tierOrder) {
+      const entries = byTier.get(tier)
+      if (!entries || entries.length === 0) continue
+      lines.push(`### ${label}（${desc}）`)
+      lines.push('')
+      lines.push('| 技能 | 命令 | 参数 | 说明 |')
+      lines.push('|------|------|------|------|')
+      for (const skill of entries) {
+        const command = `/${skill.commandName}`
+        const argumentHint = skill.argumentHint || '—'
+        lines.push(
+          `| \`${escapeMarkdownTableCell(skill.name)}\` | \`${escapeMarkdownTableCell(command)}\` | \`${escapeMarkdownTableCell(argumentHint)}\` | ${escapeMarkdownTableCell(skill.description)} |`,
+        )
+      }
+      lines.push('')
     }
-    lines.push('')
   }
 
   // 命令别名

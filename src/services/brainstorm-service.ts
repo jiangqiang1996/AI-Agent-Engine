@@ -158,7 +158,7 @@ async function runSubSession(
     } catch {
       // best-effort 清理失败的孤儿会话
     }
-    throw new Error(`[${title}] 模型调用失败 - ${msg}`)
+    throw new Error(`[${title}] 模型调用失败 (session=${subSession.id}) - ${msg}`)
   }
 }
 
@@ -435,7 +435,11 @@ export async function executeBrainstorm(options: BrainstormOptions): Promise<Bra
 
   const successfulOutputs = perspectiveOutputs.filter((o) => !o.error)
   if (successfulOutputs.length === 0) {
-    throw new Error('所有视角讨论均失败，无法进行汇总')
+    const failureDetails = perspectiveOutputs
+      .filter((o) => o.error)
+      .map((o) => `  - [R${o.round} ${o.perspectiveName}${o.model ? ` ${o.model}` : ''}] ${o.error}`)
+      .join('\n')
+    throw new Error(`所有视角讨论均失败，无法进行汇总。各子会话失败原因：\n${failureDetails}`)
   }
 
   const synthesisModel = getModelByScenario(

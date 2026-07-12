@@ -29,8 +29,6 @@
 | 创建或编辑 XLSX | `/ae-xlsx` |
 | 幻灯片大纲生成 | `/ae-slides-outline` |
 | 大纲转 PPTX | `/ae-pptx-from-outline` |
-| HTML 单文件打包 | `/ae-html-bundle` |
-| 静态服务器 | `/ae-static-server` |
 | 构建或查询项目关系图谱 | `/ae-graph-build`、`/ae-graph-query` |
 | 保存经验 | `/ae-save-experience` |
 | 提示词优化 | `/ae-prompt-optimize` |
@@ -135,8 +133,6 @@
 | `/ae-sql` | `[SQL 语句]` | 通过 JDBC 连接数据库并执行 SQL | 执行前应确认目标库和语句风险 |
 | `/ae-swagger-parser` | `[source] [method:<HTTP_METHOD>] [path:<PATH>] [tag:<TAG>] [keyword:<TEXT>] [mode:overview\|detail]` | 解析 Swagger/OpenAPI 并输出联调摘要 | 不请求业务接口 |
 | `/ae-image` | `file=图片路径 [format=jpg|png] [outputPath=路径]` | 将本地图片转换为 Markdown 描述 | 支持 JPG/PNG/GIF/WebP/BMP |
-| `/ae-html-bundle` | `[entry:<HTML_PATH>] [output:<HTML_PATH>] [external:keep\|fail]` | 将显式入口 HTML 和本地静态资源打包为自包含 HTML | 不执行项目构建，不联网抓取外链 |
-| `/ae-static-server` | `<路径> [端口] [-k]` | 创建静态服务器，用于预览指定静态页面 | 只做本地预览服务 |
 | `/ae-graph-build` | `[target:<PATH>] [mode:auto\|full\|incremental] [depth:shallow] [include:<PATH>...] [exclude:<PATH>...]` | 构建或增量维护项目文件关系图谱 | `include` 优先于 `exclude`，但不覆盖安全硬排除 |
 | `/ae-graph-query` | `[mode:deps\|impact\|health\|filter\|path\|core\|stats\|pattern] [file:<PATH>] [target:<PATH>]` | 查询依赖、影响范围、核心模块和健康状态 | 图谱缺失时先构建 |
 | `/ae-save-experience` | `[经验摘要\|保存目标]` | 保存 solution，并按需提炼 rules | 不把临时结论直接当长期规则 |
@@ -233,7 +229,6 @@
 | `ae-help` | 生成当前运行时帮助 | 不修改配置 |
 | `ae-handoff` | 创建独立新会话并注入上下文 | 不做提示词优化 |
 | `ae-swagger-parser` | 解析 Swagger/OpenAPI 规格 | 不请求业务接口 |
-| `ae-html-bundle` | 打包显式入口 HTML 和本地静态资源 | 不执行项目构建或联网抓取外链 |
 | `ae-image` | 将本地图片转换为 Markdown 描述 | 不支持远程 URL，不处理音频/视频 |
 | `ae-graph-build` | 构建或增量维护项目文件关系图谱 | 不分析运行时动态依赖或符号级调用链 |
 | `ae-graph-query` | 查询图谱中的依赖、影响范围、核心模块和健康状态 | 不构建图谱 |

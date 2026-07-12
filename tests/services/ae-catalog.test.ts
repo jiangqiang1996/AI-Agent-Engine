@@ -96,17 +96,6 @@ describe('AE catalog 一致性', () => {
     expect(text).toContain('init_agent.mjs` 拒绝覆盖既有目标是预期安全语义')
   })
 
-  it('ae:html-bundle 应注册为技术栈无关的 bundle 入口', () => {
-    const entry = getPhaseOneEntries().find((item) => item.skillName === SKILL.HTML_BUNDLE)
-    const frontmatter = readFrontmatter('src/assets/skills/ae-html-bundle/SKILL.md')
-
-    expect(entry).toBeDefined()
-    expect(entry?.commandName).toBe('ae-html-bundle')
-    expect(entry?.skillFile).toBe('src/assets/skills/ae-html-bundle/SKILL.md')
-    expect(entry?.description).toBe(frontmatter.description)
-    expect(entry?.argumentHint).toBe(frontmatter['argument-hint'])
-  })
-
   it('ae:image 应注册为图片转 Markdown 入口', () => {
     const entry = getPhaseOneEntries().find((item) => item.skillName === SKILL.IMAGE)
     const frontmatter = readFrontmatter('src/assets/skills/ae-image/SKILL.md')

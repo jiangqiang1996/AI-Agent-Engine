@@ -115,7 +115,6 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | chrome-devtools 浏览器能力 | `/ae-chrome-devtools` |
 | 接口测试 | `/ae-api-tester` |
 | Swagger/OpenAPI 摘要 | `/ae-swagger-parser` |
-| HTML 单文件打包 | `/ae-html-bundle` |
 | 图片转 Markdown 描述 | `/ae-image` |
 | 创建或编辑 DOCX | `/ae-docx` |
 | 创建或编辑 PDF | `/ae-pdf` |
@@ -123,7 +122,6 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 创建或编辑 XLSX | `/ae-xlsx` |
 | 幻灯片大纲生成 | `/ae-slides-outline` |
 | 大纲转 PPTX | `/ae-pptx-from-outline` |
-| 静态服务器 | `/ae-static-server` |
 | 项目关系图谱 | `/ae-graph-build`、`/ae-graph-query` |
 | 探索性修复 | `/ae-task-loop` |
 | 数据库操作 | `/ae-sql` |
@@ -151,10 +149,10 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 
 | 类型 | 当前快照 | 真源 |
 | --- | ---: | --- |
-| 技能 | 37 | `src/assets/skills/`、`src/schemas/ae-asset-schema.ts` |
-| 命令 | 44 | `src/services/command-registration.ts`、`src/assets/commands/` |
+| 技能 | 35 | `src/assets/skills/`、`src/schemas/ae-asset-schema.ts` |
+| 命令 | 42 | `src/services/command-registration.ts`、`src/assets/commands/` |
 | 代理 | 49 | `src/assets/agents/`、`src/services/agent-registration.ts` |
-| 工具 | 29 | `src/tools/` |
+| 工具 | 27 | `src/tools/` |
 | 规则 | 6 | `src/assets/rules/` |
 | 内置配置 | 1 | `src/assets/config/ae.jsonc` |
 

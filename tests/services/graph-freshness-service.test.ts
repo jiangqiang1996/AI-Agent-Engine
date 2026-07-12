@@ -140,7 +140,7 @@ describe('graph-freshness-service', () => {
     })
     write(root, 'ae/graphs/graph-build-state.json', '{"status":"completed"}')
     write(root, 'ae/graphs/graph-build-state-0123456789abcdef.json', '{"status":"completed"}')
-    write(root, 'ae/static-server/.static-server-info.json', '{}')
+    write(root, 'ae/screenshot/test.png', '...')
 
     const second = normalizeGraphBuildInput({
       worktree: root,

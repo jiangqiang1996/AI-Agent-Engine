@@ -405,7 +405,7 @@ describe('brainstorm-service - executeBrainstorm 集成流程', () => {
 
     await expect(
       executeBrainstorm({ topic: '主题', perspectives: ['critic'], rounds: 1 }),
-    ).rejects.toThrow('所有视角讨论均失败')
+    ).rejects.toThrow(/所有视角讨论均失败/)
   })
 
   it('客户端未初始化时所有视角应失败并抛出"所有视角讨论均失败"', async () => {
@@ -415,7 +415,7 @@ describe('brainstorm-service - executeBrainstorm 集成流程', () => {
 
     await expect(
       executeBrainstorm({ topic: '主题', perspectives: ['critic'], rounds: 1 }),
-    ).rejects.toThrow('所有视角讨论均失败')
+    ).rejects.toThrow(/所有视角讨论均失败/)
   })
 
   it('无效视角 ID 应抛出异常', async () => {
@@ -436,7 +436,7 @@ describe('brainstorm-service - executeBrainstorm 集成流程', () => {
 
     await expect(
       executeBrainstorm({ topic: '主题', perspectives: ['critic', 'optimist'], rounds: 1 }),
-    ).rejects.toThrow('所有视角讨论均失败')
+    ).rejects.toThrow(/所有视角讨论均失败/)
   })
 
   it('临时会话不再删除，子会话保留供 TUI 查看', async () => {
@@ -472,7 +472,7 @@ describe('brainstorm-service - executeBrainstorm 集成流程', () => {
 
     await expect(
       executeBrainstorm({ topic: '主题', perspectives: ['critic'], rounds: 1 }),
-    ).rejects.toThrow('所有视角讨论均失败')
+    ).rejects.toThrow(/所有视角讨论均失败/)
 
     expect(mockDelete).toHaveBeenCalled()
   })

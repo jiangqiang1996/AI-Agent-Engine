@@ -17,6 +17,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '多模型多视角头脑风暴：通过 ae-brainstorm 工具执行两阶段结构化讨论（纯视角生成 + 跨模型碰撞汇总），自动识别真分歧、共识和盲区',
     argumentHint: '[讨论主题] [perspectives=optimist,critic,pragmatist] [rounds=1]',
     skillFile: `src/assets/skills/${skillDir(SKILL.BRAINSTORM)}/SKILL.md`,
+    tier: 'core',
   },
   {
     skillName: SKILL.PRD,
@@ -24,6 +25,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: getLifecycleCatalogDescription('prd'),
     argumentHint: '[目标描述|需求文档路径]',
     skillFile: `src/assets/skills/${skillDir(SKILL.PRD)}/SKILL.md`,
+    tier: 'core',
   },
   {
     skillName: SKILL.DESIGN,
@@ -31,6 +33,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: getLifecycleCatalogDescription('design'),
     argumentHint: '[需求文档路径|旧 design|裸描述]',
     skillFile: `src/assets/skills/${skillDir(SKILL.DESIGN)}/SKILL.md`,
+    tier: 'core',
   },
   {
     skillName: SKILL.PLAN,
@@ -38,6 +41,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: getLifecycleCatalogDescription('plan'),
     argumentHint: '[计划路径|需求文档路径|目标描述]',
     skillFile: `src/assets/skills/${skillDir(SKILL.PLAN)}/SKILL.md`,
+    tier: 'core',
   },
   {
     skillName: SKILL.REFACTOR,
@@ -45,6 +49,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: getLifecycleCatalogDescription('refactor-plan'),
     argumentHint: '[重构目标|计划路径|需求文档路径|旧机制描述]',
     skillFile: `src/assets/skills/${skillDir(SKILL.REFACTOR)}/SKILL.md`,
+    tier: 'core',
   },
   {
     skillName: SKILL.AGENT_CREATOR,
@@ -52,6 +57,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '创建或更新 OpenCode 原生代理，默认项目级，支持显式全局级和可选同级命令',
     argumentHint: '[代理用途|代理名称] [--global] [--command]',
     skillFile: `src/assets/skills/${skillDir(SKILL.AGENT_CREATOR)}/SKILL.md`,
+    tier: 'meta',
   },
   {
     skillName: SKILL.WORK,
@@ -59,6 +65,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: getLifecycleCatalogDescription('work'),
     argumentHint: '[计划路径|交接文件路径|任务描述]',
     skillFile: `src/assets/skills/${skillDir(SKILL.WORK)}/SKILL.md`,
+    tier: 'core',
   },
   {
     skillName: SKILL.WORK_REPORT,
@@ -66,6 +73,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '基于 Git 提交与未提交变更生成日报、周报或指定时间段工作总结',
     argumentHint: '[日报|周报|时间段|提交范围]',
     skillFile: `src/assets/skills/${skillDir(SKILL.WORK_REPORT)}/SKILL.md`,
+    tier: 'core',
   },
   {
     skillName: SKILL.MY_CODE_CHANGES,
@@ -73,6 +81,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '获取指定时间内本人提交的所有代码变更（含本机未提交的），只取最终状态，不输出中间过程',
     argumentHint: 'since=<date> [until=<date>]',
     skillFile: `src/assets/skills/${skillDir(SKILL.MY_CODE_CHANGES)}/SKILL.md`,
+    tier: 'core',
   },
   {
     skillName: SKILL.MERGE_BRANCH,
@@ -80,6 +89,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '将来源分支或本地 worktree 的变更合并到接收分支，并用来源分支的 AE 交接、需求和计划验证合并结果',
     argumentHint: '[来源分支名|本地 worktree 路径]',
     skillFile: `src/assets/skills/${skillDir(SKILL.MERGE_BRANCH)}/SKILL.md`,
+    tier: 'core',
   },
   {
     skillName: SKILL.REVIEW,
@@ -87,6 +97,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: `${getLifecycleCatalogDescription('outcome-review')}；通用审查入口，默认自动识别审查场景，支持代码、需求、设计、原型、计划、配置、技能、命令、测试用例等单一或混合范围`,
     argumentHint: '[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [full] [full=<path>] [session] [plan=<path>] [goals=<text>] [路径...]',
     skillFile: `src/assets/skills/${skillDir(SKILL.REVIEW)}/SKILL.md`,
+    tier: 'core',
   },
   {
     skillName: SKILL.CHROME_DEVTOOLS,
@@ -94,6 +105,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: 'chrome-devtools-mcp 浏览器能力中枢：启动或接管浏览器，打开 URL，执行指定任务。ae:chrome-devtools 是 ae-chrome-devtools-mcp 工具的唯一管理入口，上层技能和代理不应直接调用 ae-chrome-devtools-mcp。',
     argumentHint: '[url] [action] [mode] [browser] [port] [headless] [task=任务描述]',
     skillFile: `src/assets/skills/${skillDir(SKILL.CHROME_DEVTOOLS)}/SKILL.md`,
+    tier: 'tools',
   },
   {
     skillName: SKILL.WEB_FORGE,
@@ -101,6 +113,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: `统一前端能力入口：通过四问题分析选择子代理，强制浏览器验收收尾，最多 3 轮返工修复+回归。需先完成 ${SKILL.CHROME_DEVTOOLS} MCP 注册，子代理 @ui-architect、@ui-matcher、@logic-weaver、@browser-inspector`,
     argumentHint: '[描述|Figma URL|截图路径|页面路由] [--design|--match|--logic|--inspect]',
     skillFile: `src/assets/skills/${skillDir(SKILL.WEB_FORGE)}/SKILL.md`,
+    tier: 'tools',
     customTemplate: [
       `先使用 \`${SKILL.CHROME_DEVTOOLS} action=register mode=autoConnect\` 技能完成浏览器 MCP 动态注册；`,
       '未完成 MCP 注册前不得执行任何浏览器控制命令。',
@@ -113,6 +126,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '幻灯片大纲生成与交互修改：根据主题、需求描述、现有大纲文件或现有 HTML 幻灯片生成逐页完整内容大纲，支持对话反复修改直到用户确认',
     argumentHint: '[主题|需求描述|大纲文件路径|现有 HTML 幻灯片文件路径]',
     skillFile: `src/assets/skills/${skillDir(SKILL.SLIDES_OUTLINE)}/SKILL.md`,
+    tier: 'docs',
   },
   {
     skillName: SKILL.PPTX_FROM_OUTLINE,
@@ -120,6 +134,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '传入确认后的幻灯片大纲文件，解析布局提示词与图表/线框描述，调用 ae-pptx 工具生成 PPTX 演示文稿；内容必须完全符合大纲，禁止镀金',
     argumentHint: '[大纲文件路径]',
     skillFile: `src/assets/skills/${skillDir(SKILL.PPTX_FROM_OUTLINE)}/SKILL.md`,
+    tier: 'docs',
   },
 {
     skillName: SKILL.HANDOFF,
@@ -127,6 +142,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '会话交接：提取当前会话核心结论，创建独立新会话并注入上下文',
     argumentHint: '',
     skillFile: `src/assets/skills/${skillDir(SKILL.HANDOFF)}/SKILL.md`,
+    tier: 'core',
   },
   {
     skillName: SKILL.TASK_LOOP,
@@ -134,6 +150,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '循环执行任务并自动验证，直到达成目标后退出',
     argumentHint: '[一句话目标描述]',
     skillFile: `src/assets/skills/${skillDir(SKILL.TASK_LOOP)}/SKILL.md`,
+    tier: 'core',
   },
   {
     skillName: SKILL.SQL,
@@ -141,6 +158,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '通过 JDBC 连接任意数据库并执行 SQL',
     argumentHint: '[SQL 语句]',
     skillFile: `src/assets/skills/${skillDir(SKILL.SQL)}/SKILL.md`,
+    tier: 'tools',
   },
   {
     skillName: SKILL.SWAGGER_PARSER,
@@ -148,6 +166,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '解析 Swagger/OpenAPI JSON/YAML 并输出接口联调摘要',
     argumentHint: '[source] [method] [path] [tag=TAG] [keyword=TEXT] [mode]',
     skillFile: `src/assets/skills/${skillDir(SKILL.SWAGGER_PARSER)}/SKILL.md`,
+    tier: 'tools',
   },
   {
     skillName: SKILL.API_TESTER,
@@ -155,13 +174,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '以真实业务流程编排为主、接口边界测试为辅的自动化接口测试，支持登录认证与接口请求脚本生成',
     argumentHint: '[接口文档|接口描述|已有脚本路径|业务流程描述]',
     skillFile: `src/assets/skills/${skillDir(SKILL.API_TESTER)}/SKILL.md`,
-  },
-  {
-    skillName: SKILL.HTML_BUNDLE,
-    commandName: COMMAND.HTML_BUNDLE,
-    description: '将显式入口 HTML 及其本地静态资源收敛为自包含 bundle.html',
-    argumentHint: '[entry] [output] [external=keep|fail]',
-    skillFile: `src/assets/skills/${skillDir(SKILL.HTML_BUNDLE)}/SKILL.md`,
+    tier: 'tools',
   },
   {
     skillName: SKILL.LIBREOFFICE,
@@ -169,6 +182,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: 'LibreOffice 运行时管理：检测、下载、配置和管理 LibreOffice（ae.jsonc 配置、系统安装或便携版），供 ae:pptx、ae:docx、ae:pdf、ae:xlsx 技能进行文档转换或视觉验证时调用',
     argumentHint: '[action=check|install|config|set-path]',
     skillFile: `src/assets/skills/${skillDir(SKILL.LIBREOFFICE)}/SKILL.md`,
+    tier: 'docs',
   },
   {
     skillName: SKILL.IMAGE,
@@ -176,6 +190,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '将本地图片转换为 Markdown 描述。通过 ae.jsonc 中 modelScenarios.vision 配置的模型识别图片内容，未配置时由 opencode 自行分配模型。支持 JPG/PNG/GIF/WebP/BMP 格式，识别提示词由调用方通过 prompt 参数传入。模型支持 vision 时可直接用 Read 工具读取图片；模型不支持 vision 时禁止尝试直接读取图片文件，必须通过本技能转换。',
     argumentHint: 'file=图片路径 [format=jpg|jpeg|png|gif|webp|bmp] [outputMode=file|inline] [prompt=识别提示词] [outputPath=路径]',
     skillFile: `src/assets/skills/${skillDir(SKILL.IMAGE)}/SKILL.md`,
+    tier: 'tools',
   },
   {
     skillName: SKILL.AUDIO,
@@ -183,6 +198,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '将本地音频转换为 Markdown 描述。通过 ae.jsonc 中 modelScenarios.audio 配置的模型识别音频内容，未配置时由 opencode 自行分配模型。支持 MP3/WAV/OGG/FLAC/M4A/AAC 格式，识别提示词由调用方通过 prompt 参数传入。模型支持音频输入时可直接用 Read 工具读取；模型不支持音频时禁止尝试直接读取音频文件，必须通过本技能转换。',
     argumentHint: 'file=音频路径 [format=mp3|wav|ogg|flac|m4a|aac] [outputMode=file|inline] [prompt=识别提示词] [outputPath=路径]',
     skillFile: `src/assets/skills/${skillDir(SKILL.AUDIO)}/SKILL.md`,
+    tier: 'tools',
   },
   {
     skillName: SKILL.VIDEO,
@@ -190,6 +206,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '将本地视频转换为 Markdown 描述。通过 ae.jsonc 中 modelScenarios.video 配置的模型识别视频内容，未配置时由 opencode 自行分配模型。支持 MP4/WebM/AVI/MOV/MKV/FLV 格式，识别提示词由调用方通过 prompt 参数传入。模型支持视频输入时可直接用 Read 工具读取；模型不支持视频时禁止尝试直接读取视频文件，必须通过本技能转换。',
     argumentHint: 'file=视频路径 [format=mp4|webm|avi|mov|mkv|flv] [outputMode=file|inline] [prompt=识别提示词] [outputPath=路径]',
     skillFile: `src/assets/skills/${skillDir(SKILL.VIDEO)}/SKILL.md`,
+    tier: 'tools',
   },
   {
     skillName: SKILL.GRAPH_BUILD,
@@ -197,6 +214,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '构建或增量维护项目文件关系图谱',
     argumentHint: '[target] [mode] [depth] [include=...] [exclude=...]',
     skillFile: `src/assets/skills/${skillDir(SKILL.GRAPH_BUILD)}/SKILL.md`,
+    tier: 'tools',
   },
   {
     skillName: SKILL.GRAPH_QUERY,
@@ -204,6 +222,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '查询项目文件关系图谱中的依赖、影响范围和健康状态',
     argumentHint: '[mode] [file=<PATH>] [target=<PATH>] [directory=<PATH>]',
     skillFile: `src/assets/skills/${skillDir(SKILL.GRAPH_QUERY)}/SKILL.md`,
+    tier: 'tools',
   },
   {
     skillName: SKILL.PROJECT_EXPLORE,
@@ -211,6 +230,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '探索和分析任意文件集合的结构与关系——代码项目、文档库、配置仓库、数据目录、复刻前调研。@explore 增强版：增加分类识别、关系映射、模式推断和复刻指南',
     argumentHint: '[target] [focus=structure|content|relations|patterns|all] [depth=quick|standard|deep] [output=summary|profile|both]',
     skillFile: `src/assets/skills/${skillDir(SKILL.PROJECT_EXPLORE)}/SKILL.md`,
+    tier: 'tools',
   },
   {
     skillName: SKILL.SAVE_EXPERIENCE,
@@ -218,6 +238,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '统一经验沉淀入口：先保存 solution，再按需提炼 rules',
     argumentHint: '[经验摘要|保存目标]',
     skillFile: `src/assets/skills/${skillDir(SKILL.SAVE_EXPERIENCE)}/SKILL.md`,
+    tier: 'tools',
   },
   {
     skillName: SKILL.PROMPT_OPTIMIZE,
@@ -225,6 +246,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '提示词优化工具：分析用户提示词与当前工作空间相关性后做最小优化，经用户确认后通过 ae-create-session 新开会话自动执行或暂停等待，禁止与原始逻辑违背。当用户原始提示词不清晰、模糊或信息不足时，先通过追问澄清意图再优化。支持 mode=auto 直接提交并自动执行、mode=pause 直接提交并暂停，跳过提交确认提问。',
     argumentHint: '[提示词内容] [mode=auto|pause]',
     skillFile: `src/assets/skills/${skillDir(SKILL.PROMPT_OPTIMIZE)}/SKILL.md`,
+    tier: 'tools',
   },
   {
     skillName: SKILL.SKILL_CREATOR,
@@ -232,13 +254,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '创建或更新 OpenCode 原生技能和命令，支持只创建技能、只创建命令或同时创建；--from-session 模式从当前会话提取可复用流程',
     argumentHint: '<技能名或需求描述> [--global] [--no-command|--command-only] [--from-session]',
     skillFile: `src/assets/skills/${skillDir(SKILL.SKILL_CREATOR)}/SKILL.md`,
-  },
-  {
-    skillName: SKILL.STATIC_SERVER,
-    commandName: COMMAND.STATIC_SERVER,
-    description: '使用 JavaScript 创建静态服务器，用于预览指定静态页面，支持传入文件路径/目录路径，并返回访问 URL',
-    argumentHint: '<路径> [port=端口号] [-k]',
-    skillFile: `src/assets/skills/${skillDir(SKILL.STATIC_SERVER)}/SKILL.md`,
+    tier: 'meta',
   },
   {
     skillName: SKILL.DOCX,
@@ -246,6 +262,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '创建、编辑、分析、追加、更新块 Word 文档（.docx），支持格式保留、修订追踪和文本提取；to-markdown 操作可将 DOCX 转为 Markdown，本技能输出仍为 .docx',
     argumentHint: '[创建|编辑|分析|修订|追加|更新块] [文件路径] [任务描述]',
     skillFile: `src/assets/skills/${skillDir(SKILL.DOCX)}/SKILL.md`,
+    tier: 'docs',
   },
   {
     skillName: SKILL.PDF,
@@ -253,6 +270,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '处理 PDF 文档：创建、合并、拆分、提取文本/表格、填写表单、追加页面、局部更新；to-markdown 操作可将 PDF 转为 Markdown，本技能输出仍为 PDF 或结构化数据',
     argumentHint: '[创建|合并|拆分|提取|表单|旋转|删除|水印|追加|更新] [文件路径] [任务描述]',
     skillFile: `src/assets/skills/${skillDir(SKILL.PDF)}/SKILL.md`,
+    tier: 'docs',
   },
   {
     skillName: SKILL.PPTX,
@@ -260,6 +278,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '创建、编辑、分析、追加、更新 PowerPoint 演示文稿（.pptx），支持模板、布局和设计原则；to-markdown 操作可将 PPTX 转为 Markdown，本技能输出仍为 .pptx',
     argumentHint: '[创建|编辑|分析|追加|更新] [文件路径] [任务描述]',
     skillFile: `src/assets/skills/${skillDir(SKILL.PPTX)}/SKILL.md`,
+    tier: 'docs',
   },
   {
     skillName: SKILL.XLSX,
@@ -267,6 +286,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '创建、编辑、分析、追加行、追加表 Excel 电子表格（.xlsx），支持公式、格式、数据分析和图表；to-markdown 操作可将 XLSX 转为 Markdown，本技能输出仍为 .xlsx',
     argumentHint: '[创建|编辑|分析|追加行|添加工作表] [文件路径] [任务描述]',
     skillFile: `src/assets/skills/${skillDir(SKILL.XLSX)}/SKILL.md`,
+    tier: 'docs',
   },
   {
     skillName: SKILL.GRILL,
@@ -274,6 +294,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     description: '深度追问方案决策，一问一答推进共识；适用于用户提示词模糊信息不明确需要逐层澄清的场景，以及对已有计划或设计做构建前压力测试',
     argumentHint: '[计划文档路径|设计文档路径|方案描述]',
     skillFile: `src/assets/skills/${skillDir(SKILL.GRILL)}/SKILL.md`,
+    tier: 'core',
   },
 ]
 

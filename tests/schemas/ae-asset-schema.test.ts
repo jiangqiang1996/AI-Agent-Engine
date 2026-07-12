@@ -18,13 +18,6 @@ describe('ae-asset-schema', () => {
     expect(AeCommandNameSchema.parse(COMMAND.SWAGGER_PARSER)).toBe('ae-swagger-parser')
   })
 
-  it('应该接受 html-bundle 技能、命令和工具', () => {
-    expect(AeSkillNameSchema.parse(SKILL.HTML_BUNDLE)).toBe('ae:html-bundle')
-    expect(AeCommandNameSchema.parse(COMMAND.HTML_BUNDLE)).toBe('ae-html-bundle')
-    expect(TOOL.AE_HTML_BUNDLE).toBe('ae-html-bundle')
-    expect(createToolRegistry()[TOOL.AE_HTML_BUNDLE]).toBeDefined()
-  })
-
   it('应该接受 chrome-devtools 指导技能和命令', () => {
     expect(AeSkillNameSchema.parse(SKILL.CHROME_DEVTOOLS)).toBe('ae:chrome-devtools')
     expect(AeCommandNameSchema.parse(COMMAND.CHROME_DEVTOOLS)).toBe('ae-chrome-devtools')

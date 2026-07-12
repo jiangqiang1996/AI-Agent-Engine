@@ -19,7 +19,6 @@ export const SKILL = {
   SQL: 'ae:sql',
   SWAGGER_PARSER: 'ae:swagger-parser',
   API_TESTER: 'ae:api-tester',
-  HTML_BUNDLE: 'ae:html-bundle',
   SLIDES_OUTLINE: 'ae:slides-outline',
   PPTX_FROM_OUTLINE: 'ae:pptx-from-outline',
   LIBREOFFICE: 'ae:libreoffice',
@@ -32,7 +31,6 @@ export const SKILL = {
   PROJECT_EXPLORE: 'ae:project-explore',
   SAVE_EXPERIENCE: 'ae:save-experience',
   SKILL_CREATOR: 'ae:skill-creator',
-STATIC_SERVER: 'ae:static-server',
   DOCX: 'ae:docx',
   PDF: 'ae:pdf',
   PPTX: 'ae:pptx',
@@ -116,7 +114,6 @@ export const TOOL = {
   AE_HELP: 'ae-help',
   AE_REVIEW_PROOF: 'ae-review-proof',
   AE_SWAGGER_PARSER: 'ae-swagger-parser',
-  AE_HTML_BUNDLE: 'ae-html-bundle',
   AE_LIBREOFFICE: 'ae-libreoffice',
 
   AE_IMAGE: 'ae-image',
@@ -164,7 +161,6 @@ export const AeSkillNameSchema = z
     SKILL.SQL,
     SKILL.SWAGGER_PARSER,
     SKILL.API_TESTER,
-    SKILL.HTML_BUNDLE,
     SKILL.SLIDES_OUTLINE,
     SKILL.PPTX_FROM_OUTLINE,
     SKILL.LIBREOFFICE,
@@ -176,7 +172,6 @@ export const AeSkillNameSchema = z
     SKILL.PROJECT_EXPLORE,
     SKILL.SAVE_EXPERIENCE,
     SKILL.SKILL_CREATOR,
-SKILL.STATIC_SERVER,
     SKILL.DOCX,
     SKILL.PDF,
     SKILL.PPTX,
@@ -194,6 +189,10 @@ export const AeCommandNameSchema = z
   .enum(ALL_COMMAND_NAMES)
   .describe('AE 命令名')
 
+export const SkillTierSchema = z
+  .enum(['core', 'docs', 'tools', 'meta'])
+  .describe('技能层级：core=工程流程核心，docs=文档生成，tools=辅助工具，meta=维护与配置')
+
 export const AeAssetEntrySchema = z.object({
   skillName: AeSkillNameSchema.describe('技能名'),
   commandName: AeCommandNameSchema.describe('命令名'),
@@ -201,6 +200,7 @@ export const AeAssetEntrySchema = z.object({
   argumentHint: z.string().optional().describe('参数提示'),
   skillFile: z.string().describe('技能文件路径，无关联技能时为空字符串'),
   customTemplate: z.string().optional().describe('自定义命令模板，command-registration.ts 优先于默认模板使用'),
+  tier: SkillTierSchema.describe('技能层级'),
 })
 
 export const AgentStageSchema = z

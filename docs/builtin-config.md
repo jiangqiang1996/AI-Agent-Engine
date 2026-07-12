@@ -206,7 +206,7 @@ model: $deep
 
 | 资产 | 场景 |
 | --- | --- |
-| `/ae-brainstorm`、`/ae-prd`、`/ae-agent-creator`、`/ae-work-report`、`/ae-my-code-changes`、`/ae-handoff`、`/ae-sql`、`/ae-swagger-parser`、`/ae-api-tester`、`/ae-html-bundle`、`/ae-image`、`/ae-audio`、`/ae-video`、`/ae-graph-build`、`/ae-project-explore`、`/ae-save-experience`、`/ae-prompt-optimize`、`/ae-skill-creator`、`/ae-static-server`、`/ae-docx`、`/ae-pdf`、`/ae-pptx`、`/ae-xlsx` | `standard` |
+| `/ae-brainstorm`、`/ae-prd`、`/ae-agent-creator`、`/ae-work-report`、`/ae-my-code-changes`、`/ae-handoff`、`/ae-sql`、`/ae-swagger-parser`、`/ae-api-tester`、`/ae-image`、`/ae-audio`、`/ae-video`、`/ae-graph-build`、`/ae-project-explore`、`/ae-save-experience`、`/ae-prompt-optimize`、`/ae-skill-creator`、`/ae-docx`、`/ae-pdf`、`/ae-pptx`、`/ae-xlsx` | `standard` |
 | `/ae-design`、`/ae-plan`、`/ae-refactor`、`/ae-work`、`/ae-merge-branch`、`/ae-review`、`/ae-web-forge`、`/ae-slides-outline`、`/ae-pptx-from-outline`、`/ae-task-loop`、`/ae-grill` | `deep` |
 | `/ae-libreoffice`、`/ae-graph-query` | `quick` |
 | `/ae-chrome-devtools` | `vision` |
