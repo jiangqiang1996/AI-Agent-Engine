@@ -1,21 +1,20 @@
 ---
 name: ae:web-forge
-description: "统一前端能力入口：通过四问题分析选择子代理，强制浏览器验收收尾，最多 3 轮返工修复+回归。子代理包括 @ui-architect、@ui-matcher、@logic-weaver、@browser-inspector。"
-argument-hint: "[描述|Figma URL|截图路径|页面路由] [--design|--match|--logic|--inspect]"
+description: "前端开发统一入口：任何涉及前端代码、页面、组件、样式、交互、浏览器的工作都应使用本技能，无例外。包括但不限于页面创建、设计实现、设计稿还原、组件开发、交互逻辑、API联调、状态管理、前端重构、性能优化、响应式适配、无障碍修复、CSS架构、构建配置、浏览器测试验收等。自动识别技术栈与可复用资产，自适应组合设计/实现/验证阶段，支持无人值守模式。"
+argument-hint: "[描述|Figma URL|截图路径|页面路由] [--auto|--design|--logic|--inspect]"
 ---
 
 # Web Forge
 
-统一前端能力入口，整合自由设计、设计还原、交互逻辑与浏览器验收。本技能通过四问题分析确定子代理选择和执行顺序，强制以 @browser-inspector 验收收尾，最多执行 3 轮返工修复+回归。
+前端开发统一入口。自动识别项目技术栈和可复用资产，自适应组合设计、实现、验证阶段，覆盖任何前端开发场景。
 
 ## 子代理
 
 | 子代理 | 模型 | 职责 | 触发条件 |
 |--------|------|------|----------|
-| `@ui-architect` | $vision | 无设计约束的自由 UI 设计实现与一轮视觉验证 | Q2=无设计输入，需从零设计 |
-| `@ui-matcher` | $vision | 以设计稿、截图或文字规格为准的精确还原实现 | Q2=有 Figma URL、设计截图或具体文字设计规格 |
-| `@logic-weaver` | $deep | 前端交互逻辑实现与 API 集成 | Q3=YES，需实现交互功能、对接 API、表单逻辑 |
-| `@browser-inspector` | $vision | 端到端浏览器测试与回归验收 | 强制收尾验收；发现问题后返工回归验证 |
+| `@ui-architect` | $vision | 视觉设计与实现：自由设计或设计稿还原，根据输入自动切换模式 | 需要创建或修改页面/组件的视觉呈现 |
+| `@logic-weaver` | $deep | 前端代码实现：交互逻辑、API联调、状态管理、组件开发、重构、性能优化 | 需要实现非视觉的前端代码逻辑 |
+| `@browser-inspector` | $vision | 浏览器验收：端到端浏览器测试与回归验证 | 用户选择浏览器验收阶段时 |
 
 ## chrome-devtools MCP 门禁
 
@@ -31,169 +30,231 @@ MCP 已在配置中声明、用户声称已配置或本地进程检查成功，�
 4. Chrome isolated — 启动独立 Chrome 实例（干净环境）
 5. Edge isolated — Chrome isolated 失败时，启动独立 Edge 实例
 
-**阻断条件（仅当以下全部满足时方可阻断）：** 所有 5 种注册模式均失败、用户明确拒绝启动任何浏览器、且用户明确拒绝重新执行验收。此时停止浏览器操作命令，同时阻断交付：不得在验收未完成的情况下输出产出文件、声明任务完成或继续执行步骤 3（输出总结）。验收阻断时唯一允许的输出是标注"验收阻断：所有浏览器注册模式均失败"的状态报告，含已尝试的浏览器和模式列表、阻断原因、用户后续可自行验收的指引。该报告不得作为交付凭证。
+**阻断条件（仅当以下全部满足时方可阻断）：** 所有 5 种注册模式均失败、用户明确拒绝启动任何浏览器、且用户明确拒绝重新执行验收。此时停止浏览器操作命令，同时阻断交付：不得在验收未完成的情况下输出产出文件、声明任务完成或继续执行步骤 4（输出总结）。验收阻断时唯一允许的输出是标注"验收阻断：所有浏览器注册模式均失败"的状态报告，含已尝试的浏览器和模式列表、阻断原因、用户后续可自行验收的指引。该报告不得作为交付凭证。
 
 ## 工作流
 
-### 步骤 0：目标产物存在性检查
-
-在四问题分析之前，先检查目标产物是否已存在于文件系统中，用于识别同一会话中对同一需求的重复调用。
-
-**检查方法：**
-
-1. 从用户输入中提取目标输出路径线索：
-   - 用户显式指定的路径（如 `./index.html`、`src/pages/login.tsx`）
-   - 用户描述暗示的常见路径（如"登录页" → 检查 `src/pages/login.*`、`src/views/login.*`、`pages/login.*`）
-   - 用户提供的现有文件路径（已作为 Q1=YES 信号处理，此处仅复核确认）
-2. 使用文件系统工具（Glob/Read）检查上述路径是否存在可识别的产物文件（HTML/Vue/React/JSX/TSX 等）
-3. 用户未指定路径且无法从描述推断时，跳过本步骤，直接进入步骤 1
-
-**检查结果处理：**
-
-| 存在性 | 处理 |
-|--------|------|
-| 未检测到已存在产物 | 直接进入步骤 1，Q1 按用户语言信号判断 |
-| 检测到已存在产物且用户语言信号明确（"修改"/"更新"/"二开"） | 进入步骤 1，Q1=YES，按用户意图判断 Q2/Q3/Q4 |
-| 检测到已存在产物但用户语言信号不明确（如"做个 X"、"帮我 X"，无修改/二开措辞） | **暂停分析，向用户确认意图**：|
-
-向用户确认时，提供以下选项：
-
 ```
-检测到 [路径] 已存在。请确认您的意图：
+步骤 0：项目上下文检测（自动，不询问）
+  ├─ 0.1 判定项目类型
+  ├─ 0.2 技术栈识别
+  ├─ 0.3 可复用资产扫描
+  ├─ 0.4 资产复用分析
+  └─ 0.5 上下文摘要
 
-1. 迭代改进 — 在现有基础上优化（Q1=YES, Q4=YES 保留基准）
-2. 推倒重做 — 重新设计并覆盖（Q1=YES, Q4=NO 重新设计）
-3. 另建新文件 — 在不同路径创建新版本（Q1=NO）
+步骤 1：任务分析（自动，不询问）
+  └─ 工作类型 + 设计输入 + 代码范围 + 验证需求 → 推荐阶段组合
+
+步骤 2：阶段确认
+  ├─ --auto 模式 → 跳过确认，执行全部推荐阶段
+  └─ 交互模式 → 用户选择执行哪些阶段
+
+步骤 3：子代理调度执行 + 返工循环
+  ├─ 设计阶段 → @ui-architect
+  ├─ 实现阶段 → @logic-weaver
+  ├─ 验证阶段 → @browser-inspector
+  └─ 返工循环（仅当有验证阶段）
+
+步骤 4：输出总结
 ```
 
-用户确认后，将确认结果作为 Q1 和 Q4 的判定依据进入步骤 1。
+### 步骤 0：项目上下文检测
 
-### 步骤 1：四问题分析
+在任何任务分析之前，自动检测项目上下文，不询问用户。
 
-分析用户输入，依次回答以下四个问题，确定子代理选择和执行顺序。
+**0.1 判定项目类型**
+
+检测当前工作区是否存在前端项目标志（`package.json`、`src/`、`index.html`、`vite.config.*`、`next.config.*` 等）：
+
+| 项目类型 | 判定条件 | 默认技术栈 |
+|----------|----------|------------|
+| 全新项目 | 无前端代码结构 | HTML + JS + CSS 原生实现 |
+| 现有项目 | 存在 `package.json` 或前端源码目录 | 按 0.2 识别结果 |
+
+全新项目时，除非用户明确指定技术栈（如"用 React""用 Vue"），默认使用 HTML + JS + CSS 原生实现，并在输出中声明："未检测到现有前端项目，默认使用 HTML + JS + CSS 原生实现"。此时设计规范中的框架相关指导（React/Tailwind/Motion 默认值）不适用，`@ui-architect` 应使用原生 CSS 实现等价效果。
+
+**0.2 技术栈识别（现有项目）**
+
+使用 Glob/Grep/Read 扫描以下信号：
+
+| 维度 | 检测信号 |
+|------|----------|
+| 框架 | `package.json` dependencies 中的 react/vue/angular/svelte/solid 等 |
+| 元框架 | next/nuxt/remix/astro 等 |
+| CSS 方案 | tailwind/styled-components/css-modules/sass/less 等 |
+| 组件库 | shadcn/ui, antd, element-plus, mui, chakra, radix 等 |
+| 状态管理 | zustand/jotai/redux/pinia/mobx 等 |
+| 数据获取 | react-query/swr/axios/fetch 封装等 |
+| 路由方案 | react-router/vue-router/next-router 等 |
+| 构建工具 | vite/webpack/rollup/esbuild 等 |
+| TypeScript | `tsconfig.json` 存在 |
+
+**0.3 可复用资产扫描（现有项目）**
+
+扫描项目中的可复用资产。扫描时排除 `node_modules`、`dist`、`.git` 目录，最大扫描文件数上限 200，超出时仅扫描顶层目录并标记"资产检测不完整"：
+
+- 组件目录：`src/components/`、`src/shared/`、`src/common/` 等
+- 已封装的表单组件（Form, FormItem, Input, Select, DatePicker 等）
+- 已封装的列表/表格组件（Table, List, Pagination 等）
+- 已封装的弹窗组件（Modal, Dialog, Drawer, Popover 等）
+- 布局组件（Layout, Header, Sidebar, PageContainer 等）
+- 通用 UI 组件（Button, Card, Tabs, Steps 等）
+- 工具函数/hooks（useRequest, useForm, useTable 等）
+- 样式变量/设计令牌（theme.ts, tokens.css, variables.scss 等）
+
+扫描失败或超时不阻断流程，标记"资产检测不可用"后继续后续步骤。
+
+**0.4 资产复用分析**
+
+将当前任务需求与扫描到的可复用资产匹配：
+
+- 任务需要表单 → 检测到已有 Form 组件 → 标记可复用，传递给子代理
+- 任务需要表格 → 检测到已有 Table 组件 → 标记可复用
+- 任务需要弹窗 → 检测到已有 Modal 组件 → 标记可复用
+- 无匹配资产 → 标记需新建
+
+生成《可复用资产清单》，在调度子代理时透传。
+
+**0.5 上下文摘要输出**
+
+| 维度 | 结果 |
+|------|------|
+| 项目类型 | 全新 / 现有 |
+| 技术栈 | React + Next.js + Tailwind + shadcn/ui + ... |
+| 可复用资产 | Form, Table, Modal, Layout, useRequest... |
+| 本次复用 | Form(✓), Table(✓), Chart(✗新建) |
+| 实现约束 | 使用 TS, 函数组件, Tailwind 类名... |
+
+### 步骤 1：任务分析
+
+自动分析用户输入，确定工作类型和推荐阶段组合，不询问用户。
 
 **参数标记（强制覆盖）：**
 
-- `--design`：强制 Q2=无设计输入，使用 `@ui-architect`
-- `--match`：强制 Q2=有设计规格，使用 `@ui-matcher`
-- `--logic`：强制 Q3=YES，调度 `@logic-weaver`
-- `--inspect`：强制仅调度 `@browser-inspector`（跳过 Q1-Q3，直接验收）
+- `--design`：强制包含设计阶段，调度 `@ui-architect`
+- `--logic`：强制包含实现阶段，调度 `@logic-weaver`
+- `--inspect`：强制包含验证阶段，调度 `@browser-inspector`
+- `--auto`：无人值守模式，跳过步骤 2 的用户确认，自动执行全部推荐阶段
 
-**四个分析问题：**
+**分析维度：**
 
-| # | 问题 | 判断依据 | 路由影响 |
-|---|------|----------|----------|
-| Q1 | 是否二次开发？ | 用户提到"修改"、"更新"、"在现有页面上"、"二开"，或提供了现有文件路径（如 HTML 文件路径） | YES → 需先读取现有代码理解结构；NO → 从零创建 |
-| Q2 | 设计输入是什么？ | 无设计输入（"做个页面"、"初版"） → @ui-architect；有 Figma URL/截图/文字规格（布局、尺寸、颜色等） → @ui-matcher；仅要求验收/测试 → 跳过视觉阶段 | 决定视觉子代理选择或跳过视觉阶段 |
-| Q3 | 是否需要交互逻辑？ | 用户要求"实现交互"、"对接 API"、"表单逻辑"、"登录流程"，或任务描述涉及状态管理、数据提交 | YES → 调度 @logic-weaver；NO → 跳过交互阶段 |
-| Q4 | 是否保留现有设计基准？ | Q1=YES 且用户未要求重新设计 → YES，保留现有视觉只做必要修改；Q1=YES 且用户要求重新设计 → NO，视觉阶段全覆盖；Q1=NO → 不适用 | 影响视觉阶段的修改范围和约束透传 |
+| 维度 | 取值 | 说明 |
+|------|------|------|
+| 工作类型 | create / modify / fix / refactor / verify | 创建新页面、修改现有、修复 bug、重构、验证 |
+| 设计输入 | none / figma / screenshot / text-specs / existing | 无设计输入、Figma URL、截图、文字规格、现有代码 |
+| 代码范围 | visual / logic / fullstack / config / test | 视觉、逻辑、全栈、配置、测试 |
+| 验证需求 | browser / none | 是否需要浏览器验证 |
 
-**路由决策矩阵：**
+**推荐阶段组合示例：**
 
-根据四个问题的回答，确定子代理调度顺序：
+| 任务描述 | 工作类型 | 设计输入 | 代码范围 | 验证需求 | 推荐阶段 |
+|----------|----------|----------|----------|----------|----------|
+| "做个落地页" | create | none | visual | browser | 设计 + 验证 |
+| "按 Figma 还原" | create | figma | visual | browser | 设计 + 验证 |
+| "对接登录 API" | modify | existing | logic | browser | 实现 + 验证 |
+| "重构组件库" | refactor | existing | logic | none | 实现 |
+| "修 CSS bug" | fix | existing | visual | none | 设计 |
+| "验收页面" | verify | existing | - | browser | 验证 |
+| "从零做 dashboard" | create | none | fullstack | browser | 设计 + 实现 + 验证 |
 
-| Q1 | Q2 | Q3 | Q4 | 调度顺序 |
-|----|----|----|----|----------|
-| No | 无设计输入 | No | - | @ui-architect → @browser-inspector |
-| No | 无设计输入 | Yes | - | @ui-architect → @logic-weaver → @browser-inspector |
-| No | 有设计规格 | No | - | @ui-matcher → @browser-inspector |
-| No | 有设计规格 | Yes | - | @ui-matcher → @logic-weaver → @browser-inspector |
-| Yes | 保留现有 | No | Yes | @browser-inspector（仅验收现有页面） |
-| Yes | 保留现有 | Yes | Yes | @logic-weaver → @browser-inspector |
-| Yes | 重新设计 | No | No | @ui-architect → @browser-inspector |
-| Yes | 重新设计 | Yes | No | @ui-architect → @logic-weaver → @browser-inspector |
-| Yes | 有新设计规格 | No | No | @ui-matcher → @browser-inspector |
-| Yes | 有新设计规格 | Yes | No | @ui-matcher → @logic-weaver → @browser-inspector |
+### 步骤 2：阶段确认
 
-**复合需求处理：** 用户描述可能同时涉及多个子代理职责。按上述矩阵确定完整调度顺序，不可遗漏任何必要阶段。
+**--auto 模式：** 跳过确认，自动执行全部推荐阶段。返工循环自动进行至上限。
 
-**用户提供现有文件路径时：** 若用户提供 HTML 文件路径（如 `ae/documents/html/xxx.html`、`./index.html`），Q1=YES，再根据附加意图判断 Q2/Q3。
+**交互模式：** 使用 `question` 工具向用户展示推荐方案，由用户最终决定执行哪些阶段：
 
-### 步骤 2：子代理调度执行
+```
+根据分析，以下阶段可执行：
 
-按四问题分析结果调度子代理，遵循三阶段执行模型。
+1. [设计实现] — 视觉设计与代码实现（@ui-architect）
+2. [逻辑实现] — 交互逻辑与API联调（@logic-weaver）
+3. [浏览器验收] — E2E测试与截图验证（@browser-inspector）
+
+推荐执行：1 + 2 + 3
+请选择要执行的阶段（可多选）：
+```
+
+用户可：
+- 接受推荐（全选）
+- 仅选部分（如只做设计，不验收）
+- 全部跳过（仅做分析，输出步骤 0-1 的结果作为总结）
+
+未选的阶段跳过，不执行。
+
+### 步骤 3：子代理调度执行 + 返工循环
+
+按用户确认（或 --auto 模式自动全选）的结果调度子代理。
 
 **约束透传声明：**
 
 主代理在调度任何子代理时，必须透传以下约束，子代理不得绕过：
 
+- 项目上下文摘要（步骤 0.5 的结果）：技术栈、可复用资产清单、实现约束
+- 技术栈约束：子代理必须使用检测到的技术栈，不得引入不一致的新依赖
+- 可复用资产约束：子代理优先复用已封装组件；需新建时在输出中说明原因
+- 全新项目约束：使用 HTML + JS + CSS 原生实现，除非用户明确指定其他技术栈
 - chrome-devtools MCP 门禁：涉及浏览器操作的子代理必须先通过 `ae:chrome-devtools` 完成注册
 - 截图保存路径：所有截图必须保存到 `ae/screenshot/` 目录
 - 登录检测：打开目标页面后须执行登录检测流程
-- Q1=YES 时的现有代码上下文：二次开发场景下，必须将现有代码结构和设计基准信息传递给视觉子代理
-- Q4=YES 时的保留约束：保留现有设计基准时，必须明确告知视觉子代理"最小必要修改"原则
 - 用户提供的具体约束（CSS 硬约束、设计规格、输出路径等）必须原样传递给子代理
 
-**三阶段执行模型：**
+**阶段执行：**
 
-- **执行阶段 1（视觉实现）**：`@ui-architect` 或 `@ui-matcher`，根据 Q2 结果只调度其中一个；Q2=跳过视觉时省略此阶段
-- **执行阶段 2（交互逻辑）**：`@logic-weaver`，仅当 Q3=YES 时执行；Q3=NO 时跳过
-- **执行阶段 3（浏览器验收）**：`@browser-inspector`，强制执行，不得跳过
+- **设计阶段**：`@ui-architect`，根据设计输入自动切换自由设计或设计还原模式
+- **实现阶段**：`@logic-weaver`，实现交互逻辑、API联调、状态管理、重构等
+- **验证阶段**：`@browser-inspector`，端到端测试与截图存证
 
-所有调度模式必须以 @browser-inspector 验收作为强制收尾步骤，不得跳过验收直接交付。
-
-**返工循环规则：**
+**返工循环规则（仅当用户选择了验证阶段时启用）：**
 
 @browser-inspector 发现问题时，根据问题类型路由到对应子代理修复：
 
-- **视觉问题**（布局偏差、样式错误、设计还原度不足） → 路由回执行阶段 1 的视觉子代理修复
-- **交互/功能问题**（事件绑定失败、API 对接错误、状态管理 bug） → 路由回 @logic-weaver 修复
+- **视觉问题**（布局偏差、样式错误、设计还原度不足） → 路由回 `@ui-architect` 修复
+- **交互/功能问题**（事件绑定失败、API 对接错误、状态管理 bug） → 路由回 `@logic-weaver` 修复
 - **混合问题** → 先修复视觉问题再修复交互问题，顺序执行
 
-返工修复后必须重新调度 @browser-inspector 回归验证。所有返工共享一个全局计数器，总计最多 3 轮返工修复+回归；1 轮 = 一次返工修复 + 一次回归验证；计数器由主代理维护，不因子代理调用而重置；达到上限后仍有问题时输出剩余问题清单。
+返工修复后必须重新调度 `@browser-inspector` 回归验证。所有形式的返工（常规返工、阶段升级、阶段间前置回退）共享同一个全局计数器，总计最多 3 轮返工修复+回归；1 轮 = 一次返工修复 + 一次回归验证；计数器由主代理维护，不因子代理调用而重置；达到上限后仍有问题时输出剩余问题清单。
 
-**返工时视觉子代理选择：**
+**返工时阶段升级：**
 
-- 返工到执行阶段 1 时，复用该任务中首次调度的视觉子代理，确保视觉风格一致性
-- 对于跳过执行阶段 1 的调度（Q2=跳过视觉），若返工需要进入阶段 1，按 Q2 判断选择视觉子代理，调度升级为包含视觉阶段
-- 对于跳过执行阶段 2 的调度（Q3=NO），若返工需要进入阶段 2，调度 @logic-weaver，调度升级为包含交互阶段
+- 返工路由到未选阶段时（如仅选了验证，但发现需要设计修复）：
+  - `--auto` 模式 → 自动升级执行该阶段
+  - 交互模式 → 询问用户是否追加该阶段
 
 **阶段间前置回退：**
 
-- 进入执行阶段 2 时，@logic-weaver 发现结构缺陷（缺少 DOM 元素、选择器不可用、布局无法承载交互） → 回到执行阶段 1 修复视觉实现，修复后重新执行阶段 2
-- 交互实现问题（事件绑定、API 对接、状态管理） → 在阶段 2 内直接修复，不回退
+- 进入实现阶段时，`@logic-weaver` 发现结构缺陷（缺少 DOM 元素、选择器不可用） → 回到设计阶段修复视觉实现，修复后重新执行实现阶段
+- 交互实现问题（事件绑定、API 对接、状态管理） → 在实现阶段内直接修复，不回退
 
-**验收降级与浏览器重试：**
+**返工模式差异：**
 
-浏览器验收受阻时不得立即阻断交付，必须按以下策略依次尝试多种浏览器和注册方式。`ae:chrome-devtools` 已从 mode-based 重构为 mcpArgs 透传层，以下调用使用智能决策流程（不传 mcpArgs，由技能根据 browser/headless 参数和 detect 结果自动构造）：
+| 模式 | 返工确认 | 阶段升级 |
+|------|----------|----------|
+| --auto | 自动返工至 3 轮上限 | 自动升级执行 |
+| 交互 | 每轮返工前询问用户 | 询问用户是否追加 |
 
-1. **Chrome autoConnect**（默认首选） → 调用 `ae:chrome-devtools action=register`（未指定 browser，技能自动 detect 运行中可调试的 Chrome 并接管，或新启动 Chrome 实例）
-2. **Edge autoConnect** → 调用 `ae:chrome-devtools action=register browser=Edge`（技能自动 detect Edge 运行状态，接管或新启动）
-3. **Chrome/Edge connect**（提示用户提供调试端口） → 调用 `ae:chrome-devtools action=register browser=<用户指定> port=<用户指定>`（显式提供 port 时跳过 detect，直接用 --browserUrl 连接）
-4. **Chrome isolated** → 调用 `ae:chrome-devtools action=register headless=true`（无已安装浏览器运行时，detect 获取 executablePath 后以 --isolated 启动无头实例）
-5. **Edge isolated** → 调用 `ae:chrome-devtools action=register browser=Edge headless=true`（同上，指定 Edge）
-
-> autoConnect 能力（Chrome >= M144 从用户数据目录连接）由 `ae:chrome-devtools` 技能的智能连接决策流程自动处理，上层调用方只需提供 browser/headless 参数或省略让技能自动决策。
-
-每种模式尝试后必须调用 `chrome-devtools_list_pages` 验证连接可用；成功则继续验收流程，失败则自动尝试下一种模式。用户明确拒绝启动浏览器时跳过对应模式，继续尝试后续模式。
-
-**阻断条件（仅当以下全部满足时方可阻断交付）：**
-
-- 所有 5 种注册方式均失败（自动尝试或用户拒绝后跳过的模式均计为失败）
-- 用户明确拒绝启动任何浏览器
-- 用户明确拒绝重新执行验收
-
-阻断时：不得跳过验收直接交付产出文件，不得声明任务完成，不得继续执行步骤 3（输出总结）。唯一允许的输出是标注"验收阻断：所有浏览器注册方式均失败"的状态报告，含已尝试的浏览器和方式列表、阻断原因、用户后续可自行验收的指引。该报告不得作为交付凭证。
-
-### 步骤 3：输出总结
+### 步骤 4：输出总结
 
 ```
 ## Web Forge 执行总结
 
-**四问题分析:** Q1=[是否二开] Q2=[设计输入] Q3=[是否交互] Q4=[保留基准]
+**项目上下文:** [技术栈] | [可复用资产] | [本次复用情况]
 
-**调度子代理:** [子代理列表及调用顺序]
+**任务分析:** 工作类型=[create/modify/fix/refactor/verify] 设计输入=[none/figma/screenshot/text-specs/existing] 代码范围=[visual/logic/fullstack/config/test]
+
+**执行阶段:** [用户选择或 --auto 全选的阶段列表]
 
 ### 各子代理结果
 
 | 子代理 | 状态 | 关键产出 |
 |--------|------|----------|
-| @ui-architect | 完成/部分/失败 | [产出描述] |
+| @ui-architect | 完成/部分/失败/未调度 | [产出描述] |
+| @logic-weaver | 完成/部分/失败/未调度 | [产出描述] |
+| @browser-inspector | 完成/部分/失败/未调度 | [产出描述] |
 
 ### 返工回归
 
 - 第 1 轮: [问题类型] → [路由子代理] → [修复] → [回归验证结果]
-- 第 2 轨: [问题类型] → [路由子代理] → [修复] → [回归验证结果]
+- 第 2 轮: [问题类型] → [路由子代理] → [修复] → [回归验证结果]
 - 第 3 轮: [问题类型] → [路由子代理] → [修复] → [回归验证结果]
 
 ### 剩余风险
@@ -230,9 +291,18 @@ New-Item -ItemType Directory -Path ae/screenshot -Force | Out-Null
 
 如检测到登录页面，执行登录等待流程，每 5 秒检测一次，最长等待 300 秒。
 
+## 设计规范同步维护
+
+`references/ui-design-taste.md` 和 `references/ui-design-component-craft.md` 是设计规范的真源副本。`@ui-ux-designer` 代理（由 `ae:design` 调度）也持有同名副本。**修改设计规范时必须同步更新以下全部位置**：
+
+- `src/assets/skills/ae-web-forge/references/ui-design-taste.md`
+- `src/assets/skills/ae-web-forge/references/ui-design-component-craft.md`
+- `src/assets/agents/workflow/references/ui-design-taste.md`
+- `src/assets/agents/workflow/references/ui-design-component-craft.md`
+
 ## 边界
 
-**硬性约束：主代理严禁直接执行实现任务。** 本技能主代理严禁直接编写代码、编写测试、修改样式、实现交互逻辑或执行浏览器操作。所有实现任务必须且只能通过调度子代理间接完成。主代理职责仅限于：四问题分析、子代理调度、结果汇总和返工回归编排。违反此约束属于执行错误。
+**硬性约束：主代理严禁直接执行实现任务。** 本技能主代理严禁直接编写代码、编写测试、修改样式、实现交互逻辑或执行浏览器操作。所有实现任务必须且只能通过调度子代理间接完成。主代理职责仅限于：项目上下文检测、任务分析、阶段确认、子代理调度、结果汇总和返工回归编排。违反此约束属于执行错误。
 
 不负责：
 - 后端业务逻辑实现
@@ -243,4 +313,3 @@ New-Item -ItemType Directory -Path ae/screenshot -Force | Out-Null
 
 - 纯后端任务：使用 `ae:work`
 - 文档审查：使用 `ae:review`
-- 不涉及浏览器的代码开发：使用 `ae:work`

@@ -26,7 +26,7 @@ UI/UX 设计维度专精代理 — 产出 `ui-ux.md` 设计契约文件。
 ## When Not To Use
 
 - 自由设计并实现 UI 页面代码 → 调度 `@ui-architect`
-- 以设计稿/截图为准精确还原实现 → 调度 `@ui-matcher`
+- 以设计稿/截图为准精确还原实现 → 调度 `@ui-architect`
 - 浏览器端到端测试 → 调度 `@browser-inspector`
 - 非 UI/UX 维度的设计契约 → 调度其他维度专精代理
 
@@ -36,6 +36,20 @@ UI/UX 设计维度专精代理 — 产出 `ui-ux.md` 设计契约文件。
 - **ae:grill 追问结果**：已确认的 UI/UX 相关设计决策
 - **overview 上下文**：设计读数、范围映射、跨维度依赖关系、稳定 ID 体系（ST-XXX 用于本维度）
 - **契约模板路径**：`references/ui-ux-template.md`
+- **设计规范路径**：`references/ui-design-taste.md` 和 `references/ui-design-component-craft.md`
+
+## 设计规范
+
+`@ui-ux-designer` 产出的设计契约中的设计读数（三旋钮）、负向设计空间、组件契约规范等概念定义来源于设计规范文件。在产出契约前必须读取以下文件：
+
+1. `references/ui-design-taste.md` — UI 设计品味规范
+2. `references/ui-design-component-craft.md` — UI 组件工艺与风格变体
+
+上述文件与 `ae:web-forge` 技能目录下的同名文件是副本关系。**修改设计规范时必须同步更新两处**：
+- `src/assets/skills/ae-web-forge/references/ui-design-taste.md`
+- `src/assets/skills/ae-web-forge/references/ui-design-component-craft.md`
+- `src/assets/agents/workflow/references/ui-design-taste.md`
+- `src/assets/agents/workflow/references/ui-design-component-craft.md`
 
 ## Workflow
 
@@ -45,7 +59,7 @@ UI/UX 设计维度专精代理 — 产出 `ui-ux.md` 设计契约文件。
 
 ### 步骤 1：读取模板和上下文
 
-读取 `references/ui-ux-template.md` 获取契约元素清单和内容模板。结合 prd 需求和 ae:grill 追问结果，确定本维度需要产出的契约元素。
+读取 `references/ui-ux-template.md` 获取契约元素清单和内容模板。同时读取 `references/ui-design-taste.md` 和 `references/ui-design-component-craft.md` 获取设计规范，确保设计读数、三旋钮取值和负向设计空间与规范一致。结合 prd 需求和 ae:grill 追问结果，确定本维度需要产出的契约元素。
 
 ### 步骤 2：产出契约
 
