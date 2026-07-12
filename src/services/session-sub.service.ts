@@ -229,28 +229,38 @@ async function waitForSessionIdle(
   directory?: string,
   abortSignal?: AbortSignal,
 ): Promise<void> {
-  const maxAttempts = 200
-  const baseIntervalMs = 1000
-  const maxIntervalMs = 5000
+  const maxAttempts = 60
+  const baseIntervalMs = 500
+  const maxIntervalMs = 3000
 
   for (let i = 0; i < maxAttempts; i++) {
     if (abortSignal?.aborted) throw new Error('已中止')
 
-    const res = await client.session.status({
-      ...(directory ? { query: { directory } } : {}),
-    })
-    if (res.error) {
-      throw new Error(extractSdkError(res.error, '获取会话状态失败'))
+    const queryArg = directory ? { query: { directory } } : {}
+
+    const statusRes = await client.session.status(queryArg)
+    if (statusRes.error) {
+      throw new Error(extractSdkError(statusRes.error, '获取会话状态失败'))
     }
 
-    const statuses = (res.data as Record<string, { type: string }>) ?? {}
+    const statuses = (statusRes.data as Record<string, { type: string }>) ?? {}
     const status = statuses[sessionID]
-    if (!status) {
-      // 会话尚未注册到状态映射，可能是创建延迟，继续轮询
-    } else if (status.type === 'idle') {
-      return
-    } else if (status.type === 'error' || status.type === 'aborted') {
-      throw new Error(`会话 ${sessionID} 状态异常: ${status.type}`)
+    if (status) {
+      if (status.type === 'idle') return
+      if (status.type === 'error' || status.type === 'aborted') {
+        throw new Error(`会话 ${sessionID} 状态异常: ${status.type}`)
+      }
+    } else {
+      // 会话不在状态映射中，可能已完成并移除，用 messages 确认
+      const msgRes = await client.session.messages({
+        path: { id: sessionID },
+        ...queryArg,
+      })
+      if (!msgRes.error) {
+        const msgs = (msgRes.data as Array<{ info: Record<string, unknown>; parts: Array<Record<string, unknown>> }>) ?? []
+        const hasAssistant = msgs.some((m) => m.info.role === 'assistant' && m.parts.some((p) => p.type === 'text' && typeof p.text === 'string' && p.text.trim()))
+        if (hasAssistant) return
+      }
     }
 
     const baseInterval = Math.min(baseIntervalMs * Math.pow(1.5, Math.floor(i / 10)), maxIntervalMs)
@@ -258,7 +268,7 @@ async function waitForSessionIdle(
     await sleep(baseInterval + jitter, abortSignal)
   }
 
-  throw new Error(`等待会话 ${sessionID} 完成超时`)
+  throw new Error(`等待会话 ${sessionID} 完成超时（${maxAttempts} 次轮询）`)
 }
 
 function extractAssistantText(messages: Array<{ info: Record<string, unknown>; parts: Array<Record<string, unknown>> }>): string {
