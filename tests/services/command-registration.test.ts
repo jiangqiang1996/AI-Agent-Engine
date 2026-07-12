@@ -141,7 +141,7 @@ describe('command-registration', () => {
 
     expect(chromeDevtoolsFrontmatter.description).toContain('chrome-devtools')
     expect(chromeDevtoolsEntry?.description).toContain('chrome-devtools-mcp')
-    expect(webForgeFrontmatter.description).toContain('ui-architect')
+    expect(webForgeFrontmatter.description).toContain('前端开发')
     expect(webForgeEntry?.description).toContain('@ui-architect')
   })
 

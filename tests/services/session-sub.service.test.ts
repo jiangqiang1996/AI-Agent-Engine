@@ -178,6 +178,7 @@ describe('session-sub.service', () => {
 
     it('status 未找到会话时继续轮询直到 idle', async () => {
       let callCount = 0
+      let messagesCallCount = 0
       const client = createMockClient({
         status: vi.fn(async () => {
           callCount++
@@ -186,7 +187,13 @@ describe('session-sub.service', () => {
           }
           return { data: { s1: { type: 'idle' } }, error: undefined }
         }),
-        messages: vi.fn(async () => ({ data: [{ info: { role: 'assistant' }, parts: [{ type: 'text', text: '结果' }] }], error: undefined })),
+        messages: vi.fn(async () => {
+          messagesCallCount++
+          if (messagesCallCount <= 2) {
+            return { data: [{ info: { role: 'user' }, parts: [{ type: 'text', text: '问题' }] }], error: undefined }
+          }
+          return { data: [{ info: { role: 'assistant' }, parts: [{ type: 'text', text: '结果' }] }], error: undefined }
+        }),
       })
 
       const result = await promptAsyncAndWait(client as never, baseOptions)

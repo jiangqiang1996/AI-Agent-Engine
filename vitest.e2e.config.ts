@@ -3,9 +3,10 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts', 'tests/**/*.test.ts'],
-    exclude: ['**/*.slow.test.ts', 'tests/e2e/**'],
+    include: ['tests/e2e/**/*.test.ts'],
+    exclude: ['**/*.slow.test.ts'],
     fileParallelism: false,
-    testTimeout: 60_000,
+    testTimeout: 120_000,
+    hookTimeout: 60_000,
   },
 })
