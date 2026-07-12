@@ -113,7 +113,7 @@ export const aeAsyncBashTool = tool({
       //   - 末尾 & 将命令放入后台
       //   - >> 和 2>&1 由 sh 处理重定向
       const fullCommand = isWin32
-        ? `start /B "ae-async" cmd /c "${args.command} >> ${quotedLogPath} 2>&1"`
+        ? `start /B "ae-async" cmd /c "chcp 65001 >nul && ${args.command} >> ${quotedLogPath} 2>&1"`
         : `${args.command} >> ${quotedLogPath} 2>&1 &`
 
       child = spawn(fullCommand, {
