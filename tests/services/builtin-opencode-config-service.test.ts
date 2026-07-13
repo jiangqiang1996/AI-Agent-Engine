@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   collectEffectiveConfigObjectEntries,
@@ -43,6 +43,7 @@ function writeConfig(path: string, content: string): void {
 }
 
 afterEach(() => {
+  vi.unstubAllEnvs()
   for (const root of tempRoots.splice(0)) {
     rmSync(root, { recursive: true, force: true })
   }
@@ -635,28 +636,21 @@ describe('builtin-opencode-config-service', () => {
     const pluginRoot = createTempRoot()
     const hostRoot = createTempRoot()
     const homeRoot = createTempRoot()
-    const originalUserProfile = process.env.USERPROFILE
-    const originalHome = process.env.HOME
-    process.env.USERPROFILE = homeRoot
-    process.env.HOME = homeRoot
-    try {
-      const paths = resolveBuiltinOpencodeConfigPaths(createManifest(pluginRoot), hostRoot)
-      writeConfig(paths.builtinConfigFile, '{ "mcp": { "context7": { "type": "remote", "url": "https://builtin.example/mcp" } } }')
-      writeConfig(paths.globalConfigFile, '{ "mcp": { "global_default": { "type": "remote", "url": "https://global.example/mcp" } } }')
-      writeConfig(paths.projectConfigFile, '{ "mcp": { "context7": { "enabled": false } } }')
+    vi.stubEnv('USERPROFILE', homeRoot)
+    vi.stubEnv('HOME', homeRoot)
+    const paths = resolveBuiltinOpencodeConfigPaths(createManifest(pluginRoot), hostRoot)
+    writeConfig(paths.builtinConfigFile, '{ "mcp": { "context7": { "type": "remote", "url": "https://builtin.example/mcp" } } }')
+    writeConfig(paths.globalConfigFile, '{ "mcp": { "global_default": { "type": "remote", "url": "https://global.example/mcp" } } }')
+    writeConfig(paths.projectConfigFile, '{ "mcp": { "context7": { "enabled": false } } }')
 
-      const config = loadBuiltinOpencodeConfig(paths)
+    const config = loadBuiltinOpencodeConfig(paths)
 
-      expect(paths.globalConfigFile).toBe(join(homeRoot, '.config', 'opencode', 'ae.jsonc'))
-      expect(config.mcp?.global_default).toEqual({ type: 'remote', url: 'https://global.example/mcp' })
-      expect(config.mcp?.context7).toEqual({
-        type: 'remote',
-        url: 'https://builtin.example/mcp',
-        enabled: false,
-      })
-    } finally {
-      process.env.USERPROFILE = originalUserProfile
-      process.env.HOME = originalHome
-    }
+    expect(paths.globalConfigFile).toBe(join(homeRoot, '.config', 'opencode', 'ae.jsonc'))
+    expect(config.mcp?.global_default).toEqual({ type: 'remote', url: 'https://global.example/mcp' })
+    expect(config.mcp?.context7).toEqual({
+      type: 'remote',
+      url: 'https://builtin.example/mcp',
+      enabled: false,
+    })
   })
 })

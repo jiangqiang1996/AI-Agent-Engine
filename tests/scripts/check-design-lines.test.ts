@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest'
-import { mkdirSync, writeFileSync, rmSync, existsSync } from 'node:fs'
+import { describe, it, expect, afterAll, beforeEach } from 'vitest'
+import { mkdirSync, mkdtempSync, writeFileSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 import { execFileSync } from 'node:child_process'
 
 const scriptPath = join(process.cwd(), 'src', 'assets', 'skills', 'ae-design', 'scripts', 'check-design-lines.mjs')
-const tmpDir = join(process.cwd(), 'tmp', 'check-design-lines-test')
+const tmpDir = mkdtempSync(join(tmpdir(), 'check-design-lines-test-'))
 
 function makeFile(name: string, content: string): void {
   writeFileSync(join(tmpDir, name), content, 'utf-8')
@@ -66,13 +67,8 @@ function parseJson(output: string): ScriptJsonResult {
 }
 
 describe('check-design-lines 脚本', () => {
-  beforeAll(() => {
-    if (existsSync(tmpDir)) rmSync(tmpDir, { recursive: true, force: true })
-    mkdirSync(tmpDir, { recursive: true })
-  })
-
   afterAll(() => {
-    if (existsSync(tmpDir)) rmSync(tmpDir, { recursive: true, force: true })
+    rmSync(tmpDir, { recursive: true, force: true })
   })
 
   beforeEach(() => {

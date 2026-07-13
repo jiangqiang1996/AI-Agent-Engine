@@ -24,27 +24,7 @@ async function callTool(root: string, args: Record<string, unknown>, directory =
   const definition = tool as unknown as {
     execute: (args: Record<string, unknown>, ctx: Record<string, unknown>) => Promise<string>
   }
-  const cwd = process.cwd()
-  process.chdir(root)
-  try {
-    return await definition.execute(args, { metadata: vi.fn(), directory, worktree: root })
-  } finally {
-    process.chdir(cwd)
-  }
-}
-
-async function callToolFromDifferentCwd(root: string, cwd: string, args: Record<string, unknown>) {
-  const { aeDocExtractTool: tool } = await import('../../src/tools/ae-doc-extract.tool.js')
-  const definition = tool as unknown as {
-    execute: (args: Record<string, unknown>, ctx: Record<string, unknown>) => Promise<string>
-  }
-  const previousCwd = process.cwd()
-  process.chdir(cwd)
-  try {
-    return await definition.execute(args, { metadata: vi.fn(), directory: root, worktree: root })
-  } finally {
-    process.chdir(previousCwd)
-  }
+  return await definition.execute(args, { metadata: vi.fn(), directory, worktree: root })
 }
 
 describe('ae-doc-extract 工具', () => {
@@ -78,9 +58,8 @@ describe('ae-doc-extract 工具', () => {
     expect(output).toContain('文档不存在或不是文件')
   })
 
-  it('应该使用 ToolContext worktree 而不是进程 cwd', async () => {
+  it('应该使用 ToolContext worktree 解析路径', async () => {
     const root = createRoot()
-    const cwd = createRoot()
     mkdirSync(join(root, 'ae', 'designs'), { recursive: true })
     writeFileSync(join(root, 'ae', 'designs', 'main.md'), [
       '---',
@@ -94,7 +73,7 @@ describe('ae-doc-extract 工具', () => {
       '- U1. 处理 R1。',
     ].join('\n'), 'utf8')
 
-    const output = await callToolFromDifferentCwd(root, cwd, { path: 'ae/designs/main.md', ids: ['U1'] })
+    const output = await callTool(root, { path: 'ae/designs/main.md', ids: ['U1'] })
     const parsed = JSON.parse(output) as { metadata: { source: string } }
 
     expect(parsed.metadata.source).toBe('ae/designs/main.md')

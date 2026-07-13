@@ -76,11 +76,13 @@ describe('graph-usage-logger', () => {
 
   it('应该在异常时不阻断主流程', () => {
     const badWorktree = '/nonexistent/path/that/should/not/exist'
-    appendGraphUsageRecord(badWorktree, {
-      tool: 'ae-graph-query',
-      resultStatus: 'error',
-    })
-    expect(true).toBe(true)
+    // 验证调用不抛出异常即可——日志写入是否成功由实现内部决定
+    expect(() => {
+      appendGraphUsageRecord(badWorktree, {
+        tool: 'ae-graph-query',
+        resultStatus: 'error',
+      })
+    }).not.toThrow()
   })
 
   it('应该支持并发写入不丢失记录', () => {
