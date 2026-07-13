@@ -80,11 +80,11 @@
 ## 审查结果
 
 **域：** document
-**文档：** ae/plans/2026-03-15-feat-user-auth-plan.md
-**类型：** plan
+**文档：** ae/designs/2026-03-15-feat-user-auth/design.md
+**类型：** design
 **审查者：** coherence, feasibility, security, product-lens
-- security -- 计划新增带认证流程的公共 API 端点
-- product-lens -- 计划包含跨 3 个优先级层级的 15 个需求
+- security -- 设计新增带认证流程的公共 API 端点
+- product-lens -- 设计包含跨 3 个优先级层级的 15 个需求
 
 已应用 5 个自动修复。4 个发现待处理（2 个错误，2 个遗漏）。
 

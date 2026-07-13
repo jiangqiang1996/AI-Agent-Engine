@@ -13,7 +13,7 @@ subtask: false
 
 - 无参数：调用 `ae-help` 工具，不传入 `query`，返回完整列表
 - 有关键词：调用 `ae-help` 工具，将用户输入传入 `query`，返回子串匹配的过滤列表
-- 有元素名：传入完整元素名（如 `ae:plan`、`/ae-plan`、`@correctness-reviewer`），精确匹配时返回该元素的详情视图，包含描述、属性和关联元素
+- 有元素名：传入完整元素名（如 `ae:design`、`/ae-design`、`@correctness-reviewer`），精确匹配时返回该元素的详情视图，包含描述、属性和关联元素
 - 查询模型路由：将 `model`、场景名或资产名传入 `query`
 
 **禁止手动列举或扫描文件**，列表内容只能来自 `ae-help` 工具的返回值。

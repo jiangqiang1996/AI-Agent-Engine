@@ -14,7 +14,7 @@ interface ReviewContractResult {
 }
 
 async function callTool(args: {
-  kind: 'document' | 'plan' | 'test' | 'general' | 'code' | 'mixed' | 'hybrid'
+  kind: 'document' | 'test' | 'general' | 'code' | 'design' | 'prototype' | 'mixed' | 'hybrid'
   mode?: string
   targets?: string
   targetTypes?: string
@@ -72,11 +72,12 @@ describe('ae-review-contract 工具', () => {
     expect(result.reviewers).not.toContain(AGENT.TEST_CASE_REVIEWER)
   })
 
-  it('plan 类型不应激活 test-case-reviewer', async () => {
-    const result = await callTool({ kind: 'plan' })
+  it('design 类型应激活 prototype-reviewer 和 test-case-reviewer', async () => {
+    const result = await callTool({ kind: 'design' })
 
-    expect(result.documentType).toBe('plan')
-    expect(result.reviewers).not.toContain(AGENT.TEST_CASE_REVIEWER)
+    expect(result.documentType).toBe('design')
+    expect(result.reviewers).toContain(AGENT.PROTOTYPE_REVIEWER)
+    expect(result.reviewers).toContain(AGENT.TEST_CASE_REVIEWER)
   })
 
   it('general 类型应返回通用文档契约且不激活 test-case-reviewer', async () => {
@@ -126,16 +127,16 @@ describe('ae-review-contract 工具', () => {
   })
 
   it('general 类型 targets 应激活对应审查者并返回目标覆盖', async () => {
-    const result = await callTool({ kind: 'general', targets: 'requirements,prototype,test-case,asset' })
+    const result = await callTool({ kind: 'general', targets: 'requirements,design,asset' })
 
     expect(result.normalizedKind).toBe('general')
     expect(result.reviewers).toContain(AGENT.REQUIREMENTS_REVIEWER)
+    expect(result.reviewers).toContain(AGENT.DESIGN_LENS_REVIEWER)
     expect(result.reviewers).toContain(AGENT.PROTOTYPE_REVIEWER)
     expect(result.reviewers).toContain(AGENT.TEST_CASE_REVIEWER)
     expect(result.reviewers).toContain(AGENT.AGENT_NATIVE_REVIEWER)
     expect(result.targetCoverage?.requirements.status).toBe('covered')
-    expect(result.targetCoverage?.prototype.status).toBe('covered')
-    expect(result.targetCoverage?.['test-case'].status).toBe('covered')
+    expect(result.targetCoverage?.design.status).toBe('covered')
     expect(result.targetCoverage?.asset.reviewers).toEqual([AGENT.AGENT_NATIVE_REVIEWER])
   })
 
@@ -150,7 +151,7 @@ describe('ae-review-contract 工具', () => {
   it('hybrid 混合目标带 evidence_claim 应返回追溯和证据审查覆盖', async () => {
     const result = await callTool({
       kind: 'hybrid',
-      targetTypes: 'requirements,design,prototype,test-case,document',
+      targetTypes: 'requirements,design,document',
       has_evidence_claim: true,
     })
 
@@ -159,8 +160,6 @@ describe('ae-review-contract 工具', () => {
     expect(result.reviewers).toContain(AGENT.EVIDENCE_REVIEWER)
     expect(result.targetCoverage?.requirements.status).toBe('covered')
     expect(result.targetCoverage?.design.status).toBe('covered')
-    expect(result.targetCoverage?.prototype.status).toBe('covered')
-    expect(result.targetCoverage?.['test-case'].status).toBe('covered')
     expect(result.targetCoverage?.document.status).toBe('covered')
   })
 })

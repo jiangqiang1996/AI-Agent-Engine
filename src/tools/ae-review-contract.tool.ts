@@ -17,7 +17,6 @@ const SCENE_VALUES: ReviewSceneType[] = [
   'design',
   'prototype',
   'test-case',
-  'plan',
   'config',
   'asset',
   'general-document',
@@ -29,7 +28,6 @@ const TARGET_VALUES: ReviewTargetType[] = [
   'design',
   'prototype',
   'test-case',
-  'plan',
   'config',
   'asset',
   'document',
@@ -42,10 +40,8 @@ function resolveKind(raw: string): ReviewKind {
 }
 
 function resolveDocumentType(raw: string): ReviewDocumentType | undefined {
-  if (raw === 'plan') return 'plan'
   if (raw === 'test') return 'test'
   if (raw === 'design') return 'design'
-  if (raw === 'prototype') return 'prototype'
   if (raw === 'general') return 'general'
   if (raw === 'document') return 'requirements'
   if (raw === 'code') return undefined
@@ -72,10 +68,9 @@ const TARGET_TO_REVIEWERS: Record<ReviewTargetType, string[]> = {
     'standards-reviewer',
   ],
   requirements: ['requirements-reviewer'],
-  design: ['design-lens-reviewer'],
+  design: ['design-lens-reviewer', 'step-granularity-reviewer', 'product-lens-reviewer', 'prototype-reviewer', 'test-case-reviewer'],
   prototype: ['prototype-reviewer'],
   'test-case': ['test-case-reviewer'],
-  plan: ['step-granularity-reviewer', 'product-lens-reviewer'],
   config: ['standards-reviewer'],
   asset: ['agent-native-reviewer'],
   document: ['coherence-reviewer', 'feasibility-reviewer', 'evidence-reviewer'],
@@ -106,7 +101,7 @@ export const aeReviewContractTool: ToolDefinition = tool({
     '功能说明：',
     '- 根据审查类型与模式生成审查团队',
     '- 代码审查（kind=code）：支持 Git 差异、全量扫描、会话变更等多种范围确定方式',
-    '- 文档审查（kind=document/plan/test/general/design/prototype）：面向文档，与 Git 无强关联',
+    '- 文档审查（kind=document/test/general/design/prototype）：面向文档，与 Git 无强关联',
     '- 通用混合审查（kind=general/mixed/hybrid）：同一次审查覆盖多种产出物类型，按 scenes/targets 分桶',
     '- 返回门控规则、模式边界与目标覆盖摘要',
     '',
@@ -120,13 +115,13 @@ export const aeReviewContractTool: ToolDefinition = tool({
   ].join('\n'),
   args: {
     kind: tool.schema
-      .enum(['document', 'plan', 'test', 'general', 'code', 'design', 'prototype', 'mixed', 'hybrid'])
+      .enum(['document', 'test', 'general', 'code', 'design', 'prototype', 'mixed', 'hybrid'])
       .describe('审查类型'),
     mode: AeModeSchema.describe('审查模式'),
     scenes: tool.schema
       .string()
       .optional()
-      .describe('审查场景列表，逗号分隔，可选值：code/requirements/design/prototype/test-case/plan/config/asset/general-document'),
+      .describe('审查场景列表，逗号分隔，可选值：code/requirements/design/prototype/test-case/config/asset/general-document'),
     reviewScenes: tool.schema
       .string()
       .optional()
@@ -134,7 +129,7 @@ export const aeReviewContractTool: ToolDefinition = tool({
     targets: tool.schema
       .string()
       .optional()
-      .describe('目标产出物类型列表，逗号分隔，可选值：code/requirements/design/prototype/test-case/plan/config/asset/document'),
+      .describe('目标产出物类型列表，逗号分隔，可选值：code/requirements/design/prototype/test-case/config/asset/document'),
     targetTypes: tool.schema
       .string()
       .optional()
@@ -275,7 +270,7 @@ export const aeReviewContractTool: ToolDefinition = tool({
                   ? 'P0/P1 默认阻断；只读模式仅报告'
                   : kind === 'general'
                     ? '通用域：按目标类型分别评估；任一目标类型存在 P0/P1 默认阻断；未覆盖目标类型必须显式标注原因'
-                    : '文档与计划审查默认作为质量门控',
+                    : '文档与设计审查默认作为质量门控',
             },
             null,
             2,

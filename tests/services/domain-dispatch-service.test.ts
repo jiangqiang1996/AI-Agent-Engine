@@ -50,7 +50,7 @@ describe('domain-dispatch-service', () => {
   })
 
   it('应该按文档审查类型选择文档常驻审查者而不是代码常驻审查者', () => {
-    const names = selectedNames('review', { kind: 'plan' })
+    const names = selectedNames('review', { kind: 'design' })
 
     expect(names).toContain(AGENT.COHERENCE_REVIEWER)
     expect(names).toContain(AGENT.FEASIBILITY_REVIEWER)
@@ -78,7 +78,7 @@ describe('domain-dispatch-service', () => {
   it('应该将 general 域映射到审查域并选择混合审查者', () => {
     const names = selectedNames('general', {
       kind: 'general',
-      targetTypes: ['requirements', 'prototype', 'asset'],
+      targetTypes: ['requirements', 'design', 'asset'],
     })
 
     expect(names).toContain(AGENT.REQUIREMENTS_REVIEWER)
@@ -89,9 +89,9 @@ describe('domain-dispatch-service', () => {
 
   it('应该优先使用 normalizedKind 保留混合审查语义', () => {
     const names = selectedNames('review', {
-      kind: 'plan',
+      kind: 'design',
       normalizedKind: 'general',
-      targetTypes: ['requirements', 'plan'],
+      targetTypes: ['requirements', 'design'],
     })
 
     expect(names).toContain(AGENT.REQUIREMENTS_REVIEWER)

@@ -405,7 +405,7 @@ opencode 的资产设计遵循「**给 LLM 用的 vs 给用户用的**」分层�
 - **给所有人用的**（Rules）：无 description，无触发，始终作为背景知识生效
   - 规则影响 LLM 的行为倾向，但不提供可调用的能力
 
-这也解释了为什么 AE 插件中 `ae:prd`、`ae:plan`、`ae:work` 等核心流程**同时注册为 Skill 和 Command**——Skill 路径让 LLM 智能触发，Command 路径让用户显式触发，两条路径互补。
+这也解释了为什么 AE 插件中 `ae:prd`、`ae:design`、`ae:work` 等核心流程**同时注册为 Skill 和 Command**——Skill 路径让 LLM 智能触发，Command 路径让用户显式触发，两条路径互补。
 
 ---
 

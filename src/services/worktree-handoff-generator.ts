@@ -6,7 +6,7 @@ import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
 
 const BRANCH_PREFIX_PATTERN = /^(feat|fix|refactor|docs|test|chore)\//
 
-/** A→B worktree 交接输入参数，包含来源/目标 worktree 信息、Git 授权证据和执行基线。需求/设计/图谱/AE 配置路径在 A 端条件必选：上游产物或物理文件存在时必须迁移并传入；B 端缺失时降级为可选上下文。 */
+/** A→B worktree 交接输入参数，包含来源/目标 worktree 信息、Git 授权证据和执行基线。需求/设计/图谱/AE 配置路径在 A 端条件必选：上游产物或物理文件存在时必须迁移并传入；B 端缺失时降级为可选上下文。当无 design_path 时，task_brief 必填——将任务详情直接写入交接文件，确保 B worktree 无需读取 A worktree 文件即可执行。 */
 export interface WorktreeHandoffInput {
   source_session_id: string
   session_evidence?: string
@@ -20,12 +20,11 @@ export interface WorktreeHandoffInput {
   covered_command_args: string
   final_command_args: string
   creation_result: string
-  plan_path: string
   requirements_path?: string
   design_path?: string
   graph_path?: string
   ae_config_path?: string
-  design_borne_by_plan: boolean
+  task_brief?: string
   execution_baseline: string
   verification_requirements: string
 }
@@ -51,7 +50,9 @@ function validateInput(input: WorktreeHandoffInput): string | null {
   if (!input.covered_command_args.trim()) return 'covered_command_args 不能为空。'
   if (!input.final_command_args.trim()) return 'final_command_args 不能为空。'
   if (!input.creation_result.trim()) return 'creation_result 不能为空。'
-  if (!input.plan_path.trim()) return 'plan_path 不能为空。worktree 交接必须携带计划文件路径。'
+  if (!input.design_path?.trim() && !input.task_brief?.trim()) {
+    return 'design_path 和 task_brief 至少传入一个：有设计文档时传 design_path；无设计文档时必须通过 task_brief 将任务详情写入交接文件，确保 B worktree 无需读取 A worktree 文件即可执行。'
+  }
   if (!input.execution_baseline.trim()) return 'execution_baseline 不能为空。'
   if (!input.verification_requirements.trim()) return 'verification_requirements 不能为空。'
   return null
@@ -66,14 +67,14 @@ function generateTimestamp(): string {
 
 function buildMigratedArtifacts(input: WorktreeHandoffInput): string {
   const lines: string[] = []
-  lines.push(`- plan: \`${input.plan_path}\``)
   if (input.requirements_path?.trim()) {
     lines.push(`- requirements: \`${input.requirements_path}\``)
   }
-  if (input.design_borne_by_plan && input.plan_path.trim()) {
-    lines.push('- design: 由计划文档承载')
-  } else if (input.design_path?.trim()) {
+  if (input.design_path?.trim()) {
     lines.push(`- design: \`${input.design_path}\``)
+  }
+  if (input.task_brief?.trim() && !input.design_path?.trim()) {
+    lines.push('- task_brief: 内联于交接文件 Task Brief 章节')
   }
   if (input.graph_path?.trim()) {
     lines.push(`- graph: \`${input.graph_path}\``)
@@ -136,11 +137,11 @@ function buildStartupProof(input: WorktreeHandoffInput, handoffRelPath: string):
   if (input.requirements_path?.trim()) {
     lines.push(`  - requirements: \`${input.requirements_path}\``)
   }
-  lines.push(`  - plan: \`${input.plan_path}\``)
-  if (input.design_borne_by_plan && input.plan_path.trim()) {
-    lines.push('  - design: 由计划文档承载')
-  } else if (input.design_path?.trim()) {
+  if (input.design_path?.trim()) {
     lines.push(`  - design: \`${input.design_path}\``)
+  }
+  if (input.task_brief?.trim() && !input.design_path?.trim()) {
+    lines.push('  - task_brief: 内联于交接文件（无 design_path 时作为执行输入）')
   }
   if (input.graph_path?.trim()) {
     lines.push(`  - graph: \`${input.graph_path}\``)
@@ -163,11 +164,24 @@ function buildMigratedArtifactsSection(input: WorktreeHandoffInput): string {
   return lines.join('\n')
 }
 
+function buildTaskBriefSection(input: WorktreeHandoffInput): string | null {
+  if (!input.task_brief?.trim()) return null
+  const lines: string[] = []
+  lines.push('## Task Brief')
+  lines.push('')
+  lines.push('> 当 design_path 未迁移或不存在时，以下任务详情是 B worktree 执行的唯一输入。')
+  lines.push('> B worktree 无需读取 A worktree 的任何文件，直接依据以下内容执行。')
+  lines.push('')
+  lines.push(input.task_brief)
+  lines.push('')
+  return lines.join('\n')
+}
+
 function buildExecutionBaselineSection(input: WorktreeHandoffInput, handoffRelPath: string): string {
   const lines: string[] = []
   lines.push('## Execution Baseline')
   lines.push('')
-  lines.push(`- 计划文档是本次执行的实现基线；进入 B worktree 后不得重新审查、深化或转换本次需求、设计或计划。`)
+  lines.push(`- 设计文档是本次执行的实现基线；进入 B worktree 后不得重新审查、深化或转换本次需求或设计。`)
   lines.push(`- ${input.execution_baseline}`)
   lines.push(`- 验证命令：${input.verification_requirements}`)
   lines.push(`- 续执行入口：在目标 B worktree 中调用 ae:work，并把 ${handoffRelPath} 作为唯一任务输入。`)
@@ -199,6 +213,10 @@ export function generateHandoffMarkdown(input: WorktreeHandoffInput): { markdown
   sections.push('')
   sections.push(buildStartupProof(input, handoffRelPath))
   sections.push(buildMigratedArtifactsSection(input))
+  const taskBriefSection = buildTaskBriefSection(input)
+  if (taskBriefSection) {
+    sections.push(taskBriefSection)
+  }
   sections.push(buildExecutionBaselineSection(input, handoffRelPath))
 
   return {

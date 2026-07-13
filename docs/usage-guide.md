@@ -8,16 +8,12 @@
 | --- | --- |
 | 想多角度发散讨论一个主题 | `/ae-brainstorm` |
 | 产出需求文档 | `/ae-prd` |
-| 在需求和计划之间产出设计文档 | `/ae-design` |
-| 业务复杂、多模块、需要结构化分解 | `/ae-plan` |
-| 已有需求，需要方案 | `/ae-plan` |
-| 已有计划，需要执行 | `/ae-work` |
+| 产出设计文档（架构、接口、数据模型、实现单元） | `/ae-design` |
+| 已有设计，需要执行 | `/ae-work` |
 | 合并分支或 worktree | `/ae-merge-branch` |
 | 生成工作总结 | `/ae-work-report` |
 | 查看本人代码变更 | `/ae-my-code-changes` |
 | 只看风险，不改文件 | `/ae-review mode:report-only` |
-| 审查文档 | `/ae-review domain:document <文档路径>` |
-| 重构或技术债治理 | `/ae-refactor` |
 | 前端设计、还原、交互或验收 | `/ae-web-forge` |
 | 接口测试 | `/ae-api-tester` |
 | 数据库查询或操作 | `/ae-sql` |
@@ -46,13 +42,11 @@
 /ae-prd
 /ae-design
 /ae-review domain:document
-/ae-plan
-/ae-review domain:document
 /ae-work
 /ae-review
 ```
 
-`/ae-brainstorm` 仅做多视角发散讨论，不写文件；需要沉淀为正式需求文档时由 `/ae-prd` 承接。`/ae-design` 在需求和计划之间产出设计文档，包含架构、接口、数据模型和测试用例维度。第一轮文档审查用于发现需求漏洞，第二轮文档审查用于检查计划可执行性，最后一轮代码审查用于检查实现风险。
+`/ae-brainstorm` 仅做多视角发散讨论，不写文件；需要沉淀为正式需求文档时由 `/ae-prd` 承接。`/ae-design` 在需求之后产出设计文档，包含架构、接口、数据模型、测试用例和实现单元，供 `/ae-work` 直接执行。第一轮文档审查用于发现需求漏洞，第二轮代码审查用于检查实现风险。
 
 ### 只审查不修改
 
@@ -60,7 +54,7 @@
 
 ```text
 /ae-review mode:report-only
-/ae-review domain:document ae/plans/example.md
+/ae-review domain:document ae/designs/example.md
 ```
 
 `mode:report-only` 只报告发现，不自动修复。`domain:document` 会走文档审查团队，不会把文档当代码 diff 处理。
@@ -117,14 +111,12 @@
 | --- | --- | --- | --- |
 | `/ae-brainstorm` | `[讨论主题]` | 使用多个子代理从不同视角进行多轮发散讨论并汇总 | 不产出持久文档；需求沉淀转 `/ae-prd` |
 | `/ae-prd` | `[目标描述\|需求文档路径]` | 澄清目标、边界、约束、成功标准和待定问题，产出需求文档 | 产物是需求文档 |
-| `/ae-design` | `[需求文档路径\|旧 design\|裸描述]` | 产出设计文档，含概览、架构、接口、数据模型、测试用例与验收标准 | 供计划和审查对齐 |
-| `/ae-plan` | `[计划路径\|需求文档路径\|需求描述]` | 把需求拆成技术计划 | 复杂实现前优先使用 |
-| `/ae-refactor` | `[重构目标\|计划路径\|需求文档路径\|代码异味描述]` | 以消除技术债为优先约束生成重构计划 | 强调保持外部行为和测试护栏 |
-| `/ae-work` | `[计划路径\|交接文件路径\|工作描述]` | 按计划执行变更并验证 | 交付前检查验证、审查和 Git 授权证据 |
+| `/ae-design` | `[需求文档路径\|旧 design\|裸描述] [dimensions=...] [refactor=true]` | 产出设计文档，含概览、架构、接口、数据模型、测试用例与实现单元；`refactor=true` 用于重构或技术债治理 | 供实施和审查对齐 |
+| `/ae-work` | `[设计路径\|交接文件路径\|工作描述]` | 按设计执行变更并验证 | 交付前检查验证、审查和 Git 授权证据 |
 | `/ae-work-report` | `[日报\|周报\|时间段\|提交范围]` | 基于提交和未提交变更生成工作报告 | 不执行 Git 写操作 |
 | `/ae-my-code-changes` | `since=<date> [until=<date>]` | 获取指定时间内本人提交的所有代码变更 | 只取最终状态，不输出中间过程 |
 | `/ae-merge-branch` | `[来源分支名\|本地 worktree 路径]` | 合并来源分支或 worktree 变更 | 本地 Git 写操作需明确授权 |
-| `/ae-review` | `[mode:*] [domain:code\|domain:document] [from:<ref>] [full] [full:<path>] [session] [plan:<path>] [路径...]` | 审查代码、文档、计划、全量路径或会话变更 | 代码域和文档域分开处理 |
+| `/ae-review` | `[mode:*] [domain:code\|domain:document] [from:<ref>] [full] [full:<path>] [session] [design:<path>] [路径...]` | 审查代码、文档、设计、全量路径或会话变更 | 代码域和文档域分开处理 |
 | `/ae-chrome-devtools` | `[url] [action] [mode] [browser] [port] [task=任务描述]` | 浏览器能力中枢，负责 MCP 动态注册、目标选择和浏览器控制 | 确认 chrome-devtools MCP 连接就绪 |
 | `/ae-web-forge` | `[描述\|Figma URL\|截图\|路由] [--design\|--match\|--logic\|--inspect]` | 统一前端能力入口：自由设计、设计还原、交互逻辑、浏览器验收 | 先完成 chrome-devtools MCP 动态注册 |
 | `/ae-api-tester` | `[接口文档\|接口描述\|已有脚本路径\|业务流程描述]` | 以真实业务流程编排为主的自动化接口测试 | 支持登录认证与脚本生成 |
@@ -199,7 +191,7 @@
 | --- | --- | --- |
 | `@repo-research-analyst` | 研究仓库结构、文档、约定和实现模式 | 只做仓库研究，不替代实现 |
 | `@web-researcher` | 做外部网络研究、竞品扫描和跨领域类比 | 用于外部上下文，不读取本地私有代码 |
-| `@spec-flow-analyzer` | 分析规格、计划或功能描述中的用户流程缺口 | 不直接写代码 |
+| `@spec-flow-analyzer` | 分析规格、设计或功能描述中的用户流程缺口 | 不直接写代码 |
 | `@ui-architect` | 视觉设计与实现：自由设计或设计稿还原，根据输入自动切换模式 | 先完成 chrome-devtools MCP 动态注册；不负责接口联调 |
 | `@logic-weaver` | 前端代码实现：交互逻辑、API联调、状态管理、组件开发、重构、性能优化 | 不负责视觉设计 |
 | `@browser-inspector` | 端到端浏览器测试与回归验证 | 先完成 chrome-devtools MCP 动态注册；不做审美设计迭代 |
@@ -232,7 +224,7 @@
 | `ae-graph-build` | 构建或增量维护项目文件关系图谱 | 不分析运行时动态依赖或符号级调用链 |
 | `ae-graph-query` | 查询图谱中的依赖、影响范围、核心模块和健康状态 | 不构建图谱 |
 | `ae-task-analyzer` | 分析任务单元、文件范围和并行组 | 不修改项目文件 |
-| `ae-doc-extract` | 从人读需求、计划或设计文档及其分片中提取结构化上下文 | 不生成、转换或迁移文档 |
+| `ae-doc-extract` | 从人读需求或设计文档及其分片中提取结构化上下文 | 不生成、转换或迁移文档 |
 | `ae-worktree-handoff` | 生成 A→B worktree 转移交接文件 | 不创建新会话 |
 | `ae-create-session` | 创建独立新会话，可选注入上下文或自动执行 | 不做会话级上下文交接 |
 | `ae-domain-catalog` | 查询域代理目录，获取域代理和专精代理信息 | 不执行域代理调度 |
@@ -258,7 +250,6 @@
 | 路径 | 作用 |
 | --- | --- |
 | `ae/prds/` | 需求文档 |
-| `ae/plans/` | 计划文档 |
 | `ae/designs/` | 设计文档 |
 | `ae/solutions/` | 历史方案、研究和经验沉淀 |
 | `ae/graphs/` | 项目文件关系图谱 |

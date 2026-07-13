@@ -60,19 +60,17 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 /ae-prd
 /ae-design
 /ae-review domain:document
-/ae-plan
-/ae-review domain:document
 /ae-work
 /ae-review
 ```
 
-`/ae-brainstorm` 仅做多视角发散讨论与汇总，不产出文档；当讨论结果需要沉淀为正式需求文档时，由 `/ae-prd` 接续。`/ae-design` 在需求和计划之间产出设计文档，包含架构、接口、数据模型和测试用例维度。
+`/ae-brainstorm` 仅做多视角发散讨论与汇总，不产出文档；当讨论结果需要沉淀为正式需求文档时，由 `/ae-prd` 接续。`/ae-design` 在需求之后产出设计文档，包含架构、接口、数据模型、测试用例和实现单元，供 `/ae-work` 直接执行。
 
 只做代码或文档审查：
 
 ```text
 /ae-review mode:report-only
-/ae-review domain:document docs/ae/plans/example.md
+/ae-review domain:document docs/ae/designs/example.md
 ```
 
 前端和浏览器验收：
@@ -102,14 +100,12 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 查看当前能力 | `/ae-help` |
 | 多视角发散讨论 | `/ae-brainstorm` |
 | 需求澄清与需求文档 | `/ae-prd` |
-| 设计阶段（架构、接口、数据模型） | `/ae-design` |
-| 计划生成 | `/ae-plan` |
+| 设计阶段（架构、接口、数据模型、实现单元） | `/ae-design` |
 | 计划执行 | `/ae-work` |
 | Worktree 继续执行 | `/ae-work-continue` |
 | 分支或 worktree 合并 | `/ae-merge-branch` |
 | 工作总结 | `/ae-work-report` |
 | 查看本人代码变更 | `/ae-my-code-changes` |
-| 重构计划 | `/ae-refactor` |
 | 代码或文档审查 | `/ae-review` |
 | 前端设计、还原、交互或验收 | `/ae-web-forge` |
 | chrome-devtools 浏览器能力 | `/ae-chrome-devtools` |
@@ -138,7 +134,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 
 | 规则 | 说明 |
 | --- | --- |
-| 需求不清先澄清 | 复杂实现前先产出需求或计划，避免直接编码 |
+| 需求不清先澄清 | 复杂实现前先产出需求或设计，避免直接编码 |
 | 审查先定范围 | 代码、文档或通用混合范围按目标类型选择审查代理 |
 | 交付必须验证 | `/ae-work` 交付前检查验证、审查和 Git 授权证据 |
 | 浏览器先注册 MCP | 当前会话使用 chrome-devtools-mcp 工具前必须先通过 `/ae-chrome-devtools` 完成动态注册或连接状态确认 |
@@ -150,7 +146,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 类型 | 当前快照 | 真源 |
 | --- | ---: | --- |
 | 技能 | 35 | `src/assets/skills/`、`src/schemas/ae-asset-schema.ts` |
-| 命令 | 42 | `src/services/command-registration.ts`、`src/assets/commands/` |
+| 命令 | 40 | `src/services/command-registration.ts`、`src/assets/commands/` |
 | 代理 | 49 | `src/assets/agents/`、`src/services/agent-registration.ts` |
 | 工具 | 27 | `src/tools/` |
 | 规则 | 6 | `src/assets/rules/` |

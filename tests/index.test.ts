@@ -145,7 +145,7 @@ describe('插件入口', () => {
     const server = await plugin({ worktree: hostRoot, client: {} } as never)
     const config: RuntimeConfigShape = {
       command: {
-        'ae-plan': {
+        'ae-design': {
           template: 'global dynamic plan',
           description: 'global dynamic plan',
         },
@@ -154,7 +154,7 @@ describe('插件入口', () => {
 
     await server.config?.(config as never)
 
-    expect(config.command?.['ae-plan']?.template).toContain('ae:plan')
+    expect(config.command?.['ae-design']?.template).toContain('ae:design')
   })
 
   it('插件位于 worktree 父目录下但不在项目插件目录时不应该被判定为项目级安装', async () => {
@@ -163,7 +163,7 @@ describe('插件入口', () => {
     const server = await plugin({ worktree: hostRoot, client: {} } as never)
     const config: RuntimeConfigShape = {
       command: {
-        'ae-plan': {
+        'ae-design': {
           template: 'global dynamic plan',
           description: 'global dynamic plan',
         },
@@ -172,7 +172,7 @@ describe('插件入口', () => {
 
     await server.config?.(config as never)
 
-    expect(config.command?.['ae-plan']).toEqual({
+    expect(config.command?.['ae-design']).toEqual({
       template: 'global dynamic plan',
       description: 'global dynamic plan',
     })
@@ -233,7 +233,7 @@ describe('插件入口', () => {
 
     const config = await runConfigHook({ worktree: hostRoot, client: {} })
 
-    expect(config.command?.['ae-plan']?.model).toBeUndefined()
+    expect(config.command?.['ae-design']?.model).toBeUndefined()
     expect(config.agent?.['correctness-reviewer']?.model).toBeUndefined()
   })
 
@@ -245,13 +245,13 @@ describe('插件入口', () => {
     const config = await runConfigHook({ worktree: hostRoot, client: {} })
 
     expect(config.command?.['ae-help']?.model).toBe('project/quick')
-    expect(config.command?.['ae-plan']?.model).toBe('project/deep')
+    expect(config.command?.['ae-design']?.model).toBe('project/deep')
     expect(config.agent?.['correctness-reviewer']?.model).toBe('project/deep')
   })
 
   it.each([
     { label: '用户配置命令和代理', commandKey: 'ae-custom', agentKey: 'custom-agent', isOverride: false },
-    { label: '用户覆盖内置命令和代理', commandKey: 'ae-plan', agentKey: 'correctness-reviewer', isOverride: true },
+    { label: '用户覆盖内置命令和代理', commandKey: 'ae-design', agentKey: 'correctness-reviewer', isOverride: true },
   ] as const)('模型场景变量未配置时应该原样透传（$label）', async ({ commandKey, agentKey, isOverride }) => {
     const hostRoot = createTempRoot()
     isolateHome(createTempRoot())

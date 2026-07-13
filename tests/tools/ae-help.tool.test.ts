@@ -13,18 +13,18 @@ async function callHelp(query?: string): Promise<string> {
 }
 
 describe('ae-help 工具', () => {
-  it('应该能按 plan 查询发现 plan 技能和命令', async () => {
-    const text = await callHelp('plan')
+  it('应该能按 design 查询发现 design 技能和命令', async () => {
+    const text = await callHelp('design')
 
-    expect(text).toContain(SKILL.PLAN)
-    expect(text).toContain(`/${COMMAND.PLAN}`)
+    expect(text).toContain(SKILL.DESIGN)
+    expect(text).toContain(`/${COMMAND.DESIGN}`)
   })
 
-  it('应该能返回 plan 技能详情', async () => {
-    const text = await callHelp(SKILL.PLAN)
+  it('应该能返回 design 技能详情', async () => {
+    const text = await callHelp(SKILL.DESIGN)
 
-    expect(text).toContain(`# 技能：${SKILL.PLAN}`)
-    expect(text).toContain(`/${COMMAND.PLAN}`)
-    expect(text).toContain('计划')
+    expect(text).toContain(`# 技能：${SKILL.DESIGN}`)
+    expect(text).toContain(`/${COMMAND.DESIGN}`)
+    expect(text).toContain('设计')
   })
 })

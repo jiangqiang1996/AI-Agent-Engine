@@ -80,7 +80,7 @@ overview 维度的禁止模式：
 
 ## 稳定 ID 体系
 
-overview 中的设计条目必须使用稳定 ID，便于 ae:plan / ae:work / ae:review 追溯：
+overview 中的设计条目必须使用稳定 ID，便于 ae:design / ae:work / ae:review 追溯：
 
 - `ADR-XXX`：架构决策记录（核心）
 - `EP-XXX`：API 端点编号（核心，跨维度映射表 ui-component-to-api-endpoint-mapping 依赖）

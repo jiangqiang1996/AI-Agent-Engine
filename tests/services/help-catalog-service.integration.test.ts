@@ -13,12 +13,12 @@ describe('help-catalog-service 集成', () => {
     expect(text).toContain('--from-session')
   })
 
-  it('应该在真实帮助目录中暴露 ae:refactor 入口', () => {
+  it('应该在真实帮助目录中暴露 ae:design 入口', () => {
     const text = generateHelpText('refactor')
 
-    expect(text).toContain(SKILL.REFACTOR)
-    expect(text).toContain(`/${COMMAND.REFACTOR}`)
-    expect(text).toContain('[重构目标\\|计划路径\\|需求文档路径\\|旧机制描述]')
+    expect(text).toContain(SKILL.DESIGN)
+    expect(text).toContain(`/${COMMAND.DESIGN}`)
+    expect(text).toContain('[需求文档路径\\|旧 design\\|裸描述]')
   })
 
   it('应该在真实帮助目录中暴露 ae:merge-branch 入口', () => {

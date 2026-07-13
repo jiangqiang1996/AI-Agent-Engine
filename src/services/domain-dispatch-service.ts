@@ -97,11 +97,11 @@ function toReviewSelectionInput(
   const documentType = normalizeDocumentType(domainContext.documentType ?? domainContext.kind ?? domainContext.reviewType)
   const reviewScenes = normalizeStringList<ReviewSceneType>(
     domainContext.reviewScenes ?? domainContext.scenes,
-    ['code', 'requirements', 'design', 'prototype', 'test-case', 'plan', 'config', 'asset', 'general-document'],
+    ['code', 'requirements', 'design', 'prototype', 'test-case', 'config', 'asset', 'general-document'],
   )
   const targetTypes = normalizeStringList<ReviewTargetType>(
     domainContext.targetTypes ?? domainContext.targets,
-    ['code', 'requirements', 'design', 'prototype', 'test-case', 'plan', 'config', 'asset', 'document'],
+    ['code', 'requirements', 'design', 'prototype', 'test-case', 'config', 'asset', 'document'],
   )
 
   const flagEntries: [string, unknown][] = [
@@ -186,11 +186,9 @@ function toReviewSelectionInput(
 function normalizeDocumentType(value: unknown): ReviewSelectionInput['documentType'] {
   if (
     value === 'requirements' ||
-    value === 'plan' ||
     value === 'test' ||
     value === 'general' ||
-    value === 'design' ||
-    value === 'prototype'
+    value === 'design'
   ) {
     return value
   }

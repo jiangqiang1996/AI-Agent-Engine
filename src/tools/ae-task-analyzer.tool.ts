@@ -80,16 +80,16 @@ function isInsideDirectory(root: string, target: string): boolean {
   return relativePath === '' || (!relativePath.startsWith('..') && !isAbsolute(relativePath))
 }
 
-function resolvePlanPath(planPath: string, worktree: string): { absolutePath?: string; warning?: string } {
-  if (isUnsafeRelativePath(planPath)) {
-    return { warning: '计划文件路径必须是仓库相对路径' }
+function resolveDesignPath(designPath: string, worktree: string): { absolutePath?: string; warning?: string } {
+  if (isUnsafeRelativePath(designPath)) {
+    return { warning: '设计文件路径必须是仓库相对路径' }
   }
 
   const normalizedWorktree = resolve(worktree)
-  const absolutePath = resolve(normalizedWorktree, planPath)
+  const absolutePath = resolve(normalizedWorktree, designPath)
 
   if (!isInsideDirectory(normalizedWorktree, absolutePath)) {
-    return { warning: `计划文件路径越出工作区边界：${planPath}` }
+    return { warning: `设计文件路径越出工作区边界：${designPath}` }
   }
 
   return { absolutePath }
@@ -430,27 +430,27 @@ function hasInternalConflicts(unitIds: string[], conflicts: ConflictEntry[]): bo
 // 计算执行顺序
 function computeExecutionOrder(groups: ParallelGroup[], units: TaskUnit[]): string[] {
   // 简单策略：按组 ID 顺序执行（G1, G2, G3...）
-  // 更复杂的依赖排序需要上游计划提供结构化依赖信息
+  // 更复杂的依赖排序需要上游设计提供结构化依赖信息
   return groups.map((g) => g.id)
 }
 
-// 从计划文档中提取实现单元
-async function extractUnitsFromPlan(planPath: string, worktree: string): Promise<{ units: TaskUnit[]; warnings: string[] }> {
-  const resolvedPlan = resolvePlanPath(planPath, worktree)
-  if (!resolvedPlan.absolutePath) {
-    return { units: [], warnings: [resolvedPlan.warning || `计划文件路径无效：${planPath}`] }
+// 从设计文档中提取实现单元
+async function extractUnitsFromDesign(designPath: string, worktree: string): Promise<{ units: TaskUnit[]; warnings: string[] }> {
+  const resolvedDesign = resolveDesignPath(designPath, worktree)
+  if (!resolvedDesign.absolutePath) {
+    return { units: [], warnings: [resolvedDesign.warning || `设计文件路径无效：${designPath}`] }
   }
 
-  const absolutePath = resolvedPlan.absolutePath
+  const absolutePath = resolvedDesign.absolutePath
   const fileStat = await stat(absolutePath).catch(() => undefined)
 
   if (!fileStat?.isFile()) {
-    return { units: [], warnings: [`计划文件不存在：${planPath}`] }
+    return { units: [], warnings: [`设计文件不存在：${designPath}`] }
   }
 
   const content = await readFile(absolutePath, 'utf8').catch(() => '')
   if (!content.trim()) {
-    return { units: [], warnings: [`计划文件为空：${planPath}`] }
+    return { units: [], warnings: [`设计文件为空：${designPath}`] }
   }
 
   const units: TaskUnit[] = []
@@ -507,7 +507,7 @@ async function extractUnitsFromPlan(planPath: string, worktree: string): Promise
   }
 
   if (units.length === 0) {
-    warnings.push('未能从计划文档中提取实现单元，使用 `- [ ] **单元 N：**` 格式')
+    warnings.push('未能从设计文档中提取实现单元，使用 `- [ ] **单元 N：**` 格式')
   }
 
   return { units, warnings }
@@ -542,7 +542,7 @@ async function analyzeScanMode(taskDescription: string, worktree: string): Promi
   }
 
   if (candidateFiles.length === 0) {
-    warnings.push('无法自动识别变更文件，建议使用 mode=plan 或手动指定。输出基于全部源码文件的目录分组。')
+    warnings.push('无法自动识别变更文件，建议使用 mode=design 或手动指定。输出基于全部源码文件的目录分组。')
     candidateFiles = allFiles
   }
 
@@ -560,9 +560,9 @@ async function analyzeScanMode(taskDescription: string, worktree: string): Promi
   }
 }
 
-// 主逻辑：plan 模式
-async function analyzePlanMode(planPath: string, worktree: string): Promise<TaskAnalyzerOutput> {
-  const { units, warnings } = await extractUnitsFromPlan(planPath, worktree)
+// 主逻辑：design 模式
+async function analyzeDesignMode(designPath: string, worktree: string): Promise<TaskAnalyzerOutput> {
+  const { units, warnings } = await extractUnitsFromDesign(designPath, worktree)
   const conflict_matrix = computeConflictMatrix(units)
   const parallel_groups = computeParallelGroups(units, conflict_matrix)
   const execution_order = computeExecutionOrder(parallel_groups, units)
@@ -584,21 +584,21 @@ export const aeTaskAnalyzerTool: ToolDefinition = tool({
     '- 扫描代码库文件，按目录/模块边界拆分任务单元',
     '- 计算文件冲突矩阵，检测任务间共享文件',
     '- 通过图着色算法计算并行组',
-    '- 从计划文档中提取实现单元、文件范围和验证命令',
+    '- 从设计文档中提取实现单元、文件范围和验证命令',
     '',
     '适用场景：',
     '- ae:work 需要自动分解任务并行执行时',
     '- 裸提示词进入 ae:work 时自动识别可并行的任务',
-    '- 计划文档进入 ae:work 时提取并行组',
+    '- 设计文档进入 ae:work 时提取并行组',
     '',
     '不适用场景：',
     '- 不负责实际执行子代理',
     '- 不负责修改项目文件',
   ].join('\n'),
   args: {
-    mode: tool.schema.enum(['scan', 'plan']).describe('分析模式：scan=扫描代码库拆分任务，plan=从计划文档提取任务'),
+    mode: tool.schema.enum(['scan', 'design']).describe('分析模式：scan=扫描代码库拆分任务，design=从设计文档提取任务'),
     task_description: tool.schema.string().optional().describe('任务描述文本；mode=scan 时使用'),
-    plan_path: tool.schema.string().optional().describe('计划文档的仓库相对路径；mode=plan 时使用'),
+    design_path: tool.schema.string().optional().describe('设计文档的仓库相对路径；mode=design 时使用'),
     worktree: tool.schema.string().optional().describe('工作区根目录，默认为当前目录'),
   },
   async execute(args, context) {
@@ -612,16 +612,16 @@ export const aeTaskAnalyzerTool: ToolDefinition = tool({
           if (args.mode === 'scan') {
             result = await analyzeScanMode(args.task_description || '', worktree)
           } else {
-            if (!args.plan_path) {
+            if (!args.design_path) {
               return JSON.stringify({
                 units: [],
                 conflict_matrix: [],
                 parallel_groups: [],
                 execution_order: [],
-                warnings: ['mode=plan 需要提供 plan_path 参数'],
+                warnings: ['mode=design 需要提供 design_path 参数'],
               }, null, 2)
             }
-            result = await analyzePlanMode(args.plan_path, worktree)
+            result = await analyzeDesignMode(args.design_path, worktree)
           }
 
           return JSON.stringify(result, null, 2)

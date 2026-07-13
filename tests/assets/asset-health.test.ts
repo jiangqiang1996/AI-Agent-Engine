@@ -326,13 +326,11 @@ describe('资产健康巡检', () => {
       COMMAND.BRAINSTORM,
       COMMAND.PRD,
       COMMAND.DESIGN,
-      COMMAND.PLAN,
       COMMAND.WORK,
       'ae-work-continue',
       COMMAND.MERGE_BRANCH,
       COMMAND.WORK_REPORT,
       COMMAND.MY_CODE_CHANGES,
-      COMMAND.REFACTOR,
       COMMAND.REVIEW,
       COMMAND.WEB_FORGE,
       COMMAND.CHROME_DEVTOOLS,
@@ -368,7 +366,7 @@ describe('资产健康巡检', () => {
     const content = readFileSync('docs/builtin-config.md', 'utf8')
     const scenarios = [
       [MODEL_SCENARIO.STANDARD, COMMAND.BRAINSTORM],
-      [MODEL_SCENARIO.DEEP, COMMAND.PLAN],
+      [MODEL_SCENARIO.DEEP, COMMAND.DESIGN],
       [MODEL_SCENARIO.QUICK, COMMAND.GRAPH_QUERY],
       [MODEL_SCENARIO.VISION, COMMAND.CHROME_DEVTOOLS],
     ] as const

@@ -82,7 +82,7 @@ describe('ae-review-contract 工具', () => {
 import { Layer } from 'effect'
 
 const MockRecoveryService = Layer.succeed(RecoveryServiceTag, {
-  recover: () => Effect.succeed({ phase: 'plan', skill: 'ae:plan' }),
+  recover: () => Effect.succeed({ phase: 'plan', skill: 'ae:design' }),
 })
 ```
 

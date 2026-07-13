@@ -44,7 +44,7 @@ export const EvidenceScopeSchema = z.object({
   workflow: z.string().min(1).optional().describe('工作流名称'),
   checkpoint: z.string().min(1).optional().describe('门禁检查点'),
   requirementsPath: z.string().min(1).optional().describe('需求文档仓库相对路径'),
-  planPath: z.string().min(1).optional().describe('计划文档仓库相对路径'),
+  designPath: z.string().min(1).optional().describe('设计文档仓库相对路径'),
   handoffPath: z.string().min(1).optional().describe('交接文件仓库相对路径'),
   baselineHash: z.string().min(1).optional().describe('执行基线哈希'),
   files: z.array(z.string().min(1)).default([]).describe('证据覆盖的文件范围'),

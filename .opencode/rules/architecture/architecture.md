@@ -45,5 +45,5 @@
 ## 阶段回退策略
 
 - AE 流程中找不到上游产物时回退到更早阶段是有意设计，不要误报为逻辑错误。
-- 典型依赖链：`work` 依赖 `plan`，`plan` 依赖 `brainstorm`。
+- 典型依赖链：`work` 依赖 `design`，`design` 依赖 `prd`。
 - `recovery-service.ts` 中的 `fallbackSkillForPhase` 映射体现该依赖链。

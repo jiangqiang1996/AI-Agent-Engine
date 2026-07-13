@@ -125,7 +125,7 @@ remote MCP 的最终 URL 当前允许 `http` / `https`，建议优先使用 `htt
 
 ## 工作原理
 
-内置命令通过 catalog 声明模型场景，如 `/ae-plan` 声明 `deep`、`/ae-help` 声明 `quick`。内置代理通过 Markdown frontmatter 的 `model` 声明模型引用。
+内置命令通过 catalog 声明模型场景，如 `/ae-design` 声明 `deep`、`/ae-help` 声明 `quick`。内置代理通过 Markdown frontmatter 的 `model` 声明模型引用。
 
 ## 稳定场景
 
@@ -133,7 +133,7 @@ remote MCP 的最终 URL 当前允许 `http` / `https`，建议优先使用 `htt
 | --- | --- | --- |
 | `quick` | 快速响应（`/ae-help`、`/ae-graph-query`） | 低延迟、低成本 |
 | `standard` | 常规任务（`/ae-brainstorm`、`/ae-sql`） | 平衡性能与质量 |
-| `deep` | 深度推理（`/ae-plan`、`/ae-work`、`/ae-review`，以及声明 `model: $deep` 的 Markdown 命令） | 强推理、长上下文 |
+| `deep` | 深度推理（`/ae-design`、`/ae-work`、`/ae-review`，以及声明 `model: $deep` 的 Markdown 命令） | 强推理、长上下文 |
 | `vision` | 视觉任务（`/ae-chrome-devtools`） | 支持图片输入 |
 | `audio` | 音频任务 | 支持音频输入 |
 | `video` | 视频任务 | 支持视频输入 |
@@ -207,7 +207,7 @@ model: $deep
 | 资产 | 场景 |
 | --- | --- |
 | `/ae-brainstorm`、`/ae-prd`、`/ae-agent-creator`、`/ae-work-report`、`/ae-my-code-changes`、`/ae-handoff`、`/ae-sql`、`/ae-swagger-parser`、`/ae-api-tester`、`/ae-image`、`/ae-audio`、`/ae-video`、`/ae-graph-build`、`/ae-project-explore`、`/ae-save-experience`、`/ae-prompt-optimize`、`/ae-skill-creator`、`/ae-docx`、`/ae-pdf`、`/ae-pptx`、`/ae-xlsx` | `standard` |
-| `/ae-design`、`/ae-plan`、`/ae-refactor`、`/ae-work`、`/ae-merge-branch`、`/ae-review`、`/ae-web-forge`、`/ae-slides-outline`、`/ae-pptx-from-outline`、`/ae-task-loop`、`/ae-grill` | `deep` |
+| `/ae-design`、`/ae-work`、`/ae-merge-branch`、`/ae-review`、`/ae-web-forge`、`/ae-slides-outline`、`/ae-pptx-from-outline`、`/ae-task-loop`、`/ae-grill` | `deep` |
 | `/ae-libreoffice`、`/ae-graph-query` | `quick` |
 | `/ae-chrome-devtools` | `vision` |
 | `@repo-research-analyst`、`@web-researcher` | `standard` |

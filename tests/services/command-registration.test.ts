@@ -38,11 +38,11 @@ function isolateHome(root: string): void {
 }
 
 describe('command-registration', () => {
-  it('应该为 ae:refactor 生成基础命令', () => {
+  it('应该为 ae:design 生成基础命令', () => {
     const config = buildCommandConfig('__missing_commands_dir__')
 
-    expect(config[COMMAND.REFACTOR]).toBeDefined()
-    expect(config[COMMAND.REFACTOR]?.template).toContain(`使用 \`${SKILL.REFACTOR}\` 技能处理这次请求`)
+    expect(config[COMMAND.DESIGN]).toBeDefined()
+    expect(config[COMMAND.DESIGN]?.template).toContain(`使用 \`${SKILL.DESIGN}\` 技能处理这次请求`)
   })
 
   it('应该从磁盘命令注册 worktree 续执行命令', () => {
@@ -204,7 +204,7 @@ describe('command-registration', () => {
 
     const config = buildCommandConfig('__missing_commands_dir__', routingContext)
 
-    expect(config[COMMAND.PLAN]?.model).toBe('provider/deep')
+    expect(config[COMMAND.DESIGN]?.model).toBe('provider/deep')
   })
 
   it('零配置时内置 command 注册结果不写入 model', () => {
@@ -212,7 +212,7 @@ describe('command-registration', () => {
 
     const config = buildCommandConfig('__missing_commands_dir__', routingContext)
 
-    expect(config[COMMAND.PLAN]?.model).toBeUndefined()
+    expect(config[COMMAND.DESIGN]?.model).toBeUndefined()
     expect(routingContext.unresolvedReferences).toEqual([])
   })
 
@@ -300,7 +300,7 @@ describe('command-registration', () => {
     const commandsDir = join(root, 'commands')
     mkdirSync(commandsDir, { recursive: true })
     writeFileSync(
-      join(commandsDir, `${COMMAND.PLAN}.md`),
+      join(commandsDir, `${COMMAND.DESIGN}.md`),
       ['---', 'description: custom plan', 'model: provider/custom-plan', '---', 'custom plan template'].join('\n'),
     )
     const routingContext = createModelScenarioRoutingContext(new Map([
@@ -309,7 +309,7 @@ describe('command-registration', () => {
 
     const config = buildCommandConfig(commandsDir, routingContext)
 
-    expect(config[COMMAND.PLAN]).toEqual({
+    expect(config[COMMAND.DESIGN]).toEqual({
       template: 'custom plan template',
       description: 'custom plan',
       model: 'provider/custom-plan',
@@ -319,14 +319,14 @@ describe('command-registration', () => {
   it('用户同名 command model 应最终覆盖场景注入 model', () => {
     const merged = mergeBuiltinAndUserCommands(
       {
-        [COMMAND.PLAN]: {
+        [COMMAND.DESIGN]: {
           template: 'builtin template',
           description: 'builtin description',
           model: 'provider/deep',
         },
       },
       {
-        [COMMAND.PLAN]: {
+        [COMMAND.DESIGN]: {
           template: 'user template',
           description: 'user description',
           model: 'user/model',
@@ -334,7 +334,7 @@ describe('command-registration', () => {
       },
     )
 
-    expect(merged[COMMAND.PLAN]?.model).toBe('user/model')
+    expect(merged[COMMAND.DESIGN]?.model).toBe('user/model')
   })
 
   it('项目级命令应该最终覆盖已有同名用户命令', () => {

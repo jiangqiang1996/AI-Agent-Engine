@@ -4,11 +4,9 @@ export type ReviewKind = 'code' | 'document' | 'general'
 
 export type ReviewDocumentType =
   | 'requirements'
-  | 'plan'
   | 'test'
   | 'general'
   | 'design'
-  | 'prototype'
 
 export type ReviewSceneType =
   | 'code'
@@ -16,7 +14,6 @@ export type ReviewSceneType =
   | 'design'
   | 'prototype'
   | 'test-case'
-  | 'plan'
   | 'config'
   | 'asset'
   | 'general-document'
@@ -27,7 +24,6 @@ export type ReviewTargetType =
   | 'design'
   | 'prototype'
   | 'test-case'
-  | 'plan'
   | 'config'
   | 'asset'
   | 'document'

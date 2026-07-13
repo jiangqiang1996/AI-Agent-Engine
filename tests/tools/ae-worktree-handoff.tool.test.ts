@@ -30,10 +30,10 @@ describe('ae-worktree-handoff 工具', () => {
 
     expect(tool.args.graph_path).toBeDefined()
     expect(tool.args.ae_config_path).toBeDefined()
-    expect(tool.args.plan_path).toBeDefined()
+    expect(tool.args.design_path).toBeDefined()
   })
 
-  it('应该在 plan_path 为空字符串时拒绝执行', async () => {
+  it('应该在 design_path 为空字符串时拒绝执行', async () => {
     const targetDir = createTempDir()
     const tool = aeWorktreeHandoffTool as unknown as ToolLike
     const output = await tool.execute({
@@ -48,16 +48,15 @@ describe('ae-worktree-handoff 工具', () => {
       covered_command_args: 'test',
       final_command_args: 'test',
       creation_result: 'test',
-      plan_path: '',
-      design_borne_by_plan: false,
+      design_path: '',
       execution_baseline: 'test',
       verification_requirements: 'test',
     }, { metadata: () => {} })
 
-    expect(output).toContain('plan_path 不能为空')
+    expect(output).toContain('design_path 和 task_brief 至少传入一个')
   })
 
-  it('应该在 plan_path 为纯空白时拒绝执行', async () => {
+  it('应该在 design_path 为纯空白时拒绝执行', async () => {
     const targetDir = createTempDir()
     const tool = aeWorktreeHandoffTool as unknown as ToolLike
     const output = await tool.execute({
@@ -72,13 +71,12 @@ describe('ae-worktree-handoff 工具', () => {
       covered_command_args: 'test',
       final_command_args: 'test',
       creation_result: 'test',
-      plan_path: '   ',
-      design_borne_by_plan: false,
+      design_path: '   ',
       execution_baseline: 'test',
       verification_requirements: 'test',
     }, { metadata: () => {} })
 
-    expect(output).toContain('plan_path 不能为空')
+    expect(output).toContain('design_path 和 task_brief 至少传入一个')
   })
 
   it('应该把图谱和 AE 项目配置路径转发到交接文件', async () => {
@@ -96,10 +94,9 @@ describe('ae-worktree-handoff 工具', () => {
       covered_command_args: 'git worktree add ../worktrees/feat-graph-config -b feat/graph-config HEAD',
       final_command_args: 'git worktree add "../worktrees/feat-graph-config" -b "feat/graph-config" HEAD',
       creation_result: 'Git worktree 创建成功',
-      plan_path: 'ae/plans/test-plan.md',
+      design_path: 'ae/designs/test/design.md',
       graph_path: 'ae/graphs/',
       ae_config_path: '.opencode/ae.jsonc',
-      design_borne_by_plan: true,
       execution_baseline: '必须从阶段 1 继续执行',
       verification_requirements: '交付前运行 Vitest 和 typecheck',
     }, { metadata: () => {} })

@@ -93,7 +93,7 @@ describe('help-catalog-service', () => {
           skillName: 'ae:work',
           commandName: 'ae-work',
           description: '执行工作',
-          argumentHint: '[计划]',
+          argumentHint: '[设计]',
           skillFile: 'src/assets/skills/ae-work/SKILL.md',
         },
       ] as ReturnType<typeof aeCatalog.getPhaseOneEntries>)
@@ -173,11 +173,11 @@ describe('help-catalog-service', () => {
     const catalog = {
       skills: [
         { name: 'ae:brainstorm', description: '头脑风暴', argumentHint: '', commandName: 'ae-brainstorm', tier: 'core' },
-        { name: 'ae:plan', description: '制定计划', argumentHint: '', commandName: 'ae-plan', tier: 'core' },
+        { name: 'ae:design', description: '制定设计', argumentHint: '', commandName: 'ae-design', tier: 'core' },
       ],
       commands: [
         { name: 'ae-brainstorm', description: '头脑风暴', category: '基础命令' },
-        { name: 'ae-plan', description: '制定计划', category: '基础命令' },
+        { name: 'ae-design', description: '制定设计', category: '基础命令' },
       ],
       agents: [
         { name: 'correctness-reviewer', stage: 'review', description: '审查逻辑' },
@@ -200,9 +200,9 @@ describe('help-catalog-service', () => {
     })
 
     it('应该按命令名过滤技能', () => {
-      const result = filterCatalog(catalog, 'ae-plan')
+      const result = filterCatalog(catalog, 'ae-design')
       expect(result.skills).toHaveLength(1)
-      expect(result.skills[0].name).toBe('ae:plan')
+      expect(result.skills[0].name).toBe('ae:design')
     })
 
     it('应该按描述过滤代理', () => {
@@ -222,15 +222,15 @@ describe('help-catalog-service', () => {
         {
           skills: [
             {
-              name: SKILL.REFACTOR,
-              description: '为重构任务创建结构化计划',
-              argumentHint: '[重构目标|计划路径|需求文档路径|旧机制描述]',
-              commandName: COMMAND.REFACTOR,
+              name: SKILL.DESIGN,
+              description: '设计阶段：支持 refactor=true 彻底重构',
+              argumentHint: '[需求文档路径|旧 design|裸描述] [dimensions=architecture,database] [refactor=true]',
+              commandName: COMMAND.DESIGN,
               tier: 'core',
             },
           ],
           commands: [
-            { name: COMMAND.REFACTOR, description: '为重构任务创建结构化计划', category: '基础命令' },
+            { name: COMMAND.DESIGN, description: '设计阶段：支持 refactor=true 彻底重构', category: '基础命令' },
           ],
           agents: [],
         },
@@ -238,30 +238,30 @@ describe('help-catalog-service', () => {
       )
 
       expect(result.skills).toHaveLength(1)
-      expect(result.skills[0].name).toBe(SKILL.REFACTOR)
-      expect(result.commands.map((command) => command.name)).toEqual([COMMAND.REFACTOR])
+      expect(result.skills[0].name).toBe(SKILL.DESIGN)
+      expect(result.commands.map((command) => command.name)).toEqual([COMMAND.DESIGN])
     })
 
     it('应该从目录和命令配置构建 refactor 帮助项', () => {
       vi.mocked(aeCatalog.getPhaseOneEntries).mockReturnValue([
         {
-          skillName: SKILL.REFACTOR,
-          commandName: COMMAND.REFACTOR,
-          description: '为重构任务创建结构化计划',
-          argumentHint: '[重构目标|计划路径|需求文档路径|旧机制描述]',
-          skillFile: 'src/assets/skills/ae-refactor/SKILL.md',
+          skillName: SKILL.DESIGN,
+          commandName: COMMAND.DESIGN,
+          description: '设计阶段：支持 refactor=true 彻底重构',
+          argumentHint: '[需求文档路径|旧 design|裸描述] [dimensions=architecture,database] [refactor=true]',
+          skillFile: 'src/assets/skills/ae-design/SKILL.md',
         },
       ] as ReturnType<typeof aeCatalog.getPhaseOneEntries>)
       vi.mocked(aeCatalog.getAllAgentDefinitions).mockReturnValue([])
       vi.mocked(commandRegistration.buildCommandConfig).mockReturnValue({
-        [COMMAND.REFACTOR]: { template: '', description: '为重构任务创建结构化计划' },
+        [COMMAND.DESIGN]: { template: '', description: '设计阶段：支持 refactor=true 彻底重构' },
       })
       vi.mocked(agentRegistration.buildAgentConfig).mockReturnValue({})
 
       const result = filterCatalog(buildHelpCatalog('/repo'), 'refactor')
 
-      expect(result.skills.map((skill) => skill.name)).toEqual([SKILL.REFACTOR])
-      expect(result.commands.map((command) => command.name)).toEqual([COMMAND.REFACTOR])
+      expect(result.skills.map((skill) => skill.name)).toEqual([SKILL.DESIGN])
+      expect(result.commands.map((command) => command.name)).toEqual([COMMAND.DESIGN])
     })
 
     it('空字符串 query 应视为无过滤', () => {
@@ -348,23 +348,23 @@ describe('help-catalog-service', () => {
     it('精确匹配技能名时应返回详情视图', () => {
       vi.mocked(aeCatalog.getPhaseOneEntries).mockReturnValue([
         {
-          skillName: 'ae:plan',
-          commandName: 'ae-plan',
-          description: '制定计划',
+          skillName: 'ae:design',
+          commandName: 'ae-design',
+          description: '制定设计',
           argumentHint: '[目标]',
-          skillFile: 'src/assets/skills/ae-plan/SKILL.md',
+          skillFile: 'src/assets/skills/ae-design/SKILL.md',
         },
       ] as ReturnType<typeof aeCatalog.getPhaseOneEntries>)
       vi.mocked(aeCatalog.getAllAgentDefinitions).mockReturnValue([])
       vi.mocked(commandRegistration.buildCommandConfig).mockReturnValue({
-        'ae-plan': { template: '', description: '制定计划' },
+        'ae-design': { template: '', description: '制定设计' },
       })
       vi.mocked(agentRegistration.buildAgentConfig).mockReturnValue({})
 
-      const text = generateHelpText('ae:plan')
-      expect(text).toContain('# 技能：ae:plan')
-      expect(text).toContain('制定计划')
-      expect(text).toContain('/ae-plan')
+      const text = generateHelpText('ae:design')
+      expect(text).toContain('# 技能：ae:design')
+      expect(text).toContain('制定设计')
+      expect(text).toContain('/ae-design')
     })
 
     it('精确匹配命令名时应返回详情视图', () => {
@@ -413,21 +413,21 @@ describe('help-catalog-service', () => {
     it('带前缀 / 的查询应返回详情视图', () => {
       vi.mocked(aeCatalog.getPhaseOneEntries).mockReturnValue([
         {
-          skillName: 'ae:plan',
-          commandName: 'ae-plan',
-          description: '制定计划',
+          skillName: 'ae:design',
+          commandName: 'ae-design',
+          description: '制定设计',
           argumentHint: '[目标]',
-          skillFile: 'src/assets/skills/ae-plan/SKILL.md',
+          skillFile: 'src/assets/skills/ae-design/SKILL.md',
         },
       ] as ReturnType<typeof aeCatalog.getPhaseOneEntries>)
       vi.mocked(aeCatalog.getAllAgentDefinitions).mockReturnValue([])
       vi.mocked(commandRegistration.buildCommandConfig).mockReturnValue({
-        'ae-plan': { template: '', description: '制定计划' },
+        'ae-design': { template: '', description: '制定设计' },
       })
       vi.mocked(agentRegistration.buildAgentConfig).mockReturnValue({})
 
-      const text = generateHelpText('/ae-plan')
-      expect(text).toContain('# 技能：ae:plan')
+      const text = generateHelpText('/ae-design')
+      expect(text).toContain('# 技能：ae:design')
     })
 
     it('带前缀 @ 的查询应返回代理详情视图', () => {
@@ -476,11 +476,11 @@ describe('help-catalog-service', () => {
   describe('resolveDetail', () => {
     const catalog = {
       skills: [
-        { name: 'ae:plan', description: '制定计划', argumentHint: '[目标]', commandName: 'ae-plan', tier: 'core' },
+        { name: 'ae:design', description: '制定设计', argumentHint: '[目标]', commandName: 'ae-design', tier: 'core' },
         { name: 'ae:brainstorm', description: '头脑风暴', argumentHint: '[主题]', commandName: 'ae-brainstorm', tier: 'core' },
       ],
       commands: [
-        { name: 'ae-plan', description: '制定计划', category: '基础命令' },
+        { name: 'ae-design', description: '制定设计', category: '基础命令' },
         { name: 'ae-brainstorm', description: '头脑风暴', category: '基础命令' },
         { name: 'ae-commit', description: '智能提交', category: '基础命令' },
       ],
@@ -489,25 +489,25 @@ describe('help-catalog-service', () => {
         { name: 'web-researcher', stage: 'research', description: '网络研究' },
       ],
       modelRoutes: [
-        { type: 'command' as const, name: 'ae-plan', scenario: 'deep' as const, applyMode: 'direct' as const, reason: '内置命令声明 deep 场景' },
+        { type: 'command' as const, name: 'ae-design', scenario: 'deep' as const, applyMode: 'direct' as const, reason: '内置命令声明 deep 场景' },
       ],
     }
 
     it('按技能名精确查找应返回技能详情', () => {
-      const detail = resolveDetail(catalog, 'ae:plan')
+      const detail = resolveDetail(catalog, 'ae:design')
       expect(detail).not.toBeNull()
       expect(detail!.type).toBe('skill')
-      expect(detail!.name).toBe('ae:plan')
-      expect(detail!.description).toBe('制定计划')
-      expect(detail!.properties).toContainEqual({ label: '命令', value: '/ae-plan' })
+      expect(detail!.name).toBe('ae:design')
+      expect(detail!.description).toBe('制定设计')
+      expect(detail!.properties).toContainEqual({ label: '命令', value: '/ae-design' })
       expect(detail!.properties).toContainEqual({ label: '参数', value: '[目标]' })
     })
 
     it('按命令名精确查找应返回技能详情', () => {
-      const detail = resolveDetail(catalog, 'ae-plan')
+      const detail = resolveDetail(catalog, 'ae-design')
       expect(detail).not.toBeNull()
       expect(detail!.type).toBe('skill')
-      expect(detail!.name).toBe('ae:plan')
+      expect(detail!.name).toBe('ae:design')
     })
 
     it('按代理名精确查找应返回代理详情', () => {
@@ -525,13 +525,13 @@ describe('help-catalog-service', () => {
     })
 
     it('带 / 前缀查找命令应正常工作', () => {
-      const detail = resolveDetail(catalog, '/ae-plan')
+      const detail = resolveDetail(catalog, '/ae-design')
       expect(detail).not.toBeNull()
       expect(detail!.type).toBe('skill')
     })
 
     it('名称同时匹配技能和模型路由时应优先返回技能详情', () => {
-      const detail = resolveDetail(catalog, 'ae-plan')
+      const detail = resolveDetail(catalog, 'ae-design')
       expect(detail).not.toBeNull()
       expect(detail!.type).toBe('skill')
     })
@@ -557,11 +557,11 @@ describe('help-catalog-service', () => {
     })
 
     it('技能详情应包含关联命令和模型路由', () => {
-      const detail = resolveDetail(catalog, 'ae:plan')
+      const detail = resolveDetail(catalog, 'ae:design')
       expect(detail).not.toBeNull()
-      const commandRelated = detail!.related.find((r) => r.type === 'command' && r.name === 'ae-plan')
+      const commandRelated = detail!.related.find((r) => r.type === 'command' && r.name === 'ae-design')
       expect(commandRelated).toBeDefined()
-      const routeRelated = detail!.related.find((r) => r.type === 'modelRoute' && r.name === 'ae-plan')
+      const routeRelated = detail!.related.find((r) => r.type === 'modelRoute' && r.name === 'ae-design')
       expect(routeRelated).toBeDefined()
     })
 
@@ -578,22 +578,22 @@ describe('help-catalog-service', () => {
     it('应该格式化技能详情', () => {
       const entry = {
         type: 'skill' as const,
-        name: 'ae:plan',
-        description: '制定计划',
+        name: 'ae:design',
+        description: '制定设计',
         properties: [
-          { label: '命令', value: '/ae-plan' },
+          { label: '命令', value: '/ae-design' },
           { label: '参数', value: '[目标]' },
         ],
         related: [
-          { type: 'command' as const, name: 'ae-plan', description: '制定计划' },
+          { type: 'command' as const, name: 'ae-design', description: '制定设计' },
         ],
       }
       const text = formatDetailEntry(entry)
-      expect(text).toContain('# 技能：ae:plan')
-      expect(text).toContain('制定计划')
-      expect(text).toContain('- **命令**：/ae-plan')
+      expect(text).toContain('# 技能：ae:design')
+      expect(text).toContain('制定设计')
+      expect(text).toContain('- **命令**：/ae-design')
       expect(text).toContain('## 关联')
-      expect(text).toContain('**命令** `/ae-plan`')
+      expect(text).toContain('**命令** `/ae-design`')
     })
 
     it('应该格式化代理详情', () => {
@@ -616,26 +616,26 @@ describe('help-catalog-service', () => {
     it('应该格式化命令详情', () => {
       const entry = {
         type: 'command' as const,
-        name: 'ae-plan',
-        description: '制定计划',
+        name: 'ae-design',
+        description: '制定设计',
         properties: [
-          { label: '命令', value: '/ae-plan' },
+          { label: '命令', value: '/ae-design' },
           { label: '分类', value: '基础命令' },
         ],
         related: [
-          { type: 'skill' as const, name: 'ae:plan', description: '制定计划' },
+          { type: 'skill' as const, name: 'ae:design', description: '制定设计' },
         ],
       }
       const text = formatDetailEntry(entry)
-      expect(text).toContain('# 命令：ae-plan')
+      expect(text).toContain('# 命令：ae-design')
       expect(text).toContain('## 关联')
-      expect(text).toContain('**技能** `ae:plan`')
+      expect(text).toContain('**技能** `ae:design`')
     })
 
     it('应该格式化模型路由详情', () => {
       const entry = {
         type: 'modelRoute' as const,
-        name: 'ae-plan',
+        name: 'ae-design',
         description: '内置命令声明 deep 场景',
         properties: [
           { label: '类型', value: '命令' },
@@ -643,15 +643,15 @@ describe('help-catalog-service', () => {
           { label: '应用方式', value: '直接声明' },
         ],
         related: [
-          { type: 'skill' as const, name: 'ae:plan', description: '制定计划' },
+          { type: 'skill' as const, name: 'ae:design', description: '制定设计' },
         ],
       }
       const text = formatDetailEntry(entry)
-      expect(text).toContain('# 模型路由：ae-plan')
+      expect(text).toContain('# 模型路由：ae-design')
       expect(text).toContain('- **类型**：命令')
       expect(text).toContain('- **场景**：deep')
       expect(text).toContain('## 关联')
-      expect(text).toContain('**技能** `ae:plan`')
+      expect(text).toContain('**技能** `ae:design`')
     })
   })
 })

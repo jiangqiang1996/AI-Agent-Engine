@@ -14,7 +14,7 @@ argument-hint: "[target] [mode] [depth] [include=...] [exclude=...]"
 - 重构前需要维护最新关系数据。
 - Git diff 后希望只增量更新变更文件关系。
 - 图谱缺失、scope 不匹配、分片损坏、查询诊断提示需要 `recoverBy` 修复。
-- 在审查、计划、调试、重构或多文件改动前，需要为后续 `ae:graph-query` 提供最新结构快照。
+- 在审查、设计、调试、重构或多文件改动前，需要为后续 `ae:graph-query` 提供最新结构快照。
 
 ## 参数说明
 
@@ -69,4 +69,4 @@ argument-hint: "[target] [mode] [depth] [include=...] [exclude=...]"
 
 - `ae/graphs/graph.json` 存在并包含 active version、manifest、索引和分片。
 - `ae/graphs/index.html` 及 `assets/` 目录存在，可在本地离线打开预览图谱；当前预览资源以已构建 bundle 为准，不要求额外单独的 `cytoscape.min.js` 文件。
-- 后续可使用 `ae:graph-query` 查询图谱，并在项目理解、审查、计划、调试和重构任务中优先引用图谱结果。
+- 后续可使用 `ae:graph-query` 查询图谱，并在项目理解、审查、设计、调试和重构任务中优先引用图谱结果。

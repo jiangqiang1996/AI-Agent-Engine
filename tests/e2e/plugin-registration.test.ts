@@ -34,7 +34,7 @@ describe('插件注册完整性', () => {
       const skillNames = skills!.map((s) => s.name).filter(Boolean)
       expect(skillNames.length).toBeGreaterThan(0)
 
-      const expectedSkills = ['ae:plan', 'ae:work', 'ae:review', 'ae:prd']
+      const expectedSkills = ['ae:design', 'ae:work', 'ae:review', 'ae:prd']
       for (const name of expectedSkills) {
         expect(skillNames).toContain(name)
       }

@@ -116,23 +116,23 @@ describe('ae-task-analyzer 工具', () => {
     })
   })
 
-  describe('mode=plan', () => {
-    it('应该在 plan_path 缺失时返回警告', async () => {
+  describe('mode=design', () => {
+    it('应该在 design_path 缺失时返回警告', async () => {
       const tool = await getTool()
       const result = await tool.execute(
-        { mode: 'plan', worktree },
+        { mode: 'design', worktree },
         createMockContext(),
       )
       const parsed = JSON.parse(result) as { warnings: string[] }
 
       expect(parsed.warnings.length).toBeGreaterThan(0)
-      expect(parsed.warnings[0]).toContain('plan_path')
+      expect(parsed.warnings[0]).toContain('design_path')
     })
 
-    it('应该在计划文件不存在时返回警告', async () => {
+    it('应该在设计文件不存在时返回警告', async () => {
       const tool = await getTool()
       const result = await tool.execute(
-        { mode: 'plan', plan_path: 'nonexistent-plan.md', worktree },
+        { mode: 'design', design_path: 'nonexistent-design.md', worktree },
         createMockContext(),
       )
       const parsed = JSON.parse(result) as { warnings: string[] }
@@ -142,7 +142,7 @@ describe('ae-task-analyzer 工具', () => {
     })
 
     it('应该解析无标题单元并归一化文件路径', async () => {
-      createTestFile('docs/plan-no-title.md', [
+      createTestFile('docs/design-no-title.md', [
         '- [ ] **单元 1：**',
         '  **文件**：',
         '  - `./src/tools/../tools/ae-task-analyzer.tool.ts`',
@@ -152,7 +152,7 @@ describe('ae-task-analyzer 工具', () => {
 
       const tool = await getTool()
       const result = await tool.execute(
-        { mode: 'plan', plan_path: 'docs/plan-no-title.md', worktree },
+        { mode: 'design', design_path: 'docs/design-no-title.md', worktree },
         createMockContext(),
       )
       const parsed = JSON.parse(result) as { units: Array<{ description: string; files: Array<{ path: string }> }> }
@@ -162,10 +162,10 @@ describe('ae-task-analyzer 工具', () => {
       expect(parsed.units[0].files[0].path).toBe('src/tools/ae-task-analyzer.tool.ts')
     })
 
-    it('应该拒绝越出工作区的计划路径', async () => {
+    it('应该拒绝越出工作区的设计路径', async () => {
       const tool = await getTool()
       const result = await tool.execute(
-        { mode: 'plan', plan_path: '../outside-plan.md', worktree },
+        { mode: 'design', design_path: '../outside-design.md', worktree },
         createMockContext(),
       )
       const parsed = JSON.parse(result) as { units: unknown[]; warnings: string[] }
@@ -174,10 +174,10 @@ describe('ae-task-analyzer 工具', () => {
       expect(parsed.warnings[0]).toContain('必须是仓库相对路径')
     })
 
-    it('应该拒绝绝对计划路径', async () => {
+    it('应该拒绝绝对设计路径', async () => {
       const tool = await getTool()
       const result = await tool.execute(
-        { mode: 'plan', plan_path: join(worktree, 'docs/plan-no-title.md'), worktree },
+        { mode: 'design', design_path: join(worktree, 'docs/design-no-title.md'), worktree },
         createMockContext(),
       )
       const parsed = JSON.parse(result) as { units: unknown[]; warnings: string[] }
@@ -186,12 +186,12 @@ describe('ae-task-analyzer 工具', () => {
       expect(parsed.warnings[0]).toContain('必须是仓库相对路径')
     })
 
-    it('应该拒绝跨平台绝对或盘符计划路径', async () => {
+    it('应该拒绝跨平台绝对或盘符设计路径', async () => {
       const tool = await getTool()
 
-      for (const planPath of ['/tmp/plan.md', 'C:secret.md', 'C:\\secret.md', '\\\\server\\share\\plan.md']) {
+      for (const designPath of ['/tmp/design.md', 'C:secret.md', 'C:\\secret.md', '\\\\server\\share\\design.md']) {
         const result = await tool.execute(
-          { mode: 'plan', plan_path: planPath, worktree },
+          { mode: 'design', design_path: designPath, worktree },
           createMockContext(),
         )
         const parsed = JSON.parse(result) as { units: unknown[]; warnings: string[] }
@@ -201,8 +201,8 @@ describe('ae-task-analyzer 工具', () => {
       }
     })
 
-    it('应该忽略计划中的绝对路径和越界文件路径', async () => {
-      createTestFile('docs/plan-invalid-files.md', [
+    it('应该忽略设计中的绝对路径和越界文件路径', async () => {
+      createTestFile('docs/design-invalid-files.md', [
         '- [ ] **单元 1：** 路径校验',
         '  **文件**：',
         '  - `../secret.ts`',
@@ -217,7 +217,7 @@ describe('ae-task-analyzer 工具', () => {
 
       const tool = await getTool()
       const result = await tool.execute(
-        { mode: 'plan', plan_path: 'docs/plan-invalid-files.md', worktree },
+        { mode: 'design', design_path: 'docs/design-invalid-files.md', worktree },
         createMockContext(),
       )
       const parsed = JSON.parse(result) as { units: Array<{ files: Array<{ path: string }> }>; warnings: string[] }
@@ -238,7 +238,7 @@ describe('ae-task-analyzer 工具', () => {
 
       const tool = await getTool()
       const result = await tool.execute(
-        { mode: 'plan', plan_path: 'docs/plan-shared-config.md', worktree },
+        { mode: 'design', design_path: 'docs/plan-shared-config.md', worktree },
         createMockContext(),
       )
       const parsed = JSON.parse(result) as {
@@ -262,8 +262,8 @@ describe('ae-task-analyzer 工具', () => {
       const tool = await getTool()
 
       for (const [fileA, fileB, expectedConflict] of cases) {
-        const planPath = `docs/plan-shared-${expectedConflict.replace(/[^a-z-]/g, '')}.md`
-        createTestFile(planPath, [
+        const designPath = `docs/design-shared-${expectedConflict.replace(/[^a-z-]/g, '')}.md`
+        createTestFile(designPath, [
           '- [ ] **单元 1：** 修改共享资源一',
           '  **文件**：',
           `  - \`${fileA}\``,
@@ -273,7 +273,7 @@ describe('ae-task-analyzer 工具', () => {
         ].join('\n'))
 
         const result = await tool.execute(
-          { mode: 'plan', plan_path: planPath, worktree },
+          { mode: 'design', design_path: designPath, worktree },
           createMockContext(),
         )
         const parsed = JSON.parse(result) as { conflict_matrix: Array<{ shared_files: string[] }> }
@@ -299,8 +299,8 @@ describe('ae-task-analyzer 工具', () => {
       }
     })
 
-    it('应该在 plan 模式成功和错误路径都保持输出字段完整', async () => {
-      createTestFile('docs/plan-output-contract.md', [
+    it('应该在 design 模式成功和错误路径都保持输出字段完整', async () => {
+      createTestFile('docs/design-output-contract.md', [
         '- [ ] **单元 1：** 输出契约',
         '  **文件**：',
         '  - `src/tools/ae-task-analyzer.tool.ts`',
@@ -308,8 +308,8 @@ describe('ae-task-analyzer 工具', () => {
 
       const tool = await getTool()
       const results = await Promise.all([
-        tool.execute({ mode: 'plan', plan_path: 'docs/plan-output-contract.md', worktree }, createMockContext()),
-        tool.execute({ mode: 'plan', plan_path: '../outside-plan.md', worktree }, createMockContext()),
+        tool.execute({ mode: 'design', design_path: 'docs/design-output-contract.md', worktree }, createMockContext()),
+        tool.execute({ mode: 'design', design_path: '../outside-design.md', worktree }, createMockContext()),
       ])
 
       for (const result of results) {

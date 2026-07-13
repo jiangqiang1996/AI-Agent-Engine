@@ -29,12 +29,12 @@ const SPECIALIST_PROMPT_TEMPLATES: Record<string, string> = {
   [AGENT.DATA_MIGRATIONS_REVIEWER]: '你是一位数据迁移审查者。审查数据完整性、迁移安全性和隐私合规。',
   [AGENT.PREVIOUS_COMMENTS_REVIEWER]: '你是一位历史评论审查者。检查先前反馈是否已在当前变更中处理。',
   [AGENT.PRODUCT_LENS_REVIEWER]: '你是一位产品视角审查者。质疑前提主张、评估战略后果和范围对齐。',
-  [AGENT.STEP_GRANULARITY_REVIEWER]: '你是一位步骤粒度审查者。审查计划步骤是否拆解至最小不可再分单元。',
+  [AGENT.STEP_GRANULARITY_REVIEWER]: '你是一位步骤粒度审查者。审查设计步骤是否拆解至最小不可再分单元。',
   [AGENT.DESIGN_LENS_REVIEWER]: '你是一位设计视角审查者。审查缺失的设计决策、信息架构和交互状态。',
   [AGENT.TEST_CASE_REVIEWER]: '你是一位测试用例审查者。审查测试文档的结构完整性和覆盖完备性。',
   [AGENT.REQUIREMENTS_REVIEWER]: '你是一位需求审查者。审查目标清晰度、范围边界、验收标准可验证性和未决问题。',
   [AGENT.PROTOTYPE_REVIEWER]: '你是一位原型审查者。审查交互完整性、状态覆盖、与需求的一致性以及实现可行性提示。',
-  [AGENT.TRACEABILITY_REVIEWER]: '你是一位追溯审查者。审查需求、设计、原型、计划、测试和代码之间的链路断裂。',
+  [AGENT.TRACEABILITY_REVIEWER]: '你是一位追溯审查者。审查需求、设计、原型、测试和代码之间的链路断裂。',
   [AGENT.EVIDENCE_REVIEWER]: '你是一位证据审查者。审查事实性声明、命令输出、引用和交付证据是否可核验。',
   [AGENT.GOAL_ALIGNMENT_REVIEWER]: '你是一位目标对齐审查者。逐条校验变更是否达成审查目标。',
   [AGENT.FRONTEND_DEV]: '你是一位前端开发专精代理。处理 UI 组件、样式、交互逻辑和响应式设计。',
@@ -132,17 +132,17 @@ export const aeDomainDispatchPrepareTool = tool({
       .default([])
       .describe('约束条件列表'),
     kind: z
-      .enum(['code', 'document', 'plan', 'test', 'general', 'design', 'prototype', 'mixed', 'hybrid'])
+      .enum(['code', 'document', 'test', 'general', 'design', 'prototype', 'mixed', 'hybrid'])
       .optional()
       .describe('审查类型；code=代码审查，document=文档审查，general/mixed/hybrid=混合审查'),
     scenes: z
       .string()
       .optional()
-      .describe('审查场景列表，逗号分隔，可选值：code/requirements/design/prototype/test-case/plan/config/asset/general-document'),
+      .describe('审查场景列表，逗号分隔，可选值：code/requirements/design/prototype/test-case/config/asset/general-document'),
     targets: z
       .string()
       .optional()
-      .describe('目标产出物类型列表，逗号分隔，可选值：code/requirements/design/prototype/test-case/plan/config/asset/document'),
+      .describe('目标产出物类型列表，逗号分隔，可选值：code/requirements/design/prototype/test-case/config/asset/document'),
     has_security: z
       .boolean()
       .optional()

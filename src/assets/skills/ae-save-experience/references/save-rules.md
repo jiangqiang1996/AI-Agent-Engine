@@ -17,7 +17,7 @@ rules 分支由 `ae:save-experience` 统一执行：识别候选规范、读取�
 
 ## 历史交叉验证
 
-从本次会话证据、相关 plan/review/gate 产物和 `ae/solutions/` 中提取支持该规则的摘要。没有可引用证据时，不得把规则写成强制要求，只能保存为待验证 solution 或放弃写入。
+从本次会话证据、相关 design/review/gate 产物和 `ae/solutions/` 中提取支持该规则的摘要。没有可引用证据时，不得把规则写成强制要求，只能保存为待验证 solution 或放弃写入。
 
 ## 冲突处理
 

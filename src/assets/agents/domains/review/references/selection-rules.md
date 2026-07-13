@@ -32,14 +32,14 @@
 | security-reviewer | both | hasSecurity=true |
 | adversarial-reviewer | both | 变更>=50行 OR hasSecurity OR hasApi OR 需求>=5 OR hasArchitectureDecision OR isHighRiskDomain OR hasNewAbstraction |
 | agent-native-reviewer | code | hasCli OR hasUi OR hasTooling OR hasAgentConfig |
-| architecture-strategist | both | (code + hasArchitectureDecision) OR (code + hasNewAbstraction) OR (code + 变更>=50行) OR (document + plan + hasArchitectureDecision) |
+| architecture-strategist | both | (code + hasArchitectureDecision) OR (code + hasNewAbstraction) OR (code + 变更>=50行) OR (document + design + hasArchitectureDecision) |
 | performance-reviewer | code | hasPerformance=true |
 | api-contract-reviewer | code | hasApi=true |
 | reliability-reviewer | code | hasReliability OR hasInfra |
 | data-migrations-reviewer | code | hasMigrations OR hasDatabase |
 | previous-comments-reviewer | code | hasPrMetadata=true |
-| product-lens-reviewer | document | documentType=plan OR 需求>=5 OR hasProductClaim |
-| step-granularity-reviewer | document | documentType=plan OR targetTypes 包含 plan OR reviewScenes 包含 plan OR 需求>=5 |
+| product-lens-reviewer | document | documentType=design OR 需求>=5 OR hasProductClaim |
+| step-granularity-reviewer | document | documentType=design OR targetTypes 包含 design OR reviewScenes 包含 design OR 需求>=5 |
 | design-lens-reviewer | document | hasUi=true |
 | test-case-reviewer | document | documentType=test |
 | requirements-reviewer | document | documentType=requirements OR targetTypes 包含 requirements OR reviewScenes 包含 requirements |

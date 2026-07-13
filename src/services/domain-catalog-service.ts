@@ -79,7 +79,7 @@ const REVIEW_SPECIALISTS: SpecialistDef[] = [
   {
     name: AGENT.ARCHITECTURE_STRATEGIST,
     capabilities: ['架构分析', '架构边界', '跨模块依赖', '系统级抽象'],
-    selectionCriteria: '代码变更涉及架构决策/新抽象/>=50行，或文档为含架构决策的计划时选中',
+    selectionCriteria: '代码变更涉及架构决策/新抽象/>=50行，或文档为含架构决策的设计时选中',
     inputContract: '代码差异或文档内容和架构标记',
     outputContract: '架构边界、跨模块依赖和系统级抽象评估',
   },
@@ -121,14 +121,14 @@ const REVIEW_SPECIALISTS: SpecialistDef[] = [
   {
     name: AGENT.PRODUCT_LENS_REVIEWER,
     capabilities: ['战略主张', '范围对齐', '复杂度评估', '机会成本'],
-    selectionCriteria: '文档为计划、需求>=5 或含产品主张时选中',
+    selectionCriteria: '文档为设计、需求>=5 或含产品主张时选中',
     inputContract: '文档内容和需求列表',
     outputContract: '产品视角评估和范围对齐建议',
   },
   {
     name: AGENT.STEP_GRANULARITY_REVIEWER,
     capabilities: ['步骤粒度', '批量操作', '脚本化执行'],
-    selectionCriteria: '文档为计划、目标类型包含计划、审查场景包含计划，或需求>=5 时选中',
+    selectionCriteria: '文档为设计、目标类型包含设计、审查场景包含设计，或需求>=5 时选中',
     inputContract: '文档内容和步骤列表',
     outputContract: '步骤粒度评估和脚本化建议',
   },
@@ -164,7 +164,7 @@ const REVIEW_SPECIALISTS: SpecialistDef[] = [
     name: AGENT.TRACEABILITY_REVIEWER,
     capabilities: ['需求-设计-实现-测试追溯', '断裂引用', '孤儿条目', '未声明延期'],
     selectionCriteria: '混合产出物 (hasMixedTargets=true) 或 kind=general 时选中',
-    inputContract: '多类型产出物（需求/设计/原型/计划/测试用例/代码）的链路引用',
+    inputContract: '多类型产出物（需求/设计/原型/测试用例/代码）的链路引用',
     outputContract: '追溯链断裂、孤儿条目、版本不一致发现',
   },
   {

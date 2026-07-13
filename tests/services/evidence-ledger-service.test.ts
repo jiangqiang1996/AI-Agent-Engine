@@ -53,7 +53,7 @@ function createRecordInput(id = 'validation-1'): Parameters<typeof writeEvidence
     scope: {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'ae/plans/test-plan.md',
+      designPath: 'ae/designs/test-design.md',
       files: [],
       intent: 'typecheck',
     },

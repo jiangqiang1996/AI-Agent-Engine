@@ -11,11 +11,10 @@ interface Invariant {
 
 const INVARIANTS: Invariant[] = [
   {
-    file: 'src/assets/skills/ae-plan/references/plan-handoff.md',
-    label: 'ae:plan 管道边界',
+    file: 'src/assets/skills/ae-design/references/design-output-template.md',
+    label: 'ae:design 管道边界',
     mustContain: [
-      '不得在当前 `ae:plan` 流程中自动调用 `ae:work`',
-      '只呈现下一步选项，不自动执行任何后续技能',
+      '无论文件大小，每个维度必须拆分为独立子文件',
     ],
     mustNotContain: ['根据选择路由'],
   },
@@ -38,7 +37,7 @@ const INVARIANTS: Invariant[] = [
       '不得声称已复制',
       '不修改 B 中代码、测试或其他项目文件',
       '不迁移 gate/review 运行时产物',
-      '未迁移的需求/计划/设计、图谱或 AE 项目配置产物不在交接文件中出现',
+      '未迁移的需求/设计、图谱或 AE 项目配置产物不在交接文件中出现',
     ],
     mustNotContain: [],
   },

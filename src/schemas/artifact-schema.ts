@@ -7,8 +7,6 @@ import { z } from 'zod'
 export const ARTIFACT_KIND = {
   PRD: 'prd',
   PRD_SHARD: 'prd-shard',
-  PLAN: 'plan',
-  PLAN_SHARD: 'plan-shard',
   DESIGN: 'design',
   DESIGN_SHARD: 'design-shard',
   WORK: 'work',
@@ -22,8 +20,6 @@ export const ArtifactTypeSchema = z
   .enum([
     ARTIFACT_KIND.PRD,
     ARTIFACT_KIND.PRD_SHARD,
-    ARTIFACT_KIND.PLAN,
-    ARTIFACT_KIND.PLAN_SHARD,
     ARTIFACT_KIND.DESIGN,
     ARTIFACT_KIND.DESIGN_SHARD,
     ARTIFACT_KIND.WORK,
@@ -33,7 +29,7 @@ export const ArtifactTypeSchema = z
 
 export const TOP_LEVEL_ARTIFACT_KINDS = [
   ARTIFACT_KIND.PRD,
-  ARTIFACT_KIND.PLAN,
+  ARTIFACT_KIND.DESIGN,
   ARTIFACT_KIND.WORK,
   ARTIFACT_KIND.REVIEW,
 ] as const
@@ -41,7 +37,6 @@ export const TOP_LEVEL_ARTIFACT_KINDS = [
 export function isShardArtifactKind(value: string): boolean {
   return [
     ARTIFACT_KIND.PRD_SHARD,
-    ARTIFACT_KIND.PLAN_SHARD,
     ARTIFACT_KIND.DESIGN_SHARD,
   ].includes(
     value as typeof ARTIFACT_KIND.PRD_SHARD,
@@ -56,7 +51,6 @@ export const ArtifactStatusSchema = z
   .describe('产物状态')
 
 const REQUIREMENTS_ALLOWED_STATUSES = ['drafted', 'review-passed', 'completed'] as const
-const PLAN_ALLOWED_STATUSES = ['drafted', 'active', 'completed'] as const
 
 function isRepositoryRelativePath(value: string): boolean {
   return !(/^[a-zA-Z]:[\\/]|^\\\\|^\//.test(value) || value.split(/[\\/]+/).includes('..'))
@@ -75,7 +69,7 @@ export const ArtifactFrontmatterSchema = z.object({
   date: z.string().optional().describe('ISO 日期'),
   topic: z.string().optional().describe('主题'),
   title: z.string().optional().describe('标题'),
-  depth: z.enum(['standard', 'deep']).optional().describe('计划深度'),
+  depth: z.enum(['standard', 'deep']).optional().describe('设计深度'),
   format: z.string().optional().describe('文档格式'),
   version: z.string().optional().describe('文档格式版本'),
   sharded: z.boolean().optional().describe('是否为分片主文件'),
@@ -106,10 +100,10 @@ export const ArtifactFrontmatterSchema = z.object({
       path: ['supersededBy'],
     })
   }
-  if (data.type !== 'plan' && data.depth) {
+  if (data.type !== 'design' && data.depth) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'depth 仅允许用于 plan 类型',
+      message: 'depth 仅允许用于 design 类型',
       path: ['depth'],
     })
   }
@@ -144,29 +138,6 @@ export const ArtifactFrontmatterSchema = z.object({
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: `prd 的 status 必须为 ${REQUIREMENTS_ALLOWED_STATUSES.join(' | ')}`,
-        path: ['status'],
-      })
-    }
-  }
-  if (data.type === 'plan') {
-    if (!data.date) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'plan 类型必须有 date 字段',
-        path: ['date'],
-      })
-    }
-    if (!data.title) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'plan 类型必须有 title 字段',
-        path: ['title'],
-      })
-    }
-    if (!PLAN_ALLOWED_STATUSES.includes(data.status as typeof PLAN_ALLOWED_STATUSES[number])) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: `plan 的 status 必须为 ${PLAN_ALLOWED_STATUSES.join(' | ')}`,
         path: ['status'],
       })
     }

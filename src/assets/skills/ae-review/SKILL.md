@@ -1,12 +1,12 @@
 ---
 name: ae:review
-description: "通用审查入口。默认自动识别审查场景，支持单一类型（代码、需求、设计、原型、计划、配置、技能、命令、测试用例等）以及多类型混合范围；按场景与目标类型组合专一审查者，分层并行执行。"
-argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [full] [full=<path>] [session] [plan=<path>] [goals=<text>] [路径...]"
+description: "通用审查入口。默认自动识别审查场景，支持单一类型（代码、需求、设计、原型、配置、技能、命令、测试用例等）以及多类型混合范围；按场景与目标类型组合专一审查者，分层并行执行。"
+argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [full] [full=<path>] [session] [design=<path>] [goals=<text>] [路径...]"
 ---
 
 # 通用审查（编排层）
 
-审查回答**质量如何（HOW WELL）**——代码是否正确、安全、可维护；需求/设计/原型/计划/测试用例/配置/资产是否一致、可行、可追溯、可验证。
+审查回答**质量如何（HOW WELL）**——代码是否正确、安全、可维护；需求/设计/原型/测试用例/配置/资产是否一致、可行、可追溯、可验证。
 
 此技能是 AE 通用核心流程的审查入口。
 
@@ -24,8 +24,8 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 2. **只读操作** — 审查子代理不得编辑项目文件或变更仓库状态。仅 `auto` 修复在综合阶段由编排器应用。
 3. **意图驱动** — 代码域每个发现必须对照意图摘要判断相关性。与意图无关的预存问题标记 `pre_existing: true`，不计入审查结论。
 4. **证据必须基于实际内容** — 每个发现至少包含一项来自实际代码/文档的证据。无证据的泛泛建议必须抑制。
-5. **排除规则不可绕过** — 敏感文件和 `.opencode/` 始终排除。需求/计划文档默认排除，仅在满足"明确指定"条件时纳入。
-6. **auto vs present 的判断标准是可推断确定性** — 判断标准不是"这个修复重要吗？"，而是"能否根据已知内容推断出唯一最小修复"。可由同一文档、同一计划、项目既有规范、稳定模板或明确用户意图推断出的修复 → `auto`；需要选择目标、范围、取舍或新增立场 → `gated`/`manual`。
+5. **排除规则不可绕过** — 敏感文件和 `.opencode/` 始终排除。需求/设计文档默认排除，仅在满足"明确指定"条件时纳入。
+6. **auto vs present 的判断标准是可推断确定性** — 判断标准不是"这个修复重要吗？"，而是"能否根据已知内容推断出唯一最小修复"。可由同一文档、同一设计、项目既有规范、稳定模板或明确用户意图推断出的修复 → `auto`；需要选择目标、范围、取舍或新增立场 → `gated`/`manual`。
 7. **无法推断时提出补全建议** — `gated`/`manual` 发现不得只停留在问题报告；必须给出可选建议和一个面向用户的补全问题。交互模式下先询问用户，得到明确选择后再修复；自动修复模式只记录问题和建议，不替用户决策；无头模式按审查者推荐方向修复所有带 `suggested_fix` 且不触发安全边界的发现。
 8. **域协同而非互斥** — `domain` 仅描述审查对象域：`code`、`document` 或 `general`（混合）。`general` 表示同一次审查覆盖多种产出物类型，由编排层按 `targetTypes` 与 `reviewScenes` 分别选择对应专一审查者并合并发现，但不得让任何一个审查者跨域包办；每种识别出的目标类型至少有一个专一审查者被调度，否则必须显式记录"未覆盖原因"。
 9. **图谱新鲜度门控** — 使用 `ae:graph-query` 确定范围或影响面时必须读取 `freshness`；`freshness.status` 不是 `fresh` 时，图谱结果只能辅助定位，不得作为无影响、无依赖、完整覆盖或无需审查的结论证据；需要这类高影响结论时必须刷新图谱，或用真实文件、源码搜索、Git 状态和验证命令补证。
@@ -48,14 +48,13 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 
 **全域默认排除（域安全需求 R4-R5）：**
 - `ae/prds/` 下的文件
-- `ae/plans/` 下的文件
 - `ae/designs/` 下的文件
 
 **"明确指定"条件——满足任一则纳入：**
 1. 用户传入的文件路径指向这些目录下的文件
-2. 对话中明确提到"审查需求文档"、"审查计划文档"或"审查设计文档"等语义等价表达
+2. 对话中明确提到"审查需求文档"或"审查设计文档"等语义等价表达
 3. `domain=document` 模式下确定性搜索机制（阶段 1）找到了文档——搜索成功等同于明确指定
-4. `domain=general` 模式下用户提供的混合范围中显式包含 `ae/prds/`、`ae/plans/` 或 `ae/designs/` 路径——纳入对应目标类型的审查者
+4. `domain=general` 模式下用户提供的混合范围中显式包含 `ae/prds/` 或 `ae/designs/` 路径——纳入对应目标类型的审查者
 
 ## 四阶段编排协议
 
@@ -78,15 +77,15 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 
    ❌ 否定示例：`审查 headless 模式的文档` 中的 headless 不推断为 mode
 
-3. 顺序兜底：仅 mode 和 domain 参与推断，其余参数（from/recent/plan/goals/scenes/targets）必须显式命名
+3. 顺序兜底：仅 mode 和 domain 参与推断，其余参数（from/recent/design/goals/scenes/targets）必须显式命名
 
 | 标记 | 效果 |
 |------|------|
 | `domain=code` | 强制代码域审查 |
 | `domain=document` | 强制文档域审查 |
 | `domain=general` | 强制混合范围审查（多类型协同）；省略 `domain` 时由编排层根据范围自动识别 |
-| `scenes=<list>` / `reviewScenes=<list>` | 显式覆盖审查场景，逗号分隔，可选值：`code`、`requirements`、`design`、`prototype`、`test-case`、`plan`、`config`、`asset`、`general-document` |
-| `targets=<list>` / `targetTypes=<list>` | 显式覆盖目标产出物类型，逗号分隔，可选值：`code`、`requirements`、`design`、`prototype`、`test-case`、`plan`、`config`、`asset`、`document` |
+| `scenes=<list>` / `reviewScenes=<list>` | 显式覆盖审查场景，逗号分隔，可选值：`code`、`requirements`、`design`、`prototype`、`test-case`、`config`、`asset`、`general-document` |
+| `targets=<list>` / `targetTypes=<list>` | 显式覆盖目标产出物类型，逗号分隔，可选值：`code`、`requirements`、`design`、`prototype`、`test-case`、`config`、`asset`、`document` |
 | `mode=autofix` | 自动修复模式 |
 | `mode=report-only` | 只读模式 |
 | `mode=headless` | 无头模式（程序调用） |
@@ -95,7 +94,7 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 | `full` | 审查项目中所有文件（不依赖 Git） |
 | `full=<path>` | 审查指定路径下的所有文件（不依赖 Git） |
 | `session` | 审查本次会话中变更的文件 |
-| `plan=<path>` | 加载计划用于需求验证 |
+| `design=<path>` | 加载设计用于需求验证 |
 | `goals=<text>` | 传入审查目标（成功条件列表），激活 goal-alignment-reviewer 逐条校验变更是否达成目标 |
 
 **内部调用约定**：当本技能被其他技能自动调用时，所有参数必须使用显式命名格式（如 `mode=autofix domain=document`），不依赖值特征推断。
@@ -110,9 +109,9 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 
 未显式指定 `domain` 时，按以下顺序识别：
 
-1. 若用户传入路径仅包含 `ae/prds/`、`ae/plans/` 或其他 `.md` 文档 → `domain=document`。
+1. 若用户传入路径仅包含 `ae/prds/`、`ae/designs/` 或其他 `.md` 文档 → `domain=document`。
 2. 若范围仅含代码、配置、脚本或基础设施文件，且不含上述文档类型 → `domain=code`。
-3. 若同一次范围内既包含代码/配置/资产，又包含需求、计划、设计、原型或测试用例文档 → `domain=general`。
+3. 若同一次范围内既包含代码/配置/资产，又包含需求、设计、原型或测试用例文档 → `domain=general`。
 4. 自动识别失败或证据不足时回退到 `domain=code`，并在交互模式下提示用户确认。
 
 代码域范围确定：
@@ -125,7 +124,7 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 文档域范围确定：
 
 - 指定文档路径 → 使用指定路径
-- 未指定路径 + 交互模式 → 搜索 `ae/prds/` 和 `ae/plans/` 中最近修改的文件
+- 未指定路径 + 交互模式 → 搜索 `ae/prds/` 和 `ae/designs/` 中最近修改的文件
 - 未指定路径 + 无头模式 → 输出错误，立即终止
 
 通用域（`domain=general`）范围确定：
@@ -133,8 +132,7 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 - 必须显式提供路径或显式范围标记（`from=`、`recent=`、`full`、`full=<path>`、`session`），不进行无路径的盲扫
 - 路径列表按文件特征分桶为不同 `targetTypes` 与 `reviewScenes`：
   - `ae/prds/**`、`requirements`、`prd` 命名 → `requirements`
-  - `ae/plans/**`、`plan` 命名 → `plan`
-  - `ae/designs/**`、`design`、`spec` 命名或 frontmatter `type: design` → `design`
+  - `ae/designs/**`、`design`、`plan`、`spec` 命名或 frontmatter `type: design` → `design`
   - `prototype`、`mock` 命名 → `prototype`
   - `tests/**`、`test-case`、frontmatter `type: test` → `test-case`
   - `*.json(c)`、`*.yaml`、`*.toml`、`.env.example`、`.env.template` → `config`；`.opencode/` 与真实 `.env*` 仍按排除规则处理
@@ -147,8 +145,8 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 
 #### 意图发现
 
-- 代码域：结合对话上下文编写 2-3 行意图摘要；检查 `plan=` 参数或自动发现最近计划；`goals=` 参数内容作为审查目标注入子代理上下文
-- 文档域：通过分析文档内容判断类型（requirements/plan/test/general）；`goals=` 参数内容作为审查目标注入子代理上下文
+- 代码域：结合对话上下文编写 2-3 行意图摘要；检查 `design=` 参数或自动发现最近设计；`goals=` 参数内容作为审查目标注入子代理上下文
+- 文档域：通过分析文档内容判断类型（requirements/design/test/general）；`goals=` 参数内容作为审查目标注入子代理上下文
 - 通用域（`domain=general`）：分别为每种识别出的目标类型生成意图摘要；调度阶段按 `reviewScenes` 与 `targetTypes` 分别选择审查者，最终在汇总阶段统一聚合发现并按目标类型声明覆盖
 
 #### design 契约检测
@@ -157,7 +155,7 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 
 **检测规则：**
 - 检查 `ae/designs/` 下是否存在与当前审查范围匹配的 design 目录
-- 匹配条件：审查范围包含实现代码且 `ae/designs/` 下存在 design 目录（按计划路径、需求描述名或时间戳匹配）
+- 匹配条件：审查范围包含实现代码且 `ae/designs/` 下存在 design 目录（按设计路径、需求描述名或时间戳匹配）
 - 审查范围本身就是 `ae/designs/**` 下的 design 文档时，`hasDesignContract=true`（审查 design 文档本身）
 
 **flag 传入：** 当 `hasDesignContract=true` 时，在调用 `ae-review-contract` 工具或 `ae-domain-dispatch-prepare` 时传入 `has_design_contract=true`，激活以下一致性审查者：
@@ -176,8 +174,8 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
   stage: 'entry',
   intent: '审查意图标签',
   domain: 'code' | 'document' | 'general',
-  reviewScenes?: Array<'code' | 'requirements' | 'design' | 'prototype' | 'test-case' | 'plan' | 'config' | 'asset' | 'general-document'>,
-  targetTypes?: Array<'code' | 'requirements' | 'design' | 'prototype' | 'test-case' | 'plan' | 'config' | 'asset' | 'document'>,
+  reviewScenes?: Array<'code' | 'requirements' | 'design' | 'prototype' | 'test-case' | 'config' | 'asset' | 'general-document'>,
+  targetTypes?: Array<'code' | 'requirements' | 'design' | 'prototype' | 'test-case' | 'config' | 'asset' | 'document'>,
   constraints: ['排除规则', '模式约束'],
   rawInput: '原始参数',
   timestamp: 'ISO 时间戳'
@@ -268,7 +266,7 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 | 变量 | 值 |
 |------|-----|
 | `{domain}` | `document` |
-| `{document_type}` | requirements/plan/test/general |
+| `{document_type}` | requirements/design/test/general |
 | `{document_path}` | 文档路径 |
 | `{document_content}` | 完整文本或分片上下文 |
 | `{success_criteria}` | `goals:` 参数提供的审查目标文本，无 `goals:` 时为空 |
@@ -279,7 +277,7 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 | 变量 | 值 |
 |------|-----|
 | `{domain}` | `general` |
-| `{review_scene}` | 当前专精所属审查场景：code/requirements/design/prototype/test-case/plan/config/asset/general-document |
+| `{review_scene}` | 当前专精所属审查场景：code/requirements/design/prototype/test-case/config/asset/general-document |
 | `{target_type}` | 当前专精负责的目标产出物类型 |
 | `{intent_summary}` | 该目标类型对应的意图摘要 |
 | `{file_list}` | 该目标类型对应的文件列表 |

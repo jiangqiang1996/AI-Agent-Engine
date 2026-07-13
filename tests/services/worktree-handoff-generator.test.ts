@@ -37,9 +37,8 @@ function validInput(overrides?: Partial<WorktreeHandoffInput>): WorktreeHandoffI
     covered_command_args: 'git worktree add ../worktrees/feat-xyz -b feat/xyz HEAD',
     final_command_args: 'git worktree add "../worktrees/feat-xyz" -b "feat/xyz" HEAD',
     creation_result: 'Git worktree 创建成功',
-    plan_path: 'ae/plans/test-plan.md',
     requirements_path: 'ae/prds/test-req.md',
-    design_borne_by_plan: true,
+    design_path: 'ae/designs/test/design.md',
     execution_baseline: '必须从阶段 1 继续执行',
     verification_requirements: '交付前运行 Vitest 和 typecheck',
     ...overrides,
@@ -109,43 +108,30 @@ describe('worktree-handoff-generator', () => {
     it('无需求文档时不应在交接文件中提及需求文件', () => {
       const result = generateHandoffMarkdown(validInput({
         requirements_path: undefined,
-        design_borne_by_plan: false,
       }))
       expect('error' in result).toBe(false)
       if ('error' in result) return
 
       expect(result.markdown).not.toContain('- requirements:')
       expect(result.markdown).not.toContain('  - requirements:')
-      expect(result.markdown).toContain('- plan:')
-      expect(result.markdown).toContain('计划文档是本次执行的实现基线')
+      expect(result.markdown).toContain('- design:')
+      expect(result.markdown).toContain('设计文档是本次执行的实现基线')
     })
 
-    it('plan_path 为空时应报错', () => {
-      const result = generateHandoffMarkdown(validInput({ plan_path: '' }))
+    it('design_path 为空时应报错', () => {
+      const result = generateHandoffMarkdown(validInput({ design_path: '', task_brief: undefined }))
       expect('error' in result).toBe(true)
       if ('error' in result) {
-        expect(result.error).toContain('plan_path')
+        expect(result.error).toContain('design_path')
       }
     })
 
-    it('plan_path 为空白时应报错', () => {
-      const result = generateHandoffMarkdown(validInput({ plan_path: '   ' }))
+    it('design_path 为空白时应报错', () => {
+      const result = generateHandoffMarkdown(validInput({ design_path: '   ' }))
       expect('error' in result).toBe(true)
       if ('error' in result) {
-        expect(result.error).toContain('plan_path')
+        expect(result.error).toContain('design_path')
       }
-    })
-
-    it('design_borne_by_plan=true 且有 plan_path 时应提及设计由计划承载', () => {
-      const result = generateHandoffMarkdown(validInput({
-        design_borne_by_plan: true,
-      }))
-      expect('error' in result).toBe(false)
-      if ('error' in result) return
-
-      expect(result.markdown).toContain('由计划文档承载')
-      expect(result.markdown).toContain('- plan:')
-      expect(result.markdown).not.toContain('本交接文件是本次续执行的唯一必需输入')
     })
 
     it('source_worktree 为空时应报错', () => {
@@ -166,21 +152,6 @@ describe('worktree-handoff-generator', () => {
     it('verification_requirements 为空白时应报错', () => {
       const result = generateHandoffMarkdown(validInput({ verification_requirements: ' ' }))
       expect('error' in result).toBe(true)
-    })
-
-    it('design_borne_by_plan=true 时应在 Migrated Artifacts 中体现', () => {
-      const result = generateHandoffMarkdown(validInput({ design_borne_by_plan: true }))
-      if ('error' in result) return
-      expect(result.markdown).toContain('由计划文档承载')
-    })
-
-    it('design_borne_by_plan=false 且有 design_path 时应在 Migrated Artifacts 中体现', () => {
-      const result = generateHandoffMarkdown(validInput({
-        design_borne_by_plan: false,
-        design_path: 'ae/designs/test-design.md',
-      }))
-      if ('error' in result) return
-      expect(result.markdown).toContain('ae/designs/test-design.md')
     })
 
     it('有图谱和 AE 配置路径时应在迁移产物中体现', () => {

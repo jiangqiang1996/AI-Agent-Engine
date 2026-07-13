@@ -42,9 +42,6 @@ const WorktreeHandoffInputSchema = z.object({
   creation_result: z
     .string()
     .describe('worktree 创建结果描述'),
-  plan_path: z
-    .string()
-    .describe('计划文档相对路径，例如 ae/plans/xxx-plan.md。worktree 交接必须携带计划文件路径；无上游 ae:plan 产物时，A 会话必须在交接前生成上下文派生计划文件并迁移到 B worktree。'),
   requirements_path: z
     .string()
     .optional()
@@ -52,7 +49,7 @@ const WorktreeHandoffInputSchema = z.object({
   design_path: z
     .string()
     .optional()
-    .describe('设计文档相对路径。A 端条件必选：上游设计产物真实存在时必须迁移并传入（即使被 .gitignore 忽略也按物理存在迁移）；设计由计划承载时置 design_borne_by_plan=true 而非传本字段；不存在时不传'),
+    .describe('设计文档相对路径，例如 ae/designs/xxx/design.md。A 端条件必选：上游设计产物真实存在时必须迁移并传入（即使被 .gitignore 忽略也按物理存在迁移）；不存在时可不传，但此时必须传 task_brief'),
   graph_path: z
     .string()
     .optional()
@@ -61,9 +58,10 @@ const WorktreeHandoffInputSchema = z.object({
     .string()
     .optional()
     .describe('AE 项目配置相对路径。A 端条件必选：.opencode/ae.jsonc 真实存在时必须迁移并传入（即使被 .gitignore 忽略也按物理存在迁移）；不存在时不传'),
-  design_borne_by_plan: z
-    .boolean()
-    .describe('设计是否由计划文档承载'),
+  task_brief: z
+    .string()
+    .optional()
+    .describe('任务详情。无 design_path 时必填：将任务详情（目标、范围、约束、已确定决策、实现要求）直接写入交接文件，确保 B worktree 无需读取 A worktree 任何文件即可执行。有 design_path 时可不传'),
   execution_baseline: z
     .string()
     .describe('执行基线声明，描述进入 B 后必须遵守的基线约束，例如"必须从 ae:work 阶段 1 的任务分析继续执行"'),
@@ -81,9 +79,9 @@ export const aeWorktreeHandoffTool: ToolDefinition = tool({
     '- 交接文件采用结构化章节和 resume_entrypoint 作为真源',
     '- 返回简短交接提示，供 A 会话最后回复使用',
     '- A→B Startup Proof 按固定 schema 逐字段输出，不允许遗漏',
-    '- 需求、设计、图谱和 AE 项目配置路径在 A 端是条件必选：当上游产物或物理文件真实存在时必须迁移并传入；不存在时不传。B 端缺失时降级为可选上下文，不阻断继续执行（plan_path 除外，缺失时硬阻断）',
-    '- plan_path 是必填字段；worktree 交接必须携带计划文件路径',
-    '- 无上游 ae:plan 产物时，A 会话必须在交接前生成上下文派生计划文件：采用 ae:plan 格式（正文结构详见 startup-and-worktree-workflow.md 的上下文派生计划生成章节），内容从当前会话的工作状态、已确定决策和剩余待办推导，不触发 ae:plan 技能本身，写入 ae/plans/ 目录并迁移到 B worktree 后传入本工具',
+    '- 需求、设计、图谱和 AE 项目配置路径在 A 端是条件必选：当上游产物或物理文件真实存在时必须迁移并传入；不存在时不传。B 端缺失时降级为可选上下文，不阻断继续执行',
+    '- design_path 和 task_brief 至少传入一个：有设计文档时传 design_path 并迁移到 B worktree；无设计文档时必须通过 task_brief 将任务详情写入交接文件，确保 B worktree 无需读取 A worktree 任何文件即可执行',
+    '- 产物独立性约束：ae:prd 和 ae:design 的产物不得引用之前的产物文件（如当前 prd 禁止引用上一个需求或设计的产物路径）；交接文件中只迁移当前任务的直接上游产物，不迁移历史产物',
     '- source_session_id=unavailable 时强制要求 session_evidence',
     '- 自动创建目标目录并写入文件',
     '',
@@ -107,12 +105,11 @@ export const aeWorktreeHandoffTool: ToolDefinition = tool({
     covered_command_args: WorktreeHandoffInputSchema.shape.covered_command_args,
     final_command_args: WorktreeHandoffInputSchema.shape.final_command_args,
     creation_result: WorktreeHandoffInputSchema.shape.creation_result,
-    plan_path: WorktreeHandoffInputSchema.shape.plan_path,
     requirements_path: WorktreeHandoffInputSchema.shape.requirements_path,
     design_path: WorktreeHandoffInputSchema.shape.design_path,
     graph_path: WorktreeHandoffInputSchema.shape.graph_path,
     ae_config_path: WorktreeHandoffInputSchema.shape.ae_config_path,
-    design_borne_by_plan: WorktreeHandoffInputSchema.shape.design_borne_by_plan,
+    task_brief: WorktreeHandoffInputSchema.shape.task_brief,
     execution_baseline: WorktreeHandoffInputSchema.shape.execution_baseline,
     verification_requirements: WorktreeHandoffInputSchema.shape.verification_requirements,
   },
@@ -129,8 +126,6 @@ export const aeWorktreeHandoffTool: ToolDefinition = tool({
       covered_command_args: args.covered_command_args,
       final_command_args: args.final_command_args,
       creation_result: args.creation_result,
-      plan_path: args.plan_path,
-      design_borne_by_plan: args.design_borne_by_plan,
       execution_baseline: args.execution_baseline,
       verification_requirements: args.verification_requirements,
     }
@@ -148,6 +143,9 @@ export const aeWorktreeHandoffTool: ToolDefinition = tool({
     }
     if (args.ae_config_path !== undefined) {
       input.ae_config_path = args.ae_config_path
+    }
+    if (args.task_brief !== undefined) {
+      input.task_brief = args.task_brief
     }
 
     const result = await writeHandoffFile(input)

@@ -25,7 +25,7 @@ describe('AE catalog 一致性', () => {
     const entry = getPhaseOneEntries().find((item) => item.skillName === SKILL.WORK)
     const frontmatter = readFrontmatter('src/assets/skills/ae-work/SKILL.md')
 
-    expect(entry?.argumentHint).toBe('[计划路径|交接文件路径|任务描述]')
+    expect(entry?.argumentHint).toBe('[设计路径|交接文件路径|任务描述]')
     expect(entry?.description).toContain('实施阶段')
     expect(frontmatter.description).toBe(entry?.description)
   })
@@ -34,8 +34,8 @@ describe('AE catalog 一致性', () => {
     const entries = getPhaseOneEntries()
 
     expect(entries.find((item) => item.skillName === SKILL.PRD)?.description).toContain('探索阶段')
-    expect(entries.find((item) => item.skillName === SKILL.PLAN)?.description).toContain('渐进计划阶段')
-    expect(entries.find((item) => item.skillName === SKILL.REFACTOR)?.description).toContain('重构计划阶段')
+    expect(entries.find((item) => item.skillName === SKILL.DESIGN)?.description).toContain('设计阶段')
+    expect(entries.find((item) => item.skillName === SKILL.DESIGN)?.description).toContain('refactor=true')
     expect(entries.find((item) => item.skillName === SKILL.WORK)?.description).toContain('实施阶段')
     expect(entries.find((item) => item.skillName === SKILL.REVIEW)?.description).toContain('审查阶段')
     expect(entries.find((item) => item.skillName === SKILL.WORK)?.description).toContain('实施阶段')

@@ -81,11 +81,11 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
       ],
       [
         { field: 'kind', operator: 'eq', value: 'document' },
-        { field: 'documentType', operator: 'eq', value: 'plan' },
+        { field: 'documentType', operator: 'eq', value: 'design' },
         { field: 'hasArchitectureDecision', operator: 'truthy' },
       ],
     ],
-    description: '从架构视角分析代码变更和计划中的架构决策，检查架构边界、跨模块依赖和系统级抽象',
+    description: '从架构视角分析代码变更和设计中的架构决策，检查架构边界、跨模块依赖和系统级抽象',
   },
   {
     name: AGENT.PERFORMANCE_REVIEWER,
@@ -133,9 +133,9 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
     domain: 'document',
     alwaysOn: false,
     conditionGroups: [
-      [{ field: 'documentType', operator: 'eq', value: 'plan' }],
-      [{ field: 'targetTypes', operator: 'contains', value: 'plan' }],
-      [{ field: 'reviewScenes', operator: 'contains', value: 'plan' }],
+      [{ field: 'documentType', operator: 'eq', value: 'design' }],
+      [{ field: 'targetTypes', operator: 'contains', value: 'design' }],
+      [{ field: 'reviewScenes', operator: 'contains', value: 'design' }],
       [{ field: 'requirementCountGte5', operator: 'truthy' }],
       [{ field: 'hasProductClaim', operator: 'truthy' }],
     ],
@@ -146,12 +146,12 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
     domain: 'document',
     alwaysOn: false,
     conditionGroups: [
-      [{ field: 'documentType', operator: 'eq', value: 'plan' }],
-      [{ field: 'targetTypes', operator: 'contains', value: 'plan' }],
-      [{ field: 'reviewScenes', operator: 'contains', value: 'plan' }],
+      [{ field: 'documentType', operator: 'eq', value: 'design' }],
+      [{ field: 'targetTypes', operator: 'contains', value: 'design' }],
+      [{ field: 'reviewScenes', operator: 'contains', value: 'design' }],
       [{ field: 'requirementCountGte5', operator: 'truthy' }],
     ],
-    description: '审查计划步骤粒度与批量操作可脚本化',
+    description: '审查设计步骤粒度与批量操作可脚本化',
   },
   {
     name: AGENT.DESIGN_LENS_REVIEWER,
@@ -171,10 +171,13 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
     alwaysOn: false,
     conditionGroups: [
       [{ field: 'documentType', operator: 'eq', value: 'test' }],
+      [{ field: 'documentType', operator: 'eq', value: 'design' }],
       [{ field: 'targetTypes', operator: 'contains', value: 'test-case' }],
+      [{ field: 'targetTypes', operator: 'contains', value: 'design' }],
       [{ field: 'reviewScenes', operator: 'contains', value: 'test-case' }],
+      [{ field: 'reviewScenes', operator: 'contains', value: 'design' }],
     ],
-    description: '审查测试用例文档的结构完整性、覆盖完备性、步骤可执行性、结果可验证性和需求对齐程度',
+    description: '审查测试用例维度的结构完整性、覆盖完备性、步骤可执行性、结果可验证性和需求对齐程度',
   },
   {
     name: AGENT.REQUIREMENTS_REVIEWER,
@@ -192,11 +195,13 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
     domain: 'document',
     alwaysOn: false,
     conditionGroups: [
-      [{ field: 'documentType', operator: 'eq', value: 'prototype' }],
+      [{ field: 'documentType', operator: 'eq', value: 'design' }],
       [{ field: 'targetTypes', operator: 'contains', value: 'prototype' }],
+      [{ field: 'targetTypes', operator: 'contains', value: 'design' }],
       [{ field: 'reviewScenes', operator: 'contains', value: 'prototype' }],
+      [{ field: 'reviewScenes', operator: 'contains', value: 'design' }],
     ],
-    description: '审查原型/线框/高保真说明文档的交互完整性、状态覆盖、与需求的一致性以及实现可行性提示',
+    description: '审查原型/线框维度的交互完整性、状态覆盖、与需求的一致性以及实现可行性提示',
   },
   {
     name: AGENT.EVIDENCE_REVIEWER,
@@ -251,6 +256,6 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
       [{ field: 'hasMixedTargets', operator: 'truthy' }],
       [{ field: 'kind', operator: 'eq', value: 'general' }],
     ],
-    description: '审查需求/设计/原型/计划/测试用例之间的追溯一致性，识别孤儿条目、断裂引用和未声明的延期',
+    description: '审查需求/设计/测试用例之间的追溯一致性，识别孤儿条目、断裂引用和未声明的延期',
   },
 ]

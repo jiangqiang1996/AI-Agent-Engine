@@ -24,44 +24,44 @@ afterEach(() => {
 describe('doc-extract-service', () => {
   it('应该从分片主文件按模块读取子文件并保留全局上下文', () => {
     const root = createTempRoot()
-    mkdirSync(join(root, 'ae', 'plans', 'shards'), { recursive: true })
-    writeFileSync(join(root, 'ae', 'plans', 'main.md'), [
+    mkdirSync(join(root, 'ae', 'designs', 'shards'), { recursive: true })
+    writeFileSync(join(root, 'ae', 'designs', 'main.md'), [
       '---',
-      'type: plan',
+      'type: design',
       'status: drafted',
       'date: 2026-05-22',
-      'title: sharded-plan',
+      'title: sharded-design',
       'sharded: true',
       'shards:',
-      '  - file: ae/plans/shards/auth.md',
+      '  - file: ae/designs/shards/auth.md',
       '    module: auth',
       '    requirements: [R1]',
       '    implementationUnits: [U1]',
-      '  - file: ae/plans/shards/billing.md',
+      '  - file: ae/designs/shards/billing.md',
       '    module: billing',
       '    requirements: [R2]',
       '    implementationUnits: [U2]',
       '---',
-      '# 分片计划',
+      '# 分片设计',
       '## 范围',
       '全局范围和跨模块关系。',
     ].join('\n'), 'utf8')
-    writeFileSync(join(root, 'ae', 'plans', 'shards', 'auth.md'), [
+    writeFileSync(join(root, 'ae', 'designs', 'shards', 'auth.md'), [
       '---',
-      'type: plan-shard',
+      'type: design-shard',
       'status: drafted',
-      'parent: ae/plans/main.md',
+      'parent: ae/designs/main.md',
       'module: auth',
       '---',
       '# auth',
       '## 实现单元',
       '- U1. 处理 R1。',
     ].join('\n'), 'utf8')
-    writeFileSync(join(root, 'ae', 'plans', 'shards', 'billing.md'), [
+    writeFileSync(join(root, 'ae', 'designs', 'shards', 'billing.md'), [
       '---',
-      'type: plan-shard',
+      'type: design-shard',
       'status: drafted',
-      'parent: ae/plans/main.md',
+      'parent: ae/designs/main.md',
       'module: billing',
       '---',
       '# billing',
@@ -69,12 +69,12 @@ describe('doc-extract-service', () => {
       '- U2. 处理 R2。',
     ].join('\n'), 'utf8')
 
-    const result = extractDoc({ repoRoot: root, path: 'ae/plans/main.md', modules: ['auth'] })
+    const result = extractDoc({ repoRoot: root, path: 'ae/designs/main.md', modules: ['auth'] })
 
-    expect(result.metadata.source).toBe('ae/plans/main.md')
-    expect(result.scope.map((section) => section.source)).toContain('ae/plans/main.md')
+    expect(result.metadata.source).toBe('ae/designs/main.md')
+    expect(result.scope.map((section) => section.source)).toContain('ae/designs/main.md')
     expect(result.implementationUnits).toHaveLength(1)
-    expect(result.implementationUnits[0]).toMatchObject({ id: 'U1', module: 'auth', source: 'ae/plans/shards/auth.md' })
+    expect(result.implementationUnits[0]).toMatchObject({ id: 'U1', module: 'auth', source: 'ae/designs/shards/auth.md' })
     expect(result.implementationUnits[0]?.content).toContain('R1')
     expect(result.diagnostics).toEqual([])
   })
@@ -107,39 +107,39 @@ describe('doc-extract-service', () => {
 
   it('按 ID 筛选分片时索引部分命中应该降级读取全部分片', () => {
     const root = createTempRoot()
-    mkdirSync(join(root, 'ae', 'plans', 'shards'), { recursive: true })
-    writeFileSync(join(root, 'ae', 'plans', 'main.md'), [
+    mkdirSync(join(root, 'ae', 'designs', 'shards'), { recursive: true })
+    writeFileSync(join(root, 'ae', 'designs', 'main.md'), [
       '---',
-      'type: plan',
+      'type: design',
       'status: drafted',
       'date: 2026-05-22',
-      'title: sharded-plan',
+      'title: sharded-design',
       'sharded: true',
       'shards:',
-      '  - file: ae/plans/shards/stale-index.md',
+      '  - file: ae/designs/shards/stale-index.md',
       '    module: stale',
       '    requirements: [R2]',
-      '  - file: ae/plans/shards/actual.md',
+      '  - file: ae/designs/shards/actual.md',
       '    module: actual',
       '---',
-      '# 计划',
+      '# 设计',
     ].join('\n'), 'utf8')
-    writeFileSync(join(root, 'ae', 'plans', 'shards', 'stale-index.md'), [
+    writeFileSync(join(root, 'ae', 'designs', 'shards', 'stale-index.md'), [
       '---',
-      'type: plan-shard',
+      'type: design-shard',
       'status: drafted',
-      'parent: ae/plans/main.md',
+      'parent: ae/designs/main.md',
       'module: stale',
       '---',
       '# stale',
       '## 功能需求',
       '- R1. 旧索引分片。',
     ].join('\n'), 'utf8')
-    writeFileSync(join(root, 'ae', 'plans', 'shards', 'actual.md'), [
+    writeFileSync(join(root, 'ae', 'designs', 'shards', 'actual.md'), [
       '---',
-      'type: plan-shard',
+      'type: design-shard',
       'status: drafted',
-      'parent: ae/plans/main.md',
+      'parent: ae/designs/main.md',
       'module: actual',
       '---',
       '# actual',
@@ -147,23 +147,23 @@ describe('doc-extract-service', () => {
       '- R2. 实际需求。',
     ].join('\n'), 'utf8')
 
-    const result = extractDoc({ repoRoot: root, path: 'ae/plans/main.md', ids: ['R2'] })
+    const result = extractDoc({ repoRoot: root, path: 'ae/designs/main.md', ids: ['R2'] })
 
     expect(result.requirements).toHaveLength(1)
-    expect(result.requirements[0]).toMatchObject({ id: 'R2', source: 'ae/plans/shards/actual.md' })
+    expect(result.requirements[0]).toMatchObject({ id: 'R2', source: 'ae/designs/shards/actual.md' })
     expect(result.diagnostics).toContainEqual({
       code: 'shard-index-id-coverage',
       message: '分片索引只命中部分分片，已降级读取全部分片以确认 ID 覆盖',
-      path: 'ae/plans/main.md',
+      path: 'ae/designs/main.md',
     })
   })
 
   it('直接输入缺少 parent 的分片子文件时应该报告诊断', () => {
     const root = createTempRoot()
-    mkdirSync(join(root, 'ae', 'plans', 'shards'), { recursive: true })
-    writeFileSync(join(root, 'ae', 'plans', 'shards', 'auth.md'), [
+    mkdirSync(join(root, 'ae', 'designs', 'shards'), { recursive: true })
+    writeFileSync(join(root, 'ae', 'designs', 'shards', 'auth.md'), [
       '---',
-      'type: plan-shard',
+      'type: design-shard',
       'status: drafted',
       'module: auth',
       '---',
@@ -172,26 +172,26 @@ describe('doc-extract-service', () => {
       '- U1. 认证实现。',
     ].join('\n'), 'utf8')
 
-    const result = extractDoc({ repoRoot: root, path: 'ae/plans/shards/auth.md' })
+    const result = extractDoc({ repoRoot: root, path: 'ae/designs/shards/auth.md' })
 
     expect(result.diagnostics).toContainEqual({
       code: 'missing-parent',
       message: '分片文件缺少 parent 字段',
-      path: 'ae/plans/shards/auth.md',
+      path: 'ae/designs/shards/auth.md',
     })
   })
 
   it('应该按大写 U 标题提取计划实现单元', () => {
     const root = createTempRoot()
-    mkdirSync(join(root, 'ae', 'plans'), { recursive: true })
-    writeFileSync(join(root, 'ae', 'plans', 'main.md'), [
+    mkdirSync(join(root, 'ae', 'designs'), { recursive: true })
+    writeFileSync(join(root, 'ae', 'designs', 'main.md'), [
       '---',
-      'type: plan',
+      'type: design',
       'status: drafted',
       'date: 2026-05-22',
-      'title: plan',
+      'title: design',
       '---',
-      '# 计划',
+      '# 设计',
       '## 实现单元',
       '### U1. 建立提取工具',
       '覆盖 R1。',
@@ -199,7 +199,7 @@ describe('doc-extract-service', () => {
       '覆盖 R2。',
     ].join('\n'), 'utf8')
 
-    const result = extractDoc({ repoRoot: root, path: 'ae/plans/main.md', ids: ['U1'] })
+    const result = extractDoc({ repoRoot: root, path: 'ae/designs/main.md', ids: ['U1'] })
 
     expect(result.implementationUnits).toHaveLength(1)
     expect(result.implementationUnits[0]).toMatchObject({ id: 'U1', title: 'U1. 建立提取工具' })
@@ -236,40 +236,40 @@ describe('doc-extract-service', () => {
 
   it('应该报告跨分片重复稳定 ID', () => {
     const root = createTempRoot()
-    mkdirSync(join(root, 'ae', 'plans', 'shards'), { recursive: true })
-    writeFileSync(join(root, 'ae', 'plans', 'main.md'), [
+    mkdirSync(join(root, 'ae', 'designs', 'shards'), { recursive: true })
+    writeFileSync(join(root, 'ae', 'designs', 'main.md'), [
       '---',
-      'type: plan',
+      'type: design',
       'status: drafted',
       'date: 2026-05-22',
-      'title: sharded-plan',
+      'title: sharded-design',
       'sharded: true',
       'shards:',
-      '  - file: ae/plans/shards/auth.md',
+      '  - file: ae/designs/shards/auth.md',
       '    module: auth',
       '    requirements: [R2]',
-      '  - file: ae/plans/shards/billing.md',
+      '  - file: ae/designs/shards/billing.md',
       '    module: billing',
       '    requirements: [R2]',
       '---',
-      '# 计划',
+      '# 设计',
     ].join('\n'), 'utf8')
-    writeFileSync(join(root, 'ae', 'plans', 'shards', 'auth.md'), [
+    writeFileSync(join(root, 'ae', 'designs', 'shards', 'auth.md'), [
       '---',
-      'type: plan-shard',
+      'type: design-shard',
       'status: drafted',
-      'parent: ae/plans/main.md',
+      'parent: ae/designs/main.md',
       'module: auth',
       '---',
       '# auth',
       '## 功能需求',
       '- R2. auth 需求。',
     ].join('\n'), 'utf8')
-    writeFileSync(join(root, 'ae', 'plans', 'shards', 'billing.md'), [
+    writeFileSync(join(root, 'ae', 'designs', 'shards', 'billing.md'), [
       '---',
-      'type: plan-shard',
+      'type: design-shard',
       'status: drafted',
-      'parent: ae/plans/main.md',
+      'parent: ae/designs/main.md',
       'module: billing',
       '---',
       '# billing',
@@ -277,12 +277,12 @@ describe('doc-extract-service', () => {
       '- R2. billing 需求。',
     ].join('\n'), 'utf8')
 
-    const result = extractDoc({ repoRoot: root, path: 'ae/plans/main.md', ids: ['R2'] })
+    const result = extractDoc({ repoRoot: root, path: 'ae/designs/main.md', ids: ['R2'] })
 
     expect(result.requirements).toHaveLength(2)
     expect(result.diagnostics).toContainEqual({
       code: 'duplicate-id',
-      message: '稳定 ID 重复：R2 出现在 ae/plans/shards/auth.md, ae/plans/shards/billing.md',
+      message: '稳定 ID 重复：R2 出现在 ae/designs/shards/auth.md, ae/designs/shards/billing.md',
     })
   })
 
@@ -312,15 +312,15 @@ describe('doc-extract-service', () => {
 
   it('不应该把追溯引用误报为重复稳定 ID', () => {
     const root = createTempRoot()
-    mkdirSync(join(root, 'ae', 'plans'), { recursive: true })
-    writeFileSync(join(root, 'ae', 'plans', 'main.md'), [
+    mkdirSync(join(root, 'ae', 'designs'), { recursive: true })
+    writeFileSync(join(root, 'ae', 'designs', 'main.md'), [
       '---',
-      'type: plan',
+      'type: design',
       'status: drafted',
       'date: 2026-05-22',
-      'title: plan',
+      'title: design',
       '---',
-      '# 计划',
+      '# 设计',
       '## 功能需求',
       '- R2. 支付能力。',
       '## 实现单元',
@@ -330,22 +330,22 @@ describe('doc-extract-service', () => {
       '| R2 | U1 |',
     ].join('\n'), 'utf8')
 
-    const result = extractDoc({ repoRoot: root, path: 'ae/plans/main.md' })
+    const result = extractDoc({ repoRoot: root, path: 'ae/designs/main.md' })
 
     expect(result.diagnostics.filter((diagnostic) => diagnostic.code === 'duplicate-id')).toEqual([])
   })
 
   it('按实现单元 ID 提取时应该保留包含需求追溯的续行', () => {
     const root = createTempRoot()
-    mkdirSync(join(root, 'ae', 'plans'), { recursive: true })
-    writeFileSync(join(root, 'ae', 'plans', 'main.md'), [
+    mkdirSync(join(root, 'ae', 'designs'), { recursive: true })
+    writeFileSync(join(root, 'ae', 'designs', 'main.md'), [
       '---',
-      'type: plan',
+      'type: design',
       'status: drafted',
       'date: 2026-05-22',
-      'title: plan',
+      'title: design',
       '---',
-      '# 计划',
+      '# 设计',
       '## 实现单元',
       '- U1. 实现登录流程。',
       '  覆盖 R1。',
@@ -353,7 +353,7 @@ describe('doc-extract-service', () => {
       '- U2. 实现报表流程。',
     ].join('\n'), 'utf8')
 
-    const result = extractDoc({ repoRoot: root, path: 'ae/plans/main.md', ids: ['U1'] })
+    const result = extractDoc({ repoRoot: root, path: 'ae/designs/main.md', ids: ['U1'] })
 
     expect(result.implementationUnits).toHaveLength(1)
     expect(result.implementationUnits[0]?.content).toContain('覆盖 R1')
@@ -369,22 +369,22 @@ describe('doc-extract-service', () => {
 
   it('应该把越界分片路径报告为 missing-shard', () => {
     const root = createTempRoot()
-    mkdirSync(join(root, 'ae', 'plans'), { recursive: true })
-    writeFileSync(join(root, 'ae', 'plans', 'main.md'), [
+    mkdirSync(join(root, 'ae', 'designs'), { recursive: true })
+    writeFileSync(join(root, 'ae', 'designs', 'main.md'), [
       '---',
-      'type: plan',
+      'type: design',
       'status: drafted',
       'date: 2026-05-22',
-      'title: sharded-plan',
+      'title: sharded-design',
       'sharded: true',
       'shards:',
       '  - file: ../outside.md',
       '    module: auth',
       '---',
-      '# 计划',
+      '# 设计',
     ].join('\n'), 'utf8')
 
-    const result = extractDoc({ repoRoot: root, path: 'ae/plans/main.md' })
+    const result = extractDoc({ repoRoot: root, path: 'ae/designs/main.md' })
 
     expect(result.diagnostics).toContainEqual({
       code: 'missing-shard',
@@ -395,28 +395,28 @@ describe('doc-extract-service', () => {
 
   it('模块筛选且不包含全局上下文时不应该返回主文件章节', () => {
     const root = createTempRoot()
-    mkdirSync(join(root, 'ae', 'plans', 'shards'), { recursive: true })
-    writeFileSync(join(root, 'ae', 'plans', 'main.md'), [
+    mkdirSync(join(root, 'ae', 'designs', 'shards'), { recursive: true })
+    writeFileSync(join(root, 'ae', 'designs', 'main.md'), [
       '---',
-      'type: plan',
+      'type: design',
       'status: drafted',
       'date: 2026-05-22',
-      'title: sharded-plan',
+      'title: sharded-design',
       'sharded: true',
       'shards:',
-      '  - file: ae/plans/shards/auth.md',
+      '  - file: ae/designs/shards/auth.md',
       '    module: auth',
       '    implementationUnits: [U1]',
       '---',
-      '# 分片计划',
+      '# 分片设计',
       '## 范围',
       '全局范围。',
     ].join('\n'), 'utf8')
-    writeFileSync(join(root, 'ae', 'plans', 'shards', 'auth.md'), [
+    writeFileSync(join(root, 'ae', 'designs', 'shards', 'auth.md'), [
       '---',
-      'type: plan-shard',
+      'type: design-shard',
       'status: drafted',
-      'parent: ae/plans/main.md',
+      'parent: ae/designs/main.md',
       'module: auth',
       '---',
       '# auth',
@@ -427,70 +427,70 @@ describe('doc-extract-service', () => {
 
     const result = extractDoc({
       repoRoot: root,
-      path: 'ae/plans/main.md',
+      path: 'ae/designs/main.md',
       modules: ['auth'],
       includeGlobalContext: false,
     })
 
     expect(result.scope).toEqual([])
-    expect(result.implementationUnits.every((unit) => unit.source === 'ae/plans/shards/auth.md')).toBe(true)
+    expect(result.implementationUnits.every((unit) => unit.source === 'ae/designs/shards/auth.md')).toBe(true)
   })
 
   it('应该报告分片索引和 parent 诊断', () => {
     const root = createTempRoot()
-    mkdirSync(join(root, 'ae', 'plans', 'shards'), { recursive: true })
-    writeFileSync(join(root, 'ae', 'plans', 'missing-index.md'), [
+    mkdirSync(join(root, 'ae', 'designs', 'shards'), { recursive: true })
+    writeFileSync(join(root, 'ae', 'designs', 'missing-index.md'), [
       '---',
-      'type: plan',
+      'type: design',
       'status: drafted',
       'date: 2026-05-22',
       'title: missing-index',
       'sharded: true',
       '---',
-      '# 计划',
+      '# 设计',
     ].join('\n'), 'utf8')
 
-    expect(extractDoc({ repoRoot: root, path: 'ae/plans/missing-index.md' }).diagnostics).toEqual([
-      { code: 'missing-shards-index', message: '分片主文件缺少 shards 索引', path: 'ae/plans/missing-index.md' },
+    expect(extractDoc({ repoRoot: root, path: 'ae/designs/missing-index.md' }).diagnostics).toEqual([
+      { code: 'missing-shards-index', message: '分片主文件缺少 shards 索引', path: 'ae/designs/missing-index.md' },
     ])
 
-    writeFileSync(join(root, 'ae', 'plans', 'main.md'), [
+    writeFileSync(join(root, 'ae', 'designs', 'main.md'), [
       '---',
-      'type: plan',
+      'type: design',
       'status: drafted',
       'date: 2026-05-22',
-      'title: sharded-plan',
+      'title: sharded-design',
       'sharded: true',
       'shards:',
       '  - module: broken',
-      '  - file: ae/plans/shards/wrong-parent.md',
+      '  - file: ae/designs/shards/wrong-parent.md',
       '    module: wrong',
       '    implementationUnits: [U1]',
-      '  - file: ae/plans/shards/missing-parent.md',
+      '  - file: ae/designs/shards/missing-parent.md',
       '    module: missing',
       '    implementationUnits: [U2]',
       '---',
-      '# 计划',
+      '# 设计',
     ].join('\n'), 'utf8')
-    writeFileSync(join(root, 'ae', 'plans', 'shards', 'wrong-parent.md'), [
+    writeFileSync(join(root, 'ae', 'designs', 'shards', 'wrong-parent.md'), [
       '---',
-      'type: plan-shard',
+      'type: design-shard',
       'status: drafted',
-      'parent: ae/plans/other.md',
+      'parent: ae/designs/other.md',
       'module: wrong',
       '---',
       '# wrong',
     ].join('\n'), 'utf8')
-    writeFileSync(join(root, 'ae', 'plans', 'shards', 'missing-parent.md'), [
+    writeFileSync(join(root, 'ae', 'designs', 'shards', 'missing-parent.md'), [
       '---',
-      'type: plan-shard',
+      'type: design-shard',
       'status: drafted',
       'module: missing',
       '---',
       '# missing',
     ].join('\n'), 'utf8')
 
-    const result = extractDoc({ repoRoot: root, path: 'ae/plans/main.md', modules: ['none'] })
+    const result = extractDoc({ repoRoot: root, path: 'ae/designs/main.md', modules: ['none'] })
 
     expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toEqual([
       'shard-index-filter-miss',

@@ -13,16 +13,16 @@ function createRepoRoot(): string {
   const root = mkdtempSync(join(tmpdir(), 'ae-recovery-'))
   tempRoots.push(root)
   mkdirSync(join(root, 'ae', 'prds'), { recursive: true })
-  mkdirSync(join(root, 'ae', 'plans'), { recursive: true })
+  mkdirSync(join(root, 'ae', 'designs'), { recursive: true })
   mkdirSync(join(root, 'ae', 'work'), { recursive: true })
   mkdirSync(join(root, 'ae', 'review'), { recursive: true })
   return root
 }
 
-function writePlan(root: string, fileName: string, frontmatter: string): void {
+function writeDesign(root: string, fileName: string, frontmatter: string): void {
   writeFileSync(
-    join(root, 'ae', 'plans', fileName),
-    `---\n${frontmatter.trim()}\n---\n\n# 测试计划\n`,
+    join(root, 'ae', 'designs', fileName),
+    `---\n${frontmatter.trim()}\n---\n\n# 测试设计\n`,
     'utf8',
   )
 }
@@ -36,11 +36,11 @@ function writePrd(root: string, fileName: string, frontmatter: string): void {
   )
 }
 
-function writeLegacyPlan(root: string, fileName: string): void {
-  mkdirSync(join(root, 'docs', 'ae', 'plans'), { recursive: true })
+function writeLegacyDesign(root: string, fileName: string): void {
+  mkdirSync(join(root, 'docs', 'ae', 'designs'), { recursive: true })
   writeFileSync(
-    join(root, 'docs', 'ae', 'plans', fileName),
-    '---\ntype: plan\nstatus: active\ndate: 2026-04-27\ntitle: legacy-plan\n---\n\n# 旧计划\n',
+    join(root, 'docs', 'ae', 'designs', fileName),
+    '---\ntype: design\nstatus: active\ndate: 2026-04-27\ntitle: legacy-design\n---\n\n# 旧设计\n',
     'utf8',
   )
 }
@@ -61,9 +61,9 @@ afterEach(() => {
 })
 
 describe('recovery-service', () => {
-  it('应该拒绝缺少 frontmatter type 的 plan 产物', () => {
+  it('应该拒绝缺少 frontmatter type 的 design 产物', () => {
     const root = createRepoRoot()
-writePlan(root, 'missing-type.md', `
+writeDesign(root, 'missing-type.md', `
 status: active
 date: 2026-04-27
 title: missing-type
@@ -77,7 +77,7 @@ title: missing-type
 
   it('应该拒绝 frontmatter type 与目录类型不一致的产物', () => {
     const root = createRepoRoot()
-    writePlan(root, 'wrong-type.md', `
+    writeDesign(root, 'wrong-type.md', `
 type: prd
 status: drafted
 date: 2026-04-27
@@ -98,8 +98,8 @@ status: drafted
 date: 2026-04-27
 topic: source-topic
 `)
-    writePlan(root, 'fingerprint-mismatch.md', `
-type: plan
+    writeDesign(root, 'fingerprint-mismatch.md', `
+type: design
 status: active
 date: 2026-04-27
 title: fingerprint-mismatch
@@ -112,7 +112,7 @@ originFingerprint: 2026-04-27-source-topic
     })
 
     expect(result.resolution).toBe('resolved')
-    expect(result.path).toBe('ae/plans/fingerprint-mismatch.md')
+    expect(result.path).toBe('ae/designs/fingerprint-mismatch.md')
     expect(result.warnings?.[0]).toContain('originFingerprint 不匹配')
     expect(result.warnings?.[0]).not.toContain(root)
   })
@@ -125,8 +125,8 @@ status: drafted
 date: 2026-04-27
 topic: source-topic
 `)
-    writePlan(root, 'wrong-origin-fingerprint.md', `
-type: plan
+    writeDesign(root, 'wrong-origin-fingerprint.md', `
+type: design
 status: active
 date: 2026-04-27
 title: wrong-origin-fingerprint
@@ -137,40 +137,40 @@ originFingerprint: wrong-fingerprint
     const result = resolveRecovery(createRuntimeAssetManifestFromRoot(root), 'work')
 
     expect(result.resolution).toBe('resolved')
-    expect(result.path).toBe('ae/plans/wrong-origin-fingerprint.md')
+    expect(result.path).toBe('ae/designs/wrong-origin-fingerprint.md')
     expect(result.warnings?.[0]).toContain("期望 '2026-04-27-source-topic'")
     expect(result.warnings?.[0]).not.toContain(root)
   })
 
   it('应该支持根据上游 date 和 title 计算 originFingerprint', () => {
     const root = createRepoRoot()
-    writePlan(root, 'source-plan.md', `
-type: plan
+    writeDesign(root, 'source-design.md', `
+type: design
 status: active
 date: 2026-04-27
-title: Source Plan
+title: Source Design
 `)
-    writePlan(root, 'derived-plan.md', `
-type: plan
+    writeDesign(root, 'derived-design.md', `
+type: design
 status: active
 date: 2026-04-28
-title: derived-plan
-origin: ae/plans/source-plan.md
-originFingerprint: 2026-04-27-source-plan
+title: derived-design
+origin: ae/designs/source-design.md
+originFingerprint: 2026-04-27-source-design
 `)
 
     const result = resolveRecovery(createRuntimeAssetManifestFromRoot(root), 'work')
 
     expect(result.resolution).toBe('needs-selection')
-    expect(result.candidates).toContain('ae/plans/source-plan.md')
-    expect(result.candidates).toContain('ae/plans/derived-plan.md')
+    expect(result.candidates).toContain('ae/designs/source-design.md')
+    expect(result.candidates).toContain('ae/designs/derived-design.md')
     expect(result.warnings).toBeUndefined()
   })
 
   it('读取缺失 origin 时 warning 不应该泄露仓库绝对路径', () => {
     const root = createRepoRoot()
-    writePlan(root, 'missing-origin.md', `
-type: plan
+    writeDesign(root, 'missing-origin.md', `
+type: design
 status: active
 date: 2026-04-27
 title: missing-origin
@@ -187,8 +187,8 @@ originFingerprint: 2026-04-27-missing
 
   it('应该在过滤 supersededBy 前校验废弃产物 frontmatter', () => {
     const root = createRepoRoot()
-    writePlan(root, 'invalid-superseded.md', `
-type: plan
+    writeDesign(root, 'invalid-superseded.md', `
+type: design
 status: active
 date: 2026-04-27
 title: invalid-superseded
@@ -201,36 +201,36 @@ supersededBy: ../outside.md
     expect(result.reason).toContain('frontmatter 无效')
   })
 
-  it('review 阶段命中 plan 产物时应该恢复到 ae:review 文档域', () => {
+  it('review 阶段命中 design 产物时应该恢复到 ae:review 文档域', () => {
     const root = createRepoRoot()
-    writePlan(root, 'review-plan.md', `
-type: plan
+    writeDesign(root, 'review-design.md', `
+type: design
 status: active
 date: 2026-04-27
-title: review-plan
+title: review-design
 `)
 
     const result = resolveRecovery(createRuntimeAssetManifestFromRoot(root), 'review')
 
     expect(result.resolution).toBe('resolved')
     expect(result.nextSkill).toBe(SKILL.REVIEW)
-    expect(result.nextArguments).toBe('domain=document ae/plans/review-plan.md')
-    expect(result.nextCommand).toBe(`${SKILL.REVIEW} domain=document ae/plans/review-plan.md`)
+    expect(result.nextArguments).toBe('domain=document ae/designs/review-design.md')
+    expect(result.nextCommand).toBe(`${SKILL.REVIEW} domain=document ae/designs/review-design.md`)
   })
 
-  it('review 阶段命中多个 plan 产物时不应返回可直接执行的无路径命令', () => {
+  it('review 阶段命中多个 design 产物时不应返回可直接执行的无路径命令', () => {
     const root = createRepoRoot()
-    writePlan(root, 'first-plan.md', `
-type: plan
+    writeDesign(root, 'first-design.md', `
+type: design
 status: active
 date: 2026-04-27
-title: first-plan
+title: first-design
 `)
-    writePlan(root, 'second-plan.md', `
-type: plan
+    writeDesign(root, 'second-design.md', `
+type: design
 status: active
 date: 2026-04-28
-title: second-plan
+title: second-design
 `)
 
     const result = resolveRecovery(createRuntimeAssetManifestFromRoot(root), 'review')
@@ -241,31 +241,31 @@ title: second-plan
     expect(result.nextCommand).toBeUndefined()
   })
 
-  it('应该只在当前 worktree 根目录内恢复计划产物', () => {
+  it('应该只在当前 worktree 根目录内恢复设计产物', () => {
     const rootA = createRepoRoot()
     const rootB = createRepoRoot()
-    writePlan(rootA, 'a-plan.md', `
-type: plan
+    writeDesign(rootA, 'a-design.md', `
+type: design
 status: active
 date: 2026-04-27
-title: a-plan
+title: a-design
 `)
 
     const result = resolveRecovery(createRuntimeAssetManifestFromRoot(rootB), 'work')
 
     expect(result.resolution).not.toBe('resolved')
     expect(JSON.stringify(result)).not.toContain(rootA)
-    expect(JSON.stringify(result)).not.toContain('a-plan.md')
+    expect(JSON.stringify(result)).not.toContain('a-design.md')
   })
 
-  it('不应该从旧 docs/ae 计划路径恢复产物', () => {
+  it('不应该从旧 docs/ae 设计路径恢复产物', () => {
     const root = createRepoRoot()
-    writeLegacyPlan(root, 'legacy-plan.md')
+    writeLegacyDesign(root, 'legacy-design.md')
 
     const result = resolveRecovery(createRuntimeAssetManifestFromRoot(root), 'work')
 
     expect(result.resolution).not.toBe('resolved')
-    expect(JSON.stringify(result)).not.toContain('docs/ae/plans/legacy-plan.md')
+    expect(JSON.stringify(result)).not.toContain('docs/ae/designs/legacy-design.md')
   })
 
   it('不应该从旧 docs/ae 需求路径恢复产物', () => {
@@ -278,31 +278,31 @@ title: a-plan
     expect(JSON.stringify(result)).not.toContain('docs/ae/prds/legacy-prd.md')
   })
 
-  it('当前 worktree 有自己的计划时不跨其他 worktree 恢复', () => {
+  it('当前 worktree 有自己的设计时不跨其他 worktree 恢复', () => {
     const rootA = createRepoRoot()
     const rootB = createRepoRoot()
-    writePlan(rootA, 'a-plan.md', `
-type: plan
+    writeDesign(rootA, 'a-design.md', `
+type: design
 status: active
 date: 2026-04-27
-title: a-plan
+title: a-design
 `)
-    writePlan(rootB, 'b-plan.md', `
-type: plan
+    writeDesign(rootB, 'b-design.md', `
+type: design
 status: active
 date: 2026-04-28
-title: b-plan
+title: b-design
 `)
 
     const result = resolveRecovery(createRuntimeAssetManifestFromRoot(rootB), 'work')
 
     expect(result.resolution).toBe('resolved')
-    expect(result.path).toBe('ae/plans/b-plan.md')
+    expect(result.path).toBe('ae/designs/b-design.md')
     expect(JSON.stringify(result)).not.toContain(rootA)
-    expect(JSON.stringify(result)).not.toContain('a-plan.md')
+    expect(JSON.stringify(result)).not.toContain('a-design.md')
   })
 
-  it('仅有 A 到 B 启动证明时不把证明当作计划产物恢复', () => {
+  it('仅有 A 到 B 启动证明时不把证明当作设计产物恢复', () => {
     const rootB = createRepoRoot()
     mkdirSync(join(rootB, 'ae'), { recursive: true })
     writeFileSync(join(rootB, 'ae', 'worktree-startup-proof.md'), [

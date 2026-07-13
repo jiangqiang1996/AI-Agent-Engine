@@ -12,13 +12,13 @@
 
    每项变更都要审查。深度随变更风险调整。
 
-   **层级 2：完整审查（默认）** — 调用 `ae:review domain=code mode=autofix`，审查当前实现产生的 Git diff 或会话变更，并传递 `plan=<path>` 作为实现意图上下文。`plan=<path>` 不得作为文档审查目标，不得触发需求、设计或计划文档审查、深化或转换。
+   **层级 2：完整审查（默认）** — 调用 `ae:review domain=code mode=autofix`，审查当前实现产生的 Git diff 或会话变更，并传递 `design=<path>` 作为实现意图上下文。`design=<path>` 不得作为文档审查目标，不得触发需求或设计文档审查、深化或转换。
 
    **层级 1：内联自审** — 仅在以下全部四条为真时：
    - 纯增量（仅新文件）
    - 单一关注点
    - 遵循模式（无新颖逻辑）
-   - 忠实于计划
+   - 忠实于设计
 
 3. **最终验证**
    - 已消费 `references/verification-workflow.md` 输出的 `verification_result` 和实际 `validation_commands`
@@ -29,14 +29,14 @@
    - 代码遵循已有模式
    - 无控制台错误或警告
    - 需求追溯完整
-   - B worktree 交接继续执行场景已记录执行基线声明；若实现中出现阻断性需求/设计/计划歧义，已记录用户对具体实现决策的确认
+   - B worktree 交接继续执行场景已记录执行基线声明；若实现中出现阻断性需求/设计歧义，已记录用户对具体实现决策的确认
    - 推迟问题已在执行中解决
 
 4. **技能内 review 闭环（最终验证通过后、最终交付之前执行）**
 
    对实际改动文件运行技能内 review 闭环。此环节在 `代码审查（层级 2）` 之后、最终证据汇总之前执行，确保实现与 design 契约一致且无遗漏缺陷。
 
-   **审查调用：** 调用 `ae:review mode=headless domain=code <changed-files>`，传入 `plan=<plan-path>` 作为实现意图上下文。当存在 design 契约时，传入 `has_design_contract=true`。`mode=headless` 表示 ae:review 被技能内部调用时不输出"下一步推荐技能"引导，仅返回审查结果（status/findings/summary）给本技能，由 ae:work 自身负责下一步引导。
+   **审查调用：** 调用 `ae:review mode=headless domain=code <changed-files>`，传入 `design=<design-path>` 作为实现意图上下文。当存在 design 契约时，传入 `has_design_contract=true`。`mode=headless` 表示 ae:review 被技能内部调用时不输出"下一步推荐技能"引导，仅返回审查结果（status/findings/summary）给本技能，由 ae:work 自身负责下一步引导。
 
    **审查者调度：** 当 `has_design_contract=true` 时，按存在的 design 维度自动调度对应一致性审查者：
    - 任意实现代码 → `design-consistency-reviewer`（覆盖 database/security/architecture 等维度一致性）
@@ -59,7 +59,7 @@
     - `review_status: passed` 或 `failed` 必须附带可验证审查证据，绑定当前可观察 worktree、branch、HEAD 和状态摘要
     - 汇总 Git 写操作；没有 Git 写操作时明确说明无
     - 汇总 `worktree_decision`；`transferred` / `cancelled` 只作为提前终止状态，不进入正式功能交付
-    - B worktree 继续执行且无计划路径时，必须引用交接文件；补充说明只能描述执行基线，不得把 A→B 继续执行写成"任务无需计划"
+    - B worktree 继续执行且无设计路径时，必须引用交接文件；补充说明只能描述执行基线，不得把 A→B 继续执行写成"任务无需设计"
     - 若有 Git 写操作，必须列出命令参数和授权证据；用户授权声明不能替代具体命令参数证据
     - 若验证或审查阻断，先补齐阻断项再进入交付
 
@@ -71,9 +71,9 @@
 - `ae:task-loop` 调用 `ae:work` 时，必须固定当前工作区执行，禁止询问 worktree 模式，禁止创建 worktree，禁止把未显式传入的模式补齐或透传为 `auto`；`--no-worktree` 仅作为兼容输入映射到 `current-worktree`，不再作为默认策略中心
 - 普通 Git 写操作：同时记录 `git_operation_args` 和覆盖相同参数数组的 `git_authorization_evidence`
 - A→B 启动证明：授权证据区分 `operation_worktree` 与 `target_worktree`，`target_worktree` 必须是 A 项目根目录同级的 `../worktrees/<name>` 直接子目录，B 中最终交付的当前 worktree 必须匹配 `target_worktree`
-- A→B 产物迁移：创建 B 后，A 会话必须把当前任务已确定执行基线中真实存在的具体需求/设计文件、`ae/graphs/` 和 `.opencode/ae.jsonc` 迁移到 B（A 端条件必选：上游产物或物理文件存在时必须迁移，不存在时才不传），plan_path 为无条件必选（无上游 ae:plan 产物时须生成上下文派生计划并迁移），并在交接文件中逐一显式引用实际迁移的文件或目录；迁移源路径和 B 中目标路径的存在性判断必须使用文件系统视角，即使路径被 `.gitignore` 忽略也必须按真实文件系统存在性迁移，不得用 `git status`、`git ls-files`、Git diff 或图谱结果判断这些文件不存在；其中 `.opencode/ae.jsonc` 只能作为已确定的 AE 项目配置上下文迁移并在交接文件中显式记录；禁止按 glob 批量复制未进入执行基线的需求/计划/设计文件；若存在多个候选需求/计划/设计文件，必须先选择唯一基线文件集；未迁移的需求/计划/设计、图谱或 AE 项目配置产物不在交接文件中出现，不得声称已复制；若设计已由计划承载，交接文件必须明确说明；不迁移 gate/review 运行时产物，不修改 B 中代码、测试或其他项目文件；B 端缺失时降级为可选上下文，不阻断继续执行（plan_path 除外，缺失时硬阻断）
+- A→B 产物迁移：创建 B 后，A 会话必须把当前任务已确定执行基线中真实存在的具体需求/设计文件、`ae/graphs/` 和 `.opencode/ae.jsonc` 迁移到 B（A 端条件必选：上游产物或物理文件存在时必须迁移，不存在时才不传），design_path 和 task_brief 至少传入一个（有上游 ae:design 产物时优先迁移 design_path；无上游产物时可通过 task_brief 内联任务详情，或生成上下文派生设计并迁移），并在交接文件中逐一显式引用实际迁移的文件或目录；迁移源路径和 B 中目标路径的存在性判断必须使用文件系统视角，即使路径被 `.gitignore` 忽略也必须按真实文件系统存在性迁移，不得用 `git status`、`git ls-files`、Git diff 或图谱结果判断这些文件不存在；其中 `.opencode/ae.jsonc` 只能作为已确定的 AE 项目配置上下文迁移并在交接文件中显式记录；禁止按 glob 批量复制未进入执行基线的需求/设计文件；若存在多个候选需求/设计文件，必须先选择唯一基线文件集；未迁移的需求/设计、图谱或 AE 项目配置产物不在交接文件中出现，不得声称已复制；不迁移 gate/review 运行时产物，不修改 B 中代码、测试或其他项目文件；B 端缺失时降级为可选上下文，不阻断继续执行（design_path 和 task_brief 均缺失时硬阻断）
 - A→B 交接文件：创建 B 后，A 会话不得再写入 A worktree 的任何文件；交接文件必须通过 `ae-worktree-handoff` 工具生成，写入 `ae/handoffs/<timestamp>-worktree-handoff.md`；禁止自行拼接交接 Markdown
-- B worktree 继续执行基线：对 B worktree 继续执行来说只有交接文件是必需输入；无计划路径时，应引用交接文件，并把交接文件作为 B worktree 继续执行基线；不得写成无需计划。补充说明只能作为执行基线的声明型补充，不能替代可观察的交接文件证据
+- B worktree 继续执行基线：对 B worktree 继续执行来说只有交接文件是必需输入；无设计路径时，应引用交接文件，并把交接文件作为 B worktree 继续执行基线；不得写成无需设计。补充说明只能作为执行基线的声明型补充，不能替代可观察的交接文件证据
 - A→B 最终交付：A 会话的 `worktree_decision: transferred` 只表示执行已转移；若当前可观察 worktree 匹配 A→B 交接文件或启动证明中的目标 B worktree，B 会话最终功能交付使用 `worktree_decision: created` 表示已在独立 worktree 中执行并交付，并覆盖普通当前工作区场景的 `rejected`；`transferred` 和 `cancelled` 不得作为最终功能交付状态
 - 未运行审查：`review_status: not_run` 搭配 `review_evidence.type: not_run_reason`，仅用于无代码变更、审查工具不可用或非正式交付说明；正式代码交付不得用该状态放行
 - 已通过审查：`review_status: passed` 优先搭配已存在的 `report_path` 证据及当前工作区指纹；同一会话中来自真实 `ae:review` 或审查子代理的 `tool_output` 也可作为审查证据；普通 task 正文、手写摘要或 `ae-review-proof` 工具返回本身不能独立作为通过依据
@@ -108,15 +108,15 @@
 - "已验证"只能写入可观察工作区状态、工具输出或可引用执行结果支撑的事实。
 - 仅来自用户口头确认、工具参数或代理自述的内容，必须放入"未验证 / 无法验证"或"Git 操作状态"。
 - 当前 worktree 已完成执行后，不输出独立的"下一步"或"后续操作"章节；若需要用户动作，只能在对应分区用一句话说明必要动作。
-- A 会话执行 `git worktree add`、迁移真实存在且已确定的需求/设计、图谱目录和 AE 项目配置（A 端条件必选，物理存在即迁移），plan_path 无条件必选（无上游产物时须生成上下文派生计划），并调用 `ae-worktree-handoff` 工具生成交接 Markdown 成功后，终止状态是"执行已转移 / 等待用户在 B 重启"，不是"功能交付完成"。
-- A 的终止提示必须包含目标 B 路径、交接 Markdown 路径，并逐字使用 `ae-worktree-handoff` 工具返回的简短交接提示。B worktree 通过 `ae:work <交接文件>` 读取结构化交接文件并继续，`/ae-work-continue` 只是查找交接文件后调用 `ae:work` 的便捷包装。对 B worktree 继续执行来说交接文件是唯一必需输入；需求/设计文档、图谱目录和 AE 项目配置在 B 端缺失时降级为可选上下文（plan_path 例外，缺失时硬阻断）。
+- A 会话执行 `git worktree add`、迁移真实存在且已确定的需求/设计、图谱目录和 AE 项目配置（A 端条件必选，物理存在即迁移），design_path 和 task_brief 至少传入一个（有上游 ae:design 产物时优先迁移 design_path；无上游产物时可通过 task_brief 内联任务详情，或生成上下文派生设计），并调用 `ae-worktree-handoff` 工具生成交接 Markdown 成功后，终止状态是"执行已转移 / 等待用户在 B 重启"，不是"功能交付完成"。
+- A 的终止提示必须包含目标 B 路径、交接 Markdown 路径，并逐字使用 `ae-worktree-handoff` 工具返回的简短交接提示。B worktree 通过 `ae:work <交接文件>` 读取结构化交接文件并继续，`/ae-work-continue` 只是查找交接文件后调用 `ae:work` 的便捷包装。对 B worktree 继续执行来说交接文件是唯一必需输入；需求/设计文档、图谱目录和 AE 项目配置在 B 端缺失时降级为可选上下文（design_path 和 task_brief 均缺失时硬阻断）。
 - 问答和只读审查可使用更轻量的对应输出，不强制套用整份模板。
 
 ## 阶段 4：交付
 
 1. **准备证据上下文** — 识别可观察行为（UI、CLI、API）
 
-2. **更新计划状态** — 仅在用户明确要求，或计划/交接文件声明需要状态回写时，将 `status: active` 更新为 `status: completed`。这只是交付状态记录，不得改写需求、设计、实现方案或验收标准；若当前是 B worktree 交接继续执行场景，默认不修改需求、设计或计划文档。若此步骤会改变工作区，必须纳入最终交付摘要和 Git 状态核验。
+2. **更新设计状态** — 仅在用户明确要求，或设计/交接文件声明需要状态回写时，将 `status: active` 更新为 `status: completed`。这只是交付状态记录，不得改写需求、设计、实现方案或验收标准；若当前是 B worktree 交接继续执行场景，默认不修改需求、设计或设计文档。若此步骤会改变工作区，必须纳入最终交付摘要和 Git 状态核验。
 
 3. **提交（仅在用户明确要求时）**
 

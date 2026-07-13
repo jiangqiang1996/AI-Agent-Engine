@@ -124,7 +124,7 @@ describe('graph-filter-suggestion-service', () => {
     write(root, 'ae/handoffs/test-worktree-handoff.md', '# handoff')
     write(root, 'ae/reviews/run/metadata.json', '{}')
     write(root, 'ae/screenshot/test.png', '...')
-    write(root, 'ae/plans/test-plan.md', '# plan')
+    write(root, 'ae/designs/test-design.md', '# design')
 
     const summary = collectGraphFilterCandidateSummary(root, root, { include: ['ae/handoffs/test-worktree-handoff.md'], exclude: [] })
 

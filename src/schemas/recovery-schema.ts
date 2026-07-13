@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 export const RecoveryPhaseSchema = z
-  .enum(['prd', 'plan', 'work', 'review'])
+  .enum(['prd', 'design', 'work', 'review'])
   .describe('恢复阶段')
 
 export const RecoveryResolutionSchema = z
@@ -15,7 +15,7 @@ export const RecoveryResultSchema = z.object({
   nextSkill: z.string().optional().describe('建议继续使用的技能'),
   nextArguments: z.string().optional().describe('建议传递给下一技能的结构化参数'),
   nextCommand: z.string().optional().describe('建议执行的完整技能调用'),
-  artifactType: z.enum(['prd', 'plan', 'work', 'review']).optional().describe('命中的产物类型'),
+  artifactType: z.enum(['prd', 'design', 'work', 'review']).optional().describe('命中的产物类型'),
   path: z.string().optional().describe('命中的产物路径'),
   fallbackSkill: z.string().optional().describe('建议回退技能'),
   reason: z.string().describe('恢复说明'),

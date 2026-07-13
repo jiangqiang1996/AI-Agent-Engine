@@ -2,7 +2,7 @@
 name: prototype-reviewer
 model: $deep
 mode: subagent
-description: "审查原型/线框/高保真说明文档的交互完整性、状态覆盖、与需求的一致性以及实现可行性提示。激活条件：目标类型为 prototype 或文档明确标识为原型说明。"
+description: "审查原型/线框维度的交互完整性、状态覆盖、与需求的一致性以及实现可行性提示。激活条件：目标类型为 prototype 或 design，或审查场景为 prototype 或 design。"
 ---
 
 # 交互原型审查者 — 原型说明文档审查

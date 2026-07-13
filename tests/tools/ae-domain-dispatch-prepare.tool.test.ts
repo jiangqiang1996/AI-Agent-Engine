@@ -9,7 +9,6 @@ type PrepareArgs = {
   kind?:
     | 'code'
     | 'document'
-    | 'plan'
     | 'test'
     | 'general'
     | 'design'

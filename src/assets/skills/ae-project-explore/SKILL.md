@@ -18,7 +18,7 @@ argument-hint: "[target] [focus=structure|content|relations|patterns|all] [depth
 - **审计配置仓库**：识别配置文件的组织方式、环境分层、敏感信息分布
 - **探索数据目录**：分析数据文件的格式分布、命名规范、层级关系
 - **混合文件集合**：当目录内同时包含代码、文档、配置、数据等多种类型时，自动分类并分维度分析
-- **为下游技能提供上下文**：为 ae:plan、ae:work、ae:review 提供项目结构信息
+- **为下游技能提供上下文**：为 ae:design、ae:work、ae:review 提供项目结构信息
 
 ## 不适用场景
 

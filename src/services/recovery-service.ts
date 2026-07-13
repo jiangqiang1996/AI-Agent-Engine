@@ -23,11 +23,12 @@ function invalidResult(phase: RecoveryResult['phase'], reason: string): Recovery
 function fallbackSkillForPhase(phase: RecoveryResult['phase']): string {
   switch (phase) {
     case 'prd':
-    case 'plan':
       return SKILL.PRD
+    case 'design':
+      return SKILL.DESIGN
     case 'work':
     case 'review':
-      return SKILL.PLAN
+      return SKILL.DESIGN
     default: {
       const _exhaustive: never = phase
       return _exhaustive
@@ -39,12 +40,12 @@ function preferredArtifactTypes(phase: RecoveryResult['phase']): RecoverableArti
   switch (phase) {
     case 'prd':
       return []
-    case 'plan':
+    case 'design':
       return ['prd']
     case 'work':
-      return ['work', 'plan']
+      return ['work', 'design']
     case 'review':
-      return ['review', 'work', 'plan', 'prd']
+      return ['review', 'work', 'design', 'prd']
     default: {
       const _exhaustive: never = phase
       return _exhaustive
@@ -56,8 +57,8 @@ function nextSkillForArtifact(phase: RecoveryResult['phase'], artifactType: Reco
   switch (phase) {
     case 'prd':
       return SKILL.PRD
-    case 'plan':
-      return SKILL.PLAN
+    case 'design':
+      return SKILL.DESIGN
     case 'work':
       return SKILL.WORK
     case 'review':
@@ -74,7 +75,7 @@ function nextArgumentsForArtifact(
   artifactType: RecoverableArtifactKind,
   path?: string,
 ): string | undefined {
-  if (phase === 'review' && (artifactType === 'plan' || artifactType === 'prd')) {
+  if (phase === 'review' && (artifactType === 'design' || artifactType === 'prd')) {
     if (!path) {
       return undefined
     }

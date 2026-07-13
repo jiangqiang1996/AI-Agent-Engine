@@ -102,13 +102,13 @@ describe('selectReviewers — 文档域', () => {
     expect(selected).toContain(AGENT.FEASIBILITY_REVIEWER)
   })
 
-  it('文档域 plan 类型应激活 product-lens-reviewer 和 step-granularity-reviewer', () => {
-    const selected = selectReviewers({ kind: 'document', documentType: 'plan' })
+  it('文档域 design 类型应激活 product-lens-reviewer 和 step-granularity-reviewer', () => {
+    const selected = selectReviewers({ kind: 'document', documentType: 'design' })
     expect(selected).toContain(AGENT.PRODUCT_LENS_REVIEWER)
     expect(selected).toContain(AGENT.STEP_GRANULARITY_REVIEWER)
   })
 
-  it('文档域 requirements 类型不应激活 plan 专属代理', () => {
+  it('文档域 requirements 类型不应激活 design 专属代理', () => {
     const selected = selectReviewers({ kind: 'document', documentType: 'requirements' })
     expect(selected).not.toContain(AGENT.STEP_GRANULARITY_REVIEWER)
   })
@@ -125,11 +125,16 @@ describe('selectReviewers — 文档域', () => {
     ])
   })
 
-  it('文档域非 test 类型不应激活 test-case-reviewer', () => {
-    for (const documentType of ['requirements', 'plan', 'general'] as const) {
+  it('文档域 requirements/general 类型不应激活 test-case-reviewer', () => {
+    for (const documentType of ['requirements', 'general'] as const) {
       const selected = selectReviewers({ kind: 'document', documentType })
       expect(selected).not.toContain(AGENT.TEST_CASE_REVIEWER)
     }
+  })
+
+  it('文档域 design 类型应激活 test-case-reviewer（test-case 是 design 子维度）', () => {
+    const selected = selectReviewers({ kind: 'document', documentType: 'design' })
+    expect(selected).toContain(AGENT.TEST_CASE_REVIEWER)
   })
 
   it('文档域 test 类型与条件审查者同时激活时不应重复', () => {
@@ -161,8 +166,8 @@ describe('selectReviewers — 文档域', () => {
     expect(selected).toContain(AGENT.ADVERSARIAL_REVIEWER)
   })
 
-  it('文档域 plan 类型 hasArchitectureDecision 应激活 adversarial-reviewer 和 architecture-strategist', () => {
-    const selected = selectReviewers({ kind: 'document', documentType: 'plan', hasArchitectureDecision: true })
+  it('文档域 design 类型 hasArchitectureDecision 应激活 adversarial-reviewer 和 architecture-strategist', () => {
+    const selected = selectReviewers({ kind: 'document', documentType: 'design', hasArchitectureDecision: true })
     expect(selected).toContain(AGENT.ADVERSARIAL_REVIEWER)
     expect(selected).toContain(AGENT.ARCHITECTURE_STRATEGIST)
   })
@@ -181,7 +186,7 @@ describe('selectReviewers — 文档域', () => {
   it('文档域结果不应有重复代理', () => {
     const selected = selectReviewers({
       kind: 'document',
-      documentType: 'plan',
+      documentType: 'design',
       hasSecurity: true,
       hasUi: true,
       requirementCount: 6,
@@ -208,7 +213,7 @@ describe('selectReviewers — 通用混合域', () => {
   it('targetTypes 应激活对应专一审查者', () => {
     const selected = selectReviewers({
       kind: 'general',
-      targetTypes: ['requirements', 'prototype', 'test-case', 'asset'],
+      targetTypes: ['requirements', 'design', 'asset'],
     })
 
     expect(selected).toContain(AGENT.REQUIREMENTS_REVIEWER)
@@ -221,7 +226,7 @@ describe('selectReviewers — 通用混合域', () => {
   it('reviewScenes 应激活对应专一审查者', () => {
     const selected = selectReviewers({
       kind: 'general',
-      reviewScenes: ['design', 'plan', 'general-document'],
+      reviewScenes: ['design', 'general-document'],
     })
 
     expect(selected).toContain(AGENT.DESIGN_LENS_REVIEWER)
@@ -233,7 +238,7 @@ describe('selectReviewers — 通用混合域', () => {
   it('多目标 + hasEvidenceClaim 应同时激活 traceability 和 evidence reviewer', () => {
     const selected = selectReviewers({
       kind: 'general',
-      targetTypes: ['requirements', 'design', 'prototype', 'test-case'],
+      targetTypes: ['requirements', 'design'],
       hasEvidenceClaim: true,
     })
 

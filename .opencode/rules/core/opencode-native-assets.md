@@ -331,7 +331,7 @@ export function registerHooks(input: PluginInput): Partial<Hooks> {
 
 ### 排列原则
 
-1. **用户流程优先** 主流程包括：prd plan/refactor work review。
+1. **用户流程优先** 主流程包括：prd design work review。
 2. **浏览器/设计能力成组** `setup`、`test-browser`、`frontend-design` 这类需要环境准备或视觉验证的能力可作为一组，组内按执行依赖排序：setup → test-browser/frontend-design。
 3. **辅助与维护能力随后** brainstorm、handoff、task-loop、sql、swagger-parser、save-experience、help、update 等按功能执行顺序或用户发现成本排序。
 4. **不同展示面可有不同优化目标** catalog、帮助输出、命令别名、文档总览可以为了组合入口、常用程度或分组展示做局部调整；审查时只在顺序会造成发现性、依赖或注册错误时报告。
@@ -368,7 +368,7 @@ export function registerHooks(input: PluginInput): Partial<Hooks> {
 
 ### 能力分类判定
 
-- **通用运行时能力**：`ae:brainstorm`、`ae:plan`、`ae:work`、`ae:review`、门禁、审查者和普通工具描述。必须完全避免把本仓库布局当作用户项目前提。
+- **通用运行时能力**：`ae:brainstorm`、`ae:design`、`ae:work`、`ae:review`、门禁、审查者和普通工具描述。必须完全避免把本仓库布局当作用户项目前提。
 - **插件维护专项能力**：`ae:install`、`ae:uninstall`、安装/桥接/配置管理说明。允许引用插件源码仓库或安装目录，但必须把引用限定在维护目标上。
 - **混合能力**：同一技能同时支持普通项目和 AE 内置模式时，必须在文案中先分流，再分别应用对应边界；不要用普通项目规则否定 AE 内置分支，也不要让 AE 内置分支污染普通项目分支。
 
@@ -386,8 +386,8 @@ export function registerHooks(input: PluginInput): Partial<Hooks> {
 面向插件使用者的 AE 自诊断、硬门禁和交付证明必须依赖通用工作流证据，不得硬编码特定项目的脚本、目录、业务名或测试命令。
 
 允许作为通用证据的来源：
-- 需求或计划产物路径
-- 用户提供或计划中声明的验证命令
+- 需求或设计产物路径
+- 用户提供或设计中声明的验证命令
 - 审查状态和审查结论
 - Git 操作是否获得用户明确授权
 - 工作区变更、验证结果和未完成项

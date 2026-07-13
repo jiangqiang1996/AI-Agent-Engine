@@ -17,7 +17,6 @@ describe('graph freshness guidance', () => {
     const paths = [
       'src/assets/skills/ae-graph-query/SKILL.md',
       'src/assets/skills/ae-review/SKILL.md',
-      'src/assets/skills/ae-refactor/SKILL.md',
       'src/assets/skills/ae-work/SKILL.md',
     ]
 

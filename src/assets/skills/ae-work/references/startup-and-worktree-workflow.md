@@ -2,13 +2,13 @@
 
 本文件定义 `ae:work` 阶段 1 的启动门禁。修改任何项目文件前必须完成本文件全部适用步骤。
 
-## 读取计划与交接基线
+## 读取设计与交接基线
 
-计划文档输入必须完整阅读工作文档，视为决策产物，并检查每个单元的 `Execution note`、`Deferred to Implementation`、`Scope Boundaries`。若用户明确要求 TDD，即使计划无 Execution note 也要遵循。
+设计文档输入必须完整阅读工作文档，视为决策产物，并检查每个单元的 `Execution note`、`Deferred to Implementation`、`Scope Boundaries`。若用户明确要求 TDD，即使设计无 Execution note 也要遵循。
 
-B worktree 继续执行路径必须解析交接文件并产出 `handoff_context`：目标 B worktree、需求文档路径、计划文档路径、设计文档路径、图谱目录、AE 项目配置路径、A→B 启动证明和执行基线声明。交接文件是唯一必需文件；需求、设计、图谱目录和 AE 项目配置在 A 端条件必选迁移（上游产物或物理文件存在时必须迁移），plan_path 为无条件必选（无上游产物时 A 端须生成上下文派生计划并迁移）；B 端只在交接文件引用且当前 B worktree 中真实存在时读取，缺失时降级为可选上下文不阻断继续执行（plan_path 除外，缺失时硬阻断）。存在性判断必须使用文件系统视角，不得依赖 `git status`、`git ls-files` 或其他会受 `.gitignore` 影响的 Git 视角。继续执行以结构化章节和 `resume_entrypoint` 为真源。
+B worktree 继续执行路径必须解析交接文件并产出 `handoff_context`：目标 B worktree、需求文档路径、设计文档路径、任务详情、图谱目录、AE 项目配置路径、A→B 启动证明和执行基线声明。交接文件是唯一必需文件；需求、设计、图谱目录和 AE 项目配置在 A 端条件必选迁移（上游产物或物理文件存在时必须迁移），design_path 和 task_brief 至少传入一个（有上游 ae:design 产物时优先迁移 design_path；无上游产物时可通过 task_brief 内联任务详情，或生成上下文派生设计并迁移）；B 端只在交接文件引用且当前 B worktree 中真实存在时读取，缺失时降级为可选上下文不阻断继续执行（design_path 和 task_brief 均缺失时硬阻断）。存在性判断必须使用文件系统视角，不得依赖 `git status`、`git ls-files` 或其他会受 `.gitignore` 影响的 Git 视角。继续执行以结构化章节和 `resume_entrypoint` 为真源。
 
-B worktree 继续执行必须校验当前目录和 `git rev-parse --show-toplevel` 输出是否与目标 B worktree 一致；不一致时停止并报告，不得回到 A worktree 写文件。交接文件缺少执行基线声明或启动证明时停止；交接文件未提供需求/设计路径、图谱目录或 AE 项目配置，或引用路径在 B 中不存在时，只记录可选上下文缺失，不得在 B 中补做文档审查或回 A 补迁移。交接文件未提供 `plan_path` 或 `plan_path` 在 B 中不存在时停止执行，按 input-routing-workflow 的停止执行规则处理。
+B worktree 继续执行必须校验当前目录和 `git rev-parse --show-toplevel` 输出是否与目标 B worktree 一致；不一致时停止并报告，不得回到 A worktree 写文件。交接文件缺少执行基线声明或启动证明时停止；交接文件未提供需求/设计路径、图谱目录或 AE 项目配置，或引用路径在 B 中不存在时，只记录可选上下文缺失，不得在 B 中补做文档审查或回 A 补迁移。交接文件未提供 `design_path` 且未提供 `task_brief`，或 `design_path` 在 B 中不存在且无 `task_brief` 时停止执行，按 input-routing-workflow 的停止执行规则处理。
 
 ## Git 状态检查
 
@@ -55,19 +55,19 @@ git log --oneline -1
 仅当用户选择创建 worktree 时执行本节。创建 worktree 前必须获得用户对具体 `git worktree add` 命令参数的明确授权。
 
 - 本地目录固定为 `../worktrees/<name>`，`<name>` 使用分支名或任务名净化后的短名。
-- 创建 B 后，A 会话不得再写入 A worktree 的任何文件，也不得在 B 中修改代码、测试或其他项目文件；仅允许迁移真实存在且已确定为执行基线的需求/设计产物、`ae/graphs/`、`.opencode/ae.jsonc`（A 端条件必选迁移义务）以及 plan_path（无条件必选），以及写入唯一规范交接文件。
-- A 会话只允许在 B 写入真实存在且已确定为执行基线的需求/设计产物、`ae/graphs/`、`.opencode/ae.jsonc`、plan_path（含上下文派生计划），以及唯一规范交接文件 `ae/handoffs/<timestamp>-worktree-handoff.md`。A 端迁移义务：需求/设计产物、`ae/graphs/`、`.opencode/ae.jsonc` 在 A worktree 中真实存在时必须迁移到 B（即使路径被 `.gitignore` 忽略），plan_path 无条件必选（无上游 ae:plan 产物时须生成上下文派生计划并迁移）；迁移前必须用文件系统工具或等价 shell 文件系统命令确认源路径存在并复制；不得用 `git status`、`git ls-files`、Git diff 或图谱结果判断它们不存在；其中 `.opencode/ae.jsonc` 只能作为已确定的 AE 项目配置上下文迁移并在交接文件中显式记录；未迁移的需求/设计、图谱或 AE 项目配置产物不在交接文件中出现，不得声称已复制。
+- 创建 B 后，A 会话不得再写入 A worktree 的任何文件，也不得在 B 中修改代码、测试或其他项目文件；仅允许迁移真实存在且已确定为执行基线的需求/设计产物、`ae/graphs/`、`.opencode/ae.jsonc`（A 端条件必选迁移义务）以及 design_path 或 task_brief（至少一个），以及写入唯一规范交接文件。
+- A 会话只允许在 B 写入真实存在且已确定为执行基线的需求/设计产物、`ae/graphs/`、`.opencode/ae.jsonc`、design_path（含上下文派生设计）或 task_brief（内联任务详情），以及唯一规范交接文件 `ae/handoffs/<timestamp>-worktree-handoff.md`。A 端迁移义务：需求/设计产物、`ae/graphs/`、`.opencode/ae.jsonc` 在 A worktree 中真实存在时必须迁移到 B（即使路径被 `.gitignore` 忽略），design_path 和 task_brief 至少传入一个（有上游 ae:design 产物时优先迁移 design_path；无上游 ae:design 产物时可通过 task_brief 内联任务详情，或生成上下文派生设计并迁移）；迁移前必须用文件系统工具或等价 shell 文件系统命令确认源路径存在并复制；不得用 `git status`、`git ls-files`、Git diff 或图谱结果判断它们不存在；其中 `.opencode/ae.jsonc` 只能作为已确定的 AE 项目配置上下文迁移并在交接文件中显式记录；未迁移的需求/设计、图谱或 AE 项目配置产物不在交接文件中出现，不得声称已复制。
 
-### 上下文派生计划生成（无上游计划时必需）
+### 上下文派生设计生成（无上游设计时必需）
 
-当 A 会话准备创建 B worktree 交接，但当前任务没有上游 `ae:plan` 产物时，A 会话必须在交接前内联生成上下文派生计划文件。此步骤是 `plan_path` 必填后的强制补位，不得跳过。
+当 A 会话准备创建 B worktree 交接，但当前任务没有上游 `ae:design` 产物时，A 会话必须在交接前内联生成上下文派生设计文件，或通过 `task_brief` 将任务详情直接写入交接文件。此步骤是 `design_path` 和 `task_brief` 至少一个的强制补位，不得跳过。
 
-**触发条件**：A 会话准备调用 `ae-worktree-handoff` 工具，但当前任务无上游 `ae:plan` 产物（即 `ae/plans/` 中没有与当前任务对应的计划文件）。
+**触发条件**：A 会话准备调用 `ae-worktree-handoff` 工具，但当前任务无上游 `ae:design` 产物（即 `ae/designs/` 中没有与当前任务对应的设计文件）。
 
 **生成要求**：
 
-- 文件路径：`ae/plans/<timestamp>-<sanitized-task-name>-plan.md`，命名格式与 `ae:plan` 产出一致
-- 文件格式：YAML frontmatter（`type: plan`、`status: drafted`、`date`、`title`、`depth: standard`、`format: human-readable-plan`）+ 正文结构
+- 文件路径：`ae/designs/<timestamp>-<sanitized-task-name>/design.md`，命名格式与 `ae:design` 产出一致
+- 文件格式：YAML frontmatter（`type: design`、`status: drafted`、`date`、`title`、`depth: standard`、`format: human-readable-design`）+ 正文结构
 - frontmatter 必须包含 `sharded: false`
 - 正文必须包含：来源与目标、范围（包含/不包含/约束）、需求追溯、高层技术设计（关键决策）、实现单元（每个单元含目标、覆盖需求、唯一产出物、依赖、文件、方法、需遵循的模式、测试场景、验证命令）、风险与应对、一致性检查
 
@@ -77,26 +77,26 @@ git log --oneline -1
 - 不蔓延：实现单元的范围与 A 会话已确认的任务边界一致
 - 不遗漏：所有 A 会话讨论过的实现步骤都必须记录
 
-**与 `ae:plan` 技能的区别**：
+**与 `ae:design` 技能的区别**：
 
-- 上下文派生计划是轻量内联生成，不触发 `ae:plan` 的深度澄清、头脑风暴或交互式深化
-- 不调用 `ae:plan` 技能；A 会话直接从已确定的任务上下文结构化写入文件
-- 计划状态为 `drafted`，不需要 `ae:plan` 的状态流转
+- 上下文派生设计是轻量内联生成，不触发 `ae:design` 的深度澄清、头脑风暴或交互式深化
+- 不调用 `ae:design` 技能；A 会话直接从已确定的任务上下文结构化写入文件
+- 设计状态为 `drafted`，不需要 `ae:design` 的状态流转
 
 **迁移要求**：
 
-- 生成后必须迁移到 B worktree，并在交接文件的 `plan_path` 中引用
-- B worktree 中 `plan_path` 指向的文件必须真实存在
+- 生成后必须迁移到 B worktree，并在交接文件的 `design_path` 中引用
+- B worktree 中 `design_path` 指向的文件必须真实存在
 
 ### 交接文件生成（必须调用工具）
 
 - **禁止自行拼接交接 Markdown**，必须调用 `ae-worktree-handoff` 工具生成交接文件。
 - 继续执行入口必须写入 A→B 启动证明和执行基线，B worktree 通过 `ae:work <交接文件>` 读取结构化交接文件继续。
-- A→B 启动证明必须包含 source_session_id、source_worktree、target_worktree、branch、head、授权来源、命令参数、创建结果、迁移产物状态和执行基线；迁移产物状态只列出实际迁移的需求/计划/设计、`ae/graphs/` 和 `.opencode/ae.jsonc`，未迁移的不出现。
+- A→B 启动证明必须包含 source_session_id、source_worktree、target_worktree、branch、head、授权来源、命令参数、创建结果、迁移产物状态和执行基线；迁移产物状态只列出实际迁移的需求/设计、`ae/graphs/` 和 `.opencode/ae.jsonc`，未迁移的不出现。
 - 调用工具时传入所有必填参数；工具会按固定模板生成 Markdown、写入目标 B worktree 并返回 A 会话最终回复使用的简短交接提示。
 - `source_session_id`：运行时可见时记录；不可见时传 `unavailable`，并**同时**传入 `session_evidence`（可引用的消息或会话证据），否则工具会返回错误。
-- `plan_path` 是必填字段；A 会话必须在交接前确保计划文件存在并迁移到 B worktree，然后传入计划文件的相对路径。
-- `execution_baseline`：描述进入 B 后必须遵守的基线约束，例如"必须从 ae:work 阶段 1 的任务分析继续执行，优先执行计划的 U0 决策门"。
+- `design_path` 和 `task_brief` 至少传入一个：有设计文档时传 design_path 并迁移到 B worktree；无设计文档时必须通过 task_brief 将任务详情写入交接文件，确保 B worktree 无需读取 A worktree 任何文件即可执行。
+- `execution_baseline`：描述进入 B 后必须遵守的基线约束，例如"必须从 ae:work 阶段 1 的任务分析继续执行，优先执行设计的 U0 决策门"。
 - `verification_requirements`：描述交付前必须运行的验证命令和标准，例如"交付前至少运行相关 Vitest、npm run typecheck 和必要的 npm run build"。
 
 ### A 会话终止行为

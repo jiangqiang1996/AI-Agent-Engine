@@ -24,7 +24,7 @@ function createRecord(overrides: Partial<EvidenceRecord> = {}): EvidenceRecord {
     scope: {
       workflow: 'work',
       checkpoint: 'final',
-      planPath: 'ae/plans/test-plan.md',
+      designPath: 'ae/designs/test-design.md',
       files: [],
     },
     worktreeFingerprint: {

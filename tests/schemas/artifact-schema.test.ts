@@ -134,7 +134,7 @@ describe('ArtifactFrontmatterSchema', () => {
       }
     })
 
-    it('应该拒绝非 plan 类型携带 depth', () => {
+    it('应该拒绝非 design 类型携带 depth', () => {
       const result = ArtifactFrontmatterSchema.safeParse({
         type: 'prd',
         status: 'drafted',
@@ -171,59 +171,6 @@ describe('ArtifactFrontmatterSchema', () => {
     })
   })
 
-  describe('plan 类型', () => {
-    it('应该接受有效的 plan frontmatter', () => {
-      const result = ArtifactFrontmatterSchema.safeParse({
-        type: 'plan',
-        status: 'active',
-        date: '2026-04-27',
-        title: '测试计划',
-      })
-      expect(result.success).toBe(true)
-    })
-
-    it('应该拒绝缺少 title 的 plan', () => {
-      const result = ArtifactFrontmatterSchema.safeParse({
-        type: 'plan',
-        status: 'active',
-        date: '2026-04-27',
-      })
-      expect(result.success).toBe(false)
-      if (!result.success) {
-        const titleIssue = result.error.issues.find((i) => i.path[0] === 'title')
-        expect(titleIssue).toBeDefined()
-      }
-    })
-
-    it('应该拒绝 status: review-needs-fix 的 plan', () => {
-      const result = ArtifactFrontmatterSchema.safeParse({
-        type: 'plan',
-        status: 'review-needs-fix',
-        date: '2026-04-27',
-        title: '测试计划',
-      })
-      expect(result.success).toBe(false)
-    })
-  })
-
-  describe('work/review 类型', () => {
-    it('应该接受不含 date/topic 的 work', () => {
-      const result = ArtifactFrontmatterSchema.safeParse({
-        type: 'work',
-        status: 'drafted',
-      })
-      expect(result.success).toBe(true)
-    })
-
-    it('应该接受不含 date/topic 的 review', () => {
-      const result = ArtifactFrontmatterSchema.safeParse({
-        type: 'review',
-        status: 'drafted',
-      })
-      expect(result.success).toBe(true)
-    })
-  })
-
   describe('design 类型', () => {
     it('应该接受有效的 design frontmatter', () => {
       const result = ArtifactFrontmatterSchema.safeParse({
@@ -251,18 +198,25 @@ describe('ArtifactFrontmatterSchema', () => {
     })
   })
 
-  describe('分片类型', () => {
-    it('应该接受有效的 plan-shard frontmatter', () => {
+  describe('work/review 类型', () => {
+    it('应该接受不含 date/topic 的 work', () => {
       const result = ArtifactFrontmatterSchema.safeParse({
-        type: 'plan-shard',
+        type: 'work',
         status: 'drafted',
-        parent: 'ae/plans/main.md',
-        module: 'auth',
       })
-
       expect(result.success).toBe(true)
     })
 
+    it('应该接受不含 date/topic 的 review', () => {
+      const result = ArtifactFrontmatterSchema.safeParse({
+        type: 'review',
+        status: 'drafted',
+      })
+      expect(result.success).toBe(true)
+    })
+  })
+
+  describe('分片类型', () => {
     it('应该接受有效的 design-shard frontmatter', () => {
       const result = ArtifactFrontmatterSchema.safeParse({
         type: 'design-shard',
@@ -289,9 +243,9 @@ describe('ArtifactFrontmatterSchema', () => {
     })
 
     it('应该拒绝分片 parent 绝对路径或路径穿越', () => {
-      for (const parent of ['D:/tmp/main.md', 'ae/plans/../outside.md']) {
+      for (const parent of ['D:/tmp/main.md', 'ae/designs/../outside.md']) {
         const result = ArtifactFrontmatterSchema.safeParse({
-          type: 'plan-shard',
+          type: 'design-shard',
           status: 'drafted',
           parent,
           module: 'auth',
@@ -307,9 +261,8 @@ describe('ArtifactFrontmatterSchema', () => {
 
     it('应该识别分片产物类型', () => {
       expect(isShardArtifactKind('prd-shard')).toBe(true)
-      expect(isShardArtifactKind('plan-shard')).toBe(true)
       expect(isShardArtifactKind('design-shard')).toBe(true)
-      expect(isShardArtifactKind('plan')).toBe(false)
+      expect(isShardArtifactKind('design')).toBe(false)
     })
   })
 

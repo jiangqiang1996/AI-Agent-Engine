@@ -1,71 +1,9 @@
 import { tool, type ToolDefinition } from '@opencode-ai/plugin'
 import { z } from 'zod'
 import { Effect } from 'effect'
-import { readFile } from 'node:fs/promises'
-import { existsSync } from 'node:fs'
-import { join, resolve, normalize, relative } from 'node:path'
 
 import { getGlobalClient } from '../services/client-holder.js'
 import { executeHandoff } from '../services/handoff.service.js'
-import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
-import { isInsideRoot } from '../utils/path-utils.js'
-
-function extractTodosFromPlanFile(filePath: string): Promise<string[]> {
-  return readFile(filePath, 'utf-8').then((content) => {
-    const lines = content.split('\n')
-    let inSection = false
-    const todos: string[] = []
-
-    for (const raw of lines) {
-      const trimmed = raw.trim()
-      if (trimmed === '## 实现单元') {
-        inSection = true
-        continue
-      }
-      if (inSection && trimmed.startsWith('## ') && !trimmed.startsWith('### ')) {
-        break
-      }
-      if (inSection && trimmed.match(/^- \[[ xX]\] \*\*单元 \d+：/)) {
-        todos.push(trimmed)
-      }
-    }
-    return todos
-  })
-}
-
-function findPlanFileFromHistory(
-  history: Array<{ content?: string }>,
-  plansDir: string,
-  workDir: string,
-): string | null {
-  const mentioned = new Map<string, string>()
-
-  for (let i = history.length - 1; i >= 0; i--) {
-    const msg = history[i]
-    if (typeof msg.content !== 'string') continue
-
-    const normalizedContent = msg.content.replace(/\\/g, '/')
-    const matches = normalizedContent.match(/(?:\.\/)?docs\/ae\/plans\/[a-zA-Z0-9\-_.]+\-plan\.md/g)
-    if (!matches) continue
-
-    for (const relPath of matches) {
-      if (mentioned.has(relPath)) continue
-      const absPath = resolve(workDir, normalize(relPath))
-      if (!isInsideRoot(workDir, absPath)) continue
-      if (existsSync(absPath)) {
-        mentioned.set(relPath, absPath)
-      }
-    }
-  }
-
-  if (mentioned.size === 1) {
-    return mentioned.values().next().value ?? null
-  }
-  if (mentioned.size > 1) {
-    return mentioned.values().next().value ?? null
-  }
-  return null
-}
 
 export const aeHandoffTool: ToolDefinition = tool({
   description: [
@@ -104,26 +42,7 @@ export const aeHandoffTool: ToolDefinition = tool({
     }
 
     const workDir = context.directory
-    const plansDir = join(workDir, docsAePath(DOCS_AE_SUBDIRS.PLANS))
-    let enrichedPendingTasks = args.pending_tasks
-
-    const ctx = context as { history?: Array<{ content?: string }> }
-    if (ctx.history && Array.isArray(ctx.history)) {
-      const planFile = findPlanFileFromHistory(ctx.history, plansDir, workDir)
-
-      if (planFile) {
-        try {
-          const todos = await extractTodosFromPlanFile(planFile)
-          if (todos.length > 0) {
-            const relativePlanPath = relative(workDir, planFile)
-            const todoBlock = todos.map((t) => `  ${t}`).join('\n')
-            enrichedPendingTasks = `${args.pending_tasks}\n\n计划文件待办（来源：${relativePlanPath}）：\n${todoBlock}`
-          }
-        } catch {
-          // 读取计划文件失败，使用调用方提供的 pending_tasks
-        }
-      }
-    }
+    const enrichedPendingTasks = args.pending_tasks
 
     const extractResult = {
       userRequests: args.user_requests,
