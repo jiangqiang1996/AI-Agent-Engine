@@ -6,6 +6,7 @@
 import { execFileSync } from 'node:child_process'
 import { resolve, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { existsSync, lstatSync } from 'node:fs'
 
 const args = process.argv.slice(2)
 
@@ -30,6 +31,11 @@ if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
 
 const dirArg = args[0]
 const designDir = resolve(dirArg)
+
+if (!existsSync(designDir) || !lstatSync(designDir).isDirectory()) {
+  console.error(`错误: 目录不存在或不是目录: ${designDir}`)
+  process.exit(2)
+}
 
 const thresholdIdx = args.indexOf('--threshold')
 const rawThreshold = thresholdIdx >= 0 && args[thresholdIdx + 1]

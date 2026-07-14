@@ -2,27 +2,41 @@
 
 ## 产物目录结构
 
-设计契约产出在 `ae/designs/<需求描述名>-YYYY-MM-DD/` 目录下：
+设计契约产出在 `ae/designs/<需求描述名>-YYYY-MM-DD/` 目录下，每个维度的文件放在以维度名命名的子目录中：
 
 ```
 ae/designs/
 └── user-auth-2026-06-24/              # 需求描述名-日期
     ├── design.md                       # 元文件（含 frontmatter + overview + Split Manifest + 实施约束 + 跨维度映射表）
-    ├── architecture.md                 # 引用清单（sub_split: true/false）
-    ├── architecture-module-boundary.md # 二级子文件（### 章节内容）
-    ├── architecture-tech-selection.md  # 二级子文件
-    ├── api.md                          # 引用清单
-    ├── api-endpoints.md                # 二级子文件
-    ├── api-auth.md                     # 二级子文件
-    ├── database.md                     # 引用清单（合并后 sub_split: false）
-    ├── ui-ux.md                        # 引用清单（合并后 sub_split: false）
-    ├── test-cases.md                   # 引用清单（合并后 sub_split: false）
-    ├── security.md                     # 引用清单（合并后 sub_split: false）
-    ├── observability.md                # 引用清单（合并后 sub_split: false）
-    └── non-functional.md               # 引用清单（合并后 sub_split: false）
+    ├── architecture/                   # 架构维度子目录
+    │   ├── architecture.md             # 引用清单（sub_split: true/false）
+    │   ├── architecture-module-boundary.md # 二级子文件（### 章节内容）
+    │   └── architecture-tech-selection.md  # 二级子文件
+    ├── api/                            # 接口维度子目录
+    │   ├── api.md                      # 引用清单
+    │   ├── api-endpoints.md            # 二级子文件
+    │   ├── api-auth.md                 # 二级子文件
+    │   ├── api-errors.md               # 二级子文件
+    │   └── api-versions.md             # 二级子文件
+    ├── database/                       # 数据库维度子目录
+    │   ├── database.md                 # 引用清单（sub_split: true）
+    │   ├── database-tables.md          # 二级子文件
+    │   └── database-migrations.md      # 二级子文件
+    ├── ui-ux/                          # UI/UX 维度子目录
+    │   └── ui-ux.md                    # 引用清单（合并后 sub_split: false）
+    ├── test-cases/                     # 测试用例维度子目录
+    │   └── test-cases.md               # 引用清单（合并后 sub_split: false）
+    ├── security/                       # 安全维度子目录
+    │   └── security.md                 # 引用清单（合并后 sub_split: false）
+    ├── observability/                  # 可观测性维度子目录
+    │   └── observability.md            # 引用清单（合并后 sub_split: false）
+    └── non-functional/                 # 非功能维度子目录
+        └── non-functional.md           # 引用清单（合并后 sub_split: false）
 ```
 
-**强制拆分规则：** 每个维度必须拆分为独立子文件，不在 design.md 中内联维度内容。子代理直接按 `###` 章节产出二级子文件和引用清单。overview、实施约束和跨维度映射表始终内联在 design.md 中。
+**子目录组织规则：** 每个维度的文件放在以维度名命名的子目录中。`design.md` 始终在设计目录根下。维度一级文件（引用清单）和二级子文件均位于对应维度的子目录中。`design-spec` 为透传维度，不产出文件，不创建子目录。
+
+**强制拆分规则：** 无论文件大小，每个维度必须拆分为独立子文件，不在 design.md 中内联维度内容。子代理直接按 `###` 章节产出二级子文件和引用清单。overview、实施约束和跨维度映射表始终内联在 design.md 中。
 
 **"需求描述名"来源规则（D12）：**
 - prd 文档作为输入时：从 prd 文件名提取（如 `user-auth-prd.md` → `user-auth`）
@@ -50,28 +64,28 @@ status: "active"
 ## Split Manifest
 
 - split_files:
-  - file: architecture.md
+  - file: architecture/architecture.md
     lines: 280
     sub_split: false
-  - file: api.md
+  - file: api/api.md
     lines: 50
     sub_split: true
-  - file: database.md
+  - file: database/database.md
     lines: 30
     sub_split: true
-  - file: ui-ux.md
+  - file: ui-ux/ui-ux.md
     lines: 280
     sub_split: false
-  - file: test-cases.md
+  - file: test-cases/test-cases.md
     lines: 280
     sub_split: false
-  - file: security.md
+  - file: security/security.md
     lines: 150
     sub_split: false
-  - file: observability.md
+  - file: observability/observability.md
     lines: 120
     sub_split: false
-  - file: non-functional.md
+  - file: non-functional/non-functional.md
     lines: 100
     sub_split: false
 
@@ -91,20 +105,20 @@ status: "active"
 | 维度 | 文件 | 状态 | 版本 |
 |------|------|------|------|
 | overview | design.md（内联） | inline | 1.0 |
-| architecture | architecture.md | split | 1.0 |
-| api | api.md（引用清单） | split | 1.0 |
-| api-endpoints | api-endpoints.md | sub-split | 1.0 |
-| api-auth | api-auth.md | sub-split | 1.0 |
-| api-errors | api-errors.md | sub-split | 1.0 |
-| api-versions | api-versions.md | sub-split | 1.0 |
-| database | database.md（引用清单） | split | 1.0 |
-| database-tables | database-tables.md | sub-split | 1.0 |
-| database-migrations | database-migrations.md | sub-split | 1.0 |
-| ui-ux | ui-ux.md | split | 1.0 |
-| test-cases | test-cases.md | split | 1.0 |
-| security | security.md | split | 1.0 |
-| observability | observability.md | split | 1.0 |
-| non-functional | non-functional.md | split | 1.0 |
+| architecture | architecture/architecture.md | split | 1.0 |
+| api | api/api.md（引用清单） | split | 1.0 |
+| api-endpoints | api/api-endpoints.md | sub-split | 1.0 |
+| api-auth | api/api-auth.md | sub-split | 1.0 |
+| api-errors | api/api-errors.md | sub-split | 1.0 |
+| api-versions | api/api-versions.md | sub-split | 1.0 |
+| database | database/database.md（引用清单） | split | 1.0 |
+| database-tables | database/database-tables.md | sub-split | 1.0 |
+| database-migrations | database/database-migrations.md | sub-split | 1.0 |
+| ui-ux | ui-ux/ui-ux.md | split | 1.0 |
+| test-cases | test-cases/test-cases.md | split | 1.0 |
+| security | security/security.md | split | 1.0 |
+| observability | observability/observability.md | split | 1.0 |
+| non-functional | non-functional/non-functional.md | split | 1.0 |
 
 ### 契约版本
 - 版本号：1.0
@@ -194,7 +208,7 @@ status: "active"
 
 - 文件名：`<维度名>-<章节名>.md`（如 `api-endpoints.md`、`api-auth.md`、`api-errors.md`）
 - 维度名和章节名均使用 kebab-case
-- 文件位于 design.md 同级目录
+- 文件位于对应维度的子目录中（如 `api/api-endpoints.md`）
 - 章节名取自 `###` 标题的 kebab-case 形式（如 `### 端点清单` → `endpoints`、`### 认证授权` → `auth`）
 
 #### 拆分停止条件
@@ -217,30 +231,30 @@ status: "active"
 - implementation_constraints: 80 行（始终内联，不拆出）
 - cross_dimension_mapping: 60 行（始终内联，不拆出）
 - architecture: 子代理产出 2 个二级子文件
-  - architecture-module-boundary.md: 150 行
-  - architecture-tech-selection.md: 130 行
-  - architecture.md（引用清单）: 12 行
+  - architecture/architecture-module-boundary.md: 150 行
+  - architecture/architecture-tech-selection.md: 130 行
+  - architecture/architecture.md（引用清单）: 12 行
 - api: 子代理产出 4 个二级子文件
-  - api-endpoints.md: 180 行
-  - api-auth.md: 120 行
-  - api-errors.md: 90 行
-  - api-versions.md: 60 行
-  - api.md（引用清单）: 50 行
+  - api/api-endpoints.md: 180 行
+  - api/api-auth.md: 120 行
+  - api/api-errors.md: 90 行
+  - api/api-versions.md: 60 行
+  - api/api.md（引用清单）: 50 行
 - database: 子代理产出 2 个二级子文件
-  - database-tables.md: 200 行
-  - database-migrations.md: 100 行
-  - database.md（引用清单）: 30 行
+  - database/database-tables.md: 200 行
+  - database/database-migrations.md: 100 行
+  - database/database.md（引用清单）: 30 行
 - ui-ux: 子代理产出 1 个二级子文件
-  - ui-ux.md（引用清单）: 280 行（仅 1 个章节，引用清单即完整内容）
+  - ui-ux/ui-ux.md（引用清单）: 280 行（仅 1 个章节，引用清单即完整内容）
 - test-cases: 子代理产出 1 个二级子文件
-  - test-cases.md（引用清单）: 280 行
+  - test-cases/test-cases.md（引用清单）: 280 行
 - security: 子代理产出 1 个二级子文件
-  - security.md（引用清单）: 150 行
+  - security/security.md（引用清单）: 150 行
 
 流水线脚本执行后：
 1. 校验：所有引用清单文件 ≤ 300 行，通过
-2. 合并：architecture（合并后 280 行 ≤ 300）→ 合并回 architecture.md；api（合并后 450 行 > 300）→ 保持拆分；database（合并后 230 行 ≤ 300）→ 合并回 database.md
-3. 最终校验：architecture.md (280)、api.md (50, 引用清单)、database.md (230)、ui-ux.md (280)、test-cases.md (280)、security.md (150)，全部 ≤ 300，通过
+2. 合并：architecture（合并后 280 行 ≤ 300）→ 合并回 architecture/architecture.md；api（合并后 450 行 > 300）→ 保持拆分；database（合并后 280 行 ≤ 300）→ 合并回 database/database.md
+3. 最终校验：architecture/architecture.md (280)、api/api.md (50, 引用清单)、database/database.md (280)、ui-ux/ui-ux.md (280)、test-cases/test-cases.md (280)、security/security.md (150)，全部 ≤ 300，通过
 
 ---
 
@@ -250,13 +264,13 @@ status: "active"
 
 - 文件名：`<维度名>.md`（如 `architecture.md`、`api.md`、`database.md`）
 - 维度名使用 kebab-case（如 `ui-ux.md`、`test-cases.md`、`non-functional.md`）
-- 文件位于 design.md 同级目录
+- 文件位于以维度名命名的子目录中（如 `architecture/architecture.md`、`api/api.md`）
 
 ### 二级子文件命名
 
 - 文件名：`<维度名>-<章节名>.md`（如 `api-endpoints.md`、`api-auth.md`、`database-tables.md`）
 - 章节名取自 `###` 标题的 kebab-case 形式
-- 文件位于 design.md 同级目录（不创建子目录）
+- 文件位于对应维度的子目录中（如 `api/api-endpoints.md`、`database/database-tables.md`）
 - 二级子文件跳过行数校验
 
 ### 一级子文件 frontmatter
@@ -299,18 +313,18 @@ design.md 中对一级拆分子文件的引用：
 
 ## 架构设计
 
-> 本维度内容已拆分至 `architecture.md`。
+> 本维度内容已拆分至 `architecture/architecture.md`。
 
 ---
 
 ## 接口设计
 
-> 本维度内容已拆分至 `api.md`，其中部分章节已二级拆分，详见 Split Manifest。
+> 本维度内容已拆分至 `api/api.md`，其中部分章节已二级拆分，详见 Split Manifest。
 ```
 
 ### 二级拆分后维度文件的引用方式
 
-维度子文件二级拆分后，原 `<维度名>.md` 变为引用清单：
+维度子文件二级拆分后，原 `<维度名>/<维度名>.md` 变为引用清单：
 
 ```markdown
 ---
@@ -328,6 +342,8 @@ sub_split: true
 - [错误码体系](api-errors.md)
 - [版本策略](api-versions.md)
 ```
+
+> 引用清单中的子文件链接使用相对路径（相对于引用清单所在子目录），如 `api/api.md` 中的链接指向同目录下的 `api-endpoints.md`。
 
 ### 跨维度一致性校验
 

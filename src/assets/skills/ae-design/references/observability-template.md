@@ -1,7 +1,7 @@
 # 可观测性设计维度契约模板
 
 **触发条件：** prd 标注涉及运维/监控/生产部署，或风险维度命中"生产部署"（条件必产出）
-**产出文件：** `observability.md`（始终拆分为独立子文件，不内联）
+**产出文件：** `observability/observability.md`（始终拆分为独立子文件，不内联，位于 observability 子目录中）
 **产出方：** `@observability-designer` 子代理
 **可还原性目标：** 任意 AI 据此实现一致性的日志/监控/告警代码
 

@@ -33,6 +33,7 @@ topic: <kebab-case-topic>
 time_scope: [frontend, backend, data, security, ops]
 origin: <上游路径，若无则删除此行>
 originFingerprint: <上游指纹，若无则删除此行>
+format: human-readable-requirements
 sharded: false
 ---
 

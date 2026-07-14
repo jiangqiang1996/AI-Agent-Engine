@@ -1,7 +1,7 @@
 # 架构设计维度契约模板
 
 **触发条件：** prd 标注涉及结构调整/新模块，或风险维度命中"结构性变更"
-**产出文件：** `architecture.md`（始终拆分为独立子文件，不内联）
+**产出文件：** `architecture/architecture.md`（始终拆分为独立子文件，不内联，位于 architecture 子目录中）
 **产出方：** `@architecture-designer` 子代理
 **可还原性目标：** 任意 AI 据此理解模块职责和依赖关系，不破坏边界
 

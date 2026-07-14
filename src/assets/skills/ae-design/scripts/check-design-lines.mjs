@@ -3,8 +3,8 @@
 // 用法: node <ae-design技能目录>/scripts/check-design-lines.mjs <design目录路径> [--threshold 300]
 // 退出码: 0 = 通过, 1 = 有超标文件
 
-import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs'
-import { resolve, join } from 'node:path'
+import { readdirSync, readFileSync, lstatSync, existsSync } from 'node:fs'
+import { resolve, join, relative } from 'node:path'
 
 const args = process.argv.slice(2)
 
@@ -39,7 +39,7 @@ const threshold = Number.isFinite(rawThreshold) && rawThreshold > 0
   ? Math.floor(rawThreshold)
   : (() => { console.log(`警告: --threshold 值无效，使用默认值 300`); return 300 })()
 
-if (!existsSync(designDir) || !statSync(designDir).isDirectory()) {
+if (!existsSync(designDir) || !lstatSync(designDir).isDirectory()) {
   console.error(`错误: 目录不存在或不是目录: ${designDir}`)
   process.exit(2)
 }
@@ -85,9 +85,26 @@ function countLines(content) {
   return normalized.split('\n').length - (normalized.endsWith('\n') ? 1 : 0)
 }
 
-// 收集所有 .md 文件
-const allMdFiles = readdirSync(designDir)
-  .filter(f => f.endsWith('.md'))
+/**
+ * 递归收集目录下所有 .md 文件，返回相对于 designDir 的相对路径
+ */
+function collectMdFiles(dir, baseDir) {
+  const results = []
+  const entries = readdirSync(dir)
+  for (const entry of entries) {
+    const fullPath = join(dir, entry)
+    const stat = lstatSync(fullPath)
+    if (stat.isDirectory()) {
+      results.push(...collectMdFiles(fullPath, baseDir))
+    } else if (entry.endsWith('.md')) {
+      results.push(relative(baseDir, fullPath).replace(/\\/g, '/'))
+    }
+  }
+  return results
+}
+
+// 收集所有 .md 文件（递归子目录）
+const allMdFiles = collectMdFiles(designDir, designDir)
 
 const skippedDesign = []
 const skippedSection = []

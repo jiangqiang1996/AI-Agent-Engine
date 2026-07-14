@@ -3,8 +3,8 @@
 // 用法: node <ae-design技能目录>/scripts/merge-design-shards.mjs <design目录路径> [--threshold 300]
 // 退出码: 0 = 成功, 1 = 合并后校验失败, 2 = 目录不存在
 
-import { readdirSync, readFileSync, writeFileSync, unlinkSync, existsSync, statSync } from 'node:fs'
-import { resolve, join, basename } from 'node:path'
+import { readdirSync, readFileSync, writeFileSync, unlinkSync, existsSync, lstatSync } from 'node:fs'
+import { resolve, join, basename, relative } from 'node:path'
 
 const args = process.argv.slice(2)
 
@@ -40,7 +40,7 @@ const threshold = Number.isFinite(rawThreshold) && rawThreshold > 0
   ? Math.floor(rawThreshold)
   : (() => { console.log(`警告: --threshold 值无效，使用默认值 300`); return 300 })()
 
-if (!existsSync(designDir) || !statSync(designDir).isDirectory()) {
+if (!existsSync(designDir) || !lstatSync(designDir).isDirectory()) {
   console.error(`错误: 目录不存在或不是目录: ${designDir}`)
   process.exit(2)
 }
@@ -92,8 +92,26 @@ function countLines(content) {
   return normalized.split('\n').length - (normalized.endsWith('\n') ? 1 : 0)
 }
 
-// 收集所有 .md 文件
-const allMdFiles = readdirSync(designDir).filter(f => f.endsWith('.md'))
+/**
+ * 递归收集目录下所有 .md 文件，返回相对于 baseDir 的相对路径（使用 / 分隔符）
+ */
+function collectMdFiles(dir, baseDir) {
+  const results = []
+  const entries = readdirSync(dir)
+  for (const entry of entries) {
+    const fullPath = join(dir, entry)
+    const stat = lstatSync(fullPath)
+    if (stat.isDirectory()) {
+      results.push(...collectMdFiles(fullPath, baseDir))
+    } else if (entry.endsWith('.md')) {
+      results.push(relative(baseDir, fullPath).replace(/\\/g, '/'))
+    }
+  }
+  return results
+}
+
+// 收集所有 .md 文件（递归子目录）
+const allMdFiles = collectMdFiles(designDir, designDir)
 
 // 找出所有 sub_split: true 的维度文件
 const splitDimensions = []
@@ -130,13 +148,18 @@ for (const dimFile of splitDimensions) {
   const dimContent = readFileSync(dimPath, 'utf-8')
   const { frontmatter: dimFm, body: dimBody, fmText: dimFmText } = parseFrontmatter(dimContent)
 
-  // 找出该维度的所有二级子文件
+  // 找出该维度的所有二级子文件（同目录下 parent 匹配 basename）
+  const dimDir = dimFile.includes('/') ? dimFile.slice(0, dimFile.lastIndexOf('/')) : ''
+  const dimBasename = basename(dimFile)
   const subFiles = []
   for (const file of allMdFiles) {
     if (file === dimFile) continue
     const fileInfo = allFiles[file]
-    if (fileInfo.frontmatter?.parent === dimFile) {
-      subFiles.push(file)
+    if (fileInfo.frontmatter?.parent === dimBasename) {
+      const fileDir = file.includes('/') ? file.slice(0, file.lastIndexOf('/')) : ''
+      if (fileDir === dimDir) {
+        subFiles.push(file)
+      }
     }
   }
 

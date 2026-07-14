@@ -166,6 +166,60 @@ describe('check-design-lines 脚本', () => {
     })
   })
 
+  describe('子目录递归收集', () => {
+    it('子目录中的一级维度文件被正确收集和校验', () => {
+      mkdirSync(join(tmpDir, 'api'), { recursive: true })
+      mkdirSync(join(tmpDir, 'architecture'), { recursive: true })
+      writeFileSync(join(tmpDir, 'api', 'api.md'), makeDimensionFile(50, 'api'))
+      writeFileSync(join(tmpDir, 'architecture', 'architecture.md'), makeDimensionFile(50, 'architecture'))
+      const json = parseJson(runScript(tmpDir))
+      const checked = json.checkedFiles.map((f) => f.file)
+      expect(checked).toContain('api/api.md')
+      expect(checked).toContain('architecture/architecture.md')
+      expect(json.violations).toHaveLength(0)
+    })
+
+    it('子目录中的二级子文件被正确跳过', () => {
+      mkdirSync(join(tmpDir, 'api'), { recursive: true })
+      writeFileSync(join(tmpDir, 'api', 'api.md'), makeDimensionFile(50, 'api'))
+      writeFileSync(join(tmpDir, 'api', 'api-endpoints.md'), makeSectionFile(301, 'api-endpoints', 'api'))
+      writeFileSync(join(tmpDir, 'api', 'api-auth.md'), makeSectionFile(301, 'api-auth', 'api'))
+      const json = parseJson(runScript(tmpDir))
+      expect(json.checkedFiles.map((f) => f.file)).toContain('api/api.md')
+      expect(json.skippedSection).toContain('api/api-endpoints.md')
+      expect(json.skippedSection).toContain('api/api-auth.md')
+    })
+
+    it('design.md 在根目录而维度文件在子目录时正常工作', () => {
+      writeFileSync(join(tmpDir, 'design.md'), makeLines(500))
+      mkdirSync(join(tmpDir, 'api'), { recursive: true })
+      mkdirSync(join(tmpDir, 'database'), { recursive: true })
+      writeFileSync(join(tmpDir, 'api', 'api.md'), makeDimensionFile(50, 'api'))
+      writeFileSync(join(tmpDir, 'database', 'database.md'), makeDimensionFile(50, 'database'))
+      const json = parseJson(runScript(tmpDir))
+      expect(json.skippedDesign).toContain('design.md')
+      const checked = json.checkedFiles.map((f) => f.file)
+      expect(checked).toContain('api/api.md')
+      expect(checked).toContain('database/database.md')
+    })
+
+    it('空子目录不影响收集', () => {
+      mkdirSync(join(tmpDir, 'empty-dim'), { recursive: true })
+      makeFile('architecture.md', makeDimensionFile(50, 'architecture'))
+      const json = parseJson(runScript(tmpDir))
+      expect(json.checkedFiles.map((f) => f.file)).toContain('architecture.md')
+      expect(json.passed).toBe(true)
+    })
+
+    it('子目录中无 frontmatter 的文件被跳过', () => {
+      mkdirSync(join(tmpDir, 'api'), { recursive: true })
+      writeFileSync(join(tmpDir, 'api', 'README.md'), makeLines(10))
+      const json = parseJson(runScript(tmpDir))
+      expect(json.skippedNoFrontmatter).toContain('api/README.md')
+      expect(json.checkedFiles).toHaveLength(0)
+    })
+  })
+
   describe('退出码', () => {
     it('无违规时 passed=true', () => {
       makeFile('architecture.md', makeDimensionFile(50, 'architecture'))

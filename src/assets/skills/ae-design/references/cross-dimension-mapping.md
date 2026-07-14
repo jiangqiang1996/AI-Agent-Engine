@@ -36,12 +36,24 @@ API 错误码 ↔ UI 交互状态机映射表：
 
 测试用例 ↔ 维度契约元素覆盖追溯表：
 
-| 用例 ID | 优先级 | 维度 | 契约元素 ID | 断言要点 |
-|---------|--------|------|-----------|---------|
-| TC-001 | P0 | api | EP-001 | 端点返回 201 + 资源对象 |
-| TC-001 | P0 | database | T-resources | 记录写入成功 |
-| TC-005 | P1 | api | EP-001, error-codes | 返回 400 + INVALID_INPUT |
-| TC-UI-001 | P0 | ui-ux | ST-button | 状态机转换正确 |
+| 用例 ID | 优先级 | 测试层级 | 维度 | 契约元素 ID | 断言要点 |
+|---------|--------|---------|------|-----------|---------|
+| TC-001 | P0 | 后端 | api | EP-001 | 端点返回 201 + 资源对象 |
+| TC-001 | P0 | 后端 | database | T-resources | 记录写入成功 |
+| TC-005 | P1 | 后端 | api | EP-001, error-codes | 返回 400 + INVALID_INPUT |
+| TC-UI-001 | P0 | 前端 | ui-ux | ST-button | 状态机转换正确 |
+| TC-FE-001 | P0 | 前端 | ui-ux | ST-form | 表单字段渲染完整 |
+| TC-FE-003 | P0 | 前端 | ui-ux | ST-form | 状态机 idle → loading → success |
+| TC-BE-001 | P0 | 后端 | api | EP-001 | 端点返回 201 + 资源对象 |
+| TC-BE-002 | P0 | 后端 | api, security | EP-001, auth | 返回 401 + UNAUTHORIZED |
+| TC-INT-001 | P0 | 集成 | api, database | EP-001, T-resources | API 响应与 DB 记录一致 |
+| TC-INT-002 | P0 | 集成 | ui-ux, api | ST-form, EP-001 | UI 状态机转换完整 |
+| TC-CT-001 | P0 | 契约 | api | EP-001 | 请求 schema 匹配 provider 契约 |
+| TC-PT-001 | P1 | 性能 | non-functional | latency | P99 < 200ms |
+| TC-PT-002 | P1 | 性能 | api, database | EP-001, T-resources | 并发仅 1 个成功 |
+| TC-ST-001 | P0 | 安全 | security | auth | 401 UNAUTHORIZED |
+| TC-ST-003 | P0 | 安全 | security | authz | 403 FORBIDDEN |
+| TC-ST-004 | P0 | 安全 | security | input-validation | 无 SQL 执行 |
 
 **强制规则：** 每个 P0/P1 用例必须至少有 1 条追溯记录。覆盖矩阵中标注的维度契约元素必须在此表中有对应行项。
 

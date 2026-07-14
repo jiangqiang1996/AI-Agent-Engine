@@ -37,17 +37,17 @@
 
 每个维度有独立的模板文件，位于 `references/` 目录：
 
-| 维度 | 模板文件 | 子代理 | 始终内联 |
-|------|---------|--------|---------|
-| overview | `overview-template.md` | 主代理产出 | 是 |
-| design-spec | 无（透传维度） | `@ui-design-spec` | N/A（透传） |
-| ui-ux | `ui-ux-template.md` | `@ui-ux-designer` | 否 |
-| architecture | `architecture-template.md` | `@architecture-designer` | 否 |
-| api | `api-template.md` | `@api-designer` | 否 |
-| database | `database-template.md` | `@database-designer` | 否 |
-| test-cases | `test-cases-template.md` | `@test-cases-designer` | 否 |
-| security | `security-template.md` | `@security-designer` | 否 |
-| observability | `observability-template.md` | `@observability-designer` | 否 |
-| non-functional | `non-functional-template.md` | `@non-functional-designer` | 否 |
+| 维度 | 模板文件 | 子代理 | 产出文件 | 始终内联 |
+|------|---------|--------|---------|---------|
+| overview | `overview-template.md` | 主代理产出 | `design.md`（内联） | 是 |
+| design-spec | 无（透传维度） | `@ui-design-spec` | N/A（透传） | N/A（透传） |
+| ui-ux | `ui-ux-template.md` | `@ui-ux-designer` | `ui-ux/ui-ux.md` | 否 |
+| architecture | `architecture-template.md` | `@architecture-designer` | `architecture/architecture.md` | 否 |
+| api | `api-template.md` | `@api-designer` | `api/api.md` | 否 |
+| database | `database-template.md` | `@database-designer` | `database/database.md` | 否 |
+| test-cases | `test-cases-template.md` | `@test-cases-designer` | `test-cases/test-cases.md` | 否 |
+| security | `security-template.md` | `@security-designer` | `security/security.md` | 否 |
+| observability | `observability-template.md` | `@observability-designer` | `observability/observability.md` | 否 |
+| non-functional | `non-functional-template.md` | `@non-functional-designer` | `non-functional/non-functional.md` | 否 |
 
 跨维度映射表模板见 `references/cross-dimension-mapping.md`，始终内联在 `design.md` 中。

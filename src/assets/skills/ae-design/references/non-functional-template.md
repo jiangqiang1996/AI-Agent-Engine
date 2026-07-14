@@ -1,7 +1,7 @@
 # 非功能设计维度契约模板
 
 **触发条件：** prd 标注涉及性能/并发/事务/容量，或风险维度命中"性能敏感"（条件必产出）
-**产出文件：** `non-functional.md`（始终拆分为独立子文件，不内联）
+**产出文件：** `non-functional/non-functional.md`（始终拆分为独立子文件，不内联，位于 non-functional 子目录中）
 **产出方：** `@non-functional-designer` 子代理
 **可还原性目标：** 任意 AI 据此实现满足非功能指标的代码
 
