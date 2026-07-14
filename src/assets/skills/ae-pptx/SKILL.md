@@ -31,6 +31,22 @@ argument-hint: "[创建|编辑|分析|读取|追加|更新|预览] [文件路径
 - 需要 raw XML 操作或 CSS 选择器查询直接用 `ae:officecli`
 - 大纲生成用 `ae:slides-outline`
 
+## ⚠️ 重要：判断是否需要加载 PPT 专用技能
+
+仅当当前任务匹配以下专用场景时，先执行 `load_skill` 加载对应规则再操作：
+
+| 名称 | 适用场景 |
+|------|----------|
+| `pitch-deck` | **仅融资** - 种子轮/A-C 轮/SAFE/可转债/战略融资。不用于销售/产品/董事会演示（路由到 `pptx`） |
+| `morph-ppt` | 电影级 Morph 动画演示。不用于静态演示（路由到 `pptx`） |
+| `morph-ppt-3d` | 3D Morph：GLB 模型、相机运动、深度。不用于仅 2D 的 Morph（路由到 `morph-ppt`） |
+
+匹配时先加载：
+```
+ae-officecli file=deck.pptx command=load_skill path=pitch-deck
+```
+不匹配任何专用场景时无需加载，直接使用本技能即可。
+
 ## PPT 专属元素类型
 
 slide, shape, picture, chart, table, row, connector, group, video, audio, equation, notes, comment, animation, transition, paragraph, run, zoom, ole, placeholder, model3d, smartart, diagram, slideMaster, slideLayout
@@ -57,22 +73,6 @@ slide, shape, picture, chart, table, row, connector, group, video, audio, equati
 | `fill` | 填充色 | `"FF0000"` |
 | `bold` | 粗体 | `"true"` |
 
-## PPT 专用技能
-
-通过 `load_skill` 加载 PPT 专用规则：
-
-| 名称 | 适用场景 |
-|------|----------|
-| `pptx` | 通用演示文稿：董事会议、销售演示、全员大会、产品发布 |
-| `pitch-deck` | **仅融资** - 种子轮/A-C 轮/SAFE/可转债/战略融资 |
-| `morph-ppt` | 电影级 Morph 动画演示。不用于静态演示（路由到 `pptx`） |
-| `morph-ppt-3d` | 3D Morph：GLB 模型、相机运动、深度。不用于仅 2D 的 Morph（路由到 `morph-ppt`） |
-
-加载示例：
-```
-ae-officecli file=deck.pptx command=load_skill path=pptx
-```
-
 ## 快速示例
 
 ```
@@ -84,12 +84,12 @@ ae-officecli file=deck.pptx command=view mode=outline
 
 ## PPT 专属最佳实践
 
-1. **先读再改**：编辑前先 `view outline` 了解结构
-2. **用稳定 ID**：多步操作时用 `@id=` 寻址，避免索引偏移
-3. **注意 shape[1]**：通常是标题占位符，内容从 `shape[2]` 开始
-4. **转 HTML 验证**：用 `view html` 而非 `view screenshot`--更快
-5. **不确定时用 help**：`command=help path="pptx shape"` 查看完整属性
-6. **专用技能优先**：融资用 `pitch-deck`，Morph 动画用 `morph-ppt`
+1. **匹配专用场景时先 `load_skill`**：融资任务先 `pitch-deck`，Morph 动画先 `morph-ppt`
+2. **先读再改**：编辑前先 `view outline` 了解结构
+3. **用稳定 ID**：多步操作时用 `@id=` 寻址，避免索引偏移
+4. **注意 shape[1]**：通常是标题占位符，内容从 `shape[2]` 开始
+5. **转 HTML 验证**：用 `view html` 而非 `view screenshot`--更快
+6. **不确定时用 help**：`command=help path="pptx shape"` 查看完整属性
 
 ## 完整 CLI 参考
 

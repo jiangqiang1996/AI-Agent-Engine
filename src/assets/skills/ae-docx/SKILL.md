@@ -30,6 +30,20 @@ argument-hint: "[创建|编辑|分析|读取|追加|格式转换] [文件路径]
 - Excel 用 `ae:xlsx`
 - 需要 raw XML 操作或 CSS 选择器查询直接用 `ae:officecli`
 
+## ⚠️ 重要：判断是否需要加载 Word 专用技能
+
+仅当当前任务匹配以下专用场景时，先执行 `load_skill` 加载对应规则再操作：
+
+| 名称 | 适用场景 |
+|------|----------|
+| `academic-paper` | 期刊/会议/学位论文：APA/Chicago/IEEE/MLA 引用、公式、SEQ+PAGEREF 交叉引用、多栏期刊布局、参考文献。不用于商业报告或信件（路由到 `word`） |
+
+匹配时先加载：
+```
+ae-officecli file=report.docx command=load_skill path=academic-paper
+```
+不匹配任何专用场景时无需加载，直接使用本技能即可。
+
 ## Word 专属元素类型
 
 paragraph, run, table, row, cell, image, header, footer, section, bookmark, comment, footnote, endnote, formfield, sdt, chart, equation, field, hyperlink, style, toc, watermark, break, ole, num, abstractNum, lvl, tab, textbox, shape, diagram
@@ -70,20 +84,6 @@ ae-officecli file=doc.docx command=set path='/revision[@type=ins]' props='{"revi
 ae-officecli file=doc.docx command=set path='/revision[@type=del]' props='{"revision.action":"reject"}'
 ```
 
-## Word 专用技能
-
-通过 `load_skill` 加载 Word 专用规则：
-
-| 名称 | 适用场景 |
-|------|----------|
-| `word` | 报告、信件、备忘录、提案、通用文档 |
-| `academic-paper` | 期刊/会议/学位论文：APA/Chicago/IEEE/MLA 引用、公式、SEQ+PAGEREF 交叉引用、多栏期刊布局、参考文献。不用于商业报告或信件（路由到 `word`） |
-
-加载示例：
-```
-ae-officecli file=report.docx command=load_skill path=word
-```
-
 ## 快速示例
 
 ```
@@ -95,13 +95,14 @@ ae-officecli file=report.docx command=view mode=outline
 
 ## Word 专属最佳实践
 
-1. **先读再改**：编辑前先 `view outline` 或 `get` 了解文档结构
-2. **用稳定 ID**：多步操作时优先使用 `@paraId=` 寻址，避免插入/删除后索引偏移
-3. **批量操作**：多个修改用 `batch` 一次完成，减少进程开销
-4. **验证结果**：修改后运行 `validate` 或 `view issues` 检查
-5. **不确定时用 help**：`command=help path="docx paragraph"` 查看完整属性列表
-6. **转 HTML 验证**：用 `view html` 而非 `view screenshot` 做视觉验证--更快
-7. **修订追踪**：需要审阅的变更用 `revision.type` + `revision.author` 标记
+1. **匹配专用场景时先 `load_skill`**：学术论文任务先 `academic-paper`
+2. **先读再改**：编辑前先 `view outline` 或 `get` 了解文档结构
+3. **用稳定 ID**：多步操作时优先使用 `@paraId=` 寻址，避免插入/删除后索引偏移
+4. **批量操作**：多个修改用 `batch` 一次完成，减少进程开销
+5. **验证结果**：修改后运行 `validate` 或 `view issues` 检查
+6. **不确定时用 help**：`command=help path="docx paragraph"` 查看完整属性列表
+7. **转 HTML 验证**：用 `view html` 而非 `view screenshot` 做视觉验证--更快
+8. **修订追踪**：需要审阅的变更用 `revision.type` + `revision.author` 标记
 
 ## 完整 CLI 参考
 

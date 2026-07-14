@@ -31,6 +31,21 @@ argument-hint: "[创建|编辑|分析|读取|追加|公式|透视表] [文件路
 - PowerPoint 用 `ae:pptx`
 - 需要 raw XML 操作或 CSS 选择器查询直接用 `ae:officecli`
 
+## ⚠️ 重要：判断是否需要加载 Excel 专用技能
+
+仅当当前任务匹配以下专用场景时，先执行 `load_skill` 加载对应规则再操作：
+
+| 名称 | 适用场景 |
+|------|----------|
+| `financial-model` | 财务模型、场景、预测。不用于通用数据分析（路由到 `excel`） |
+| `data-dashboard` | CSV/表格数据 -> KPI/分析/高管仪表板，含图表和迷你图。不用于原始数据跟踪（路由到 `excel`） |
+
+匹配时先加载：
+```
+ae-officecli file=data.xlsx command=load_skill path=financial-model
+```
+不匹配任何专用场景时无需加载，直接使用本技能即可。
+
 ## Excel 专属元素类型
 
 sheet, row, col, cell, chart, image, comment, table, namedrange, pivottable, sparkline, validation, CF, autofilter, shape, textbox, ole, csv
@@ -84,21 +99,6 @@ ae-officecli file=data.xlsx command=set path=/Sheet1 props='{"sort":"C desc","so
 
 格式：`COL DIR[, COL DIR ...]`。拒绝包含合并单元格或公式的范围。
 
-## Excel 专用技能
-
-通过 `load_skill` 加载 Excel 专用规则：
-
-| 名称 | 适用场景 |
-|------|----------|
-| `excel` | 通用工作簿、公式、数据透视表、跟踪器 |
-| `financial-model` | 财务模型、场景、预测。不用于通用数据分析（路由到 `excel`） |
-| `data-dashboard` | CSV/表格数据 -> KPI/分析/高管仪表板，含图表和迷你图。不用于原始数据跟踪（路由到 `excel`） |
-
-加载示例：
-```
-ae-officecli file=data.xlsx command=load_skill path=excel
-```
-
 ## 快速示例
 
 ```
@@ -112,13 +112,14 @@ ae-officecli file=data.xlsx command=view mode=outline
 
 ## Excel 专属最佳实践
 
-1. **先读再改**：编辑前先 `view outline` 了解结构
-2. **批量操作**：多个修改用 `batch` 一次完成
-3. **公式计算**：OfficeCLI 内置公式引擎，`get` 时可获取计算结果
-4. **转 HTML 验证**：用 `view html` 而非 `view screenshot`--更快
-5. **不确定时用 help**：`command=help path="xlsx cell"` 查看完整属性
-6. **排序注意**：排序会拒绝包含合并单元格或公式的范围
-7. **行/列插入**：`add --type row/col` 的 `--index N` 是 **1-based**，匹配 Excel UI
+1. **匹配专用场景时先 `load_skill`**：财务模型任务先 `financial-model`，仪表板先 `data-dashboard`
+2. **先读再改**：编辑前先 `view outline` 了解结构
+3. **批量操作**：多个修改用 `batch` 一次完成
+4. **公式计算**：OfficeCLI 内置公式引擎，`get` 时可获取计算结果
+5. **转 HTML 验证**：用 `view html` 而非 `view screenshot`--更快
+6. **不确定时用 help**：`command=help path="xlsx cell"` 查看完整属性
+7. **排序注意**：排序会拒绝包含合并单元格或公式的范围
+8. **行/列插入**：`add --type row/col` 的 `--index N` 是 **1-based**，匹配 Excel UI
 
 ## 完整 CLI 参考
 

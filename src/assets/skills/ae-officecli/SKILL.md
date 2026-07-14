@@ -84,11 +84,27 @@ argument-hint: "[文件路径] [command=...] [path=...] [props=...]"
 | `open` | 显式打开文档驻留 |
 | `close` | 保存并释放驻留 |
 
+## ⚠️ 重要：load_skill - 判断是否需要加载专用技能
+
+**开始文档操作前，先判断当前任务是否匹配本文件底部的「专用技能」场景。匹配时，先执行 `load_skill` 加载对应规则，再遵循其输出操作。** 融资演示、学术论文、财务模型和数据仪表板这类特定场景依赖 `load_skill` 提供的专属规则，通用文档操作则无需加载。
+
+| 匹配场景 | 应加载的 skill |
+|----------|---------------|
+| 融资演示、Morph 动画 | `pitch-deck`、`morph-ppt`、`morph-ppt-3d` |
+| 学术论文（期刊/会议/学位论文） | `academic-paper` |
+| 财务模型、数据仪表板 | `financial-model`、`data-dashboard` |
+
+```
+ae-officecli file=deck.pptx command=load_skill path=pitch-deck
+ae-officecli file=thesis.docx command=load_skill path=academic-paper
+ae-officecli file=budget.xlsx command=load_skill path=financial-model
+```
+
+**不匹配任何专用场景时无需加载**，直接使用本技能即可。
+
 ## 三层 API 策略
 
 **L1（读取）-> L2（DOM 编辑）-> L3（raw XML）**。优先使用高层。添加 `json=true` 获取结构化输出。
-
-**文档操作前，检查专用技能**（本文件底部）。融资演示、学术论文、财务模型、仪表板和 Morph 动画需要先加载对应专用技能--`load_skill` 一次，然后继续。
 
 ## Help 系统（重要）
 
@@ -431,7 +447,7 @@ ae-officecli file=<file> command=add-part parent=<parent>                 # 创�
 `ae-officecli file=<file> command=load_skill path=<name>` - 输出为 SKILL.md，遵循其规则。
 
 **加载规则：**
-- 在"何时使用"中选最具体的匹配；都不匹配则加载格式默认（`word`/`pptx`/`excel`）
+- 在"何时使用"中选最具体的匹配；都不匹配则无需加载，直接使用本技能文档即可
 - 场景已包含格式默认的规则--每个工件加载**一个**技能，不要叠加
 - 已加载的规则跨轮次持续；不要每次回复都重新加载
 - 两个不同工件 -> 两次独立加载
