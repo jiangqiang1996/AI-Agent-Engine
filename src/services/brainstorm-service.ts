@@ -3,7 +3,6 @@ import { resolveBrainstormModels } from './brainstorm-config-service.js'
 import { getModelByScenario } from './model-scenario-routing-service.js'
 import { getModelScenarioRoutingContext } from './model-scenario-holder.js'
 import { MODEL_SCENARIO } from '../schemas/model-scenario-schema.js'
-import { promptAsyncAndWait, createSubSession, type PromptOptions } from './session-sub.service.js'
 
 export function parseModelReference(model: string | undefined): { providerID: string; modelID: string } | undefined {
   if (!model) return undefined
@@ -110,55 +109,54 @@ export interface BrainstormOptions {
   perspectives?: string[]
   rounds?: number
   onProgress?: (progress: BrainstormProgress) => void
-  parentSessionID?: string
 }
 
 function modelDisplayLabel(model: string | undefined): string {
   return model ?? 'opencode 动态模型'
 }
 
-async function runSubSession(
+async function runTemporarySession(
   title: string,
   userPrompt: string,
   systemPrompt: string,
   modelRef: { providerID: string; modelID: string } | undefined,
-  parentSessionID?: string,
 ): Promise<string> {
   const client = getGlobalClient()
   if (!client) {
     throw new Error('opencode 客户端未初始化')
   }
 
-  let subSession: { id: string }
+  let sessionId: string | undefined
   try {
-    subSession = await createSubSession(client, {
-      ...(parentSessionID ? { parentID: parentSessionID } : {}),
-      title,
-    })
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    throw new Error(`[${title}] 创建子会话失败 - ${msg}`)
-  }
-
-  const promptOptions: PromptOptions = {
-    sessionID: subSession.id,
-    text: userPrompt,
-    system: systemPrompt,
-    tools: {},
-    ...(modelRef ? { model: modelRef } : {}),
-  }
-
-  try {
-    const result = await promptAsyncAndWait(client, promptOptions)
-    return result.assistantText
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err)
-    try {
-      await client.session.delete({ path: { id: subSession.id } })
-    } catch {
-      // best-effort 清理失败的孤儿会话
+    const createRes = await client.session.create({ body: { title } })
+    if (createRes.error || !createRes.data?.id) {
+      throw new Error(`[${title}] 创建临时会话失败 - ${createRes.error?.data?.message ?? '未知错误'}`)
     }
-    throw new Error(`[${title}] 模型调用失败 (session=${subSession.id}) - ${msg}`)
+    sessionId = createRes.data.id
+
+    const promptBody: Record<string, unknown> = {
+      parts: [{ type: 'text', text: userPrompt }],
+      system: systemPrompt,
+      tools: {},
+    }
+    if (modelRef) {
+      promptBody.model = modelRef
+    }
+
+    const promptRes = await client.session.prompt({
+      path: { id: sessionId },
+      body: promptBody as Parameters<typeof client.session.prompt>[0]['body'],
+    })
+
+    if (promptRes.error) {
+      throw new Error(`[${title}] 模型调用失败 - ${promptRes.error.data?.message ?? promptRes.error.name ?? '未知错误'}`)
+    }
+
+    return extractTextFromParts(promptRes.data?.parts ?? [])
+  } finally {
+    if (sessionId) {
+      try { await client.session.delete({ path: { id: sessionId } }) } catch { /* 临时会话清理失败不影响主流程 */ }
+    }
   }
 }
 
@@ -323,7 +321,7 @@ async function adaptiveConcurrentPool<T>(
 }
 
 export async function executeBrainstorm(options: BrainstormOptions): Promise<BrainstormResult> {
-  const { topic, onProgress, parentSessionID } = options
+  const { topic, onProgress } = options
   const selectedPerspectiveIds: string[] = options.perspectives ?? [...DEFAULT_PERSPECTIVE_IDS]
   const rounds = Math.min(Math.max(options.rounds ?? 1, 1), 2)
 
@@ -375,12 +373,11 @@ export async function executeBrainstorm(options: BrainstormOptions): Promise<Bra
 
     const poolResults = await adaptiveConcurrentPool(
       roundTaskMeta.map((meta) => () =>
-        runSubSession(
+        runTemporarySession(
           `brainstorm-r${round}-${meta.perspective.id}`,
           meta.userPrompt,
           meta.perspective.systemPrompt,
           meta.modelRef,
-          parentSessionID,
         ),
       ),
       roundTaskMeta.length,
@@ -462,12 +459,11 @@ export async function executeBrainstorm(options: BrainstormOptions): Promise<Bra
 
   let synthesis: string
   try {
-    synthesis = await runSubSession(
+    synthesis = await runTemporarySession(
       'brainstorm-synthesis',
       synthesisPrompt,
       SYNTHESIS_SYSTEM_PROMPT,
       synthesisModelRef,
-      parentSessionID,
     )
   } catch (error) {
     onProgress?.({
