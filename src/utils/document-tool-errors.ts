@@ -1,7 +1,7 @@
 /**
  * 文档处理工具的共享错误格式化函数。
  *
- * 统一文档工具（ae-docx/pdf/pptx/xlsx/audio/video/image）的 catch 块逻辑，
+ * 统一文档工具（ae-pdf/ae-officecli/audio/video/image）的 catch 块逻辑，
  * 根据错误类型分类输出可恢复的中文提示。
  */
 export function formatDocumentToolError(toolName: string, error: unknown): string {
@@ -30,11 +30,6 @@ export function formatDocumentToolError(toolName: string, error: unknown): strin
   // 磁盘空间错误
   if (message.includes('ENOSPC') || message.includes('space')) {
     return `${toolName} 处理失败：磁盘空间不足。请释放磁盘空间后重试。`
-  }
-
-  // LibreOffice 相关错误
-  if (message.includes('LibreOffice') || message.includes('soffice')) {
-    return `${toolName} 处理失败：LibreOffice 不可用。请先通过 ae:libreoffice 技能安装或配置 LibreOffice。`
   }
 
   // 默认：通用错误提示

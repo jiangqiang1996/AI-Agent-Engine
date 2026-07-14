@@ -9,7 +9,6 @@ import { aeCreateSessionTool } from './ae-create-session.tool.js'
 import { aeHelpTool } from './ae-help.tool.js'
 import { aeReviewProofTool } from './ae-review-proof.tool.js'
 import { aeSwaggerParserTool } from './ae-swagger-parser.tool.js'
-import { aeLibreofficeTool } from './ae-libreoffice.tool.js'
 import { aeImageTool } from './ae-image.tool.js'
 import { aeAudioTool } from './ae-audio.tool.js'
 import { aeVideoTool } from './ae-video.tool.js'
@@ -23,12 +22,9 @@ import { aeTimerTool } from './ae-timer.tool.js'
 import { aeDomainDispatchPrepareTool } from './ae-domain-dispatch-prepare.tool.js'
 import { aeDomainDispatchAggregateTool } from './ae-domain-dispatch-aggregate.tool.js'
 import { aeAsyncBashTool } from './ae-async-bash.tool.js'
-import { aeDocxTool } from './ae-docx.tool.js'
 import { aePdfTool } from './ae-pdf.tool.js'
-import { aePptxTool } from './ae-pptx.tool.js'
-import { aePptxFromDesignTool } from './ae-pptx-from-design.tool.js'
-import { aeXlsxTool } from './ae-xlsx.tool.js'
 import { aeBrainstormTool } from './ae-brainstorm.tool.js'
+import { aeOfficecliTool } from './ae-officecli.tool.js'
 
 export function createToolRegistry(): Record<string, ToolDefinition> {
   return {
@@ -40,7 +36,6 @@ export function createToolRegistry(): Record<string, ToolDefinition> {
     [TOOL.AE_HELP]: aeHelpTool,
     [TOOL.AE_REVIEW_PROOF]: aeReviewProofTool,
     [TOOL.AE_SWAGGER_PARSER]: aeSwaggerParserTool,
-    [TOOL.AE_LIBREOFFICE]: aeLibreofficeTool,
 
     [TOOL.AE_IMAGE]: aeImageTool,
     [TOOL.AE_AUDIO]: aeAudioTool,
@@ -55,11 +50,8 @@ export function createToolRegistry(): Record<string, ToolDefinition> {
     [TOOL.AE_DOMAIN_DISPATCH_PREPARE]: aeDomainDispatchPrepareTool,
     [TOOL.AE_DOMAIN_DISPATCH_AGGREGATE]: aeDomainDispatchAggregateTool,
     [TOOL.AE_ASYNC_BASH]: aeAsyncBashTool,
-    [TOOL.AE_DOCX]: aeDocxTool,
     [TOOL.AE_PDF]: aePdfTool,
-    [TOOL.AE_PPTX]: aePptxTool,
-    [TOOL.AE_PPTX_FROM_DESIGN]: aePptxFromDesignTool,
-    [TOOL.AE_XLSX]: aeXlsxTool,
     [TOOL.AE_BRAINSTORM]: aeBrainstormTool,
+    [TOOL.AE_OFFICECLI]: aeOfficecliTool,
   }
 }

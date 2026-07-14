@@ -234,7 +234,7 @@ CJK 字体（通过嵌入系统 TTF/OTF 实现）：NotoSansSC（思源黑体常
 
 输出：每页对应一张 PNG 图片，写入 `ae/documents/pdf/` 目录。
 
-PDF 的 to-image 操作基于 pdfjs-dist + @napi-rs/canvas 实现，无需 LibreOffice。
+PDF 的 to-image 操作基于 pdfjs-dist + @napi-rs/canvas 实现。
 
 ## 边界
 

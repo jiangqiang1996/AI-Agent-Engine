@@ -44,7 +44,7 @@ AE 插件在系统层自动检测当前模型是否支持图片、音频、视�
 
 - 用户明确要求"识别/转写/分析/提取"媒体文件内容时
 - 系统降级后 LLM 需要理解媒体文件内容才能完成任务时
-- 文档技能（ae:pptx、ae:docx、ae:pdf、ae:xlsx）的 to-image 操作生成 PNG 后，需要理解图片内容时
+- 文档技能生成 PNG 后（ae:pdf 的 to-image 操作，或 ae:officecli 的 view mode=screenshot），需要理解图片内容时
 - Read 工具读取媒体文件报错时
 
 ### 自动调用决策表

@@ -24,7 +24,7 @@ description: "文档架构师：为 PPTX、DOCX、PDF、XLSX 等文档制定风�
 ## When Not To Use
 
 - 只做小范围文本替换或单页修改 → 由文档技能直接处理
-- 只读取或分析文档内容 → 由文档技能的 analyze/to-markdown 操作处理
+- 只读取或分析文档内容 → 由文档技能的 analyze 操作或 ae:officecli 的 view mode=text/annotated 处理
 - 需要 Web 页面设计 → 调度 @ui-architect
 
 ## Workflow
@@ -41,7 +41,7 @@ description: "文档架构师：为 PPTX、DOCX、PDF、XLSX 等文档制定风�
 - **内容主题**：业务报告、技术方案、营销材料、培训课件等
 - **风格偏好**：用户指定的风格关键词（商务、学术、简约、创意等）
 - **用户设计约束**：用户在提示词中明确声明的设计约束（配色、字体、布局、风格等），必须作为最高优先级遵循
-- **已有文档**：如修改已有文档，先用对应技能的 analyze/to-markdown 读取内容大纲
+- **已有文档**：如修改已有文档，先用对应技能的 analyze 操作或 ae:officecli 的 view mode=outline/text 读取内容大纲
 
 **关键规则**：如果用户提供了设计约束，后续所有风格决策必须在用户约束范围内进行，不得偏离。规格书中应标注"来源于用户约束"的设计项。
 
@@ -101,16 +101,9 @@ description: "文档架构师：为 PPTX、DOCX、PDF、XLSX 等文档制定风�
 
 根据全局内容大纲，为每一页/每一块制定具体设计：
 
-- **PPTX（模板驱动模式，用于 ae:pptx-from-outline）**：为每页选择模板并填充 tokens，写入结构化设计文件（YAML），而非直接设计元素坐标
-  - 从 14 个预定义模板中选择最匹配的模板（cover.centered, cover.split, section.divider, content.bullets, content.text, content.two-column, content.quote, content.image-focus, data.chart, data.table, data.kpi-cards, timeline.horizontal, comparison.split, closing.cta）
-  - 根据大纲内容填充模板的 tokens（标题、正文、图表数据等）
-  - 用户有 `[layout:]` 描述时匹配最接近的模板
-  - 不得增减大纲文字，tokens 值必须来自大纲原文
-  - 不计算坐标——坐标由模板预定义，用户可通过 overrides 微调
-  - 可选写入 `overrides` 字段（坐标/颜色/字号级微调），但 locked 页不得写入
-  - 输出结构化设计文件（YAML 格式，schema 见 pptx-design-schema.ts）
-  - 可先调用 `ae-pptx-from-design list-templates` 查看可用模板及其 slot/token 定义
-- **PPTX（自由模式，用于 ae:pptx 直接调度）**：每页的元素清单（text/image/shape/table/chart）、坐标位置（x/y/w/h，英寸）、样式参数（字号/颜色/对齐等）
+- **PPTX**：每页的元素清单（text/image/shape/table/chart）、坐标位置（x/y/w/h，cm 或英寸）、样式参数（字号/颜色/对齐等）
+  - 可选加载 OfficeCLI 专用技能（如 `pitch-deck`、`morph-ppt`）获取领域特定设计规则
+  - 不得增减大纲文字，元素文本必须来自大纲原文
 - **DOCX**：每个内容块的类型和参数（heading level/text/rows 等）
 - **PDF**：每页的元素列表和坐标
 - **XLSX**：每个工作表的列定义、行数据、单元格样式
@@ -118,23 +111,22 @@ description: "文档架构师：为 PPTX、DOCX、PDF、XLSX 等文档制定风�
 **关键规则**：
 - 逐页设计必须严格遵循全局风格规格
 - 每页的布局参数（坐标、尺寸）在此步骤确定，不在全局规格中确定
-- 大型文档（PPTX >5页、DOCX >15块）采用分批策略：先 create 初始部分，再 append 追加
+- 大型文档（PPTX >5页、DOCX >15块）采用分批策略：用 `command=batch` 分批执行 add 操作
 
 ### 步骤 3：生成
 
-调用对应的文档工具按逐页设计生成文档：
+调用 `ae-officecli` 工具按逐页设计生成文档：
 
-- **PPTX（模板驱动模式）**：调用 `ae-pptx-from-design` 工具 `translate-and-generate` 操作，从设计文件翻译+断言+生成一步完成
-- **PPTX（自由模式）**：调用 `ae-pptx` 工具，先 `create` 初始幻灯片（≤5张），再 `append-slides` 分批追加
-- **DOCX**：调用 `ae-docx` 工具，先 `create` 初始内容块（≤80个），再 `append-blocks` 分批追加
+- **PPTX**：`command=create` 创建空白文档，`command=add` 逐张添加幻灯片和元素，多步操作用 `command=batch` 批量执行
+- **DOCX**：`command=create` 创建空白文档，`command=add` 逐段添加段落/表格/图片等，多步操作用 `command=batch` 批量执行
 - **PDF**：调用 `ae-pdf` 工具，先 `create` 初始页面（≤30页），再 `add-pages` 分批追加
-- **XLSX**：调用 `ae-xlsx` 工具，`create` 创建工作表
+- **XLSX**：`command=create` 创建空白文档，`command=set` 设置单元格值和样式，`command=add` 添加行/列/图表/透视表等
 
 **生成前确认**：create/append/update 操作前，必须先向用户展示逐页设计大纲，用户确认后再调用工具。
 
 ### 步骤 4：验证
 
-生成后调用对应工具的 `to-image` 操作将文档转为图片，然后使用 `ae:image` 识别图片内容，与规格书逐页对比：
+生成后调用 `ae-officecli` 的 `command=view mode=html` 将文档转为 HTML，然后使用 `ae:image` 识别 HTML 渲染效果（或在浏览器中打开 HTML），与规格书逐页对比：
 
 - **配色**：识别到的颜色是否匹配规格书的 HEX 值
 - **字体**：识别到的字体是否匹配规格书定义
@@ -142,7 +134,7 @@ description: "文档架构师：为 PPTX、DOCX、PDF、XLSX 等文档制定风�
 - **一致性**：各页风格是否统一
 - **内容**：文字内容是否正确
 
-**XLSX 补充验证**：除 `to-image` 视觉验证外，对 XLSX 文档还可使用 `ae-xlsx` 的 `analyze` 操作提取结构化内容（工作表名、行列数、前5行预览、合并单元格、条件格式等），与规格书对比验证：
+**XLSX 补充验证**：除 HTML 视觉验证外，对 XLSX 文档还可使用 `ae-officecli` 的 `command=view mode=outline` 和 `command=get` 提取结构化内容（工作表名、单元格值、公式等），与规格书对比验证：
 - **工作表结构**：工作表名称、数量是否匹配
 - **列定义**：表头、列宽、数据类型是否匹配
 - **单元格样式**：字体、填充、边框、对齐是否匹配规格书定义
@@ -154,8 +146,8 @@ description: "文档架构师：为 PPTX、DOCX、PDF、XLSX 等文档制定风�
 如果验证发现偏差，按以下流程修复：
 
 1. 定位偏差页/块和偏差类型（配色/字体/布局/内容）
-2. 调用 `update-slide`（PPTX）/`update-block`（DOCX）/`update-page`（PDF）或 `edit`（XLSX）修复
-3. 重新调用 `to-image` + `ae:image` 验证修复结果
+2. 调用 `ae-officecli` 的 `command=set` 修改属性或 `command=add`/`command=remove` 调整元素修复
+3. 重新调用 `command=view mode=html` + `ae:image` 验证修复结果
 4. 重复直到该页/块通过验证
 
 **修复上限**：每页/块最多 3 轮修复。超过 3 轮仍未通过时，标注为"需人工复查"并继续下一页，不阻塞整体流程。
@@ -201,7 +193,7 @@ description: "文档架构师：为 PPTX、DOCX、PDF、XLSX 等文档制定风�
 
 - **文档路径**: [最终文档路径]
 - **生成页数/块数**: [数量]
-- **分批策略**: [create + append 批次说明]
+- **分批策略**: [batch 批次说明]
 
 ### 验证结果
 
@@ -220,8 +212,8 @@ description: "文档架构师：为 PPTX、DOCX、PDF、XLSX 等文档制定风�
 
 ## Boundaries
 
-- **驱动生成但受工具能力约束** — 调用 ae:pptx/ae:docx/ae:pdf/ae:xlsx 工具执行生成和验证，不自行编写二进制文件
-- **视觉验证依赖 to-image** — 通过工具的 to-image 操作转图片 + ae:image 识别，不自行打开浏览器查看
+- **驱动生成但受工具能力约束** — 调用 ae-officecli/ae:pdf 工具执行生成和验证，不自行编写二进制文件
+- **视觉验证依赖 view html** — 通过 ae-officecli 的 `view html` 转 HTML + ae:image 识别，不自行打开浏览器查看
 - **不做浏览器操作** — 不需要 chrome-devtools
 - **规格书优先** — 文档技能必须遵循规格书的风格参数，不得擅自偏离
 - **最小修改原则** — 修改已有文档时，规格书只描述需要变更的风格维度，不重建整个风格方案
@@ -230,4 +222,4 @@ description: "文档架构师：为 PPTX、DOCX、PDF、XLSX 等文档制定风�
 - **逐页/逐块风格一致性** — 逐页设计必须严格遵循全局风格规格，确保每次编辑不偏离全局风格
 - **布局基准提供** — 规格书应提供 PPTX/PDF 的页面布局基准（标题区位置、内容区起始坐标、间距规则），供文档技能在 elements 绘制时参考；逐页设计阶段确定每个元素的精确坐标
 - **修复不阻塞** — 单页/块修复超过 3 轮未通过时标注"需人工复查"并继续，不阻塞整体流程
-- **分批生成** — 大型文档采用 create + append 分批策略，避免单次调用参数过大
+- **分批生成** — 大型文档采用 `command=batch` 分批执行 add 操作，避免单次调用参数过大

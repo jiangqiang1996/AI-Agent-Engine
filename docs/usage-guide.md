@@ -93,7 +93,7 @@
 
 将图片内容转为 Markdown 描述。支持 JPG/PNG/GIF/WebP/BMP 格式。转换结果写入 `ae/markdown/` 子目录。
 
-文档类文件（DOCX/XLSX/PDF/PPTX）的 Markdown 读取功能已迁入各文档技能的 `to-markdown` 操作。
+PDF 文件的 Markdown 读取功能通过 `ae:pdf` 技能的 `to-markdown` 操作；DOCX/PPTX/XLSX 通过 `ae:officecli` 的 `view mode=text` 提取纯文本。
 
 ### 探索性修复
 
