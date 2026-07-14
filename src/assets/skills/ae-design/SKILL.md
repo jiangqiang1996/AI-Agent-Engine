@@ -27,7 +27,7 @@ argument-hint: "[需求文档路径|旧 design|裸描述] [dimensions=architectu
 5. **合理调整 MVCE 覆盖深度** - 简单的任务获得紧凑的契约集，较大的任务获得更完整的契约集。轻量级任务可省略可选 MVCE（最小可验证契约元素）项，但必产出维度的核心 MVCE 不得省略。**核心 MVCE 判定标准：** 该契约元素缺失会导致 ae:work 无法继续实施或 ae:review 无法验证一致性 → 核心；该契约元素缺失只会降低设计质量但不阻塞下游 → 可选。每个维度的 MVCE 清单中标注 `[核心]` 或 `[可选]`。
 6. **跨维度一致性** - overview 必须记录维度间依赖；api 数据模型必须与 database 一致；ui-ux 数据展示必须与 api 响应字段对齐；跨维度映射表（4 类）必须存在且与维度内容对齐。
 7. **只保留对后续执行有用的设计契约** - 不为了"读起来完整"新增无实际约束力的章节；每个维度内容只有在直接影响实现、测试或审查时才记录。
-8. **强制维度拆分** - 无论文件大小，每个维度必须拆分为独立子文件，不在 design.md 中内联维度内容。单个维度子文件超过 300 行时按 `###` 章节拆分，按章节拆分后不再继续拆分。
+8. **强制维度拆分** - 每个维度必须拆分为独立子文件，不在 design.md 中内联维度内容。子代理直接按 `###` 章节产出二级子文件，脚本负责校验和合并（合并后 ≤ 300 行才合回）。
 9. **维度子代理产出** - 不同维度的设计契约由对应的维度专精子代理产出，确保设计质量和专注度。
 10. **使用 ae:grill 追问** - 在产出契约前，推荐使用 `ae:grill` 技能逐个追问设计决策，一问一答推进直到达成共识。用户可选择跳过。
 
@@ -81,14 +81,14 @@ argument-hint: "[需求文档路径|旧 design|裸描述] [dimensions=architectu
 |------|--------|---------|---------|
 | overview | 主代理产出 | design.md（内联） | 是 |
 | design-spec | `@ui-design-spec` | 设计决策包（透传给 `@ui-ux-designer`，不产出独立文件） | N/A（透传） |
-| ui-ux | `@ui-ux-designer` | ui-ux.md | 否 |
-| architecture | `@architecture-designer` | architecture.md | 否 |
-| api | `@api-designer` | api.md | 否 |
-| database | `@database-designer` | database.md | 否 |
-| test-cases | `@test-cases-designer` | test-cases.md | 否 |
-| security | `@security-designer` | security.md | 否 |
-| observability | `@observability-designer` | observability.md | 否 |
-| non-functional | `@non-functional-designer` | non-functional.md | 否 |
+| ui-ux | `@ui-ux-designer` | `<维度名>-<章节名>.md` 二级子文件 + 引用清单 | 否 |
+| architecture | `@architecture-designer` | `<维度名>-<章节名>.md` 二级子文件 + 引用清单 | 否 |
+| api | `@api-designer` | `<维度名>-<章节名>.md` 二级子文件 + 引用清单 | 否 |
+| database | `@database-designer` | `<维度名>-<章节名>.md` 二级子文件 + 引用清单 | 否 |
+| test-cases | `@test-cases-designer` | `<维度名>-<章节名>.md` 二级子文件 + 引用清单 | 否 |
+| security | `@security-designer` | `<维度名>-<章节名>.md` 二级子文件 + 引用清单 | 否 |
+| observability | `@observability-designer` | `<维度名>-<章节名>.md` 二级子文件 + 引用清单 | 否 |
+| non-functional | `@non-functional-designer` | `<维度名>-<章节名>.md` 二级子文件 + 引用清单 | 否 |
 | 跨维度映射表 | 主代理产出 | design.md（内联） | 是 |
 
 **硬性约束：主代理严禁直接产出维度契约内容。** overview、实施约束和跨维度映射表由主代理产出，其他维度必须调度对应子代理。违反此约束属于执行错误。
@@ -270,12 +270,19 @@ overview 始终内联在 `design.md` 中，按 `references/overview-template.md`
 - **跨维度依赖**：已产出维度契约的稳定 ID 和契约元素
 - **设计决策包**（仅 `@ui-ux-designer`）：由 `@ui-design-spec` 产出的设计决策包，包含设计读数、三旋钮配置、设计体系选择、风格变体推荐、负向设计空间、排版建议、色彩建议和布局关键约束
 
+子代理直接按 `###` 章节产出二级子文件，不产出完整维度文件：
+- 文件名：`<维度名>-<章节名kebab>.md`
+- frontmatter：`{ section: <章节名kebab>, parent: <维度名>.md }`
+- 正文：该 `###` 章节内容（含 `###` 标题行）
+
+同时产出 `<维度名>.md` 引用清单文件：
+- frontmatter：`{ section: <维度名>, parent: design.md, sub_split: true }`
+- 正文：子文件引用列表
+
 子代理产出后返回：
-- 产出文件路径
-- 契约元素完成情况（核心/可选）
+- 产出文件路径列表（二级子文件 + 引用清单）
 - 稳定 ID 列表
 - 跨维度映射表行项
-- 行数统计
 
 #### 4.3 主代理汇总
 
@@ -292,15 +299,19 @@ overview 始终内联在 `design.md` 中，按 `references/overview-template.md`
 - 每个维度产出后同步更新跨维度映射表对应行项
 - 设计条目必须使用稳定 ID：ADR-XXX（决策）、TC-XXX（测试用例）、EP-XXX（API 端点）、T-XXX（数据库表）、ST-XXX（UI 状态机）
 
-#### 4.4 维度拆分决策
+#### 4.4 维度校验与合并
 
-**强制拆分规则：** 无论文件大小，每个维度必须拆分为独立子文件（`<维度名>.md`），不在 design.md 中内联维度内容。overview、实施约束和跨维度映射表始终内联在 design.md 中。design-spec 维度为透传维度，不产出独立文件，不参与拆分规则和行数校验。
+**强制拆分规则：** 每个维度必须拆分为独立子文件，不在 design.md 中内联维度内容。overview、实施约束和跨维度映射表始终内联在 design.md 中。design-spec 维度为透传维度，不产出独立文件，不参与拆分规则和行数校验。
 
-拆分后，对每个维度子文件评估行数：
-- **维度子文件 ≤ 300 行**：保持为独立子文件，不继续拆分
-- **维度子文件 > 300 行**：按 `###` 子章节拆出为二级子文件 `<维度名>-<章节名>.md`；已拆分到章节级的文件不再继续拆分，其行数不参与校验
+子代理已直接产出二级子文件。运行流水线脚本：
 
-使用 ae:design 技能目录下的 `scripts/check-design-lines.mjs` 校验所有非章节级文件行数，超出 300 行的文件需重新拆分。
+    node <ae-design技能目录>/scripts/pipeline-design-shards.mjs <design目录路径>
+
+脚本自动完成：
+1. **校验**：所有一级维度文件（引用清单）行数 ≤ 300 行
+2. **合并**：对每个已二级拆分的维度，计算合并后行数；合并后 ≤ 300 行 → 合并回父文件；> 300 行 → 保持拆分
+
+合并由脚本执行，LLM 不介入。
 
 拆分规则、子文件命名规范、Split Manifest 格式和二级拆分细则见 `references/design-output-template.md`。
 

@@ -6,19 +6,23 @@
 
 ```
 ae/designs/
-└── user-auth-2026-06-24/          # 需求描述名-日期
-    ├── design.md                   # 元文件（含 frontmatter + overview + Split Manifest + 实施约束 + 跨维度映射表）
-    ├── architecture.md             # 维度子文件（由 @architecture-designer 产出）
-    ├── api.md                      # 维度子文件（由 @api-designer 产出）
-    ├── database.md                 # 维度子文件（由 @database-designer 产出）
-    ├── ui-ux.md                    # 维度子文件（由 @ui-ux-designer 产出）
-    ├── test-cases.md               # 维度子文件（由 @test-cases-designer 产出）
-    ├── security.md                 # 维度子文件（由 @security-designer 产出）
-    ├── observability.md            # 维度子文件（由 @observability-designer 产出）
-    └── non-functional.md           # 维度子文件（由 @non-functional-designer 产出）
+└── user-auth-2026-06-24/              # 需求描述名-日期
+    ├── design.md                       # 元文件（含 frontmatter + overview + Split Manifest + 实施约束 + 跨维度映射表）
+    ├── architecture.md                 # 引用清单（sub_split: true/false）
+    ├── architecture-module-boundary.md # 二级子文件（### 章节内容）
+    ├── architecture-tech-selection.md  # 二级子文件
+    ├── api.md                          # 引用清单
+    ├── api-endpoints.md                # 二级子文件
+    ├── api-auth.md                     # 二级子文件
+    ├── database.md                     # 引用清单（合并后 sub_split: false）
+    ├── ui-ux.md                        # 引用清单（合并后 sub_split: false）
+    ├── test-cases.md                   # 引用清单（合并后 sub_split: false）
+    ├── security.md                     # 引用清单（合并后 sub_split: false）
+    ├── observability.md                # 引用清单（合并后 sub_split: false）
+    └── non-functional.md               # 引用清单（合并后 sub_split: false）
 ```
 
-**强制拆分规则：** 无论文件大小，每个维度必须拆分为独立子文件（`<维度名>.md`），不在 design.md 中内联维度内容。overview、实施约束和跨维度映射表始终内联在 design.md 中。
+**强制拆分规则：** 每个维度必须拆分为独立子文件，不在 design.md 中内联维度内容。子代理直接按 `###` 章节产出二级子文件和引用清单。overview、实施约束和跨维度映射表始终内联在 design.md 中。
 
 **"需求描述名"来源规则（D12）：**
 - prd 文档作为输入时：从 prd 文件名提取（如 `user-auth-prd.md` → `user-auth`）
@@ -45,65 +49,29 @@ status: "active"
 
 ## Split Manifest
 
-- status: split
-- total_lines: 560
-- threshold: 300
-- inline_sections:
-  - overview
-  - implementation_constraints
-  - cross_dimension_mapping
-  - split_manifest
 - split_files:
   - file: architecture.md
-    section: architecture
     lines: 280
     sub_split: false
   - file: api.md
-    section: api
     lines: 50
     sub_split: true
-    sub_files:
-      - file: api-endpoints.md
-        section: api-endpoints
-        lines: 180
-      - file: api-auth.md
-        section: api-auth
-        lines: 120
-      - file: api-errors.md
-        section: api-errors
-        lines: 90
-      - file: api-versions.md
-        section: api-versions
-        lines: 60
   - file: database.md
-    section: database
     lines: 30
     sub_split: true
-    sub_files:
-      - file: database-tables.md
-        section: database-tables
-        lines: 200
-      - file: database-migrations.md
-        section: database-migrations
-        lines: 100
   - file: ui-ux.md
-    section: ui-ux
     lines: 280
     sub_split: false
   - file: test-cases.md
-    section: test-cases
     lines: 280
     sub_split: false
   - file: security.md
-    section: security
     lines: 150
     sub_split: false
   - file: observability.md
-    section: observability
     lines: 120
     sub_split: false
   - file: non-functional.md
-    section: non-functional
     lines: 100
     sub_split: false
 
@@ -205,8 +173,8 @@ status: "active"
 #### 拆分步骤
 
 1. **产出 overview 和跨维度映射表骨架** - 主代理产出 overview、实施约束和跨维度映射表骨架，内联在 design.md 中
-2. **调度维度子代理** - 按产出顺序逐个调度维度专精子代理产出独立子文件
-3. **Split Manifest 更新** - 记录每个拆出文件的 file、section、lines、sub_split 状态
+2. **调度维度子代理** - 按产出顺序逐个调度维度专精子代理，子代理直接按 `###` 章节产出二级子文件和引用清单
+3. **Split Manifest 更新** - 记录每个维度文件的 file、lines、sub_split 状态
 
 #### 始终内联的章节
 
@@ -218,17 +186,9 @@ status: "active"
 
 ### 二级拆分
 
-#### 触发条件
+#### 产出方式
 
-一级拆分后，某个维度子文件（如 `api.md`）行数超过 **300 行** 时触发二级拆分。
-
-#### 拆分步骤
-
-1. **统计维度子文件行数** - 包含 frontmatter 和维度正文
-2. **≤ 300 行** - 保持为独立子文件，不继续拆分
-3. **> 300 行** - 按 `###` 子章节拆出为二级子文件
-4. **维度子文件变为引用清单** - 原 `<维度名>.md` 只保留 frontmatter + 引用说明，正文移至二级子文件
-5. **Split Manifest 更新** - 在 `sub_files` 中记录每个二级子文件
+子代理直接按 `###` 章节产出二级子文件，不产出完整维度文件。每个 `###` 章节对应一个二级子文件。
 
 #### 二级子文件命名
 
@@ -242,39 +202,45 @@ status: "active"
 - 已拆分到 `###` 章节级的文件不再继续拆分，其行数不参与校验
 - 即使某个 `###` 章节内容本身超过 300 行，也不继续拆分
 
-### 校验机制
+### 校验与合并机制
 
-使用 ae:design 技能目录下的 `scripts/check-design-lines.mjs` 校验产物文件行数：
+使用 ae:design 技能目录下的 `scripts/pipeline-design-shards.mjs` 完成校验和合并：
 
-- **校验范围**：一级拆分文件（`<维度名>.md`），不包括 design.md 和二级子文件（`<维度名>-<章节名>.md`）
-- **校验规则**：一级拆分文件行数 ≤ 300 行
-- **失败处理**：校验脚本退出码 1 时，对超标文件重新拆分
-- **用法**：`node <ae-design技能目录>/scripts/check-design-lines.mjs <design目录路径> [--threshold N]`
+- **校验**：一级拆分文件（`<维度名>.md`）行数 ≤ 300 行，design.md 和二级子文件豁免
+- **合并**：二级子文件合并后 ≤ 300 行 → 合并回父文件；> 300 行 → 保持拆分
+- **用法**：`node <ae-design技能目录>/scripts/pipeline-design-shards.mjs <design目录路径> [--threshold N]`
 
 ### 示例
 
-假设各维度行数：
-- overview: 150 行（不拆，始终内联）
-- implementation_constraints: 80 行（不拆，始终内联）
-- cross_dimension_mapping: 60 行（不拆，始终内联）
-- architecture: 280 行 → 拆出，≤ 300 不再二级拆分
-- api: 520 行 → 拆出，> 300 触发二级拆分
+假设各维度子代理产出二级子文件：
+- overview: 150 行（始终内联，不拆出）
+- implementation_constraints: 80 行（始终内联，不拆出）
+- cross_dimension_mapping: 60 行（始终内联，不拆出）
+- architecture: 子代理产出 2 个二级子文件
+  - architecture-module-boundary.md: 150 行
+  - architecture-tech-selection.md: 130 行
+  - architecture.md（引用清单）: 12 行
+- api: 子代理产出 4 个二级子文件
   - api-endpoints.md: 180 行
   - api-auth.md: 120 行
   - api-errors.md: 90 行
   - api-versions.md: 60 行
   - api.md（引用清单）: 50 行
-- database: 350 行 → 拆出，> 300 但已是独立维度文件，按 `###` 二级拆分
+- database: 子代理产出 2 个二级子文件
   - database-tables.md: 200 行
   - database-migrations.md: 100 行
   - database.md（引用清单）: 30 行
-- ui-ux: 280 行 → 拆出，≤ 300 不再二级拆分
-- test-cases: 280 行 → 拆出，≤ 300 不再二级拆分
-- security: 150 行 → 拆出，≤ 300 不再二级拆分
+- ui-ux: 子代理产出 1 个二级子文件
+  - ui-ux.md（引用清单）: 280 行（仅 1 个章节，引用清单即完整内容）
+- test-cases: 子代理产出 1 个二级子文件
+  - test-cases.md（引用清单）: 280 行
+- security: 子代理产出 1 个二级子文件
+  - security.md（引用清单）: 150 行
 
-拆分后 design.md 剩余：150 (overview) + 80 (实施约束) + 60 (跨维度映射表) + 50 (Split Manifest + 引用说明) = 340 行
-
-校验脚本只检查 architecture.md (280)、database.md (30, 引用清单)、ui-ux.md (280)、test-cases.md (280)、security.md (150)，全部 ≤ 300，校验通过。api-endpoints.md 等二级子文件跳过校验。
+流水线脚本执行后：
+1. 校验：所有引用清单文件 ≤ 300 行，通过
+2. 合并：architecture（合并后 280 行 ≤ 300）→ 合并回 architecture.md；api（合并后 450 行 > 300）→ 保持拆分；database（合并后 230 行 ≤ 300）→ 合并回 database.md
+3. 最终校验：architecture.md (280)、api.md (50, 引用清单)、database.md (230)、ui-ux.md (280)、test-cases.md (280)、security.md (150)，全部 ≤ 300，通过
 
 ---
 
@@ -295,17 +261,13 @@ status: "active"
 
 ### 一级子文件 frontmatter
 
-每个拆分子文件包含 frontmatter，其中 `contract_elements` 记录该子文件的 MVCE（最小可验证契约元素）清单，供 ae:review 的 auto 修复快速识别该子文件应有的契约元素：
+每个拆分子文件包含 frontmatter，使用 `section`、`parent`、`sub_split` 三个字段：
 
 ```markdown
 ---
-design_name: "user-auth"
-design_version: "1.0"
 section: "architecture"
 parent: "design.md"
-contract_elements: [module_boundary, dependency_direction, layering_rule, data_flow, tech_selection, error_propagation, cross_layer_sync, negative_space]
 sub_split: false
-last_updated: "2026-06-24"
 ---
 
 # 架构设计
@@ -314,25 +276,19 @@ last_updated: "2026-06-24"
 
 ### 二级子文件 frontmatter
 
-二级拆分子文件使用 `sub_split: true` 标记父文件已二级拆分，自身包含 `section` 字段标识所属章节：
+二级子文件包含 `section` 字段标识所属章节，`parent` 指向维度文件：
 
 ```markdown
 ---
-design_name: "user-auth"
-design_version: "1.0"
 section: "api-endpoints"
 parent: "api.md"
-dimension: "api"
-last_updated: "2026-06-24"
 ---
 
 # 接口设计 - 端点清单
 （章节内容）
 ```
 
-`contract_elements` 字段为可选；ae:review 遇到缺失时降级为手动检查。各维度的 contract_elements 取值参考 `references/` 目录下对应维度的模板文件中"契约元素（MVCE）"章节。
-
-**命名规则：** `contract_elements` 使用 snake_case 英文标识，从 MVCE 元素的中文名称按"动词+名词"或"名词组合"规则转换（如"模块边界表"→`module_boundary`、"错误传播链"→`error_propagation`）。命名应保持简洁、可读、可机器匹配。
+各维度的契约元素（MVCE）清单由 `ae:review` 遇到缺失时降级为手动检查，不再在 frontmatter 中声明。
 
 ### 子文件引用方式
 
@@ -358,12 +314,9 @@ design.md 中对一级拆分子文件的引用：
 
 ```markdown
 ---
-design_name: "user-auth"
-design_version: "1.0"
 section: "api"
 parent: "design.md"
 sub_split: true
-last_updated: "2026-06-24"
 ---
 
 # 接口设计

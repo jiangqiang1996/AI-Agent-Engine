@@ -33,17 +33,10 @@ topic: <kebab-case-topic>
 time_scope: [frontend, backend, data, security, ops]
 origin: <上游路径，若无则删除此行>
 originFingerprint: <上游指纹，若无则删除此行>
-format: human-readable-requirements
 sharded: false
 ---
 
 # <主题标题>
-
-## AI 解析契约
-- canonicalKind: requirements
-- humanEquivalent: true
-- stableIdsRequired: true
-- noImplicitScope: true
 
 ## 问题框架
 [当前问题、目标变化、成功判断和必要范围背景；不写干系人、用户画像、业务价值或汇报型背景，除非它们直接决定需求范围或验收条件]
@@ -112,15 +105,13 @@ sharded: false
 | `time_scope` | `[frontend, backend, data, security, ops]` | 涉及时段列表，用于触发下游 ae:design 维度自动产出。可选值：`frontend`、`backend`、`data`、`security`、`ops`、`mobile`、`infra` 等；非软件任务省略此字段 |
 | `origin` | 上游产物路径 | 仅在有上游产物时填写，否则删除此行。必须使用仓库相对路径 |
 | `originFingerprint` | 上游指纹 | 仅在有上游产物时填写，否则删除此行。值为上游产物 `date` + `-` + `topic` 的 kebab-case 拼接；若上游没有 `topic`，则使用 `date` + `-` + `title` |
-| `format` | `human-readable-requirements` | 固定值，表示同一文档同时供人读和机器提取 |
 | `sharded` | `false` 或 `true` | 仅当模块数量大于 1，或用户明确要求分片时使用 `true`；不得按需求数量、文档行数或预估 token 数自动分片 |
-| `supersededBy` | — | 不由 prd 技能填写，由后续技能在替代旧文档时写入 |
 
 **分片规则：**
 
 仅当模块数量大于 1，或用户明确要求分片时，才创建分片需求文档。主文件仍必须保留问题框架、全局范围、跨模块流程、共享数据、接口边界或其他跨模块关系，不能退化为分片路径列表。
 
-分片主文件 frontmatter 使用 `type: prd`、`format: human-readable-requirements`、`sharded: true` 和 `shards` 索引。`shards` 每项至少包含 `file`、`module`，并尽量列出该分片覆盖的 `requirements`、`decisions` 或其他稳定 ID。
+分片主文件 frontmatter 使用 `type: prd`、`sharded: true` 和 `shards` 索引。`shards` 每项至少包含 `file`、`module`，并尽量列出该分片覆盖的 `requirements`、`decisions` 或其他稳定 ID。
 
 分片子文件 frontmatter 使用 `type: prd-shard`、`parent: <主文件仓库相对路径>` 和 `module: <模块名>`。子文件只承载本模块需求、约束和待定问题，不作为恢复、规划或执行入口的顶层产物。
 
@@ -146,7 +137,7 @@ sharded: false
 - 是否有一个低成本的变更会使这显著更有用？
 - 视觉辅助是否能帮助读者比纯文字更快地理解需求？
 - 每个需求条目是否都有明确的验收条件？
-- `AI 解析契约` 是否存在，且 `一致性检查` 中的数量是否与正文一致？
+- `一致性检查` 中的数量是否与正文一致？
 - 是否保留了足够稳定 ID，使 `ae-doc-extract` 可按 ID 或模块提取所需上下文？
 
 如果规划需要发明产品行为、范围边界或成功标准，需求探索还没有完成。

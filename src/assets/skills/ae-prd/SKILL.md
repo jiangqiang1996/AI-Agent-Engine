@@ -134,7 +134,7 @@ argument-hint: "[目标描述|需求文档路径]"
 
 仅当对话产生了值得保留的持久决策时，才编写或更新需求数据文档。阅读 `references/requirements-capture.md` 获取文档模板、格式规则和完整性检查。
 
-**Frontmatter 字段填写规则：** 需求数据文档的 frontmatter 必须包含 `type: prd`、`status: drafted`、`date` 和 `topic`。`origin` 和 `originFingerprint` 仅在有上游产物时成对填写。`origin` 必须使用仓库相对路径。`originFingerprint` 的值为上游产物 frontmatter 中 `date` + `-` + `topic` 的 kebab-case 拼接；若上游没有 `topic`，则使用 `date` + `-` + `title`。`supersededBy` 不由本技能填写。
+**Frontmatter 字段填写规则：** 需求数据文档的 frontmatter 必须包含 `type: prd`、`status: drafted`、`date` 和 `topic`。`origin` 和 `originFingerprint` 仅在有上游产物时成对填写。`origin` 必须使用仓库相对路径。`originFingerprint` 的值为上游产物 frontmatter 中 `date` + `-` + `topic` 的 kebab-case 拼接；若上游没有 `topic`，则使用 `date` + `-` + `title`。
 
 对于**轻量**需求探索，保持文档紧凑。当用户只需要简短对齐且不需要保留持久决策时，跳过文档创建。
 
@@ -153,21 +153,21 @@ argument-hint: "[目标描述|需求文档路径]"
 
 **结果呈现：** 若文档审查返回了自动应用的发现，在呈现交接选项时简要提及。若收敛后仍有非阻断的 P2/P3 发现，提及它们以便用户决定是否在继续之前解决。收敛后进入阶段 3.6。
 
-### 阶段 3.6：产物行数校验
+### 阶段 3.6：产物行数校验与拆分
 
-当创建或更新了需求数据文档时，运行产物行数校验。
+当创建或更新了需求数据文档时，运行拆分脚本：
 
-**校验规则：**
-- **独立主文件（`type: prd`, `sharded: false` 或未设置）** 行数 ≤ 300 行
-- **分片子文件（`type: prd-shard`）** 行数 ≤ 300 行
-- **分片索引主文件（`type: prd`, `sharded: true`）** 豁免校验（导航索引文件）
-- **无 frontmatter 或 type 非 prd/prd-shard 的文件** 跳过
+    node <ae-prd技能目录>/scripts/split-prd.mjs <prd文件路径>
 
-**超标处理：**
-- 独立主文件 > 300 行：按模块分片，将主文件改为 `sharded: true` 索引文件，各模块需求拆为 `type: prd-shard` 子文件
-- 分片子文件 > 300 行：按需求分组进一步拆分为多个 `prd-shard` 子文件
+脚本自动完成：
+1. 校验文件行数，≤ 300 行则退出
+2. > 300 行时按 `**[分组标题]**` 切分需求章节，全局章节保留在主文件
+3. 各模块需求写为 `type: prd-shard` 子文件
+4. 主文件 frontmatter `sharded` 改为 `true`，`## 需求` 章节替换为分片引用列表
 
-使用 ae:prd 技能目录下的 `scripts/check-prd-lines.mjs` 校验，超出 300 行的文件需重新拆分后再次校验，直到全部通过。
+拆分后运行校验脚本确认：
+
+    node <ae-prd技能目录>/scripts/check-prd-lines.mjs <prd目录路径>
 
 校验通过后进入阶段 4。
 
