@@ -2,6 +2,7 @@
 name: standards-reviewer
 model: $deep
 mode: subagent
+steps: 15
 description: 常驻代码审查角色。根据项目自身的 CLAUDE.md 和 AGENTS.md 标准审计变更——frontmatter 规则、引用包含、命名约定、跨平台可移植性和工具选择策略。
 ---
 
