@@ -110,16 +110,62 @@ ae-officecli file=data.xlsx command=set path=/Sheet1/B2 props='{"value":"95"}'
 ae-officecli file=data.xlsx command=view mode=outline
 ```
 
+## 设计系统
+
+内置 3 套设计模板，选定后全程遵循。完整规格见 `references/design-templates.md`。
+
+| 模板 | 适用场景 | 表头底色 | 特征 |
+|------|---------|---------|------|
+| `data-table` | 通用数据表 | `2C3E50` | 交替行底色 + 冻结首行 |
+| `dashboard` | KPI 仪表板 | `4472C4` | KPI 卡片 + 图表 + 多色系 |
+| `financial` | 财务报表 | `1A1A2E` | 小计/合计行 + 负数红 + 货币格式 |
+
+选择规则：
+- 用户指定风格时使用对应模板
+- 未指定时根据内容推断：数据分析→`data-table`，KPI 展示→`dashboard`，财务→`financial`
+
+### 风格规格
+
+每套模板定义以下维度（具体数值见 references）：
+- 配色：表头底色、数据行交替底色、强调色
+- 字体：表头字体/字号/粗体、数据字体/字号
+- 边框：表头边框、数据区边框
+- 对齐：表头对齐、数据对齐、数字列对齐
+- 列宽：标准列宽、窄列宽、宽列宽
+- 条件格式：负数红色、交替行底色等
+
+## 视觉验证
+
+生成或修改后必须验证视觉效果：
+
+```
+ae-officecli file=data.xlsx command=view mode=html
+ae-officecli file=data.xlsx command=view mode=outline
+```
+
+HTML 验证排版和配色，outline 验证结构（工作表名、单元格值、公式）。发现问题后修复，每节最多 3 轮。
+
+## 更新已有文档
+
+**禁止全量重建**。更新已有文档时：
+
+1. 先 `command=view mode=outline` 读取当前结构
+2. 只对需要变更的单元格/行/列执行 `command=set`/`add`/`remove`
+3. 未变更的数据保持不动
+4. 修改后执行视觉验证
+
 ## Excel 专属最佳实践
 
-1. **匹配专用场景时先 `load_skill`**：财务模型任务先 `financial-model`，仪表板先 `data-dashboard`
-2. **先读再改**：编辑前先 `view outline` 了解结构
-3. **批量操作**：多个修改用 `batch` 一次完成
-4. **公式计算**：OfficeCLI 内置公式引擎，`get` 时可获取计算结果
-5. **转 HTML 验证**：用 `view html` 而非 `view screenshot`--更快
-6. **不确定时用 help**：`command=help path="xlsx cell"` 查看完整属性
-7. **排序注意**：排序会拒绝包含合并单元格或公式的范围
-8. **行/列插入**：`add --type row/col` 的 `--index N` 是 **1-based**，匹配 Excel UI
+1. **选定模板后全程遵循** — 配色、字体、边框从模板取值，不得混用
+2. **匹配专用场景时先 `load_skill`**：财务模型任务先 `financial-model`，仪表板先 `data-dashboard`
+3. **先读再改**：编辑前先 `view outline` 了解结构
+4. **增量更新** — 只修改需要变更的单元格，不重建整个文件
+5. **批量操作**：多个修改用 `batch` 一次完成
+6. **公式计算**：OfficeCLI 内置公式引擎，`get` 时可获取计算结果
+7. **转 HTML 验证**：用 `view html` 做视觉验证
+8. **不确定时用 help**：`command=help path="xlsx cell"` 查看完整属性
+9. **排序注意**：排序会拒绝包含合并单元格或公式的范围
+10. **行/列插入**：`add --type row/col` 的 `--index N` 是 **1-based**，匹配 Excel UI
 
 ## 完整 CLI 参考
 

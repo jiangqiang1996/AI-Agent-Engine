@@ -93,16 +93,61 @@ ae-officecli file=report.docx command=add path=/body type=paragraph props='{"tex
 ae-officecli file=report.docx command=view mode=outline
 ```
 
+## 设计系统
+
+内置 3 套设计模板，选定后全程遵循。完整规格见 `references/design-templates.md`。
+
+| 模板 | 适用场景 | 标题色 | 强调色 |
+|------|---------|--------|--------|
+| `business-report` | 商务报告/项目文档 | `2C3E50` | `3498DB` |
+| `academic` | 学术论文/研究报告 | `333333` | `007ACC` |
+| `clean-doc` | 简洁文档/备忘录 | `333333` | `666666` |
+
+选择规则：
+- 用户指定风格时使用对应模板
+- 未指定时根据内容推断：商务→`business-report`，学术→`academic`，日常→`clean-doc`
+
+### 风格规格
+
+每套模板定义以下维度（具体数值见 references）：
+- 配色：标题色、正文色、强调色、表格表头底色
+- 字体：标题字体/字号、正文字体/字号
+- 间距：标题前间距、标题后间距、正文行间距
+- 缩进：正文首行缩进
+- 页眉页脚：页眉文本、页脚文本、首页是否区分
+- 表格样式：表头底色、表头字号/粗体、表格边框
+
+## 视觉验证
+
+生成或修改后必须验证视觉效果：
+
+```
+ae-officecli file=report.docx command=view mode=html
+```
+
+HTML 渲染可快速检查排版、配色和结构。发现问题后用 `set`/`add`/`remove` 修复，每节最多 3 轮。
+
+## 更新已有文档
+
+**禁止全量重建**。更新已有文档时：
+
+1. 先 `command=view mode=outline` 读取当前结构
+2. 只对需要变更的段落/表格执行 `command=set`/`add`/`remove`
+3. 未变更的内容保持不动
+4. 修改后执行视觉验证
+
 ## Word 专属最佳实践
 
-1. **匹配专用场景时先 `load_skill`**：学术论文任务先 `academic-paper`
-2. **先读再改**：编辑前先 `view outline` 或 `get` 了解文档结构
-3. **用稳定 ID**：多步操作时优先使用 `@paraId=` 寻址，避免插入/删除后索引偏移
-4. **批量操作**：多个修改用 `batch` 一次完成，减少进程开销
-5. **验证结果**：修改后运行 `validate` 或 `view issues` 检查
-6. **不确定时用 help**：`command=help path="docx paragraph"` 查看完整属性列表
-7. **转 HTML 验证**：用 `view html` 而非 `view screenshot` 做视觉验证--更快
-8. **修订追踪**：需要审阅的变更用 `revision.type` + `revision.author` 标记
+1. **选定模板后全程遵循** — 配色、字体、间距从模板取值，不得混用
+2. **匹配专用场景时先 `load_skill`**：学术论文任务先 `academic-paper`
+3. **先读再改**：编辑前先 `view outline` 或 `get` 了解文档结构
+4. **增量更新** — 只修改需要变更的部分，不重建整个文件
+5. **用稳定 ID**：多步操作时优先使用 `@paraId=` 寻址，避免插入/删除后索引偏移
+6. **批量操作**：多个修改用 `batch` 一次完成，减少进程开销
+7. **验证结果**：修改后运行 `validate` 或 `view issues` 检查
+8. **不确定时用 help**：`command=help path="docx paragraph"` 查看完整属性列表
+9. **转 HTML 验证**：用 `view html` 做视觉验证
+10. **修订追踪**：需要审阅的变更用 `revision.type` + `revision.author` 标记
 
 ## 完整 CLI 参考
 

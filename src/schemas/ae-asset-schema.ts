@@ -79,7 +79,6 @@ export const AGENT = {
   WEB_RESEARCHER: 'web-researcher',
   SPEC_FLOW_ANALYZER: 'spec-flow-analyzer',
   UI_ARCHITECT: 'ui-architect',
-  DOC_ARCHITECT: 'doc-architect',
   LOGIC_WEAVER: 'logic-weaver',
   BROWSER_INSPECTOR: 'browser-inspector',
   UI_UX_DESIGNER: 'ui-ux-designer',
