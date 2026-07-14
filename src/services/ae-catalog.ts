@@ -112,14 +112,6 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillFile: `src/assets/skills/${skillDir(SKILL.SLIDES_OUTLINE)}/SKILL.md`,
     tier: 'docs',
   },
-  {
-    skillName: SKILL.PPTX_FROM_OUTLINE,
-    commandName: COMMAND.PPTX_FROM_OUTLINE,
-    description: '传入确认后的幻灯片大纲文件，解析布局提示词与图表/线框描述，调用 ae-pptx 工具生成 PPTX 演示文稿；内容必须完全符合大纲，禁止镀金',
-    argumentHint: '[大纲文件路径]',
-    skillFile: `src/assets/skills/${skillDir(SKILL.PPTX_FROM_OUTLINE)}/SKILL.md`,
-    tier: 'docs',
-  },
 {
     skillName: SKILL.HANDOFF,
     commandName: COMMAND.HANDOFF,
@@ -159,14 +151,6 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     argumentHint: '[接口文档|接口描述|已有脚本路径|业务流程描述]',
     skillFile: `src/assets/skills/${skillDir(SKILL.API_TESTER)}/SKILL.md`,
     tier: 'tools',
-  },
-  {
-    skillName: SKILL.LIBREOFFICE,
-    commandName: COMMAND.LIBREOFFICE,
-    description: 'LibreOffice 运行时管理：检测、下载、配置和管理 LibreOffice（ae.jsonc 配置、系统安装或便携版），供 ae:pptx、ae:docx、ae:pdf、ae:xlsx 技能进行文档转换或视觉验证时调用',
-    argumentHint: '[action=check|install|config|set-path]',
-    skillFile: `src/assets/skills/${skillDir(SKILL.LIBREOFFICE)}/SKILL.md`,
-    tier: 'docs',
   },
   {
     skillName: SKILL.IMAGE,
@@ -243,8 +227,8 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   {
     skillName: SKILL.DOCX,
     commandName: COMMAND.DOCX,
-    description: '创建、编辑、分析、追加、更新块 Word 文档（.docx），支持格式保留、修订追踪和文本提取；to-markdown 操作可将 DOCX 转为 Markdown，本技能输出仍为 .docx',
-    argumentHint: '[创建|编辑|分析|修订|追加|更新块] [文件路径] [任务描述]',
+    description: 'ae:officecli 的 .docx 专属包装技能。创建、编辑、分析 Word 文档，支持段落、表格、修订追踪、页眉页脚、目录等全部 OOXML 能力。底层通过 ae-officecli 工具执行',
+    argumentHint: '[创建|编辑|分析|读取|追加|格式转换] [文件路径] [任务描述]',
     skillFile: `src/assets/skills/${skillDir(SKILL.DOCX)}/SKILL.md`,
     tier: 'docs',
   },
@@ -259,16 +243,16 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   {
     skillName: SKILL.PPTX,
     commandName: COMMAND.PPTX,
-    description: '创建、编辑、分析、追加、更新 PowerPoint 演示文稿（.pptx），支持模板、布局和设计原则；to-markdown 操作可将 PPTX 转为 Markdown，本技能输出仍为 .pptx',
-    argumentHint: '[创建|编辑|分析|追加|更新] [文件路径] [任务描述]',
+    description: 'ae:officecli 的 .pptx 专属包装技能。创建、编辑、分析 PowerPoint 演示文稿，支持幻灯片、形状、图片、图表、表格、动画、过渡、母版等全部 OOXML 能力。底层通过 ae-officecli 工具执行',
+    argumentHint: '[创建|编辑|分析|读取|追加|更新|预览] [文件路径] [任务描述]',
     skillFile: `src/assets/skills/${skillDir(SKILL.PPTX)}/SKILL.md`,
     tier: 'docs',
   },
   {
     skillName: SKILL.XLSX,
     commandName: COMMAND.XLSX,
-    description: '创建、编辑、分析、追加行、追加表 Excel 电子表格（.xlsx），支持公式、格式、数据分析和图表；to-markdown 操作可将 XLSX 转为 Markdown，本技能输出仍为 .xlsx',
-    argumentHint: '[创建|编辑|分析|追加行|添加工作表] [文件路径] [任务描述]',
+    description: 'ae:officecli 的 .xlsx 专属包装技能。创建、编辑、分析 Excel 电子表格，支持公式计算、数据透视表、条件格式、图表、数据验证等全部 OOXML 能力。底层通过 ae-officecli 工具执行',
+    argumentHint: '[创建|编辑|分析|读取|追加|公式|透视表] [文件路径] [任务描述]',
     skillFile: `src/assets/skills/${skillDir(SKILL.XLSX)}/SKILL.md`,
     tier: 'docs',
   },
@@ -279,6 +263,14 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     argumentHint: '[需求文档路径|设计文档路径|方案描述]',
     skillFile: `src/assets/skills/${skillDir(SKILL.GRILL)}/SKILL.md`,
     tier: 'core',
+  },
+  {
+    skillName: SKILL.OFFICECLI,
+    commandName: COMMAND.OFFICECLI,
+    description: '通过 ae-officecli 工具调用 OfficeCLI 原生二进制操作 Office 文档（.docx/.xlsx/.pptx），支持 L1 读取/L2 DOM 编辑/L3 raw XML，内置公式引擎和 HTML 渲染；跨平台自动下载二进制，用户无需手动安装',
+    argumentHint: '[文件路径] [command=...] [path=...] [props=...]',
+    skillFile: `src/assets/skills/${skillDir(SKILL.OFFICECLI)}/SKILL.md`,
+    tier: 'docs',
   },
 ]
 

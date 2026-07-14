@@ -18,8 +18,6 @@ export const SKILL = {
   SWAGGER_PARSER: 'ae:swagger-parser',
   API_TESTER: 'ae:api-tester',
   SLIDES_OUTLINE: 'ae:slides-outline',
-  PPTX_FROM_OUTLINE: 'ae:pptx-from-outline',
-  LIBREOFFICE: 'ae:libreoffice',
 
   IMAGE: 'ae:image',
   AUDIO: 'ae:audio',
@@ -35,6 +33,7 @@ export const SKILL = {
   XLSX: 'ae:xlsx',
   PROMPT_OPTIMIZE: 'ae:prompt-optimize',
   GRILL: 'ae:grill',
+  OFFICECLI: 'ae:officecli',
 } as const
 
 type SkillToCommand<S extends string> = S extends `ae:${infer R}` ? `ae-${R}` : S
@@ -112,7 +111,6 @@ export const TOOL = {
   AE_HELP: 'ae-help',
   AE_REVIEW_PROOF: 'ae-review-proof',
   AE_SWAGGER_PARSER: 'ae-swagger-parser',
-  AE_LIBREOFFICE: 'ae-libreoffice',
 
   AE_IMAGE: 'ae-image',
   AE_AUDIO: 'ae-audio',
@@ -127,12 +125,9 @@ export const TOOL = {
   AE_DOMAIN_DISPATCH_PREPARE: 'ae-domain-dispatch-prepare',
   AE_DOMAIN_DISPATCH_AGGREGATE: 'ae-domain-dispatch-aggregate',
   AE_ASYNC_BASH: 'ae-async-bash',
-  AE_DOCX: 'ae-docx',
   AE_PDF: 'ae-pdf',
-  AE_PPTX: 'ae-pptx',
-  AE_PPTX_FROM_DESIGN: 'ae-pptx-from-design',
-  AE_XLSX: 'ae-xlsx',
   AE_BRAINSTORM: 'ae-brainstorm',
+  AE_OFFICECLI: 'ae-officecli',
 } as const
 
 export const AeModeSchema = z
@@ -158,8 +153,6 @@ export const AeSkillNameSchema = z
     SKILL.SWAGGER_PARSER,
     SKILL.API_TESTER,
     SKILL.SLIDES_OUTLINE,
-    SKILL.PPTX_FROM_OUTLINE,
-    SKILL.LIBREOFFICE,
     SKILL.IMAGE,
     SKILL.AUDIO,
     SKILL.VIDEO,
@@ -174,6 +167,7 @@ export const AeSkillNameSchema = z
     SKILL.XLSX,
     SKILL.PROMPT_OPTIMIZE,
     SKILL.GRILL,
+    SKILL.OFFICECLI,
   ])
   .describe('AE 技能名')
 

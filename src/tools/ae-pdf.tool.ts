@@ -148,7 +148,7 @@ export const aePdfTool = tool({
     '',
     '适用场景：',
     '- 用户明确要求创建、合并、拆分、提取文本、填写表单、旋转、删除页面、添加水印、追加页面或局部更新',
-    '- 创建或修改 PDF 后需要视觉验证时，使用 to-image 操作（无需 LibreOffice，基于 pdfjs-dist）',
+    '- 创建或修改 PDF 后需要视觉验证时，使用 to-image 操作（基于 pdfjs-dist）',
     '- 需要理解 PDF 视觉内容但模型不支持 vision 时，使用 to-image 转 PNG + ae:image 识别',
     '',
     '不适用场景：',

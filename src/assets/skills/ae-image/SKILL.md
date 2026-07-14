@@ -14,7 +14,7 @@ argument-hint: "file=图片路径 [format=jpg|jpeg|png|gif|webp|bmp] [outputMode
 - 用户明确要求将图片内容持久化为 Markdown 文件
 - 当前模型不支持直接读取图片文件时，用本技能替代直接读取
 - 需要定向识别图片特定内容时，通过 prompt 参数指定识别重点
-- 文档技能（ae:pptx、ae:docx、ae:pdf、ae:xlsx）生成 to-image PNG 后，需要识别图片视觉内容进行验证
+- 文档技能生成 PNG 后（ae:pdf 的 to-image 操作，或 ae:officecli 的 view mode=screenshot），需要识别图片视觉内容进行验证
 
 ## 不适用场景
 
@@ -26,7 +26,7 @@ argument-hint: "file=图片路径 [format=jpg|jpeg|png|gif|webp|bmp] [outputMode
 ## 关键约束
 
 - **模型不支持 vision 时禁止使用 Read 工具读取图片**：Read 工具读取 PNG/JPG 等图片文件时，如果当前模型不支持图像输入，会报错 "Cannot read image (this model does not support image input)"。此时必须通过本技能转换，不得尝试直接 Read 图片文件。
-- 所有 to-image 操作（ae:pptx、ae:docx、ae:pdf、ae:xlsx 的 to-image）生成的 PNG 图片，在模型不支持 vision 时，必须通过本技能识别，不得直接 Read。
+- 所有视觉验证场景（ae:pdf 的 to-image，或 ae:officecli 的 view mode=screenshot）生成的 PNG 图片，在模型不支持 vision 时，必须通过本技能识别，不得直接 Read。
 - **自动调用，不询问用户**：当检测到模型不支持图片输入、或 Read 读取图片报错时，必须立即自动调用本技能，不得向用户提问是否调用、不得列出可选方案让用户选择、不得停下来等待用户确认。直接调用，拿到结果后继续完成任务。
 
 ## 模型配置
@@ -71,7 +71,7 @@ prompt 参数是本技能的核心能力，用于控制识别重点和输出质�
 
 ### 文档视觉验证场景
 
-当配合 ae:pptx、ae:docx、ae:pdf、ae:xlsx 的 to-image 操作进行视觉验证时，应根据文档类型使用针对性的 prompt：
+当配合文档技能生成 PNG 进行视觉验证时（ae:pdf 的 to-image，或 ae:officecli 的 view mode=screenshot），应根据文档类型使用针对性的 prompt：
 
 **PPTX 幻灯片验证 prompt 示例：**
 
@@ -118,7 +118,7 @@ prompt=识别这个UI截图中的所有交互元素：按钮（文字和位置�
 3. **保留原文**：要求"逐字逐句"保留文字内容，不总结、不改写
 4. **异常检测**：显式要求报告渲染异常、排版问题、溢出等
 5. **格式约束**：指定输出格式（Markdown 表格、列表等）
-6. **上下文说明**：说明图片来源（PPTX/DOCX/PDF to-image 转换结果），帮助模型理解识别重点
+6. **上下文说明**：说明图片来源（文档 to-image 或 view screenshot 转换结果），帮助模型理解识别重点
 
 ## 输出
 
