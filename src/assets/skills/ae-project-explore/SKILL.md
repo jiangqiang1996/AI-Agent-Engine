@@ -48,13 +48,23 @@ argument-hint: "[target] [focus=structure|content|relations|patterns|all] [depth
 
 3. 顺序兜底：值特征有交集时，按 `focus → depth → output → target` 顺序匹配
 
+**产出物名称智能推断规则**（用于区分同一工作空间内多次探索不同目标，避免产出物互相覆盖）：
+
+| 优先级 | 来源 | 示例 |
+|--------|------|------|
+| 1 | `target` 目录的 basename（非 ASCII 字符替换为连字符）；当 basename 为 `.`、`..`、空字符串，或非 ASCII 替换后结果为纯连字符时，视为推断失败，降级到优先级 2 | `target=../reference-projects/auth` → `auth` |
+| 2 | 优先级 1 推断失败或 `target` 未显式提供时，从工作区根目录的 package.json / pom.xml / Cargo.toml / go.mod / pyproject.toml / CMakeLists.txt / Makefile 等项目标识文件中提取项目名；提取失败时尝试下一个标识文件 | `package.json` 中 `"name": "my-service"` → `my-service` |
+| 3 | 以上均无法推断 | 固定为 `workspace` |
+
+推断后的名称以下文 `<slug>` 代称，用于产出物文件命名。
+
 **内部调用约定**：当本技能被其他技能自动调用时，所有参数必须使用显式命名格式（如 `focus=all depth=standard`），不依赖值特征推断。
 
 ## 执行流程
 
 ### 阶段一：采集 — 建立宏观认知
 
-首先确定这是什么类型的文件集合，然后分层采集：
+首先按产出物名称智能推断规则确定 `<slug>`，然后确定这是什么类型的文件集合，分层采集：
 
 **1.1 收集类型识别**（自动推断，指导后续策略）
 
@@ -146,7 +156,7 @@ argument-hint: "[target] [focus=structure|content|relations|patterns|all] [depth
 
 ## 输出要求
 
-### Markdown 报告（ae/project-summary.md）
+### Markdown 报告（ae/project-explore/<slug>-project-summary.md）
 
 - 使用中文编写
 - 顶部声明集合类型推断和整体评估
@@ -155,7 +165,7 @@ argument-hint: "[target] [focus=structure|content|relations|patterns|all] [depth
 - 包含探索耗时和文件扫描统计
 - 深度模式：附录包含复刻所需的关键文件清单
 
-### JSON 画像（ae/project-profile.json）
+### JSON 画像（ae/project-explore/<slug>-project-profile.json）
 
 ```json
 {
@@ -225,7 +235,7 @@ argument-hint: "[target] [focus=structure|content|relations|patterns|all] [depth
 ## 安全边界
 
 - 只读取当前工作区内文件，不执行代码、不发起网络请求
-- 不修改任何文件，只写入 `ae/` 目录下的产出物
+- 不修改任何文件，只写入 `ae/project-explore/` 目录下的产出物
 - 不解析 `.env*`、凭证文件、密钥文件、私钥或 `.git` 目录内容
 - 跳过二进制文件和媒体文件的深度解析（仅记录元信息）
 - 依赖目录（node_modules / vendor / __pycache__ / .venv 等）仅统计不深入
@@ -243,7 +253,7 @@ argument-hint: "[target] [focus=structure|content|relations|patterns|all] [depth
 
 ## 完成标准
 
-- Markdown 报告和/或 JSON 画像已写入 `ae/` 目录
+- Markdown 报告和/或 JSON 画像已写入 `ae/project-explore/` 目录，文件名包含按产出物名称智能推断规则推断的 `<slug>`
 - 集合类型已自动推断并声明推断依据
 - 每个结论已标注置信度和证据来源
 - 盲区声明章节非空
