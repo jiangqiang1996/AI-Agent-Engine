@@ -1,0 +1,331 @@
+第三方开源协议声明 (THIRD-PARTY NOTICES)
+==========================================
+
+本项目（ai-agent-engine）使用了以下第三方开源库。以下声明列出各库的名称、版本、
+许可证和来源，以遵守相应开源协议的归属要求。
+
+本项目许可证：GPL-3.0-or-later
+
+所有下列许可证均与 GPL-3.0 兼容。
+
+------------------------------------------------------------------------------
+
+MIT License (MIT)
+-----------------
+
+以下库使用 MIT 许可证：
+
+- @msgpackr-extract/msgpackr-extract-win32-x64 (3.0.4)
+  来源: https://github.com/kriszyp/msgpackr-extract
+
+- @napi-rs/canvas (1.0.2)
+  来源: https://github.com/Brooooooklyn/canvas
+
+- @napi-rs/canvas-win32-x64-msvc (1.0.2)
+  来源: https://github.com/Brooooooklyn/canvas
+
+- @opencode-ai/plugin (1.17.7)
+
+- @opencode-ai/sdk (1.17.7)
+
+- @pdf-lib/fontkit (1.1.1)
+  作者: Andrew Dillon
+  来源: https://github.com/Hopding/fontkit
+
+- @pdf-lib/standard-fonts (1.0.0)
+  作者: Andrew Dillon
+  来源: https://github.com/Hopding/standard-fonts
+
+- @pdf-lib/upng (1.0.1)
+  来源: https://github.com/Hopding/upng
+
+- @standard-schema/spec (1.1.0)
+  作者: Colin McDonnell
+  来源: https://github.com/standard-schema/standard-schema
+
+- @xmldom/xmldom (0.9.10)
+  来源: https://github.com/xmldom/xmldom
+
+- adm-zip (0.5.17)
+  作者: Nasca Iacob
+  来源: https://github.com/cthackers/adm-zip
+
+- core-util-is (1.0.3)
+  作者: Isaac Z. Schlueter
+  来源: https://github.com/isaacs/core-util-is
+
+- cross-spawn (7.0.6)
+  作者: André Cruz
+  来源: https://github.com/moxystudio/node-cross-spawn
+
+- effect (4.0.0-beta.74)
+  来源: https://github.com/Effect-TS/effect-smol
+
+- fast-check (4.8.0)
+  作者: Nicolas DUBIEN
+  来源: https://github.com/dubzzz/fast-check
+
+- find-my-way-ts (0.1.6)
+  来源: https://github.com/tim-smart/find-my-way-ts
+
+- immediate (3.0.6)
+  来源: https://github.com/calvinmetcalf/immediate
+
+- isarray (1.0.0)
+  作者: Julian Gruber
+  来源: https://github.com/juliangruber/isarray
+
+- lie (3.3.0)
+  来源: https://github.com/calvinmetcalf/lie
+
+- msgpackr (2.0.4)
+  作者: Kris Zyp
+  来源: https://github.com/kriszyp/msgpackr
+
+- msgpackr-extract (3.0.4)
+  作者: Kris Zyp
+  来源: https://github.com/kriszyp/msgpackr-extract
+
+- multipasta (0.2.7)
+  作者: Tim Smart
+  来源: https://github.com/tim-smart/multipasta
+
+- node-addon-api (8.7.0)
+  来源: https://github.com/nodejs/node-addon-api
+
+- node-gyp-build (4.8.4)
+  作者: Mathias Buus
+  来源: https://github.com/prebuild/node-gyp-build
+
+- node-gyp-build-optional-packages (5.2.2)
+  作者: Mathias Buus
+  来源: https://github.com/prebuild/node-gyp-build
+
+- path-key (3.1.1)
+  作者: Sindre Sorhus
+  来源: https://github.com/sindresorhus/path-key
+
+- pdf-lib (1.17.1)
+  作者: Andrew Dillon
+  来源: https://github.com/Hopding/pdf-lib
+
+- process-nextick-args (2.0.1)
+  来源: https://github.com/calvinmetcalf/process-nextick-args
+
+- pure-rand (8.4.0)
+  作者: Nicolas DUBIEN
+  来源: https://github.com/dubzzz/pure-rand
+
+- readable-stream (2.3.8)
+  来源: https://github.com/nodejs/readable-stream
+
+- safe-buffer (5.1.2)
+  作者: Feross Aboukhadijeh
+  来源: https://github.com/feross/safe-buffer
+
+- setimmediate (1.0.5)
+  来源: https://github.com/YuzuJS/setImmediate
+
+- shebang-command (2.0.0)
+  作者: Kevin Mårtensson
+  来源: https://github.com/kevva/shebang-command
+
+- shebang-regex (3.0.0)
+  作者: Sindre Sorhus
+  来源: https://github.com/sindresorhus/shebang-regex
+
+- string_decoder (1.1.1)
+  来源: https://github.com/nodejs/string_decoder
+
+- strip-json-comments (5.0.3)
+  作者: Sindre Sorhus
+  来源: https://github.com/sindresorhus/strip-json-comments
+
+- toml (4.1.1)
+  作者: Michelle Tilley
+  来源: https://github.com/BinaryMuse/toml-node
+
+- tree-sitter-go (0.25.0)
+  作者: Max Brunsfeld
+  来源: https://github.com/tree-sitter/tree-sitter-go
+
+- tree-sitter-java (0.23.5)
+  作者: Ayman Nadeem
+  来源: https://github.com/tree-sitter/tree-sitter-java
+
+- tree-sitter-javascript (0.25.0)
+  作者: Max Brunsfeld
+  来源: https://github.com/tree-sitter/tree-sitter-javascript
+
+- tree-sitter-python (0.25.0)
+  作者: Max Brunsfeld
+  来源: https://github.com/tree-sitter/tree-sitter-python
+
+- tree-sitter-typescript (0.23.2)
+  作者: Max Brunsfeld
+  来源: https://github.com/tree-sitter/tree-sitter-typescript
+
+- turndown (7.2.4)
+  作者: Dom Christie
+  来源: https://github.com/mixmark-io/turndown
+
+- util-deprecate (1.0.2)
+  作者: Nathan Rajlich
+  来源: https://github.com/TooTallNate/util-deprecate
+
+- uuid (11.1.1)
+  来源: https://github.com/uuidjs/uuid
+
+- web-tree-sitter (0.26.8)
+  作者: Max Brunsfeld
+  来源: https://github.com/tree-sitter/tree-sitter
+
+- zod (4.1.8)
+  作者: Colin McDonnell
+  来源: https://github.com/colinhacks/zod
+
+------------------------------------------------------------------------------
+
+Apache License 2.0 (Apache-2.0)
+--------------------------------
+
+以下库使用 Apache License 2.0：
+
+- @alibaba-group/open-code-review (1.7.10)
+  来源: https://github.com/alibaba/open-code-review
+
+- @alibaba-group/ocr-win32-x64 (1.7.10)
+  来源: https://github.com/alibaba/open-code-review
+
+- @officecli/officecli (1.0.135)
+  作者: goworm
+  来源: https://github.com/iOfficeAI/OfficeCLI
+
+- @officecli/sdk (0.1.2)
+  作者: goworm
+  来源: https://github.com/iOfficeAI/OfficeCLI
+
+- detect-libc (2.1.2)
+  作者: Lovell Fuller
+  来源: https://github.com/lovell/detect-libc
+
+- kubernetes-types (1.30.0)
+  作者: Lyra Naeseth
+  来源: https://github.com/silverlyra/kubernetes-types
+
+- pdf-parse (2.4.5)
+  作者: Mehmet Kozan
+  来源: https://github.com/mehmet-kozan/pdf-parse
+
+- pdfjs-dist (6.1.200)
+  来源: https://github.com/mozilla/pdf.js
+
+------------------------------------------------------------------------------
+
+ISC License (ISC)
+-----------------
+
+以下库使用 ISC 许可证：
+
+- inherits (2.0.4)
+  来源: https://github.com/isaacs/inherits
+
+- ini (7.0.0)
+  来源: https://github.com/npm/ini
+
+- isexe (2.0.0)
+  作者: Isaac Z. Schlueter
+  来源: https://github.com/isaacs/isexe
+
+- which (2.0.2)
+  作者: Isaac Z. Schlueter
+  来源: https://github.com/isaacs/node-which
+
+- yaml (2.9.0)
+  作者: Eemeli Aro
+  来源: https://github.com/eemeli/yaml
+
+------------------------------------------------------------------------------
+
+BSD 2-Clause License (BSD-2-Clause)
+-----------------------------------
+
+- @mixmark-io/domino (2.2.0)
+  作者: Felix Gnass
+  来源: https://github.com/mixmark-io/domino
+
+------------------------------------------------------------------------------
+
+BSD Zero Clause License (0BSD)
+------------------------------
+
+- tslib (1.14.1)
+  作者: Microsoft Corp.
+  来源: https://github.com/Microsoft/tslib
+
+------------------------------------------------------------------------------
+
+Dual License: MIT OR GPL-3.0-or-later
+--------------------------------------
+
+本项目按 MIT 条件使用以下库：
+
+- jszip (3.10.1)
+  作者: Stuart Knightley
+  来源: https://github.com/Stuk/jszip
+
+------------------------------------------------------------------------------
+
+Dual License: MIT AND Zlib
+--------------------------
+
+以下库需同时满足 MIT 和 Zlib 许可证条件：
+
+- pako (1.0.11)
+  来源: https://github.com/nodeca/pako
+
+  Zlib 许可证声明：
+
+  Copyright (C) 1995-2013 Jean-loup Gailly and Mark Adler
+
+  This software is provided 'as-is', without any express or implied
+  warranty.  In no event will the authors be held liable for any damages
+  arising from the use of this software.
+
+  Permission is granted to anyone to use this software for any purpose,
+  including commercial applications, and to alter it and redistribute it
+  freely, subject to the following restrictions:
+
+  1. The origin of this software must not be misrepresented; you must not
+     claim that you wrote the original software.  If you use this software
+     in a product, an acknowledgment in the product documentation would be
+     appreciated but is not required.
+  2. Altered source versions must be plainly marked as such, and must not be
+     misrepresented as being the original software.
+  3. This notice may not be removed or altered from any source distribution.
+
+------------------------------------------------------------------------------
+
+开发依赖 (devDependencies)
+==========================
+
+以下库仅用于开发，不包含在运行时分发产物中：
+
+MIT License:
+- @types/adm-zip (0.5.8)
+- @types/node (22.13.9)
+- @types/turndown (5.0.6)
+- esbuild (0.28.1) — 来源: https://github.com/evanw/esbuild
+- vitest (3.2.6) — 来源: https://github.com/vitest-dev/vitest
+
+Apache-2.0:
+- typescript (5.8.2) — 来源: https://github.com/microsoft/TypeScript
+
+------------------------------------------------------------------------------
+
+声明
+====
+
+本声明文件基于安装时的依赖版本生成。如依赖版本变更，应重新生成本声明。
+
+各库的完整许可证文本请参阅 node_modules 中对应包的 LICENSE 文件。

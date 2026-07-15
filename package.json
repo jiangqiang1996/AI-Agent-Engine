@@ -1,6 +1,7 @@
 {
   "name": "ai-agent-engine",
   "version": "0.1.0",
+  "license": "GPL-3.0-or-later",
   "private": true,
   "type": "module",
   "main": ".opencode/plugins/ae-server.js",
