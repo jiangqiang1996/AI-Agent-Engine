@@ -29,7 +29,7 @@ describe('domain-dispatch-service', () => {
     expect(names).toContain(AGENT.TESTING_REVIEWER)
     expect(names).toContain(AGENT.MAINTAINABILITY_REVIEWER)
     expect(names).toContain(AGENT.STANDARDS_REVIEWER)
-    expect(names).toContain(AGENT.RESEARCH_REVIEWER)
+    expect(names).not.toContain(AGENT.RESEARCH_REVIEWER)
     expect(names).not.toContain(AGENT.COHERENCE_REVIEWER)
     expect(names).not.toContain(AGENT.FEASIBILITY_REVIEWER)
   })

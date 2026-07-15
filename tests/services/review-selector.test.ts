@@ -3,15 +3,25 @@ import { selectReviewers } from '../../src/services/review-selector.js'
 import { AGENT } from '../../src/schemas/ae-asset-schema.js'
 
 describe('selectReviewers — 代码域', () => {
-  it('代码域默认应返回 5 个 alwaysOn 代理', () => {
+  it('代码域默认应返回 4 个 alwaysOn 代理（research-reviewer 改为条件激活）', () => {
     const selected = selectReviewers({ kind: 'code' })
-    expect(selected).toHaveLength(5)
+    expect(selected).toHaveLength(4)
     expect(selected).toContain(AGENT.CORRECTNESS_REVIEWER)
     expect(selected).toContain(AGENT.TESTING_REVIEWER)
     expect(selected).toContain(AGENT.MAINTAINABILITY_REVIEWER)
     expect(selected).toContain(AGENT.STANDARDS_REVIEWER)
-    expect(selected).toContain(AGENT.RESEARCH_REVIEWER)
+    expect(selected).not.toContain(AGENT.RESEARCH_REVIEWER)
     expect(selected).not.toContain(AGENT.AGENT_NATIVE_REVIEWER)
+  })
+
+  it('代码域 hasUpstream 应激活 research-reviewer', () => {
+    const selected = selectReviewers({ kind: 'code', hasUpstream: true })
+    expect(selected).toContain(AGENT.RESEARCH_REVIEWER)
+  })
+
+  it('代码域 isHighRiskDomain 应激活 research-reviewer', () => {
+    const selected = selectReviewers({ kind: 'code', isHighRiskDomain: true })
+    expect(selected).toContain(AGENT.RESEARCH_REVIEWER)
   })
 
   it('代码域 hasCli 应激活 agent-native-reviewer', () => {
@@ -75,11 +85,20 @@ describe('selectReviewers — 代码域', () => {
     expect(selected).toContain(AGENT.DATA_MIGRATIONS_REVIEWER)
   })
 
-  it('代码域 changedLineCount >= 50 应激活 adversarial-reviewer', () => {
-    const selected = selectReviewers({ kind: 'code', changedLineCount: 50 })
+  it('代码域 changedLineCount >= 50 + hasRiskSignal 应激活 adversarial-reviewer', () => {
+    const selected = selectReviewers({ kind: 'code', changedLineCount: 50, hasSecurity: true })
     expect(selected).toContain(AGENT.ADVERSARIAL_REVIEWER)
-    expect(selected).toContain(AGENT.ARCHITECTURE_STRATEGIST)
     expect(selected).not.toContain('pattern-recognition-specialist')
+  })
+
+  it('代码域 changedLineCount >= 50 无风险信号不应激活 adversarial-reviewer', () => {
+    const selected = selectReviewers({ kind: 'code', changedLineCount: 50 })
+    expect(selected).not.toContain(AGENT.ADVERSARIAL_REVIEWER)
+  })
+
+  it('代码域 hasSecurity 应激活 adversarial-reviewer', () => {
+    const selected = selectReviewers({ kind: 'code', hasSecurity: true })
+    expect(selected).toContain(AGENT.ADVERSARIAL_REVIEWER)
   })
 
   it('代码域结果不应有重复代理', () => {
@@ -119,10 +138,9 @@ describe('selectReviewers — 文档域', () => {
   })
 
   it('文档域带 upstream 不应再激活已移除的等价转换代理', () => {
-    expect(selectReviewers({ kind: 'document', hasUpstream: true })).toEqual([
-      AGENT.COHERENCE_REVIEWER,
-      AGENT.FEASIBILITY_REVIEWER,
-    ])
+    const selected = selectReviewers({ kind: 'document', hasUpstream: true })
+    expect(selected).toContain(AGENT.COHERENCE_REVIEWER)
+    expect(selected).toContain(AGENT.FEASIBILITY_REVIEWER)
   })
 
   it('文档域 requirements/general 类型不应激活 test-case-reviewer', () => {
@@ -138,7 +156,7 @@ describe('selectReviewers — 文档域', () => {
   })
 
   it('文档域 test 类型与条件审查者同时激活时不应重复', () => {
-    const selected = selectReviewers({ kind: 'document', documentType: 'test', requirementCount: 5 })
+    const selected = selectReviewers({ kind: 'document', documentType: 'test', requirementCount: 5, isHighRiskDomain: true })
     expect(selected).toContain(AGENT.TEST_CASE_REVIEWER)
     expect(selected).toContain(AGENT.ADVERSARIAL_REVIEWER)
     expect(new Set(selected).size).toBe(selected.length)
@@ -160,21 +178,23 @@ describe('selectReviewers — 文档域', () => {
     expect(selected).toContain(AGENT.SECURITY_REVIEWER)
   })
 
-  it('文档域 requirementCount >= 5 应激活 product-lens-reviewer 和 adversarial-reviewer', () => {
+  it('文档域 requirementCount >= 5 应激活 product-lens-reviewer', () => {
     const selected = selectReviewers({ kind: 'document', requirementCount: 5 })
     expect(selected).toContain(AGENT.PRODUCT_LENS_REVIEWER)
-    expect(selected).toContain(AGENT.ADVERSARIAL_REVIEWER)
   })
 
-  it('文档域 design 类型 hasArchitectureDecision 应激活 adversarial-reviewer 和 architecture-strategist', () => {
+  it('文档域 design 类型 hasArchitectureDecision 应激活 architecture-strategist', () => {
     const selected = selectReviewers({ kind: 'document', documentType: 'design', hasArchitectureDecision: true })
-    expect(selected).toContain(AGENT.ADVERSARIAL_REVIEWER)
     expect(selected).toContain(AGENT.ARCHITECTURE_STRATEGIST)
+  })
+
+  it('文档域 hasArchitectureDecision + isHighRiskDomain 应激活 adversarial-reviewer', () => {
+    const selected = selectReviewers({ kind: 'document', hasArchitectureDecision: true, isHighRiskDomain: true })
+    expect(selected).toContain(AGENT.ADVERSARIAL_REVIEWER)
   })
 
   it('文档域 requirements 类型 hasArchitectureDecision 不应激活 architecture-strategist', () => {
     const selected = selectReviewers({ kind: 'document', hasArchitectureDecision: true })
-    expect(selected).toContain(AGENT.ADVERSARIAL_REVIEWER)
     expect(selected).not.toContain(AGENT.ARCHITECTURE_STRATEGIST)
   })
 

@@ -2,6 +2,7 @@
 name: test-coverage-reviewer
 model: $deep
 mode: subagent
+steps: 12
 description: "审查设计文档中测试用例维度的覆盖完备性、步骤可执行性和需求对齐程度。激活条件：存在设计文档契约（hasDesignContract=true）。"
 ---
 

@@ -2,6 +2,7 @@
 name: test-case-reviewer
 model: $deep
 mode: subagent
+steps: 15
 description: "审查测试用例维度的结构完整性、覆盖完备性、步骤可执行性、结果可验证性和需求对齐程度。激活条件：文档类型为 test 或 design。"
 ---
 

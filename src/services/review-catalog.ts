@@ -21,7 +21,7 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
   { name: AGENT.TESTING_REVIEWER, domain: 'code', alwaysOn: true, description: '审查测试覆盖与断言质量' },
   { name: AGENT.MAINTAINABILITY_REVIEWER, domain: 'code', alwaysOn: true, description: '审查可维护性与抽象合理性' },
   { name: AGENT.STANDARDS_REVIEWER, domain: 'code', alwaysOn: true, description: '审查是否遵守项目规范（含配置文件语法正确性、schema 一致性和敏感值检测）' },
-  { name: AGENT.RESEARCH_REVIEWER, domain: 'code', alwaysOn: true, description: '搜索历史方案、最佳实践和框架文档' },
+  { name: AGENT.RESEARCH_REVIEWER, domain: 'code', alwaysOn: false, conditionGroups: [[{ field: 'hasUpstream', operator: 'truthy' }], [{ field: 'isHighRiskDomain', operator: 'truthy' }]], description: '搜索历史方案、最佳实践和框架文档' },
 
   { name: AGENT.COHERENCE_REVIEWER, domain: 'document', alwaysOn: true, description: '审查文档的内部一致性' },
   { name: AGENT.FEASIBILITY_REVIEWER, domain: 'document', alwaysOn: true, description: '评估文档中提出的技术方法能否经受现实考验' },
@@ -38,13 +38,9 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
     domain: 'both',
     alwaysOn: false,
     conditionGroups: [
-      [{ field: 'changedLineCountGte50', operator: 'truthy' }],
+      [{ field: 'changedLineCountGte50', operator: 'truthy' }, { field: 'hasRiskSignal', operator: 'truthy' }],
       [{ field: 'hasSecurity', operator: 'truthy' }],
-      [{ field: 'hasApi', operator: 'truthy' }],
-      [{ field: 'requirementCountGte5', operator: 'truthy' }],
-      [{ field: 'hasArchitectureDecision', operator: 'truthy' }],
       [{ field: 'isHighRiskDomain', operator: 'truthy' }],
-      [{ field: 'hasNewAbstraction', operator: 'truthy' }],
     ],
     description: '对抗式构造故障场景（代码域）/ 对文档做对抗式压力测试（文档域）',
   },
@@ -74,10 +70,6 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
       [
         { field: 'kind', operator: 'eq', value: 'code' },
         { field: 'hasNewAbstraction', operator: 'truthy' },
-      ],
-      [
-        { field: 'kind', operator: 'eq', value: 'code' },
-        { field: 'changedLineCountGte50', operator: 'truthy' },
       ],
       [
         { field: 'kind', operator: 'eq', value: 'document' },

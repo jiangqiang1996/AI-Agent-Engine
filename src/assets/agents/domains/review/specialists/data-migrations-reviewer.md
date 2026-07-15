@@ -2,6 +2,7 @@
 name: data-migrations-reviewer
 model: $deep
 mode: subagent
+steps: 15
 description: 当 diff 涉及迁移文件、schema 变更、数据转换或回填脚本时激活的代码审查角色。审查数据完整性、迁移安全性、生产验证与隐私合规。
 ---
 

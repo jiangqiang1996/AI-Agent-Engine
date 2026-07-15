@@ -2,6 +2,7 @@
 name: design-consistency-reviewer
 model: $deep
 mode: subagent
+steps: 12
 description: "审查设计文档与需求的一致性、设计维度完整性、架构与数据模型可行性和安全设计覆盖。激活条件：存在设计文档契约（hasDesignContract=true）。"
 ---
 

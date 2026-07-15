@@ -5,15 +5,14 @@ import { getAllAgentDefinitions } from '../../src/services/ae-catalog.js'
 import { AGENT } from '../../src/schemas/ae-asset-schema.js'
 
 describe('REVIEW_MATRIX', () => {
-  it('代码域 alwaysOn 应为 5 个', () => {
+  it('代码域 alwaysOn 应为 4 个（research-reviewer 改为条件激活）', () => {
     const codeAlwaysOn = REVIEW_MATRIX.filter((r) => r.domain === 'code' && r.alwaysOn)
-    expect(codeAlwaysOn).toHaveLength(5)
+    expect(codeAlwaysOn).toHaveLength(4)
     expect(codeAlwaysOn.map((r) => r.name)).toEqual([
       AGENT.CORRECTNESS_REVIEWER,
       AGENT.TESTING_REVIEWER,
       AGENT.MAINTAINABILITY_REVIEWER,
       AGENT.STANDARDS_REVIEWER,
-      AGENT.RESEARCH_REVIEWER,
     ])
   })
 

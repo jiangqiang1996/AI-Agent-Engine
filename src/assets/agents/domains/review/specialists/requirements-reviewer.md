@@ -2,6 +2,7 @@
 name: requirements-reviewer
 model: $deep
 mode: subagent
+steps: 15
 description: "审查需求文档的目标清晰度、范围边界、验收标准可验证性、用户/角色完整性和未决问题。激活条件：目标类型为 requirements 或文档类型为 requirements。"
 ---
 

@@ -2,6 +2,7 @@
 name: goal-alignment-reviewer
 model: $deep
 mode: subagent
+steps: 12
 description: "跨域审查角色。代码域：对照审查目标逐条校验变更代码是否达成目标。文档域：对照审查目标逐条校验文档内容是否覆盖成功条件。仅当 goals: 参数提供审查目标时激活。"
 ---
 

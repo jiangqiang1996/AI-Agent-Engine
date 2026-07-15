@@ -2,6 +2,7 @@
 name: prototype-reviewer
 model: $deep
 mode: subagent
+steps: 15
 description: "审查原型/线框维度的交互完整性、状态覆盖、与需求的一致性以及实现可行性提示。激活条件：目标类型为 prototype 或 design，或审查场景为 prototype 或 design。"
 ---
 

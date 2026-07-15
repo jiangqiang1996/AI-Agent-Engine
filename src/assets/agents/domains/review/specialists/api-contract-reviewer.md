@@ -2,6 +2,7 @@
 name: api-contract-reviewer
 model: $deep
 mode: subagent
+steps: 15
 description: 条件性代码审查角色，当 diff 涉及 API 路由、请求/响应类型、序列化、版本控制或导出的类型签名时启用。审查代码中的破坏性契约变更。
 ---
 
