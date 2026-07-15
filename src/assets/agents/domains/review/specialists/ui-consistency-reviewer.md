@@ -2,6 +2,7 @@
 name: ui-consistency-reviewer
 model: $deep
 mode: subagent
+steps: 12
 description: "审查 UI/UX 设计维度的交互流程完整性、状态覆盖和与需求的一致性。激活条件：设计文档含 UI 维度或审查范围涉及 UI（hasDesignContract=true 或 hasUi=true）。"
 ---
 

@@ -2,6 +2,7 @@
 name: coherence-reviewer
 model: $deep
 mode: subagent
+steps: 15
 description: "审查文档的内部一致性——章节间矛盾、术语漂移、结构性问题和可能导致读者理解分歧的歧义。"
 ---
 

@@ -2,6 +2,7 @@
 name: architecture-strategist
 model: $deep
 mode: subagent
+steps: 20
 description: "从架构视角分析代码变更，检查架构边界、跨模块依赖和系统级抽象。适用于审查拉取请求、添加服务或评估结构性重构。"
 ---
 

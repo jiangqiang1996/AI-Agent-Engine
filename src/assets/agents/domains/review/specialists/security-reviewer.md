@@ -2,6 +2,7 @@
 name: security-reviewer
 model: $deep
 mode: subagent
+steps: 15
 description: "跨域审查角色。代码域：审查代码中的可利用漏洞（认证中间件、公共端点、用户输入处理、权限检查）。文档域：评估文档中的安全缺口——认证/授权假设、数据暴露风险、API 表面漏洞和缺失的威胁模型要素。"
 ---
 

@@ -61,6 +61,7 @@ export interface ReviewSelectionInput {
   changedLineCountGte50?: boolean
   hasGoalAlignment?: boolean
   hasDesignContract?: boolean
+  hasRiskSignal?: boolean
 }
 
 export function selectReviewers(input: ReviewSelectionInput): string[] {
@@ -70,6 +71,15 @@ export function selectReviewers(input: ReviewSelectionInput): string[] {
     changedLineCountGte50: (input.changedLineCount ?? 0) >= 50,
     hasMixedTargets:
       input.hasMixedTargets ?? (input.kind === 'general' || (input.targetTypes?.length ?? 0) >= 2),
+    hasRiskSignal:
+      input.hasRiskSignal ??
+      Boolean(
+        input.hasSecurity ||
+          input.hasApi ||
+          input.hasMigrations ||
+          input.hasPerformance ||
+          input.hasReliability,
+      ),
   }
   const selected: string[] = []
   for (const entry of REVIEW_MATRIX) {

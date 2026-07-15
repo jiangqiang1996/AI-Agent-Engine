@@ -2,6 +2,7 @@
 name: evidence-reviewer
 model: $deep
 mode: subagent
+steps: 15
 description: "审查文档或交付说明中的事实性证据：可观察的工作区状态、命令输出、引用与外部声明是否真实可核验。激活条件：审查范围内存在交付证明、报告、研究综述或包含外部声明的文档。"
 ---
 
