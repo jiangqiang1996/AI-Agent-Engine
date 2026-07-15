@@ -25,6 +25,7 @@ import { aeAsyncBashTool } from './ae-async-bash.tool.js'
 import { aePdfTool } from './ae-pdf.tool.js'
 import { aeBrainstormTool } from './ae-brainstorm.tool.js'
 import { aeOfficecliTool } from './ae-officecli.tool.js'
+import { aeOcrTool } from './ae-ocr.tool.js'
 
 export function createToolRegistry(): Record<string, ToolDefinition> {
   return {
@@ -53,5 +54,6 @@ export function createToolRegistry(): Record<string, ToolDefinition> {
     [TOOL.AE_PDF]: aePdfTool,
     [TOOL.AE_BRAINSTORM]: aeBrainstormTool,
     [TOOL.AE_OFFICECLI]: aeOfficecliTool,
+    [TOOL.AE_OCR]: aeOcrTool,
   }
 }

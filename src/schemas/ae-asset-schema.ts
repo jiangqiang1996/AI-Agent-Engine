@@ -34,6 +34,7 @@ export const SKILL = {
   PROMPT_OPTIMIZE: 'ae:prompt-optimize',
   GRILL: 'ae:grill',
   OFFICECLI: 'ae:officecli',
+  OCR: 'ae:ocr',
 } as const
 
 type SkillToCommand<S extends string> = S extends `ae:${infer R}` ? `ae-${R}` : S
@@ -127,6 +128,7 @@ export const TOOL = {
   AE_PDF: 'ae-pdf',
   AE_BRAINSTORM: 'ae-brainstorm',
   AE_OFFICECLI: 'ae-officecli',
+  AE_OCR: 'ae-ocr',
 } as const
 
 export const AeModeSchema = z
@@ -167,6 +169,7 @@ export const AeSkillNameSchema = z
     SKILL.PROMPT_OPTIMIZE,
     SKILL.GRILL,
     SKILL.OFFICECLI,
+    SKILL.OCR,
   ])
   .describe('AE 技能名')
 
