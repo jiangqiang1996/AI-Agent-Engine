@@ -265,7 +265,7 @@ describe('brainstorm-service - buildPerspectivePrompt', () => {
 })
 
 describe('brainstorm-service - buildSynthesisPrompt', () => {
-  it('应该构建包含观点矩阵和详细输出的汇总 prompt', () => {
+  it('应该构建包含观点汇总表和详细输出的汇总 prompt', () => {
     const outputs: PerspectiveOutput[] = [
       {
         model: 'provider/m1',
@@ -286,7 +286,7 @@ describe('brainstorm-service - buildSynthesisPrompt', () => {
     const prompt = buildSynthesisPrompt('测试主题', outputs)
 
     expect(prompt).toContain('讨论主题：测试主题')
-    expect(prompt).toContain('## 观点矩阵')
+    expect(prompt).toContain('## 观点汇总表')
     expect(prompt).toContain('批评者')
     expect(prompt).toContain('乐观派')
     expect(prompt).toContain('provider/m1')
@@ -331,7 +331,7 @@ describe('brainstorm-service - buildSynthesisPrompt', () => {
     expect(matrixRow!.includes('-')).toBe(true)
   })
 
-  it('多模型多视角应该生成正确的矩阵单元格', () => {
+  it('多视角应该生成包含所有视角的汇总表', () => {
     const outputs: PerspectiveOutput[] = [
       {
         model: 'p/m1',
@@ -342,13 +342,6 @@ describe('brainstorm-service - buildSynthesisPrompt', () => {
       },
       {
         model: 'p/m2',
-        perspectiveId: 'critic',
-        perspectiveName: '批评者',
-        round: 1,
-        content: '## 核心观点\n- 风险B',
-      },
-      {
-        model: 'p/m1',
         perspectiveId: 'optimist',
         perspectiveName: '乐观派',
         round: 1,
@@ -359,12 +352,11 @@ describe('brainstorm-service - buildSynthesisPrompt', () => {
     const prompt = buildSynthesisPrompt('主题', outputs)
 
     const lines = prompt.split('\n')
-    const criticRow = lines.find((l) => l.startsWith('| 批评者'))
-    const optimistRow = lines.find((l) => l.startsWith('| 乐观派'))
+    const criticRow = lines.find((l) => l.includes('批评者'))
+    const optimistRow = lines.find((l) => l.includes('乐观派'))
 
     expect(criticRow).toBeDefined()
     expect(criticRow).toContain('风险A')
-    expect(criticRow).toContain('风险B')
     expect(optimistRow).toBeDefined()
     expect(optimistRow).toContain('机会A')
   })
@@ -582,6 +574,204 @@ describe('brainstorm-service - 速率限制降级', () => {
           return { data: { parts: [{ type: 'text', text }] }, error: undefined }
         }),
         delete: vi.fn(async () => ({ data: undefined, error: undefined })),
+      },
+    }
+    mockGetGlobalClient.mockReturnValue(client as never)
+
+    const { executeBrainstorm } = await import('../../src/services/brainstorm-service.js')
+
+    const result = await executeBrainstorm({
+      topic: '主题',
+      perspectives: ['critic'],
+      rounds: 1,
+    })
+
+    expect(result.failedCount).toBe(0)
+    expect(result.synthesis).toBeDefined()
+  })
+})
+
+describe('brainstorm-service - 轮询分配模型', () => {
+  beforeEach(() => {
+    globalSessionCounter = 0
+    setBrainstormConfig(undefined)
+    setModelScenarioRoutingContext(createModelScenarioRoutingContext(new Map()))
+    vi.clearAllMocks()
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('配置多模型时应轮询分配，每个视角一个模型', async () => {
+    mockResolveBrainstormModels.mockReturnValue({ models: ['provider/m1', 'provider/m2'], source: 'test' })
+
+    const sessionTexts = new Map<string, string>()
+    sessionTexts.set('session-1', '## 核心观点\n- 批评者洞察')
+    sessionTexts.set('session-2', '## 核心观点\n- 乐观派洞察')
+    sessionTexts.set('session-3', '## 核心观点\n- 实用主义者洞察')
+    sessionTexts.set('session-4', '## 汇总')
+
+    const promptCalls: Array<{ model?: { providerID: string; modelID: string } }> = []
+    const { client } = createMockClient(sessionTexts)
+    client.session.prompt.mockImplementation(async (args: { path: { id: string }; body?: { model?: { providerID: string; modelID: string } } }) => {
+      if (args.body?.model) {
+        promptCalls.push({ model: args.body.model })
+      }
+      const text = sessionTexts.get(args.path.id) ?? '默认'
+      return { data: { parts: [{ type: 'text', text }] }, error: undefined }
+    })
+    mockGetGlobalClient.mockReturnValue(client as never)
+
+    const { executeBrainstorm } = await import('../../src/services/brainstorm-service.js')
+
+    const result = await executeBrainstorm({
+      topic: '主题',
+      perspectives: ['critic', 'optimist', 'pragmatist'],
+      rounds: 1,
+    })
+
+    expect(result.totalSessions).toBe(4)
+    expect(promptCalls).toHaveLength(3)
+    expect(promptCalls[0].model).toEqual({ providerID: 'provider', modelID: 'm1' })
+    expect(promptCalls[1].model).toEqual({ providerID: 'provider', modelID: 'm2' })
+    expect(promptCalls[2].model).toEqual({ providerID: 'provider', modelID: 'm1' })
+    expect(result.modelsUsed).toEqual(['provider/m1', 'provider/m2'])
+  })
+
+  it('配置模型数大于视角数时 modelsUsed 应只含实际使用的模型', async () => {
+    mockResolveBrainstormModels.mockReturnValue({ models: ['p/m1', 'p/m2', 'p/m3'], source: 'test' })
+
+    const sessionTexts = new Map<string, string>()
+    sessionTexts.set('session-1', '## 核心观点\n- 洞察1')
+    sessionTexts.set('session-2', '## 核心观点\n- 洞察2')
+    sessionTexts.set('session-3', '## 汇总')
+
+    const { client } = createMockClient(sessionTexts)
+    mockGetGlobalClient.mockReturnValue(client as never)
+
+    const { executeBrainstorm } = await import('../../src/services/brainstorm-service.js')
+
+    const result = await executeBrainstorm({
+      topic: '主题',
+      perspectives: ['critic', 'optimist'],
+      rounds: 1,
+    })
+
+    expect(result.totalSessions).toBe(3)
+    expect(result.modelsUsed).toEqual(['p/m1', 'p/m2'])
+  })
+
+  it('深化轮时模型应向后偏移一位，避免同一视角两轮使用同一模型', async () => {
+    mockResolveBrainstormModels.mockReturnValue({ models: ['p/m1', 'p/m2', 'p/m3'], source: 'test' })
+
+    const sessionTexts = new Map<string, string>()
+    for (let i = 1; i <= 5; i++) {
+      sessionTexts.set(`session-${i}`, `## 核心观点\n- 洞察${i}`)
+    }
+    sessionTexts.set('session-6', '## 汇总')
+
+    const promptCalls: Array<{ model?: { providerID: string; modelID: string } }> = []
+    const { client } = createMockClient(sessionTexts)
+    client.session.prompt.mockImplementation(async (args: { path: { id: string }; body?: { model?: { providerID: string; modelID: string } } }) => {
+      if (args.body?.model) {
+        promptCalls.push({ model: args.body.model })
+      }
+      const text = sessionTexts.get(args.path.id) ?? '默认'
+      return { data: { parts: [{ type: 'text', text }] }, error: undefined }
+    })
+    mockGetGlobalClient.mockReturnValue(client as never)
+
+    const { executeBrainstorm } = await import('../../src/services/brainstorm-service.js')
+
+    const result = await executeBrainstorm({
+      topic: '主题',
+      perspectives: ['critic', 'optimist'],
+      rounds: 2,
+    })
+
+    expect(result.totalSessions).toBe(5)
+    expect(promptCalls).toHaveLength(4)
+
+    // R1: critic→m1, optimist→m2
+    expect(promptCalls[0].model).toEqual({ providerID: 'p', modelID: 'm1' })
+    expect(promptCalls[1].model).toEqual({ providerID: 'p', modelID: 'm2' })
+    // R2: critic→m2, optimist→m3（偏移1位）
+    expect(promptCalls[2].model).toEqual({ providerID: 'p', modelID: 'm2' })
+    expect(promptCalls[3].model).toEqual({ providerID: 'p', modelID: 'm3' })
+  })
+})
+
+describe('brainstorm-service - session.delete 重试', () => {
+  beforeEach(() => {
+    globalSessionCounter = 0
+    setBrainstormConfig(undefined)
+    setModelScenarioRoutingContext(createModelScenarioRoutingContext(new Map()))
+    vi.clearAllMocks()
+    mockResolveBrainstormModels.mockReturnValue({ models: [], source: 'test' })
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('delete 首次失败时应延迟重试一次', async () => {
+    const sessionTexts = new Map<string, string>()
+    sessionTexts.set('session-1', '## 核心观点\n- 洞察')
+    sessionTexts.set('session-2', '## 汇总')
+
+    let deleteCallCount = 0
+    const client = {
+      session: {
+        create: vi.fn(async () => {
+          const id = `session-${++globalSessionCounter}`
+          return { data: { id, title: `session-${id}` }, error: undefined }
+        }),
+        prompt: vi.fn(async (args: { path: { id: string } }) => {
+          const text = sessionTexts.get(args.path.id) ?? '默认'
+          return { data: { parts: [{ type: 'text', text }] }, error: undefined }
+        }),
+        delete: vi.fn(async () => {
+          deleteCallCount++
+          if (deleteCallCount === 1) {
+            throw new Error('429 rate limit')
+          }
+          return { data: undefined, error: undefined }
+        }),
+      },
+    }
+    mockGetGlobalClient.mockReturnValue(client as never)
+
+    const { executeBrainstorm } = await import('../../src/services/brainstorm-service.js')
+
+    const result = await executeBrainstorm({
+      topic: '主题',
+      perspectives: ['critic'],
+      rounds: 1,
+    })
+
+    expect(result.failedCount).toBe(0)
+    expect(deleteCallCount).toBeGreaterThanOrEqual(2)
+  })
+
+  it('delete 两次都失败时不应阻塞主流程', async () => {
+    const sessionTexts = new Map<string, string>()
+    sessionTexts.set('session-1', '## 核心观点\n- 洞察')
+    sessionTexts.set('session-2', '## 汇总')
+
+    const client = {
+      session: {
+        create: vi.fn(async () => {
+          const id = `session-${++globalSessionCounter}`
+          return { data: { id, title: `session-${id}` }, error: undefined }
+        }),
+        prompt: vi.fn(async (args: { path: { id: string } }) => {
+          const text = sessionTexts.get(args.path.id) ?? '默认'
+          return { data: { parts: [{ type: 'text', text }] }, error: undefined }
+        }),
+        delete: vi.fn(async () => {
+          throw new Error('429 rate limit')
+        }),
       },
     }
     mockGetGlobalClient.mockReturnValue(client as never)

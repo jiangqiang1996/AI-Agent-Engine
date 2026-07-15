@@ -1,3 +1,4 @@
+import type { OpencodeClient } from '@opencode-ai/sdk'
 import { getGlobalClient } from './client-holder.js'
 import { resolveBrainstormModels } from './brainstorm-config-service.js'
 import { getModelByScenario } from './model-scenario-routing-service.js'
@@ -61,17 +62,17 @@ const PERSPECTIVES: PerspectiveDef[] = [
 export const PERSPECTIVE_IDS = PERSPECTIVES.map((p) => p.id) as readonly string[]
 export const DEFAULT_PERSPECTIVE_IDS = ['optimist', 'critic', 'pragmatist'] as const
 
-const SYNTHESIS_SYSTEM_PROMPT = `你是一个头脑风暴汇总分析师。你收到了多个模型从多个视角对同一主题的结构化讨论输出。
+const SYNTHESIS_SYSTEM_PROMPT = `你是一个头脑风暴汇总分析师。你收到了多个视角对同一主题的结构化讨论输出。
 
 你的任务是：
-1. 构建观点矩阵——每个视角下，不同模型说了什么，用表格呈现
-2. 识别跨模型真分歧——不同模型对同一视角的不同判断，标注分歧性质（事实分歧 vs 价值分歧 vs 假设分歧）
-3. 识别跨视角共识——无论哪个模型、哪个视角，都反复出现的观点
+1. 构建观点汇总表——每个视角的核心观点，用表格呈现
+2. 识别跨视角分歧——不同视角对同一问题的不同判断，标注分歧性质（事实分歧 vs 价值分歧 vs 假设分歧）
+3. 识别跨视角共识——所有视角都反复出现的观点
 4. 发现碰撞洞见——某视角质疑的假设恰好是另一视角的突破点
-5. 标注盲区——所有模型和视角都未充分讨论的方面
+5. 标注盲区——所有视角都未充分讨论的方面
 6. 给出简短行动建议——基于以上分析，最值得深入探索的 1-2 个方向
 
-输出格式：Markdown，结构化，每个维度用标题+列表，观点矩阵用表格。`
+输出格式：Markdown，结构化，每个维度用标题+列表，观点汇总表用表格。`
 
 /** 进度回调，供工具层通过 ctx.metadata 实时反馈 */
 export interface BrainstormProgress {
@@ -115,6 +116,20 @@ function modelDisplayLabel(model: string | undefined): string {
   return model ?? 'opencode 动态模型'
 }
 
+async function deleteSessionWithRetry(client: OpencodeClient, sessionId: string): Promise<void> {
+  try {
+    await client.session.delete({ path: { id: sessionId } })
+  } catch (err) {
+    if (!isRateLimitLikeError(err)) return
+    await new Promise<void>((r) => setTimeout(r, SESSION_DELETE_RETRY_DELAY_MS + Math.floor(Math.random() * 300)))
+    try {
+      await client.session.delete({ path: { id: sessionId } })
+    } catch {
+      // 重试仍失败时放弃清理，不阻塞主流程
+    }
+  }
+}
+
 async function runTemporarySession(
   title: string,
   userPrompt: string,
@@ -155,7 +170,7 @@ async function runTemporarySession(
     return extractTextFromParts(promptRes.data?.parts ?? [])
   } finally {
     if (sessionId) {
-      try { await client.session.delete({ path: { id: sessionId } }) } catch { /* 临时会话清理失败不影响主流程 */ }
+      await deleteSessionWithRetry(client, sessionId)
     }
   }
 }
@@ -218,21 +233,11 @@ export function extractCoreViewpoint(content: string): string {
 }
 
 export function buildSynthesisPrompt(topic: string, outputs: PerspectiveOutput[]): string {
-  const models = [...new Set(outputs.map((o) => modelDisplayLabel(o.model)))]
-  const uniquePerspectives = [...new Set(outputs.map((o) => o.perspectiveName))]
+  let viewMatrix = `## 观点汇总表\n\n| 视角 | 模型 | 核心观点 |\n|------|------|------|\n`
 
-  let viewMatrix = `## 观点矩阵\n\n| 视角 | ${models.join(' | ')} |\n|------|${models.map(() => '---').join('|')}|\n`
-
-  for (const pName of uniquePerspectives) {
-    const cells = models.map((m) => {
-      const matching = outputs.filter((o) => o.perspectiveName === pName && modelDisplayLabel(o.model) === m)
-      if (matching.length === 0) return '-'
-      const content = matching[0].content
-      if (!content) return '-'
-      const summary = extractCoreViewpoint(content)
-      return summary || '-'
-    })
-    viewMatrix += `| ${pName} | ${cells.join(' | ')} |\n`
+  for (const output of outputs) {
+    const summary = extractCoreViewpoint(output.content) || '-'
+    viewMatrix += `| ${output.perspectiveName} | ${modelDisplayLabel(output.model)} | ${summary} |\n`
   }
 
   let detailSections = `\n\n## 各视角详细输出\n\n`
@@ -240,13 +245,14 @@ export function buildSynthesisPrompt(topic: string, outputs: PerspectiveOutput[]
     detailSections += `### ${output.perspectiveName}（${modelDisplayLabel(output.model)}）\n\n${output.content}\n\n`
   }
 
-  return `讨论主题：${topic}\n\n${viewMatrix}\n${detailSections}\n\n请根据以上多模型多视角讨论结果，进行汇总分析。`
+  return `讨论主题：${topic}\n\n${viewMatrix}\n${detailSections}\n\n请根据以上各视角讨论结果，进行汇总分析。`
 }
 
 const ADAPTIVE_POOL_MIN_CONCURRENCY = 2
 const ADAPTIVE_POOL_MAX_RETRIES = 2
 const BACKOFF_BASE_MS = 1000
 const BACKOFF_MAX_MS = 8000
+const SESSION_DELETE_RETRY_DELAY_MS = 1000
 
 export function isRateLimitLikeError(error: unknown): boolean {
   if (!(error instanceof Error)) return false
@@ -265,7 +271,7 @@ function backoffDelay(attempt: number): Promise<void> {
 }
 
 /**
- * 自适应并发池：初始全量并行，遇到速率限制错误时自动减半并发数并重试，
+ * 自适应并发池：初始以指定并发数并行，遇到速率限制错误时自动减半并发数并重试，
  * 直到并发数降至 ADAPTIVE_POOL_MIN_CONCURRENCY 或重试次数耗尽。
  */
 async function adaptiveConcurrentPool<T>(
@@ -332,9 +338,10 @@ export async function executeBrainstorm(options: BrainstormOptions): Promise<Bra
     throw new Error(`未找到有效视角。可选视角：${PERSPECTIVE_IDS.join(', ')}`)
   }
 
-  // models 为 undefined 表示不指定模型，由 opencode 动态路由
-  const effectiveModels: (string | undefined)[] = resolved.models.length > 0 ? resolved.models : [undefined]
-  const totalPerspectiveSessions = selectedPerspectives.length * effectiveModels.length * rounds
+  // 配置了模型时轮询分配：每个视角分配一个模型，会话数 = 视角数 × 轮次
+  // 未配置时全部传 undefined（opencode 动态路由），会话数 = 视角数 × 轮次
+  const models = resolved.models
+  const totalPerspectiveSessions = selectedPerspectives.length * rounds
   const totalSessions = totalPerspectiveSessions + 1 // +1 synthesis
   const perspectiveOutputs: PerspectiveOutput[] = []
   let sessionIndex = 0
@@ -342,8 +349,8 @@ export async function executeBrainstorm(options: BrainstormOptions): Promise<Bra
   for (let round = 1; round <= rounds; round++) {
     let previousSummary: string | undefined
     if (round > 1 && perspectiveOutputs.length > 0) {
-      const lastBatchStart = (round - 2) * selectedPerspectives.length * effectiveModels.length
-      const lastBatchEnd = (round - 1) * selectedPerspectives.length * effectiveModels.length
+      const lastBatchStart = (round - 2) * selectedPerspectives.length
+      const lastBatchEnd = (round - 1) * selectedPerspectives.length
       previousSummary = perspectiveOutputs
         .slice(lastBatchStart, lastBatchEnd)
         .filter((o) => !o.error)
@@ -359,22 +366,24 @@ export async function executeBrainstorm(options: BrainstormOptions): Promise<Bra
       progressIndex: number
     }> = []
 
-    for (const model of effectiveModels) {
+    const modelOffset = models.length > 1 ? (round - 1) % models.length : 0
+
+    for (let i = 0; i < selectedPerspectives.length; i++) {
+      const perspective = selectedPerspectives[i]
+      const model = models.length > 0 ? models[(i + modelOffset) % models.length] : undefined
       const modelRef = parseModelReference(model)
-      for (const perspective of selectedPerspectives) {
-        sessionIndex++
-        let userPrompt = `讨论主题：${topic}\n\n请从${perspective.role}的角度出发进行讨论。`
-        if (previousSummary) {
-          userPrompt += `\n\n以下是前一轮各视角讨论的摘要，请在此基础上补充、深化或提出新角度：\n\n${previousSummary}`
-        }
-        roundTaskMeta.push({ model, modelRef, perspective, userPrompt, progressIndex: sessionIndex })
+      sessionIndex++
+      let userPrompt = `讨论主题：${topic}\n\n请从${perspective.role}的角度出发进行讨论。`
+      if (previousSummary) {
+        userPrompt += `\n\n以下是前一轮各视角讨论的摘要，请在此基础上补充、深化或提出新角度：\n\n${previousSummary}`
       }
+      roundTaskMeta.push({ model, modelRef, perspective, userPrompt, progressIndex: sessionIndex })
     }
 
     const poolResults = await adaptiveConcurrentPool(
       roundTaskMeta.map((meta) => () =>
         runTemporarySession(
-          `brainstorm-r${round}-${meta.perspective.id}`,
+          `brainstorm-r${round}-${meta.perspective.id}-${meta.model ? meta.model.replaceAll('/', '-') : 'auto'}`,
           meta.userPrompt,
           meta.perspective.systemPrompt,
           meta.modelRef,
@@ -493,7 +502,7 @@ export async function executeBrainstorm(options: BrainstormOptions): Promise<Bra
   return {
     perspectives: perspectiveOutputs,
     synthesis,
-    modelsUsed: effectiveModels,
+    modelsUsed: [...new Set(perspectiveOutputs.map((o) => o.model))],
     modelSource: resolved.source,
     perspectiveNames: selectedPerspectives.map((p) => p.name),
     totalSessions,
