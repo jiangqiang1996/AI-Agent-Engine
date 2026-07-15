@@ -51,6 +51,6 @@ description: "审查设计文档的步骤粒度——将每个步骤拆解至最
 
 - 实现细节、技术架构选择
 - 步骤的内容是否正确或可行（feasibility-reviewer）
-- 安全边界（security-reviewer）
+- 安全边界（security-design-reviewer）
 - 范围对齐（product-lens-reviewer）
 - 格式偏好

@@ -7,25 +7,11 @@ import {
 
 const REVIEW_SPECIALISTS: SpecialistDef[] = [
   {
-    name: AGENT.CORRECTNESS_REVIEWER,
-    capabilities: ['逻辑正确性', '边界条件', '状态管理', '错误传播'],
-    selectionCriteria: '代码审查常驻；任何代码变更自动选中',
-    inputContract: '代码差异、变更上下文和文件列表',
-    outputContract: '逻辑错误发现列表和修复建议',
-  },
-  {
-    name: AGENT.TESTING_REVIEWER,
-    capabilities: ['测试覆盖', '断言质量', '边界用例', '脆弱测试'],
-    selectionCriteria: '代码审查常驻；任何代码变更自动选中',
-    inputContract: '代码差异和测试文件列表',
-    outputContract: '测试覆盖缺口和断言质量评估',
-  },
-  {
-    name: AGENT.MAINTAINABILITY_REVIEWER,
-    capabilities: ['过早抽象', '死代码', '命名模糊', '设计模式误用', '代码重复'],
-    selectionCriteria: '代码审查常驻；任何代码变更自动选中',
-    inputContract: '代码差异和文件列表',
-    outputContract: '可维护性发现和重构建议',
+    name: AGENT.OCR_REVIEWER,
+    capabilities: ['bug检测', '安全漏洞', '性能问题', '可维护性', '测试覆盖', '代码风格', '配置文件审查', 'SQL审查', 'CI/CD审查'],
+    selectionCriteria: '代码审查常驻；通过 ae-ocr 工具调用 OpenCodeReview CLI 执行 AI 代码审查',
+    inputContract: '审查范围（文件列表/Git diff）、意图摘要（业务上下文）、排除规则',
+    outputContract: '结构化审查发现（severity/category/suggestion）',
   },
   {
     name: AGENT.STANDARDS_REVIEWER,
@@ -56,11 +42,11 @@ const REVIEW_SPECIALISTS: SpecialistDef[] = [
     outputContract: '可行性评估和风险清单',
   },
   {
-    name: AGENT.SECURITY_REVIEWER,
-    capabilities: ['认证授权', '公共端点', '输入处理', '权限检查', '威胁模型'],
-    selectionCriteria: '涉及安全边界时选中：hasSecurity=true',
-    inputContract: '代码差异或文档内容和安全标记',
-    outputContract: '安全漏洞或安全缺口发现',
+    name: AGENT.SECURITY_DESIGN_REVIEWER,
+    capabilities: ['认证授权缺口', '数据暴露', '威胁模型', '攻击面清单', '信任边界'],
+    selectionCriteria: '文档审查常驻；评估设计文档中的安全缺口',
+    inputContract: '文档内容和安全相关标记',
+    outputContract: '安全缺口发现和威胁模型评估',
   },
   {
     name: AGENT.ADVERSARIAL_REVIEWER,
@@ -84,13 +70,6 @@ const REVIEW_SPECIALISTS: SpecialistDef[] = [
     outputContract: '架构边界、跨模块依赖和系统级抽象评估',
   },
   {
-    name: AGENT.PERFORMANCE_REVIEWER,
-    capabilities: ['算法复杂度', '缓存策略', '数据库查询', '前端渲染'],
-    selectionCriteria: '涉及性能敏感逻辑时选中：hasPerformance=true',
-    inputContract: '代码差异和性能标记',
-    outputContract: '性能瓶颈和优化建议',
-  },
-  {
     name: AGENT.API_CONTRACT_REVIEWER,
     capabilities: ['接口契约', '破坏性变更', '序列化', '版本控制'],
     selectionCriteria: '涉及 API 路由/请求响应类型/序列化时选中：hasApi=true',
@@ -110,13 +89,6 @@ const REVIEW_SPECIALISTS: SpecialistDef[] = [
     selectionCriteria: '涉及迁移文件/schema 变更/数据库时选中',
     inputContract: '代码差异和迁移文件',
     outputContract: '数据完整性和迁移安全性评估',
-  },
-  {
-    name: AGENT.PREVIOUS_COMMENTS_REVIEWER,
-    capabilities: ['历史评论', '反馈复查', '讨论串'],
-    selectionCriteria: '存在 PR 元数据和历史审查评论时选中',
-    inputContract: 'PR 元数据和评论历史',
-    outputContract: '历史反馈处理情况',
   },
   {
     name: AGENT.PRODUCT_LENS_REVIEWER,

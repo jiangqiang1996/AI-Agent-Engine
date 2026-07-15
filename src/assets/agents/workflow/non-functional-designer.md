@@ -25,7 +25,7 @@ description: "非功能设计维度专精代理：根据 prd 需求和 ae:grill 
 
 ## When Not To Use
 
-- 需要审查代码性能问题 → 调度 `@performance-reviewer`（审查域）
+- 需要审查代码性能问题 → 调度 `@ocr-reviewer`（审查域）
 - 非 non-functional 维度的设计契约 → 调度其他维度专精代理
 
 ## Inputs

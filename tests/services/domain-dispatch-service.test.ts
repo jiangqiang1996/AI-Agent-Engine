@@ -25,9 +25,7 @@ describe('domain-dispatch-service', () => {
   it('应该按代码审查类型选择代码常驻审查者而不是文档常驻审查者', () => {
     const names = selectedNames('review', { kind: 'code' })
 
-    expect(names).toContain(AGENT.CORRECTNESS_REVIEWER)
-    expect(names).toContain(AGENT.TESTING_REVIEWER)
-    expect(names).toContain(AGENT.MAINTAINABILITY_REVIEWER)
+    expect(names).toContain(AGENT.OCR_REVIEWER)
     expect(names).toContain(AGENT.STANDARDS_REVIEWER)
     expect(names).not.toContain(AGENT.RESEARCH_REVIEWER)
     expect(names).not.toContain(AGENT.COHERENCE_REVIEWER)
@@ -37,7 +35,7 @@ describe('domain-dispatch-service', () => {
   it('应该在 domainContext 缺省时使用 TaskIntent.domain 选择审查域', () => {
     const names = selectSpecialists('review', { ...taskIntent, domain: 'code' }).map((specialist) => specialist.name)
 
-    expect(names).toContain(AGENT.CORRECTNESS_REVIEWER)
+    expect(names).toContain(AGENT.OCR_REVIEWER)
     expect(names).not.toContain(AGENT.COHERENCE_REVIEWER)
   })
 
@@ -54,8 +52,7 @@ describe('domain-dispatch-service', () => {
 
     expect(names).toContain(AGENT.COHERENCE_REVIEWER)
     expect(names).toContain(AGENT.FEASIBILITY_REVIEWER)
-    expect(names).not.toContain(AGENT.CORRECTNESS_REVIEWER)
-    expect(names).not.toContain(AGENT.TESTING_REVIEWER)
+    expect(names).not.toContain(AGENT.OCR_REVIEWER)
   })
 
   it('应该使用 domainContext 条件激活审查专精代理', () => {
@@ -68,9 +65,7 @@ describe('domain-dispatch-service', () => {
       hasDatabase: true,
     })
 
-    expect(names).toContain(AGENT.SECURITY_REVIEWER)
     expect(names).toContain(AGENT.API_CONTRACT_REVIEWER)
-    expect(names).toContain(AGENT.PERFORMANCE_REVIEWER)
     expect(names).toContain(AGENT.RELIABILITY_REVIEWER)
     expect(names).toContain(AGENT.DATA_MIGRATIONS_REVIEWER)
   })

@@ -183,13 +183,13 @@ describe('插件入口', () => {
     isolateHome(createTempRoot())
     mkdirSync(join(hostRoot, '.opencode', 'agents'), { recursive: true })
     writeFileSync(
-      join(hostRoot, '.opencode', 'agents', 'correctness-reviewer.md'),
+      join(hostRoot, '.opencode', 'agents', 'ocr-reviewer.md'),
       ['---', 'description: project reviewer', 'mode: primary', '---', 'project reviewer prompt'].join('\n'),
     )
     const server = await plugin({ worktree: hostRoot, client: {} } as never)
     const config: RuntimeConfigShape = {
       agent: {
-        'correctness-reviewer': {
+        'ocr-reviewer': {
           description: 'global reviewer',
           prompt: 'global reviewer prompt',
           mode: 'subagent',
@@ -199,7 +199,7 @@ describe('插件入口', () => {
 
     await server.config?.(config as never)
 
-    expect(config.agent?.['correctness-reviewer']).toEqual({
+    expect(config.agent?.['ocr-reviewer']).toEqual({
       description: 'project reviewer',
       prompt: 'project reviewer prompt',
       mode: 'primary',
@@ -212,7 +212,7 @@ describe('插件入口', () => {
     const server = await plugin({ worktree: hostRoot, client: {} } as never)
     const config: RuntimeConfigShape = {
       agent: {
-        'correctness-reviewer': {
+        'ocr-reviewer': {
           description: 'global reviewer',
           prompt: 'global reviewer prompt',
           mode: 'subagent',
@@ -222,9 +222,9 @@ describe('插件入口', () => {
 
     await server.config?.(config as never)
 
-    expect(config.agent?.['correctness-reviewer']?.prompt).not.toBe('global reviewer prompt')
-    expect(config.agent?.['correctness-reviewer']?.description).not.toBe('global reviewer')
-    expect(config.agent?.['correctness-reviewer']?.mode).toBe('subagent')
+    expect(config.agent?.['ocr-reviewer']?.prompt).not.toBe('global reviewer prompt')
+    expect(config.agent?.['ocr-reviewer']?.description).not.toBe('global reviewer')
+    expect(config.agent?.['ocr-reviewer']?.mode).toBe('subagent')
   })
 
   it('零配置时应该让内置命令和代理继承默认模型', async () => {
@@ -234,7 +234,7 @@ describe('插件入口', () => {
     const config = await runConfigHook({ worktree: hostRoot, client: {} })
 
     expect(config.command?.['ae-design']?.model).toBeUndefined()
-    expect(config.agent?.['correctness-reviewer']?.model).toBeUndefined()
+    expect(config.agent?.['ocr-reviewer']?.model).toBeUndefined()
   })
 
   it('应该根据项目级 modelScenarios 为内置命令和代理写入 model', async () => {
@@ -246,12 +246,12 @@ describe('插件入口', () => {
 
     expect(config.command?.['ae-help']?.model).toBe('project/quick')
     expect(config.command?.['ae-design']?.model).toBe('project/deep')
-    expect(config.agent?.['correctness-reviewer']?.model).toBe('project/deep')
+    expect(config.agent?.['ocr-reviewer']?.model).toBe('project/deep')
   })
 
   it.each([
     { label: '用户配置命令和代理', commandKey: 'ae-custom', agentKey: 'custom-agent', isOverride: false },
-    { label: '用户覆盖内置命令和代理', commandKey: 'ae-design', agentKey: 'correctness-reviewer', isOverride: true },
+    { label: '用户覆盖内置命令和代理', commandKey: 'ae-design', agentKey: 'ocr-reviewer', isOverride: true },
   ] as const)('模型场景变量未配置时应该原样透传（$label）', async ({ commandKey, agentKey, isOverride }) => {
     const hostRoot = createTempRoot()
     isolateHome(createTempRoot())

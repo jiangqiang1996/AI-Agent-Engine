@@ -2,7 +2,7 @@ import { tool } from '@opencode-ai/plugin'
 import { z } from 'zod'
 
 import { TOOL } from '../schemas/ae-asset-schema.js'
-import { checkOcrInstalled, parseOcrJson, runOcr, type OcrFinding } from '../services/ocr-service.js'
+import { checkOcrInstalled, parseOcrJson, runOcr, type OcrFinding, type OcrJsonResult } from '../services/ocr-service.js'
 
 /**
  * 所有 OCR 顶级命令。
@@ -163,7 +163,7 @@ export const aeOcrTool = tool({
               tool: TOOL.AE_OCR,
               command: resolvedCommand,
               exitCode,
-              filesReviewed: result.files_reviewed ?? 0,
+              filesReviewed: result.summary?.files_reviewed ?? 0,
               totalFindings: findings.length,
               highCount: grouped.high.length,
               mediumCount: grouped.medium.length,
@@ -312,20 +312,27 @@ function groupFindingsBySeverity(findings: OcrFinding[]): GroupedFindings {
 }
 
 function formatReviewResult(
-  result: { comments?: OcrFinding[]; files_reviewed?: number; session_id?: string },
+  result: OcrJsonResult,
   grouped: GroupedFindings,
   stderr: string,
   exitCode: number,
 ): string {
   const lines: string[] = []
   const total = (result.comments ?? []).length
+  const filesReviewed = result.summary?.files_reviewed ?? 0
 
   lines.push('## OCR 代码审查结果')
   lines.push('')
-  lines.push(`**审查文件数**: ${result.files_reviewed ?? 'unknown'}`)
+  lines.push(`**审查文件数**: ${filesReviewed > 0 ? filesReviewed : 'unknown'}`)
   lines.push(`**发现问题数**: ${grouped.high.length} high / ${grouped.medium.length} medium / ${grouped.low.length} low`)
   if (result.session_id) {
     lines.push(`**Session ID**: ${result.session_id}`)
+  }
+  if (result.status && result.status !== 'success') {
+    lines.push(`**状态**: ${result.status}`)
+  }
+  if (result.message && total === 0) {
+    lines.push(`**消息**: ${result.message}`)
   }
   if (exitCode !== 0) {
     lines.push(`⚠️ ocr 退出码非 0（${exitCode}），结果可能不完整`)

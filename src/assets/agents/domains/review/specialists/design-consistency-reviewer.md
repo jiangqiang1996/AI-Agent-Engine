@@ -46,7 +46,7 @@ description: "审查设计文档与需求的一致性、设计维度完整性、
 - UI/UX 设计维度的交互流程和状态覆盖（ui-consistency-reviewer 负责）
 - 测试用例维度的覆盖完备性（test-coverage-reviewer 负责）
 - 实施步骤拆解的粒度（step-granularity-reviewer 负责）
-- 代码实现与设计契约的一致性（correctness-reviewer 负责）
+- 代码实现与设计契约的一致性（ocr-reviewer 负责）
 
 ## 输出格式
 

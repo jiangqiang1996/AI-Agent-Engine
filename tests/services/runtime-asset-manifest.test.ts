@@ -90,11 +90,11 @@ describe('runtime-asset-manifest', () => {
     mkdirSync(join(root, 'dist', 'src', 'assets', 'agents', 'domains', 'review', 'specialists'), { recursive: true })
 
     const manifest = createRuntimeAssetManifestFromRoot(root)
-    const correctnessReviewer = manifest.runtimeAgentFiles.find((file) => file.source.endsWith(
-      join('domains', 'review', 'specialists', 'correctness-reviewer.md'),
+    const ocrReviewer = manifest.runtimeAgentFiles.find((file) => file.source.endsWith(
+      join('domains', 'review', 'specialists', 'ocr-reviewer.md'),
     ))
 
-    expect(correctnessReviewer?.source).toBe(join(
+    expect(ocrReviewer?.source).toBe(join(
       root,
       'dist',
       'src',
@@ -103,9 +103,9 @@ describe('runtime-asset-manifest', () => {
       'domains',
       'review',
       'specialists',
-      'correctness-reviewer.md',
+      'ocr-reviewer.md',
     ))
-    expect(correctnessReviewer?.target).toBe(join(
+    expect(ocrReviewer?.target).toBe(join(
       root,
       '.opencode',
       'agents',
@@ -113,7 +113,7 @@ describe('runtime-asset-manifest', () => {
       'domains',
       'review',
       'specialists',
-      'correctness-reviewer.md',
+      'ocr-reviewer.md',
     ))
   })
 })

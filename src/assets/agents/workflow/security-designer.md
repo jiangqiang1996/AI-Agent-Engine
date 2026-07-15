@@ -25,7 +25,7 @@ description: "安全设计维度专精代理：根据 prd 需求和 ae:grill 追
 
 ## When Not To Use
 
-- 需要审查代码安全漏洞 → 调度 `@security-reviewer`（审查域）
+- 需要审查代码安全漏洞 → 调度 `@ocr-reviewer`（审查域）
 - 非 security 维度的设计契约 → 调度其他维度专精代理
 
 ## Inputs

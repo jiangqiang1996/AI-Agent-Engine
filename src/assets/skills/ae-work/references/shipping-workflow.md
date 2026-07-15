@@ -42,7 +42,7 @@
    - 任意实现代码 → `design-consistency-reviewer`（覆盖 database/security/architecture 等维度一致性）
    - UI 实现代码 → `ui-consistency-reviewer`
    - 测试代码 → `test-coverage-reviewer`
-   - 始终调度 `correctness-reviewer` + `testing-reviewer`
+    - 始终调度 `ocr-reviewer`
 
    **auto 修复范围：** 与 design 契约不一致的代码、测试覆盖缺口、验证未通过的发现。ae:review 返回的 auto 可修复发现由本技能自动应用修复，修复后重新运行审查。
 

@@ -40,17 +40,15 @@
 
 **匹配文件：** .ts .tsx .js .jsx .mjs .cjs .py .java .go .rs .c .cpp .h .rb .php .swift .kt .scala
 
-**基础审查者：** correctness, testing, maintainability, standards
+**基础审查者：** ocr, standards
 
 **条件审查者：**
 - security — 认证、权限、用户输入
-- performance — 数据库查询、数据转换、缓存
 - api-contract — 路由、类型签名、版本
 - reliability — 错误处理、重试、超时
 - architecture-strategist — 架构决策、新抽象或 >=50 行代码变更
 - adversarial — >=50 行可执行代码、高风险或新抽象
 - agent-native — CLI 命令定义或 UI/工具能力影响代理可操作性
-- previous-comments — 仅 PR 模式
 - design-consistency — 存在 design 契约（`hasDesignContract=true`）时激活，核验实现与 design 契约维度一致性
 - ui-consistency — 存在 design 契约（`hasDesignContract=true`）或 `hasUi=true` 时激活，核验 UI 实现与 design 的 ui-ux 维度一致性
 - test-coverage — 存在 design 契约（`hasDesignContract=true`）时激活，核验测试覆盖与 design 的 test-cases 维度一致性
@@ -59,7 +57,7 @@
 
 **匹配文件：** .json .yaml .yml .toml .xml
 
-**基础审查者：** correctness, maintainability, standards（standards-reviewer 含配置文件语法正确性、schema 一致性、敏感值检测）
+**基础审查者：** ocr, standards（standards-reviewer 含配置文件语法正确性、schema 一致性、敏感值检测）
 
 **条件审查者：**
 - security — 密钥/权限配置
@@ -68,7 +66,7 @@
 
 **匹配文件：** Dockerfile docker-compose.* *.tf *.tfvars .github/workflows/* Makefile Jenkinsfile
 
-**基础审查者：** correctness, maintainability, standards
+**基础审查者：** ocr, standards
 
 **条件审查者：**
 - security — 容器安全/CI 权限
@@ -78,7 +76,7 @@
 
 **匹配文件：** *.sql .prisma 迁移文件
 
-**基础审查者：** correctness, maintainability, standards
+**基础审查者：** ocr, standards
 
 **条件审查者：**
 - data-migrations — schema 变更/迁移安全/数据库迁移可逆性/完整性约束/索引策略
@@ -88,7 +86,7 @@
 
 **匹配文件：** .graphql .proto .openapi.* swagger.*
 
-**基础审查者：** correctness, maintainability, standards
+**基础审查者：** ocr, standards
 
 **条件审查者：**
 - api-contract — 类型签名/版本/破坏性变更
@@ -97,7 +95,7 @@
 
 **匹配文件：** .css .scss .less .html .vue .svelte
 
-**基础审查者：** correctness, maintainability
+**基础审查者：** ocr
 
 **条件审查者：**
 - security — XSS/模板注入
@@ -106,7 +104,7 @@
 
 **匹配文件：** .sh .bash .ps1 .bat .cmd
 
-**基础审查者：** correctness, maintainability（含脚本可移植性、幂等性、平台兼容性）, standards
+**基础审查者：** ocr（含脚本可移植性、幂等性、平台兼容性）, standards
 
 **条件审查者：**
 - security — 注入/权限
@@ -124,6 +122,6 @@
 
 **匹配文件：** 不匹配任何路由的文件
 
-**基础审查者：** correctness, maintainability, standards
+**基础审查者：** ocr, standards
 
 **条件审查者：** 无

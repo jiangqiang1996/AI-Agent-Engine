@@ -14,7 +14,7 @@
 **意图：** 添加订单导出端点
 **模式：** autofix
 
-**审查者：** correctness, testing, maintainability, security, api-contract
+**审查者：** ocr, security, api-contract
 - security -- 新公共端点接受用户输入
 - api-contract -- 新路由及响应 schema
 
@@ -31,7 +31,7 @@
 | # | 文件 | 问题 | 审查者 | 置信度 | 路由 |
 |---|------|------|--------|--------|------|
 | 2 | `export_service.rb:87` | 全量加载无上限 | performance | 0.85 | `auto -> review-fixer` |
-| 3 | `config/database.yml` | 连接池未配置 | correctness | 0.80 | `auto -> review-fixer` |
+| 3 | `config/database.yml` | 连接池未配置 | ocr | 0.80 | `auto -> review-fixer` |
 
 ### 已应用修复
 
@@ -48,7 +48,7 @@
 
 | # | 文件 | 问题 | 审查者 |
 |---|------|------|--------|
-| 1 | `orders_controller.rb:12` | 宽泛的 rescue | correctness |
+| 1 | `orders_controller.rb:12` | 宽泛的 rescue | ocr |
 
 ### 经验与历史方案
 
@@ -58,9 +58,9 @@
 
 | 路由 | 文件数 | 审查者 |
 |------|--------|--------|
-| 源代码 | 12 | correctness, testing, maintainability, security, api-contract |
-| 配置 | 1 | correctness, maintainability |
-| 基础设施 | 1 | correctness, maintainability, reliability |
+| 源代码 | 12 | ocr, security, api-contract |
+| 配置 | 1 | ocr |
+| 基础设施 | 1 | ocr, reliability |
 
 - 已抑制：2 个低于 0.60 置信度的发现
 - 残余风险：导出端点无速率限制

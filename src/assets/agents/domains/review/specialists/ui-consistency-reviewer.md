@@ -45,7 +45,7 @@ description: "审查 UI/UX 设计维度的交互流程完整性、状态覆盖�
 - 非 UI 维度的设计契约（design-consistency-reviewer 负责）
 - 测试用例维度的覆盖完备性（test-coverage-reviewer 负责）
 - 视觉审美偏好（除非表明存在 AI 模板化问题，由 design-lens-reviewer 负责）
-- 代码实现与 UI 契约的一致性（correctness-reviewer 负责）
+- 代码实现与 UI 契约的一致性（ocr-reviewer 负责）
 
 ## 输出格式
 

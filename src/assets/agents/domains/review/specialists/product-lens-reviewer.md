@@ -97,5 +97,5 @@ description: "以高级产品负责人的视角审查文档——质疑前提主
 ## 不在标记范围内
 
 - 实现细节、技术架构、度量方法论
-- 风格/格式、安全（security-reviewer）、设计（design-lens-reviewer）
+- 风格/格式、安全（security-design-reviewer）、设计（design-lens-reviewer）
 - 内部一致性（coherence-reviewer）、技术可行性（feasibility-reviewer）

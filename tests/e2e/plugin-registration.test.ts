@@ -58,7 +58,7 @@ describe('插件注册完整性', () => {
       const agentNames = agents!.map((a) => a.name).filter(Boolean)
       expect(agentNames.length).toBeGreaterThan(0)
 
-      const expectedAgents = ['correctness-reviewer', 'backend-dev']
+      const expectedAgents = ['ocr-reviewer', 'backend-dev']
       for (const name of expectedAgents) {
         expect(agentNames).toContain(name)
       }

@@ -7,7 +7,7 @@
   "properties": {
     "reviewer": {
       "type": "string",
-      "description": "产生此输出的人设名称（例如 'correctness-reviewer'、'coherence-reviewer'）"
+      "description": "产生此输出的人设名称（例如 'ocr-reviewer'、'coherence-reviewer'）"
     },
     "findings": {
       "type": "array",

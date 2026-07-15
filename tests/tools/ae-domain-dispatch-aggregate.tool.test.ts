@@ -68,7 +68,7 @@ describe('ae-domain-dispatch-aggregate 工具', () => {
             evidence: [],
           },
         ],
-        dispatchedAgents: [AGENT.CORRECTNESS_REVIEWER],
+        dispatchedAgents: [AGENT.OCR_REVIEWER],
         expectedSpecialistCount: 5,
       })
 
@@ -192,7 +192,7 @@ describe('ae-domain-dispatch-aggregate 工具', () => {
             findings: [{ severity: 'P1', title: '空指针风险', evidence: 'src/foo.ts:10' }],
           },
         ],
-        dispatchedAgents: [AGENT.CORRECTNESS_REVIEWER],
+        dispatchedAgents: [AGENT.OCR_REVIEWER],
         skippedAgents: [],
         skipReasons: {},
       })
@@ -201,7 +201,7 @@ describe('ae-domain-dispatch-aggregate 工具', () => {
       expect(parsed).toHaveProperty('dispatchManifest')
       expect(parsed).toHaveProperty('findings')
       const manifest = parsed.dispatchManifest as Record<string, unknown>
-      expect(manifest.dispatched).toEqual([AGENT.CORRECTNESS_REVIEWER])
+      expect(manifest.dispatched).toEqual([AGENT.OCR_REVIEWER])
     })
 
     it('应该在 results 含 findings 时优先使用结构化发现', async () => {
@@ -218,7 +218,7 @@ describe('ae-domain-dispatch-aggregate 工具', () => {
             ],
           },
         ],
-        dispatchedAgents: [AGENT.CORRECTNESS_REVIEWER],
+        dispatchedAgents: [AGENT.OCR_REVIEWER],
       })
 
       const parsed = parseResult(result)

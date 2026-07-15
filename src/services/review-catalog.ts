@@ -17,22 +17,14 @@ export interface MatrixEntry {
 }
 
 export const REVIEW_MATRIX: MatrixEntry[] = [
-  { name: AGENT.CORRECTNESS_REVIEWER, domain: 'code', alwaysOn: true, description: '审查逻辑正确性与边界条件' },
-  { name: AGENT.TESTING_REVIEWER, domain: 'code', alwaysOn: true, description: '审查测试覆盖与断言质量' },
-  { name: AGENT.MAINTAINABILITY_REVIEWER, domain: 'code', alwaysOn: true, description: '审查可维护性与抽象合理性' },
+  { name: AGENT.OCR_REVIEWER, domain: 'code', alwaysOn: true, description: 'OCR 代码审查主引擎：覆盖 bug/安全/性能/可维护性/测试覆盖/风格（通过 ae-ocr 工具调用 OpenCodeReview CLI）' },
   { name: AGENT.STANDARDS_REVIEWER, domain: 'code', alwaysOn: true, description: '审查是否遵守项目规范（含配置文件语法正确性、schema 一致性和敏感值检测）' },
   { name: AGENT.RESEARCH_REVIEWER, domain: 'code', alwaysOn: false, conditionGroups: [[{ field: 'hasUpstream', operator: 'truthy' }], [{ field: 'isHighRiskDomain', operator: 'truthy' }]], description: '搜索历史方案、最佳实践和框架文档' },
 
   { name: AGENT.COHERENCE_REVIEWER, domain: 'document', alwaysOn: true, description: '审查文档的内部一致性' },
   { name: AGENT.FEASIBILITY_REVIEWER, domain: 'document', alwaysOn: true, description: '评估文档中提出的技术方法能否经受现实考验' },
+  { name: AGENT.SECURITY_DESIGN_REVIEWER, domain: 'document', alwaysOn: true, description: '评估设计文档中的安全缺口——认证/授权假设、数据暴露、威胁模型' },
 
-  {
-    name: AGENT.SECURITY_REVIEWER,
-    domain: 'both',
-    alwaysOn: false,
-    conditionGroups: [[{ field: 'hasSecurity', operator: 'truthy' }]],
-    description: '审查安全漏洞（代码域）/ 评估文档中的安全缺口（文档域）',
-  },
   {
     name: AGENT.ADVERSARIAL_REVIEWER,
     domain: 'both',
@@ -80,13 +72,6 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
     description: '从架构视角分析代码变更和设计中的架构决策，检查架构边界、跨模块依赖和系统级抽象',
   },
   {
-    name: AGENT.PERFORMANCE_REVIEWER,
-    domain: 'code',
-    alwaysOn: false,
-    conditionGroups: [[{ field: 'hasPerformance', operator: 'truthy' }]],
-    description: '审查性能瓶颈',
-  },
-  {
     name: AGENT.API_CONTRACT_REVIEWER,
     domain: 'code',
     alwaysOn: false,
@@ -112,13 +97,6 @@ export const REVIEW_MATRIX: MatrixEntry[] = [
       [{ field: 'hasDatabase', operator: 'truthy' }],
     ],
     description: '审查数据迁移（含数据库迁移可逆性、完整性约束和索引策略）',
-  },
-  {
-    name: AGENT.PREVIOUS_COMMENTS_REVIEWER,
-    domain: 'code',
-    alwaysOn: false,
-    conditionGroups: [[{ field: 'hasPrMetadata', operator: 'truthy' }]],
-    description: '复查历史审查评论处理情况',
   },
   {
     name: AGENT.PRODUCT_LENS_REVIEWER,

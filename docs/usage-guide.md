@@ -151,17 +151,12 @@ PDF 文件的 Markdown 读取功能通过 `ae:pdf` 技能的 `to-markdown` 操�
 
 | 代理 | 关注点 |
 | --- | --- |
-| `@correctness-reviewer` | 逻辑错误、边界情况、状态管理、错误传播 |
-| `@testing-reviewer` | 测试覆盖、断言质量、边界用例 |
+| `@ocr-reviewer` | 代码审查主引擎：bug、安全、性能、可维护性、测试覆盖、代码风格 |
 | `@standards-reviewer` | 项目规范、命名、工具选择、跨平台可移植性 |
-| `@maintainability-reviewer` | 过早抽象、耦合、死代码、重复和命名问题 |
-| `@security-reviewer` | 认证授权、输入处理、数据暴露和攻击面 |
 | `@api-contract-reviewer` | API、请求响应类型、序列化和导出类型签名 |
 | `@reliability-reviewer` | 错误处理、重试、超时、后台任务和异步处理 |
-| `@performance-reviewer` | 数据库查询、循环密集转换、缓存和 I/O 路径 |
 | `@architecture-strategist` | 架构模式、设计完整性和结构性重构 |
 | `@data-migrations-reviewer` | 迁移、schema 变更、数据转换和回填脚本 |
-| `@previous-comments-reviewer` | 已有 PR 评论或审查讨论是否处理 |
 | `@agent-native-reviewer` | UI、工具或代理配置是否支持代理对等操作 |
 | `@adversarial-reviewer` | 大 diff、高风险领域或复杂文档的对抗式审查 |
 | `@goal-alignment-reviewer` | 对照审查目标逐条校验代码变更或文档内容是否覆盖成功条件 |
@@ -172,6 +167,7 @@ PDF 文件的 Markdown 读取功能通过 `ae:pdf` 技能的 `to-markdown` 操�
 | --- | --- |
 | `@coherence-reviewer` | 文档内部一致性、术语漂移和结构歧义 |
 | `@feasibility-reviewer` | 技术方案依赖缺口、迁移风险和可实现性 |
+| `@security-design-reviewer` | 设计文档安全缺口、认证授权假设、数据暴露和威胁模型 |
 | `@product-lens-reviewer` | 产品价值、战略后果、范围和复杂度 |
 | `@design-lens-reviewer` | 信息架构、交互状态、用户流程和设计决策缺口 |
 | `@step-granularity-reviewer` | 计划步骤粒度、唯一产物和批量操作方式 |

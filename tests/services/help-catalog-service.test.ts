@@ -100,11 +100,11 @@ describe('help-catalog-service', () => {
 
       vi.mocked(aeCatalog.getAllAgentDefinitions).mockReturnValue([
         {
-          name: 'correctness-reviewer',
+          name: 'ocr-reviewer',
           stage: 'review',
           tier: 'required',
           description: '审查逻辑错误',
-          path: 'domains/review/specialists/correctness-reviewer.md',
+          path: 'domains/review/specialists/ocr-reviewer.md',
         },
       ] as ReturnType<typeof aeCatalog.getAllAgentDefinitions>)
 
@@ -114,7 +114,7 @@ describe('help-catalog-service', () => {
       })
 
       vi.mocked(agentRegistration.buildAgentConfig).mockReturnValue({
-        'correctness-reviewer': {
+        'ocr-reviewer': {
           description: '审查逻辑错误',
           prompt: 'prompt content',
           mode: 'subagent',
@@ -133,7 +133,7 @@ describe('help-catalog-service', () => {
       expect(brainstormCmd!.category).toBe('基础命令')
 
       expect(catalog.agents).toHaveLength(1)
-      expect(catalog.agents[0].name).toBe('correctness-reviewer')
+      expect(catalog.agents[0].name).toBe('ocr-reviewer')
       expect(catalog.agents[0].stage).toBe('review')
       expect(assetModelRoutingCatalog.getAssetModelRoutingEntries).toHaveBeenCalledWith(
         expect.objectContaining({ repoRoot: '/repo' }),
@@ -180,7 +180,7 @@ describe('help-catalog-service', () => {
         { name: 'ae-design', description: '制定设计', category: '基础命令' },
       ],
       agents: [
-        { name: 'correctness-reviewer', stage: 'review', description: '审查逻辑' },
+        { name: 'ocr-reviewer', stage: 'review', description: '审查逻辑' },
         { name: 'web-researcher', stage: 'research', description: '网络研究' },
       ],
     }
@@ -214,7 +214,7 @@ describe('help-catalog-service', () => {
     it('应该按 stage 过滤代理', () => {
       const result = filterCatalog(catalog, 'review')
       expect(result.agents).toHaveLength(1)
-      expect(result.agents[0].name).toBe('correctness-reviewer')
+      expect(result.agents[0].name).toBe('ocr-reviewer')
     })
 
     it('应该按 refactor 查询返回技能和命令', () => {
@@ -277,7 +277,7 @@ describe('help-catalog-service', () => {
         commands: [
           { name: 'ae-brainstorm', description: '头脑风暴', category: '基础命令' },
         ],
-        agents: [{ name: 'correctness-reviewer', stage: 'review', description: '审查逻辑' }],
+        agents: [{ name: 'ocr-reviewer', stage: 'review', description: '审查逻辑' }],
         modelRoutes: [{ type: 'command' as const, name: 'ae-brainstorm', scenario: 'standard' as const, applyMode: 'direct' as const, reason: '内置命令声明 standard 场景' }],
       }
 
@@ -289,7 +289,7 @@ describe('help-catalog-service', () => {
       expect(text).toContain('## 命令')
       expect(text).toContain('/ae-brainstorm')
       expect(text).toContain('## 代理')
-      expect(text).toContain('@correctness-reviewer')
+      expect(text).toContain('@ocr-reviewer')
       expect(text).toContain('## 模型路由')
       expect(text).toContain('modelScenarios')
     })
@@ -392,22 +392,22 @@ describe('help-catalog-service', () => {
       vi.mocked(aeCatalog.getPhaseOneEntries).mockReturnValue([])
       vi.mocked(aeCatalog.getAllAgentDefinitions).mockReturnValue([
         {
-          name: 'correctness-reviewer',
+          name: 'ocr-reviewer',
           stage: 'review',
           tier: 'required',
           description: '审查逻辑错误',
-          path: 'domains/review/specialists/correctness-reviewer.md',
+          path: 'domains/review/specialists/ocr-reviewer.md',
         },
       ] as ReturnType<typeof aeCatalog.getAllAgentDefinitions>)
       vi.mocked(commandRegistration.buildCommandConfig).mockReturnValue({})
       vi.mocked(agentRegistration.buildAgentConfig).mockReturnValue({
-        'correctness-reviewer': { description: '审查逻辑错误', prompt: '', mode: 'subagent' },
+        'ocr-reviewer': { description: '审查逻辑错误', prompt: '', mode: 'subagent' },
       })
 
-      const text = generateHelpText('correctness-reviewer')
-      expect(text).toContain('# 代理：correctness-reviewer')
+      const text = generateHelpText('ocr-reviewer')
+      expect(text).toContain('# 代理：ocr-reviewer')
       expect(text).toContain('审查逻辑错误')
-      expect(text).toContain('@correctness-reviewer')
+      expect(text).toContain('@ocr-reviewer')
     })
 
     it('带前缀 / 的查询应返回详情视图', () => {
@@ -485,7 +485,7 @@ describe('help-catalog-service', () => {
         { name: 'ae-commit', description: '智能提交', category: '基础命令' },
       ],
       agents: [
-        { name: 'correctness-reviewer', stage: 'review', description: '审查逻辑' },
+        { name: 'ocr-reviewer', stage: 'review', description: '审查逻辑' },
         { name: 'web-researcher', stage: 'research', description: '网络研究' },
       ],
       modelRoutes: [
@@ -511,15 +511,15 @@ describe('help-catalog-service', () => {
     })
 
     it('按代理名精确查找应返回代理详情', () => {
-      const detail = resolveDetail(catalog, 'correctness-reviewer')
+      const detail = resolveDetail(catalog, 'ocr-reviewer')
       expect(detail).not.toBeNull()
       expect(detail!.type).toBe('agent')
-      expect(detail!.name).toBe('correctness-reviewer')
+      expect(detail!.name).toBe('ocr-reviewer')
       expect(detail!.properties).toContainEqual({ label: '阶段', value: '审查' })
     })
 
     it('带 @ 前缀查找代理应正常工作', () => {
-      const detail = resolveDetail(catalog, '@correctness-reviewer')
+      const detail = resolveDetail(catalog, '@ocr-reviewer')
       expect(detail).not.toBeNull()
       expect(detail!.type).toBe('agent')
     })

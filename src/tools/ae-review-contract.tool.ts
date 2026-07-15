@@ -62,9 +62,7 @@ function parseList<T extends string>(value: string | undefined, allowed: T[]): T
 
 const TARGET_TO_REVIEWERS: Record<ReviewTargetType, string[]> = {
   code: [
-    'correctness-reviewer',
-    'testing-reviewer',
-    'maintainability-reviewer',
+    'ocr-reviewer',
     'standards-reviewer',
   ],
   requirements: ['requirements-reviewer'],
@@ -73,7 +71,7 @@ const TARGET_TO_REVIEWERS: Record<ReviewTargetType, string[]> = {
   'test-case': ['test-case-reviewer'],
   config: ['standards-reviewer'],
   asset: ['agent-native-reviewer'],
-  document: ['coherence-reviewer', 'feasibility-reviewer', 'evidence-reviewer'],
+  document: ['coherence-reviewer', 'feasibility-reviewer', 'evidence-reviewer', 'security-design-reviewer'],
 }
 
 function computeTargetCoverage(

@@ -8,9 +8,9 @@
 
 | 人设 | 代理 | 关注点 |
 |------|------|--------|
-| `correctness` | `correctness-reviewer` | 逻辑错误、边界情况、状态 bug、错误传播 |
-| `testing` | `testing-reviewer` | 覆盖缺口、弱断言、脆弱测试 |
-| `maintainability` | `maintainability-reviewer` | 耦合、复杂度、命名、死代码、脚本可移植性 |
+| `correctness` | `ocr-reviewer` | 逻辑错误、边界情况、状态 bug、错误传播 |
+| `testing` | `ocr-reviewer` | 覆盖缺口、弱断言、脆弱测试 |
+| `maintainability` | `ocr-reviewer` | 耦合、复杂度、命名、死代码、脚本可移植性 |
 | `standards` | `standards-reviewer` | AGENTS.md 合规性、配置文件语法正确性、schema 一致性、敏感值检测 |
 
 ## 条件性（跨领域）
@@ -27,7 +27,7 @@
 | `architecture-strategist` | 架构决策、新抽象或较大结构性变更 |
 | `adversarial` | >=50 行可执行代码变更、高风险领域或新抽象 |
 | `goal-alignment` | 提供了审查目标（goals= 参数），对照成功条件逐条校验变更是否达成，识别未达成项和偏离 |
-| `previous-comments` | **仅限 PR** — 有先前审查评论的 PR |
+| `previous-comments` | **仅限 PR** — 有先前审查评论的 PR（已由 ocr-reviewer 覆盖） |
 
 ## AE 代理
 

@@ -3,12 +3,10 @@ import { selectReviewers } from '../../src/services/review-selector.js'
 import { AGENT } from '../../src/schemas/ae-asset-schema.js'
 
 describe('selectReviewers — 代码域', () => {
-  it('代码域默认应返回 4 个 alwaysOn 代理（research-reviewer 改为条件激活）', () => {
+  it('代码域默认应返回 2 个 alwaysOn 代理（ocr-reviewer 合并了 correctness/testing/maintainability）', () => {
     const selected = selectReviewers({ kind: 'code' })
-    expect(selected).toHaveLength(4)
-    expect(selected).toContain(AGENT.CORRECTNESS_REVIEWER)
-    expect(selected).toContain(AGENT.TESTING_REVIEWER)
-    expect(selected).toContain(AGENT.MAINTAINABILITY_REVIEWER)
+    expect(selected).toHaveLength(2)
+    expect(selected).toContain(AGENT.OCR_REVIEWER)
     expect(selected).toContain(AGENT.STANDARDS_REVIEWER)
     expect(selected).not.toContain(AGENT.RESEARCH_REVIEWER)
     expect(selected).not.toContain(AGENT.AGENT_NATIVE_REVIEWER)
@@ -60,11 +58,6 @@ describe('selectReviewers — 代码域', () => {
     expect(selected).not.toContain('pattern-recognition-specialist')
   })
 
-  it('代码域 hasSecurity 应激活 security-reviewer', () => {
-    const selected = selectReviewers({ kind: 'code', hasSecurity: true })
-    expect(selected).toContain(AGENT.SECURITY_REVIEWER)
-  })
-
   it('代码域 hasInfra 应激活 reliability-reviewer（含基础设施审查）', () => {
     const selected = selectReviewers({ kind: 'code', hasInfra: true })
     expect(selected).toContain(AGENT.RELIABILITY_REVIEWER)
@@ -114,11 +107,12 @@ describe('selectReviewers — 代码域', () => {
 })
 
 describe('selectReviewers — 文档域', () => {
-  it('文档域默认应返回 2 个 alwaysOn 代理', () => {
+  it('文档域默认应返回 3 个 alwaysOn 代理（coherence/feasibility/security-design）', () => {
     const selected = selectReviewers({ kind: 'document' })
-    expect(selected).toHaveLength(2)
+    expect(selected).toHaveLength(3)
     expect(selected).toContain(AGENT.COHERENCE_REVIEWER)
     expect(selected).toContain(AGENT.FEASIBILITY_REVIEWER)
+    expect(selected).toContain(AGENT.SECURITY_DESIGN_REVIEWER)
   })
 
   it('文档域 design 类型应激活 product-lens-reviewer 和 step-granularity-reviewer', () => {
@@ -173,9 +167,9 @@ describe('selectReviewers — 文档域', () => {
     expect(selected).toContain(AGENT.DESIGN_LENS_REVIEWER)
   })
 
-  it('文档域 hasSecurity 应激活 security-reviewer（跨域）', () => {
+  it('文档域 hasSecurity 应激活 security-design-reviewer（跨域）', () => {
     const selected = selectReviewers({ kind: 'document', hasSecurity: true })
-    expect(selected).toContain(AGENT.SECURITY_REVIEWER)
+    expect(selected).toContain(AGENT.SECURITY_DESIGN_REVIEWER)
   })
 
   it('文档域 requirementCount >= 5 应激活 product-lens-reviewer', () => {

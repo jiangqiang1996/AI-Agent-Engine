@@ -48,21 +48,17 @@ export const COMMAND = {
 } as const
 
 export const AGENT = {
-  CORRECTNESS_REVIEWER: 'correctness-reviewer',
-  TESTING_REVIEWER: 'testing-reviewer',
-  MAINTAINABILITY_REVIEWER: 'maintainability-reviewer',
+  OCR_REVIEWER: 'ocr-reviewer',
   STANDARDS_REVIEWER: 'standards-reviewer',
   AGENT_NATIVE_REVIEWER: 'agent-native-reviewer',
   RESEARCH_REVIEWER: 'research-reviewer',
   COHERENCE_REVIEWER: 'coherence-reviewer',
   FEASIBILITY_REVIEWER: 'feasibility-reviewer',
-  SECURITY_REVIEWER: 'security-reviewer',
+  SECURITY_DESIGN_REVIEWER: 'security-design-reviewer',
   ADVERSARIAL_REVIEWER: 'adversarial-reviewer',
-  PERFORMANCE_REVIEWER: 'performance-reviewer',
   API_CONTRACT_REVIEWER: 'api-contract-reviewer',
   RELIABILITY_REVIEWER: 'reliability-reviewer',
   DATA_MIGRATIONS_REVIEWER: 'data-migrations-reviewer',
-  PREVIOUS_COMMENTS_REVIEWER: 'previous-comments-reviewer',
   PRODUCT_LENS_REVIEWER: 'product-lens-reviewer',
   STEP_GRANULARITY_REVIEWER: 'step-granularity-reviewer',
   DESIGN_LENS_REVIEWER: 'design-lens-reviewer',

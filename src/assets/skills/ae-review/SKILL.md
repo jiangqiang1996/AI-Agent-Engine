@@ -143,11 +143,39 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 
 如果文档 frontmatter 包含 `sharded: true`，先调用 `ae-doc-extract` 构建分片审查上下文；上下文至少保留 `rootDocument`、`shards`、`missingShards`、`duplicateIds`、`parentMismatch`、`globalRelations` 和 `diagnostics` 语义。
 
+#### 变更分析与目标拆分
+
+在意图发现前，对变更范围执行分类分析，按文件类型将变更拆分为两组，分别产出对应的目标摘要和文件列表。
+
+**核心原则：文档与代码密不可分，互相影响。** 文件分类用于产出针对性的审查目标摘要，但**不限制子代理的可读范围**——代码域子代理审查代码时可以读取相关文档做交叉参照（如代码实现是否与设计文档一致），文档域子代理审查文档时可以读取相关代码验证一致性（如文档描述的接口是否与代码实现匹配）。
+
+**文件分类规则**（用于目标摘要产出，不限制读取范围）：
+
+| 分组 | 包含文件 | 产出变量 |
+|------|---------|---------|
+| **代码与配置** | OCR 扩展名白名单内的代码、配置文件和测试文件（`.ts`/`.js`/`.java`/`.py`/`.go`/`.rs`/`.sql`/`.xml`/`.yaml`/`.json`/`.toml`/`.ini`/`.gradle` 等，含 `tests/` 下的 `.test.ts` 等测试代码） | `{code_intent}` + `{code_files}` |
+| **文档** | `.md` 文件（需求文档、设计文档、代理定义、技能说明、命令模板、参考文档等），排除 `.opencode/` 下的文件 | `{doc_intent}` + `{doc_files}` |
+
+注意：测试文件（如 `*.test.ts`、`*_test.go`）属于代码范畴，归入"代码与配置"组。调用 ocr-reviewer 时需通过 `include` 配置覆盖 OCR 的默认排除（见下方 ocr-reviewer 调用说明）。
+
+**分析步骤**（每组独立执行）：
+
+1. **代码与配置组**：读取 diff，识别变更类型（新增功能/修复缺陷/重构/配置调整/测试变更），梳理代码变更的功能目标，标记关键变更点（含测试覆盖变化），识别风险信号。产出 `{code_intent}`（3-5 行）和 `{code_files}`
+2. **文档组**：读取变更内容，识别文档类型和变更性质（新增代理/修改技能/更新规范等），梳理文档变更目标。产出 `{doc_intent}`（3-5 行）和 `{doc_files}`
+
+**完整目标**：将两组合并，产出 `{full_intent}`（3-5 行，覆盖全部变更的整体目标）和 `{full_files}`（全部文件列表）。
+
 #### 意图发现
 
-- 代码域：结合对话上下文编写 2-3 行意图摘要；检查 `design=` 参数或自动发现最近设计；`goals=` 参数内容作为审查目标注入子代理上下文
-- 文档域：通过分析文档内容判断类型（requirements/design/test/general）；`goals=` 参数内容作为审查目标注入子代理上下文
-- 通用域（`domain=general`）：分别为每种识别出的目标类型生成意图摘要；调度阶段按 `reviewScenes` 与 `targetTypes` 分别选择审查者，最终在汇总阶段统一聚合发现并按目标类型声明覆盖
+根据子代理职责，注入不同的目标摘要和文件列表。**所有子代理的可读范围不限于注入的文件列表**——子代理可以读取项目中的任何文件做交叉参照，确保文档与代码统一。
+
+- 代码域：
+  - `ocr-reviewer`：注入 `{code_intent}` + `{code_files}`（含代码、配置文件和测试文件）。OCR 默认排除测试文件，调用 ae-ocr 时需通过 `.opencodereview/rule.json` 的 `include` 配置或 `--rule` 参数传入 include 规则覆盖默认排除，使测试文件纳入审查范围。include 规则示例：`{"include": ["**/*.test.{js,ts,tsx}", "**/*_test.{go,py,rs}", "**/tests/**"]}`
+  - `standards-reviewer`、`agent-native-reviewer`、`api-contract-reviewer`、`architecture-strategist`、`reliability-reviewer`、`data-migrations-reviewer`、`adversarial-reviewer`、`goal-alignment-reviewer`：注入 `{full_intent}` + `{full_files}`（完整审查目标，这些代理需要看到代码+文档+测试的全貌，并可读取相关文档交叉验证代码是否符合规范）
+  - `research-reviewer`：注入 `{full_intent}` + `{full_files}`
+  - 检查 `design=` 参数或自动发现最近设计；`goals=` 参数内容作为审查目标注入子代理上下文
+- 文档域：注入 `{doc_intent}` + `{doc_files}`；文档子代理可读取相关代码验证文档描述与实现是否一致；通过分析文档内容判断类型（requirements/design/test/general）；`goals=` 参数内容作为审查目标注入子代理上下文
+- 通用域（`domain=general`）：按子代理所属目标类型分别注入对应组的目标和文件；跨域子代理（adversarial、goal-alignment、traceability）注入 `{full_intent}` + `{full_files}`；所有子代理均可交叉读取代码和文档；调度阶段按 `reviewScenes` 与 `targetTypes` 分别选择审查者，最终在汇总阶段统一聚合发现并按目标类型声明覆盖
 
 #### design 契约检测
 
@@ -249,38 +277,58 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 2. 代理 markdown 文件内容（通过 `@{reviewer_name}` 引用对应代理）
 3. 审查上下文（变量替换后的 subagent-template 内容）：
 
-代码域变量映射：
+代码域变量映射（按子代理职责注入不同变量。所有子代理均可交叉读取代码和文档，确保文档与代码统一）：
+
+**ocr-reviewer**（审查代码与配置文件，可通过 ae-ocr 的 background 参数间接参考文档目标）：
 
 | 变量 | 值 |
 |------|-----|
 | `{domain}` | `code` |
-| `{intent_summary}` | 阶段一输出 |
-| `{file_list}` | 变更文件列表 |
+| `{code_intent}` | 代码与配置文件变更的目标摘要（3-5 行），作为 ae-ocr 的 `background` 参数 |
+| `{code_files}` | 代码与配置文件列表（含测试文件，不含 .md） |
+| `{content_mode_label}` | 增量/全量/会话变更 |
+| `{run_id}` | 运行标识符 |
+
+**其余代码域子代理**（standards/agent-native/api-contract/architecture/reliability/data-migrations/adversarial/goal-alignment/research。注入完整目标，可读取相关文档交叉验证代码是否符合文档描述）：
+
+| 变量 | 值 |
+|------|-----|
+| `{domain}` | `code` |
+| `{full_intent}` | 完整审查目标摘要（3-5 行，覆盖全部变更含代码/文档/测试/配置） |
+| `{full_files}` | 全部变更文件列表 |
 | `{content}` | diff 内容或完整文件内容 |
 | `{content_mode_label}` | 增量/全量/会话变更 |
 | `{success_criteria}` | `goals:` 参数提供的审查目标文本，无 `goals:` 时为空 |
 | `{run_id}` | 运行标识符 |
 
-文档域变量映射：
+文档域变量映射（文档子代理接收文档变更目标，可读取相关代码验证文档描述与实现是否一致）：
 
 | 变量 | 值 |
 |------|-----|
 | `{domain}` | `document` |
+| `{doc_intent}` | 文档变更的目标摘要（3-5 行，仅覆盖 .md 文档变更） |
+| `{doc_files}` | 文档文件列表（仅 .md） |
 | `{document_type}` | requirements/design/test/general |
 | `{document_path}` | 文档路径 |
 | `{document_content}` | 完整文本或分片上下文 |
 | `{success_criteria}` | `goals:` 参数提供的审查目标文本，无 `goals:` 时为空 |
 | `{run_id}` | 运行标识符 |
 
-通用域变量映射（`domain=general`）：
+通用域变量映射（`domain=general`，按子代理所属目标类型注入。所有子代理均可交叉读取代码和文档）：
+
+**代码路径子代理**（ocr-reviewer）：同代码域 ocr-reviewer 映射
+
+**文档路径子代理**（coherence/feasibility/security-design/requirements/design-lens 等）：同文档域映射，可读取相关代码验证文档与实现一致性
+
+**跨域子代理**（adversarial/goal-alignment/traceability）：注入完整目标，可读取全部文件
 
 | 变量 | 值 |
 |------|-----|
 | `{domain}` | `general` |
 | `{review_scene}` | 当前专精所属审查场景：code/requirements/design/prototype/test-case/config/asset/general-document |
 | `{target_type}` | 当前专精负责的目标产出物类型 |
-| `{intent_summary}` | 该目标类型对应的意图摘要 |
-| `{file_list}` | 该目标类型对应的文件列表 |
+| `{full_intent}` | 完整审查目标摘要（覆盖全部变更） |
+| `{full_files}` | 全部变更文件列表 |
 | `{content}` | 该目标类型对应的内容片段（diff、源码或文档文本） |
 | `{success_criteria}` | `goals:` 参数提供的审查目标文本，无 `goals:` 时为空 |
 | `{run_id}` | 运行标识符 |

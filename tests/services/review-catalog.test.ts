@@ -5,23 +5,22 @@ import { getAllAgentDefinitions } from '../../src/services/ae-catalog.js'
 import { AGENT } from '../../src/schemas/ae-asset-schema.js'
 
 describe('REVIEW_MATRIX', () => {
-  it('代码域 alwaysOn 应为 4 个（research-reviewer 改为条件激活）', () => {
+  it('代码域 alwaysOn 应为 2 个（ocr-reviewer 合并了 correctness/testing/maintainability）', () => {
     const codeAlwaysOn = REVIEW_MATRIX.filter((r) => r.domain === 'code' && r.alwaysOn)
-    expect(codeAlwaysOn).toHaveLength(4)
+    expect(codeAlwaysOn).toHaveLength(2)
     expect(codeAlwaysOn.map((r) => r.name)).toEqual([
-      AGENT.CORRECTNESS_REVIEWER,
-      AGENT.TESTING_REVIEWER,
-      AGENT.MAINTAINABILITY_REVIEWER,
+      AGENT.OCR_REVIEWER,
       AGENT.STANDARDS_REVIEWER,
     ])
   })
 
-  it('文档域 alwaysOn 应为 2 个', () => {
+  it('文档域 alwaysOn 应为 3 个（coherence/feasibility/security-design）', () => {
     const docAlwaysOn = REVIEW_MATRIX.filter((r) => r.domain === 'document' && r.alwaysOn)
-    expect(docAlwaysOn).toHaveLength(2)
+    expect(docAlwaysOn).toHaveLength(3)
     expect(docAlwaysOn.map((r) => r.name)).toEqual([
       AGENT.COHERENCE_REVIEWER,
       AGENT.FEASIBILITY_REVIEWER,
+      AGENT.SECURITY_DESIGN_REVIEWER,
     ])
   })
 

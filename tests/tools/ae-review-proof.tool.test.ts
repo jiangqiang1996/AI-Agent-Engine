@@ -162,7 +162,7 @@ describe('ae-review-proof 工具', () => {
         task_id: 'task-review-1',
         role: 'tool',
         command: 'ae:review',
-        subagent_type: 'correctness-reviewer',
+        subagent_type: 'ocr-reviewer',
         content: wrappedReviewOutput,
       }],
     } as Parameters<typeof aeReviewProofTool.execute>[1]

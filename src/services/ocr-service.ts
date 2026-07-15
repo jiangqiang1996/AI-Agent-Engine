@@ -24,11 +24,29 @@ export interface OcrFinding {
 
 /**
  * OCR JSON 输出结构
+ *
+ * OCR CLI 的 --format json 输出格式（见 output.go jsonOutput）：
+ * {
+ *   "status": "success",
+ *   "comments": [...],
+ *   "summary": { "files_reviewed": 9, "comments": 3, ... },
+ *   "session_id": "xxx"
+ * }
  */
 export interface OcrJsonResult {
+  status?: string
+  message?: string
   comments?: OcrFinding[]
-  files_reviewed?: number
+  summary?: {
+    files_reviewed?: number
+    comments?: number
+    total_tokens?: number
+    input_tokens?: number
+    output_tokens?: number
+    elapsed?: string
+  }
   session_id?: string
+  warnings?: Array<{ file?: string; message?: string }>
   [key: string]: unknown
 }
 
@@ -326,7 +344,7 @@ export async function runOcr(
 export function parseOcrJson(stdout: string): OcrJsonResult {
   const trimmed = stdout.trim()
   if (!trimmed) {
-    return { comments: [], files_reviewed: 0 }
+    return { comments: [], summary: { files_reviewed: 0 } }
   }
 
   try {

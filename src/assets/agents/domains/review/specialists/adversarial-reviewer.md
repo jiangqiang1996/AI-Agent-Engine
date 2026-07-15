@@ -53,12 +53,12 @@ description: "跨域审查角色。代码域：当 diff 较大（>=50 行变更�
 
 ### 排除范围（代码域）
 
-- 无跨组件影响的单个逻辑 bug（correctness-reviewer）
-- 已知漏洞模式如 SQL 注入、XSS（security-reviewer）
+- 无跨组件影响的单个逻辑 bug（ocr-reviewer）
+- 已知漏洞模式如 SQL 注入、XSS（ocr-reviewer）
 - 单个 I/O 边界的错误处理缺失（reliability-reviewer）
-- 性能反模式（performance-reviewer）
-- 代码风格与结构（maintainability-reviewer）
-- 测试覆盖缺口（testing-reviewer）
+- 性能反模式（ocr-reviewer）
+- 代码风格与结构（ocr-reviewer）
+- 测试覆盖缺口（ocr-reviewer）
 - API 契约破坏（api-contract-reviewer）
 - 迁移安全性（data-migrations-reviewer）
 

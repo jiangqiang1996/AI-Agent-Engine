@@ -46,7 +46,7 @@ description: "审查文档或交付说明中的事实性证据：可观察的工
 - 业务结论本身是否正确（你只检查支撑链路）
 - 单一文档的内部一致性（由 coherence-reviewer 负责）
 - 跨文档锚点追溯（由 traceability-reviewer 负责）
-- 安全/合规性内容是否充分（由 security-reviewer 负责）
+- 安全/合规性内容是否充分（由 security-design-reviewer 负责）
 
 ## 输出格式
 
