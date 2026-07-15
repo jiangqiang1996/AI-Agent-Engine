@@ -2,6 +2,8 @@
 
 将大纲内容类型映射为视觉元素，禁止用空格对齐模拟表格。
 
+> **颜色说明**：以下示例中的 HEX 色值仅供布局模式参考。实际生成时必须使用本次临时设计的配色方案中的对应颜色值，将示例中的色值替换为配色方案维度（主色、强调色、卡片背景色、卡片色条色等）。
+
 ---
 
 ## 1. 彩色卡片色块 — 表格内容
@@ -15,8 +17,8 @@
 ```
 卡片背景: fill=F0F4FF, x=50pt, y=75pt, w=860pt, h=55pt
 左侧色条: fill=4472C4, x=50pt, y=75pt, w=5pt, h=55pt
-标题: x=65pt, y=80pt, size=13pt, bold, color=4472C4
-说明: x=320pt, y=83pt, size=11pt, color=555555
+标题: x=65pt, y=80pt, w=250pt, h=25pt, size=13pt, bold, color=4472C4
+说明: x=320pt, y=83pt, w=580pt, h=20pt, size=11pt, color=555555
 ```
 
 多行卡片依次向下排列，y 递增 65pt（卡片高 55pt + 间距 10pt），交替使用不同色系。
@@ -38,11 +40,11 @@
 
 每卡片:
   色块背景: fill=对应色浅色版
-  标题: x=卡片x+15, y=卡片y+7, size=14pt, bold, color=对应色
-  描述: x=卡片x+15, y=卡片y+30, size=11pt, color=555555
+  标题: x=卡片x+15, y=卡片y+7, w=卡片宽-30, h=22pt, size=14pt, bold, color=对应色
+  描述: x=卡片x+15, y=卡片y+30, w=卡片宽-30, h=30pt, size=11pt, color=555555
 ```
 
-颜色循环：蓝 `4472C4` → 橙 `ED7D31` → 绿 `70AD47` → 红 `E94560` → 紫 `9C27B0` → 蓝 `5B9BD5`
+颜色循环：从配色方案的卡片色条色中依次取色，取尽后循环回第一种
 
 ---
 
@@ -56,8 +58,8 @@
 
 ```
 代码块背景: fill=16213E, x=40pt, y=210pt, w=880pt, h=160pt
-代码标题: x=60pt, y=220pt, size=14pt, bold, color=E94560
-代码内容: x=60pt, y=245pt, font=Consolas, size=11pt
+代码标题: x=60pt, y=220pt, w=840pt, h=22pt, size=14pt, bold, color=E94560
+代码内容: x=60pt, y=245pt, w=840pt, h=115pt, font=Consolas, size=11pt
   关键词(quick/standard/deep/vision): color=对应色
   字符串: color=70AD47
   注释/标点: color=AAAAAA
@@ -77,14 +79,14 @@
 大卡片: w=200pt, h=120pt, 间距=20pt
   x: 50pt, 270pt, 490pt, 710pt
   y: 80pt
-  数字: 居中, size=36pt, bold, color=FFFFFF
-  标签: 居中, y=卡片y+65, size=13pt, color=浅色
+  数字: 居中, w=200pt, h=40pt, size=36pt, bold, color=FFFFFF
+  标签: 居中, w=200pt, h=25pt, y=卡片y+65, size=13pt, color=浅色
 
 小卡片: w=410pt, h=80pt, 间距=20pt
   x: 50pt, 500pt
   y: 220pt
-  数字: 居中, size=28pt, bold, color=FFFFFF
-  标签: 居中, y=卡片y+35, size=13pt, color=浅色
+  数字: 居中, w=410pt, h=35pt, size=28pt, bold, color=FFFFFF
+  标签: 居中, w=410pt, h=25pt, y=卡片y+35, size=13pt, color=浅色
 ```
 
 ---
@@ -98,13 +100,13 @@
 **示例**：
 
 ```
-左列 x=60pt, w=180pt, font=Consolas, size=13pt, color=4472C4
-右列 x=250pt, w=200pt, font=Calibri, size=12pt, color=555555
+左列 x=60pt, w=180pt, h=25pt, font=Consolas, size=13pt, color=4472C4
+右列 x=250pt, w=200pt, h=25pt, font=Calibri, size=12pt, color=555555
 行高=30pt, 起始 y=80pt
 
 右列第二组:
-左列 x=520pt, color=ED7D31
-右列 x=710pt
+左列 x=520pt, w=180pt, h=25pt, color=ED7D31
+右列 x=710pt, w=200pt, h=25pt
 ```
 
 ---
@@ -120,20 +122,20 @@
 ```
 左侧代码块:
   背景: fill=F8F9FA, x=40pt, y=70pt, w=450pt, h=250pt
-  内容: font=Consolas, size=12pt, color=333333
+  内容: x=55pt, y=80pt, w=420pt, h=230pt, font=Consolas, size=12pt, color=333333
 
 右侧依赖方向卡片:
   背景: fill=F0F4FF, x=520pt, y=70pt, w=400pt, h=120pt
   色条: fill=4472C4, x=520pt, y=70pt, w=5pt, h=120pt
-  标题: x=535pt, y=78pt, size=14pt, bold, color=4472C4
+  标题: x=535pt, y=78pt, w=375pt, h=22pt, size=14pt, bold, color=4472C4
   流程:
-    层名: font=Consolas, size=12pt
-    箭头: size=14pt, color=4472C4, align=center
+    层名: w=375pt, h=20pt, font=Consolas, size=12pt
+    箭头: w=375pt, h=20pt, size=14pt, color=4472C4, align=center
 
 右侧约束卡片:
   背景: fill=FFF4E6, x=520pt, y=210pt, w=400pt, h=110pt
   色条: fill=ED7D31
-  标题+列表
+  标题+列表: w=375pt, h=适当高度
 ```
 
 ---
@@ -144,4 +146,5 @@
 - 禁止纯文本堆叠不加任何视觉元素
 - 禁止内容挤在顶部、底部大片留白
 - 禁止文本框高度小于内容实际需要（导致溢出）
-- 禁止混用不同设计模板的配色
+- 禁止文本 shape 不设置 w 和 h（会使用默认占位符尺寸约 283.46×141.73pt，通过 `view mode=html` 观察得出，导致溢出和重叠）
+- 禁止混用不同配色方案的配色

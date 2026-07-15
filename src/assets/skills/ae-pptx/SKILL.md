@@ -33,21 +33,33 @@ argument-hint: "[创建|编辑|分析|读取|追加|更新|预览] [文件路径
 
 ## 设计系统
 
-内置 6 套设计模板，选定后全程遵循，不得混用。完整规格见 `references/design-templates.md`。
+不使用固定模板。每次生成前，AI 根据内容主题、受众和场景**临时设计一套配色方案**，全程统一遵循。配色设计指南见 `references/design-templates.md`。
 
-| 模板 | 适用场景 | 主色 | 强调色 |
-|------|---------|------|--------|
-| `dark-accent` | 技术分享/产品介绍 | `16213E` | `E94560` |
-| `light-card` | 商务汇报/项目总结 | `2C3E50` | `3498DB` |
-| `minimal` | 学术/简约 | `333333` | `007ACC` |
-| `bold-stat` | 数据展示/成果汇报 | `1A1A2E` | `E94560` |
-| `tech-blue` | 科技蓝 | `0A1929` | `00B4FF` |
-| `party-red` | 党建红 | `8B0000` | `FFD700` |
+### 配色方案设计（生成流程第一步）
 
-选择规则：
-- 用户指定风格时使用对应模板
-- 未指定时根据内容主题推断：技术→`dark-accent`，商务→`light-card`，数据→`bold-stat`，学术→`minimal`
-- 党政类内容→`party-red`，科技/未来感→`tech-blue`
+分析内容后，设计以下配色维度并记录为本次的配色方案：
+
+| 维度 | 说明 | 约束 |
+|------|------|------|
+| 主色 | 标题条/页脚/封面背景 | 深色，投影可读 |
+| 强调色 | accent 竖条/装饰/链接 | 与主色对比度高 |
+| 内容页背景 | 内容页底色 | 通常白色 |
+| 封面/结束页背景 | 封面和结束页底色 | 通常等于主色 |
+| 标题文字色（色条上） | 色条上的标题文字 | 白色或浅色 |
+| 标题文字色（白底页） | 白底页大标题 | 深色，与主色同色系 |
+| 正文文字色 | 内容页正文 | 深灰或黑色 |
+| 辅助文字色 | 次要信息、页码、页脚 | 浅灰 |
+| 卡片背景色 | 2-4 种浅色 | 用于卡片/色块 |
+| 卡片色条色 | 2-4 种与卡片背景同色系深色 | 用于卡片左侧装饰条 |
+| 侧栏色 | 封面/结束页左侧栏 | 主色的深色变体 |
+
+设计约束（完整见 `references/design-templates.md`）：
+- 主色 + 强调色不超过 2 个主色调，卡片色系可多色但需协调
+- 深色背景必须配浅色文字，浅色背景必须配深色文字
+- 所有颜色使用 6 位 HEX 格式（如 `16213E`），不带 `#`
+- 字号层级至少 3 级：标题字号、正文字号、辅助字号
+- 字体：标题字体、正文字体、代码字体（Consolas）各一个
+- 用户指定风格或品牌色时优先采纳
 
 ## 布局规范
 
@@ -76,19 +88,21 @@ argument-hint: "[创建|编辑|分析|读取|追加|更新|预览] [文件路径
 
 ```
 1. 输入分析 → 判断创建/编辑/分析
-2. 选择设计模板（用户指定或自动推断）
-3. 逐页设计 → 根据内容类型选择可视化模式，计算精确坐标
+2. 设计配色方案 → 根据内容主题/受众/项目特征，临时设计一套配色+字号层级，全程遵循
+3. 逐页设计 → 根据内容类型选择可视化模式，计算精确坐标，每个文本 shape 必须显式设置 w 和 h
 4. batch 批量生成 → create + add slide + add shapes
-5. 视觉验证 → view mode=screenshot 或 view mode=html
+5. HTML 计算验证 → view mode=html，解析 shape 坐标检测重叠和溢出
 6. 修复循环 → 发现偏差则 set/remove/add 修复（最多 3 轮）
+7. 截图审美验证（可选）→ 全部通过后可选 view mode=screenshot + ae:image 做配色和层次确认
 ```
 
 ### 创建新文档
 
 1. `command=create` 创建空白文档
-2. 根据选定模板和布局规范，逐页设计元素清单
-3. 用 `command=batch` 批量添加幻灯片和元素
-4. 生成后执行视觉验证
+2. 设计配色方案（见上方"配色方案设计"）
+3. 根据配色方案和布局规范，逐页设计元素清单，**每个文本 shape 必须显式设置 `w` 和 `h`**
+4. 用 `command=batch` 批量添加幻灯片和元素
+5. 生成后执行 HTML 计算验证
 
 ### 更新已有幻灯片
 
@@ -100,44 +114,79 @@ argument-hint: "[创建|编辑|分析|读取|追加|更新|预览] [文件路径
 4. 未变更的页保持不动
 5. 修改后执行视觉验证
 
+**编辑已有 auto-size shape 时**：若不改变其文字内容则保留 auto-size；若需修改文字内容，则按 `references/design-templates.md` 的估算公式计算 w/h 并显式设置（无论是否溢出，修改文字内容后均应显式设置 w/h 以满足硬约束）。
+
 ### 从大纲生成
 
 1. 读取大纲文件（`ae:slides-outline` 产出的 `.md` 文件）
-2. 选择设计模板
-3. 逐页将大纲内容映射为可视化模式
+2. 设计配色方案
+3. 逐页将大纲内容映射为可视化模式，每个文本 shape 必须显式设置 `w` 和 `h`
 4. batch 批量生成
-5. 视觉验证
+5. HTML 计算验证
 
 ## 视觉验证
 
-生成或修改后必须验证视觉效果：
+生成或修改后必须验证。验证分两层，**HTML 计算验证为主，截图审美验证为辅**。
 
-### 截图验证
-
-```
-ae-officecli file=deck.pptx command=view mode=screenshot output=preview.png
-```
-
-然后用 `ae:image` 识别截图内容，对比设计意图：
-- 配色是否匹配模板
-- 布局是否对齐
-- 文字是否溢出
-- 视觉层次是否清晰
-
-### HTML 快速验证
+### 第一层：HTML 计算验证（必须）
 
 ```
 ae-officecli file=deck.pptx command=view mode=html
 ```
 
-HTML 渲染更快，适合快速检查结构和布局。
+HTML 输出包含每个 shape 的 `data-path` 和精确 `left`/`top`/`width`/`height`（pt 单位）。用以下方法做**精确计算验证**：
+
+**方法 A：委托 explore 子代理解析**
+
+将 HTML 输出文件路径交给 explore 子代理，要求：
+- 提取所有含文本的 shape 的 bounding box（left, top, left+width, top+height）
+- 检测两两重叠：两个文本 shape 的交集面积 > 较小 shape 面积的 10% 即报告
+- 检测文字溢出：按字号估算每行文本宽度（CJK 字符 = 1em = 字号 pt；ASCII 字符 ≈ 0.55em），对比 shape 可用宽度
+- **按 `<div class="para">` 逐行计算宽度**，不得将多行文本拼接为一行
+- 每页报告：OK 或列出问题（shape 路径、bounding box、问题描述）
+
+**方法 B：用 JS 脚本解析**
+
+HTML 输出过大时，写一个 Node.js 脚本解析 HTML 提取 shape 坐标，计算重叠和溢出：
+
+```javascript
+// 核心逻辑：解析 shape 的 style.left/top/width/height，计算两两交集
+// CJK 宽度 = fontSize pt，ASCII 宽度 = fontSize * 0.55 pt
+// 按 <div class="para"> 逐行计算，不拼接
+```
+
+**重叠检测规则**：
+- 两个文本 shape 的 bounding box 交集面积 > 较小 shape 面积的 10% → 报告重叠
+- 纯背景 shape（rect/ellipse 无文本）不参与重叠检测
+- 同一 shape 内的多行文本不视为重叠
+
+**溢出检测规则**：
+- 按字号估算每行文本宽度，对比 shape 的 `width` 属性
+- CJK 字符宽度 = 字号 pt（如 14pt 字号的 CJK 字符宽 14pt）
+- ASCII 字符宽度 ≈ 字号 × 0.55 pt
+- 空格宽度 ≈ 字号 × 0.27 pt
+- 按 `<div class="para">` 逐行计算，每行独立判断是否溢出
+- 任何一行超出 shape width 即报告溢出
+
+### 第二层：截图审美验证（可选，HTML 验证全部通过后）
+
+```
+ae-officecli file=deck.pptx command=view mode=screenshot output=preview.png
+```
+
+然后用 `ae:image` 识别截图内容，检查：
+- 配色是否协调、对比度是否够高
+- 视觉层次是否清晰
+- 整体观感是否专业
+
+**截图验证不用于检测重叠和溢出**——它无法精确定位 bounding box，只能做主观审美判断。
 
 ### 修复循环
 
-验证发现偏差时：
-1. 定位偏差页和偏差类型
-2. `command=set` 修改属性或 `command=add/remove` 调整元素
-3. 重新验证
+HTML 计算验证发现问题时：
+1. 定位问题页和问题类型（重叠/溢出/缺 w/h）
+2. `command=set` 修改属性（特别是补 `w`/`h`）或 `command=add/remove` 调整元素
+3. 重新 HTML 验证
 4. 每页最多 3 轮修复，超过则标注"需人工复查"
 
 ## ⚠️ 重要：判断是否需要加载 PPT 专用技能
@@ -188,22 +237,25 @@ slide, shape, picture, chart, table, row, connector, group, video, audio, equati
 ```
 ae-officecli file=deck.pptx command=create
 ae-officecli file=deck.pptx command=add parent=/ type=slide props='{"background":"1A1A2E"}'
-ae-officecli file=deck.pptx command=add parent=/slide[1] type=shape props='{"text":"标题","x":"2cm","y":"2cm","size":"28","color":"FFFFFF","bold":"true"}'
+ae-officecli file=deck.pptx command=add parent=/slide[1] type=shape props='{"text":"标题","x":"2cm","y":"2cm","w":"20cm","h":"2cm","size":"28","color":"FFFFFF","bold":"true"}'
 ae-officecli file=deck.pptx command=view mode=outline
 ```
 
+⚠️ **每个文本 shape 必须显式设置 `w` 和 `h`**。不设置时会使用 OOXML 默认占位符尺寸（约 283.46×141.73pt，通过 `view mode=html` 观察未设 w/h 的 shape 默认 bounding box 得出），导致文字溢出和 bounding box 重叠。
+
 ## PPT 专属最佳实践
 
-1. **选定模板后全程遵循** — 配色、字体、布局参数从模板取值，不得混用
-2. **用可视化模式** — 表格用彩色卡片，代码用深色块，数据用大数字，禁止空格对齐
-3. **先读再改** — 编辑前先 `view outline` 了解结构
-4. **增量更新** — 只修改需要变更的页，不重建整个文件
-5. **用稳定 ID** — 多步操作时用 `@id=` 寻址，避免索引偏移
-6. **batch 批量操作** — 多个 add/set 用 `command=batch` 一次完成
-7. **生成后必须验证** — `view mode=screenshot` 或 `view mode=html` 验证视觉效果
-8. **匹配专用场景时先 `load_skill`** — 融资任务先 `pitch-deck`，Morph 动画先 `morph-ppt`
-9. **注意 shape[1]** — 通常是标题占位符，内容从 `shape[2]` 开始
-10. **不确定时用 help** — `command=help path="pptx shape"` 查看完整属性
+1. **配色方案全程遵循** — 设计配色方案后，所有页面的配色、字体、布局参数从方案取值，不得混用
+2. **每个文本 shape 必须显式设置 `w` 和 `h`** — 不设置时使用 OOXML 默认 283.46×141.73pt，导致溢出和重叠
+3. **用可视化模式** — 表格用彩色卡片，代码用深色块，数据用大数字，禁止空格对齐
+4. **先读再改** — 编辑前先 `view outline` 了解结构
+5. **增量更新** — 只修改需要变更的页，不重建整个文件
+6. **用稳定 ID** — 多步操作时用 `@id=` 寻址，避免索引偏移
+7. **batch 批量操作** — 多个 add/set 用 `command=batch` 一次完成
+8. **生成后必须 HTML 计算验证** — `view mode=html` 解析 shape 坐标，检测重叠和溢出
+9. **匹配专用场景时先 `load_skill`** — 融资任务先 `pitch-deck`，Morph 动画先 `morph-ppt`
+10. **注意 shape[1]** — 通常是标题占位符，内容从 `shape[2]` 开始
+11. **不确定时用 help** — `command=help path="pptx shape"` 查看完整属性
 
 ## 完整 CLI 参考
 
