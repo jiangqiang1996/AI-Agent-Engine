@@ -2,7 +2,7 @@ import { tool } from '@opencode-ai/plugin'
 import { z } from 'zod'
 
 import { TOOL } from '../schemas/ae-asset-schema.js'
-import { checkOcrInstalled, parseOcrJson, runOcr, type OcrFinding, type OcrJsonResult } from '../services/ocr-service.js'
+import { checkOcrInstalled, parseOcrJson, runOcr, spawnOcrViewer, type OcrFinding, type OcrJsonResult } from '../services/ocr-service.js'
 
 /**
  * 所有 OCR 顶级命令。
@@ -123,9 +123,23 @@ export const aeOcrTool = tool({
       if (resolvedCommand === 'viewer') {
         const viewerArgs = buildCliArgs('viewer', args)
         const addr = (args.addr as string) ?? 'localhost:5483'
+        const { pid, logPath } = spawnOcrViewer(viewerArgs, { cwd: args.repo ?? ctx.directory })
+
+        ctx.metadata({ title: `ocr viewer 已启动 (PID: ${pid})`, metadata: { command: 'viewer', addr, pid, logPath } })
+
         return {
-          output: `ocr viewer 是阻塞型 WebUI 服务，监听 http://${addr}。\n建议通过 ae-async-bash 后台启动：\n  command=ocr ${viewerArgs.join(' ')}\n或直接在终端运行：\n  ocr viewer${args.addr ? ` --addr ${args.addr}` : ''}`,
-          metadata: { tool: TOOL.AE_OCR, command: 'viewer', addr },
+          output: [
+            'ocr viewer 已在后台启动',
+            `PID: ${pid}`,
+            `监听地址: http://${addr}`,
+            `日志路径: ${logPath}`,
+            '',
+            '子进程在后台独立运行，不会阻塞当前会话。',
+            `可在浏览器中打开 http://${addr} 查看审查会话。`,
+            '请读取上述日志文件分析执行情况；建议等待若干秒后再次读取，对比内容以确认服务已就绪。',
+            `如需停止: taskkill /PID ${pid} /F（Windows）或 kill ${pid}（Unix）。`,
+          ].join('\n'),
+          metadata: { tool: TOOL.AE_OCR, command: 'viewer', addr, pid, logPath },
         }
       }
 

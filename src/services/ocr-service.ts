@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { appendFileSync, closeSync, existsSync, mkdirSync, openSync } from 'node:fs'
 import path from 'node:path'
 
 import { getGlobalClient } from './client-holder.js'
@@ -252,6 +252,71 @@ export function resolveOcrBinary(): { path: string; source: string } | null {
 
   // 降级到 PATH 中的 ocr
   return { path: 'ocr', source: 'path' }
+}
+
+/**
+ * 以后台 detached 进程启动 ocr viewer，立即返回 PID 和日志路径。
+ *
+ * 参考 ae-async-bash 的平台原生后台机制：
+ * - Windows: start /B "title" cmd /c "command >> log 2>&1"
+ * - Unix: sh -c 'command >> log 2>&1 &'
+ *
+ * shell 自行管理子进程后台运行和日志写入，Node.js 只负责 spawn shell，
+ * 不参与 I/O 转发，避免事件循环退出导致 pipe 数据丢失。
+ *
+ * ocr 二进制随项目打包，resolveOcrBinary 始终有返回值。
+ */
+export function spawnOcrViewer(
+  args: string[],
+  opts?: {
+    cwd?: string
+    logPath?: string
+  },
+): { pid: number; logPath: string } {
+  const binary = resolveOcrBinary()!
+
+  const logFile = opts?.logPath ?? path.join(opts?.cwd ?? process.cwd(), 'ae', 'logs', `ocr-viewer-${formatLogTimestamp()}.log`)
+  const logDir = path.dirname(logFile)
+  if (!existsSync(logDir)) {
+    mkdirSync(logDir, { recursive: true })
+  }
+  // 预创建日志文件，确保调用方可立即读取
+  const touchFd = openSync(logFile, 'a')
+  closeSync(touchFd)
+
+  const quotedLog = `"${logFile}"`
+  const isWin32 = process.platform === 'win32'
+
+  // 构建完整命令字符串
+  const rawCommand = `${binary.path} ${args.join(' ')}`
+  const fullCommand = isWin32
+    ? `start /B "ocr-viewer" cmd /c "chcp 65001 >nul && ${rawCommand} >> ${quotedLog} 2>&1"`
+    : `${rawCommand} >> ${quotedLog} 2>&1 &`
+
+  const child = spawn(fullCommand, {
+    cwd: opts?.cwd,
+    detached: true,
+    shell: true,
+    stdio: ['ignore', 'ignore', 'ignore'],
+  })
+
+  child.on('error', (err) => {
+    try {
+      appendFileSync(logFile, `\n[spawn error] ${err.message}\n`)
+    } catch {
+      // 忽略写入错误
+    }
+  })
+
+  child.unref()
+
+  return { pid: child.pid ?? -1, logPath: logFile }
+}
+
+function formatLogTimestamp(): string {
+  const d = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`
 }
 
 /**
