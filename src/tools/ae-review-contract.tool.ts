@@ -61,17 +61,25 @@ function parseList<T extends string>(value: string | undefined, allowed: T[]): T
 }
 
 const TARGET_TO_REVIEWERS: Record<ReviewTargetType, string[]> = {
-  code: [
-    AGENT.OCR_REVIEWER,
-    AGENT.STANDARDS_REVIEWER,
+  code: [AGENT.OCR_REVIEWER],
+  requirements: [AGENT.DOCUMENT_REVIEWER],
+  design: [
+    AGENT.ARCHITECTURE_DESIGN_REVIEWER,
+    AGENT.API_DESIGN_REVIEWER,
+    AGENT.DATABASE_DESIGN_REVIEWER,
+    AGENT.UI_UX_DESIGN_REVIEWER,
+    AGENT.TEST_CASES_DESIGN_REVIEWER,
+    AGENT.SECURITY_DESIGN_REVIEWER,
+    AGENT.OBSERVABILITY_DESIGN_REVIEWER,
+    AGENT.NON_FUNCTIONAL_DESIGN_REVIEWER,
+    AGENT.DESIGN_INTEGRITY_REVIEWER,
+    AGENT.DOCUMENT_REVIEWER,
   ],
-  requirements: [AGENT.REQUIREMENTS_REVIEWER],
-  design: [AGENT.DESIGN_LENS_REVIEWER, AGENT.STEP_GRANULARITY_REVIEWER, AGENT.PRODUCT_LENS_REVIEWER, AGENT.PROTOTYPE_REVIEWER, AGENT.TEST_CASE_REVIEWER],
-  prototype: [AGENT.PROTOTYPE_REVIEWER],
-  'test-case': [AGENT.TEST_CASE_REVIEWER],
-  config: [AGENT.STANDARDS_REVIEWER],
-  asset: [AGENT.AGENT_NATIVE_REVIEWER],
-  document: [AGENT.COHERENCE_REVIEWER, AGENT.FEASIBILITY_REVIEWER, AGENT.EVIDENCE_REVIEWER, AGENT.SECURITY_DESIGN_REVIEWER],
+  prototype: [AGENT.UI_UX_DESIGN_REVIEWER, AGENT.DOCUMENT_REVIEWER],
+  'test-case': [AGENT.TEST_CASES_DESIGN_REVIEWER, AGENT.DOCUMENT_REVIEWER],
+  config: [AGENT.OCR_REVIEWER],
+  asset: [AGENT.OCR_REVIEWER],
+  document: [AGENT.DOCUMENT_REVIEWER],
 }
 
 function computeTargetCoverage(
@@ -155,8 +163,8 @@ export const aeReviewContractTool: ToolDefinition = tool({
     has_script: tool.schema.boolean().optional().describe('是否涉及脚本变更'),
     has_upstream: tool.schema.boolean().optional().describe('文档是否记录了 upstream/origin 等上游来源'),
     has_goal_alignment: tool.schema.boolean().optional().describe('是否提供审查目标（成功条件列表），激活目标对齐审查'),
-    has_design_contract: tool.schema.boolean().optional().describe('是否存在设计文档契约，激活设计一致性、UI 一致性和测试覆盖审查'),
-    has_evidence_claim: tool.schema.boolean().optional().describe('文档是否包含事实性声明、外部引用或交付证据，需要 evidence-reviewer 校验'),
+    has_design_contract: tool.schema.boolean().optional().describe('是否存在设计文档契约，激活设计维度专精代理和设计完整性审查'),
+    has_evidence_claim: tool.schema.boolean().optional().describe('文档是否包含事实性声明、外部引用或交付证据，由 document-reviewer 校验'),
   },
   async execute(args) {
     return Effect.runPromise(

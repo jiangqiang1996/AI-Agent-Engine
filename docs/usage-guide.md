@@ -146,39 +146,23 @@ PDF 文件的 Markdown 读取功能通过 `ae:pdf` 技能的 `to-markdown` 操�
 
 一般用户优先用 `/ae-review`，让 AE 自动选择代理。需要手动指定时，可在会话中使用 `@<代理名>`。
 
-### 代码审查代理
+AE 采用 13 代理全并行架构，所有激活代理在同一轮一次性发出 Task 调用，只找问题不做修复；合并层负责去重、冲突解决、因果分析和修复方案生成。
 
 | 代理 | 关注点 |
 | --- | --- |
 | `@ocr-reviewer` | 代码审查主引擎：bug、安全、性能、可维护性、测试覆盖、代码风格 |
-| `@standards-reviewer` | 项目规范、命名、工具选择、跨平台可移植性 |
-| `@api-contract-reviewer` | API、请求响应类型、序列化和导出类型签名 |
-| `@reliability-reviewer` | 错误处理、重试、超时、后台任务和异步处理 |
-| `@architecture-strategist` | 架构模式、设计完整性和结构性重构 |
-| `@data-migrations-reviewer` | 迁移、schema 变更、数据转换和回填脚本 |
-| `@agent-native-reviewer` | UI、工具或代理配置是否支持代理对等操作 |
-| `@adversarial-reviewer` | 大 diff、高风险领域或复杂文档的对抗式审查 |
-| `@goal-alignment-reviewer` | 对照审查目标逐条校验代码变更或文档内容是否覆盖成功条件 |
-
-### 文档审查代理
-
-| 代理 | 关注点 |
-| --- | --- |
-| `@coherence-reviewer` | 文档内部一致性、术语漂移和结构歧义 |
-| `@feasibility-reviewer` | 技术方案依赖缺口、迁移风险和可实现性 |
-| `@security-design-reviewer` | 设计文档安全缺口、认证授权假设、数据暴露和威胁模型 |
-| `@product-lens-reviewer` | 产品价值、战略后果、范围和复杂度 |
-| `@design-lens-reviewer` | 信息架构、交互状态、用户流程和设计决策缺口 |
-| `@step-granularity-reviewer` | 计划步骤粒度、唯一产物和批量操作方式 |
-| `@test-case-reviewer` | 测试用例文档覆盖、步骤和可验证结果 |
-| `@research-reviewer` | 历史方案、外部最佳实践和框架文档 |
-| `@requirements-reviewer` | 需求文档目标清晰度、范围边界、验收标准可验证性和角色完整性 |
-| `@prototype-reviewer` | 原型/线框/高保真完整性、交互状态覆盖和实现可行性 |
-| `@traceability-reviewer` | 需求-设计-原型-计划-实现-测试链路追溯，断裂引用和孤儿条目 |
-| `@evidence-reviewer` | 文档或交付报告中的事实声明、命令输出真实性和外部引用可达性 |
-| `@design-consistency-reviewer` | 设计文档与需求的一致性、设计维度完整性和安全设计覆盖 |
-| `@ui-consistency-reviewer` | UI/UX 交互流程完整性、状态覆盖和与需求的一致性 |
-| `@test-coverage-reviewer` | 设计文档中测试用例维度的覆盖完备性和需求对齐 |
+| `@document-reviewer` | 文档审查主引擎：内部一致性、可行性、产品视角、步骤粒度、需求质量和证据核验 |
+| `@architecture-design-reviewer` | 架构视角分析代码变更，检查架构边界、跨模块依赖和系统级抽象 |
+| `@api-design-reviewer` | 审查接口契约破坏性变更和兼容性 |
+| `@database-design-reviewer` | 审查数据迁移方案与执行细节（含数据库审查） |
+| `@ui-ux-design-reviewer` | 审查 UI/UX 设计维度的交互流程完整性、状态覆盖、与需求的一致性以及原型完整性 |
+| `@test-cases-design-reviewer` | 审查测试用例维度的结构完整性、覆盖完备性、步骤可执行性、结果可验证性和需求对齐程度 |
+| `@security-design-reviewer` | 文档域安全审查：评估设计文档中的安全缺口、认证授权假设、数据暴露和威胁模型 |
+| `@observability-design-reviewer` | 审查可观测性维度产物：日志规范、指标体系、告警规则、健康检查和 SLO/SLI 定义 |
+| `@non-functional-design-reviewer` | 审查非功能维度产物：性能目标、并发模型、事务边界、缓存策略和容量规划 |
+| `@design-integrity-reviewer` | 审查设计文档与需求的一致性、设计维度完整性、架构与数据模型可行性和安全设计覆盖 |
+| `@traceability-reviewer` | 审查需求-设计-原型-实现-测试链路追溯，识别断裂引用、孤儿条目和未声明延期 |
+| `@goal-alignment-reviewer` | 对照审查目标逐条校验变更是否达成，识别未达成项和偏离 |
 
 ## 研究与流程代理
 

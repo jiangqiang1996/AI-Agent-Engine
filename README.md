@@ -147,7 +147,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | --- | ---: | --- |
 | 技能 | 32 | `src/assets/skills/`、`src/schemas/ae-asset-schema.ts` |
 | 命令 | 39 | `src/services/command-registration.ts`、`src/assets/commands/` |
-| 代理 | 49 | `src/assets/agents/`、`src/services/agent-registration.ts` |
+| 代理 | 33 | `src/assets/agents/`、`src/services/agent-registration.ts` |
 | 工具 | 24 | `src/tools/` |
 | 规则 | 6 | `src/assets/rules/` |
 | 内置配置 | 1 | `src/assets/config/ae.jsonc` |

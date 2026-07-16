@@ -61,8 +61,8 @@ description: "跨域审查角色。代码域：对照审查目标逐条校验变
 
 ### 排除范围（文档域）
 
-- 文档内部一致性、术语漂移（coherence-reviewer 负责）
-- 文档可行性评估（feasibility-reviewer 负责）
+- 文档内部一致性、术语漂移（document-reviewer 负责）
+- 文档可行性评估（document-reviewer 负责）
 - 与审查目标无关的内容质量问题
 
 ## 输出格式

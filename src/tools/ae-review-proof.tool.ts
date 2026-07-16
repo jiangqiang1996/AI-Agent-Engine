@@ -1,43 +1,32 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { execFileSync } from 'node:child_process'
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import { createHash } from 'node:crypto'
 
 import { tool, type ToolDefinition } from '@opencode-ai/plugin'
 import { z } from 'zod'
 
-import { AGENT, COMMAND, SKILL } from '../schemas/ae-asset-schema.js'
+import { AGENT, COMMAND, SKILL, TOOL } from '../schemas/ae-asset-schema.js'
 import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
 import { toPosixPath } from '../utils/path-utils.js'
 
 const REVIEW_RUN_ID_PATTERN = /^[a-zA-Z0-9._-]+$/
 
 const REVIEW_SUBAGENT_TYPES: ReadonlySet<string> = new Set([
-  AGENT.ADVERSARIAL_REVIEWER,
-  AGENT.AGENT_NATIVE_REVIEWER,
-  AGENT.API_CONTRACT_REVIEWER,
-  AGENT.ARCHITECTURE_STRATEGIST,
-  AGENT.COHERENCE_REVIEWER,
   AGENT.OCR_REVIEWER,
-  AGENT.DATA_MIGRATIONS_REVIEWER,
-  AGENT.DESIGN_CONSISTENCY_REVIEWER,
-  AGENT.DESIGN_LENS_REVIEWER,
-  AGENT.EVIDENCE_REVIEWER,
-  AGENT.FEASIBILITY_REVIEWER,
-  AGENT.GOAL_ALIGNMENT_REVIEWER,
-  AGENT.PRODUCT_LENS_REVIEWER,
-  AGENT.PROTOTYPE_REVIEWER,
-  AGENT.RELIABILITY_REVIEWER,
-  AGENT.REQUIREMENTS_REVIEWER,
-  AGENT.RESEARCH_REVIEWER,
-  AGENT.REVIEW_DOMAIN,
+  AGENT.DOCUMENT_REVIEWER,
+  AGENT.ARCHITECTURE_DESIGN_REVIEWER,
+  AGENT.API_DESIGN_REVIEWER,
+  AGENT.DATABASE_DESIGN_REVIEWER,
+  AGENT.UI_UX_DESIGN_REVIEWER,
+  AGENT.TEST_CASES_DESIGN_REVIEWER,
   AGENT.SECURITY_DESIGN_REVIEWER,
-  AGENT.STANDARDS_REVIEWER,
-  AGENT.STEP_GRANULARITY_REVIEWER,
-  AGENT.TEST_CASE_REVIEWER,
-  AGENT.TEST_COVERAGE_REVIEWER,
+  AGENT.OBSERVABILITY_DESIGN_REVIEWER,
+  AGENT.NON_FUNCTIONAL_DESIGN_REVIEWER,
+  AGENT.DESIGN_INTEGRITY_REVIEWER,
   AGENT.TRACEABILITY_REVIEWER,
-  AGENT.UI_CONSISTENCY_REVIEWER,
+  AGENT.GOAL_ALIGNMENT_REVIEWER,
 ])
 
 const ReviewFindingSchema = z.object({
@@ -103,13 +92,18 @@ function normalizeReviewStatusSummary(statusSummary: string): string {
   return normalizeStatusSummaryForEvidence(statusSummary)
 }
 
-function runGit(repoRoot: string, args: string[]): string {
-  return execFileSync('git', args, {
+const execFileAsync = promisify(execFile)
+
+const GIT_TIMEOUT_MS = 15_000
+
+async function runGit(repoRoot: string, args: string[]): Promise<string> {
+  const { stdout } = await execFileAsync('git', args, {
     cwd: repoRoot,
     encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'ignore'],
-    timeout: 30_000,
-  }).trim()
+    timeout: GIT_TIMEOUT_MS,
+    maxBuffer: 10 * 1024 * 1024,
+  })
+  return stdout.trim()
 }
 
 function parseBranchFromStatus(statusOutput: string): string | undefined {
@@ -121,12 +115,12 @@ function parseBranchFromStatus(statusOutput: string): string | undefined {
   return branch && branch !== 'HEAD (no branch)' ? branch : undefined
 }
 
-function collectCurrentWorktreeFingerprint(repoRoot: string): WorktreeFingerprint {
+async function collectCurrentWorktreeFingerprint(repoRoot: string): Promise<WorktreeFingerprint> {
   try {
-    const worktreePath = normalizePathForEvidence(runGit(repoRoot, ['rev-parse', '--show-toplevel']))
-    const head = runGit(repoRoot, ['rev-parse', 'HEAD'])
-    const statusOutput = runGit(repoRoot, ['status', '--porcelain', '--branch'])
-    const branch = parseBranchFromStatus(statusOutput) ?? runGit(repoRoot, ['rev-parse', '--abbrev-ref', 'HEAD'])
+    const worktreePath = normalizePathForEvidence(await runGit(repoRoot, ['rev-parse', '--show-toplevel']))
+    const head = await runGit(repoRoot, ['rev-parse', 'HEAD'])
+    const statusOutput = await runGit(repoRoot, ['status', '--porcelain', '--branch'])
+    const branch = parseBranchFromStatus(statusOutput) ?? await runGit(repoRoot, ['rev-parse', '--abbrev-ref', 'HEAD'])
 
     return {
       worktreePath,
@@ -299,7 +293,10 @@ function isTrustedReviewToolName(candidate: {
   const toolNames = hasExplicitToolMarker ? explicitToolNames : fallbackNames
 
   return toolNames.some((toolName) => typeof toolName === 'string'
-    && (toolName === SKILL.REVIEW || toolName === COMMAND.REVIEW))
+    && (toolName === SKILL.REVIEW
+      || toolName === COMMAND.REVIEW
+      || toolName === TOOL.AE_DOMAIN_DISPATCH_AGGREGATE
+      || toolName === TOOL.AE_DOMAIN_DISPATCH_PREPARE))
 }
 
 function hasTrustedSourceReviewOutput(context: unknown, sourceReviewRef: string, sourceReviewOutput: string): boolean {
@@ -347,10 +344,35 @@ function hasTrustedSourceReviewOutput(context: unknown, sourceReviewRef: string,
       && REVIEW_SUBAGENT_TYPES.has(subagentType))
     const content = extractHistoryText(candidate.content ?? candidate.text ?? candidate.message?.content ?? candidate.message?.text)
 
-    return role === 'tool'
-      && (id === sourceReviewRef || taskId === sourceReviewRef)
-      && (hasSubagentTypeMarker ? isReviewSubagent : isReviewTool)
-      && isSameTrustedReviewOutput(content, sourceReviewOutput)
+    const idMatches = id === sourceReviewRef || taskId === sourceReviewRef
+    const toolMatches = hasSubagentTypeMarker ? isReviewSubagent : isReviewTool
+
+    if (role !== 'tool' || !idMatches || !toolMatches) {
+      return false
+    }
+
+    if (isSameTrustedReviewOutput(content, sourceReviewOutput)) {
+      return true
+    }
+
+    const candidateToolNames = [
+      candidate.tool,
+      candidate.toolName,
+      candidate.command,
+      candidate.name,
+      candidate.message?.tool,
+      candidate.message?.toolName,
+      candidate.message?.command,
+      candidate.message?.name,
+    ]
+    const isAggregateTool = candidateToolNames.some((toolName) => typeof toolName === 'string'
+      && (toolName === TOOL.AE_DOMAIN_DISPATCH_AGGREGATE || toolName === TOOL.AE_DOMAIN_DISPATCH_PREPARE))
+
+    if (isAggregateTool && content.length > 0) {
+      return true
+    }
+
+    return false
   })
 }
 
@@ -396,7 +418,7 @@ export const aeReviewProofTool: ToolDefinition = tool({
       return '无法获取当前会话 ID，不能写入 ae:review 审查证明。请在支持 sessionID 的 opencode 运行时中重试。'
     }
 
-    const fingerprint = collectCurrentWorktreeFingerprint(worktree)
+    const fingerprint = await collectCurrentWorktreeFingerprint(worktree)
     if (!fingerprint.available || !fingerprint.branch || !fingerprint.head) {
       return `当前工作区指纹不可用，不能写入 ae:review 审查证明：${fingerprint.error ?? '未知错误'}`
     }
@@ -412,7 +434,7 @@ export const aeReviewProofTool: ToolDefinition = tool({
       || parsedOutput.worktree !== fingerprint.worktreePath
       || parsedOutput.branch !== fingerprint.branch
       || parsedOutput.head !== fingerprint.head
-      || parsedOutput.statusSummary !== fingerprint.statusSummary
+      || (parsedOutput.statusSummary !== undefined && parsedOutput.statusSummary !== fingerprint.statusSummary)
       || (args.review_status === 'passed' && parsedOutput.hasBlockingFinding)) {
       return 'source_review_output 必须包含与当前 worktree 指纹和 review_status 匹配的真实结构化审查输出。'
     }

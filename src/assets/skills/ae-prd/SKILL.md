@@ -142,7 +142,7 @@ argument-hint: "[目标描述|需求文档路径]"
 
 当创建或更新了需求数据文档时，运行技能内 review 闭环。此环节复用现有文档审查逻辑，补强 auto 修复范围和收敛协议。
 
-**审查调用：** 调用 `ae:review mode=headless domain=document <requirements-doc-path>`，审查者为 `requirements-reviewer`。`mode=headless` 表示 ae:review 被技能内部调用时不输出"下一步推荐技能"引导，仅返回审查结果（status/findings/summary）给本技能，由 ae:prd 自身负责下一步引导。
+**审查调用：** 调用 `ae:review mode=headless domain=document <requirements-doc-path>`，审查者为 `document-reviewer`（通过文件类型路由加载需求检查框架）。`mode=headless` 表示 ae:review 被技能内部调用时不输出"下一步推荐技能"引导，仅返回审查结果（status/findings/summary）给本技能，由 ae:prd 自身负责下一步引导。
 
 **auto 修复范围：** 格式不规范、章节缺失、成功标准不可验证、In/Out Scope 模糊。ae:review 返回的 auto 可修复发现由本技能自动应用修复，修复后重新运行审查。
 

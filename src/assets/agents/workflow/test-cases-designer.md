@@ -25,7 +25,7 @@ description: "测试用例设计维度专精代理：根据 prd 需求、其他�
 
 ## When Not To Use
 
-- 需要审查测试用例文档 → 调度 `@test-case-reviewer`（审查域）
+- 需要审查测试用例文档 → 调度 `@test-cases-design-reviewer`（审查域）
 - 非 test-cases 维度的设计契约 → 调度其他维度专精代理
 
 ## Inputs

@@ -25,7 +25,7 @@ description: "架构设计维度专精代理：根据 prd 需求和 ae:grill 追
 
 ## When Not To Use
 
-- 需要从架构视角审查代码变更 → 调度 `@architecture-strategist`（审查域）
+- 需要从架构视角审查代码变更 → 调度 `@ocr-reviewer`（审查域，通过 --rule 注入架构规则）
 - 非 architecture 维度的设计契约 → 调度其他维度专精代理
 - 需要实现后端代码 → 调度 `@backend-dev`
 

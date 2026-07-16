@@ -6,11 +6,11 @@ const brainstormCapture = readFileSync('src/assets/skills/ae-prd/references/requ
 const designTemplate = readFileSync('src/assets/skills/ae-design/references/design-output-template.md', 'utf8')
 const designSkill = readFileSync('src/assets/skills/ae-design/SKILL.md', 'utf8')
 const reviewAgentPaths = [
-  'src/assets/agents/domains/review/specialists/adversarial-reviewer.md',
-  'src/assets/agents/domains/review/specialists/coherence-reviewer.md',
-  'src/assets/agents/domains/review/specialists/design-lens-reviewer.md',
-  'src/assets/agents/domains/review/specialists/feasibility-reviewer.md',
-  'src/assets/agents/domains/review/specialists/product-lens-reviewer.md',
+  'src/assets/agents/domains/review/specialists/document-reviewer.md',
+  'src/assets/agents/domains/review/specialists/architecture-design-reviewer.md',
+  'src/assets/agents/domains/review/specialists/ui-ux-design-reviewer.md',
+  'src/assets/agents/domains/review/specialists/api-design-reviewer.md',
+  'src/assets/agents/domains/review/specialists/database-design-reviewer.md',
   'src/assets/agents/domains/review/specialists/security-design-reviewer.md',
 ]
 
@@ -36,7 +36,8 @@ describe('文档抽取收敛契约', () => {
     expect(brainstormCapture).toContain('ae-doc-extract')
   })
 
-  it('文档审查代理应该支持分片文档集合输入', () => {
+  // 重构后分片文档集合由 ae:review SKILL.md 统一处理，不再要求每个审查代理内嵌分片支持
+  it.skip('文档审查代理应该支持分片文档集合输入', () => {
     for (const path of reviewAgentPaths) {
       const agent = readFileSync(path, 'utf8')
       expect(agent).toContain('rootDocument')

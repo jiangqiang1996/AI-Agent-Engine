@@ -34,8 +34,8 @@ description: "审查需求/设计/原型/测试用例之间的追溯一致性，
 
 ## 不在标记范围内
 
-- 单一文档内部一致性（由 coherence-reviewer 负责）
-- 单一文档具体内容质量（由 requirements/prototype/design/test-case/step-granularity 等专精负责）
+- 单一文档内部一致性（由 document-reviewer 负责）
+- 单一文档具体内容质量（由 document-reviewer 和对应设计维度专精代理负责）
 - 代码实现是否符合需求（由代码域审查者负责）
 - 与会话之外的外部需求/路线图的对齐
 - 评判延期决策是否合理（仅检查声明是否存在）

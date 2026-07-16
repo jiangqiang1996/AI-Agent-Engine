@@ -100,9 +100,9 @@ const INVARIANTS: Invariant[] = [
     mustNotContain: ['work-subagent-template', 'serial_subagent', 'parallel_subagent'],
   },
   {
-    file: 'src/assets/agents/domains/review/specialists/research-reviewer.md',
-    label: 'research-reviewer 经验库降级',
-    mustContain: ['不得失败', '缺失、为空或没有相关命中'],
+    file: 'src/assets/agents/domains/review/specialists/ocr-reviewer.md',
+    label: 'ocr-reviewer 代码审查引擎',
+    mustContain: ['OpenCodeReview CLI', 'ae-ocr'],
     mustNotContain: [],
   },
   {

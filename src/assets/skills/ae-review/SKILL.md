@@ -1,6 +1,6 @@
 ---
 name: ae:review
-description: "通用审查入口。默认自动识别审查场景，支持单一类型（代码、需求、设计、原型、配置、技能、命令、测试用例等）以及多类型混合范围；按场景与目标类型组合专一审查者，分层并行执行。"
+description: "通用审查入口。全并行发现 + 合并层修复架构：13 个代理全并行调度只找问题，合并层去重、冲突解决、因果分析后生成修复方案。支持代码、文档、设计、原型、配置、技能、命令、测试用例等单一类型及多类型混合范围。"
 argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [full] [full=<path>] [session] [design=<path>] [goals=<text>] [路径...]"
 ---
 
@@ -8,27 +8,48 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 
 审查回答**质量如何（HOW WELL）**——代码是否正确、安全、可维护；需求/设计/原型/测试用例/配置/资产是否一致、可行、可追溯、可验证。
 
-此技能是 AE 通用核心流程的审查入口。
+此技能是 AE 通用核心流程的审查入口，采用**全并行发现 + 合并层修复**架构。
 
-此技能支持：
+## 架构概览
 
-- 用户只给一个产出物（如一份需求、一份设计、一份原型说明、一段代码 diff、一组测试用例、一个配置或一个技能/命令文件）时也能直接审查；
-- 用户一次性传入多类型混合范围时，按目标类型分类并合并对应专一审查者；
-- 默认 `domain` 自动识别为 `code`、`document` 或 `general`（混合）；用户可显式覆盖 `domain=general` 或通过 `scenes=` / `targets=` 强制场景。
+1. **全并行架构**：代码、文档、设计三层所有代理全并行调度，无串行依赖
+2. **审查只找问题**：所有代理只产出 findings，不做修复
+3. **合并层修复流程**：所有代理并行找完问题 → 合并去重 + 冲突解决 + 因果分析（修复 A 解决 B）→ 生成修复方案 → 执行修复（仅 autofix 模式）
+4. **无变更全量审查**：`git status --porcelain` 为空且 `git diff --quiet` 通过时，默认审查除 `ae/prds/` 和 `ae/designs/` 以外的全量文件
+5. **goals 自动推断**：三级优先级——用户显式传入 > 会话上下文分析 > 未提交变更推断
+6. **document-reviewer 支持任意文本类型**：不限于 .md，包括 .txt/.rst/.json/.yaml/.xml 等所有非代码文本
+7. **设计文件和需求文件双重审查**：同时被 document-reviewer（文档属性）和维度专属代理（维度内容）审查
+8. **design-integrity-reviewer 全并行**：独立读取全部设计文件做跨维度检查，不依赖其他代理输出
 
-此技能采用四阶段编排协议，通过代码化调度直接并行调用审查专精代理。所有审查任务都必须由专一子代理执行；编排层只负责范围确认、场景归类、调度和聚合。
+## 13 个代理清单
+
+| 代理 | 层 | 激活条件 |
+|------|---|---------|
+| ocr-reviewer | 代码 | 代码变更 OR 无变更全量 |
+| document-reviewer | 文档 | 任何文本文件变更 |
+| architecture-design-reviewer | 设计维度 | `ae/designs/` 含 architecture 产物 |
+| api-design-reviewer | 设计维度 | `ae/designs/` 含 api 产物 |
+| database-design-reviewer | 设计维度 | `ae/designs/` 含 database 产物 |
+| ui-ux-design-reviewer | 设计维度 | `ae/designs/` 含 ui-ux/design-spec 产物 |
+| test-cases-design-reviewer | 设计维度 | `ae/designs/` 含 test-cases 产物 |
+| security-design-reviewer | 设计维度 | `ae/designs/` 含 security 产物 |
+| observability-design-reviewer | 设计维度 | `ae/designs/` 含 observability 产物 |
+| non-functional-design-reviewer | 设计维度 | `ae/designs/` 含 non-functional 产物 |
+| design-integrity-reviewer | 完整性 | `ae/designs/` 含 2+ 维度产物 |
+| traceability-reviewer | 跨域 | 多类型混合范围 |
+| goal-alignment-reviewer | 跨域 | goals 参数存在 OR 会话上下文可提取目标 OR 未提交变更可推断目标 |
 
 ## 核心原则
 
-1. **范围先行，审查在后** — 在调度任何审查者之前，必须完成范围确定、排除规则应用和用户确认。不得跳过范围确认直接审查。
-2. **只读操作** — 审查子代理不得编辑项目文件或变更仓库状态。仅 `auto` 修复在综合阶段由编排器应用。
-3. **意图驱动** — 代码域每个发现必须对照意图摘要判断相关性。与意图无关的预存问题标记 `pre_existing: true`，不计入审查结论。
-4. **证据必须基于实际内容** — 每个发现至少包含一项来自实际代码/文档的证据。无证据的泛泛建议必须抑制。
-5. **排除规则不可绕过** — 敏感文件和 `.opencode/` 始终排除。需求/设计文档默认排除，仅在满足"明确指定"条件时纳入。
-6. **auto vs present 的判断标准是可推断确定性** — 判断标准不是"这个修复重要吗？"，而是"能否根据已知内容推断出唯一最小修复"。可由同一文档、同一设计、项目既有规范、稳定模板或明确用户意图推断出的修复 → `auto`；需要选择目标、范围、取舍或新增立场 → `gated`/`manual`。
-7. **无法推断时提出补全建议** — `gated`/`manual` 发现不得只停留在问题报告；必须给出可选建议和一个面向用户的补全问题。交互模式下先询问用户，得到明确选择后再修复；自动修复模式只记录问题和建议，不替用户决策；无头模式按审查者推荐方向修复所有带 `suggested_fix` 且不触发安全边界的发现。
-8. **域协同而非互斥** — `domain` 仅描述审查对象域：`code`、`document` 或 `general`（混合）。`general` 表示同一次审查覆盖多种产出物类型，由编排层按 `targetTypes` 与 `reviewScenes` 分别选择对应专一审查者并合并发现，但不得让任何一个审查者跨域包办；每种识别出的目标类型至少有一个专一审查者被调度，否则必须显式记录"未覆盖原因"。
-9. **图谱新鲜度门控** — 使用 `ae:graph-query` 确定范围或影响面时必须读取 `freshness`；`freshness.status` 不是 `fresh` 时，图谱结果只能辅助定位，不得作为无影响、无依赖、完整覆盖或无需审查的结论证据；需要这类高影响结论时必须刷新图谱，或用真实文件、源码搜索、Git 状态和验证命令补证。
+1. **范围先行，审查在后** — 调度任何代理前必须完成范围确定、排除规则应用和用户确认
+2. **只读发现** — 所有 13 个代理只产出 findings，不做任何修复；修复统一由合并层在汇总阶段执行
+3. **证据必须基于实际内容** — 每条 finding 至少包含一项来自实际代码/文档的证据；无证据的泛泛建议必须抑制
+4. **排除规则不可绕过** — 敏感文件和 `.opencode/` 始终排除；需求/设计文档默认排除，仅在满足"明确指定"条件时纳入
+5. **全并行无串行依赖** — 所有激活代理在同一轮回复中一次性发出 Task 调用；design-integrity-reviewer 独立读取全部设计文件，不依赖其他代理输出
+6. **合并层负责修复决策** — 合并层执行去重、冲突解决、因果分析（遍历 causes/caused_by 依赖图），生成修复方案；仅 autofix 模式执行修复
+7. **auto vs present 判断标准是可推断确定性** — 能由已知内容推断出唯一最小修复 → auto；需要选择目标、范围、取舍或新增立场 → gated/manual
+8. **域协同而非互斥** — `domain` 描述审查对象域：code/document/general；general 表示同一次审查覆盖多种产出物类型，按目标类型分别选择代理并合并发现
+9. **图谱新鲜度门控** — 使用 `ae:graph-query` 确定范围或影响面时必须读取 `freshness`；非 fresh 时图谱结果只辅助定位，不作无影响、无依赖或完整覆盖结论证据
 
 ## 模式规则
 
@@ -42,158 +63,151 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 ## 排除规则
 
 **始终排除（任何情况下不可覆盖）：**
-- 敏感文件：`.env`、`.env.*`（保留 `.env.example`、`.env.template`）——在文件收集阶段即从文件列表中移除，后续任何阶段不可读取或引用
+- 敏感文件：`.env`、`.env.*`（保留 `.env.example`、`.env.template`）——文件收集阶段即移除
 - `.opencode/` 目录下的所有文件
 - 受保护产物：`ae/reviews/*`、`ae/solutions/*`
 
-**全域默认排除（域安全需求 R4-R5）：**
+**全域默认排除：**
 - `ae/prds/` 下的文件
 - `ae/designs/` 下的文件
 
 **"明确指定"条件——满足任一则纳入：**
 1. 用户传入的文件路径指向这些目录下的文件
 2. 对话中明确提到"审查需求文档"或"审查设计文档"等语义等价表达
-3. `domain=document` 模式下确定性搜索机制（阶段 1）找到了文档——搜索成功等同于明确指定
-4. `domain=general` 模式下用户提供的混合范围中显式包含 `ae/prds/` 或 `ae/designs/` 路径——纳入对应目标类型的审查者
+3. `domain=document` 模式下确定性搜索机制找到了文档
+4. `domain=general` 模式下用户提供的混合范围中显式包含 `ae/prds/` 或 `ae/designs/` 路径
+
+## Finding Schema
+
+每条 finding 包含 causes/caused_by 字段用于因果分析：
+
+```json
+{
+  "reviewer": "string",
+  "findings": [{
+    "title": "简短问题标题",
+    "severity": "P0|P1|P2|P3",
+    "domain": "code|document",
+    "location": { "file": "...", "line"|"section": "..." },
+    "why_it_matters": "影响和故障模式描述",
+    "finding_type": "error|omission|pre-existing",
+    "evidence": ["基于实际内容的证据"],
+    "confidence": 0.0-1.0,
+    "causes": ["finding_id_1"],
+    "caused_by": ["finding_id_2"],
+    "suggested_fix": "具体修复方案"
+  }]
+}
+```
+
+- `causes`：本 finding 可能导致的其他 finding ID 列表
+- `caused_by`：导致本 finding 的其他 finding ID 列表
+- 合并层通过遍历 causes/caused_by 依赖图执行因果分析，识别"修复 A 即解决 B"的链式关系
 
 ## 四阶段编排协议
 
 ### 阶段一：入口（Entry）
 
-解析参数，确定审查域和范围，输出 `TaskIntent`。
+解析参数，确定审查域和范围，推断 goals，输出 `TaskIntent`。
 
 #### 参数解析
 
-解析 `$ARGUMENTS` 中的可选标记。以 `mode=` 或 `domain=` 开头的标记是标志，不是 ref——从参数中移除它们。
+解析 `$ARGUMENTS` 中的可选标记。以 `mode=` 或 `domain=` 开头的标记是标志，不是 ref。
 
 参数解析规则（三级策略）：
 1. 显式命名：`key=value`、`key:value`、`--key=value` 直接绑定，优先级最高
-2. 值特征推断：按值的模式自动匹配参数类型（仅在参数意图上下文中生效）
+2. 值特征推断：按值的模式自动匹配参数类型
 
    | 值模式 | 推断为 |
    |--------|--------|
    | autofix / report-only / headless | mode |
    | code / document / general | domain |
 
-   ❌ 否定示例：`审查 headless 模式的文档` 中的 headless 不推断为 mode
-
-3. 顺序兜底：仅 mode 和 domain 参与推断，其余参数（from/recent/design/goals/scenes/targets）必须显式命名
+3. 顺序兜底：仅 mode 和 domain 参与推断，其余参数必须显式命名
 
 | 标记 | 效果 |
 |------|------|
 | `domain=code` | 强制代码域审查 |
 | `domain=document` | 强制文档域审查 |
-| `domain=general` | 强制混合范围审查（多类型协同）；省略 `domain` 时由编排层根据范围自动识别 |
-| `scenes=<list>` / `reviewScenes=<list>` | 显式覆盖审查场景，逗号分隔，可选值：`code`、`requirements`、`design`、`prototype`、`test-case`、`config`、`asset`、`general-document` |
-| `targets=<list>` / `targetTypes=<list>` | 显式覆盖目标产出物类型，逗号分隔，可选值：`code`、`requirements`、`design`、`prototype`、`test-case`、`config`、`asset`、`document` |
+| `domain=general` | 强制混合范围审查；省略时由编排层自动识别 |
+| `scenes=<list>` | 显式覆盖审查场景，逗号分隔 |
+| `targets=<list>` | 显式覆盖目标产出物类型，逗号分隔 |
 | `mode=autofix` | 自动修复模式 |
 | `mode=report-only` | 只读模式 |
-| `mode=headless` | 无头模式（程序调用） |
-| `from=<ref>` | 使用 Git diff 确定范围，以指定 ref 作为差异基准 |
+| `mode=headless` | 无头模式 |
+| `from=<ref>` | 使用 Git diff 确定范围 |
 | `recent=<N>` | 审查最近 N 次 Git 提交 |
-| `full` | 审查项目中所有文件（不依赖 Git） |
-| `full=<path>` | 审查指定路径下的所有文件（不依赖 Git） |
+| `full` | 审查项目中所有文件 |
+| `full=<path>` | 审查指定路径下的所有文件 |
 | `session` | 审查本次会话中变更的文件 |
 | `design=<path>` | 加载设计用于需求验证 |
-| `goals=<text>` | 传入审查目标（成功条件列表），激活 goal-alignment-reviewer 逐条校验变更是否达成目标 |
+| `goals=<text>` | 传入审查目标（成功条件列表） |
 
-**内部调用约定**：当本技能被其他技能自动调用时，所有参数必须使用显式命名格式（如 `mode=autofix domain=document`），不依赖值特征推断。
-
-**冲突检测：** 以下范围标记互斥，同时指定时停止并报错：`from=` / `recent=` / `full` / `full=<path>` / `session`。
+**冲突检测：** `from=` / `recent=` / `full` / `full=<path>` / `session` 互斥，同时指定时停止并报错。
 
 #### 范围确定
 
 阅读 `references/scope-detection.md` 获取完整的 Git 范围检测流程。
 
+**无变更全量审查**：当 `git status --porcelain` 输出为空且 `git diff --quiet` 通过时，默认审查除 `ae/prds/` 和 `ae/designs/` 以外的全量文件。此逻辑在自动检测阶段触发，用户可通过显式范围参数覆盖。
+
 ##### 自动域识别
 
 未显式指定 `domain` 时，按以下顺序识别：
 
-1. 若用户传入路径仅包含 `ae/prds/`、`ae/designs/` 或其他 `.md` 文档 → `domain=document`。
-2. 若范围仅含代码、配置、脚本或基础设施文件，且不含上述文档类型 → `domain=code`。
-3. 若同一次范围内既包含代码/配置/资产，又包含需求、设计、原型或测试用例文档 → `domain=general`。
-4. 自动识别失败或证据不足时回退到 `domain=code`，并在交互模式下提示用户确认。
+1. 路径仅含 `ae/prds/`、`ae/designs/` 或其他文档 → `domain=document`
+2. 范围仅含代码、配置、脚本或基础设施文件 → `domain=code`
+3. 范围既含代码/配置/资产，又含需求、设计、原型或测试用例文档 → `domain=general`
+4. 自动识别失败时回退到 `domain=code`，交互模式下提示用户确认
 
 代码域范围确定：
-
-1. **Git 差异模式**（`from=<ref>` 或 `recent=<N>` 或自动检测）→ 按优先级检测，展示变更文件让用户确认
-2. **全量扫描模式**（`full` 或 `full=<path>`）→ 扫描项目文件，应用排除规则，让用户确认
-3. **会话变更模式**（`session`）→ 识别会话变更文件，让用户确认
-4. **自动检测**（无范围参数时）→ 按 Git 自动检测优先级尝试，非 Git 项目回退全量扫描
+1. **Git 差异模式**（`from=` 或 `recent=` 或自动检测）→ 检测变更文件，展示让用户确认
+2. **全量扫描模式**（`full` 或 `full=<path>`）→ 扫描项目文件，应用排除规则
+3. **会话变更模式**（`session`）→ 识别会话变更文件
+4. **自动检测**（无范围参数时）→ 先检测 Git 变更；无变更时触发无变更全量审查逻辑
 
 文档域范围确定：
-
 - 指定文档路径 → 使用指定路径
 - 未指定路径 + 交互模式 → 搜索 `ae/prds/` 和 `ae/designs/` 中最近修改的文件
 - 未指定路径 + 无头模式 → 输出错误，立即终止
 
-通用域（`domain=general`）范围确定：
+通用域范围确定：
+- 必须显式提供路径或范围标记，不进行无路径盲扫
+- 路径列表按文件特征分桶为不同 targetTypes 与 reviewScenes
+- 用户通过 `scenes=` / `targets=` 显式覆盖时优先使用
 
-- 必须显式提供路径或显式范围标记（`from=`、`recent=`、`full`、`full=<path>`、`session`），不进行无路径的盲扫
-- 路径列表按文件特征分桶为不同 `targetTypes` 与 `reviewScenes`：
-  - `ae/prds/**`、`requirements`、`prd` 命名 → `requirements`
-  - `ae/designs/**`、`design`、`plan`、`spec` 命名或 frontmatter `type: design` → `design`
-  - `prototype`、`mock` 命名 → `prototype`
-  - `tests/**`、`test-case`、frontmatter `type: test` → `test-case`
-  - `*.json(c)`、`*.yaml`、`*.toml`、`.env.example`、`.env.template` → `config`；`.opencode/` 与真实 `.env*` 仍按排除规则处理
-  - 内置技能/代理/命令资产目录（如 OpenCode 项目内的 `assets/skills/**`、`assets/agents/**`、`assets/commands/**`） → `asset`
-  - 其余源码、脚本、基础设施 → `code`
-  - 其余 `.md` → `general-document`
-- 用户通过 `scenes=` / `targets=` 显式覆盖时优先使用用户提供的归类，但必须保留实际范围内确实存在的目标类型；不存在的类型必须在汇总阶段记录"未覆盖原因"。
+如果文档 frontmatter 包含 `sharded: true`，先调用 `ae-doc-extract` 构建分片审查上下文。
 
-如果文档 frontmatter 包含 `sharded: true`，先调用 `ae-doc-extract` 构建分片审查上下文；上下文至少保留 `rootDocument`、`shards`、`missingShards`、`duplicateIds`、`parentMismatch`、`globalRelations` 和 `diagnostics` 语义。
+#### goals 自动推断
 
-#### 变更分析与目标拆分
+三级优先级：
 
-在意图发现前，对变更范围执行分类分析，按文件类型将变更拆分为两组，分别产出对应的目标摘要和文件列表。
+1. **用户显式传入**：`goals=<text>` 参数存在时直接使用，优先级最高
+2. **会话上下文分析**：无显式 goals 时，分析当前会话上下文提取用户陈述的目标和成功条件
+3. **未提交变更推断**：无会话上下文目标时，从未提交变更的 commit message、diff 内容和变更文件模式推断审查目标
 
-**核心原则：文档与代码密不可分，互相影响。** 文件分类用于产出针对性的审查目标摘要，但**不限制子代理的可读范围**——代码域子代理审查代码时可以读取相关文档做交叉参照（如代码实现是否与设计文档一致），文档域子代理审查文档时可以读取相关代码验证一致性（如文档描述的接口是否与代码实现匹配）。
+推断结果注入 goal-alignment-reviewer 上下文作为 `{success_criteria}`。三级均无结果时不激活 goal-alignment-reviewer。
 
-**文件分类规则**（用于目标摘要产出，不限制读取范围）：
+#### 变更分析
+
+对变更范围执行分类分析，按文件类型拆分为代码与配置组和文档组，分别产出目标摘要和文件列表。文件分类用于产出针对性的审查目标摘要，**不限制子代理的可读范围**——所有代理均可读取项目中的任何文件做交叉参照。
 
 | 分组 | 包含文件 | 产出变量 |
 |------|---------|---------|
-| **代码与配置** | OCR 扩展名白名单内的代码、配置文件和测试文件（`.ts`/`.js`/`.java`/`.py`/`.go`/`.rs`/`.sql`/`.xml`/`.yaml`/`.json`/`.toml`/`.ini`/`.gradle` 等，含 `tests/` 下的 `.test.ts` 等测试代码） | `{code_intent}` + `{code_files}` |
-| **文档** | `.md` 文件（需求文档、设计文档、代理定义、技能说明、命令模板、参考文档等），排除 `.opencode/` 下的文件 | `{doc_intent}` + `{doc_files}` |
+| **代码与配置** | 代码、配置文件和测试文件 | `{code_intent}` + `{code_files}` |
+| **文档** | `.md`/`.txt`/`.rst`/`.json`/`.yaml`/`.xml` 等所有非代码文本文件 | `{doc_intent}` + `{doc_files}` |
 
-注意：测试文件（如 `*.test.ts`、`*_test.go`）属于代码范畴，归入"代码与配置"组。调用 ocr-reviewer 时需通过 `include` 配置覆盖 OCR 的默认排除（见下方 ocr-reviewer 调用说明）。
-
-**分析步骤**（每组独立执行）：
-
-1. **代码与配置组**：读取 diff，识别变更类型（新增功能/修复缺陷/重构/配置调整/测试变更），梳理代码变更的功能目标，标记关键变更点（含测试覆盖变化），识别风险信号。产出 `{code_intent}`（3-5 行）和 `{code_files}`
-2. **文档组**：读取变更内容，识别文档类型和变更性质（新增代理/修改技能/更新规范等），梳理文档变更目标。产出 `{doc_intent}`（3-5 行）和 `{doc_files}`
-
-**完整目标**：将两组合并，产出 `{full_intent}`（3-5 行，覆盖全部变更的整体目标）和 `{full_files}`（全部文件列表）。
-
-#### 意图发现
-
-根据子代理职责，注入不同的目标摘要和文件列表。**所有子代理的可读范围不限于注入的文件列表**——子代理可以读取项目中的任何文件做交叉参照，确保文档与代码统一。
-
-- 代码域：
-  - `ocr-reviewer`：注入 `{code_intent}` + `{code_files}`（含代码、配置文件和测试文件）。OCR 默认排除测试文件，调用 ae-ocr 时需通过 `.opencodereview/rule.json` 的 `include` 配置或 `--rule` 参数传入 include 规则覆盖默认排除，使测试文件纳入审查范围。include 规则示例：`{"include": ["**/*.test.{js,ts,tsx}", "**/*_test.{go,py,rs}", "**/tests/**"]}`
-  - `standards-reviewer`、`agent-native-reviewer`、`api-contract-reviewer`、`architecture-strategist`、`reliability-reviewer`、`data-migrations-reviewer`、`adversarial-reviewer`、`goal-alignment-reviewer`：注入 `{full_intent}` + `{full_files}`（完整审查目标，这些代理需要看到代码+文档+测试的全貌，并可读取相关文档交叉验证代码是否符合规范）
-  - `research-reviewer`：注入 `{full_intent}` + `{full_files}`
-  - 检查 `design=` 参数或自动发现最近设计；`goals=` 参数内容作为审查目标注入子代理上下文
-- 文档域：注入 `{doc_intent}` + `{doc_files}`；文档子代理可读取相关代码验证文档描述与实现是否一致；通过分析文档内容判断类型（requirements/design/test/general）；`goals=` 参数内容作为审查目标注入子代理上下文
-- 通用域（`domain=general`）：按子代理所属目标类型分别注入对应组的目标和文件；跨域子代理（adversarial、goal-alignment、traceability）注入 `{full_intent}` + `{full_files}`；所有子代理均可交叉读取代码和文档；调度阶段按 `reviewScenes` 与 `targetTypes` 分别选择审查者，最终在汇总阶段统一聚合发现并按目标类型声明覆盖
+document-reviewer 支持任意文本类型，不限于 .md。
 
 #### design 契约检测
 
-在范围确定后检测是否存在 design 契约，用于激活一致性审查者。
+范围确定后检测是否存在 design 契约：
 
-**检测规则：**
 - 检查 `ae/designs/` 下是否存在与当前审查范围匹配的 design 目录
-- 匹配条件：审查范围包含实现代码且 `ae/designs/` 下存在 design 目录（按设计路径、需求描述名或时间戳匹配）
-- 审查范围本身就是 `ae/designs/**` 下的 design 文档时，`hasDesignContract=true`（审查 design 文档本身）
+- 审查范围本身就是 `ae/designs/**` 下的 design 文档时，`hasDesignContract=true`
+- `hasDesignContract=true` 时传入 `has_design_contract=true`，激活对应维度专属代理
 
-**flag 传入：** 当 `hasDesignContract=true` 时，在调用 `ae-review-contract` 工具或 `ae-domain-dispatch-prepare` 时传入 `has_design_contract=true`，激活以下一致性审查者：
-- 任意实现代码 → `design-consistency-reviewer`（覆盖 database/security/architecture 等维度一致性）
-- UI 实现代码 → `ui-consistency-reviewer`（激活条件：`hasDesignContract` 或 `hasUi`）
-- 测试代码 → `test-coverage-reviewer`
-- 审查 design 文档本身（`targetTypes` contains `design`）→ `design-consistency-reviewer`
-- 存在 `api.md` + API 实现代码 → `api-contract-reviewer`（复用现有）
-
-**内部调用约定：** 当本技能被其他技能以 `mode=headless` 调用时（技能内 review 闭环），不输出"下一步推荐技能"引导，仅返回审查结果（status/findings/summary）给调用方，由调用方自身负责下一步引导。
+**设计文件和需求文件双重审查**：当 `ae/designs/` 或 `ae/prds/` 下的文件纳入审查范围时，这些文件同时被 document-reviewer（审查文档属性：格式、结构、完整性）和维度专属代理（审查维度内容：architecture/api/database 等）审查。两类代理全并行执行，互不依赖。
 
 #### TaskIntent 输出
 
@@ -202,8 +216,9 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
   stage: 'entry',
   intent: '审查意图标签',
   domain: 'code' | 'document' | 'general',
-  reviewScenes?: Array<'code' | 'requirements' | 'design' | 'prototype' | 'test-case' | 'config' | 'asset' | 'general-document'>,
-  targetTypes?: Array<'code' | 'requirements' | 'design' | 'prototype' | 'test-case' | 'config' | 'asset' | 'document'>,
+  reviewScenes?: string[],
+  targetTypes?: string[],
+  goals?: string[],
   constraints: ['排除规则', '模式约束'],
   rawInput: '原始参数',
   timestamp: 'ISO 时间戳'
@@ -214,12 +229,10 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 
 确认审查范围和参数，输出 `ConfirmedContext`。
 
-- 交互模式：展示范围、排除规则和审查团队预览，让用户确认或修正
+- 交互模式：展示范围、排除规则和审查团队预览（13 个代理中激活的子集），让用户确认或修正
 - 无头/自动修复模式：跳过用户确认，直接进入调度
 
 可使用 `ae-review-contract` 或 `ae-domain-dispatch-prepare` 工具获取审查团队预览。`ae-domain-dispatch-prepare` 同时返回每个专精的 prompt 模板，供阶段三直接调度使用。
-
-#### ConfirmedContext 输出
 
 ```typescript
 {
@@ -233,139 +246,61 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 
 ### 阶段三：调度（Dispatch）
 
-采用代码化调度：编排层直接通过 Task 工具并行调用审查专精代理，不经过 @review-domain 中转。
+**全并行调度**：所有激活代理在同一轮回复中一次性发出 Task 调用，无串行依赖。
 
-**不可降级硬约束**（来自 `@review-domain` 域代理定义，编排层必须遵守）：
+采用代码化调度路径：`ae-domain-dispatch-prepare` → 并行 Task → `ae-domain-dispatch-aggregate`。
 
-> 如果编排层已通过 `ae-domain-dispatch-prepare` 获得非空专精列表（`specialistCount > 0`），**不得调用 `@review-domain`**，必须走代码化调度路径（步骤 3.1 → 3.2 → 3.3）。
-
-无论专精数量多少（即使 10 个以上），都必须直接 Task 调度全部专精。以下理由**均不构成**降级为 `@review-domain` 的条件：
-- 上下文成本 / token 经济顾虑
-- 根因已定位、审查动力下降
-- "伪并行"或平台疑似不支持多工具调用（需真实证据）
+**不可降级硬约束**：如果编排层已通过 `ae-domain-dispatch-prepare` 获得非空专精列表（`specialistCount > 0`），不得调用 `@review-domain`，必须走代码化调度路径。
 
 仅当满足**全部**以下条件时，才允许降级为通过 Task 调用 `@review-domain`：
-1. 平台**硬性技术不支持**在同一条消息中发出多个工具调用（需可验证证据，不是 LLM 主观判断）
-2. 且 `specialistCount > 20`（逐个串行发出 20 个以上 Task 不现实）
-
-不满足上述条件时，即使 `specialistCount` 高达 20，也必须逐个串行发出全部 Task 调用，**不得跳过任何一个专精代理**，**不得降级为调用域代理**。
+1. 平台硬性技术不支持在同一条消息中发出多个工具调用（需可验证证据）
+2. 且 `specialistCount > 20`
 
 #### 步骤 3.1：准备调度
 
-调用 `ae-domain-dispatch-prepare` 工具，传入 domain、intent、constraints 以及顶层布尔标记（has_security、has_api 等）。工具返回：
-- `tasks`：每个选中专精代理的 agent 名、prompt 模板和能力描述
-- `strategy`：协调策略（review 域为 parallel + union）
-- `specialistCount`：选中数量
-- `consistencyWarnings`：domain/kind 一致性校验警告数组（空数组表示无冲突）；编排层应展示给用户并据此复核调度参数
-- `dispatchGuard`：调度门禁结构，包含降级违规检测使用的 domainAgentName 和 specialistCount；编排层不得绕过此门禁调用域代理
+调用 `ae-domain-dispatch-prepare`，传入 domain、intent、constraints 以及顶层布尔标记。工具返回 tasks 数组、strategy、specialistCount 和 dispatchGuard。
 
-如果 `specialistCount` 为 0，退化为通过 Task 调用 `@review-domain`，构造 `DomainCallRequest` 传入。这是**唯一**允许调用 `@review-domain` 的场景。
+如果 `specialistCount` 为 0，退化为通过 Task 调用 `@review-domain`。这是唯一允许调用 `@review-domain` 的场景。
 
-#### 步骤 3.2：并行调度专精代理
+#### 步骤 3.2：全并行调度
 
-在同一轮回复中，使用 Task 工具并行调用 `tasks` 数组中的每个专精代理。
+在同一轮回复中，使用 Task 工具并行调用 `tasks` 数组中的每个代理。
 
-**并行调度硬约束**：你必须在同一轮回复中一次性发出所有 Task 工具调用，禁止等上一个 Task 返回后再发出下一个。
+**并行调度硬约束**：必须在同一轮回复中一次性发出所有 Task 调用，禁止等上一个 Task 返回后再发出下一个。
 
-**平台并行行为说明**：OpenCode Task 工具支持在同一条消息中发出多个调用时并行执行。如果你的回复仅包含一个 Task 调用，它将串行执行——这是导致"伪并行"的常见原因。务必在同一条回复中包含所有 Task 调用。
+每个代理只产出 findings，不做修复。每个 Task 调用的 prompt 必须包含：
 
-**串行降级（非域代理降级）**：如果平台硬性不支持多工具调用（需可验证证据），退化为逐个串行发出全部 Task 调用。**不得因此跳过任何一个专精代理**，**不得因此降级为调用 `@review-domain`**（除非同时满足上方"专精 > 20"条件）。
+1. 代理的 prompt 模板（来自 prepare 工具的 `tasks[].prompt`）
+2. 代理 markdown 文件内容（通过 `@{reviewer_name}` 引用）
+3. 审查上下文（变量替换后的内容）
 
-每个 Task 调用的 prompt 必须包含：
+变量映射按代理职责注入：
 
-1. 专精代理的 prompt 模板（来自 prepare 工具的 `tasks[].prompt`）
-2. 代理 markdown 文件内容（通过 `@{reviewer_name}` 引用对应代理）
-3. 审查上下文（变量替换后的 subagent-template 内容）：
+- **ocr-reviewer**：`{code_intent}` + `{code_files}`（含测试文件）
+- **document-reviewer**：`{doc_intent}` + `{doc_files}`（支持任意文本类型）
+- **设计维度代理**（architecture/api/database/ui-ux/test-cases/security/observability/non-functional）：`{doc_intent}` + `{doc_files}` + 对应维度产物路径
+- **design-integrity-reviewer**：全部设计文件路径（独立读取，不依赖其他代理输出）
+- **traceability-reviewer**：`{full_intent}` + `{full_files}`（多类型混合范围）
+- **goal-alignment-reviewer**：`{full_intent}` + `{full_files}` + `{success_criteria}`
 
-代码域变量映射（按子代理职责注入不同变量。所有子代理均可交叉读取代码和文档，确保文档与代码统一）：
-
-**ocr-reviewer**（审查代码与配置文件，可通过 ae-ocr 的 background 参数间接参考文档目标）：
-
-| 变量 | 值 |
-|------|-----|
-| `{domain}` | `code` |
-| `{code_intent}` | 代码与配置文件变更的目标摘要（3-5 行），作为 ae-ocr 的 `background` 参数 |
-| `{code_files}` | 代码与配置文件列表（含测试文件，不含 .md） |
-| `{content_mode_label}` | 增量/全量/会话变更 |
-| `{run_id}` | 运行标识符 |
-
-**其余代码域子代理**（standards/agent-native/api-contract/architecture/reliability/data-migrations/adversarial/goal-alignment/research。注入完整目标，可读取相关文档交叉验证代码是否符合文档描述）：
-
-| 变量 | 值 |
-|------|-----|
-| `{domain}` | `code` |
-| `{full_intent}` | 完整审查目标摘要（3-5 行，覆盖全部变更含代码/文档/测试/配置） |
-| `{full_files}` | 全部变更文件列表 |
-| `{content}` | diff 内容或完整文件内容 |
-| `{content_mode_label}` | 增量/全量/会话变更 |
-| `{success_criteria}` | `goals:` 参数提供的审查目标文本，无 `goals:` 时为空 |
-| `{run_id}` | 运行标识符 |
-
-文档域变量映射（文档子代理接收文档变更目标，可读取相关代码验证文档描述与实现是否一致）：
-
-| 变量 | 值 |
-|------|-----|
-| `{domain}` | `document` |
-| `{doc_intent}` | 文档变更的目标摘要（3-5 行，仅覆盖 .md 文档变更） |
-| `{doc_files}` | 文档文件列表（仅 .md） |
-| `{document_type}` | requirements/design/test/general |
-| `{document_path}` | 文档路径 |
-| `{document_content}` | 完整文本或分片上下文 |
-| `{success_criteria}` | `goals:` 参数提供的审查目标文本，无 `goals:` 时为空 |
-| `{run_id}` | 运行标识符 |
-
-通用域变量映射（`domain=general`，按子代理所属目标类型注入。所有子代理均可交叉读取代码和文档）：
-
-**代码路径子代理**（ocr-reviewer）：同代码域 ocr-reviewer 映射
-
-**文档路径子代理**（coherence/feasibility/security-design/requirements/design-lens 等）：同文档域映射，可读取相关代码验证文档与实现一致性
-
-**跨域子代理**（adversarial/goal-alignment/traceability）：注入完整目标，可读取全部文件
-
-| 变量 | 值 |
-|------|-----|
-| `{domain}` | `general` |
-| `{review_scene}` | 当前专精所属审查场景：code/requirements/design/prototype/test-case/config/asset/general-document |
-| `{target_type}` | 当前专精负责的目标产出物类型 |
-| `{full_intent}` | 完整审查目标摘要（覆盖全部变更） |
-| `{full_files}` | 全部变更文件列表 |
-| `{content}` | 该目标类型对应的内容片段（diff、源码或文档文本） |
-| `{success_criteria}` | `goals:` 参数提供的审查目标文本，无 `goals:` 时为空 |
-| `{run_id}` | 运行标识符 |
-
-通用域调度规则：
-
-- 同一目标类型可以有多个专一审查者并行；不同目标类型之间互相独立调度
-- 每种识别出的 `targetTypes` 至少调度一个对应专一审查者；缺失映射时记录 `skipReasons`
-- 不允许任何单一审查者跨目标类型综述发现，必须由编排层在阶段四聚合
-
-**标志映射规则：** `goals:` 参数存在时，`ae-domain-dispatch-prepare` 的 `has_goal_alignment` 必须设为 `true`，以激活 goal-alignment-reviewer。
+所有代理均可交叉读取代码和文档，确保文档与代码统一。
 
 #### 步骤 3.3：聚合结果
 
-所有专精代理返回后，调用 `ae-domain-dispatch-aggregate` 工具，传入：
-- `strategy`：`union`（审查域固定）
-- `results`：每个专精代理的执行结果（status、output、evidence）
-- `dispatchedAgents`：实际调度的专精代理名称列表
-- `skippedAgents`：选中但未调度的专精代理名称列表（通常为空）
-- `skipReasons`：跳过原因
-- `expectedSpecialistCount`：步骤 3.1 中 `ae-domain-dispatch-prepare` 返回的 `specialistCount`（用于降级违规检测）
+所有代理返回后，调用 `ae-domain-dispatch-aggregate`，传入：
+- `strategy`：`union`
+- `results`：每个代理的执行结果
+- `dispatchedAgents`：实际调度的代理名称列表
+- `expectedSpecialistCount`：prepare 工具返回的 specialistCount
 
-工具返回 `DomainExecutionResult`，包含聚合后的发现、证据和 dispatchManifest。
-
-**错误处理：** 如果某个专精代理返回 `failed` 或 `partial`，使用已完成的结果继续聚合，记录失败原因。
+工具返回 `DomainExecutionResult`，包含聚合后的发现和 dispatchManifest。
 
 #### 调度一致性校验
 
-接收 `DomainExecutionResult` 后，检查 `dispatchManifest` 和 `guardViolation`：
-
-- 若返回结果包含 `guardViolation` 字段，**必须**在汇总阶段报告中以 `error` 级别标注降级违规，完整展示 `guardViolation.message`，并检查编排层是否错误降级
-- 若 `dispatchManifest.dispatched` 数量少于 prepare 工具返回的 `specialistCount`，在汇总阶段报告不一致，列出被跳过的专精和跳过原因
-- 若 `dispatchManifest.dispatched` 仅含域代理名（review-domain）但 `specialistCount > 0`，标记为"降级违规"，需审查编排层决策
-- 若 `dispatchManifest` 缺失，跳过校验并记录"无法校验"
-- 校验为报告性质，不阻断后续流程；但降级违规必须在最终交付中显式声明
-
-#### DispatchResults 输出
+接收结果后检查 `dispatchManifest` 和 `guardViolation`：
+- `guardViolation` 存在时以 error 级别标注降级违规
+- dispatched 数量少于 specialistCount 时报告不一致
+- 校验为报告性质，不阻断后续流程
 
 ```typescript
 {
@@ -377,19 +312,63 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 
 ### 阶段四：汇总（Summary）
 
-接收 `DomainExecutionResult`，格式化为用户可读的审查报告，输出 `Deliverable`。
+接收 `DomainExecutionResult`，执行合并层修复流程，输出 `Deliverable`。
 
-阅读 `references/synthesis-and-presentation.md` 了解综合流水线（校验、置信度门控、去重、共识提升、残余风险提升、解决分歧、autofix 提升、路由划分、排序）、展示和审查后流程。
+#### 综合流水线（5 步）
 
-通用域（`domain=general`）汇总规则：
+**步骤 1：校验**
 
-- 调用 `ae-review-contract` 时传入 `targets=` 即可获得 `targetCoverage` 字段（每个目标类型对应 `{ status, reviewers[] }`）
-- 按 `targetTypes` 分组展示发现，确保每种类型都有"已覆盖 / 未发现问题 / 未覆盖原因"的明确声明；`status='uncovered'` 时必须给出未覆盖原因
-- 任何一个被调度的子审查 `status='failed'` 时整体审查必须为 `failed`；存在 `partial` 时整体为 `partial`，其余情况为 `success`
-- 跨目标类型出现同标题发现时按聚合策略 `union` 去重，保留最高严重级别
-- `source_review_output` 必须包含可解析的 `targetCoverage` 摘要，便于 `ae-review-proof` 解析
+校验所有 findings 的完整性：每条 finding 必须有 title、severity、location、evidence。缺失必填字段的 finding 标记为 invalid 并过滤。
 
-#### Deliverable 输出
+**步骤 2：置信度门控**
+
+按 confidence 值过滤低置信度发现。代码域默认阈值 0.60，文档域默认阈值 0.50，低于阈值的 finding 标记为 `low_confidence` 并降级展示。交互模式下展示给用户确认是否保留。
+
+**步骤 3：合并去重 + 冲突解决 + 因果分析（合并层）**
+
+这是合并层核心步骤：
+
+1. **合并去重**：跨代理同标题/同位置的 finding 合并，保留最高 severity，合并 evidence
+2. **冲突解决**：不同代理对同一位置给出矛盾结论时，按代理权威性和证据充分性取舍，记录冲突解决过程
+3. **因果分析**：遍历所有 findings 的 `causes` 和 `caused_by` 字段构建依赖图，识别链式关系——"修复 A 即解决 B"。标记根因 finding（无 caused_by 的 finding）和派生 finding
+4. **生成修复方案**：基于因果分析结果，按根因优先级生成修复方案。每个修复方案包含：目标 finding、修复动作（来自 suggested_fix）、预期解决的派生 finding 列表
+
+**步骤 4：排序**
+
+按 severity（P0 > P1 > P2 > P3）→ confidence 降序 → 根因优先（caused_by 为空的 finding 排前）排序。
+
+**步骤 5：高风险零发现对抗**
+
+如果所有 findings 均为 P3/low 且审查范围包含高风险变更（安全边界、数据迁移、API 契约变更、架构决策），触发对抗性复查：重新审视变更范围，检查是否存在被遗漏的高风险问题。对抗结果追加到 findings 列表。
+
+#### 自动修复（仅 autofix 模式）
+
+合并层生成修复方案后，仅在 autofix 模式下执行修复：
+
+1. 按修复方案列表逐个执行 `suggested_fix`
+2. 每个修复执行后验证是否确实解决了目标 finding 及其派生 finding
+3. 修复失败的方案记录错误原因，不回滚已成功的修复
+4. 修复结果写入审查报告
+
+交互模式下展示修复方案让用户选择执行；只读和无头模式不执行修复（无头模式按推荐方向修复所有带 suggested_fix 且不触发安全边界的发现）。
+
+#### 写入审查证明
+
+调用 `ae-review-proof` 工具写入结构化审查证明：
+- `review_run_id`：运行标识符
+- `review_status`：passed/failed
+- `findings`：合并后的发现列表
+- `source_review_output`：包含可解析的 status、worktree、branch、HEAD 和 statusSummary
+
+#### 更新状态文件
+
+更新审查状态文件，记录本次审查的运行 ID、时间戳、审查范围、代理列表、发现数量和修复结果。
+
+通用域汇总规则：
+- 按 targetTypes 分组展示发现，确保每种类型都有"已覆盖 / 未发现问题 / 未覆盖原因"的明确声明
+- 任何一个被调度的子审查 status='failed' 时整体审查为 failed
+- 跨目标类型同标题发现按 union 策略去重，保留最高 severity
+- `source_review_output` 必须包含可解析的 targetCoverage 摘要
 
 ```typescript
 {

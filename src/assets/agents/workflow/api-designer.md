@@ -25,7 +25,7 @@ description: "接口设计维度专精代理：根据 prd 需求和 ae:grill 追
 
 ## When Not To Use
 
-- 需要审查接口契约破坏性变更 → 调度 `@api-contract-reviewer`（审查域）
+- 需要审查接口契约破坏性变更 → 调度 `@api-design-reviewer`（审查域）
 - 非 api 维度的设计契约 → 调度其他维度专精代理
 - 需要实现后端 API 代码 → 调度 `@backend-dev`
 

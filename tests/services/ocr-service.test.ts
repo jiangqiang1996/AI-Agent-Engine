@@ -53,7 +53,7 @@ describe('ocr-service', () => {
     it('应该处理空输出', () => {
       const result = parseOcrJson('')
       expect(result.comments).toEqual([])
-      expect(result.files_reviewed).toBe(0)
+      expect(result.summary?.files_reviewed ?? 0).toBe(0)
     })
 
     it('应该从混合文本中提取 JSON 块', () => {

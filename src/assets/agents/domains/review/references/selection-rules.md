@@ -1,45 +1,30 @@
 # 审查域选择规则
 
-本文档描述审查域代理如何选择审查专精代理，与代码层 `review-selector.ts` 的逻辑语义对齐。
+本文档描述审查域代理如何选择审查专精代理，与代码层 `review-catalog.ts` 的 `REVIEW_MATRIX`（13 个代理）语义对齐。
 
 **优先使用预计算结果**：当 `DomainCallRequest.selectedSpecialists` 存在且非空时，以其为权威选择，不再独立评估条件。
 
-## 代码审查常驻代理
+## 常驻代理
 
-以下专精代理在任何代码审查中自动选中：
+以下专精代理在对应域审查中自动选中：
 
-| 专精代理 | 选择条件 |
-|---------|---------|
-| ocr-reviewer | 常驻；通过 ae-ocr 工具覆盖 bug/安全/性能/可维护性/测试覆盖/风格 |
-| standards-reviewer | 常驻 |
-| research-reviewer | 常驻 |
-
-## 文档审查常驻代理
-
-以下专精代理在任何文档审查中自动选中：
-
-| 专精代理 | 选择条件 |
-|---------|---------|
-| coherence-reviewer | 常驻 |
-| feasibility-reviewer | 常驻 |
-| security-design-reviewer | 常驻 |
+| 专精代理 | 域 | 选择条件 |
+|---------|-----|---------|
+| ocr-reviewer | code | 常驻；通过 ae-ocr 工具覆盖 bug/安全/性能/可维护性/测试覆盖/风格/架构/API/可靠性/数据迁移/代理原生/对抗式 |
+| document-reviewer | both | 常驻；覆盖内部一致性/可行性/产品视角/步骤粒度/需求/证据 |
 
 ## 条件激活代理
 
 | 专精代理 | 域 | 激活条件 |
 |---------|-----|---------|
-| adversarial-reviewer | both | 变更>=50行 OR hasSecurity OR hasApi OR 需求>=5 OR hasArchitectureDecision OR isHighRiskDomain OR hasNewAbstraction |
-| agent-native-reviewer | code | hasCli OR hasUi OR hasTooling OR hasAgentConfig |
-| architecture-strategist | both | (code + hasArchitectureDecision) OR (code + hasNewAbstraction) OR (code + 变更>=50行) OR (document + design + hasArchitectureDecision) |
-| api-contract-reviewer | code | hasApi=true |
-| reliability-reviewer | code | hasReliability OR hasInfra |
-| data-migrations-reviewer | code | hasMigrations OR hasDatabase |
-| product-lens-reviewer | document | documentType=design OR 需求>=5 OR hasProductClaim |
-| step-granularity-reviewer | document | documentType=design OR targetTypes 包含 design OR reviewScenes 包含 design OR 需求>=5 |
-| design-lens-reviewer | document | hasUi=true |
-| test-case-reviewer | document | documentType=test |
-| requirements-reviewer | document | documentType=requirements OR targetTypes 包含 requirements OR reviewScenes 包含 requirements |
-| prototype-reviewer | document | documentType=prototype OR targetTypes 包含 prototype OR reviewScenes 包含 prototype |
-| evidence-reviewer | document | documentType=general OR targetTypes 包含 document OR reviewScenes 包含 general-document OR hasEvidenceClaim=true |
-| goal-alignment-reviewer | both | hasGoalAlignment=true |
+| architecture-design-reviewer | document | hasDesignContract=true OR targetTypes 包含 design |
+| api-design-reviewer | document | hasDesignContract=true OR targetTypes 包含 design |
+| database-design-reviewer | document | hasDesignContract=true OR targetTypes 包含 design |
+| ui-ux-design-reviewer | document | (hasDesignContract=true AND hasUi=true) OR targetTypes 包含 design |
+| test-cases-design-reviewer | document | hasDesignContract=true OR targetTypes 包含 design OR targetTypes 包含 test-case |
+| security-design-reviewer | document | hasDesignContract=true OR targetTypes 包含 design OR hasSecurity=true |
+| observability-design-reviewer | document | hasDesignContract=true OR targetTypes 包含 design |
+| non-functional-design-reviewer | document | hasDesignContract=true OR targetTypes 包含 design |
+| design-integrity-reviewer | document | hasDesignContract=true OR targetTypes 包含 design |
 | traceability-reviewer | both | hasMixedTargets=true OR kind=general |
+| goal-alignment-reviewer | both | hasGoalAlignment=true |

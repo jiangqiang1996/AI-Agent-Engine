@@ -61,7 +61,7 @@
 ## 命名建议
 
 - 使用 `kebab-case`。
-- 名称表达专业职责，例如 `api-contract-reviewer`、`release-note-writer`。
+- 名称表达专业职责，例如 `api-design-reviewer`、`release-note-writer`。
 - 避免 `helper`、`assistant`、`expert` 这类泛化名称。
 
 ## 质量标准

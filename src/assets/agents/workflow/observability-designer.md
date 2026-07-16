@@ -25,7 +25,7 @@ description: "可观测性设计维度专精代理：根据 prd 需求和 ae:gri
 
 ## When Not To Use
 
-- 需要审查基础设施可靠性 → 调度 `@reliability-reviewer`（审查域）
+- 需要审查基础设施可靠性 → 调度 `@observability-design-reviewer`（审查域）
 - 非 observability 维度的设计契约 → 调度其他维度专精代理
 
 ## Inputs

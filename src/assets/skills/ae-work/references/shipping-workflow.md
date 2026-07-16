@@ -39,9 +39,9 @@
    **审查调用：** 调用 `ae:review mode=headless domain=code <changed-files>`，传入 `design=<design-path>` 作为实现意图上下文。当存在 design 契约时，传入 `has_design_contract=true`。`mode=headless` 表示 ae:review 被技能内部调用时不输出"下一步推荐技能"引导，仅返回审查结果（status/findings/summary）给本技能，由 ae:work 自身负责下一步引导。
 
    **审查者调度：** 当 `has_design_contract=true` 时，按存在的 design 维度自动调度对应一致性审查者：
-   - 任意实现代码 → `design-consistency-reviewer`（覆盖 database/security/architecture 等维度一致性）
-   - UI 实现代码 → `ui-consistency-reviewer`
-   - 测试代码 → `test-coverage-reviewer`
+   - 任意实现代码 → `design-integrity-reviewer`（覆盖 database/security/architecture 等维度一致性）
+   - UI 实现代码 → `ui-ux-design-reviewer`
+   - 测试代码 → `test-cases-design-reviewer`
     - 始终调度 `ocr-reviewer`
 
    **auto 修复范围：** 与 design 契约不一致的代码、测试覆盖缺口、验证未通过的发现。ae:review 返回的 auto 可修复发现由本技能自动应用修复，修复后重新运行审查。

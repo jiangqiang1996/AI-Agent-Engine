@@ -25,7 +25,7 @@ description: "数据库设计维度专精代理：根据 prd 需求和 ae:grill 
 
 ## When Not To Use
 
-- 需要审查数据迁移方案 → 调度 `@data-migrations-reviewer`（审查域）
+- 需要审查数据迁移方案 → 调度 `@database-design-reviewer`（审查域）
 - 非 database 维度的设计契约 → 调度其他维度专精代理
 
 ## Inputs

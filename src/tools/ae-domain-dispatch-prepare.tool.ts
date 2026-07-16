@@ -12,27 +12,19 @@ import {
 // 同步约束：修改代理 markdown 文件的 Role 段落时，必须同步更新此表中对应条目。
 // 新增域专精代理时，必须在此表追加条目，否则 getSpecialistPrompt 将返回 fallback 摘要。
 const SPECIALIST_PROMPT_TEMPLATES: Record<string, string> = {
-  [AGENT.OCR_REVIEWER]: '你是 OCR 代码审查主引擎。通过 ae-ocr 工具调用 OpenCodeReview CLI 执行 AI 代码审查，覆盖 bug/安全/性能/可维护性/测试覆盖/风格。',
-  [AGENT.STANDARDS_REVIEWER]: '你是一位项目规范审查者。审查代码是否符合项目自身 CLAUDE.md 和 AGENTS.md 标准。',
-  [AGENT.RESEARCH_REVIEWER]: '你是一位研究审查者。搜索历史方案和最佳实践，与当前实现对比。',
-  [AGENT.COHERENCE_REVIEWER]: '你是一位文档一致性审查者。审查文档内部一致性、术语漂移和结构性问题。',
-  [AGENT.FEASIBILITY_REVIEWER]: '你是一位可行性审查者。评估文档中提出的技术方法能否经受现实考验。',
+  [AGENT.OCR_REVIEWER]: '你是 OCR 代码审查主引擎。通过 ae-ocr 工具调用 OpenCodeReview CLI 执行 AI 代码审查，覆盖 bug/安全/性能/可维护性/测试覆盖/风格/规范/对抗式/代理就绪/可靠性。',
+  [AGENT.DOCUMENT_REVIEWER]: '你是一位文档审查者。审查内部一致性、可行性、产品视角、步骤粒度、需求质量和证据核验。',
   [AGENT.SECURITY_DESIGN_REVIEWER]: '你是一位安全设计审查者。评估设计文档中的安全缺口、认证授权假设、数据暴露和威胁模型。',
-  [AGENT.ADVERSARIAL_REVIEWER]: '你是一位对抗式审查者。构造故障场景来破坏实现，质疑前提假设。',
-  [AGENT.AGENT_NATIVE_REVIEWER]: '你是一位代理就绪度审查者。审查代理操作、CLI 就绪度和工具配置。',
-  [AGENT.ARCHITECTURE_STRATEGIST]: '你是一位架构策略师。从架构视角分析变更，检查架构边界、跨模块依赖和系统级抽象。',
-  [AGENT.API_CONTRACT_REVIEWER]: '你是一位 API 契约审查者。审查破坏性契约变更和兼容性。',
-  [AGENT.RELIABILITY_REVIEWER]: '你是一位可靠性审查者。审查错误处理、重试和故障模式。',
-  [AGENT.DATA_MIGRATIONS_REVIEWER]: '你是一位数据迁移审查者。审查数据完整性、迁移安全性和隐私合规。',
-  [AGENT.PRODUCT_LENS_REVIEWER]: '你是一位产品视角审查者。质疑前提主张、评估战略后果和范围对齐。',
-  [AGENT.STEP_GRANULARITY_REVIEWER]: '你是一位步骤粒度审查者。审查设计步骤是否拆解至最小不可再分单元。',
-  [AGENT.DESIGN_LENS_REVIEWER]: '你是一位设计视角审查者。审查缺失的设计决策、信息架构和交互状态。',
-  [AGENT.TEST_CASE_REVIEWER]: '你是一位测试用例审查者。审查测试文档的结构完整性和覆盖完备性。',
-  [AGENT.REQUIREMENTS_REVIEWER]: '你是一位需求审查者。审查目标清晰度、范围边界、验收标准可验证性和未决问题。',
-  [AGENT.PROTOTYPE_REVIEWER]: '你是一位原型审查者。审查交互完整性、状态覆盖、与需求的一致性以及实现可行性提示。',
+  [AGENT.ARCHITECTURE_DESIGN_REVIEWER]: '你是一位架构设计审查者。从架构视角分析变更，检查架构边界、跨模块依赖和系统级抽象。',
+  [AGENT.API_DESIGN_REVIEWER]: '你是一位 API 设计审查者。审查破坏性契约变更和兼容性。',
+  [AGENT.DATABASE_DESIGN_REVIEWER]: '你是一位数据库设计审查者。审查数据完整性、迁移安全性和隐私合规。',
+  [AGENT.UI_UX_DESIGN_REVIEWER]: '你是一位 UI/UX 设计审查者。审查设计决策、信息架构、交互状态、原型完整性和与需求的一致性。',
+  [AGENT.TEST_CASES_DESIGN_REVIEWER]: '你是一位测试用例审查者。审查测试文档的结构完整性、覆盖完备性、步骤可执行性和需求对齐。',
   [AGENT.TRACEABILITY_REVIEWER]: '你是一位追溯审查者。审查需求、设计、原型、测试和代码之间的链路断裂。',
-  [AGENT.EVIDENCE_REVIEWER]: '你是一位证据审查者。审查事实性声明、命令输出、引用和交付证据是否可核验。',
   [AGENT.GOAL_ALIGNMENT_REVIEWER]: '你是一位目标对齐审查者。逐条校验变更是否达成审查目标。',
+  [AGENT.DESIGN_INTEGRITY_REVIEWER]: '你是一位设计完整性审查者。审查设计文档与需求的一致性、设计维度完整性和架构可行性。',
+  [AGENT.OBSERVABILITY_DESIGN_REVIEWER]: '你是一位可观测性设计审查者。审查日志规范、指标体系、告警规则、健康检查和 SLO/SLI 定义。',
+  [AGENT.NON_FUNCTIONAL_DESIGN_REVIEWER]: '你是一位非功能设计审查者。审查性能目标、并发模型、事务边界、缓存策略和容量规划。',
   [AGENT.FRONTEND_DEV]: '你是一位前端开发专精代理。处理 UI 组件、样式、交互逻辑和响应式设计。',
   [AGENT.BACKEND_DEV]: '你是一位后端开发专精代理。处理 API、数据层、业务逻辑和中间件。',
   [AGENT.DEBUG_FIX]: '你是一位调试修复专精代理。处理错误分析、根因定位、修复实现和回归验证。',
@@ -248,7 +240,7 @@ export const aeDomainDispatchPrepareTool = tool({
       .boolean()
       .optional()
       .default(false)
-      .describe('是否存在设计文档契约，激活设计一致性、UI 一致性和测试覆盖审查'),
+      .describe('是否存在设计文档契约，激活设计维度专精代理和设计完整性审查'),
     has_evidence_claim: z
       .boolean()
       .optional()

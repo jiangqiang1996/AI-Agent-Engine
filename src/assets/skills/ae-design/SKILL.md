@@ -375,7 +375,7 @@ overview 始终内联在 `design.md` 中，按 `references/overview-template.md`
 ae:review mode=headless domain=document <design-dir>/design.md
 ```
 
-审查者：`design-consistency-reviewer`（激活条件：hasDesignContract=true）
+审查者：`design-integrity-reviewer`（激活条件：hasDesignContract=true）
 
 传入参数：
 - `has_design_contract=true`

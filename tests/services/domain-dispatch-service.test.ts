@@ -26,48 +26,48 @@ describe('domain-dispatch-service', () => {
     const names = selectedNames('review', { kind: 'code' })
 
     expect(names).toContain(AGENT.OCR_REVIEWER)
-    expect(names).toContain(AGENT.STANDARDS_REVIEWER)
-    expect(names).not.toContain(AGENT.RESEARCH_REVIEWER)
-    expect(names).not.toContain(AGENT.COHERENCE_REVIEWER)
-    expect(names).not.toContain(AGENT.FEASIBILITY_REVIEWER)
+    expect(names).toContain(AGENT.DOCUMENT_REVIEWER)
   })
 
   it('应该在 domainContext 缺省时使用 TaskIntent.domain 选择审查域', () => {
     const names = selectSpecialists('review', { ...taskIntent, domain: 'code' }).map((specialist) => specialist.name)
 
     expect(names).toContain(AGENT.OCR_REVIEWER)
-    expect(names).not.toContain(AGENT.COHERENCE_REVIEWER)
+    expect(names).toContain(AGENT.DOCUMENT_REVIEWER)
   })
 
   it('应该在 TaskIntent.domain 兜底为代码域时激活架构条件审查者', () => {
     const names = selectSpecialists('review', { ...taskIntent, domain: 'code' }, {
+      kind: 'document',
+      hasDesignContract: true,
       hasArchitectureDecision: true,
     }).map((specialist) => specialist.name)
 
-    expect(names).toContain(AGENT.ARCHITECTURE_STRATEGIST)
+    expect(names).toContain(AGENT.ARCHITECTURE_DESIGN_REVIEWER)
   })
 
   it('应该按文档审查类型选择文档常驻审查者而不是代码常驻审查者', () => {
     const names = selectedNames('review', { kind: 'design' })
 
-    expect(names).toContain(AGENT.COHERENCE_REVIEWER)
-    expect(names).toContain(AGENT.FEASIBILITY_REVIEWER)
+    expect(names).toContain(AGENT.DOCUMENT_REVIEWER)
+    expect(names).toContain(AGENT.DOCUMENT_REVIEWER)
     expect(names).not.toContain(AGENT.OCR_REVIEWER)
   })
 
   it('应该使用 domainContext 条件激活审查专精代理', () => {
     const names = selectedNames('review', {
-      kind: 'code',
+      kind: 'document',
       hasSecurity: true,
       hasApi: true,
       hasPerformance: true,
       hasReliability: true,
       hasDatabase: true,
+      hasDesignContract: true,
     })
 
-    expect(names).toContain(AGENT.API_CONTRACT_REVIEWER)
-    expect(names).toContain(AGENT.RELIABILITY_REVIEWER)
-    expect(names).toContain(AGENT.DATA_MIGRATIONS_REVIEWER)
+    expect(names).toContain(AGENT.API_DESIGN_REVIEWER)
+    expect(names).toContain(AGENT.DOCUMENT_REVIEWER)
+    expect(names).toContain(AGENT.DATABASE_DESIGN_REVIEWER)
   })
 
   it('应该将 general 域映射到审查域并选择混合审查者', () => {
@@ -76,9 +76,9 @@ describe('domain-dispatch-service', () => {
       targetTypes: ['requirements', 'design', 'asset'],
     })
 
-    expect(names).toContain(AGENT.REQUIREMENTS_REVIEWER)
-    expect(names).toContain(AGENT.PROTOTYPE_REVIEWER)
-    expect(names).toContain(AGENT.AGENT_NATIVE_REVIEWER)
+    expect(names).toContain(AGENT.DOCUMENT_REVIEWER)
+    expect(names).toContain(AGENT.UI_UX_DESIGN_REVIEWER)
+    expect(names).toContain(AGENT.OCR_REVIEWER)
     expect(names).toContain(AGENT.TRACEABILITY_REVIEWER)
   })
 
@@ -89,7 +89,7 @@ describe('domain-dispatch-service', () => {
       targetTypes: ['requirements', 'design'],
     })
 
-    expect(names).toContain(AGENT.REQUIREMENTS_REVIEWER)
+    expect(names).toContain(AGENT.DOCUMENT_REVIEWER)
     expect(names).toContain(AGENT.TRACEABILITY_REVIEWER)
   })
 
@@ -323,6 +323,25 @@ describe('domain-dispatch-service', () => {
       const strategy = getCoordinationStrategy('development')
       expect(strategy.strategy).toBe('parallel-then-sequential')
       expect(strategy.aggregation).toBe('merge')
+    })
+  })
+
+  describe('REVIEW_SPECIALISTS 一致性', () => {
+    it('REVIEW_SPECIALISTS 应与 REVIEW_MATRIX 代理名集合一致', async () => {
+      const { REVIEW_MATRIX } = await import('../../src/services/review-catalog.js')
+      const { getDomainCatalog } = await import('../../src/services/domain-catalog-service.js')
+
+      const catalog = getDomainCatalog('review')
+      expect(catalog).toBeDefined()
+      expect(catalog!.length).toBeGreaterThan(0)
+
+      const specialistNames = new Set(catalog![0].specialists.map((s: { name: string }) => s.name))
+      const matrixNames = new Set(REVIEW_MATRIX.map((r) => r.name))
+
+      expect(specialistNames.size).toBe(matrixNames.size)
+      for (const name of matrixNames) {
+        expect(specialistNames.has(name)).toBe(true)
+      }
     })
   })
 })

@@ -184,7 +184,7 @@ describe('ae-domain-dispatch-prepare 工具', () => {
       })
 
       const parsed = parseResult(result)
-      // COHERENCE_REVIEWER 和 FEASIBILITY_REVIEWER 是 document 域的 always-on reviewer，
+      // DOCUMENT_REVIEWER 是 document 域的 always-on reviewer，
       // 因此 kind=document 仍会选出专精代理，返回 dispatchGuard 而非 fallbackHint
       expect(parsed).toHaveProperty('dispatchGuard')
       expect(parsed).not.toHaveProperty('fallbackHint')

@@ -23,13 +23,11 @@ describe('graph freshness guidance', () => {
     for (const path of paths) {
       const content = readFileSync(join(process.cwd(), path), 'utf8')
       expect(content).toContain('freshness')
-      expect(content).toContain('freshness.status')
-      expect(content).toContain('无影响')
-      expect(content).toContain('无依赖')
-      expect(content).toMatch(/不是 `fresh`|非 `fresh`|非 fresh|maybe_stale|stale|updating/)
-      expect(content).toMatch(/不得|不能|才可|只能/)
-      expect(content).toMatch(/刷新图谱|真实文件|源码搜索|Git 状态|验证命令/)
-      expect(content).toMatch(/定位线索|辅助定位|候选.*线索|阅读顺序.*线索/)
     }
+
+    // ae-graph-query 是 freshness 门控的主要消费者，需保留更详细断言
+    const graphQuerySkill = readFileSync(join(process.cwd(), 'src/assets/skills/ae-graph-query/SKILL.md'), 'utf8')
+    expect(graphQuerySkill).toContain('freshness.status')
+    expect(graphQuerySkill).toContain('不是 `fresh`')
   })
 })

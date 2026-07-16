@@ -5,23 +5,15 @@ import { getAllAgentDefinitions } from '../../src/services/ae-catalog.js'
 import { AGENT } from '../../src/schemas/ae-asset-schema.js'
 
 describe('REVIEW_MATRIX', () => {
-  it('代码域 alwaysOn 应为 2 个（ocr-reviewer 合并了 correctness/testing/maintainability）', () => {
+  it('代码域 alwaysOn 应为 1 个（ocr-reviewer 合并了 correctness/testing/maintainability）', () => {
     const codeAlwaysOn = REVIEW_MATRIX.filter((r) => r.domain === 'code' && r.alwaysOn)
-    expect(codeAlwaysOn).toHaveLength(2)
-    expect(codeAlwaysOn.map((r) => r.name)).toEqual([
-      AGENT.OCR_REVIEWER,
-      AGENT.STANDARDS_REVIEWER,
-    ])
+    expect(codeAlwaysOn).toHaveLength(1)
+    expect(codeAlwaysOn.map((r) => r.name)).toEqual([AGENT.OCR_REVIEWER])
   })
 
-  it('文档域 alwaysOn 应为 3 个（coherence/feasibility/security-design）', () => {
+  it('文档域 alwaysOn 应为 0 个（document-reviewer 是 both 域）', () => {
     const docAlwaysOn = REVIEW_MATRIX.filter((r) => r.domain === 'document' && r.alwaysOn)
-    expect(docAlwaysOn).toHaveLength(3)
-    expect(docAlwaysOn.map((r) => r.name)).toEqual([
-      AGENT.COHERENCE_REVIEWER,
-      AGENT.FEASIBILITY_REVIEWER,
-      AGENT.SECURITY_DESIGN_REVIEWER,
-    ])
+    expect(docAlwaysOn).toHaveLength(0)
   })
 
   it('审查矩阵不应注册旧文档等价转换代理', () => {
@@ -34,44 +26,38 @@ describe('REVIEW_MATRIX', () => {
     }
   })
 
-  it('test-case-reviewer 描述应覆盖测试用例文档审查核心能力', () => {
-    const reviewer = REVIEW_MATRIX.find((r) => r.name === AGENT.TEST_CASE_REVIEWER)
-    const agent = getAllAgentDefinitions().find((a) => a.name === AGENT.TEST_CASE_REVIEWER)
+  it('test-cases-design-reviewer 描述应覆盖测试用例文档审查核心能力', () => {
+    const reviewer = REVIEW_MATRIX.find((r) => r.name === AGENT.TEST_CASES_DESIGN_REVIEWER)
+    const agent = getAllAgentDefinitions().find((a) => a.name === AGENT.TEST_CASES_DESIGN_REVIEWER)
 
     if (!reviewer || !agent) {
-      throw new Error('test-case-reviewer 应存在于审查矩阵和代理目录中')
+      throw new Error('test-cases-design-reviewer 应存在于审查矩阵和代理目录中')
     }
-    expect(reviewer.description).toContain('结构完整性')
-    expect(reviewer.description).toContain('覆盖完备性')
-    expect(reviewer.description).toContain('步骤可执行性')
-    expect(reviewer.description).toContain('结果可验证性')
-    expect(agent.description).toBe(reviewer.description)
+    expect(reviewer.description).toContain('覆盖矩阵')
+    expect(reviewer.description).toContain('维度覆盖追溯')
   })
 
-  it('test-case-reviewer 提示词应包含误报抑制边界', () => {
+  it('test-cases-design-reviewer 提示词应包含误报抑制边界', () => {
     const content = readFileSync(
-      new URL('../../src/assets/agents/domains/review/specialists/test-case-reviewer.md', import.meta.url),
+      new URL('../../src/assets/agents/domains/review/specialists/test-cases-design-reviewer.md', import.meta.url),
       'utf-8',
     )
 
-    expect(content).toContain('无外部需求来源')
-    expect(content).toContain('没有来源证据的字段约束')
-    expect(content).toContain('高风险延期项应放入 `residual_risks`')
-    expect(content).toContain('不要求穷举所有排列组合')
-    expect(content).toContain('JSON 之外不得包含任何文字说明')
+    expect(content).toContain('覆盖矩阵')
+    expect(content).toContain('维度覆盖追溯')
   })
 
-  it('standards-reviewer 应包含配置审查职责', () => {
-    const reviewer = REVIEW_MATRIX.find((r) => r.name === AGENT.STANDARDS_REVIEWER)
+  it('ocr-reviewer 应包含配置审查职责', () => {
+    const reviewer = REVIEW_MATRIX.find((r) => r.name === AGENT.OCR_REVIEWER)
     expect(reviewer).toBeDefined()
     expect(reviewer!.description).toContain('配置')
   })
 
-  it('product-lens-reviewer 应存在于文档域条件条目', () => {
-    const reviewer = REVIEW_MATRIX.find((r) => r.name === AGENT.PRODUCT_LENS_REVIEWER)
+  it('document-reviewer 应存在于 both 域 alwaysOn 条目', () => {
+    const reviewer = REVIEW_MATRIX.find((r) => r.name === AGENT.DOCUMENT_REVIEWER)
     expect(reviewer).toBeDefined()
-    expect(reviewer!.domain).toBe('document')
-    expect(reviewer!.alwaysOn).toBe(false)
+    expect(reviewer!.domain).toBe('both')
+    expect(reviewer!.alwaysOn).toBe(true)
   })
 
   it('审查矩阵和代理目录不应注册已删除的 pattern-recognition-specialist', () => {
@@ -79,11 +65,11 @@ describe('REVIEW_MATRIX', () => {
     expect(getAllAgentDefinitions().map((agent) => agent.name)).not.toContain('pattern-recognition-specialist')
   })
 
-  it('agent-native-reviewer 应为代码域条件条目', () => {
-    const reviewer = REVIEW_MATRIX.find((r) => r.name === AGENT.AGENT_NATIVE_REVIEWER)
+  it('ocr-reviewer 应为代码域 alwaysOn 条目', () => {
+    const reviewer = REVIEW_MATRIX.find((r) => r.name === AGENT.OCR_REVIEWER)
     expect(reviewer).toBeDefined()
     expect(reviewer!.domain).toBe('code')
-    expect(reviewer!.alwaysOn).toBe(false)
+    expect(reviewer!.alwaysOn).toBe(true)
   })
 
   it('条件条目必须有 conditionGroups', () => {

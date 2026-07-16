@@ -1,12 +1,12 @@
 # 文件类型路由表
 
-审查范围确定后，每个变更文件按扩展名/文件名匹配路由，确定审查者。
+审查范围确定后，每个变更文件按扩展名/路径匹配路由，确定路由代理。13 代理全并行架构下，路由表决定激活哪些代理，所有激活代理在同一轮一次性并行派发。
 
 ## 路由选择流程
 
-1. **第一步**：文件格式 → 匹配路由组 → 确定基础审查者（确定性的、基于规则）
-2. **第二步**：分析文件内容特征（大小、主题、深度）→ 代理判断激活条件审查者
-3. 多个文件属于不同路由时，合并所有活跃审查者，去重后统一派发
+1. **第一步**：文件格式/路径 → 匹配路由组 → 确定路由代理（确定性的、基于规则）
+2. **第二步**：分析文件内容特征 → 代理判断激活条件代理
+3. 多个文件属于不同路由时，合并所有活跃代理，去重后统一并行派发
 
 ## 全局排除
 
@@ -21,18 +21,6 @@
 - 密钥：.env .env.*（保留 .env.example .env.template）——**在文件收集阶段即从变更文件列表中移除，后续任何阶段不可读取或引用这些文件的内容**
 - 运行时目录：.opencode/ 下的所有文件——**始终排除，不可覆盖**
 - 受保护产物：ae/reviews/* ae/solutions/*
-- 需求文档和设计文档：ae/prds/ 和 ae/designs/ 下的文件——**默认排除，用户明确指定时纳入**
-
-## 全局审查者
-
-以下审查者跨所有路由激活（不限于特定文件类型）：
-
-| 审查者 | 关注点 |
-|--------|--------|
-| `research-reviewer` | 搜索历史方案、最佳实践和框架文档 |
-| `goal-alignment-reviewer` | 对照审查目标逐条校验变更是否达成（仅当 goals= 参数提供审查目标时激活） |
-
-以下输入仅作为透明上下文，不单独激活条件审查者：`has_typescript`、`has_config`、`has_script`。工具定义、工具参数、工具注册、代理配置、代理注册和技能 frontmatter 变更应使用 `has_tooling` 或 `has_agent_config` 激活 `agent-native-reviewer`。
 
 ## 路由定义
 
@@ -40,88 +28,95 @@
 
 **匹配文件：** .ts .tsx .js .jsx .mjs .cjs .py .java .go .rs .c .cpp .h .rb .php .swift .kt .scala
 
-**基础审查者：** ocr, standards
+**路由代理：** `ocr-reviewer`
 
-**条件审查者：**
-- security — 认证、权限、用户输入
-- api-contract — 路由、类型签名、版本
-- reliability — 错误处理、重试、超时
-- architecture-strategist — 架构决策、新抽象或 >=50 行代码变更
-- adversarial — >=50 行可执行代码、高风险或新抽象
-- agent-native — CLI 命令定义或 UI/工具能力影响代理可操作性
-- design-consistency — 存在 design 契约（`hasDesignContract=true`）时激活，核验实现与 design 契约维度一致性
-- ui-consistency — 存在 design 契约（`hasDesignContract=true`）或 `hasUi=true` 时激活，核验 UI 实现与 design 的 ui-ux 维度一致性
-- test-coverage — 存在 design 契约（`hasDesignContract=true`）时激活，核验测试覆盖与 design 的 test-cases 维度一致性
+### 测试代码路由
 
-### 配置路由
+**匹配文件：** *.test.* *_test.* *.spec.* *.bench.*
 
-**匹配文件：** .json .yaml .yml .toml .xml
+**路由代理：** `ocr-reviewer`
 
-**基础审查者：** ocr, standards（standards-reviewer 含配置文件语法正确性、schema 一致性、敏感值检测）
+### 配置文件路由
 
-**条件审查者：**
-- security — 密钥/权限配置
+**匹配文件：** .json .yaml .yml .toml .ini .xml
+
+**路由代理：** `ocr-reviewer` + `document-reviewer`
+
+### 需求文档路由
+
+**匹配路径：** ae/prds/**
+
+**路由代理：** `document-reviewer`
+
+**说明：** 默认排除，用户明确指定时纳入。
+
+### 设计文档路由
+
+**匹配路径：** ae/designs/**
+
+**路由代理：** `document-reviewer` + 对应维度代理 + `design-integrity-reviewer`
+
+**维度代理激活条件：** 根据设计文档内容自动识别涉及的维度，激活对应维度代理：
+- 涉及模块/分层 → `architecture-design-reviewer`
+- 涉及接口/端点 → `api-design-reviewer`
+- 涉及数据模型/表结构 → `database-design-reviewer`
+- 涉及页面/组件/交互 → `ui-ux-design-reviewer`
+- 涉及测试用例/覆盖 → `test-cases-design-reviewer`
+- 涉及认证/权限/密钥 → `security-design-reviewer`
+- 涉及日志/监控/告警 → `observability-design-reviewer`
+- 涉及性能/并发/容量 → `non-functional-design-reviewer`
+
+**说明：** 默认排除，用户明确指定时纳入。
+
+### 通用文档路由
+
+**匹配文件：** .md .rst .adoc .org .txt
+
+**排除：** ae/prds/ 和 ae/designs/ 下的文件（见需求文档路由和设计文档路由）
+
+**路由代理：** `document-reviewer`
 
 ### 基础设施路由
 
 **匹配文件：** Dockerfile docker-compose.* *.tf *.tfvars .github/workflows/* Makefile Jenkinsfile
 
-**基础审查者：** ocr, standards
-
-**条件审查者：**
-- security — 容器安全/CI 权限
-- reliability — 错误处理/健康检查/基础设施最佳实践
+**路由代理：** `ocr-reviewer` + `document-reviewer`
 
 ### 数据库路由
 
 **匹配文件：** *.sql .prisma 迁移文件
 
-**基础审查者：** ocr, standards
-
-**条件审查者：**
-- data-migrations — schema 变更/迁移安全/数据库迁移可逆性/完整性约束/索引策略
-- security — SQL 注入
+**路由代理：** `ocr-reviewer`
 
 ### API 契约路由
 
 **匹配文件：** .graphql .proto .openapi.* swagger.*
 
-**基础审查者：** ocr, standards
-
-**条件审查者：**
-- api-contract — 类型签名/版本/破坏性变更
-
-### 样式/UI 路由
-
-**匹配文件：** .css .scss .less .html .vue .svelte
-
-**基础审查者：** ocr
-
-**条件审查者：**
-- security — XSS/模板注入
+**路由代理：** `ocr-reviewer`
 
 ### 脚本路由
 
 **匹配文件：** .sh .bash .ps1 .bat .cmd
 
-**基础审查者：** ocr（含脚本可移植性、幂等性、平台兼容性）, standards
+**路由代理：** `ocr-reviewer`
 
-**条件审查者：**
-- security — 注入/权限
-- reliability — 错误处理/退出码
+### 图片/字体/媒体路由
 
-### 文档路由
+**匹配文件：** 见全局排除
 
-**匹配文件：** .md .rst .adoc .org .txt
-
-**排除：** ae/prds/ 和 ae/designs/ 下的需求文档和设计文档默认排除——除非用户明确指定纳入，此时由 `ae:review domain=document` 审查后结果合并到统一报告。
-
-**处理方式：** 需求/设计之外的文档文件使用 domain=document 模式审查。ae-review 内部按文档域流程处理，选择文档域审查者并综合结果。设计文档（`ae/designs/**`）审查时调度 `design-consistency-reviewer` 核验设计内部一致性。
+**路由代理：** 排除
 
 ### 兜底路由
 
 **匹配文件：** 不匹配任何路由的文件
 
-**基础审查者：** ocr, standards
+**路由代理：** `ocr-reviewer` + `document-reviewer`
 
-**条件审查者：** 无
+## 全局代理
+
+以下代理跨所有路由按条件激活：
+
+| 代理 | 激活条件 |
+|--------|--------|
+| `traceability-reviewer` | 需求/设计/代码同时存在时激活 |
+| `goal-alignment-reviewer` | 仅当 `goals=` 参数提供审查目标时激活 |
