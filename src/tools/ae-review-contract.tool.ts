@@ -9,7 +9,7 @@ import {
   type ReviewSceneType,
   type ReviewTargetType,
 } from '../services/review-selector.js'
-import { AeModeSchema, type SpecialistDef } from '../schemas/ae-asset-schema.js'
+import { AeModeSchema, AGENT, type SpecialistDef } from '../schemas/ae-asset-schema.js'
 
 const SCENE_VALUES: ReviewSceneType[] = [
   'code',
@@ -43,10 +43,10 @@ function resolveDocumentType(raw: string): ReviewDocumentType | undefined {
   if (raw === 'test') return 'test'
   if (raw === 'design') return 'design'
   if (raw === 'general') return 'general'
-  if (raw === 'document') return 'requirements'
+  if (raw === 'document') return 'general'
   if (raw === 'code') return undefined
   if (raw === 'mixed' || raw === 'hybrid') return undefined
-  return 'requirements'
+  return undefined
 }
 
 function parseList<T extends string>(value: string | undefined, allowed: T[]): T[] | undefined {
@@ -62,16 +62,16 @@ function parseList<T extends string>(value: string | undefined, allowed: T[]): T
 
 const TARGET_TO_REVIEWERS: Record<ReviewTargetType, string[]> = {
   code: [
-    'ocr-reviewer',
-    'standards-reviewer',
+    AGENT.OCR_REVIEWER,
+    AGENT.STANDARDS_REVIEWER,
   ],
-  requirements: ['requirements-reviewer'],
-  design: ['design-lens-reviewer', 'step-granularity-reviewer', 'product-lens-reviewer', 'prototype-reviewer', 'test-case-reviewer'],
-  prototype: ['prototype-reviewer'],
-  'test-case': ['test-case-reviewer'],
-  config: ['standards-reviewer'],
-  asset: ['agent-native-reviewer'],
-  document: ['coherence-reviewer', 'feasibility-reviewer', 'evidence-reviewer', 'security-design-reviewer'],
+  requirements: [AGENT.REQUIREMENTS_REVIEWER],
+  design: [AGENT.DESIGN_LENS_REVIEWER, AGENT.STEP_GRANULARITY_REVIEWER, AGENT.PRODUCT_LENS_REVIEWER, AGENT.PROTOTYPE_REVIEWER, AGENT.TEST_CASE_REVIEWER],
+  prototype: [AGENT.PROTOTYPE_REVIEWER],
+  'test-case': [AGENT.TEST_CASE_REVIEWER],
+  config: [AGENT.STANDARDS_REVIEWER],
+  asset: [AGENT.AGENT_NATIVE_REVIEWER],
+  document: [AGENT.COHERENCE_REVIEWER, AGENT.FEASIBILITY_REVIEWER, AGENT.EVIDENCE_REVIEWER, AGENT.SECURITY_DESIGN_REVIEWER],
 }
 
 function computeTargetCoverage(

@@ -125,7 +125,8 @@ function extractFormContentFromWords(words: Word[], pageWidth: number): string |
   for (const word of words) {
     const yKey = Math.round(word.top / yTolerance) * yTolerance
     if (!rowsByY.has(yKey)) rowsByY.set(yKey, [])
-    rowsByY.get(yKey)!.push(word)
+    const row = rowsByY.get(yKey)
+    if (row) row.push(word)
   }
 
   const sortedYKeys = [...rowsByY.keys()].sort((a, b) => a - b)

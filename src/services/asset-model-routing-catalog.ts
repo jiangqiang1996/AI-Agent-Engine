@@ -54,6 +54,7 @@ const COMMAND_SCENARIOS: Record<string, ModelScenario> = {
   [COMMAND.XLSX]: MODEL_SCENARIO.STANDARD,
   [COMMAND.GRILL]: MODEL_SCENARIO.DEEP,
   [COMMAND.OFFICECLI]: MODEL_SCENARIO.STANDARD,
+  [COMMAND.OCR]: MODEL_SCENARIO.DEEP,
 }
 
 export function getCommandModelScenario(commandName: string): ModelScenario | undefined {

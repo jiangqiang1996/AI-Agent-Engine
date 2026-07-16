@@ -223,6 +223,7 @@ export class GraphStorage {
         try {
           cleanGraphStoreDirectory(storeDir, this.lockPath)
         } catch (cleanupError) {
+          this.lockAcquired = false
           this.releaseLock()
           throw cleanupError
         }
@@ -231,6 +232,7 @@ export class GraphStorage {
         this.indexStore = new GraphIndexStore(storePath, this.findVersion.bind(this))
         return
       }
+      this.lockAcquired = false
       this.releaseLock()
       throw error
     }
@@ -527,8 +529,11 @@ export class GraphStorage {
   }
 
   closeDatabase(): void {
-    this.saveStore()
-    this.releaseLock()
+    try {
+      this.saveStore()
+    } finally {
+      this.releaseLock()
+    }
   }
 
   private loadStore(): GraphStore {

@@ -272,6 +272,14 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillFile: `src/assets/skills/${skillDir(SKILL.OFFICECLI)}/SKILL.md`,
     tier: 'docs',
   },
+  {
+    skillName: SKILL.OCR,
+    commandName: COMMAND.OCR,
+    description: '通过 ae-ocr 工具调用 OpenCodeReview CLI 执行 AI 代码审查，覆盖 bug/安全/性能/可维护性/测试覆盖/风格',
+    argumentHint: '[review|scan] [路径或 ref]',
+    skillFile: `src/assets/skills/${skillDir(SKILL.OCR)}/SKILL.md`,
+    tier: 'tools',
+  },
 ]
 
 const REVIEW_SPECIALIST_AGENT_NAMES = new Set<string>([

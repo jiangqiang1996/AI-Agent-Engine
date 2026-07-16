@@ -250,8 +250,9 @@ function formatOkResult(params: {
 }
 
 export function executeGraphQuery(request: GraphQueryRequest): unknown {
-  const storage = createGraphStorage(request.worktree, { readonly: true })
+  let storage: ReturnType<typeof createGraphStorage> | undefined
   try {
+    storage = createGraphStorage(request.worktree, { readonly: true })
     const diagnostic = storage.diagnoseActiveVersion(request.worktree, request.scopeRoot)
     if (diagnostic.code !== 'ok') {
       return { status: 'diagnostic', diagnostic }
@@ -537,7 +538,7 @@ export function executeGraphQuery(request: GraphQueryRequest): unknown {
 
     return { status: 'error', message: `不支持的查询模式：${request.mode}` }
   } finally {
-    storage.closeDatabase()
+    storage?.closeDatabase()
   }
 }
 

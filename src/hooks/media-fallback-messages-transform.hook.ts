@@ -121,10 +121,14 @@ function extractAttachmentPath(attachment: FilePart): string | undefined {
 
 function buildAttachmentHint(degradedFiles: Array<{ path: string; mime: string }>): string {
   const lines = degradedFiles.map((item) => {
-    const tool = item.mime.startsWith('image/') ? 'ae-image'
-      : item.mime.startsWith('audio/') ? 'ae-audio'
-      : item.mime.startsWith('video/') ? 'ae-video'
-      : ''
+    let tool = ''
+    if (item.mime.startsWith('image/')) {
+      tool = 'ae-image'
+    } else if (item.mime.startsWith('audio/')) {
+      tool = 'ae-audio'
+    } else if (item.mime.startsWith('video/')) {
+      tool = 'ae-video'
+    }
     if (tool) {
       return `- ${item.path}（${item.mime}）→ 调用 ${tool}（file 参数传入此路径）`
     }

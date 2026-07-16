@@ -46,7 +46,7 @@ export function parseGradleDependenciesOutput(output: string): DependencyNode {
     const current: DependencyNode = { name, version, scope: group, children: [] }
 
     // 弹出栈直到找到父节点
-    while (stack.length > 1 && stack[stack.length - 1]!.depth >= depth) {
+    while (stack.length > 1 && stack[stack.length - 1]?.depth >= depth) {
       stack.pop()
     }
 

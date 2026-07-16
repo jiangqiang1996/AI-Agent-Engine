@@ -88,6 +88,8 @@ export function createLocalDepsInjectionHook(hostWorktree: string): NonNullable<
 
       if (typeof output.output === 'string') {
         output.output = `${output.output}\n\n${injectionText}`
+      } else if (output.output == null) {
+        output.output = injectionText
       }
     } catch {
       // 注入失败绝不阻断编辑操作

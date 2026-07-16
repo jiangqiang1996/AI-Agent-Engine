@@ -5,11 +5,11 @@ import { pathToFileURL } from 'node:url'
 
 const require = createRequire(import.meta.url)
 
-let pdfjsModule: any = null
-let canvasModule: any = null
+let pdfjsModule: unknown = null
+let canvasModule: unknown = null
 let workerInitialized = false
 
-async function getPdfjsModule(): Promise<any> {
+async function getPdfjsModule(): Promise<Record<string, unknown>> {
   if (!pdfjsModule) {
     try {
       pdfjsModule = await import('pdfjs-dist/legacy/build/pdf.mjs')
@@ -22,14 +22,15 @@ async function getPdfjsModule(): Promise<any> {
     }
   }
 
-  if (!workerInitialized && pdfjsModule.GlobalWorkerOptions) {
-    const success = await setupPdfjsWorker(pdfjsModule)
+  const pdfjs = pdfjsModule as Record<string, unknown>
+  if (!workerInitialized && pdfjs.GlobalWorkerOptions) {
+    const success = await setupPdfjsWorker(pdfjs)
     if (success) {
       workerInitialized = true
     }
   }
 
-  return pdfjsModule
+  return pdfjs
 }
 
 /**
@@ -40,12 +41,13 @@ async function getPdfjsModule(): Promise<any> {
  * 注意：不使用 node:worker_threads Worker 方案，因为 pdfjs worker.mjs
  * 依赖 fetch/Response 等 Web API，worker_threads 不提供这些。
  */
-async function setupPdfjsWorker(pdfjs: any): Promise<boolean> {
+async function setupPdfjsWorker(pdfjs: Record<string, unknown>): Promise<boolean> {
+  const workerOpts = pdfjs.GlobalWorkerOptions as { workerSrc: string } | undefined
   // 方案1：设置 workerSrc 为 file:// URL（最可靠）
   const workerPath = resolveWorkerPath()
-  if (workerPath) {
+  if (workerPath && workerOpts) {
     try {
-      pdfjs.GlobalWorkerOptions.workerSrc = pathToFileURL(workerPath).href
+      workerOpts.workerSrc = pathToFileURL(workerPath).href
       return true
     } catch {
       // file:// URL 设置失败，继续降级
@@ -53,7 +55,9 @@ async function setupPdfjsWorker(pdfjs: any): Promise<boolean> {
   }
 
   // 方案2：空字符串，让 pdfjs 使用 fake worker（最后手段）
-  pdfjs.GlobalWorkerOptions.workerSrc = ''
+  if (workerOpts) {
+    workerOpts.workerSrc = ''
+  }
   return false
 }
 
@@ -93,7 +97,7 @@ function resolveWorkerPath(): string | null {
   return null
 }
 
-async function getCanvasModule(): Promise<any> {
+async function getCanvasModule(): Promise<Record<string, unknown>> {
   if (!canvasModule) {
     try {
       canvasModule = await import('@napi-rs/canvas')
@@ -101,28 +105,29 @@ async function getCanvasModule(): Promise<any> {
       throw new Error('无法加载 @napi-rs/canvas，请确认已安装 npm 依赖')
     }
   }
-  return canvasModule
+  return canvasModule as Record<string, unknown>
 }
 
 class NodeCanvasFactory {
-  private canvasApi: any
+  private canvasApi: Record<string, unknown>
 
-  constructor(canvasApi: any) {
+  constructor(canvasApi: Record<string, unknown>) {
     this.canvasApi = canvasApi
   }
 
   create(width: number, height: number) {
-    const canvas = this.canvasApi.createCanvas(width, height)
+    const createCanvas = this.canvasApi.createCanvas as (w: number, h: number) => { getContext: (t: string) => unknown; toBuffer: (format: string) => Buffer; width: number; height: number }
+    const canvas = createCanvas(width, height)
     const context = canvas.getContext('2d')
     return { canvas, context }
   }
 
-  reset(canvasAndContext: { canvas: any; context: any }, width: number, height: number) {
+  reset(canvasAndContext: { canvas: { width: number; height: number }; context: unknown }, width: number, height: number) {
     canvasAndContext.canvas.width = width
     canvasAndContext.canvas.height = height
   }
 
-  destroy(canvasAndContext: { canvas: any; context: any }) {
+  destroy(canvasAndContext: { canvas: { width: number; height: number }; context: unknown }) {
     canvasAndContext.canvas.width = 0
     canvasAndContext.canvas.height = 0
     canvasAndContext.context = null
@@ -147,7 +152,10 @@ export async function pdfToImages(options: PdfToImageOptions): Promise<string[]>
   mkdirSync(outputDir, { recursive: true })
 
   const data = new Uint8Array(await import('node:fs').then(fs => fs.promises.readFile(resolve(filePath))))
-  const doc = await pdfjs.getDocument({ data }).promise
+  type PdfPage = { getViewport: (opts: { scale: number }) => { width: number; height: number }; render: (opts: { canvasContext: unknown; viewport: unknown; canvas: unknown }) => { promise: Promise<unknown> } }
+  type PdfDoc = { numPages: number; getPage: (n: number) => Promise<PdfPage>; cleanup: () => void }
+  const getDocument = pdfjs.getDocument as (params: { data: Uint8Array }) => { promise: Promise<PdfDoc> }
+  const doc = await getDocument({ data }).promise
   const totalPages = doc.numPages
 
   const pagesToRender = pageIndices ?? Array.from({ length: totalPages }, (_, i) => i + 1)
