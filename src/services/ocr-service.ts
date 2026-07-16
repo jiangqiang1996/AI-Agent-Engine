@@ -287,11 +287,11 @@ export function resolveOcrBinary(): { path: string; source: string } | null {
  * 以后台 detached 进程启动 ocr viewer，立即返回 PID 和日志路径。
  *
  * 参考 ae-async-bash 的平台原生后台机制：
- * - Windows: start /B "title" cmd /c "command >> log 2>&1"
- * - Unix: sh -c 'command >> log 2>&1 &'
+ * - Windows: start /B "title" powershell -Command "command 2>&1 | Tee-Object -FilePath log -Append"
+ * - Unix: sh -c 'command 2>&1 | tee -a log &'
  *
- * shell 自行管理子进程后台运行和日志写入，Node.js 只负责 spawn shell，
- * 不参与 I/O 转发，避免事件循环退出导致 pipe 数据丢失。
+ * shell 自行管理子进程后台运行和日志写入，同时输出继承到父进程 stdout，
+ * Node.js 只负责 spawn shell，不参与 I/O 转发。
  *
  * ocr 二进制随项目打包，resolveOcrBinary 始终有返回值。
  */
@@ -319,14 +319,14 @@ export function spawnOcrViewer(
   // 构建完整命令字符串
   const rawCommand = `${binary.path} ${args.join(' ')}`
   const fullCommand = isWin32
-    ? `start /B "ocr-viewer" cmd /c "chcp 65001 >nul && ${rawCommand} >> ${quotedLog} 2>&1"`
-    : `${rawCommand} >> ${quotedLog} 2>&1 &`
+    ? `start /B "ocr-viewer" powershell -NoProfile -Command "${rawCommand} 2>&1 | Tee-Object -FilePath '${logFile}' -Append"`
+    : `${rawCommand} 2>&1 | tee -a ${quotedLog} &`
 
   const child = spawn(fullCommand, {
     cwd: opts?.cwd,
     detached: true,
     shell: true,
-    stdio: ['ignore', 'ignore', 'ignore'],
+    stdio: ['ignore', 'inherit', 'inherit'],
   })
 
   child.on('error', (err) => {

@@ -19,6 +19,7 @@ ae/gates
 ae/handoffs
 ae/reviews
 /.opencode/ae.jsonc
+/ae/logs/
 /ae/graphs/
 /ae/screenshots/
 /ae/static-server/

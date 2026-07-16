@@ -35,7 +35,7 @@ export const aeAsyncBashTool = tool({
     '功能说明：',
     '- 以 detached 子进程启动命令，父进程（工具）立即返回',
     '- 子进程在后台独立运行，不受会话或 opencode 进程生命周期影响',
-    '- 始终将 stdout/stderr 以追加形式写入日志文件，并返回日志文件路径',
+    '- 始终将 stdout/stderr 以追加形式写入日志文件，同时输出到控制台，并返回日志文件路径',
     '- 不指定 logPath 时，自动生成到当前项目 ae/logs/ 目录下的日志文件',
     '- 返回子进程 PID 和日志文件路径，便于后续排查或终止',
     '- 不返回错误码或退出码：子进程真实执行状态需通过读取日志文件判断',
@@ -113,14 +113,14 @@ export const aeAsyncBashTool = tool({
       //   - 末尾 & 将命令放入后台
       //   - >> 和 2>&1 由 sh 处理重定向
       const fullCommand = isWin32
-        ? `start /B "ae-async" cmd /c "chcp 65001 >nul && ${args.command} >> ${quotedLogPath} 2>&1"`
-        : `${args.command} >> ${quotedLogPath} 2>&1 &`
+        ? `start /B "ae-async" powershell -NoProfile -Command "${args.command} 2>&1 | Tee-Object -FilePath '${resolvedLogPath}' -Append"`
+        : `${args.command} 2>&1 | tee -a ${quotedLogPath} &`
 
       child = spawn(fullCommand, {
         cwd,
         detached: true,
         shell: true,
-        stdio: ['ignore', 'ignore', 'ignore'],
+        stdio: ['ignore', 'inherit', 'inherit'],
       })
     } catch (e) {
       const reason = e instanceof Error ? e.message : String(e)
@@ -153,7 +153,7 @@ export const aeAsyncBashTool = tool({
       `日志路径: ${resolvedLogPath}`,
       '',
       '子进程在后台独立运行，不会阻塞当前会话。',
-      '该日志文件是动态追加写入的：子进程持续运行期间，stdout/stderr 会不断追加到文件末尾。',
+      'stdout/stderr 同时输出到控制台和日志文件（动态追加写入）。',
       '请读取上述日志文件分析执行情况；建议等待若干秒后再次读取，对比内容以确认子进程状态。',
       '日志出现错误堆栈/异常/进程退出提示即代表失败；长时间无新增输出也视为启动异常。',
       '禁止因本工具失败而降级使用 bash 工具执行阻塞型命令。',
