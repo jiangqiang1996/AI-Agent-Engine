@@ -344,4 +344,13 @@ describe('domain-dispatch-service', () => {
       }
     })
   })
+
+  describe('rawKind fallback 语义', () => {
+    it('domain=review + kind 未传时应回退到代码审查（激活 ocr-reviewer + document-reviewer）', () => {
+      const names = selectedNames('review', {})
+
+      expect(names).toContain(AGENT.OCR_REVIEWER)
+      expect(names).toContain(AGENT.DOCUMENT_REVIEWER)
+    })
+  })
 })

@@ -137,7 +137,7 @@ function toReviewSelectionInput(
   }
 
   const kind: ReviewKind =
-    rawKind === 'code'
+    rawKind === 'code' || rawKind === 'review'
       ? 'code'
       : rawKind === 'general' || rawKind === 'mixed' || rawKind === 'hybrid'
         ? 'general'

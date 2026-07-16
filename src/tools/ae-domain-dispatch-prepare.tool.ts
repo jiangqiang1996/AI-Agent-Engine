@@ -317,7 +317,7 @@ export const aeDomainDispatchPrepareTool = tool({
           tasks: [],
           specialistCount: 0,
           consistencyWarnings,
-          fallbackHint: `未选中任何${isReviewDomain ? '审查' : '开发'}专精代理。请检查传入的标记参数是否正确。${consistencyHint} 如确认参数无误仍为空，可调用 ${domainAgentName}。`,
+          fallbackHint: `未选中任何${isReviewDomain ? '审查' : '开发'}专精代理。domain 有效值为 review/development/general（不含 code/document）。代码审查请用 domain=review + kind=code，文档审查请用 domain=review + kind=document，混合审查请用 domain=general。${consistencyHint} 如确认参数无误仍为空，可调用 ${domainAgentName}。`,
         }, null, 2)
       }
 
