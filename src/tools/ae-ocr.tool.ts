@@ -2,7 +2,7 @@ import { tool } from '@opencode-ai/plugin'
 import { z } from 'zod'
 
 import { TOOL } from '../schemas/ae-asset-schema.js'
-import { checkOcrInstalled, parseOcrJson, runOcr, spawnOcrViewer, type OcrFinding, type OcrJsonResult } from '../services/ocr-service.js'
+import { checkOcrInstalled, parseOcrJson, runOcr, spawnOcrViewer, writeOcrExecutionLog, type OcrFinding, type OcrJsonResult } from '../services/ocr-service.js'
 
 /**
  * 需要自动注入 LLM 环境变量的命令。
@@ -106,11 +106,18 @@ export const aeOcrTool = tool({
   execute: async (args, ctx) => {
     const rawCommand = resolveCommand(args)
     const resolvedCommand = normalizeCommand(rawCommand)
+    const sessionId = ctx.sessionID
+    const cwd = args.repo ?? ctx.directory
     ctx.metadata({ title: `ocr ${resolvedCommand}`, metadata: { command: rawCommand, normalized: resolvedCommand } })
 
     try {
       if (resolvedCommand === 'version') {
         const info = await checkOcrInstalled()
+        writeOcrExecutionLog(cwd, sessionId, {
+          command: 'version',
+          cliArgs: ['version'],
+          stdout: info.installed ? `版本: ${info.version ?? 'unknown'}（来源: ${info.source}）` : 'ocr 未安装',
+        })
         return {
           output: info.installed ? `ocr 版本: ${info.version ?? 'unknown'}（来源: ${info.source}）` : 'ocr 未安装',
           metadata: { tool: TOOL.AE_OCR, command: 'version', installed: info.installed },
@@ -120,7 +127,13 @@ export const aeOcrTool = tool({
       if (resolvedCommand === 'viewer') {
         const viewerArgs = buildCliArgs('viewer', args)
         const addr = (args.addr as string) ?? 'localhost:5483'
-        const { pid, logPath } = spawnOcrViewer(viewerArgs, { cwd: args.repo ?? ctx.directory })
+        const { pid, logPath } = spawnOcrViewer(viewerArgs, { cwd })
+
+        writeOcrExecutionLog(cwd, sessionId, {
+          command: 'viewer',
+          cliArgs: viewerArgs,
+          stdout: `viewer 已启动，PID: ${pid}，日志: ${logPath}`,
+        })
 
         ctx.metadata({ title: `ocr viewer 已启动 (PID: ${pid})`, metadata: { command: 'viewer', addr, pid, logPath } })
 
@@ -149,9 +162,18 @@ export const aeOcrTool = tool({
       ctx.metadata({ title: `ocr ${resolvedCommand} 执行中...`, metadata: { command: resolvedCommand, args: cliArgs } })
 
       const { stdout, stderr, exitCode, llmEnvError } = await runOcr(cliArgs, {
-        cwd: args.repo ?? ctx.directory,
+        cwd,
         timeoutMs: needsLlm || isTest ? timeoutMs : 30000,
         skipLlmEnv: !needsLlm && !isTest,
+      })
+
+      writeOcrExecutionLog(cwd, sessionId, {
+        command: resolvedCommand,
+        cliArgs,
+        exitCode,
+        stdout,
+        stderr,
+        llmEnvError,
       })
 
       if (exitCode !== 0 && !stdout.trim()) {
@@ -192,6 +214,11 @@ export const aeOcrTool = tool({
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error)
+      writeOcrExecutionLog(args.repo ?? ctx.directory, ctx.sessionID, {
+        command: resolveCommand(args),
+        cliArgs: buildCliArgs(normalizeCommand(resolveCommand(args)), args),
+        error: message,
+      })
       return `ae-ocr 执行失败: ${message}`
     }
   },

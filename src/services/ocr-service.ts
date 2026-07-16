@@ -459,6 +459,71 @@ export function parseOcrJson(stdout: string): OcrJsonResult {
 }
 
 /**
+ * 将 OCR 命令执行的完整反馈信息写入 ae/logs/ 目录。
+ *
+ * 日志文件名格式：ocr-{sessionId}-{YYYYMMDD}.log
+ * 同一会话同一天的多次执行追加写入同一文件。
+ *
+ * 记录内容：时间戳、命令、CLI 参数、退出码、stdout、stderr、LLM 环境错误。
+ */
+export function writeOcrExecutionLog(
+  cwd: string,
+  sessionId: string | undefined,
+  record: {
+    command: string
+    cliArgs: string[]
+    exitCode?: number
+    stdout?: string
+    stderr?: string
+    llmEnvError?: string
+    error?: string
+  },
+): string | undefined {
+  try {
+    const date = new Date()
+    const pad = (n: number) => String(n).padStart(2, '0')
+    const dateStr = `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}`
+    const timeStr = `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+    const sid = sessionId ?? 'no-session'
+    const fileName = `ocr-${sid}-${dateStr}.log`
+    const logDir = path.join(cwd, 'ae', 'logs')
+    if (!existsSync(logDir)) {
+      mkdirSync(logDir, { recursive: true })
+    }
+    const logPath = path.join(logDir, fileName)
+
+    const lines: string[] = [
+      `\n[${timeStr}] === ocr ${record.command} ===`,
+      `CLI 参数: ${record.cliArgs.join(' ')}`,
+    ]
+    if (record.exitCode !== undefined) {
+      lines.push(`退出码: ${record.exitCode}`)
+    }
+    if (record.llmEnvError) {
+      lines.push(`LLM 环境错误: ${record.llmEnvError}`)
+    }
+    if (record.error) {
+      lines.push(`执行异常: ${record.error}`)
+    }
+    if (record.stdout) {
+      lines.push(`--- stdout ---`)
+      lines.push(record.stdout)
+    }
+    if (record.stderr) {
+      lines.push(`--- stderr ---`)
+      lines.push(record.stderr)
+    }
+    lines.push(`[${timeStr}] === end ===\n`)
+
+    appendFileSync(logPath, lines.join('\n'), 'utf8')
+    return logPath
+  } catch {
+    // 日志写入失败不影响主流程
+    return undefined
+  }
+}
+
+/**
  * 检查 ocr 是否已安装且可用
  */
 export async function checkOcrInstalled(): Promise<{ installed: boolean; version?: string; source?: string }> {
