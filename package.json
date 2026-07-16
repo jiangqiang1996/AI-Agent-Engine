@@ -7,6 +7,7 @@
   "main": ".opencode/plugins/ae-server.js",
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/postbuild.mjs",
+    "sync-talk-normal": "node scripts/sync-talk-normal.mjs",
     "test": "vitest run",
     "test:slow": "vitest run --config vitest.slow.config.ts",
     "test:e2e": "npm run build && vitest run --config vitest.e2e.config.ts",

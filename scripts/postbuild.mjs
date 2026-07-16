@@ -64,50 +64,6 @@ async function removeTuiConfigPlugin(targetPath, pluginPath) {
   await writeFile(targetPath, `${JSON.stringify({ ...existingConfig, plugin: nextPlugins }, null, 2)}\n`, 'utf8')
 }
 
-const TALK_NORMAL_RULE_HEADER = '# talk-normal 输出风格规则\n\n'
-const TALK_NORMAL_REMOTE_URL = 'https://raw.githubusercontent.com/hexiecs/talk-normal/main/prompt.md'
-const TALK_NORMAL_FETCH_TIMEOUT_MS = 15000
-
-async function syncTalkNormalRule(root, distAssetsDir) {
-  const talkNormalRulesDir = join(distAssetsDir, 'rules')
-  const talkNormalDistPath = join(talkNormalRulesDir, 'talk-normal.md')
-  const talkNormalFallbackPath = join(root, 'docs', 'talk-normal-fallback.md')
-
-  try {
-    const res = await fetch(TALK_NORMAL_REMOTE_URL, {
-      signal: AbortSignal.timeout(TALK_NORMAL_FETCH_TIMEOUT_MS),
-      headers: { 'User-Agent': 'ai-agent-engine-postbuild' },
-    })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const remoteContent = await res.text()
-    if (!remoteContent.trim()) throw new Error('远程内容为空')
-
-    const ruleContent = TALK_NORMAL_RULE_HEADER + remoteContent
-    await mkdir(talkNormalRulesDir, { recursive: true })
-    await writeFile(talkNormalDistPath, ruleContent, 'utf8')
-
-    // 兜底更新失败不影响 dist 已写入的远程内容
-    try {
-      const existing = await readFile(talkNormalFallbackPath, 'utf8').catch(() => '')
-      if (existing !== ruleContent) {
-        await writeFile(talkNormalFallbackPath, ruleContent, 'utf8')
-      }
-    } catch {
-      // 兜底更新失败仅告警，不回退 dist
-    }
-    console.log('talk-normal: 已从远程拉取最新规则')
-  } catch (err) {
-    try {
-      const fallbackContent = await readFile(talkNormalFallbackPath, 'utf8')
-      await mkdir(talkNormalRulesDir, { recursive: true })
-      await writeFile(talkNormalDistPath, fallbackContent, 'utf8')
-      console.warn(`talk-normal: 远程拉取失败 (${err.message})，已使用本地兜底规则`)
-    } catch {
-      console.warn('talk-normal: 远程拉取失败且兜底文件不存在，跳过')
-    }
-  }
-}
-
 export async function main(root = repoRoot) {
   const distDir = join(root, 'dist', 'src')
   const sourceAssetsDir = join(root, 'src', 'assets')
@@ -129,8 +85,6 @@ export async function main(root = repoRoot) {
   await removeTuiConfigPlugin(tuiConfigPath, './tui-plugins/ae-tui.js')
   await rm(distAssetsDir, { recursive: true, force: true })
   await cp(sourceAssetsDir, distAssetsDir, { recursive: true })
-
-  await syncTalkNormalRule(root, distAssetsDir)
 
   const wasmDestDir = join(distAssetsDir, 'wasm')
   const wasmSources = [

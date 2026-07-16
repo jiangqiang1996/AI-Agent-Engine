@@ -6,7 +6,7 @@ subtask: false
 
 安装或更新 AI Agent Engine 插件。自动判断当前范围是否已安装：
 
-- **已安装** → 还原仓库到干净状态，拉取最新代码，重新安装依赖和构建（即更新）
+- **已安装** → 增量更新：拉取最新代码，仅在源码有变更时重新构建
 - **未安装** → 克隆仓库，安装依赖，构建产物，写入桥接文件（即全新安装）
 
 支持两种范围：
@@ -47,18 +47,7 @@ node scripts/install.js --yes <scope>
 
 `--yes` 标志跳过脚本内交互式 confirm（授权已在第一步通过用户明确授权完成）。
 
-脚本会自动完成以下全部步骤：
-
-1. **检测安装状态**：判断目标目录是否已存在且是 git 仓库
-2. **已安装时（更新流程）**：
-   - `git reset --hard HEAD` + `git clean -fd --exclude=node_modules` + `git pull`
-   - `npm install` + `npm run build`
-   - 重新写入 server 桥接文件
-3. **未安装时（全新安装流程）**：
-   - `git clone` 克隆仓库到目标目录
-   - `npm install` + `npm run build`
-   - 创建 server 桥接文件，指向 `dist/src/index.js`
-4. **完成**：输出安装或更新结果
+脚本会自动完成全部步骤，无需 LLM 关注内部流程。
 
 ## 第三步：完成
 

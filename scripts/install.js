@@ -9,8 +9,12 @@
  * - project：安装到 <当前项目根目录>/.opencode/ai-agent-engine
  *
  * 自动判断：
- * - 已安装 → 还原仓库、拉取最新代码、重新构建（更新）
+ * - 已安装 → 增量更新：拉取最新代码，仅在源码有变更时重新构建
  * - 未安装 → 克隆仓库、安装依赖、构建产物（全新安装）
+ *
+ * 增量优化：
+ * - git pull 后检测是否有源码变更，无变更则跳过 npm install 和 build
+ * - 有变更时检测 package.json 是否改动，未改动则跳过 npm install
  *
  * 不传 --yes 时，脚本内置交互式 confirm，destructive 操作前等待用户确认。
  */
@@ -63,6 +67,25 @@ function runCommand(command, args, options = {}) {
   })
 }
 
+function runCommandCapture(command, args, options = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      shell: process.platform === 'win32',
+      ...options,
+    })
+    let stdout = ''
+    let stderr = ''
+    child.stdout.on('data', (data) => { stdout += data.toString() })
+    child.stderr.on('data', (data) => { stderr += data.toString() })
+    child.on('close', (code) => {
+      if (code === 0) resolve(stdout.trim())
+      else reject(new Error(`命令失败 (exit ${code}): ${command} ${args.join(' ')}\n${stderr}`))
+    })
+    child.on('error', reject)
+  })
+}
+
 function isGitRepo(dir) {
   return existsSync(join(dir, '.git'))
 }
@@ -97,6 +120,26 @@ async function writeBridgeFile(paths) {
   console.log(`桥接文件已写入: ${paths.bridgeFile}`)
 }
 
+async function hasSourceChanges(repoDir, oldHead, newHead) {
+  if (oldHead === newHead) return false
+  try {
+    const output = await runCommandCapture('git', ['diff', '--name-only', oldHead, newHead, '--', 'src/', 'scripts/', 'package.json', 'package-lock.json', 'tsconfig.json'], { cwd: repoDir })
+    return output.trim().length > 0
+  } catch {
+    return true
+  }
+}
+
+async function hasPackageJsonChanges(repoDir, oldHead, newHead) {
+  if (oldHead === newHead) return false
+  try {
+    const output = await runCommandCapture('git', ['diff', '--name-only', oldHead, newHead, '--', 'package.json', 'package-lock.json'], { cwd: repoDir })
+    return output.trim().length > 0
+  } catch {
+    return true
+  }
+}
+
 async function updateExisting(paths, confirmFn) {
   console.log(`\n检测到已安装，执行更新流程: ${paths.repoDir}`)
 
@@ -110,13 +153,28 @@ async function updateExisting(paths, confirmFn) {
 
   await runCommand('git', ['reset', '--hard', 'HEAD'], { cwd: paths.repoDir })
   await runCommand('git', ['clean', '-fd', '--exclude=node_modules'], { cwd: paths.repoDir })
-  await runCommand('git', ['pull', 'origin', 'master'], { cwd: paths.repoDir })
 
-  console.log('\n安装依赖...')
-  await runCommand('npm', ['install'], { cwd: paths.repoDir })
+  const oldHead = await runCommandCapture('git', ['rev-parse', 'HEAD'], { cwd: paths.repoDir })
+  const pullOutput = await runCommandCapture('git', ['pull', 'origin', 'master'], { cwd: paths.repoDir })
+  console.log(pullOutput)
+  const newHead = await runCommandCapture('git', ['rev-parse', 'HEAD'], { cwd: paths.repoDir })
 
-  console.log('\n构建产物...')
-  await runCommand('npm', ['run', 'build'], { cwd: paths.repoDir })
+  const sourceChanged = await hasSourceChanges(paths.repoDir, oldHead, newHead)
+
+  if (!sourceChanged) {
+    console.log('\n源码无变更，跳过依赖安装和构建。')
+  } else {
+    const pkgChanged = await hasPackageJsonChanges(paths.repoDir, oldHead, newHead)
+    if (pkgChanged) {
+      console.log('\npackage.json 有变更，安装依赖...')
+      await runCommand('npm', ['install'], { cwd: paths.repoDir })
+    } else {
+      console.log('\npackage.json 无变更，跳过依赖安装。')
+    }
+
+    console.log('\n构建产物...')
+    await runCommand('npm', ['run', 'build'], { cwd: paths.repoDir })
+  }
 
   console.log('\n写入桥接文件...')
   await writeBridgeFile(paths)
