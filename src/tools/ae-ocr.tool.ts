@@ -5,24 +5,7 @@ import { TOOL } from '../schemas/ae-asset-schema.js'
 import { checkOcrInstalled, parseOcrJson, runOcr, spawnOcrViewer, type OcrFinding, type OcrJsonResult } from '../services/ocr-service.js'
 
 /**
- * 所有 OCR 顶级命令。
- * command=auto 时由工具层根据 args 自动推断。
- */
-const OCR_COMMANDS = [
-  'auto',
-  'review',
-  'scan',
-  'config',
-  'llm',
-  'rules',
-  'viewer',
-  'session',
-  'version',
-] as const
-
-/**
  * 需要自动注入 LLM 环境变量的命令。
- * 其他命令（如 version、config set、session list）不需要 LLM。
  */
 const LLM_REQUIRED_COMMANDS = new Set(['review', 'scan'])
 
@@ -31,37 +14,50 @@ const LLM_REQUIRED_COMMANDS = new Set(['review', 'scan'])
  */
 const JSON_REVIEW_COMMANDS = new Set(['review', 'scan'])
 
+/**
+ * 已知的 OCR 顶级命令（用于 auto 推断和 LLM 注入判断）。
+ * 不限制用户只能用这些命令 — command 是 string，官方新增命令也能透传。
+ */
+const KNOWN_COMMANDS = new Set([
+  'review', 'r', 'scan', 's', 'config', 'llm', 'rules',
+  'viewer', 'v', 'session', 'sessions', 'version',
+])
+
 export const aeOcrTool = tool({
   description: [
     '通过 OpenCodeReview (ocr) CLI 执行 AI 代码审查，自动从 opencode provider 配置获取 LLM 凭据。',
     '',
     '功能说明：',
-    '- 支持 OCR 所有命令：review/scan/config/llm/rules/viewer/session/version',
-    '- review: 基于 Git diff 审查代码变更（workspace/branch/commit 模式）',
-    '- scan: 审查整个文件或目录（无需 Git diff）',
-    '- config: 管理 OCR 配置（set/unset/provider/model）',
+    '- command 支持任意 OCR CLI 命令名（string），官方新增命令无需更新本工具即可使用',
+    '- args 数组完全透传给 ocr CLI，支持官方所有 flag 和未来新增参数',
+    '- review/scan 提供结构化便捷参数（from/to/commit/background/backgroundFile 等），自动映射为 CLI flag',
+    '- 自动从 opencode provider 配置获取 API key/baseURL/model，透传为 OCR_LLM_* 环境变量',
+    '- review/scan 输出 JSON 格式时，按 severity 分组返回结构化审查发现',
+    '',
+    '已知命令（command=auto 时自动推断；也可显式指定）:',
+    '- review (r): 基于 Git diff 审查代码变更（workspace/branch/commit 模式）',
+    '- scan (s): 审查整个文件或目录（无需 Git diff）',
+    '- config: 管理配置（set/unset/provider/model）',
     '- llm: LLM 工具（test/providers）',
     '- rules: 检查规则匹配',
-    '- viewer: 启动 WebUI 会话查看器',
-    '- session: 列出/查看审查会话',
+    '- viewer (v): 启动 WebUI 会话查看器',
+    '- session (sessions): 列出/查看审查会话',
     '- version: 显示版本信息',
-    '- command=auto（默认）时根据 args 自动推断命令',
-    '- 自动从 opencode provider 配置获取 API key/baseURL/model，透传为 OCR_LLM_* 环境变量',
-    '- review/scan 输出 JSON 格式，按 severity/category 分组返回结构化审查发现',
     '',
     '适用场景：',
     '- 审查 Git 变更（staged/unstaged/untracked、branch diff、单 commit）',
     '- 审查整个文件或目录（无 Git 历史场景）',
-    '- 审查代码与目标期望是否一致（通过 background 参数传入需求上下文）',
+    '- 审查代码与目标期望是否一致（通过 background/backgroundFile 参数传入需求上下文）',
     '- 管理 OCR 配置、检查 LLM 连通性、查看审查会话',
+    '- 官方新增命令或 flag 时，通过 command + args 直接透传，无需等待工具更新',
     '',
     '不适用场景：',
     '- 需求/设计/原型文档审查（使用 ae:review）',
     '- 非代码文件的审查',
   ].join('\n'),
   args: {
-    command: z.enum(OCR_COMMANDS).default('auto').describe('ocr 命令，auto 时根据 args 自动推断'),
-    args: z.array(z.string()).optional().describe('直接透传给 ocr CLI 的额外参数数组，如 ["--from","main","--to","feature"] 或 ["set","provider","anthropic"]'),
+    command: z.string().default('auto').describe('ocr 命令名；auto 时根据结构化参数自动推断；传任意字符串支持官方未来新增命令'),
+    args: z.array(z.string()).optional().describe('直接透传给 ocr CLI 的参数数组，如 ["--from","main","--to","feature"] 或 ["set","provider","anthropic"]；与结构化参数合并，相同 flag 时 args 优先'),
 
     // review/scan 常用参数（便捷映射，等价于 args 透传）
     repo: z.string().optional().describe('Git 仓库根目录，默认当前工作目录'),
@@ -70,7 +66,7 @@ export const aeOcrTool = tool({
     commit: z.string().optional().describe('单个 commit hash，审查该 commit 相对父的变更'),
     path: z.string().optional().describe('scan 命令的扫描路径，或 rules check 的文件路径'),
     background: z.string().optional().describe('业务/需求上下文，提升审查质量'),
-    backgroundFile: z.string().optional().describe('从 Markdown 文件加载业务上下文（最多 8000 字符）'),
+    backgroundFile: z.string().optional().describe('从 Markdown 文件加载业务上下文（review 专用，与 background 可同时使用）'),
     rule: z.string().optional().describe('自定义规则 JSON 文件路径'),
     exclude: z.string().optional().describe('排除模式（逗号分隔的 gitignore 风格）'),
     timeout: z.number().min(1).optional().describe('超时分钟数，默认 10'),
@@ -108,8 +104,9 @@ export const aeOcrTool = tool({
     maxGitProcs: z.number().min(0).optional().describe('最大并发 git 子进程数，默认 16'),
   },
   execute: async (args, ctx) => {
-    const resolvedCommand = resolveCommand(args)
-    ctx.metadata({ title: `ocr ${resolvedCommand}`, metadata: { command: resolvedCommand } })
+    const rawCommand = resolveCommand(args)
+    const resolvedCommand = normalizeCommand(rawCommand)
+    ctx.metadata({ title: `ocr ${resolvedCommand}`, metadata: { command: rawCommand, normalized: resolvedCommand } })
 
     try {
       if (resolvedCommand === 'version') {
@@ -200,13 +197,19 @@ export const aeOcrTool = tool({
   },
 })
 
+/**
+ * 推断 ocr 命令。
+ *
+ * command 非 auto 时直接使用用户指定值（支持任意命令名）。
+ * command=auto 时按结构化参数推断。
+ */
 function resolveCommand(args: Record<string, unknown>): string {
-  if (args.command && args.command !== 'auto') return args.command as string
+  const command = args.command as string
+  if (command && command !== 'auto') return command
 
   const rawArgs = (args.args as string[] | undefined) ?? []
-  if (rawArgs.length > 0) {
-    const known = ['review', 'scan', 'config', 'llm', 'rules', 'viewer', 'session', 'version', 'r', 's', 'v', 'sessions']
-    if (known.includes(rawArgs[0])) return rawArgs[0]
+  if (rawArgs.length > 0 && KNOWN_COMMANDS.has(rawArgs[0])) {
+    return rawArgs[0]
   }
 
   if (args.from || args.to || args.commit || args.background || args.backgroundFile || args.resume) return 'review'
@@ -216,11 +219,26 @@ function resolveCommand(args: Record<string, unknown>): string {
   return 'review'
 }
 
+/**
+ * 构建 CLI 参数数组。
+ *
+ * 结构化参数映射为 CLI flag，再追加 args 透传参数。
+ * 对于已知命令（review/scan/config/llm/rules/viewer/session）使用结构化映射；
+ * 对于未知命令，直接透传 args。
+ */
 function buildCliArgs(command: string, args: Record<string, unknown>): string[] {
   const rawArgs = (args.args as string[] | undefined) ?? []
-  const cliArgs: string[] = [command]
 
-  if (command === 'review') {
+  // 未知命令：直接透传 [command, ...rawArgs]
+  if (!KNOWN_COMMANDS.has(command)) {
+    return [command, ...rawArgs]
+  }
+
+  // 归一化别名
+  const normalizedCmd = normalizeCommand(command)
+  const cliArgs: string[] = [normalizedCmd]
+
+  if (normalizedCmd === 'review') {
     cliArgs.push('--audience', (args.audience as string) ?? 'agent')
     if (args.preview) cliArgs.push('--preview')
     else cliArgs.push('--format', (args.format as string) ?? 'json')
@@ -239,7 +257,7 @@ function buildCliArgs(command: string, args: Record<string, unknown>): string[] 
     if (args.tools) cliArgs.push('--tools', args.tools as string)
     if (args.maxTools !== undefined) cliArgs.push('--max-tools', String(args.maxTools))
     if (args.maxGitProcs !== undefined) cliArgs.push('--max-git-procs', String(args.maxGitProcs))
-  } else if (command === 'scan') {
+  } else if (normalizedCmd === 'scan') {
     cliArgs.push('--audience', (args.audience as string) ?? 'agent')
     if (args.preview) cliArgs.push('--preview')
     else cliArgs.push('--format', (args.format as string) ?? 'json')
@@ -258,7 +276,7 @@ function buildCliArgs(command: string, args: Record<string, unknown>): string[] 
     if (args.tools) cliArgs.push('--tools', args.tools as string)
     if (args.maxTools !== undefined) cliArgs.push('--max-tools', String(args.maxTools))
     if (args.maxGitProcs !== undefined) cliArgs.push('--max-git-procs', String(args.maxGitProcs))
-  } else if (command === 'config') {
+  } else if (normalizedCmd === 'config') {
     const sub = (args.configSubcommand as string) ?? rawArgs[0]
     if (sub) {
       cliArgs.push(sub)
@@ -269,17 +287,17 @@ function buildCliArgs(command: string, args: Record<string, unknown>): string[] 
         cliArgs.push(args.key as string)
       }
     }
-  } else if (command === 'llm') {
+  } else if (normalizedCmd === 'llm') {
     const sub = rawArgs[0] ?? 'test'
     cliArgs.push(sub)
-  } else if (command === 'rules') {
+  } else if (normalizedCmd === 'rules') {
     cliArgs.push('check')
     if (args.path) cliArgs.push(args.path as string)
     if (args.repo) cliArgs.push('--repo', args.repo as string)
     if (args.rule) cliArgs.push('--rule', args.rule as string)
-  } else if (command === 'viewer') {
+  } else if (normalizedCmd === 'viewer') {
     if (args.addr) cliArgs.push('--addr', args.addr as string)
-  } else if (command === 'session' || command === 'sessions') {
+  } else if (normalizedCmd === 'session') {
     const sub = (args.sessionSubcommand as string) ?? rawArgs[0] ?? 'list'
     cliArgs.push(sub)
     if (sub === 'show' && args.sessionId) {
@@ -297,11 +315,24 @@ function buildCliArgs(command: string, args: Record<string, unknown>): string[] 
   }
 
   // 追加用户直接透传的额外参数（去掉已被结构化参数覆盖的第一个子命令词）
-  const skipFirst = ['config', 'llm', 'session', 'sessions'].includes(command) && rawArgs.length > 0
+  const skipFirst = ['config', 'llm', 'session'].includes(normalizedCmd) && rawArgs.length > 0
   const extraArgs = skipFirst ? rawArgs.slice(1) : rawArgs
   cliArgs.push(...extraArgs)
 
   return cliArgs
+}
+
+/**
+ * 归一化命令别名到标准名。
+ */
+function normalizeCommand(command: string): string {
+  switch (command) {
+    case 'r': return 'review'
+    case 's': return 'scan'
+    case 'v': return 'viewer'
+    case 'sessions': return 'session'
+    default: return command
+  }
 }
 
 interface GroupedFindings {

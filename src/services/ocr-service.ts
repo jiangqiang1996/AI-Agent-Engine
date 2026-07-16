@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process'
-import { appendFileSync, closeSync, existsSync, mkdirSync, openSync } from 'node:fs'
+import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync } from 'node:fs'
 import path from 'node:path'
+import { createRequire } from 'node:module'
 
 import { getGlobalClient } from './client-holder.js'
 import { getModelScenarioRoutingContext } from './model-scenario-holder.js'
@@ -205,52 +206,80 @@ function inferBaseURL(providerID: string): string | undefined {
 }
 
 /**
- * 定位 ocr 二进制。
- *
- * 优先使用 npm 包 @alibaba-group/open-code-review 安装时下载的二进制，
- * 降级到 PATH 中的 ocr 命令。
+ * ESM 兼容的 require.resolve。
+ * ocr-service 运行在 ESM 上下文，需要 createRequire 才能使用 require.resolve。
  */
-export function resolveOcrBinary(): { path: string; source: string } | null {
+const require = createRequire(import.meta.url)
+
+const OCR_MAIN_PKG = '@alibaba-group/open-code-review'
+const OCR_BINARY_FILENAME = process.platform === 'win32' ? 'opencodereview.exe' : 'opencodereview'
+
+/**
+ * 平台特定二进制包名映射（与官方 platform.js PLATFORM_PKG 一致）。
+ */
+const OCR_PLATFORM_PACKAGES: Record<string, string> = {
+  'darwin-arm64': '@alibaba-group/ocr-darwin-arm64',
+  'darwin-x64': '@alibaba-group/ocr-darwin-x64',
+  'linux-arm64': '@alibaba-group/ocr-linux-arm64',
+  'linux-x64': '@alibaba-group/ocr-linux-x64',
+  'win32-arm64': '@alibaba-group/ocr-win32-arm64',
+  'win32-x64': '@alibaba-group/ocr-win32-x64',
+}
+
+/**
+ * 从主包 package.json 的 optionalDependencies 动态发现平台子包名。
+ * 与官方 platform.js getPlatformPackageName 逻辑一致。
+ */
+function getPlatformPackageName(): string | null {
+  const key = `${process.platform}-${process.arch}`
   try {
-    const pkgPath = require.resolve('@alibaba-group/open-code-review')
-    const pkgDir = path.dirname(pkgPath)
-    const platform = process.platform
-    const arch = process.arch
-
-    let binaryName: string
-    let osPart: string
-    let archPart: string
-
-    if (platform === 'win32') {
-      osPart = 'windows'
-      archPart = arch === 'arm64' ? 'arm64' : 'amd64'
-      binaryName = `opencodereview-${osPart}-${archPart}.exe`
-    } else if (platform === 'darwin') {
-      osPart = 'darwin'
-      archPart = arch === 'arm64' ? 'arm64' : 'amd64'
-      binaryName = `opencodereview-${osPart}-${archPart}`
-    } else {
-      osPart = 'linux'
-      archPart = arch === 'arm64' ? 'arm64' : 'amd64'
-      binaryName = `opencodereview-${osPart}-${archPart}`
-    }
-
-    const candidates = [
-      path.join(pkgDir, 'bin', binaryName),
-      path.join(pkgDir, binaryName),
-      path.join(pkgDir, '..', 'bin', binaryName),
-    ]
-
-    for (const candidate of candidates) {
-      if (existsSync(candidate)) {
-        return { path: candidate, source: 'npm' }
-      }
+    const mainPkgDir = path.dirname(require.resolve(`${OCR_MAIN_PKG}/package.json`))
+    const pkgJson = JSON.parse(readFileSync(path.join(mainPkgDir, 'package.json'), 'utf-8'))
+    const optDeps = (pkgJson?.optionalDependencies ?? {}) as Record<string, string>
+    for (const name of Object.keys(optDeps)) {
+      if (name.endsWith(`-${key}`)) return name
     }
   } catch {
-    // npm 包未安装或无法解析
+    // 主包未安装或无法读取
+  }
+  return OCR_PLATFORM_PACKAGES[key] ?? null
+}
+
+/**
+ * 定位 ocr 二进制。
+ *
+ * 与官方 platform.js resolveNativeBinary 解析顺序一致：
+ * 1. 平台特定子包（如 @alibaba-group/ocr-win32-x64）bin/ 目录中的原生二进制
+ * 2. 主包 bin/ 目录中的二进制（postinstall 下载的旧式布局）
+ * 3. PATH 中的 ocr 命令（最终降级，官方返回 null，此处扩展为 PATH 查找）
+ */
+export function resolveOcrBinary(): { path: string; source: string } | null {
+  // 优先从平台特定子包解析
+  const platformPkg = getPlatformPackageName()
+  if (platformPkg) {
+    try {
+      const pkgDir = path.dirname(require.resolve(`${platformPkg}/package.json`))
+      const binPath = path.join(pkgDir, 'bin', OCR_BINARY_FILENAME)
+      if (existsSync(binPath)) {
+        return { path: binPath, source: 'npm' }
+      }
+    } catch {
+      // 平台特定包未安装
+    }
   }
 
-  // 降级到 PATH 中的 ocr
+  // 降级：主包 bin/ 目录中的二进制（postinstall 下载）
+  try {
+    const mainPkgDir = path.dirname(require.resolve(`${OCR_MAIN_PKG}/package.json`))
+    const legacyPath = path.join(mainPkgDir, 'bin', OCR_BINARY_FILENAME)
+    if (existsSync(legacyPath)) {
+      return { path: legacyPath, source: 'npm' }
+    }
+  } catch {
+    // 主包未安装
+  }
+
+  // 最终降级到 PATH 中的 ocr
   return { path: 'ocr', source: 'path' }
 }
 

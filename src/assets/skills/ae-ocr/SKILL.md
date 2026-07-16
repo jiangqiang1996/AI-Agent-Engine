@@ -1,7 +1,7 @@
 ---
 name: ae:ocr
-description: "通过 ae-ocr 工具调用 OpenCodeReview (ocr) CLI 执行 AI 代码审查。自动从 opencode provider 配置获取 LLM 凭据，支持 OCR 所有命令（review/scan/config/llm/rules/viewer/session/version）。输出结构化审查发现，按 severity 分组。适用于代码变更审查、代码与目标期望一致性验证。"
-argument-hint: "[command=review] [from=main] [to=branch] [background=...] [路径...]"
+description: "通过 ae-ocr 工具调用 OpenCodeReview (ocr) CLI 执行 AI 代码审查。自动从 opencode provider 配置获取 LLM 凭据，支持 OCR 所有命令和完全透传。输出结构化审查发现，按 severity 分组。适用于代码变更审查、代码与目标期望一致性验证。"
+argument-hint: "[command=review] [from=main] [to=branch] [background=...] [backgroundFile=...] [路径...]"
 ---
 
 # ae:ocr - OpenCodeReview 代码审查
@@ -12,8 +12,9 @@ argument-hint: "[command=review] [from=main] [to=branch] [background=...] [路�
 
 - 审查 Git 代码变更（staged/unstaged/untracked、branch diff、单 commit）
 - 审查整个文件或目录（无 Git 历史场景）
-- 审查代码与目标期望是否一致（通过 `background` 参数传入需求上下文）
+- 审查代码与目标期望是否一致（通过 `background` / `backgroundFile` 参数传入需求上下文）
 - 管理 OCR 配置、检查 LLM 连通性、查看审查会话
+- 官方新增命令或 flag 时，通过 `command` + `args` 直接透传，无需等待工具更新
 
 ## 何时不使用
 
@@ -24,7 +25,7 @@ argument-hint: "[command=review] [from=main] [to=branch] [background=...] [路�
 
 ### 第一步：收集业务上下文
 
-分析审查目标（commit、branch 或工作区变更），提取简明业务上下文。通过 `background` 参数传入，提升审查质量。
+分析审查目标（commit、branch 或工作区变更），提取简明业务上下文。通过 `background` 参数传入内联上下文，或通过 `backgroundFile` 参数传入 Markdown 文件路径，两者可同时使用（内联值在前，文件内容在后）。
 
 如果项目中存在 `ae/prds/` 或 `ae/designs/` 产物，可提取需求和验收标准作为上下文，审查代码是否实现了预期功能。
 
@@ -59,18 +60,18 @@ argument-hint: "[command=review] [from=main] [to=branch] [background=...] [路�
 
 ## 命令清单
 
-支持 OCR 所有命令。`command=auto`（默认）时根据参数自动推断。
+`command` 支持任意字符串（官方未来新增命令无需更新本工具）。`command=auto`（默认）时根据参数自动推断。
 
-| 命令 | 说明 |
-|------|------|
-| `review` | 基于 Git diff 审查代码变更 |
-| `scan` | 审查整个文件或目录（无需 Git diff） |
-| `config` | 管理 OCR 配置（set/unset/provider/model） |
-| `llm` | LLM 工具（test/providers） |
-| `rules` | 检查规则匹配 |
-| `viewer` | 启动 WebUI 会话查看器（阻塞型服务） |
-| `session` | 列出/查看审查会话 |
-| `version` | 显示版本信息 |
+| 命令 | 别名 | 说明 |
+|------|------|------|
+| `review` | `r` | 基于 Git diff 审查代码变更 |
+| `scan` | `s` | 审查整个文件或目录（无需 Git diff） |
+| `config` | — | 管理配置（set/unset/provider/model） |
+| `llm` | — | LLM 工具（test/providers） |
+| `rules` | — | 检查规则匹配 |
+| `viewer` | `v` | 启动 WebUI 会话查看器（阻塞型服务） |
+| `session` | `sessions` | 列出/查看审查会话 |
+| `version` | — | 显示版本信息 |
 
 ### review 参数
 
@@ -79,8 +80,8 @@ argument-hint: "[command=review] [from=main] [to=branch] [background=...] [路�
 | `from` | 源 ref（如 `main`），用于 branch diff |
 | `to` | 目标 ref（如 `feature-branch`），用于 branch diff |
 | `commit` | 单个 commit hash |
-| `background` | 业务/需求上下文 |
-| `backgroundFile` | 从 Markdown 文件加载业务上下文（最多 8000 字符） |
+| `background` | 业务/需求上下文（内联文本） |
+| `backgroundFile` | 从 Markdown 文件加载业务上下文（与 `background` 可同时使用，内联值在前） |
 | `rule` | 自定义规则 JSON 文件路径 |
 | `exclude` | 排除模式（逗号分隔 gitignore 风格） |
 | `timeout` | 超时分钟数，默认 10 |
@@ -89,19 +90,30 @@ argument-hint: "[command=review] [from=main] [to=branch] [background=...] [路�
 | `preview` | 预览将审查的文件（不调用 LLM） |
 | `resume` | 从之前的审查会话恢复 |
 | `audience` | 输出受众，默认 `agent` |
+| `format` | 输出格式 text/json，默认 json |
+| `tools` | 自定义工具配置 JSON 文件路径 |
+| `maxTools` | 每个文件最大工具调用轮次（0=模板默认，最小 10） |
+| `maxGitProcs` | 最大并发 git 子进程数，默认 16 |
 
 ### scan 参数
 
 | 参数 | 说明 |
 |------|------|
 | `path` | 扫描路径（逗号分隔） |
+| `background` | 业务/需求上下文（内联文本） |
 | `exclude` | 排除模式 |
 | `noPlan` | 跳过 per-file PLAN 预处理 |
 | `noDedup` | 跳过 per-batch 去重 |
 | `noSummary` | 跳过项目级摘要 |
 | `batch` | 批处理策略：none/by-language/by-directory |
 | `maxTokensBudget` | token 总量上限 |
+| `model` | 覆盖 LLM 模型 |
 | `preview` | 预览将扫描的文件（不调用 LLM） |
+| `concurrency` | 并发文件扫描数，默认 8 |
+| `timeout` | 超时分钟数，默认 10 |
+| `tools` | 自定义工具配置 JSON 文件路径 |
+| `maxTools` | 每个文件最大工具调用轮次 |
+| `maxGitProcs` | 最大并发 git 子进程数，默认 16 |
 
 ### config 参数
 
@@ -120,6 +132,7 @@ argument-hint: "[command=review] [from=main] [to=branch] [background=...] [路�
 | 参数 | 说明 |
 |------|------|
 | `path` | 要检查的文件路径 |
+| `rule` | 自定义规则 JSON 文件路径 |
 
 ### session 参数
 
@@ -127,7 +140,7 @@ argument-hint: "[command=review] [from=main] [to=branch] [background=...] [路�
 |------|------|
 | `sessionSubcommand` | 子命令：list/show |
 | `sessionId` | show 的会话 ID |
-| `limit` | list 限制数量 |
+| `limit` | list 限制数量，默认 20 |
 | `json` | 输出 JSON 格式 |
 
 ### viewer 参数
@@ -136,17 +149,20 @@ argument-hint: "[command=review] [from=main] [to=branch] [background=...] [路�
 |------|------|
 | `addr` | 监听地址，默认 localhost:5483 |
 
-### 高级参数（review/scan 通用）
+### 完全透传（args）
 
-| 参数 | 说明 |
-|------|------|
-| `tools` | 自定义工具配置 JSON 文件路径 |
-| `maxTools` | 每个文件最大工具调用轮次（0=模板默认，最小 10） |
-| `maxGitProcs` | 最大并发 git 子进程数，默认 16 |
+`args` 数组完全透传给 ocr CLI，支持官方所有 flag 和未来新增参数。与结构化参数合并使用时，args 追加在结构化参数之后。
 
-### 直接透传
+```
+# 透传官方新增 flag
+command=review args=["--new-flag","value"]
 
-通过 `args` 参数数组可透传任意 OCR CLI 参数，如 `args=["--from","main","--to","feature"]`。
+# 透传完整子命令
+command=config args=["set","llm.model","claude-opus-4-6"]
+
+# 未知命令直接透传
+command=newcmd args=["--flag"]
+```
 
 ## 常用调用模式
 
@@ -156,11 +172,14 @@ argument-hint: "[command=review] [from=main] [to=branch] [background=...] [路�
 | 审查 branch diff | `command=review from=main to=feature-branch` |
 | 审查单 commit | `command=review commit=abc123` |
 | 审查与目标一致性 | `command=review background="需求描述..."` |
+| 从文件加载上下文 | `command=review backgroundFile=./docs/requirements.md` |
+| 内联+文件上下文 | `command=review background="聚焦认证" backgroundFile=./docs/auth.md` |
 | 全文件扫描 | `command=scan path=src/` |
 | 预览将审查的文件 | `command=review preview=true` |
 | 检查 LLM 连通性 | `command=llm args=["test"]` |
 | 列出审查会话 | `command=session sessionSubcommand=list` |
 | 查看规则匹配 | `command=rules path=src/Foo.java` |
+| 透传官方新参数 | `command=review args=["--new-flag","value"]` |
 
 ## 输出格式
 
@@ -236,6 +255,7 @@ OCR 按以下优先级解析规则：
 - **50 行触发 Plan 阶段** — 超过 50 行变更的 diff 会先执行风险分析阶段，增加延迟但提升质量。
 - **不要使用 `--audience human`** — 它会流式输出进度 UI 污染输出。始终使用 `--audience agent`（工具默认）。
 - **评论语言跟随配置** — 默认中文，可通过 OCR 配置设为 English 或 Chinese。
+- **background 与 backgroundFile 可同时使用** — 内联 `background` 值出现在前，`backgroundFile` 文件内容出现在后。
 
 ## 验证
 

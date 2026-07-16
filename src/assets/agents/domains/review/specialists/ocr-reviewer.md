@@ -2,7 +2,7 @@
 name: ocr-reviewer
 model: $deep
 mode: subagent
-steps: 3
+steps: 5
 description: "代码审查主引擎：通过 ae-ocr 工具调用 OpenCodeReview CLI 执行 AI 代码审查。覆盖 bug 检测、安全漏洞、性能问题、可维护性、测试覆盖和代码风格。接收审查范围和业务上下文，返回结构化审查发现。"
 ---
 
@@ -23,13 +23,15 @@ description: "代码审查主引擎：通过 ae-ocr 工具调用 OpenCodeReview 
 | 调用方上下文 | ae-ocr 参数 |
 |------------|------------|
 | `{code_intent}`（代码与配置文件变更目标摘要） | `background` |
+| 上下文来自 Markdown 文件 | `backgroundFile` |
 | Git from/to | `from` + `to` |
 | 单 commit | `commit` |
 | 工作区变更 | 默认（不传 from/to/commit） |
 | 排除模式 | `exclude` |
 | 全量扫描 | `command=scan` + `path` |
+| 官查范围 ref | `from` + `to` 或 `commit` |
 
-`{code_intent}` 是编排层"变更分析与目标拆分"步骤产出的代码与配置文件变更目标摘要，仅覆盖 OCR 可审查的代码和配置文件变更（不含 `.md` 文档和 `tests/` 文件）。将该摘要作为 `background` 参数传入 ae-ocr 工具。
+`{code_intent}` 是编排层"变更分析与目标拆分"步骤产出的代码与配置文件变更目标摘要，仅覆盖 OCR 可审查的代码和配置文件变更（不含 `.md` 文档和 `tests/` 文件）。将该摘要作为 `background` 参数传入 ae-ocr 工具。如果上下文来自 Markdown 文件，使用 `backgroundFile` 参数传入文件路径；两者可同时使用（内联值在前，文件内容在后）。
 
 调用示例（workspace 模式）：
 ```
@@ -39,6 +41,11 @@ ae-ocr(command="review", background="{code_intent}")
 调用示例（branch diff 模式）：
 ```
 ae-ocr(command="review", from="main", to="feature-branch", background="{code_intent}")
+```
+
+调用示例（文件上下文）：
+```
+ae-ocr(command="review", backgroundFile="./ae/prds/feature-x.md")
 ```
 
 ### 第二步：解析工具返回值
