@@ -68,7 +68,7 @@ argument-hint: "[command=review] [from=main] [to=branch] [background=...] [路�
 | `config` | 管理 OCR 配置（set/unset/provider/model） |
 | `llm` | LLM 工具（test/providers） |
 | `rules` | 检查规则匹配 |
-| `viewer` | 启动 WebUI 会话查看器（阻塞型服务，建议用 ae-async-bash 后台运行） |
+| `viewer` | 启动 WebUI 会话查看器（阻塞型服务） |
 | `session` | 列出/查看审查会话 |
 | `version` | 显示版本信息 |
 

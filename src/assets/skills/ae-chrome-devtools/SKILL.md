@@ -21,7 +21,7 @@ argument-hint: "[url] [action] [mode] [browser] [port] [headless] [task=任务�
 | `url` | 否 | 目标页面 URL。注册并验证连接后自动打开。 |
 | `task` | 否 | 浏览器中执行的任务描述。 |
 | `action` | 否 | MCP 操作：`check` / `register` / `disconnect` / `detect`。默认自动推断（未连接则注册）。`detect` 需显式指定。 |
-| `mode` | 否 | 注册模式：`isolated` / `autoConnect` / `browserUrl` / `wsEndpoint`。未指定时由**默认值推断**计算。 |
+| `mode` | 否 | 注册模式：`isolated` / `autoConnect` / `connect` / `wsEndpoint`。未指定时由**默认值推断**计算。`connect` 通过浏览器类型和调试端口连接已有实例；`wsEndpoint` 通过 WebSocket 端点连接。 |
 | `browser` | 否 | 浏览器类型：`Chrome` / `Edge` / `Chromium`。未指定时由**默认值推断**计算。 |
 | `port` | 否 | 远程调试端口号（1-65535）。接管已有浏览器时由 detect 自动获取，用户也可显式指定。 |
 | `headless` | 否 | 是否无头模式：`true` / `false`。未指定时由**默认值推断**计算。 |
@@ -34,7 +34,7 @@ argument-hint: "[url] [action] [mode] [browser] [port] [headless] [task=任务�
    |--------|--------|
    | http:// 或 https:// 开头 | url |
    | register / disconnect / detect / check | action |
-   | isolated / autoConnect / browserUrl / wsEndpoint | mode |
+    | isolated / autoConnect / connect / wsEndpoint | mode |
    | Chrome / Edge / Chromium | browser |
    | 独立纯数字 1-65535 | port |
    | true / false（且上下文提及无头/headless） | headless |

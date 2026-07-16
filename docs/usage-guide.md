@@ -24,7 +24,6 @@
 | 创建或编辑 PPTX | `/ae-pptx` |
 | 创建或编辑 XLSX | `/ae-xlsx` |
 | 幻灯片大纲生成 | `/ae-slides-outline` |
-| 大纲转 PPTX | `/ae-pptx-from-outline` |
 | 构建或查询项目关系图谱 | `/ae-graph-build`、`/ae-graph-query` |
 | 保存经验 | `/ae-save-experience` |
 | 提示词优化 | `/ae-prompt-optimize` |

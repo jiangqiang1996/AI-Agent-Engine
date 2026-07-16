@@ -19,7 +19,7 @@
 - 运行时：Node.js ESM。
 - 包管理器：npm。
 - 核心依赖以 `package.json` 和 `package-lock.json` 为准，不要在规则里硬编码数量或版本结论。
-- `src/index.ts` 是插件服务端入口，`src/tui.ts` 是 TUI 入口。
+- `src/index.ts` 是插件服务端入口。
 
 ## 开发命令
 

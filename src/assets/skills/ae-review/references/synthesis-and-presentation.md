@@ -135,7 +135,6 @@
 丢弃任何建议删除以下目录中文件的发现：
 - `ae/prds/`
 - `ae/designs/`
-- `ae/designs/`
 - `ae/solutions/`
 - `.opencode/`
 

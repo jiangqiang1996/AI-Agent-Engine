@@ -12,6 +12,7 @@
 | `testing` | `ocr-reviewer` | 覆盖缺口、弱断言、脆弱测试 |
 | `maintainability` | `ocr-reviewer` | 耦合、复杂度、命名、死代码、脚本可移植性 |
 | `standards` | `standards-reviewer` | AGENTS.md 合规性、配置文件语法正确性、schema 一致性、敏感值检测 |
+| `research` | `research-reviewer` | 历史方案、最佳实践、框架文档、经验提炼 |
 
 ## 条件性（跨领域）
 
@@ -34,7 +35,6 @@
 | 代理 | 关注点 |
 |------|--------|
 | `agent-native-reviewer` | 在涉及 CLI、UI、工具或代理配置时验证新功能可被代理访问、CLI 就绪度 |
-| `research-reviewer` | 搜索历史方案、最佳实践和框架文档 |
 
 ## 选择规则
 
