@@ -23,6 +23,14 @@
 
 ## 检测优先级
 
+### 优先级 0：无变更全量审查（最高优先级）
+
+当**未显式指定任何范围参数**（`from=` / `recent=` / `full` / `full=<path>` / `session` 均不存在）且 `git status --porcelain` 输出为空且 `git diff --quiet` 通过时，**立即触发全量审查**——扫描项目中所有文件，排除 `ae/prds/`、`ae/designs/`、`.opencode/`、敏感文件和受保护产物。
+
+**禁止行为**：不得回退到最近提交 diff（`git diff HEAD~1`）、不得使用 `git log` 缩窄范围、不得审查最近 N 次提交。工作区无变更即为全量审查的触发条件，不是缩窄范围的信号。
+
+此优先级高于状态文件和首次运行检测，确保无变更时始终全量审查而非回退到最近提交。
+
 ### 优先级 1：显式指定
 
 `from=<ref>` 参数存在时，直接使用指定 ref 作为基准，跳过所有检测。`base=<ref>` 映射到 `from=<ref>` 保持兼容。
@@ -33,7 +41,7 @@
 
 | 条件 | 行为 |
 |------|------|
-| HEAD == lastReviewed 且无暂存/未暂存/未跟踪变更 | **审查最近 10 次提交**（`recent=10`） |
+| HEAD == lastReviewed 且无暂存/未暂存/未跟踪变更 | 已被优先级 0 覆盖：未显式指定范围参数时触发全量审查；仅在显式指定范围参数后适用 `recent=10` |
 | HEAD == lastReviewed 但有工作区变更 | 仅审查工作区变更 |
 | HEAD ≠ lastReviewed | `git diff lastReviewed..HEAD` + 工作区变更 |
 

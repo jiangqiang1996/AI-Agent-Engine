@@ -15,7 +15,7 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 1. **全并行架构**：代码、文档、设计三层所有代理全并行调度，无串行依赖
 2. **审查只找问题**：所有代理只产出 findings，不做修复
 3. **合并层修复流程**：所有代理并行找完问题 → 合并去重 + 冲突解决 + 因果分析（修复 A 解决 B）→ 生成修复方案 → 执行修复（仅 autofix 模式）
-4. **无变更全量审查**：`git status --porcelain` 为空且 `git diff --quiet` 通过时，默认审查除 `ae/prds/` 和 `ae/designs/` 以外的全量文件
+4. **无变更全量审查**（硬约束）：未显式指定范围参数且 `git status --porcelain` 为空且 `git diff --quiet` 通过时，**必须**审查除 `ae/prds/` 和 `ae/designs/` 以外的全量文件，**禁止**回退到最近提交 diff
 5. **goals 自动推断**：三级优先级——用户显式传入 > 会话上下文分析 > 未提交变更推断
 6. **document-reviewer 支持任意文本类型**：不限于 .md，包括 .txt/.rst/.json/.yaml/.xml 等所有非代码文本
 7. **设计文件和需求文件双重审查**：同时被 document-reviewer（文档属性）和维度专属代理（维度内容）审查
@@ -149,7 +149,7 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 
 阅读 `references/scope-detection.md` 获取完整的 Git 范围检测流程。
 
-**无变更全量审查**：当 `git status --porcelain` 输出为空且 `git diff --quiet` 通过时，默认审查除 `ae/prds/` 和 `ae/designs/` 以外的全量文件。此逻辑在自动检测阶段触发，用户可通过显式范围参数覆盖。
+**无变更全量审查**（硬约束）：当未显式指定任何范围参数（`from=` / `recent=` / `full` / `full=<path>` / `session` 均不存在）且 `git status --porcelain` 输出为空且 `git diff --quiet` 通过时，**必须**审查除 `ae/prds/` 和 `ae/designs/` 以外的全量文件。**禁止**回退到最近提交 diff、使用 `git log` 缩窄范围或审查最近 N 次提交。用户可通过显式范围参数覆盖。详见 `references/scope-detection.md` 优先级 0。
 
 ##### 自动域识别
 
@@ -164,7 +164,7 @@ argument-hint: "[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [f
 1. **Git 差异模式**（`from=` 或 `recent=` 或自动检测）→ 检测变更文件，展示让用户确认
 2. **全量扫描模式**（`full` 或 `full=<path>`）→ 扫描项目文件，应用排除规则
 3. **会话变更模式**（`session`）→ 识别会话变更文件
-4. **自动检测**（无范围参数时）→ 先检测 Git 变更；无变更时触发无变更全量审查逻辑
+4. **自动检测**（无范围参数时）→ 先检测 Git 未提交变更（`git status --porcelain` + `git diff --quiet`）；两者均通过时**立即触发无变更全量审查**（见上方硬约束段落），不得回退到最近提交 diff；有未提交变更时按 `references/scope-detection.md` 优先级 1-3 检测
 
 文档域范围确定：
 - 指定文档路径 → 使用指定路径
