@@ -3,7 +3,7 @@
 // 用法: node <ae-prd技能目录>/scripts/split-prd.mjs <prd文件路径> [--threshold 300]
 // 退出码: 0 = 通过或拆分成功, 1 = 拆分后仍超标, 2 = 文件不存在
 
-import { readFileSync, writeFileSync, existsSync, statSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync } from 'node:fs'
 import { resolve, dirname, basename, join } from 'node:path'
 
 const args = process.argv.slice(2)
@@ -226,13 +226,20 @@ if (requirementGroups.length === 0) {
 
 console.log(`找到 ${requirementGroups.length} 个需求分组：${requirementGroups.map(g => g.title).join(', ')}`)
 
+// 创建以 topic 命名的子目录，所有拆分文件放入同一子目录
+const shardDir = join(dir, topic)
+if (!existsSync(shardDir)) {
+  mkdirSync(shardDir, { recursive: true })
+}
+console.log(`拆分文件子目录: ${shardDir}`)
+
 // 生成 prd-shard 子文件
 const shardFiles = []
 
 for (const group of requirementGroups) {
   const moduleKebab = toKebabCase(group.title)
   const shardFileName = `${topic}-${moduleKebab}-shard.md`
-  const shardPath = join(dir, shardFileName)
+  const shardPath = join(shardDir, shardFileName)
 
   const shardFmEntries = [
     { key: 'type', value: 'prd-shard' },
@@ -245,7 +252,8 @@ for (const group of requirementGroups) {
 
   writeFileSync(shardPath, shardContent, 'utf-8')
   const shardLines = countLines(shardContent)
-  shardFiles.push({ file: shardFileName, module: moduleKebab, lines: shardLines })
+  const shardRelPath = `${topic}/${shardFileName}`
+  shardFiles.push({ file: shardRelPath, module: moduleKebab, lines: shardLines })
 
   console.log(`  生成 ${shardFileName}: ${shardLines} 行`)
 }

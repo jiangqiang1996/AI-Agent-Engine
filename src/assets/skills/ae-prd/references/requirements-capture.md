@@ -114,7 +114,7 @@ sharded: false
 
 分片主文件 frontmatter 使用 `type: prd`、`sharded: true` 和 `shards` 索引。`shards` 每项至少包含 `file`、`module`，并尽量列出该分片覆盖的 `requirements`、`decisions` 或其他稳定 ID。
 
-分片子文件 frontmatter 使用 `type: prd-shard`、`parent: <主文件仓库相对路径>` 和 `module: <模块名>`。子文件只承载本模块需求、约束和待定问题，不作为恢复、规划或执行入口的顶层产物。
+分片子文件 frontmatter 使用 `type: prd-shard`、`parent: <主文件仓库相对路径>` 和 `module: <模块名>`。分片子文件放入以 topic 命名的子目录中（如 `ae/prds/<topic>/<topic>-<module>-shard.md`），子文件只承载本模块需求、约束和待定问题，不作为恢复、规划或执行入口的顶层产物。
 
 对于**标准**和**深入**需求探索，通常需要一份需求数据文档。
 
@@ -158,9 +158,9 @@ sharded: false
 
 | 需求描述的是... | 视觉辅助 | 放置位置 |
 |---|---|---|
-| 多步骤用户工作流或流程 | Mermaid 流程图或带注释的 ASCII 流程图 | 在问题框架之后，或大量流程放在独立的 `## 用户流程` 标题下 |
+| 多步骤用户工作流或流程 | Mermaid 流程图（`flowchart`） | 在问题框架之后，或大量流程放在独立的 `## 用户流程` 标题下 |
 | 3+ 种行为模式、变体或状态 | Markdown 比较表 | 在需求部分内 |
-| 3+ 个交互参与者 | Mermaid 或 ASCII 关系图 | 在问题框架之后，或独立的 `## 架构` 标题下 |
+| 3+ 个交互参与者 | Mermaid 关系图（`graph` 或 `sequenceDiagram`） | 在问题框架之后，或独立的 `## 架构` 标题下 |
 | 多个竞争方案 | 比较表 | 在方案探索阶段 |
 
 **何时跳过：**
@@ -169,9 +169,9 @@ sharded: false
 - 视觉描述的是实现架构、数据 Schema 或代码结构（属于 `ae:design`）
 
 **格式选择：**
-- **Mermaid**（默认）用于简单流程——使用 `TB` 方向保持窄幅
-- **ASCII/制图字符**用于需要丰富框内内容的注释流程
+- **Mermaid**（默认且优先）用于所有流程图、关系图和时序图——使用 `flowchart TB` 保持窄幅，使用 `sequenceDiagram` 展示交互时序，使用 `graph` 展示参与者关系
 - **Markdown 表格**用于模式/变体比较
+- Mermaid 无法表达的复杂注释场景可使用 ASCII 制图作为降级方案
 - 保持图表与内容成比例
 - 在相关位置内联放置
 - 仅概念层面——用户流程、信息流、模式比较

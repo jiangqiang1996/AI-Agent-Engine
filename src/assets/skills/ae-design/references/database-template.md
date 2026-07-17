@@ -9,7 +9,7 @@
 
 database 维度的最小可验证契约元素集，标注 `[核心]` 或 `[可选]`：
 
-- `[核心]` **ER 模型**：实体关系图（ASCII 图或结构化描述）
+- `[核心]` **ER 模型**：实体关系图（优先使用 Mermaid `erDiagram` 绘制；Mermaid 无法表达的复杂注释场景可使用 ASCII 制图或结构化描述作为降级方案）
 - `[核心]` **表结构表**：每张表（含稳定 ID `T-XXX`）的字段、类型、约束、索引、描述
 - `[核心]` **关系与外键表**：源表.字段 → 目标表.字段，级联规则
 - `[可选]` **范式决策**：范式级别和反范式理由
@@ -27,7 +27,35 @@ database 维度的最小可验证契约元素集，标注 `[核心]` 或 `[可�
 ## 数据库设计
 
 ### ER 模型
-（实体关系图：ASCII 图或结构化描述）
+（优先使用 Mermaid `erDiagram` 绘制实体关系图；Mermaid 无法表达的复杂注释场景可使用 ASCII 制图或结构化描述作为降级方案）
+
+```mermaid
+erDiagram
+  USERS {
+    uuid id PK
+    string name
+    timestamp created_at
+  }
+  ORDERS {
+    uuid id PK
+    uuid user_id FK
+    timestamp created_at
+  }
+  ORDER_ITEMS {
+    uuid id PK
+    uuid order_id FK
+    uuid product_id FK
+    int quantity
+  }
+  PRODUCTS {
+    uuid id PK
+    string name
+    decimal price
+  }
+  USERS ||--o{ ORDERS : places
+  ORDERS ||--|{ ORDER_ITEMS : contains
+  PRODUCTS ||--o{ ORDER_ITEMS : referenced_by
+```
 
 ### 表结构
 

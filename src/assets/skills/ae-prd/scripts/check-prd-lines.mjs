@@ -4,7 +4,7 @@
 // 退出码: 0 = 通过, 1 = 有超标文件, 2 = 目录不存在
 
 import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs'
-import { resolve, join } from 'node:path'
+import { resolve, join, relative } from 'node:path'
 
 const args = process.argv.slice(2)
 
@@ -21,6 +21,7 @@ if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
   console.log('  2 = 目录不存在')
   console.log('')
   console.log('校验规则:')
+  console.log('  - 递归扫描子目录中的 .md 文件（支持拆分文件放入子目录）')
   console.log('  - 跳过 sharded: true 的主文件（豁免，分片索引文件）')
   console.log('  - 检查 sharded: false 的主文件（type: prd）行数 ≤ threshold')
   console.log('  - 检查分片子文件（type: prd-shard）行数 ≤ threshold')
@@ -92,17 +93,32 @@ function countLines(content) {
   return normalized.split('\n').length - (normalized.endsWith('\n') ? 1 : 0)
 }
 
-// 收集所有 .md 文件
-const allMdFiles = readdirSync(prdDir)
-  .filter(f => f.endsWith('.md'))
+// 递归收集所有 .md 文件（支持拆分文件放入子目录）
+function collectMdFiles(rootDir) {
+  const result = []
+  const entries = readdirSync(rootDir)
+  for (const entry of entries) {
+    const fullPath = join(rootDir, entry)
+    const stat = statSync(fullPath)
+    if (stat.isDirectory()) {
+      result.push(...collectMdFiles(fullPath))
+    } else if (entry.endsWith('.md')) {
+      result.push(fullPath)
+    }
+  }
+  return result
+}
+
+// 收集所有 .md 文件（递归扫描子目录）
+const allMdFiles = collectMdFiles(prdDir)
 
 const skippedShardedIndex = []
 const skippedNoFrontmatter = []
 const checkedFiles = []
 const violations = []
 
-for (const file of allMdFiles) {
-  const filePath = join(prdDir, file)
+for (const filePath of allMdFiles) {
+  const file = relative(prdDir, filePath)
   const content = readFileSync(filePath, 'utf-8')
   const frontmatter = parseFrontmatter(content)
 
