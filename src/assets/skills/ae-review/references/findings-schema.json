@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Review Findings",
-  "description": "统一审查子代理的结构化输出 schema（13 代理全并行架构，代码域和文档域通用）",
+  "description": "统一审查子代理的结构化输出 schema（全并行架构，代码域和文档域通用）",
   "type": "object",
   "required": ["reviewer", "findings", "residual_risks"],
   "properties": {
@@ -17,7 +17,6 @@
         "required": [
           "title",
           "severity",
-          "domain",
           "location",
           "why_it_matters",
           "finding_type",
@@ -38,7 +37,7 @@
           "domain": {
             "type": "string",
             "enum": ["code", "document"],
-            "description": "发现所属域"
+            "description": "发现所属域（可选，用于区分代码域和文档域发现）"
           },
           "location": {
             "description": "发现位置，代码域为 file+line，文档域为 file+section",
@@ -113,7 +112,7 @@
     }
   },
   "_meta": {
-    "architecture": "13-agent-full-parallel",
+    "architecture": "full-parallel",
     "pipeline": {
       "steps": ["校验", "置信度门控", "合并去重+冲突解决+因果分析", "排序", "高风险零发现对抗"],
       "merge_layer": {
@@ -144,7 +143,7 @@
     },
     "agent_principle": "代理只找问题不做修复，修复由合并层和修复流程统一处理",
     "return_tiers": {
-      "merge_tier": "返回给编排器：title、severity、domain、location、finding_type、confidence、evidence、causes、caused_by、suggested_fix。",
+      "merge_tier": "返回给编排器：title、severity、domain（可选）、location、finding_type、confidence、evidence、causes、caused_by、suggested_fix。",
       "detail_tier": "产物文件中必填：why_it_matters、evidence。"
     }
   }

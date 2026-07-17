@@ -10,10 +10,10 @@ import type { TaskIntent } from '../../src/schemas/orchestration-protocol.js'
 
 const taskIntent: TaskIntent = {
   stage: 'entry',
-  intent: '审查变更',
-  domain: 'review',
+  intent: '实现功能',
+  domain: 'development',
   constraints: [],
-  rawInput: '审查当前变更',
+  rawInput: '实现功能',
   timestamp: '2026-05-29T00:00:00.000Z',
 }
 
@@ -22,77 +22,6 @@ function selectedNames(domain: string, domainContext: Record<string, unknown>) {
 }
 
 describe('domain-dispatch-service', () => {
-  it('应该按代码审查类型选择代码常驻审查者而不是文档常驻审查者', () => {
-    const names = selectedNames('review', { kind: 'code' })
-
-    expect(names).toContain(AGENT.OCR_REVIEWER)
-    expect(names).toContain(AGENT.DOCUMENT_REVIEWER)
-  })
-
-  it('应该在 domainContext 缺省时使用 TaskIntent.domain 选择审查域', () => {
-    const names = selectSpecialists('review', { ...taskIntent, domain: 'code' }).map((specialist) => specialist.name)
-
-    expect(names).toContain(AGENT.OCR_REVIEWER)
-    expect(names).toContain(AGENT.DOCUMENT_REVIEWER)
-  })
-
-  it('应该在 TaskIntent.domain 兜底为代码域时激活架构条件审查者', () => {
-    const names = selectSpecialists('review', { ...taskIntent, domain: 'code' }, {
-      kind: 'document',
-      hasDesignContract: true,
-      hasArchitectureDecision: true,
-    }).map((specialist) => specialist.name)
-
-    expect(names).toContain(AGENT.ARCHITECTURE_DESIGN_REVIEWER)
-  })
-
-  it('应该按文档审查类型选择文档常驻审查者而不是代码常驻审查者', () => {
-    const names = selectedNames('review', { kind: 'design' })
-
-    expect(names).toContain(AGENT.DOCUMENT_REVIEWER)
-    expect(names).toContain(AGENT.DOCUMENT_REVIEWER)
-    expect(names).not.toContain(AGENT.OCR_REVIEWER)
-  })
-
-  it('应该使用 domainContext 条件激活审查专精代理', () => {
-    const names = selectedNames('review', {
-      kind: 'document',
-      hasSecurity: true,
-      hasApi: true,
-      hasPerformance: true,
-      hasReliability: true,
-      hasDatabase: true,
-      hasDesignContract: true,
-    })
-
-    expect(names).toContain(AGENT.API_DESIGN_REVIEWER)
-    expect(names).toContain(AGENT.DOCUMENT_REVIEWER)
-    expect(names).toContain(AGENT.DATABASE_DESIGN_REVIEWER)
-  })
-
-  it('应该将 general 域映射到审查域并选择混合审查者', () => {
-    const names = selectedNames('general', {
-      kind: 'general',
-      targetTypes: ['requirements', 'design', 'asset'],
-    })
-
-    expect(names).toContain(AGENT.DOCUMENT_REVIEWER)
-    expect(names).toContain(AGENT.UI_UX_DESIGN_REVIEWER)
-    expect(names).toContain(AGENT.OCR_REVIEWER)
-    expect(names).toContain(AGENT.TRACEABILITY_REVIEWER)
-  })
-
-  it('应该优先使用 normalizedKind 保留混合审查语义', () => {
-    const names = selectedNames('review', {
-      kind: 'design',
-      normalizedKind: 'general',
-      targetTypes: ['requirements', 'design'],
-    })
-
-    expect(names).toContain(AGENT.DOCUMENT_REVIEWER)
-    expect(names).toContain(AGENT.TRACEABILITY_REVIEWER)
-  })
-
   it('应该使用 domainContext 文本辅助匹配开发专精代理', () => {
     const names = selectedNames('development', {
       taskArea: '后端 API 数据库',
@@ -115,13 +44,13 @@ describe('domain-dispatch-service', () => {
     expect(names).toContain(AGENT.DEBUG_FIX)
   })
 
-  it('应该在开发域空任务描述时兜底选中 debug-fix', () => {
+  it('应该在开发域无匹配关键词时兜底选中 debug-fix', () => {
     const intent: TaskIntent = {
       stage: 'entry',
-      intent: '',
+      intent: '执行未知任务',
       domain: 'development',
       constraints: [],
-      rawInput: '',
+      rawInput: '执行未知任务',
       timestamp: '2026-06-02T00:00:00.000Z',
     }
     const names = selectSpecialists('development', intent, {}).map((s) => s.name)
@@ -129,18 +58,19 @@ describe('domain-dispatch-service', () => {
     expect(names).toContain(AGENT.DEBUG_FIX)
   })
 
-  it('应该在开发域关键词扩充命中时不触发兜底', () => {
+  it('应该在开发域关键词命中时不触发兜底', () => {
     const intent: TaskIntent = {
       stage: 'entry',
-      intent: '重组模块架构',
+      intent: '开发 API 接口',
       domain: 'development',
       constraints: [],
-      rawInput: '重组模块架构',
+      rawInput: '开发 API 接口',
       timestamp: '2026-06-02T00:00:00.000Z',
     }
     const names = selectSpecialists('development', intent, {}).map((s) => s.name)
 
-    expect(names).toContain(AGENT.DEBUG_FIX)
+    expect(names).toContain(AGENT.BACKEND_DEV)
+    expect(names).not.toContain(AGENT.DEBUG_FIX)
   })
 
   it('应该使用 hasApi 和 hasUi flags 匹配开发专精代理', () => {
@@ -313,12 +243,6 @@ describe('domain-dispatch-service', () => {
   })
 
   describe('getCoordinationStrategy', () => {
-    it('应该在审查域返回 parallel 策略', () => {
-      const strategy = getCoordinationStrategy('review')
-      expect(strategy.strategy).toBe('parallel')
-      expect(strategy.aggregation).toBe('union')
-    })
-
     it('应该在开发域返回 parallel-then-sequential 策略', () => {
       const strategy = getCoordinationStrategy('development')
       expect(strategy.strategy).toBe('parallel-then-sequential')
@@ -326,31 +250,11 @@ describe('domain-dispatch-service', () => {
     })
   })
 
-  describe('REVIEW_SPECIALISTS 一致性', () => {
-    it('REVIEW_SPECIALISTS 应与 REVIEW_MATRIX 代理名集合一致', async () => {
-      const { REVIEW_MATRIX } = await import('../../src/services/review-catalog.js')
-      const { getDomainCatalog } = await import('../../src/services/domain-catalog-service.js')
-
-      const catalog = getDomainCatalog('review')
-      expect(catalog).toBeDefined()
-      expect(catalog!.length).toBeGreaterThan(0)
-
-      const specialistNames = new Set(catalog![0].specialists.map((s: { name: string }) => s.name))
-      const matrixNames = new Set(REVIEW_MATRIX.map((r) => r.name))
-
-      expect(specialistNames.size).toBe(matrixNames.size)
-      for (const name of matrixNames) {
-        expect(specialistNames.has(name)).toBe(true)
-      }
-    })
-  })
-
   describe('rawKind fallback 语义', () => {
-    it('domain=review + kind 未传时应回退到代码审查（激活 ocr-reviewer + document-reviewer）', () => {
-      const names = selectedNames('review', {})
+    it('domain=development + has_ui=true 应激活 frontend-dev', () => {
+      const names = selectedNames('development', { hasUi: true })
 
-      expect(names).toContain(AGENT.OCR_REVIEWER)
-      expect(names).toContain(AGENT.DOCUMENT_REVIEWER)
+      expect(names).toContain(AGENT.FRONTEND_DEV)
     })
   })
 })

@@ -21,6 +21,7 @@ import { aeChromeDevtoolsMcpTool } from './ae-chrome-devtools-mcp.tool.js'
 import { aeTimerTool } from './ae-timer.tool.js'
 import { aeDomainDispatchPrepareTool } from './ae-domain-dispatch-prepare.tool.js'
 import { aeDomainDispatchAggregateTool } from './ae-domain-dispatch-aggregate.tool.js'
+import { aeReviewScopeAnalyzeTool } from './ae-review-scope-analyze.tool.js'
 import { aeAsyncBashTool } from './ae-async-bash.tool.js'
 import { aePdfTool } from './ae-pdf.tool.js'
 import { aeBrainstormTool } from './ae-brainstorm.tool.js'
@@ -50,6 +51,7 @@ export function createToolRegistry(): Record<string, ToolDefinition> {
     [TOOL.AE_TIMER]: aeTimerTool,
     [TOOL.AE_DOMAIN_DISPATCH_PREPARE]: aeDomainDispatchPrepareTool,
     [TOOL.AE_DOMAIN_DISPATCH_AGGREGATE]: aeDomainDispatchAggregateTool,
+    [TOOL.AE_REVIEW_SCOPE_ANALYZE]: aeReviewScopeAnalyzeTool,
     [TOOL.AE_ASYNC_BASH]: aeAsyncBashTool,
     [TOOL.AE_PDF]: aePdfTool,
     [TOOL.AE_BRAINSTORM]: aeBrainstormTool,

@@ -1,18 +1,21 @@
 # 文件类型路由表
 
-审查范围确定后，每个变更文件按扩展名/路径匹配路由，确定路由代理。13 代理全并行架构下，路由表决定激活哪些代理，所有激活代理在同一轮一次性并行派发。
+本表描述 `ae-review-scope-analyze` 工具内部的文件路由逻辑，供理解工具行为参考。实际执行时由 SKILL.md 步骤 3 调用工具完成，不需要手工执行以下流程。
+
+审查范围确定后，每个文件按扩展名/路径匹配路由，确定激活的代理。所有激活代理在同一轮一次性并行派发。
 
 ## 路由选择流程
 
-1. **第一步**：文件格式/路径 → 匹配路由组 → 确定路由代理（确定性的、基于规则）
-2. **第二步**：分析文件内容特征 → 代理判断激活条件代理
-3. 多个文件属于不同路由时，合并所有活跃代理，去重后统一并行派发
+1. **第一步**：收集审查范围内所有文件，按后缀去重
+2. **第二步**：按后缀匹配基础代理（代码 → ocr-reviewer，文档 → document-reviewer，双重分类 → 两者都激活）
+3. **第三步**：文档代理激活后，分析文档内容特征激活维度代理
+4. **第四步**：按上下文/变更推断目标，激活 goal-alignment-reviewer
 
 ## 全局排除
 
 以下文件不进入审查：
 
-- 图片：.png .jpg .gif .svg .ico .webp .bmp
+- 图片：.png .jpg .jpeg .gif .svg .ico .webp .bmp
 - 字体：.woff .woff2 .ttf .eot .otf
 - 媒体：.mp3 .mp4 .wav .avi .mov .webm
 - 压缩包：.zip .tar .gz .rar .7z
@@ -24,99 +27,38 @@
 
 ## 路由定义
 
-### 源代码路由
+### OCR 支持的代码文件
 
-**匹配文件：** .ts .tsx .js .jsx .mjs .cjs .py .java .go .rs .c .cpp .h .rb .php .swift .kt .scala
+**匹配文件：** .java .kt .kts .scala .groovy .py .pyi .js .jsx .ts .tsx .mjs .cjs .c .h .cpp .cc .cxx .hpp .hxx .cs .vb .fs .go .rs .rb .rake .gemspec .php .swift .m .mm .sh .bash .zsh .fish .ps1 .sql .css .scss .sass .less .html .htm .astro .vue .svelte .xml .yaml .yml .json .json5 .toml .ini .gradle .cmake .r .lua .pl .pm .ex .exs .erl .hrl .ets .dart .tf *.test.* *_test.* *.spec.* *.bench.* Dockerfile Makefile Vagrantfile Containerfile
 
-**路由代理：** `ocr-reviewer`
+**激活代理：** `ocr-reviewer`
 
-### 测试代码路由
+**说明：** 后缀白名单来源于 OpenCodeReview (OCR) 的 `supported_file_types.json`（68 种后缀）。任何被审查文件只要后缀在此白名单中，都激活 `ocr-reviewer`。无扩展名的特殊文件名（Dockerfile、Makefile、Vagrantfile、Containerfile）同样激活 `ocr-reviewer`。
 
-**匹配文件：** *.test.* *_test.* *.spec.* *.bench.*
+### 文档文件
 
-**路由代理：** `ocr-reviewer`
+**匹配文件：** .md .rst .adoc .org .txt .json .yaml .yml .toml .ini .xml .cfg
 
-### 配置文件路由
+**激活代理：** `document-reviewer` + 按内容特征激活的维度代理
 
-**匹配文件：** .json .yaml .yml .toml .ini .xml
+**说明：** 部分文件后缀（如 .json .yaml .xml .toml .ini）同时匹配代码文件和文档文件，此时 `ocr-reviewer` 和 `document-reviewer` 都被激活（双重分类）。
 
-**路由代理：** `ocr-reviewer` + `document-reviewer`
-
-### 需求文档路由
+### 需求文档
 
 **匹配路径：** ae/prds/**
 
-**路由代理：** `document-reviewer`
+**激活代理：** `document-reviewer`（默认排除，用户明确指定时纳入）
 
-**说明：** 默认排除，用户明确指定时纳入。
-
-### 设计文档路由
+### 设计文档
 
 **匹配路径：** ae/designs/**
 
-**路由代理：** `document-reviewer` + 对应维度代理 + `design-integrity-reviewer`
+**激活代理：** `document-reviewer` + 对应维度代理 + `design-integrity-reviewer`（默认排除，用户明确指定时纳入）
 
-**维度代理激活条件：** 根据设计文档内容自动识别涉及的维度，激活对应维度代理：
-- 涉及模块/分层 → `architecture-design-reviewer`
-- 涉及接口/端点 → `api-design-reviewer`
-- 涉及数据模型/表结构 → `database-design-reviewer`
-- 涉及页面/组件/交互 → `ui-ux-design-reviewer`
-- 涉及测试用例/覆盖 → `test-cases-design-reviewer`
-- 涉及认证/权限/密钥 → `security-design-reviewer`
-- 涉及日志/监控/告警 → `observability-design-reviewer`
-- 涉及性能/并发/容量 → `non-functional-design-reviewer`
-
-**说明：** 默认排除，用户明确指定时纳入。
-
-### 通用文档路由
-
-**匹配文件：** .md .rst .adoc .org .txt
-
-**排除：** ae/prds/ 和 ae/designs/ 下的文件（见需求文档路由和设计文档路由）
-
-**路由代理：** `document-reviewer`
-
-### 基础设施路由
-
-**匹配文件：** Dockerfile docker-compose.* *.tf *.tfvars .github/workflows/* Makefile Jenkinsfile
-
-**路由代理：** `ocr-reviewer` + `document-reviewer`
-
-### 数据库路由
-
-**匹配文件：** *.sql .prisma 迁移文件
-
-**路由代理：** `ocr-reviewer`
-
-### API 契约路由
-
-**匹配文件：** .graphql .proto .openapi.* swagger.*
-
-**路由代理：** `ocr-reviewer`
-
-### 脚本路由
-
-**匹配文件：** .sh .bash .ps1 .bat .cmd
-
-**路由代理：** `ocr-reviewer`
-
-### 图片/字体/媒体路由
-
-**匹配文件：** 见全局排除
-
-**路由代理：** 排除
-
-### 兜底路由
+### 兜底
 
 **匹配文件：** 不匹配任何路由的文件
 
-**路由代理：** `ocr-reviewer` + `document-reviewer`
+**激活代理：** `ocr-reviewer` + `document-reviewer`
 
-## 全局代理
-
-以下代理跨所有路由按条件激活：
-
-| 代理 | 激活条件 |
-|--------|--------|
-| `traceability-reviewer` | 需求/设计/代码同时存在时激活 |
-| `goal-alignment-reviewer` | 仅当 `goals=` 参数提供审查目标时激活 |
+**说明：** 工具的 `classifyFiles` 函数对既非代码又非文档的文件采用兜底策略，同时放入代码文件列表和文档文件列表，确保不遗漏。

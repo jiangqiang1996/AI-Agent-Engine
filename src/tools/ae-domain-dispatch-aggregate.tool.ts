@@ -63,7 +63,7 @@ export const aeDomainDispatchAggregateTool = tool({
     '- union 策略合并所有发现，同标题保留最高严重级别',
     '- 优先使用 results[].findings；缺失时正则提取兜底',
     '- 返回 DomainExecutionResult 及 dispatchManifest',
-    '- 内置降级违规检测：若 dispatchedAgents 仅含域代理名（review-domain/development-domain），会发出 guardViolation 警告',
+    '- 内置降级违规检测：若 dispatchedAgents 仅含域代理名（development-domain），会发出 guardViolation 警告',
     '',
     '适用场景：',
     '- ae:review/ae:work 编排层直接调度专精代理后聚合',

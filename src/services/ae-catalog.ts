@@ -79,7 +79,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillName: SKILL.REVIEW,
     commandName: COMMAND.REVIEW,
     description: `${getLifecycleCatalogDescription('outcome-review')}；通用审查入口，默认自动识别审查场景，支持代码、需求、设计、原型、测试用例、配置、技能、命令等单一或混合范围`,
-    argumentHint: '[mode] [domain] [scenes=<list>] [targets=<list>] [from=<ref>] [full] [full=<path>] [session] [design=<path>] [goals=<text>] [路径...]',
+    argumentHint: '[mode] [scenes=<list>] [targets=<list>] [from=<ref>] [full] [full=<path>] [session] [design=<path>] [goals=<text>] [路径...]',
     skillFile: `src/assets/skills/${skillDir(SKILL.REVIEW)}/SKILL.md`,
     tier: 'core',
   },
@@ -112,7 +112,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillFile: `src/assets/skills/${skillDir(SKILL.SLIDES_OUTLINE)}/SKILL.md`,
     tier: 'docs',
   },
-{
+  {
     skillName: SKILL.HANDOFF,
     commandName: COMMAND.HANDOFF,
     description: '会话交接：提取当前会话核心结论，创建独立新会话并注入上下文',
@@ -299,23 +299,22 @@ const REVIEW_SPECIALIST_AGENT_NAMES = new Set<string>([
 ])
 
 const REQUIRED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'], string, string?]> = [
-  [AGENT.DOCUMENT_REVIEWER, 'review', '文档审查主引擎：审查内部一致性、可行性、产品视角、步骤粒度、需求质量和证据核验'],
-  [AGENT.SECURITY_DESIGN_REVIEWER, 'review', '文档域安全审查：评估设计文档中的安全缺口、认证授权假设、数据暴露和威胁模型'],
+  [AGENT.DOCUMENT_REVIEWER, 'review', '文档审查主引擎：审查内部一致性、可行性、产品视角、步骤粒度、需求质量和证据核验', 'reviewers/document-reviewer.md'],
+  [AGENT.SECURITY_DESIGN_REVIEWER, 'review', '文档域安全审查：评估设计文档中的安全缺口、认证授权假设、数据暴露和威胁模型', 'reviewers/security-design-reviewer.md'],
   [AGENT.REPO_RESEARCH_ANALYST, 'research', '研究仓库结构与已有模式'],
   [AGENT.WEB_RESEARCHER, 'research', '搜索并总结网络信息'],
   [AGENT.SPEC_FLOW_ANALYZER, 'workflow', '分析阶段流转和边界情况'],
-  [AGENT.OCR_REVIEWER, 'review', 'OCR 代码审查主引擎：通过 ae-ocr 工具覆盖 bug/安全/性能/可维护性/测试覆盖/风格/规范/对抗式/代理就绪/可靠性'],
-  [AGENT.API_DESIGN_REVIEWER, 'review', '审查接口契约破坏性变更和兼容性'],
-  [AGENT.ARCHITECTURE_DESIGN_REVIEWER, 'review', '从架构视角分析代码变更，检查架构边界、跨模块依赖和系统级抽象'],
-  [AGENT.DATABASE_DESIGN_REVIEWER, 'review', '审查数据迁移方案与执行细节（含数据库审查）'],
-  [AGENT.UI_UX_DESIGN_REVIEWER, 'review', '审查 UI/UX 设计维度的交互流程完整性、状态覆盖、与需求的一致性以及原型完整性'],
-  [AGENT.TEST_CASES_DESIGN_REVIEWER, 'review', '审查测试用例维度的结构完整性、覆盖完备性、步骤可执行性、结果可验证性和需求对齐程度'],
-  [AGENT.OBSERVABILITY_DESIGN_REVIEWER, 'review', '审查可观测性维度产物：日志规范、指标体系、告警规则、健康检查和 SLO/SLI 定义'],
-  [AGENT.NON_FUNCTIONAL_DESIGN_REVIEWER, 'review', '审查非功能维度产物：性能目标、并发模型、事务边界、缓存策略和容量规划'],
-  [AGENT.GOAL_ALIGNMENT_REVIEWER, 'review', '对照审查目标逐条校验变更是否达成，识别未达成项和偏离'],
-  [AGENT.TRACEABILITY_REVIEWER, 'review', '审查需求-设计-原型-实现-测试链路追溯，识别断裂引用、孤儿条目和未声明延期'],
-  [AGENT.DESIGN_INTEGRITY_REVIEWER, 'review', '审查设计文档与需求的一致性、设计维度完整性、架构与数据模型可行性和安全设计覆盖'],
-  [AGENT.REVIEW_DOMAIN, 'domain', '审查域代理：选择审查者、并行调度、综合发现', 'domains/review/DOMAIN.md'],
+  [AGENT.OCR_REVIEWER, 'review', 'OCR 代码审查主引擎：通过 ae-ocr 工具覆盖 bug/安全/性能/可维护性/测试覆盖/风格/规范/对抗式/代理就绪/可靠性', 'reviewers/ocr-reviewer.md'],
+  [AGENT.API_DESIGN_REVIEWER, 'review', '审查接口契约破坏性变更和兼容性', 'reviewers/api-design-reviewer.md'],
+  [AGENT.ARCHITECTURE_DESIGN_REVIEWER, 'review', '从架构视角分析代码变更，检查架构边界、跨模块依赖和系统级抽象', 'reviewers/architecture-design-reviewer.md'],
+  [AGENT.DATABASE_DESIGN_REVIEWER, 'review', '审查数据迁移方案与执行细节（含数据库审查）', 'reviewers/database-design-reviewer.md'],
+  [AGENT.UI_UX_DESIGN_REVIEWER, 'review', '审查 UI/UX 设计维度的交互流程完整性、状态覆盖、与需求的一致性以及原型完整性', 'reviewers/ui-ux-design-reviewer.md'],
+  [AGENT.TEST_CASES_DESIGN_REVIEWER, 'review', '审查测试用例维度的结构完整性、覆盖完备性、步骤可执行性、结果可验证性和需求对齐程度', 'reviewers/test-cases-design-reviewer.md'],
+  [AGENT.OBSERVABILITY_DESIGN_REVIEWER, 'review', '审查可观测性维度产物：日志规范、指标体系、告警规则、健康检查和 SLO/SLI 定义', 'reviewers/observability-design-reviewer.md'],
+  [AGENT.NON_FUNCTIONAL_DESIGN_REVIEWER, 'review', '审查非功能维度产物：性能目标、并发模型、事务边界、缓存策略和容量规划', 'reviewers/non-functional-design-reviewer.md'],
+  [AGENT.GOAL_ALIGNMENT_REVIEWER, 'review', '对照审查目标逐条校验变更是否达成，识别未达成项和偏离', 'reviewers/goal-alignment-reviewer.md'],
+  [AGENT.TRACEABILITY_REVIEWER, 'review', '审查需求-设计-原型-实现-测试链路追溯，识别断裂引用、孤儿条目和未声明延期', 'reviewers/traceability-reviewer.md'],
+  [AGENT.DESIGN_INTEGRITY_REVIEWER, 'review', '审查设计文档与需求的一致性、设计维度完整性、架构与数据模型可行性和安全设计覆盖', 'reviewers/design-integrity-reviewer.md'],
   [AGENT.DEVELOPMENT_DOMAIN, 'domain', '开发域代理：分析任务、选择专精、协调执行', 'domains/development/DOMAIN.md'],
   [AGENT.FRONTEND_DEV, 'domain', '前端开发专精代理：处理 UI 组件、样式、交互逻辑和响应式设计', 'domains/development/specialists/frontend-dev.md'],
   [AGENT.BACKEND_DEV, 'domain', '后端开发专精代理：处理 API、数据层、业务逻辑和中间件', 'domains/development/specialists/backend-dev.md'],
@@ -348,7 +347,7 @@ function buildAgentList(
       tier,
       description: desc,
       path: customPath
-        ?? (REVIEW_SPECIALIST_AGENT_NAMES.has(name) ? `domains/review/specialists/${name}.md` : `${stage}/${name}.md`),
+        ?? (REVIEW_SPECIALIST_AGENT_NAMES.has(name) ? `reviewers/${name}.md` : `${stage}/${name}.md`),
     }),
   )
 }

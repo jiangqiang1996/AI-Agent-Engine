@@ -86,7 +86,7 @@ describe('ae-domain-dispatch-aggregate 工具', () => {
             evidence: [],
           },
         ],
-        dispatchedAgents: [AGENT.REVIEW_DOMAIN],
+        dispatchedAgents: [AGENT.DEVELOPMENT_DOMAIN],
         expectedSpecialistCount: 5,
       })
 
@@ -96,7 +96,7 @@ describe('ae-domain-dispatch-aggregate 工具', () => {
       expect(gv.code).toBe('DEGRADATION_VIOLATION')
       expect(gv.severity).toBe('error')
       expect(gv.message).toContain('5')
-      expect(gv.message).toContain(AGENT.REVIEW_DOMAIN)
+      expect(gv.message).toContain(AGENT.DEVELOPMENT_DOMAIN)
     })
 
     it('仅域代理且 expectedCount === 0 时不触发违规（合法降级）', async () => {
@@ -109,7 +109,7 @@ describe('ae-domain-dispatch-aggregate 工具', () => {
             evidence: [],
           },
         ],
-        dispatchedAgents: [AGENT.REVIEW_DOMAIN],
+        dispatchedAgents: [AGENT.DEVELOPMENT_DOMAIN],
         expectedSpecialistCount: 0,
       })
 
@@ -127,7 +127,7 @@ describe('ae-domain-dispatch-aggregate 工具', () => {
             evidence: [],
           },
         ],
-        dispatchedAgents: [AGENT.REVIEW_DOMAIN],
+        dispatchedAgents: [AGENT.DEVELOPMENT_DOMAIN],
       })
 
       const parsed = parseResult(result)
@@ -159,7 +159,7 @@ describe('ae-domain-dispatch-aggregate 工具', () => {
       expect(gv.message).toContain(AGENT.DEVELOPMENT_DOMAIN)
     })
 
-    it('多个域代理混合时只要全为域代理仍触发违规', async () => {
+    it('域代理与非域代理混合时不触发降级违规', async () => {
       const result = await callTool({
         strategy: 'union',
         results: [
@@ -169,14 +169,12 @@ describe('ae-domain-dispatch-aggregate 工具', () => {
             evidence: [],
           },
         ],
-        dispatchedAgents: [AGENT.REVIEW_DOMAIN, AGENT.DEVELOPMENT_DOMAIN],
+        dispatchedAgents: [AGENT.DEVELOPMENT_DOMAIN, AGENT.OCR_REVIEWER],
         expectedSpecialistCount: 8,
       })
 
       const parsed = parseResult(result)
-      expect(parsed).toHaveProperty('guardViolation')
-      const gv = parsed.guardViolation as Record<string, unknown>
-      expect(gv.code).toBe('DEGRADATION_VIOLATION')
+      expect(parsed).not.toHaveProperty('guardViolation')
     })
   })
 

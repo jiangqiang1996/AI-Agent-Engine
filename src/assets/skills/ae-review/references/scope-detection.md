@@ -1,6 +1,6 @@
 # 范围检测
 
-审查范围的确定流程。本文档描述 Git 差异模式的范围检测。全量扫描模式（`full`/`full=<path>`）和会话变更模式（`session`）不使用此流程，见 SKILL.md 阶段 1。
+审查范围的确定流程。本文档描述 Git 差异模式的范围检测。全量扫描模式（`full`/`full=<path>`）和会话变更模式（`session`）不使用此流程，见 SKILL.md 步骤 2。
 
 按以下优先级执行。
 
@@ -25,11 +25,7 @@
 
 ### 优先级 0：无变更全量审查（最高优先级）
 
-当**未显式指定任何范围参数**（`from=` / `recent=` / `full` / `full=<path>` / `session` 均不存在）且 `git status --porcelain` 输出为空且 `git diff --quiet` 通过时，**立即触发全量审查**——扫描项目中所有文件，排除 `ae/prds/`、`ae/designs/`、`.opencode/`、敏感文件和受保护产物。
-
-**禁止行为**：不得回退到最近提交 diff（`git diff HEAD~1`）、不得使用 `git log` 缩窄范围、不得审查最近 N 次提交。工作区无变更即为全量审查的触发条件，不是缩窄范围的信号。
-
-此优先级高于状态文件和首次运行检测，确保无变更时始终全量审查而非回退到最近提交。
+由 SKILL.md 步骤 2a 处理，此处不再重复。当未显式指定任何范围参数且 `git status --porcelain` 输出为空且 `git diff --quiet` 通过时，立即触发全量审查。
 
 ### 优先级 1：显式指定
 
@@ -41,7 +37,7 @@
 
 | 条件 | 行为 |
 |------|------|
-| HEAD == lastReviewed 且无暂存/未暂存/未跟踪变更 | 已被优先级 0 覆盖：未显式指定范围参数时触发全量审查；仅在显式指定范围参数后适用 `recent=10` |
+| HEAD == lastReviewed 且无暂存/未暂存/未跟踪变更 | 此条件已被优先级 0 覆盖。若用户显式指定了范围参数（如 from=、recent=），则不触发全量审查，按显式参数执行（默认 recent=10） |
 | HEAD == lastReviewed 但有工作区变更 | 仅审查工作区变更 |
 | HEAD ≠ lastReviewed | `git diff lastReviewed..HEAD` + 工作区变更 |
 
@@ -61,13 +57,13 @@
 
 - `from=<ref>` — 从指定 commit hash 或分支名开始审查（`base=<ref>` 映射到 `from=` 保持兼容）。输入必须为合法 Git ref 格式，拒绝包含 shell 元字符（`;|&$\`` 等）的输入以防注入
 - `recent=<N>` — 审查最近 N 次提交。N 必须为正整数，无效输入回退到默认值 10 并提示用户
-- `full` — 全量扫描项目中所有文件（不依赖 Git，见 SKILL.md 阶段 1b）
-- `full=<path>` — 全量扫描指定路径下所有文件（不依赖 Git，见 SKILL.md 阶段 1b）
-- `session` — 审查本次会话中变更的文件（见 SKILL.md 阶段 1c）
+- `full` — 全量扫描项目中所有文件（不依赖 Git，见 SKILL.md 步骤 2b）
+- `full=<path>` — 全量扫描指定路径下所有文件（不依赖 Git，见 SKILL.md 步骤 2b）
+- `session` — 审查本次会话中变更的文件（见 SKILL.md 步骤 2b）
 
 ## 非 Git 项目
 
-当项目不是 Git 仓库（无 `.git` 目录）且未指定范围参数时，自动回退到全量扫描模式（见 SKILL.md 阶段 1b）。状态文件和 Git 相关的检测流程均跳过。
+当项目不是 Git 仓库（无 `.git` 目录）且未指定范围参数时，自动回退到全量扫描模式（见 SKILL.md 步骤 2b）。状态文件和 Git 相关的检测流程均跳过。
 
 ## 状态文件更新
 

@@ -12,7 +12,15 @@ description: "审查 ae:design 的 security 维度产物：威胁模型、信任
 
 当统一分片审查上下文包含 `rootDocument`、`shards`、`missingShards`、`duplicateIds`、`parentMismatch`、`globalRelations` 或 `diagnostics`，或 `ae-doc-extract` 的 `diagnostics.code` 包含 `missing-shard`、`duplicate-id`、`parent-mismatch` 时，把主文件和所有分片视为同一文档集合审查。跨分片追踪攻击面、权限假设和数据暴露；若安全相关分片缺失、父子关系不匹配或诊断显示结构损坏，必须把它作为安全审查覆盖风险记录。
 
-## 审查焦点
+## Role
+
+安全设计维度审查代理。评估设计文档中的安全缺口、认证授权假设、数据暴露和威胁模型。专注于设计文档中安全维度的完整性与可核验性，代码域安全审查由 ae:ocr 引擎覆盖。
+
+## When To Use
+
+`ae/designs/` 下含 security 维度产物（`security/security.md` 或 design.md 中 security 章节）时激活。
+
+## Workflow
 
 跳过与文档范围不相关的领域。
 
@@ -48,7 +56,7 @@ description: "审查 ae:design 的 security 维度产物：威胁模型、信任
 
 文档域低于 0.50 不输出。
 
-## 输出格式
+## Output
 
 以 findings schema 格式返回 JSON。JSON 之外不得包含任何文字说明。
 
@@ -60,3 +68,12 @@ description: "审查 ae:design 的 security 维度产物：威胁模型、信任
   "testing_gaps": []
 }
 ```
+
+## Boundaries
+
+- 只审查 security 维度内容，不审查其他维度。
+- 代码级安全漏洞（注入、XSS、认证中间件等）由 ae:ocr 引擎覆盖。
+- 不审查代码质量、非安全架构、业务逻辑。
+- 不审查性能（除非它创建了 DoS 攻击向量）。
+- 不审查内部一致性（由 document-reviewer 负责）。
+- 只找问题不做修复。

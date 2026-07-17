@@ -1,7 +1,6 @@
 import { tool, type ToolDefinition } from '@opencode-ai/plugin'
 import { Effect } from 'effect'
 
-import { selectSpecialists, getCoordinationStrategy } from '../services/domain-dispatch-service.js'
 import {
   selectReviewers,
   type ReviewKind,
@@ -9,7 +8,7 @@ import {
   type ReviewSceneType,
   type ReviewTargetType,
 } from '../services/review-selector.js'
-import { AeModeSchema, AGENT, type SpecialistDef } from '../schemas/ae-asset-schema.js'
+import { AeModeSchema, AGENT } from '../schemas/ae-asset-schema.js'
 
 const SCENE_VALUES: ReviewSceneType[] = [
   'code',
@@ -166,7 +165,7 @@ export const aeReviewContractTool: ToolDefinition = tool({
     has_design_contract: tool.schema.boolean().optional().describe('是否存在设计文档契约，激活设计维度专精代理和设计完整性审查'),
     has_evidence_claim: tool.schema.boolean().optional().describe('文档是否包含事实性声明、外部引用或交付证据，由 document-reviewer 校验'),
   },
-  async execute(args) {
+  execute: async (args, _ctx) => {
     return Effect.runPromise(
       Effect.try({
         try: () => {
@@ -212,18 +211,6 @@ export const aeReviewContractTool: ToolDefinition = tool({
             hasEvidenceClaim,
           }
 
-          const taskIntent = {
-            stage: 'entry' as const,
-            intent: `${kind} review`,
-            domain: 'review',
-            constraints: [],
-            rawInput: `${kind} review`,
-            timestamp: new Date().toISOString(),
-          }
-
-          const selectedSpecialists: SpecialistDef[] = selectSpecialists('review', taskIntent, domainContext)
-          const selectedNames = selectedSpecialists.map((s) => s.name)
-
           const reviewers = selectReviewers({
             kind,
             documentType,
@@ -268,8 +255,8 @@ export const aeReviewContractTool: ToolDefinition = tool({
               targetCoverage: computeTargetCoverage(targetTypes, reviewers),
               mode: args.mode,
               reviewers,
-              selectedSpecialists: selectedNames,
-              coordinationStrategy: getCoordinationStrategy('review'),
+              selectedSpecialists: reviewers,
+              coordinationStrategy: { strategy: 'parallel', aggregation: 'union' },
               nonSelectionInputs: ['has_typescript', 'has_config', 'has_script'],
               gate:
                 kind === 'code'

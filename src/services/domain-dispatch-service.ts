@@ -8,7 +8,6 @@ import {
   type DomainFinding,
 } from '../schemas/ae-asset-schema.js'
 import { getDomainCatalog } from './domain-catalog-service.js'
-import { selectReviewers, type ReviewSelectionInput, type ReviewKind, type ReviewSceneType, type ReviewTargetType } from './review-selector.js'
 
 export type CoordinationStrategy = 'parallel' | 'pipeline' | 'parallel-then-sequential' | 'conditional'
 
@@ -20,25 +19,21 @@ export interface CoordinationConfig {
 }
 
 const DOMAIN_COORDINATION: Record<string, CoordinationConfig> = {
-  review: { strategy: 'parallel', aggregation: 'union' },
   development: { strategy: 'parallel-then-sequential', aggregation: 'merge' },
 }
 
 const DOMAIN_AGENT_BASE_MAP: Record<string, string> = {
-  review: AGENT.REVIEW_DOMAIN,
-  general: AGENT.REVIEW_DOMAIN,
   development: AGENT.DEVELOPMENT_DOMAIN,
 }
 
 export function getDomainAgentName(domain: string): string {
-  const base = DOMAIN_AGENT_BASE_MAP[domain] ?? AGENT.REVIEW_DOMAIN
+  const base = DOMAIN_AGENT_BASE_MAP[domain]
+  if (!base) return ''
   return `@${base}`
 }
 
 export const DOMAIN_AGENT_NAMES = new Set([
-  AGENT.REVIEW_DOMAIN,
   AGENT.DEVELOPMENT_DOMAIN,
-  `@${AGENT.REVIEW_DOMAIN}`,
   `@${AGENT.DEVELOPMENT_DOMAIN}`,
 ])
 
@@ -47,30 +42,25 @@ export function selectSpecialists(
   taskIntent: TaskIntent,
   domainContext: DomainCallRequest['domainContext'] = {},
 ): SpecialistDef[] {
-  const catalogDomain = domain === 'general' ? 'review' : domain
-  const catalogs = getDomainCatalog(catalogDomain)
+  const catalogs = getDomainCatalog(domain)
   if (catalogs.length === 0) return []
 
   const catalog = catalogs[0]
 
-  if (catalogDomain === 'review') {
-    return selectReviewSpecialists(catalog.specialists, taskIntent, domainContext)
-  }
-
   const selected: SpecialistDef[] = []
 
   for (const specialist of catalog.specialists) {
-    if (isAlwaysOn(specialist, catalogDomain, domainContext)) {
+    if (isAlwaysOn(specialist, domain, domainContext)) {
       selected.push(specialist)
       continue
     }
 
-    if (matchesCriteria(specialist, taskIntent, domainContext, catalogDomain)) {
+    if (matchesCriteria(specialist, taskIntent, domainContext, domain)) {
       selected.push(specialist)
     }
   }
 
-  if (catalogDomain === 'development' && selected.length === 0) {
+  if (domain === 'development' && selected.length === 0) {
     const debugFix = catalog.specialists.find((s) => s.name === AGENT.DEBUG_FIX)
     if (debugFix) {
       selected.push({ ...debugFix, selectionCriteria: `${debugFix.selectionCriteria}（兜底选中）` })
@@ -78,149 +68,6 @@ export function selectSpecialists(
   }
 
   return selected
-}
-
-function selectReviewSpecialists(
-  specialists: SpecialistDef[],
-  taskIntent: TaskIntent,
-  domainContext: DomainCallRequest['domainContext'],
-): SpecialistDef[] {
-  const reviewerNames = new Set(selectReviewers(toReviewSelectionInput(taskIntent, domainContext)))
-  return specialists.filter((specialist) => reviewerNames.has(specialist.name))
-}
-
-function toReviewSelectionInput(
-  taskIntent: TaskIntent,
-  domainContext: DomainCallRequest['domainContext'],
-): ReviewSelectionInput & { dispatchedFlags: Record<string, boolean> } {
-  const rawKind = domainContext.normalizedKind ?? domainContext.kind ?? domainContext.reviewType ?? domainContext.domain ?? taskIntent.domain
-  const documentType = normalizeDocumentType(domainContext.documentType ?? domainContext.kind ?? domainContext.reviewType)
-  const reviewScenes = normalizeStringList<ReviewSceneType>(
-    domainContext.reviewScenes ?? domainContext.scenes,
-    ['code', 'requirements', 'design', 'prototype', 'test-case', 'config', 'asset', 'general-document'],
-  )
-  const targetTypes = normalizeStringList<ReviewTargetType>(
-    domainContext.targetTypes ?? domainContext.targets,
-    ['code', 'requirements', 'design', 'prototype', 'test-case', 'config', 'asset', 'document'],
-  )
-
-  const flagEntries: [string, unknown][] = [
-    ['hasSecurity', domainContext.hasSecurity ?? domainContext.has_security],
-    ['hasPerformance', domainContext.hasPerformance ?? domainContext.has_performance],
-    ['hasApi', domainContext.hasApi ?? domainContext.has_api],
-    ['hasReliability', domainContext.hasReliability ?? domainContext.has_reliability],
-    ['hasCli', domainContext.hasCli ?? domainContext.has_cli],
-    ['hasTooling', domainContext.hasTooling ?? domainContext.has_tooling],
-    ['hasAgentConfig', domainContext.hasAgentConfig ?? domainContext.has_agent_config],
-    ['hasPrMetadata', domainContext.hasPrMetadata ?? domainContext.has_pr_metadata],
-    ['hasTypescript', domainContext.hasTypescript ?? domainContext.has_typescript],
-    ['hasMigrations', domainContext.hasMigrations ?? domainContext.has_migrations],
-    ['hasConfig', domainContext.hasConfig ?? domainContext.has_config],
-    ['hasInfra', domainContext.hasInfra ?? domainContext.has_infra],
-    ['hasDatabase', domainContext.hasDatabase ?? domainContext.has_database],
-    ['hasScript', domainContext.hasScript ?? domainContext.has_script],
-    ['hasUi', domainContext.hasUi ?? domainContext.has_ui],
-    ['hasProductClaim', domainContext.hasProductClaim ?? domainContext.has_product_claim],
-    ['hasArchitectureDecision', domainContext.hasArchitectureDecision ?? domainContext.has_architecture_decision],
-    ['isHighRiskDomain', domainContext.isHighRiskDomain ?? domainContext.is_high_risk_domain],
-    ['hasNewAbstraction', domainContext.hasNewAbstraction ?? domainContext.has_new_abstraction],
-    ['hasUpstream', domainContext.hasUpstream ?? domainContext.has_upstream],
-    ['hasGoalAlignment', domainContext.hasGoalAlignment ?? domainContext.has_goal_alignment],
-    ['hasDesignContract', domainContext.hasDesignContract ?? domainContext.has_design_contract],
-    ['hasEvidenceClaim', domainContext.hasEvidenceClaim ?? domainContext.has_evidence_claim],
-  ]
-
-  const flagMap = new Map(flagEntries)
-  const dispatchedFlags: Record<string, boolean> = {}
-  for (const [key, value] of flagEntries) {
-    dispatchedFlags[key] = typeof value === 'boolean'
-  }
-
-  const kind: ReviewKind =
-    rawKind === 'code' || rawKind === 'review'
-      ? 'code'
-      : rawKind === 'general' || rawKind === 'mixed' || rawKind === 'hybrid'
-        ? 'general'
-        : 'document'
-
-  const hasMixedTargets =
-    getBoolean(domainContext.hasMixedTargets ?? domainContext.has_mixed_targets) ||
-    kind === 'general' ||
-    (targetTypes?.length ?? 0) >= 2
-
-  return {
-    kind,
-    documentType,
-    reviewScenes,
-    targetTypes,
-    hasMixedTargets,
-    hasEvidenceClaim: getBoolean(flagMap.get('hasEvidenceClaim')),
-    changedLineCount: getNumber(domainContext.changedLineCount ?? domainContext.changed_lines),
-    hasSecurity: getBoolean(flagMap.get('hasSecurity')),
-    hasPerformance: getBoolean(flagMap.get('hasPerformance')),
-    hasApi: getBoolean(flagMap.get('hasApi')),
-    hasReliability: getBoolean(flagMap.get('hasReliability')),
-    hasCli: getBoolean(flagMap.get('hasCli')),
-    hasTooling: getBoolean(flagMap.get('hasTooling')),
-    hasAgentConfig: getBoolean(flagMap.get('hasAgentConfig')),
-    hasPrMetadata: getBoolean(flagMap.get('hasPrMetadata')),
-    hasTypescript: getBoolean(flagMap.get('hasTypescript')),
-    hasMigrations: getBoolean(flagMap.get('hasMigrations')),
-    hasConfig: getBoolean(flagMap.get('hasConfig')),
-    hasInfra: getBoolean(flagMap.get('hasInfra')),
-    hasDatabase: getBoolean(flagMap.get('hasDatabase')),
-    hasScript: getBoolean(flagMap.get('hasScript')),
-    hasUi: getBoolean(flagMap.get('hasUi')),
-    hasProductClaim: getBoolean(flagMap.get('hasProductClaim')),
-    requirementCount: getNumber(domainContext.requirementCount ?? domainContext.requirement_count),
-    hasArchitectureDecision: getBoolean(flagMap.get('hasArchitectureDecision')),
-    isHighRiskDomain: getBoolean(flagMap.get('isHighRiskDomain')),
-    hasNewAbstraction: getBoolean(flagMap.get('hasNewAbstraction')),
-    hasUpstream: getBoolean(flagMap.get('hasUpstream')),
-    hasGoalAlignment: getBoolean(flagMap.get('hasGoalAlignment')),
-    hasDesignContract: getBoolean(flagMap.get('hasDesignContract')),
-    dispatchedFlags,
-  }
-}
-
-function normalizeDocumentType(value: unknown): ReviewSelectionInput['documentType'] {
-  if (
-    value === 'requirements' ||
-    value === 'test' ||
-    value === 'general' ||
-    value === 'design'
-  ) {
-    return value
-  }
-
-  if (value === 'document') {
-    return 'general'
-  }
-
-  return undefined
-}
-
-function normalizeStringList<T extends string>(value: unknown, allowed: T[]): T[] | undefined {
-  if (!value) return undefined
-  const raw: string[] = Array.isArray(value)
-    ? value.filter((v): v is string => typeof v === 'string')
-    : typeof value === 'string'
-      ? value.split(',')
-      : []
-  const parts = raw.map((p) => p.trim().toLowerCase()).filter((p) => p.length > 0)
-  if (parts.length === 0) return undefined
-  const filtered = parts.filter((p): p is T => (allowed as string[]).includes(p))
-  return filtered.length > 0 ? filtered : undefined
-}
-
-function getBoolean(value: unknown): boolean {
-  if (typeof value === 'boolean') return value
-  return false
-}
-
-function getNumber(value: unknown): number | undefined {
-  if (typeof value === 'number' && Number.isFinite(value)) return value
-  return undefined
 }
 
 function isAlwaysOn(
@@ -247,7 +94,7 @@ function matchesCriteria(
     .flatMap((value) => Array.isArray(value) ? value : [value])
     .filter((value): value is string => typeof value === 'string')
     .map((value) => value.toLowerCase())
-  const allText = [intentLower, ...constraintsLower, taskIntent.rawInput.toLowerCase(), ...contextText].join(' ')
+  const allText = [intentLower, ...constraintsLower, (taskIntent.rawInput ?? '').toLowerCase(), ...contextText].join(' ')
 
   const criteriaLower = specialist.selectionCriteria.toLowerCase()
   const capabilityTerms = specialist.capabilities.map((c) => c.toLowerCase())
