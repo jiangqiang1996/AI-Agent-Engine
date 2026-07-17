@@ -189,7 +189,10 @@ export async function getCapability(modelKey: string): Promise<ModelMediaCapabil
 export function cacheSessionModel(sessionID: string, providerID: string, modelID: string): void {
   if (_sessionModelMap.size >= SESSION_MAP_MAX && !_sessionModelMap.has(sessionID)) {
     const oldest = _sessionModelMap.keys().next().value
-    if (oldest) _sessionModelMap.delete(oldest)
+    if (oldest) {
+      _sessionModelMap.delete(oldest)
+      _sessionCapsMap.delete(oldest)
+    }
   }
   _sessionModelMap.set(sessionID, makeModelKey(providerID, modelID))
 }
