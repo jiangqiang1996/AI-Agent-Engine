@@ -152,7 +152,8 @@ async function runTemporarySession(
     const promptBody: Record<string, unknown> = {
       parts: [{ type: 'text', text: userPrompt }],
       system: systemPrompt,
-      tools: {},
+      // '*': true 显式启用所有工具，edit/write/patch: false 禁止文件修改类工具，question: false 禁止提问确保无人值守
+      tools: { '*': true, edit: false, write: false, patch: false, question: false },
     }
     if (modelRef) {
       promptBody.model = modelRef
