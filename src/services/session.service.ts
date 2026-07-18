@@ -109,6 +109,33 @@ export function createNewSession(
   })
 }
 
+/** 通过 session.fork 从已有会话分叉出新会话，保留原始会话历史。 */
+export function forkSession(
+  client: OpencodeClient,
+  sourceSessionId: string,
+  messageID?: string,
+): Effect.Effect<CreatedSession, Error> {
+  return Effect.tryPromise(async () => {
+    const res = await client.session.fork({
+      path: { id: sourceSessionId },
+      body: messageID ? { messageID } : undefined,
+    })
+    if (res.error) {
+      const err = res.error as { data?: { message?: string }; name?: string }
+      throw new Error(`Fork 会话失败: ${err.data?.message ?? err.name ?? '未知错误'}`)
+    }
+    const session = res.data
+    if (!session?.id) {
+      throw new Error(`Fork 会话失败: 返回数据为空或缺少 id 字段`)
+    }
+    return {
+      id: session.id,
+      title: session.title ?? `fork:${sourceSessionId}`,
+      url: `/sessions/${session.id}`,
+    }
+  })
+}
+
 /** SDK v1 类型未声明 tui.session.select 事件，但 opencode 服务端支持该事件 */
 type TuiPublishBody = NonNullable<NonNullable<Parameters<OpencodeClient['tui']['publish']>[0]>['body']>
 

@@ -6,6 +6,10 @@ import type { SessionExtractResult } from './session-extract.service.js'
 import {
   formatContextMessage,
   formatSystemPrompt,
+  forkSession,
+  injectNoReplyMessage,
+  injectSystemPrompt,
+  navigateToSession,
 } from './session.service.js'
 import { createSessionFlow } from './session-create.service.js'
 
@@ -99,16 +103,70 @@ export interface HandoffResult {
 }
 
 export function executeHandoff(
-  _context: ToolContext,
+  context: ToolContext,
   client: OpencodeClient,
   extractResult: SessionExtractResult,
 ): Effect.Effect<HandoffResult, SessionCreateError | ContextInjectError> {
   return Effect.gen(function* () {
-    const sessionResult = yield* createSessionWithFallback(
-      generateHandoffTitle(extractResult),
-      extractResult,
-      client,
-    )
+    let sessionResult: { id: string; url: string; fallback: boolean; navigated: boolean }
+
+    const sourceSessionID = context.sessionID
+    const canFork = typeof sourceSessionID === 'string' && sourceSessionID.length > 0
+
+    if (canFork) {
+      // 优先尝试 session.fork 从当前会话分叉，保留原始会话历史
+      const forkResult = yield* forkSession(client, sourceSessionID).pipe(
+        Effect.matchEffect({
+          onSuccess: (forked) => {
+            const systemPrompt = formatSystemPrompt(extractResult)
+            const contextMessage = formatContextMessage(extractResult)
+            // fork 成功后注入交接上下文，注入失败时仍使用 fork 会话（历史有价值）
+            return injectSystemPrompt(client, forked.id, systemPrompt).pipe(
+              Effect.matchEffect({
+                onSuccess: () => Effect.succeed({ session: forked, fallback: false }),
+                onFailure: () =>
+                  injectNoReplyMessage(client, forked.id, contextMessage).pipe(
+                    Effect.matchEffect({
+                      onSuccess: () => Effect.succeed({ session: forked, fallback: false }),
+                      onFailure: () => Effect.succeed({ session: forked, fallback: true }),
+                    }),
+                  ),
+              }),
+            )
+          },
+          onFailure: () => Effect.succeed({ session: null, fallback: false }),
+        }),
+      )
+
+      if (forkResult.session) {
+        const navigated = yield* navigateToSession(client, forkResult.session.id).pipe(
+          Effect.match({
+            onSuccess: () => true,
+            onFailure: () => false,
+          }),
+        )
+        sessionResult = {
+          id: forkResult.session.id,
+          url: forkResult.session.url,
+          fallback: forkResult.fallback,
+          navigated,
+        }
+      } else {
+        // fork 失败时回退到创建新会话 + 注入上下文
+        sessionResult = yield* createSessionWithFallback(
+          generateHandoffTitle(extractResult),
+          extractResult,
+          client,
+        )
+      }
+    } else {
+      // 无 sessionID 时直接创建新会话 + 注入上下文
+      sessionResult = yield* createSessionWithFallback(
+        generateHandoffTitle(extractResult),
+        extractResult,
+        client,
+      )
+    }
 
     return {
       success: true,
