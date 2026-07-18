@@ -44,7 +44,7 @@
 ```text
 需求梳理完成！
 
-需求文档：ae/prds/YYYY-MM-DD-<topic>-prd.md  # 如果已创建
+需求文档：ae/prds/<topic>-YYYY-MM-DD/prd.md  # 如果已创建
 
 关键决策：
 - [决策 1]
@@ -58,7 +58,7 @@
 ```text
 需求梳理已暂停。
 
-需求文档：ae/prds/YYYY-MM-DD-<topic>-prd.md  # 如果已创建
+需求文档：ae/prds/<topic>-YYYY-MM-DD/prd.md  # 如果已创建
 
 规划被以下问题阻塞：
 - [阻塞问题 1]

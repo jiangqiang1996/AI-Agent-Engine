@@ -25,7 +25,8 @@ if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
   console.log('流水线步骤:')
   console.log('  1. 校验：所有一级维度文件行数 ≤ threshold')
   console.log('  2. 合并：二级子文件合并后 ≤ threshold → 合并回父文件')
-  console.log('  3. 再次校验：合并后所有一级维度文件行数 ≤ threshold')
+  console.log('  3. 递归兜底：仍超标的文件按 ### → #### → 段落 → 硬切递归切分')
+  console.log('  4. 再次校验：合并和兜底后所有文件行数 ≤ threshold')
   process.exit(0)
 }
 
@@ -48,6 +49,7 @@ const threshold = Number.isFinite(rawThreshold) && rawThreshold > 0
 const scriptDir = dirname(fileURLToPath(import.meta.url))
 const checkScript = join(scriptDir, 'check-design-lines.mjs')
 const mergeScript = join(scriptDir, 'merge-design-shards.mjs')
+const enforceScript = join(scriptDir, 'enforce-design-limit.mjs')
 
 console.log('=== ae:design 校验与合并流水线 ===')
 console.log(`目录: ${designDir}`)
@@ -93,8 +95,27 @@ try {
 
 console.log('')
 
-// 步骤 3：合并后再次校验
-console.log('--- 步骤 3: 合并后校验 ---')
+// 步骤 3：递归兜底
+console.log('--- 步骤 3: 递归兜底拆分超标文件 ---')
+let enforcePassed = false
+let enforceOutput = ''
+try {
+  enforceOutput = execFileSync('node', [enforceScript, designDir, '--threshold', String(threshold)], {
+    encoding: 'utf-8',
+    stdio: ['pipe', 'pipe', 'pipe'],
+  })
+  console.log(enforceOutput)
+  enforcePassed = true
+} catch (err) {
+  enforceOutput = err.stdout?.toString() || ''
+  console.log(enforceOutput)
+  console.log(err.stderr?.toString() || '')
+}
+
+console.log('')
+
+// 步骤 4：兜底后再次校验
+console.log('--- 步骤 4: 最终校验 ---')
 let finalCheckPassed = false
 let finalCheckOutput = ''
 try {
@@ -117,6 +138,7 @@ const passed = finalCheckPassed
 console.log('=== 流水线结果 ===')
 console.log(`初始校验: ${checkPassed ? '通过' : '失败'}`)
 console.log(`合并: ${mergePassed ? '成功' : '失败'}`)
+console.log(`递归兜底: ${enforcePassed ? '成功' : '失败'}`)
 console.log(`最终校验: ${finalCheckPassed ? '通过' : '失败'}`)
 console.log(`总体: ${passed ? '通过' : '失败'}`)
 
@@ -126,6 +148,7 @@ const jsonResult = {
   designDir,
   initialCheckPassed: checkPassed,
   mergePassed,
+  enforcePassed,
   finalCheckPassed,
   passed,
 }

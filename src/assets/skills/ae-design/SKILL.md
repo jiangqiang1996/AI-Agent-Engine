@@ -1,7 +1,7 @@
 ---
 name: ae:design
 description: "设计阶段：澄清设计决策并产出设计文档，含概览、架构、接口、数据模型、测试用例与验收标准，供实施和审查对齐"
-argument-hint: "[需求文档路径|旧 design|裸描述] [dimensions=architecture,database] [refactor=true]"
+argument-hint: "[需求文档路径|design|裸描述] [dimensions=architecture,database] [refactor=true]"
 ---
 
 # 创建设计契约
@@ -12,7 +12,7 @@ argument-hint: "[需求文档路径|旧 design|裸描述] [dimensions=architectu
 
 `ae:design` 是设计契约冻结阶段，按需产出覆盖完整软件工程的可还原设计契约集。每个契约达到"任意 AI 据此生成一致性产物"的可还原标准。
 
-此工作流的持久输出是一份**设计文档**（`ae/designs/<需求描述名>-YYYY-MM-DD/design.md` 元文件 + 各维度独立子文件）。它不是汇报材料；只记录后续实施必须知道的设计决策、架构约束、接口契约、数据模型和实现单元，使 ae:work 不需要再发明这些内容。
+此工作流的持久输出是一份**设计文档**（`ae/designs/<需求描述名>-YYYY-MM-DD/` 目录，含 `design.md` 纯索引元文件 + overview/constraints/traceability 独立文件 + 各维度独立子文件）。它不是汇报材料；只记录后续实施必须知道的设计决策、架构约束、接口契约、数据模型和实现单元，使 ae:work 不需要再发明这些内容。
 
 此技能不实现代码。它澄清设计决策并记录契约，供 ae:work 执行使用。
 
@@ -27,7 +27,7 @@ argument-hint: "[需求文档路径|旧 design|裸描述] [dimensions=architectu
 5. **合理调整 MVCE 覆盖深度** - 简单的任务获得紧凑的契约集，较大的任务获得更完整的契约集。轻量级任务可省略可选 MVCE（最小可验证契约元素）项，但必产出维度的核心 MVCE 不得省略。**核心 MVCE 判定标准：** 该契约元素缺失会导致 ae:work 无法继续实施或 ae:review 无法验证一致性 → 核心；该契约元素缺失只会降低设计质量但不阻塞下游 → 可选。每个维度的 MVCE 清单中标注 `[核心]` 或 `[可选]`。
 6. **跨维度一致性** - overview 必须记录维度间依赖；api 数据模型必须与 database 一致；ui-ux 数据展示必须与 api 响应字段对齐；跨维度映射表（4 类）必须存在且与维度内容对齐。
 7. **只保留对后续执行有用的设计契约** - 不为了"读起来完整"新增无实际约束力的章节；每个维度内容只有在直接影响实现、测试或审查时才记录。
-8. **强制维度拆分** - 无论文件大小，每个维度必须拆分为独立子文件，不在 design.md 中内联维度内容。子代理直接按 `###` 章节产出二级子文件，脚本负责校验和合并（合并后 ≤ 300 行才合回）。
+8. **强制维度拆分** - 无论文件大小，每个维度必须拆分为独立子文件，不在 design.md 中内联维度内容。子代理直接按 `###` 章节产出二级子文件，脚本负责校验和合并（合并后 ≤ 300 行才合回）。`design.md` 为纯索引文件（< 100 行），overview、实施约束和跨维度映射表外迁为独立文件（`overview.md`、`constraints.md`、`traceability.md`）。
 9. **维度子代理产出** - 不同维度的设计契约由对应的维度专精子代理产出，确保设计质量和专注度。
 10. **使用 ae:grill 追问** - 在产出契约前，推荐使用 `ae:grill` 技能逐个追问设计决策，一问一答推进直到达成共识。用户可选择跳过。
 11. **技术栈依赖审查** - 设计中关于技术栈的选型禁止引入长期不活跃或 stars 数量较少的小众依赖。技术选型理由表中每个引入的第三方依赖必须标注其社区活跃度（最近发布时间、stars 量级）和采用理由；优先选择社区活跃、生态成熟、维护稳定的依赖。具体判定标准见 `references/architecture-template.md` 技术选型理由章节。
@@ -56,7 +56,7 @@ argument-hint: "[需求文档路径|旧 design|裸描述] [dimensions=architectu
 
 ## 参数说明
 
-除位置参数（需求文档路径、旧 design 路径或裸描述）外，本技能支持以下命名参数：
+除位置参数（需求文档路径、design 路径或裸描述）外，本技能支持以下命名参数：
 
 ### dimensions
 
@@ -79,23 +79,23 @@ argument-hint: "[需求文档路径|旧 design|裸描述] [dimensions=architectu
 
 每个维度由对应的专精子代理产出设计契约，主代理不直接产出维度内容（overview、实施约束和跨维度映射表除外）：
 
-| 维度 | 子代理 | 产出文件 | 始终内联 |
-|------|--------|---------|---------|
-| overview | 主代理产出 | design.md（内联） | 是 |
-| design-spec | `@ui-design-spec` | 设计决策包（透传给 `@ui-ux-designer`，不产出独立文件） | N/A（透传） |
-| ui-ux | `@ui-ux-designer` | `ui-ux/ui-ux-<章节名>.md` 二级子文件 + `ui-ux/ui-ux.md` 引用清单 | 否 |
-| architecture | `@architecture-designer` | `architecture/architecture-<章节名>.md` 二级子文件 + `architecture/architecture.md` 引用清单 | 否 |
-| api | `@api-designer` | `api/api-<章节名>.md` 二级子文件 + `api/api.md` 引用清单 | 否 |
-| database | `@database-designer` | `database/database-<章节名>.md` 二级子文件 + `database/database.md` 引用清单 | 否 |
-| test-cases | `@test-cases-designer` | `test-cases/test-cases-<章节名>.md` 二级子文件 + `test-cases/test-cases.md` 引用清单 | 否 |
-| security | `@security-designer` | `security/security-<章节名>.md` 二级子文件 + `security/security.md` 引用清单 | 否 |
-| observability | `@observability-designer` | `observability/observability-<章节名>.md` 二级子文件 + `observability/observability.md` 引用清单 | 否 |
-| non-functional | `@non-functional-designer` | `non-functional/non-functional-<章节名>.md` 二级子文件 + `non-functional/non-functional.md` 引用清单 | 否 |
-| 跨维度映射表 | 主代理产出 | design.md（内联） | 是 |
+| 维度 | 子代理 | 产出文件 |
+|------|--------|---------|
+| overview | 主代理产出 | overview.md（独立文件） |
+| design-spec | `@ui-design-spec` | 设计决策包（透传给 `@ui-ux-designer`，不产出独立文件） |
+| ui-ux | `@ui-ux-designer` | `ui-ux/ui-ux-<章节名>.md` 二级子文件 + `ui-ux/ui-ux.md` 引用清单 |
+| architecture | `@architecture-designer` | `architecture/architecture-<章节名>.md` 二级子文件 + `architecture/architecture.md` 引用清单 |
+| api | `@api-designer` | `api/api-<章节名>.md` 二级子文件 + `api/api.md` 引用清单 |
+| database | `@database-designer` | `database/database-<章节名>.md` 二级子文件 + `database/database.md` 引用清单 |
+| test-cases | `@test-cases-designer` | `test-cases/test-cases-<章节名>.md` 二级子文件 + `test-cases/test-cases.md` 引用清单 |
+| security | `@security-designer` | `security/security-<章节名>.md` 二级子文件 + `security/security.md` 引用清单 |
+| observability | `@observability-designer` | `observability/observability-<章节名>.md` 二级子文件 + `observability/observability.md` 引用清单 |
+| non-functional | `@non-functional-designer` | `non-functional/non-functional-<章节名>.md` 二级子文件 + `non-functional/non-functional.md` 引用清单 |
+| 跨维度映射表 | 主代理产出 | traceability.md（独立文件） |
 
-**子目录组织：** 每个维度的文件放在以维度名命名的子目录中。`design.md` 始终在设计目录根下，维度一级文件（引用清单）和二级子文件均位于对应维度的子目录中（如 `api/api.md`、`api/api-endpoints.md`）。`design-spec` 为透传维度，不产出文件，不创建子目录。
+**子目录组织：** 每个维度的文件放在以维度名命名的子目录中。`design.md` 始终在设计目录根下，为纯索引文件（< 100 行），只保留 frontmatter + Split Manifest + 索引表。`overview.md`、`constraints.md`、`traceability.md` 位于设计目录根下。维度一级文件（引用清单）和二级子文件均位于对应维度的子目录中（如 `api/api.md`、`api/api-endpoints.md`）。`design-spec` 为透传维度，不产出文件，不创建子目录。
 
-**硬性约束：主代理严禁直接产出维度契约内容。** overview、实施约束和跨维度映射表由主代理产出，其他维度必须调度对应子代理。违反此约束属于执行错误。
+**硬性约束：主代理严禁直接产出维度契约内容。** overview、实施约束和跨维度映射表由主代理产出为独立文件，其他维度必须调度对应子代理。违反此约束属于执行错误。
 
 ## 执行流程
 
@@ -112,13 +112,13 @@ argument-hint: "[需求文档路径|旧 design|裸描述] [dimensions=architectu
 
 按优先级识别输入：
 
-1. **prd 文档** - 用户提供 `ae/prds/<name>-prd.md` 路径或会话中已产出 prd 文档时，作为首选输入。读取 prd 的时段标注（前端/后端/数据/安全/运维等）用于维度触发判定。
-2. **旧 design** - 用户提供 `ae/designs/<name>/design.md` 路径时，作为版本演化输入。读取旧 design 的 frontmatter（version/supersedes）和 Split Manifest，作为新版本的基础。如果旧 design 无 Split Manifest（旧 unified 状态文档），视为所有维度内联，新版本按强制拆分规则重新拆分所有维度。
+1. **prd 文档** - 用户提供 `ae/prds/<topic>-YYYY-MM-DD/prd.md` 路径或会话中已产出 prd 文档时，作为首选输入。读取 prd 的时段标注（前端/后端/数据/安全/运维等）用于维度触发判定。
+2. **design** - 用户提供 `ae/designs/<name>-YYYY-MM-DD/design.md` 路径时，作为版本演化输入。读取 design 的 frontmatter（version/supersededBy）和 Split Manifest，作为新版本的基础。
 3. **裸描述** - 用户直接描述设计目标时，降级处理。询问用户是否需要先创建 prd，或直接基于裸描述进行设计。
 
 **"需求描述名"来源规则（D12）：**
-- prd 文档作为输入时：从 prd 文件名提取（如 `user-auth-prd.md` → `user-auth`）
-- 旧 design 作为输入时：从旧 design 目录名提取（如 `ae/designs/user-auth-2026-06-20/` → `user-auth`）
+- prd 文档作为输入时：从 prd 目录名提取（如 `ae/prds/user-auth-2026-06-24/prd.md` → `user-auth`）
+- design 作为输入时：从 design 目录名提取（如 `ae/designs/user-auth-2026-06-20/` → `user-auth`）
 - 裸描述作为输入时：从用户描述提取关键词转为 kebab-case（如"用户认证系统" → `user-auth`）
 - 含特殊字符时强制 kebab-case 转换
 
@@ -132,7 +132,7 @@ argument-hint: "[需求文档路径|旧 design|裸描述] [dimensions=architectu
 
 #### 1.1 读取时段标注与风险信号
 
-从 prd 文档读取"涉及时段"字段和需求条目中的风险信号。如果 prd 无时段标注（旧格式 prd 或裸描述输入），通过交互询问用户确认风险维度。
+从 prd 文档读取"涉及时段"字段和需求条目中的风险信号。如果 prd 无时段标注（非软件任务省略 time_scope 或裸描述输入），通过交互询问用户确认风险维度。
 
 风险信号识别清单（任一命中即触发对应风险维度，详见 `references/dimension-triggers.md`）：
 - **不可逆决策风险**：API 签名变更、数据模型 schema 变更、认证模型变更 → 强制必产出 api、database、security
@@ -177,7 +177,7 @@ argument-hint: "[需求文档路径|旧 design|裸描述] [dimensions=architectu
 调用 `ae:grill` 技能时，将以下上下文格式化为文本描述作为 $ARGUMENTS 传入（ae:grill 接受文本/路径输入，不支持结构化接口）：
 - 当前维度清单（必产出 + 条件必产出 + 显式否定）
 - prd 内容摘要（目标、范围边界、成功标准、时段标注）
-- 已有 design 上下文（如版本演化）
+- design 上下文（如版本演化）
 - 追问范围：所有已确认维度的关键设计决策
 
 `ae:grill` 会沿决策树逐个追问，一问一答推进直到达成共识。追问结束后，将共识清单作为各维度子代理产出的输入。
@@ -208,13 +208,13 @@ argument-hint: "[需求文档路径|旧 design|裸描述] [dimensions=architectu
 
 如果用户在 `ae:grill` 阶段选择跳过某些追问，记录跳过原因，相关维度子代理按默认推荐产出。
 
-### 阶段 3：产出 overview 和跨维度映射表骨架
+### 阶段 3：产出 overview、实施约束和跨维度映射表骨架
 
-主代理产出 overview 和跨维度映射表骨架，作为后续维度子代理产出的锚点。
+主代理产出 overview、实施约束和跨维度映射表骨架，分别产出到 `overview.md`、`constraints.md`、`traceability.md` 独立文件，作为后续维度子代理产出的锚点。
 
-#### 3.1 产出 overview（必产出，始终内联）
+#### 3.1 产出 overview（必产出，独立文件）
 
-overview 始终内联在 `design.md` 中，按 `references/overview-template.md` 模板产出，包含：
+overview 产出到 `overview.md` 独立文件中，按 `references/overview-template.md` 模板产出，包含：
 - 设计读数（一句话声明设计意图和美学家族）
 - 范围映射（prd 需求 → design 维度的对应关系）
 - 产物清单（本次产出的维度文件列表）
@@ -223,7 +223,7 @@ overview 始终内联在 `design.md` 中，按 `references/overview-template.md`
 - 设计决策记录（ADR，记录关键设计决策和理由，使用稳定 ID `ADR-XXX`，从 ae:grill 追问结果提炼）
 - 跨维度映射表（4 类映射表的引用，详见 `references/cross-dimension-mapping.md`）
 
-> 实施约束（环境变量、依赖版本、配置项、目录结构、构建命令）是 design.md 的独立章节，不属于 overview 维度，详见 `references/design-output-template.md`。
+> 实施约束（环境变量、依赖版本、配置项、目录结构、构建命令）产出到 `constraints.md` 独立文件，不属于 overview 维度，详见 `references/design-output-template.md`。
 
 **稳定 ID 体系：** overview 中的设计条目必须使用稳定 ID，便于 ae:work / ae:review 追溯：
 - `ADR-XXX`：架构决策记录（核心）
@@ -236,7 +236,7 @@ overview 始终内联在 `design.md` 中，按 `references/overview-template.md`
 
 #### 3.2 产出跨维度映射表骨架
 
-在 overview 和实施约束之后、其他维度之前，先产出"跨维度映射表"骨架，作为后续维度产出的锚点。骨架包含 4 类映射表的空表头（具体内容在维度产出后填充）：
+在 overview 和实施约束之后、其他维度之前，先产出"跨维度映射表"骨架到 `traceability.md` 独立文件，作为后续维度产出的锚点。骨架包含 4 类映射表的空表头（具体内容在维度产出后填充）：
 
 - `api-field-to-database-column-mapping`：API 请求/响应字段 ↔ 数据库表字段映射表
 - `api-error-to-ui-state-mapping`：API 错误码 ↔ UI 交互状态机映射表
@@ -291,11 +291,11 @@ overview 始终内联在 `design.md` 中，按 `references/overview-template.md`
 
 子代理直接按 `###` 章节产出二级子文件，不产出完整维度文件：
 - 二级子文件路径：`<维度名>/<维度名>-<章节名kebab>.md`
-- 二级子文件 frontmatter：`{ section: <章节名kebab>, parent: <维度名>.md }`
+- 二级子文件 frontmatter：`{ type: design-shard, status: active, section: <章节名kebab>, parent: <维度名>.md, module: <维度名>, heading_chain: <完整标题路径> }`
 - 二级子文件正文：该 `###` 章节内容（含 `###` 标题行）
 
 同时产出 `<维度名>/<维度名>.md` 引用清单文件：
-- frontmatter：`{ section: <维度名>, parent: design.md, sub_split: true }`
+- frontmatter：`{ type: design-shard, status: active, section: <维度名>, parent: design.md, module: <维度名>, sub_split: true, heading_chain: <完整标题路径> }`
 - 正文：子文件引用列表
 
 波次 1 全部子代理返回后，再调度波次 2 的 test-cases 子代理，传入以下上下文：
@@ -323,15 +323,16 @@ overview 始终内联在 `design.md` 中，按 `references/overview-template.md`
 
 #### 4.4 维度校验与合并
 
-**强制拆分规则：** 每个维度必须拆分为独立子文件，不在 design.md 中内联维度内容。overview、实施约束和跨维度映射表始终内联在 design.md 中。design-spec 维度为透传维度，不产出独立文件，不参与拆分规则和行数校验。
+**强制拆分规则：** 每个维度必须拆分为独立子文件，不在 design.md 中内联维度内容。`design.md` 为纯索引文件（< 100 行），只保留 frontmatter + Split Manifest + 索引表。overview、实施约束和跨维度映射表分别外迁为 `overview.md`、`constraints.md`、`traceability.md` 独立文件。design-spec 维度为透传维度，不产出独立文件，不参与拆分规则和行数校验。
 
 子代理已直接产出二级子文件。运行流水线脚本：
 
     node <ae-design技能目录>/scripts/pipeline-design-shards.mjs <design目录路径>
 
 脚本自动完成：
-1. **校验**：所有一级维度文件（引用清单）行数 ≤ 300 行
+1. **校验**：所有一级维度文件（引用清单）行数 ≤ 300 行，overview.md/constraints.md/traceability.md 也 ≤ 300 行
 2. **合并**：对每个已二级拆分的维度，计算合并后行数；合并后 ≤ 300 行 → 合并回父文件；> 300 行 → 保持拆分
+3. **递归兜底**：对仍超标的文件，按 `###` → `####` → 段落空行 → 硬切降级链递归切分，注入 heading_chain
 
 合并由脚本执行，LLM 不介入。
 
@@ -443,7 +444,7 @@ review 闭环收敛后，显式提示用户下一步推荐技能。
 
 ## 产物结构
 
-产物目录结构、design.md 元文件模板、Split Manifest 格式详见 `references/design-output-template.md`。每个维度的文件放在以维度名命名的子目录中（如 `api/api.md`），Split Manifest 中的 file 路径包含子目录前缀。
+产物目录结构、design.md 纯索引模板、overview.md/constraints.md/traceability.md 模板和 Split Manifest 格式详见 `references/design-output-template.md`。每个维度的文件放在以维度名命名的子目录中（如 `api/api.md`），Split Manifest 中的 file 路径包含子目录前缀。
 
 设计维度契约模板详见 `references/` 目录下各维度的独立模板文件：
 - `references/dimension-triggers.md` - 维度触发规则

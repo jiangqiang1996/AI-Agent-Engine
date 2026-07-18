@@ -1,7 +1,7 @@
 # 设计总览维度契约模板
 
 **触发条件：** 必产出
-**产出位置：** 始终内联在 `design.md` 中，不拆分为子文件
+**产出位置：** 产出到 `overview.md` 独立文件，不参与二级拆分
 **产出方：** 主代理（ae:design 自身），不调度子代理
 **可还原性目标：** 任意 AI 据此理解整体设计意图和维度间关系
 
@@ -17,7 +17,7 @@ overview 维度的最小可验证契约元素集，标注 `[核心]` 或 `[可�
 - `[核心]` **ADR 条目**：关键设计决策记录，使用稳定 ID `ADR-XXX`
 - `[核心]` **跨维度映射表**：4 类映射表的引用（详见 `cross-dimension-mapping.md`）
 
-> 实施约束（环境变量、依赖版本、配置项、目录结构、构建命令）是 design.md 的独立章节，不属于 overview 维度，详见 `design-output-template.md`。
+> 实施约束（环境变量、依赖版本、配置项、目录结构、构建命令）产出到 `constraints.md` 独立文件，不属于 overview 维度，详见 `design-output-template.md`。
 
 轻量级任务可省略 `[可选]` 元素，但 `[核心]` 元素不得省略。
 
@@ -42,7 +42,7 @@ overview 维度的最小可验证契约元素集，标注 `[核心]` 或 `[可�
 
 | 维度 | 文件 | 状态 | 版本 |
 |------|------|------|------|
-| overview | design.md（内联） | inline | 1.0 |
+| overview | overview.md（独立文件） | split | 1.0 |
 | architecture | architecture/architecture.md | split | 1.0 |
 
 ### 契约版本

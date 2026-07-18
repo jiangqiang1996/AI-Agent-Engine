@@ -181,7 +181,11 @@ function buildExecutionBaselineSection(input: WorktreeHandoffInput, handoffRelPa
   const lines: string[] = []
   lines.push('## Execution Baseline')
   lines.push('')
-  lines.push(`- 设计文档是本次执行的实现基线；进入 B worktree 后不得重新审查、深化或转换本次需求或设计。`)
+  if (input.design_path?.trim()) {
+    lines.push(`- 设计文档是本次执行的实现基线；进入 B worktree 后不得重新审查、深化或转换本次需求或设计。`)
+  } else {
+    lines.push(`- task_brief 是本次执行的实现基线；进入 B worktree 后不得重新审查、深化或转换本次任务详情。`)
+  }
   lines.push(`- ${input.execution_baseline}`)
   lines.push(`- 验证命令：${input.verification_requirements}`)
   lines.push(`- 续执行入口：在目标 B worktree 中调用 ae:work，并把 ${handoffRelPath} 作为唯一任务输入。`)

@@ -76,6 +76,11 @@ export const ArtifactFrontmatterSchema = z.object({
   shards: z.array(z.unknown()).optional().describe('分片索引'),
   parent: z.string().optional().describe('分片父文档路径'),
   module: z.string().optional().describe('分片所属模块'),
+  section: z.string().optional().describe('分片章节标识'),
+  heading_chain: z.string().optional().describe('完整标题路径，保证单文件可独立理解'),
+  sub_split: z.boolean().optional().describe('维度是否已二级拆分'),
+  time_scope: z.array(z.string()).optional().describe('prd 涉及时段列表，用于触发 ae:design 维度'),
+  last_updated: z.string().optional().describe('最后更新日期'),
 }).superRefine((data, ctx) => {
   const hasOrigin = Boolean(data.origin)
   const hasOriginFingerprint = Boolean(data.originFingerprint)

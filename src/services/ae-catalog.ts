@@ -31,7 +31,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillName: SKILL.DESIGN,
     commandName: COMMAND.DESIGN,
     description: getLifecycleCatalogDescription('design'),
-    argumentHint: '[需求文档路径|旧 design|裸描述] [dimensions=architecture,database] [refactor=true]',
+    argumentHint: '[需求文档路径|design|裸描述] [dimensions=architecture,database] [refactor=true]',
     skillFile: `src/assets/skills/${skillDir(SKILL.DESIGN)}/SKILL.md`,
     tier: 'core',
   },

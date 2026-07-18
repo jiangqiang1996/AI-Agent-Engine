@@ -7,7 +7,10 @@
 ```
 ae/designs/
 └── user-auth-2026-06-24/              # 需求描述名-日期
-    ├── design.md                       # 元文件（含 frontmatter + overview + Split Manifest + 实施约束 + 跨维度映射表）
+    ├── design.md                       # 纯索引（< 100 行，frontmatter + Split Manifest + 索引表）
+    ├── overview.md                     # 设计总览（独立文件）
+    ├── constraints.md                  # 实施约束（独立文件）
+    ├── traceability.md                 # 跨维度映射表（独立文件）
     ├── architecture/                   # 架构维度子目录
     │   ├── architecture.md             # 引用清单（sub_split: true/false）
     │   ├── architecture-module-boundary.md # 二级子文件（### 章节内容）
@@ -34,29 +37,45 @@ ae/designs/
         └── non-functional.md           # 引用清单（合并后 sub_split: false）
 ```
 
-**子目录组织规则：** 每个维度的文件放在以维度名命名的子目录中。`design.md` 始终在设计目录根下。维度一级文件（引用清单）和二级子文件均位于对应维度的子目录中。`design-spec` 为透传维度，不产出文件，不创建子目录。
+**子目录组织规则：** 每个维度的文件放在以维度名命名的子目录中。`design.md` 始终在设计目录根下，为纯索引文件（< 100 行）。`overview.md`、`constraints.md`、`traceability.md` 位于设计目录根下。维度一级文件（引用清单）和二级子文件均位于对应维度的子目录中。`design-spec` 为透传维度，不产出文件，不创建子目录。
 
-**强制拆分规则：** 无论文件大小，每个维度必须拆分为独立子文件，不在 design.md 中内联维度内容。子代理直接按 `###` 章节产出二级子文件和引用清单。overview、实施约束和跨维度映射表始终内联在 design.md 中。
+**强制拆分规则：** 无论文件大小，每个维度必须拆分为独立子文件，不在 design.md 中内联维度内容。子代理直接按 `###` 章节产出二级子文件和引用清单。`design.md` 为纯索引，只保留 frontmatter + Split Manifest + 索引表。overview、实施约束和跨维度映射表分别外迁为 `overview.md`、`constraints.md`、`traceability.md` 独立文件。
 
 **"需求描述名"来源规则（D12）：**
-- prd 文档作为输入时：从 prd 文件名提取（如 `user-auth-prd.md` → `user-auth`）
-- 旧 design 作为输入时：从旧 design 目录名提取（如 `ae/designs/user-auth-2026-06-20/` → `user-auth`）
+- prd 文档作为输入时：从 prd 目录名提取（如 `ae/prds/user-auth-2026-06-24/prd.md` → `user-auth`）
+- design 作为输入时：从 design 目录名提取（如 `ae/designs/user-auth-2026-06-20/` → `user-auth`）
 - 裸描述作为输入时：从用户描述提取关键词转为 kebab-case（如"用户认证系统" → `user-auth`）
 - 含特殊字符时强制 kebab-case 转换
 
-**版本演化：** 同一"需求描述名"的多个日期目录共存，新目录的 frontmatter 中 `supersedes` 指向前序版本目录。
+**版本演化：** 同一"需求描述名"的多个日期目录共存，旧版本 design.md 的 frontmatter 中 `supersededBy` 指向新版本目录。
 
 ---
 
-## design.md 元文件模板
+## design.md 纯索引模板
 
 ```markdown
 ---
+type: design
+status: active
+date: "2026-06-24"
+title: "用户认证系统"
+topic: "user-auth"
 version: "1.0"
-supersedes: null
 last_updated: "2026-06-24"
-design_name: "user-auth"
-status: "active"
+sharded: true
+shards:
+  - file: overview.md
+    module: overview
+  - file: constraints.md
+    module: constraints
+  - file: traceability.md
+    module: traceability
+  - file: architecture/architecture.md
+    module: architecture
+  - file: api/api.md
+    module: api
+  - file: database/database.md
+    module: database
 ---
 
 # 设计契约：用户认证系统
@@ -64,6 +83,12 @@ status: "active"
 ## Split Manifest
 
 - split_files:
+  - file: overview.md
+    lines: 150
+  - file: constraints.md
+    lines: 80
+  - file: traceability.md
+    lines: 60
   - file: architecture/architecture.md
     lines: 280
     sub_split: false
@@ -89,86 +114,21 @@ status: "active"
     lines: 100
     sub_split: false
 
----
+## 索引
 
-## 设计总览
-（overview 内容，始终内联）
-
-### 设计读数
-（一句话声明设计意图、任务类型和设计家族）
-
-### 范围映射
-（prd 需求条目 → design 维度的对应关系表）
-
-### 产物清单
-
-| 维度 | 文件 | 状态 | 版本 |
-|------|------|------|------|
-| overview | design.md（内联） | inline | 1.0 |
-| architecture | architecture/architecture.md | split | 1.0 |
-| api | api/api.md（引用清单） | split | 1.0 |
-| api-endpoints | api/api-endpoints.md | sub-split | 1.0 |
-| api-auth | api/api-auth.md | sub-split | 1.0 |
-| api-errors | api/api-errors.md | sub-split | 1.0 |
-| api-versions | api/api-versions.md | sub-split | 1.0 |
-| database | database/database.md（引用清单） | split | 1.0 |
-| database-tables | database/database-tables.md | sub-split | 1.0 |
-| database-migrations | database/database-migrations.md | sub-split | 1.0 |
-| ui-ux | ui-ux/ui-ux.md | split | 1.0 |
-| test-cases | test-cases/test-cases.md | split | 1.0 |
-| security | security/security.md | split | 1.0 |
-| observability | observability/observability.md | split | 1.0 |
-| non-functional | non-functional/non-functional.md | split | 1.0 |
-
-### 契约版本
-- 版本号：1.0
-- 前序版本：无
-- 变更摘要：初始设计
-
-### 跨维度依赖关系
-（记录维度间的一致性约束）
-
-### 设计决策记录（ADR）
-（记录关键设计决策和理由，使用稳定 ID ADR-XXX，从 ae:grill 追问结果提炼）
-
----
-
-## 实施约束
-（始终内联，不参与拆分）
-
-### 环境变量清单
-（变量名、类型、默认值、是否必需、描述）
-
-### 依赖版本矩阵
-（依赖名、版本范围、用途、是否生产依赖）
-
-### 配置项清单
-（配置键、配置路径、默认值、环境覆盖、描述）
-
-### 目录结构约定
-（关键目录和文件的仓库相对路径、用途说明）
-
-### 构建与运行命令
-（构建命令、开发命令、测试命令、lint 命令）
-
----
-
-## 跨维度映射表
-（始终内联，不参与拆分，作为维度间一致性的单一真源锚点）
-
-### api-field-to-database-column-mapping
-（API 请求/响应字段 ↔ 数据库表字段映射表）
-
-### api-error-to-ui-state-mapping
-（API 错误码 ↔ UI 交互状态机映射表）
-
-### test-case-to-contract-coverage
-（测试用例 ↔ 维度契约元素覆盖追溯表）
-
-### ui-component-to-api-endpoint-mapping
-（UI 组件 ↔ API 端点映射表）
-
----
+| 文件 | 维度 | 行数 | 摘要 | 稳定 ID |
+|------|------|------|------|---------|
+| [overview.md](overview.md) | 设计总览 | 150 | 设计读数、范围映射、ADR | ADR-001~003 |
+| [constraints.md](constraints.md) | 实施约束 | 80 | 环境变量、依赖版本 | — |
+| [traceability.md](traceability.md) | 跨维度映射表 | 60 | 4 类映射表 | — |
+| [architecture/architecture.md](architecture/architecture.md) | 架构 | 280 | 模块边界、技术选型 | ADR-001~003 |
+| [api/api.md](api/api.md) | 接口 | 50 | 引用清单 | EP-001~005 |
+| [database/database.md](database/database.md) | 数据库 | 30 | 引用清单 | T-users,T-orders |
+| [ui-ux/ui-ux.md](ui-ux/ui-ux.md) | UI/UX | 280 | 页面规格、组件契约 | ST-001~005 |
+| [test-cases/test-cases.md](test-cases/test-cases.md) | 测试用例 | 280 | P0-P3 用例 | TC-001~010 |
+| [security/security.md](security/security.md) | 安全 | 150 | 认证模型、数据分级 | — |
+| [observability/observability.md](observability/observability.md) | 可观测性 | 120 | 日志规范、指标体系 | — |
+| [non-functional/non-functional.md](non-functional/non-functional.md) | 非功能 | 100 | 性能目标、容量规划 | — |
 
 > 以下维度内容已拆分为独立子文件，请参阅 Split Manifest 中的文件列表。
 > 子文件路径相对于本 design.md 所在目录。
@@ -182,21 +142,21 @@ status: "active"
 
 #### 触发条件
 
-**无论 design.md 总行数大小，所有维度必须拆分为独立子文件。** design.md 自身豁免 300 行校验，作为导航索引文件，只保留 overview、实施约束、跨维度映射表和 Split Manifest。
+**无论 design.md 总行数大小，所有维度必须拆分为独立子文件。** `design.md` 为纯索引文件（< 100 行），只保留 frontmatter + Split Manifest + 索引表。overview、实施约束和跨维度映射表分别外迁为 `overview.md`、`constraints.md`、`traceability.md` 独立文件。
 
 #### 拆分步骤
 
-1. **产出 overview 和跨维度映射表骨架** - 主代理产出 overview、实施约束和跨维度映射表骨架，内联在 design.md 中
-2. **调度维度子代理** - 按产出顺序逐个调度维度专精子代理，子代理直接按 `###` 章节产出二级子文件和引用清单
+1. **产出 overview 和跨维度映射表骨架** - 主代理产出 overview、实施约束和跨维度映射表骨架，分别产出到 `overview.md`、`constraints.md`、`traceability.md` 独立文件
+2. **调度维度子代理** - 按并行波次策略调度维度专精子代理，子代理直接按 `###` 章节产出二级子文件和引用清单
 3. **Split Manifest 更新** - 记录每个维度文件的 file、lines、sub_split 状态
 
-#### 始终内联的章节
+#### 始终外迁的章节
 
-以下章节永远不拆出，始终内联在 design.md 中：
-- overview（设计总览）
-- implementation_constraints（实施约束）
-- cross_dimension_mapping（跨维度映射表）
-- Split Manifest
+以下内容产出到独立文件，不内联在 design.md 中：
+- overview（设计总览）→ `overview.md`
+- implementation_constraints（实施约束）→ `constraints.md`
+- cross_dimension_mapping（跨维度映射表）→ `traceability.md`
+- Split Manifest → 保留在 design.md 中（纯索引）
 
 ### 二级拆分
 
@@ -218,18 +178,19 @@ status: "active"
 
 ### 校验与合并机制
 
-使用 ae:design 技能目录下的 `scripts/pipeline-design-shards.mjs` 完成校验和合并：
+使用 ae:design 技能目录下的 `scripts/pipeline-design-shards.mjs` 完成校验、合并和递归兜底：
 
-- **校验**：一级拆分文件（`<维度名>.md`）行数 ≤ 300 行，design.md 和二级子文件豁免
+- **校验**：一级拆分文件（`<维度名>.md`）行数 ≤ 300 行，`overview.md`/`constraints.md`/`traceability.md` 也 ≤ 300 行，`design.md` 和二级子文件豁免
 - **合并**：二级子文件合并后 ≤ 300 行 → 合并回父文件；> 300 行 → 保持拆分
+- **递归兜底**：合并后仍超标的文件，按 `###` → `####` → 段落空行 → 硬切降级链递归切分，注入 heading_chain 保证语义可追溯
 - **用法**：`node <ae-design技能目录>/scripts/pipeline-design-shards.mjs <design目录路径> [--threshold N]`
 
 ### 示例
 
 假设各维度子代理产出二级子文件：
-- overview: 150 行（始终内联，不拆出）
-- implementation_constraints: 80 行（始终内联，不拆出）
-- cross_dimension_mapping: 60 行（始终内联，不拆出）
+- overview: 150 行（独立文件 overview.md，不参与二级拆分）
+- implementation_constraints: 80 行（独立文件 constraints.md，不参与二级拆分）
+- cross_dimension_mapping: 60 行（独立文件 traceability.md，不参与二级拆分）
 - architecture: 子代理产出 2 个二级子文件
   - architecture/architecture-module-boundary.md: 150 行
   - architecture/architecture-tech-selection.md: 130 行
@@ -275,13 +236,17 @@ status: "active"
 
 ### 一级子文件 frontmatter
 
-每个拆分子文件包含 frontmatter，使用 `section`、`parent`、`sub_split` 三个字段：
+每个拆分子文件包含 frontmatter，使用 `type`、`status`、`section`、`parent`、`module`、`sub_split`、`heading_chain` 字段：
 
 ```markdown
 ---
+type: design-shard
+status: active
 section: "architecture"
 parent: "design.md"
+module: "architecture"
 sub_split: false
+heading_chain: "设计契约 > 架构设计"
 ---
 
 # 架构设计
@@ -290,12 +255,16 @@ sub_split: false
 
 ### 二级子文件 frontmatter
 
-二级子文件包含 `section` 字段标识所属章节，`parent` 指向维度文件：
+二级子文件包含 `type`、`status`、`section`、`parent`、`module`、`heading_chain` 字段：
 
 ```markdown
 ---
+type: design-shard
+status: active
 section: "api-endpoints"
 parent: "api.md"
+module: "api"
+heading_chain: "设计契约 > 接口设计 > 端点清单"
 ---
 
 # 接口设计 - 端点清单
@@ -328,9 +297,13 @@ design.md 中对一级拆分子文件的引用：
 
 ```markdown
 ---
+type: design-shard
+status: active
 section: "api"
 parent: "design.md"
+module: "api"
 sub_split: true
+heading_chain: "设计契约 > 接口设计"
 ---
 
 # 接口设计

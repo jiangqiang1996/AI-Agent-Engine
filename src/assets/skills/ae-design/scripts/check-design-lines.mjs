@@ -4,7 +4,7 @@
 // 退出码: 0 = 通过, 1 = 有超标文件
 
 import { readdirSync, readFileSync, lstatSync, existsSync } from 'node:fs'
-import { resolve, join, relative } from 'node:path'
+import { resolve, join, relative, basename } from 'node:path'
 
 const args = process.argv.slice(2)
 
@@ -20,9 +20,10 @@ if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
   console.log('  1 = 存在超标的一级拆分文件')
   console.log('')
   console.log('校验规则:')
-  console.log('  - 跳过 design.md（豁免，导航索引文件）')
+  console.log('  - 跳过 design.md（豁免，纯索引文件）')
   console.log('  - 跳过二级子文件（frontmatter 中 parent 指向非 design.md 的文件）')
   console.log('  - 检查一级拆分文件（frontmatter 中 parent 为 design.md 的文件）行数 ≤ threshold')
+  console.log('  - 检查 overview.md / constraints.md / traceability.md 行数 ≤ threshold')
   console.log('  - 跳过无 frontmatter 或无 parent 字段的文件')
   process.exit(0)
 }
@@ -80,6 +81,14 @@ function isDimensionLevelFile(frontmatter) {
   return frontmatter.parent === 'design.md'
 }
 
+/**
+ * 判断是否为根级独立文件（overview.md / constraints.md / traceability.md）
+ */
+function isRootLevelFile(file) {
+  const base = basename(file)
+  return base === 'overview.md' || base === 'constraints.md' || base === 'traceability.md'
+}
+
 function countLines(content) {
   const normalized = content.replace(/\r\n/g, '\n')
   return normalized.split('\n').length - (normalized.endsWith('\n') ? 1 : 0)
@@ -124,6 +133,15 @@ for (const file of allMdFiles) {
 
   if (isSectionLevelFile(frontmatter)) {
     skippedSection.push(file)
+    continue
+  }
+
+  if (isRootLevelFile(file)) {
+    const lines = countLines(content)
+    checkedFiles.push({ file, lines })
+    if (lines > threshold) {
+      violations.push({ file, lines })
+    }
     continue
   }
 

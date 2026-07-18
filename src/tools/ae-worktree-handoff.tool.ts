@@ -45,7 +45,7 @@ const WorktreeHandoffInputSchema = z.object({
   requirements_path: z
     .string()
     .optional()
-    .describe('需求文档相对路径，例如 ae/prds/xxx.md。A 端条件必选：当前任务对应的上游需求产物真实存在时必须迁移并传入（即使被 .gitignore 忽略也按物理存在迁移）；不存在时不传'),
+    .describe('需求文档相对路径，例如 ae/prds/<topic>-YYYY-MM-DD/prd.md。A 端条件必选：当前任务对应的上游需求产物真实存在时必须迁移并传入（即使被 .gitignore 忽略也按物理存在迁移）；不存在时不传'),
   design_path: z
     .string()
     .optional()

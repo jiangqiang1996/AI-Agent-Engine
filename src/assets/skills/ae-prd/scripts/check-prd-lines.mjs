@@ -4,7 +4,7 @@
 // 退出码: 0 = 通过, 1 = 有超标文件, 2 = 目录不存在
 
 import { readdirSync, readFileSync, statSync, existsSync } from 'node:fs'
-import { resolve, join, relative } from 'node:path'
+import { resolve, join, relative, basename } from 'node:path'
 
 const args = process.argv.slice(2)
 
@@ -21,11 +21,10 @@ if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
   console.log('  2 = 目录不存在')
   console.log('')
   console.log('校验规则:')
-  console.log('  - 递归扫描子目录中的 .md 文件（支持拆分文件放入子目录）')
-  console.log('  - 跳过 sharded: true 的主文件（豁免，分片索引文件）')
-  console.log('  - 检查 sharded: false 的主文件（type: prd）行数 ≤ threshold')
-  console.log('  - 检查分片子文件（type: prd-shard）行数 ≤ threshold')
-  console.log('  - 跳过无 frontmatter 或 type 非 prd/prd-shard 的文件')
+  console.log('  - 递归扫描子目录中的 .md 文件')
+  console.log('  - 跳过 prd.md（豁免，纯索引文件）')
+  console.log('  - 检查所有其他 .md 文件行数 ≤ threshold')
+  console.log('  - 跳过无 frontmatter 的非 .md 文件')
   process.exit(0)
 }
 
@@ -65,27 +64,10 @@ function parseFrontmatter(content) {
 }
 
 /**
- * 判断是否为分片索引主文件（sharded: true，豁免校验）
+ * 判断是否为索引文件（prd.md，豁免校验）
  */
-function isShardedIndexFile(frontmatter) {
-  if (!frontmatter) return false
-  return frontmatter.type === 'prd' && frontmatter.sharded === 'true'
-}
-
-/**
- * 判断是否为需校验的主文件（type: prd, sharded: false 或未设置）
- */
-function isStandalonePrdFile(frontmatter) {
-  if (!frontmatter) return false
-  return frontmatter.type === 'prd' && frontmatter.sharded !== 'true'
-}
-
-/**
- * 判断是否为分片子文件（type: prd-shard）
- */
-function isPrdShardFile(frontmatter) {
-  if (!frontmatter) return false
-  return frontmatter.type === 'prd-shard'
+function isIndexFile(file) {
+  return basename(file) === 'prd.md'
 }
 
 function countLines(content) {
@@ -112,24 +94,16 @@ function collectMdFiles(rootDir) {
 // 收集所有 .md 文件（递归扫描子目录）
 const allMdFiles = collectMdFiles(prdDir)
 
-const skippedShardedIndex = []
-const skippedNoFrontmatter = []
+const skippedIndex = []
 const checkedFiles = []
 const violations = []
 
 for (const filePath of allMdFiles) {
   const file = relative(prdDir, filePath)
   const content = readFileSync(filePath, 'utf-8')
-  const frontmatter = parseFrontmatter(content)
 
-  if (isShardedIndexFile(frontmatter)) {
-    skippedShardedIndex.push(file)
-    continue
-  }
-
-  if (!isStandalonePrdFile(frontmatter) && !isPrdShardFile(frontmatter)) {
-    // 无 frontmatter 或 type 不匹配的文件，跳过
-    skippedNoFrontmatter.push(file)
+  if (isIndexFile(file)) {
+    skippedIndex.push(file)
     continue
   }
 
@@ -145,8 +119,7 @@ for (const filePath of allMdFiles) {
 console.log('=== ae:prd 产物行数校验 ===')
 console.log(`检查目录: ${prdDir}`)
 console.log(`行数阈值: ${threshold} 行`)
-console.log(`豁免文件: ${skippedShardedIndex.length} 个（sharded: true 的分片索引主文件）`)
-console.log(`跳过文件: ${skippedNoFrontmatter.length} 个（无 frontmatter 或 type 非 prd/prd-shard）`)
+console.log(`豁免文件: ${skippedIndex.length} 个（prd.md 索引文件）`)
 console.log(`检查文件: ${checkedFiles.length} 个`)
 console.log('')
 
@@ -157,8 +130,7 @@ if (violations.length > 0) {
     console.log(`  ${v.file}: ${v.lines} 行 (超出 ${v.lines - threshold} 行)`)
   }
   console.log('')
-  console.log('需要拆分以上文件使其行数 <= ' + threshold + ' 行。')
-  console.log('主文件超标时考虑按模块分片（sharded: true），分片子文件超标时考虑按需求分组进一步拆分。')
+  console.log('需要运行 enforce-shard-limit.mjs 拆分以上文件使其行数 <= ' + threshold + ' 行。')
 } else {
   console.log('所有检查文件通过校验。')
 }
@@ -168,9 +140,8 @@ const jsonResult = {
   threshold,
   prdDir,
   totalChecked: checkedFiles.length,
-  totalSkipped: skippedShardedIndex.length + skippedNoFrontmatter.length,
-  skippedShardedIndex,
-  skippedNoFrontmatter,
+  totalSkipped: skippedIndex.length,
+  skippedIndex,
   checkedFiles,
   violations,
   passed: violations.length === 0,

@@ -8,7 +8,7 @@
 
 需求数据文档用于产品定义和范围控制。**不要**包含实现细节（库、Schema、端点、文件布局），除非需求讨论本身是技术性的且这些细节是决策的主题。
 
-需求文档同时面向人读和 AI 工作流。结构应偏向稳定、显式、可解析：保留固定章节名、稳定 ID、验收条件、范围边界和待定问题分类。文档正文必须自包含，避免依赖额外转换技能；当需求跨越多个模块时，主文件保留全局上下文、范围和跨模块关系，模块分片只承载本模块的需求、约束和待定问题。给 AI 的文档不需要干系人、用户画像、背景介绍、业务价值、市场论证或类似汇报型内容，除非这些内容直接改变范围或验收条件。
+需求文档同时面向人读和 AI 工作流。结构应偏向稳定、显式、可解析：保留固定章节名、稳定 ID、验收条件、范围边界和待定问题分类。文档正文必须自包含，避免依赖额外转换技能；当需求跨越多个模块时，全局上下文、范围和跨模块关系拆分为独立子文件（如 `scope.md`、`decisions.md`），`prd.md` 仅保留索引指向这些子文件。给 AI 的文档不需要干系人、用户画像、背景介绍、业务价值、市场论证或类似汇报型内容，除非这些内容直接改变范围或验收条件。
 
 **非简单工作的必需内容：**
 - 问题框架
@@ -22,7 +22,24 @@
 - 待定问题
 - 考虑过的替代方案
 
-**文档结构：** 使用此模板并省略不适用的可选章节：
+**产物结构：** 需求文档以目录形式产出，所有子文件放于同一个需求目录下：
+
+```
+ae/prds/<topic>-YYYY-MM-DD/
+├── prd.md                        # 纯索引（< 100 行）
+├── problem.md                    # ## 问题框架
+├── scope.md                      # ## 范围边界
+├── requirements-<module>.md      # ## 需求 > ### 模块（每个模块一个文件）
+├── non-functional.md             # ## 非功能需求
+├── success-criteria.md           # ## 成功标准
+├── decisions.md                  # ## 关键决策
+├── dependencies.md               # ## 依赖 / 假设
+└── open-questions.md             # ## 待定问题
+```
+
+**原生分片产出规则：** 每个 `##` 章节产出一个独立文件。需求章节内按 `###` 子章节（模块）拆分时，每个 `###` 对应一个 `requirements-<module>.md` 文件。`prd.md` 为纯索引，只保留 frontmatter + 索引表，不内联实质内容。
+
+**prd.md 索引文件模板：**
 
 ```markdown
 ---
@@ -34,66 +51,49 @@ time_scope: [frontend, backend, data, security, ops]
 origin: <上游路径，若无则删除此行>
 originFingerprint: <上游指纹，若无则删除此行>
 format: human-readable-requirements
-sharded: false
+sharded: true
+shards:
+  - file: problem.md
+    module: problem
+  - file: scope.md
+    module: scope
+  - file: requirements-auth.md
+    module: auth
+    requirements: [R1, R2, R3, R4, R5]
+  - file: success-criteria.md
+    module: success-criteria
 ---
 
 # <主题标题>
 
-## 问题框架
-[当前问题、目标变化、成功判断和必要范围背景；不写干系人、用户画像、业务价值或汇报型背景，除非它们直接决定需求范围或验收条件]
+## 索引
 
-## 需求
-
-**[分组标题]**
-- R1. [需求描述] → 验收: [具体验收条件]
-- R2. [需求描述] → 验收: [具体验收条件]
-
-**[分组标题]**
-- R3. [需求描述] → 验收: [具体验收条件]
-
-## 非功能需求
-- NFR1. [性能、安全、兼容性、可用性等要求] → 验收: [判断方式]
-
-## 成功标准
-- [如何知道这解决了正确的问题]
-
-## 范围边界
-
-### 范围内
-- [明确包含的内容]
-
-### 范围外
-- [明确的非目标或排除项]
-
-### 约束
-- [业务、技术、时间或资源约束；无则省略本小节]
-
-## 关键决策
-- D1. [决策] → 理由: [理由]
-
-## 依赖 / 假设
-
-### 依赖
-- [仅在有意义时包含]
-
-### 假设
-- [未经验证但影响规划的前提；无则省略]
-
-## 待定问题
-
-### 规划前需解决
-- [影响 R1][用户决策] [规划前必须回答的问题]
-
-### 推迟到规划
-- [影响 R2][技术] [应在规划期间回答的问题]
-
-## 一致性检查
-- requirementsCount: [R* 数量]
-- nonFunctionalRequirementsCount: [NFR* 数量]
-- decisionsCount: [D* 数量]
-- openQuestionsCount: [Q/待定问题数量]
-
+| 文件 | 章节 | 行数 | 摘要 | 稳定 ID |
+|------|------|------|------|---------|
+| [problem.md](problem.md) | 问题框架 | 45 | 一句话摘要 | — |
+| [scope.md](scope.md) | 范围边界 | 30 | In/Out 摘要 | — |
+| [requirements-auth.md](requirements-auth.md) | 用户认证 | 120 | 登录/注册/密码重置 | R1-R5 |
+| [success-criteria.md](success-criteria.md) | 成功标准 | 25 | 5 个可验证标准 | — |
 ```
+
+**章节子文件模板：**
+
+```markdown
+---
+type: prd-shard
+status: drafted
+section: "problem"
+parent: "prd.md"
+module: "problem"
+heading_chain: "用户认证系统 > 问题框架"
+---
+
+## 问题框架
+
+[当前问题、目标变化、成功判断和必要范围背景]
+```
+
+需求子文件按模块命名（如 `requirements-auth.md`），frontmatter 中 `section` 和 `module` 为模块名，`heading_chain` 包含完整路径上下文。
 
 **Frontmatter 字段填写指引：**
 
@@ -106,15 +106,23 @@ sharded: false
 | `time_scope` | `[frontend, backend, data, security, ops]` | 涉及时段列表，用于触发下游 ae:design 维度自动产出。可选值：`frontend`、`backend`、`data`、`security`、`ops`、`mobile`、`infra` 等；非软件任务省略此字段 |
 | `origin` | 上游产物路径 | 仅在有上游产物时填写，否则删除此行。必须使用仓库相对路径 |
 | `originFingerprint` | 上游指纹 | 仅在有上游产物时填写，否则删除此行。值为上游产物 `date` + `-` + `topic` 的 kebab-case 拼接；若上游没有 `topic`，则使用 `date` + `-` + `title` |
-| `sharded` | `false` 或 `true` | 仅当模块数量大于 1，或用户明确要求分片时使用 `true`；不得按需求数量、文档行数或预估 token 数自动分片 |
+| `sharded` | `true` | 目录结构下始终为 `true`，`prd.md` 为纯索引文件 |
+
+**章节子文件 frontmatter：**
+
+| 字段 | 值 | 说明 |
+|------|-----|------|
+| `section` | `<章节名kebab>` | 该文件对应的章节标识 |
+| `parent` | `prd.md` | 指向同目录下的索引文件 |
+| `heading_chain` | `主题 > 章节 > 子章节` | 完整标题路径，保证单文件可独立理解 |
 
 **分片规则：**
 
-仅当模块数量大于 1，或用户明确要求分片时，才创建分片需求文档。主文件仍必须保留问题框架、全局范围、跨模块流程、共享数据、接口边界或其他跨模块关系，不能退化为分片路径列表。
+需求文档以目录形式产出，所有子文件放于同一个需求目录下。`prd.md` 为纯索引文件（< 100 行），只保留 frontmatter + 索引表。每个 `##` 章节对应一个独立文件，需求章节内按 `###` 子章节（模块）拆分时每个模块对应一个 `requirements-<module>.md` 文件。
 
-分片主文件 frontmatter 使用 `type: prd`、`sharded: true` 和 `shards` 索引。`shards` 每项至少包含 `file`、`module`，并尽量列出该分片覆盖的 `requirements`、`decisions` 或其他稳定 ID。
+每个子文件 frontmatter 包含 `section`、`parent`（指向 `prd.md`）和 `heading_chain`（完整标题路径），保证单文件可独立理解。子文件只承载本章节内容，不作为恢复、规划或执行入口的顶层产物。
 
-分片子文件 frontmatter 使用 `type: prd-shard`、`parent: <主文件仓库相对路径>` 和 `module: <模块名>`。分片子文件放入以 topic 命名的子目录中（如 `ae/prds/<topic>/<topic>-<module>-shard.md`），子文件只承载本模块需求、约束和待定问题，不作为恢复、规划或执行入口的顶层产物。
+兜底脚本 `enforce-shard-limit.mjs` 在 LLM 产出的极少数文件超标时介入，按 `###` → `####` → 段落空行 → 硬切降级链递归处理，注入 heading chain 保证语义可追溯。
 
 对于**标准**和**深入**需求探索，通常需要一份需求数据文档。
 
@@ -124,7 +132,7 @@ sharded: false
 
 非功能需求使用 `NFR1`、`NFR2` 稳定 ID；关键决策使用 `D1`、`D2` 稳定 ID。待定问题在文本中应显式标注影响的需求 ID 和问题类型，避免后续阶段推断。
 
-当需求跨越多个不同关注点时，在需求部分的加粗主题标题下分组。分组依据是逻辑主题的不同，而非需求数量。需求保留其原始稳定 ID。只有这些关注点对应多个模块，或用户明确要求分片时，才创建 `prd-shard` 子文件。
+当需求跨越多个不同关注点时，在需求部分的加粗主题标题下分组。分组依据是逻辑主题的不同，而非需求数量。需求保留其原始稳定 ID。每个关注点对应一个独立的 `requirements-<module>.md` 文件，放入同一个需求目录下。
 
 当工作简单时，保留固定章节名，但省略没有实质内容的可选章节。简短且结构稳定的需求数据文档好于臃肿的。
 
@@ -143,7 +151,7 @@ sharded: false
 
 如果规划需要发明产品行为、范围边界或成功标准，需求探索还没有完成。
 
-在写入之前确保 `ae/prds/` 目录存在。
+ 在写入之前确保 `ae/prds/` 目录存在。需求文档以目录形式产出，目录名为 `<topic>-YYYY-MM-DD`。
 
 如果文档包含待定问题：
 - 仅对真正阻塞规划的问题使用 `规划前需解决`
