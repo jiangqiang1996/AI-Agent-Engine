@@ -14,9 +14,9 @@ describe('graph freshness guidance', () => {
   })
 
   it('图谱消费技能应该声明 freshness 门控边界', () => {
+    // ae-work 和 ae-graph-query 是 freshness 门控的消费者
     const paths = [
       'src/assets/skills/ae-graph-query/SKILL.md',
-      'src/assets/skills/ae-review/SKILL.md',
       'src/assets/skills/ae-work/SKILL.md',
     ]
 

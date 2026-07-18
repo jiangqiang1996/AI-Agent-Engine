@@ -14,26 +14,24 @@ describe('ae-domain-catalog 工具', () => {
 
     expect(result).toMatchObject({
       metadata: {
-        domainCount: 2,
+        domainCount: 1,
         domain: null,
         query: '查看可用域',
       },
     })
-    expect((result as { output: string }).output).toContain('## review 域')
     expect((result as { output: string }).output).toContain('## development 域')
   })
 
   it('应该按 domain 精确返回单个域目录', async () => {
-    const result = await callTool({ domain: 'review' })
+    const result = await callTool({ domain: 'development' })
 
     expect(result).toMatchObject({
       metadata: {
         domainCount: 1,
-        domain: 'review',
+        domain: 'development',
       },
     })
-    expect((result as { output: string }).output).toContain('**域代理**: review-domain')
-    expect((result as { output: string }).output).not.toContain('pattern-recognition-specialist')
+    expect((result as { output: string }).output).toContain('frontend-dev')
   })
 
   it('应该在未知 domain 时返回空列表而非错误', async () => {

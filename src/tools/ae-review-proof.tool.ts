@@ -295,8 +295,8 @@ function isTrustedReviewToolName(candidate: {
   return toolNames.some((toolName) => typeof toolName === 'string'
     && (toolName === SKILL.REVIEW
       || toolName === COMMAND.REVIEW
-      || toolName === TOOL.AE_DOMAIN_DISPATCH_AGGREGATE
-      || toolName === TOOL.AE_DOMAIN_DISPATCH_PREPARE))
+      || toolName === TOOL.AE_SPECIALIST_AGGREGATE
+      || toolName === TOOL.AE_REVIEW_SCOPE_ANALYZE))
 }
 
 function hasTrustedSourceReviewOutput(context: unknown, sourceReviewRef: string, sourceReviewOutput: string): boolean {
@@ -366,7 +366,8 @@ function hasTrustedSourceReviewOutput(context: unknown, sourceReviewRef: string,
       candidate.message?.name,
     ]
     const isAggregateTool = candidateToolNames.some((toolName) => typeof toolName === 'string'
-      && (toolName === TOOL.AE_DOMAIN_DISPATCH_AGGREGATE || toolName === TOOL.AE_DOMAIN_DISPATCH_PREPARE))
+      && (toolName === TOOL.AE_SPECIALIST_AGGREGATE
+        || toolName === TOOL.AE_REVIEW_SCOPE_ANALYZE))
 
     if (isAggregateTool && content.length > 0) {
       return true

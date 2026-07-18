@@ -32,13 +32,6 @@ const DEVELOPMENT_SPECIALISTS: SpecialistDef[] = [
 const DOMAIN_CATALOGS: DomainCatalog[] = [
   DomainCatalogSchema.parse({
     domain: 'development',
-    domainAgent: {
-      name: AGENT.DEVELOPMENT_DOMAIN,
-      stage: 'domain',
-      tier: 'required',
-      description: '开发域代理：分析任务、选择专精、协调执行',
-      path: 'domains/development/DOMAIN.md',
-    },
     specialists: DEVELOPMENT_SPECIALISTS,
   }),
 ]

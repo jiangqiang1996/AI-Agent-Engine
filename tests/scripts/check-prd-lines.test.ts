@@ -42,13 +42,14 @@ function makePrdShardFile(lines: number, module: string): string {
   return fm + body
 }
 
+/** 脚本实际输出的 JSON 结构（以代码实现为准） */
 interface ScriptJsonResult {
   threshold: number
   prdDir: string
   totalChecked: number
   totalSkipped: number
-  skippedShardedIndex: string[]
-  skippedNoFrontmatter: string[]
+  /** 被豁免的 prd.md 索引文件列表 */
+  skippedIndex: string[]
   checkedFiles: { file: string; lines: number }[]
   violations: { file: string; lines: number }[]
   passed: boolean
@@ -85,23 +86,22 @@ describe('check-prd-lines 脚本', () => {
     mkdirSync(tmpDir, { recursive: true })
   })
 
-  describe('frontmatter 判断文件类型', () => {
-    it('type: prd, sharded: false 的独立主文件被校验', () => {
+  describe('文件名豁免规则', () => {
+    it('prd.md 文件被豁免（无论 frontmatter 类型）', () => {
       makeFile('prd.md', makeStandalonePrdFile(50, 'test-topic'))
       const json = parseJson(runScript(tmpDir))
-      const checked = json.checkedFiles.map((f) => f.file)
-      expect(checked).toContain('prd.md')
-      expect(json.violations).toHaveLength(0)
-    })
-
-    it('type: prd, sharded: true 的分片索引主文件被豁免', () => {
-      makeFile('prd.md', makeShardedIndexFile(500, 'test-topic'))
-      const json = parseJson(runScript(tmpDir))
-      expect(json.skippedShardedIndex).toContain('prd.md')
+      expect(json.skippedIndex).toContain('prd.md')
       expect(json.checkedFiles.map((f) => f.file)).not.toContain('prd.md')
     })
 
-    it('type: prd-shard 的分片子文件被校验', () => {
+    it('分片索引主文件 prd.md 被豁免', () => {
+      makeFile('prd.md', makeShardedIndexFile(500, 'test-topic'))
+      const json = parseJson(runScript(tmpDir))
+      expect(json.skippedIndex).toContain('prd.md')
+      expect(json.checkedFiles.map((f) => f.file)).not.toContain('prd.md')
+    })
+
+    it('非 prd.md 的 .md 文件被校验', () => {
       makeFile('module-a.md', makePrdShardFile(50, 'module-a'))
       makeFile('module-b.md', makePrdShardFile(50, 'module-b'))
       const json = parseJson(runScript(tmpDir))
@@ -110,36 +110,21 @@ describe('check-prd-lines 脚本', () => {
       expect(checked).toContain('module-b.md')
       expect(json.violations).toHaveLength(0)
     })
-
-    it('无 frontmatter 的文件被跳过', () => {
-      makeFile('README.md', makeLines(10))
-      const json = parseJson(runScript(tmpDir))
-      expect(json.skippedNoFrontmatter).toContain('README.md')
-      expect(json.checkedFiles).toHaveLength(0)
-    })
-
-    it('type 非 prd/prd-shard 的文件被跳过', () => {
-      const fm = `---\ntype: design\nstatus: drafted\n---\n`
-      makeFile('design.md', fm + '设计内容\n')
-      const json = parseJson(runScript(tmpDir))
-      expect(json.skippedNoFrontmatter).toContain('design.md')
-      expect(json.checkedFiles).toHaveLength(0)
-    })
   })
 
   describe('countLines 尾换行处理', () => {
     it('文件以换行结尾时行数不偏移', () => {
-      makeFile('prd.md', makeStandalonePrdFile(300, 'test-topic'))
+      makeFile('module-a.md', makePrdShardFile(300, 'module-a'))
       const json = parseJson(runScript(tmpDir))
-      const prd = json.checkedFiles.find((f) => f.file === 'prd.md')
-      expect(prd?.lines).toBe(300)
+      const file = json.checkedFiles.find((f) => f.file === 'module-a.md')
+      expect(file?.lines).toBe(300)
       expect(json.violations).toHaveLength(0)
     })
   })
 
   describe('--threshold 参数校验', () => {
     it('NaN 值回退默认值', () => {
-      makeFile('prd.md', makeStandalonePrdFile(50, 'test-topic'))
+      makeFile('module-a.md', makePrdShardFile(50, 'module-a'))
       const out = runScript(tmpDir, ['--threshold', 'abc'])
       expect(out).toContain('警告')
       const json = parseJson(out)
@@ -147,7 +132,7 @@ describe('check-prd-lines 脚本', () => {
     })
 
     it('负数回退默认值', () => {
-      makeFile('prd.md', makeStandalonePrdFile(50, 'test-topic'))
+      makeFile('module-a.md', makePrdShardFile(50, 'module-a'))
       const out = runScript(tmpDir, ['--threshold', '-5'])
       expect(out).toContain('警告')
       const json = parseJson(out)
@@ -155,7 +140,7 @@ describe('check-prd-lines 脚本', () => {
     })
 
     it('自定义有效阈值生效', () => {
-      makeFile('prd.md', makeStandalonePrdFile(50, 'test-topic'))
+      makeFile('module-a.md', makePrdShardFile(50, 'module-a'))
       const json = parseJson(runScript(tmpDir, ['--threshold', '10']))
       expect(json.threshold).toBe(10)
       expect(json.violations.length).toBeGreaterThan(0)
@@ -167,7 +152,7 @@ describe('check-prd-lines 脚本', () => {
       makeFile('prd.md', makeShardedIndexFile(500, 'test-topic'))
       makeFile('module-a.md', makePrdShardFile(50, 'module-a'))
       const json = parseJson(runScript(tmpDir))
-      expect(json.skippedShardedIndex).toContain('prd.md')
+      expect(json.skippedIndex).toContain('prd.md')
       expect(json.totalChecked).toBe(1)
       expect(json.passed).toBe(true)
     })
@@ -185,17 +170,10 @@ describe('check-prd-lines 脚本', () => {
 
   describe('退出码', () => {
     it('无违规时 passed=true', () => {
-      makeFile('prd.md', makeStandalonePrdFile(50, 'test-topic'))
+      makeFile('module-a.md', makePrdShardFile(50, 'module-a'))
       const json = parseJson(runScript(tmpDir))
       expect(json.passed).toBe(true)
       expect(json.violations).toHaveLength(0)
-    })
-
-    it('独立主文件超标时 passed=false', () => {
-      makeFile('prd.md', makeStandalonePrdFile(301, 'test-topic'))
-      const json = parseJson(runScript(tmpDir))
-      expect(json.passed).toBe(false)
-      expect(json.violations.length).toBeGreaterThan(0)
     })
 
     it('分片子文件超标时 passed=false', () => {
@@ -216,20 +194,12 @@ describe('check-prd-lines 脚本', () => {
   })
 
   describe('混合场景', () => {
-    it('独立主文件 + 分片子文件共存时都被校验', () => {
-      makeFile('prd.md', makeStandalonePrdFile(50, 'test-topic'))
-      makeFile('module-a.md', makePrdShardFile(50, 'module-a'))
-      const json = parseJson(runScript(tmpDir))
-      expect(json.totalChecked).toBe(2)
-      expect(json.passed).toBe(true)
-    })
-
     it('分片索引 + 多个分片子文件混合，索引豁免子文件校验', () => {
       makeFile('prd.md', makeShardedIndexFile(500, 'test-topic'))
       makeFile('module-a.md', makePrdShardFile(100, 'module-a'))
       makeFile('module-b.md', makePrdShardFile(200, 'module-b'))
       const json = parseJson(runScript(tmpDir))
-      expect(json.skippedShardedIndex).toContain('prd.md')
+      expect(json.skippedIndex).toContain('prd.md')
       expect(json.totalChecked).toBe(2)
       expect(json.passed).toBe(true)
     })

@@ -39,7 +39,7 @@ describe('REVIEW_MATRIX', () => {
 
   it('test-cases-design-reviewer 提示词应包含误报抑制边界', () => {
     const content = readFileSync(
-      new URL('../../src/assets/agents/domains/review/specialists/test-cases-design-reviewer.md', import.meta.url),
+      new URL('../../src/assets/agents/reviewers/test-cases-design-reviewer.md', import.meta.url),
       'utf-8',
     )
 

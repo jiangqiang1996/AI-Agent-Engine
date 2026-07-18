@@ -315,10 +315,9 @@ const REQUIRED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'],
   [AGENT.GOAL_ALIGNMENT_REVIEWER, 'review', '对照审查目标逐条校验变更是否达成，识别未达成项和偏离', 'reviewers/goal-alignment-reviewer.md'],
   [AGENT.TRACEABILITY_REVIEWER, 'review', '审查需求-设计-原型-实现-测试链路追溯，识别断裂引用、孤儿条目和未声明延期', 'reviewers/traceability-reviewer.md'],
   [AGENT.DESIGN_INTEGRITY_REVIEWER, 'review', '审查设计文档与需求的一致性、设计维度完整性、架构与数据模型可行性和安全设计覆盖', 'reviewers/design-integrity-reviewer.md'],
-  [AGENT.DEVELOPMENT_DOMAIN, 'domain', '开发域代理：分析任务、选择专精、协调执行', 'domains/development/DOMAIN.md'],
-  [AGENT.FRONTEND_DEV, 'domain', '前端开发专精代理：处理 UI 组件、样式、交互逻辑和响应式设计', 'domains/development/specialists/frontend-dev.md'],
-  [AGENT.BACKEND_DEV, 'domain', '后端开发专精代理：处理 API、数据层、业务逻辑和中间件', 'domains/development/specialists/backend-dev.md'],
-  [AGENT.DEBUG_FIX, 'domain', '调试修复专精代理：处理错误分析、根因定位、修复实现和回归验证', 'domains/development/specialists/debug-fix.md'],
+  [AGENT.FRONTEND_DEV, 'development', '前端开发专精代理：处理 UI 组件、样式、交互逻辑和响应式设计', 'developers/frontend-dev.md'],
+  [AGENT.BACKEND_DEV, 'development', '后端开发专精代理：处理 API、数据层、业务逻辑和中间件', 'developers/backend-dev.md'],
+  [AGENT.DEBUG_FIX, 'development', '调试修复专精代理：处理错误分析、根因定位、修复实现和回归验证', 'developers/debug-fix.md'],
 ]
 
 const GILDED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'], string]> = [
@@ -347,7 +346,11 @@ function buildAgentList(
       tier,
       description: desc,
       path: customPath
-        ?? (REVIEW_SPECIALIST_AGENT_NAMES.has(name) ? `reviewers/${name}.md` : `${stage}/${name}.md`),
+        ?? (REVIEW_SPECIALIST_AGENT_NAMES.has(name)
+          ? `reviewers/${name}.md`
+          : stage === 'development'
+            ? `developers/${name}.md`
+            : `${stage}/${name}.md`),
     }),
   )
 }

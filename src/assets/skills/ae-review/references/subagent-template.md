@@ -1,6 +1,6 @@
 # 子代理提示模板
 
-所有审查子代理位于 `src/assets/agents/reviewers/` 目录下。`ae-review-scope-analyze` 工具为每个激活代理构建完整 prompt（包含角色提示词、审查文件列表、审查模式和审查目标），编排器直接将 `tasks[].prompt` 传入 Task 调用。所有激活代理在同一轮回复中一次性发出 Task 调用，不分批次。代理只找问题不做修复，修复由合并层统一处理。
+所有审查子代理位于 `reviewers/` 目录下。`ae-review-scope-analyze` 工具为每个激活代理构建完整 prompt（包含角色提示词、审查文件列表、审查模式和审查目标），编排器直接将 `tasks[].prompt` 传入 Task 调用。所有激活代理在同一轮回复中一次性发出 Task 调用，不分批次。代理只找问题不做修复，修复由合并层统一处理。
 
 ---
 
@@ -107,10 +107,10 @@ title、severity、domain（可选）、location（含 file）、finding_type、
 
 ## 合并层调用说明
 
-所有代理返回结果后，编排器调用 `ae-domain-dispatch-aggregate` 执行合并层处理：
+所有代理返回结果后，编排器调用 `ae-specialist-aggregate` 执行合并层处理：
 
 ```
-ae-domain-dispatch-aggregate({
+ae-specialist-aggregate({
   strategy: "union",
   results: [所有代理的返回结果],
   dispatchedAgents: [实际派发的代理名称列表]

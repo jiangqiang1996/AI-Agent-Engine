@@ -76,7 +76,6 @@ export const AGENT = {
   SECURITY_DESIGNER: 'security-designer',
   OBSERVABILITY_DESIGNER: 'observability-designer',
   NON_FUNCTIONAL_DESIGNER: 'non-functional-designer',
-  DEVELOPMENT_DOMAIN: 'development-domain',
   FRONTEND_DEV: 'frontend-dev',
   BACKEND_DEV: 'backend-dev',
   DEBUG_FIX: 'debug-fix',
@@ -106,8 +105,8 @@ export const TOOL = {
   AE_DOMAIN_CATALOG: 'ae-domain-catalog',
   AE_CHROME_DEVTOOLS_MCP: 'ae-chrome-devtools-mcp',
   AE_TIMER: 'ae-timer',
-  AE_DOMAIN_DISPATCH_PREPARE: 'ae-domain-dispatch-prepare',
-  AE_DOMAIN_DISPATCH_AGGREGATE: 'ae-domain-dispatch-aggregate',
+  AE_WORK_SPECIALIST_SELECT: 'ae-work-specialist-select',
+  AE_SPECIALIST_AGGREGATE: 'ae-specialist-aggregate',
   AE_REVIEW_SCOPE_ANALYZE: 'ae-review-scope-analyze',
   AE_ASYNC_BASH: 'ae-async-bash',
   AE_PDF: 'ae-pdf',
@@ -181,7 +180,7 @@ export const AeAssetEntrySchema = z.object({
 })
 
 export const AgentStageSchema = z
-  .enum(['review', 'research', 'workflow', 'domain'])
+  .enum(['review', 'research', 'workflow', 'development'])
   .describe('Agent 所属目录')
 
 export const AgentTierSchema = z
@@ -209,7 +208,6 @@ export const SpecialistDefSchema = z.object({
 
 export const DomainCatalogSchema = z.object({
   domain: z.string().min(1).describe('域名标识'),
-  domainAgent: AgentDefinitionSchema,
   specialists: z.array(SpecialistDefSchema).describe('专精代理列表'),
 })
 

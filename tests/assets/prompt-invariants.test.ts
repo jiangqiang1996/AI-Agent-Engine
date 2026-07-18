@@ -95,12 +95,12 @@ const INVARIANTS: Invariant[] = [
   },
   {
     file: 'src/assets/skills/ae-work/references/execution-workflow.md',
-    label: 'ae:work 域代理核验',
-    mustContain: ['不只依赖域代理自报的 artifacts'],
+    label: 'ae:work 专精代理核验',
+    mustContain: ['不只依赖专精代理自报的 artifacts'],
     mustNotContain: ['work-subagent-template', 'serial_subagent', 'parallel_subagent'],
   },
   {
-    file: 'src/assets/agents/domains/review/specialists/ocr-reviewer.md',
+    file: 'src/assets/agents/reviewers/ocr-reviewer.md',
     label: 'ocr-reviewer 代码审查引擎',
     mustContain: ['OpenCodeReview CLI', 'ae-ocr'],
     mustNotContain: [],

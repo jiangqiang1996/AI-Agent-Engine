@@ -175,17 +175,15 @@ AE 采用 13 代理全并行架构，所有激活代理在同一轮一次性发�
 | `@logic-weaver` | 前端代码实现：交互逻辑、API联调、状态管理、组件开发、重构、性能优化 | 不负责视觉设计 |
 | `@browser-inspector` | 端到端浏览器测试与回归验证 | 先完成 chrome-devtools MCP 动态注册；不做审美设计迭代 |
 
-## 域代理
+## 开发专精代理
 
-域代理由 `ae:review` 或 `ae:work` 等技能自动调度，用户一般不需要手动指定。
+开发专精代理由 `ae:work` 编排层自动调度，用户一般不需要手动指定。
 
 | 代理 | 用途 | 边界 |
 | --- | --- | --- |
-| `@review-domain` | 审查域代理：选择审查者、并行调度、综合审查发现 | 不直接执行审查，由 `/ae-review` 调度 |
-| `@development-domain` | 开发域代理：分析任务、选择专精代理、协调并行/流水线执行 | 不直接实现功能，由 `/ae-work` 调度 |
-| `@frontend-dev` | 前端开发专精代理：处理 UI 组件、样式、交互逻辑和响应式设计 | 由开发域代理调度 |
-| `@backend-dev` | 后端开发专精代理：处理 API、数据层、业务逻辑和中间件 | 由开发域代理调度 |
-| `@debug-fix` | 调试修复专精代理：处理错误分析、根因定位、修复实现和回归验证 | 由开发域代理调度 |
+| `@frontend-dev` | 前端开发专精代理：处理 UI 组件、样式、交互逻辑和响应式设计 | 由 ae:work 编排层调度 |
+| `@backend-dev` | 后端开发专精代理：处理 API、数据层、业务逻辑和中间件 | 由 ae:work 编排层调度 |
+| `@debug-fix` | 调试修复专精代理：处理错误分析、根因定位、修复实现和回归验证 | 由 ae:work 编排层调度 |
 
 ## 工具层能力
 
@@ -206,9 +204,9 @@ AE 采用 13 代理全并行架构，所有激活代理在同一轮一次性发�
 | `ae-doc-extract` | 从人读需求或设计文档及其分片中提取结构化上下文 | 不生成、转换或迁移文档 |
 | `ae-worktree-handoff` | 生成 A→B worktree 转移交接文件 | 不创建新会话 |
 | `ae-create-session` | 创建独立新会话，可选注入上下文或自动执行 | 不做会话级上下文交接 |
-| `ae-domain-catalog` | 查询域代理目录，获取域代理和专精代理信息 | 不执行域代理调度 |
-| `ae-domain-dispatch-prepare` | 预计算专精代理列表、协调策略和 prompt 模板 | 不执行域代理调度 |
-| `ae-domain-dispatch-aggregate` | 将专精代理结果按策略聚合为 DomainExecutionResult | 单一代理执行无需聚合 |
+| `ae-domain-catalog` | 查询开发专精代理目录，获取专精代理信息 | 不执行代理调度 |
+| `ae-work-specialist-select` | 为 ae:work 预计算开发专精代理列表、协调策略和 prompt 模板 | 不执行代理调度 |
+| `ae-specialist-aggregate` | 将专精代理结果按策略聚合为 DomainExecutionResult | 单一代理执行无需聚合 |
 | `ae-review-proof` | 写入 ae:review 结构化审查证明 | 不替代真实代码或文档审查 |
 | `ae-timer` | 倒计时等待工具，暂停会话指定时长后继续 | 不用于轮询或精确毫秒级定时 |
 | `ae-async-bash` | 在后台启动长期运行的命令并立即返回 | 不等待命令完成，不获取退出码 |

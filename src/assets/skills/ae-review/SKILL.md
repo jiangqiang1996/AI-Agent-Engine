@@ -136,7 +136,7 @@ argument-hint: "[mode] [scenes=<list>] [targets=<list>] [from=<ref>] [full] [ful
 
 ### 步骤 7：聚合结果
 
-调用 `ae-domain-dispatch-aggregate` 聚合所有代理结果（strategy: union）。检查 `guardViolation`：存在违规时以 error 级别标注。
+调用 `ae-specialist-aggregate` 聚合所有代理结果（strategy: union）。
 
 → 进入步骤 8。
 
@@ -146,7 +146,7 @@ argument-hint: "[mode] [scenes=<list>] [targets=<list>] [from=<ref>] [full] [ful
 
 1. **调度完整性证据**：列出步骤 3 返回的 agents 数量和实际发出的 Task 调用数，两者必须相等
 2. **并行性证据**：确认所有 Task 调用在同一轮回复中发出
-3. **聚合结果证据**：列出 findings 总数和 guardViolation 状态
+3. **聚合结果证据**：列出 findings 总数和 dispatchManifest 状态
 
 → 进入步骤 9。
 

@@ -6,12 +6,12 @@ const brainstormCapture = readFileSync('src/assets/skills/ae-prd/references/requ
 const designTemplate = readFileSync('src/assets/skills/ae-design/references/design-output-template.md', 'utf8')
 const designSkill = readFileSync('src/assets/skills/ae-design/SKILL.md', 'utf8')
 const reviewAgentPaths = [
-  'src/assets/agents/domains/review/specialists/document-reviewer.md',
-  'src/assets/agents/domains/review/specialists/architecture-design-reviewer.md',
-  'src/assets/agents/domains/review/specialists/ui-ux-design-reviewer.md',
-  'src/assets/agents/domains/review/specialists/api-design-reviewer.md',
-  'src/assets/agents/domains/review/specialists/database-design-reviewer.md',
-  'src/assets/agents/domains/review/specialists/security-design-reviewer.md',
+  'src/assets/agents/reviewers/document-reviewer.md',
+  'src/assets/agents/reviewers/architecture-design-reviewer.md',
+  'src/assets/agents/reviewers/ui-ux-design-reviewer.md',
+  'src/assets/agents/reviewers/api-design-reviewer.md',
+  'src/assets/agents/reviewers/database-design-reviewer.md',
+  'src/assets/agents/reviewers/security-design-reviewer.md',
 ]
 
 describe('文档抽取收敛契约', () => {

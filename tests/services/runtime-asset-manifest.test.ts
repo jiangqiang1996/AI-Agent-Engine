@@ -87,33 +87,29 @@ describe('runtime-asset-manifest', () => {
 
   it('应该按 agent.path 保留嵌套代理目录结构', () => {
     const root = createRepoRoot()
-    mkdirSync(join(root, 'dist', 'src', 'assets', 'agents', 'domains', 'review', 'specialists'), { recursive: true })
+    mkdirSync(join(root, 'dist', 'src', 'assets', 'agents', 'developers'), { recursive: true })
 
     const manifest = createRuntimeAssetManifestFromRoot(root)
-    const ocrReviewer = manifest.runtimeAgentFiles.find((file) => file.source.endsWith(
-      join('domains', 'review', 'specialists', 'ocr-reviewer.md'),
+    const frontendDev = manifest.runtimeAgentFiles.find((file) => file.source.endsWith(
+      join('developers', 'frontend-dev.md'),
     ))
 
-    expect(ocrReviewer?.source).toBe(join(
+    expect(frontendDev?.source).toBe(join(
       root,
       'dist',
       'src',
       'assets',
       'agents',
-      'domains',
-      'review',
-      'specialists',
-      'ocr-reviewer.md',
+      'developers',
+      'frontend-dev.md',
     ))
-    expect(ocrReviewer?.target).toBe(join(
+    expect(frontendDev?.target).toBe(join(
       root,
       '.opencode',
       'agents',
       'ae',
-      'domains',
-      'review',
-      'specialists',
-      'ocr-reviewer.md',
+      'developers',
+      'frontend-dev.md',
     ))
   })
 })

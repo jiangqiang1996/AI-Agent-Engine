@@ -18,7 +18,7 @@ describe('help-catalog-service 集成', () => {
 
     expect(text).toContain(SKILL.DESIGN)
     expect(text).toContain(`/${COMMAND.DESIGN}`)
-    expect(text).toContain('[需求文档路径\\|旧 design\\|裸描述]')
+    expect(text).toContain('[需求文档路径\\|design\\|裸描述]')
   })
 
   it('应该在真实帮助目录中暴露 ae:merge-branch 入口', () => {

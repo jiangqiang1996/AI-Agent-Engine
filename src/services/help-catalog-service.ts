@@ -285,7 +285,7 @@ const STAGE_LABELS: Record<string, string> = {
   research: '研究',
   review: '审查',
   workflow: '工作流',
-  domain: '域代理',
+  development: '开发专精代理',
 }
 
 /** 根据精确名称在帮助目录中查找详情条目，聚合关联元素。 */

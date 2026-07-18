@@ -104,7 +104,7 @@ describe('help-catalog-service', () => {
           stage: 'review',
           tier: 'required',
           description: '审查逻辑错误',
-          path: 'domains/review/specialists/ocr-reviewer.md',
+          path: 'reviewers/ocr-reviewer.md',
         },
       ] as ReturnType<typeof aeCatalog.getAllAgentDefinitions>)
 
@@ -396,7 +396,7 @@ describe('help-catalog-service', () => {
           stage: 'review',
           tier: 'required',
           description: '审查逻辑错误',
-          path: 'domains/review/specialists/ocr-reviewer.md',
+          path: 'reviewers/ocr-reviewer.md',
         },
       ] as ReturnType<typeof aeCatalog.getAllAgentDefinitions>)
       vi.mocked(commandRegistration.buildCommandConfig).mockReturnValue({})
