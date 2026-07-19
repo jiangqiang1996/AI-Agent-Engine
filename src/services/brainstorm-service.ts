@@ -1,4 +1,4 @@
-import type { OpencodeClient } from '@opencode-ai/sdk'
+import type { OpencodeClient } from '@opencode-ai/sdk/v2'
 import { getGlobalClient } from './client-holder.js'
 import { resolveBrainstormModels } from './brainstorm-config-service.js'
 import { getModelByScenario } from './model-scenario-routing-service.js'
@@ -118,12 +118,12 @@ function modelDisplayLabel(model: string | undefined): string {
 
 async function deleteSessionWithRetry(client: OpencodeClient, sessionId: string): Promise<void> {
   try {
-    await client.session.delete({ path: { id: sessionId } })
+    await client.session.delete({ sessionID: sessionId })
   } catch (err) {
     if (!isRateLimitLikeError(err)) return
     await new Promise<void>((r) => setTimeout(r, SESSION_DELETE_RETRY_DELAY_MS + Math.floor(Math.random() * 300)))
     try {
-      await client.session.delete({ path: { id: sessionId } })
+      await client.session.delete({ sessionID: sessionId })
     } catch {
       // 重试仍失败时放弃清理，不阻塞主流程
     }
@@ -143,29 +143,35 @@ async function runTemporarySession(
 
   let sessionId: string | undefined
   try {
-    const createRes = await client.session.create({ body: { title } })
+    const createRes = await client.session.create({ title })
     if (createRes.error || !createRes.data?.id) {
-      throw new Error(`[${title}] 创建临时会话失败 - ${createRes.error?.data?.message ?? '未知错误'}`)
+      const err = createRes.error as { message?: string; _tag?: string } | undefined
+      throw new Error(`[${title}] 创建临时会话失败 - ${err?.message ?? err?._tag ?? '未知错误'}`)
     }
     sessionId = createRes.data.id
 
-    const promptBody: Record<string, unknown> = {
+    const promptParams: {
+      sessionID: string
+      parts: Array<{ type: 'text'; text: string }>
+      system: string
+      tools: Record<string, boolean>
+      model?: { providerID: string; modelID: string }
+    } = {
+      sessionID: sessionId,
       parts: [{ type: 'text', text: userPrompt }],
       system: systemPrompt,
       // '*': true 显式启用所有工具，edit/write/patch: false 禁止文件修改类工具，question: false 禁止提问确保无人值守
       tools: { '*': true, edit: false, write: false, patch: false, question: false },
     }
     if (modelRef) {
-      promptBody.model = modelRef
+      promptParams.model = modelRef
     }
 
-    const promptRes = await client.session.prompt({
-      path: { id: sessionId },
-      body: promptBody as Parameters<typeof client.session.prompt>[0]['body'],
-    })
+    const promptRes = await client.session.prompt(promptParams)
 
     if (promptRes.error) {
-      throw new Error(`[${title}] 模型调用失败 - ${promptRes.error.data?.message ?? promptRes.error.name ?? '未知错误'}`)
+      const err = promptRes.error as { message?: string; _tag?: string; data?: { message?: string } }
+      throw new Error(`[${title}] 模型调用失败 - ${err.data?.message ?? err.message ?? err._tag ?? '未知错误'}`)
     }
 
     return extractTextFromParts(promptRes.data?.parts ?? [])

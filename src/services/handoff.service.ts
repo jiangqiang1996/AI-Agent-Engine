@@ -1,6 +1,6 @@
 import { Effect } from 'effect'
 import type { ToolContext } from '@opencode-ai/plugin'
-import type { OpencodeClient } from '@opencode-ai/sdk'
+import type { OpencodeClient } from '@opencode-ai/sdk/v2'
 
 import type { SessionExtractResult } from './session-extract.service.js'
 import {

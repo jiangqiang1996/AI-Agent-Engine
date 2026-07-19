@@ -27,7 +27,7 @@ async function checkMcpStatus(
   }
 
   try {
-    const result = await client.mcp.status({ query: { directory: worktree } })
+    const result = await client.mcp.status({ directory: worktree })
     const statuses = result.data as
       | Record<string, { status: string; error?: string }>
       | undefined
@@ -273,11 +273,9 @@ export const aeChromeDevtoolsMcpTool = tool({
 
       try {
         await client.mcp.add({
-          body: {
-            name: MCP_NAME,
-            config: { type: 'local', command },
-          },
-          query: { directory: worktree },
+          name: MCP_NAME,
+          config: { type: 'local', command },
+          directory: worktree,
         })
 
         // 注册后轮询等待 MCP 就绪
@@ -314,8 +312,8 @@ export const aeChromeDevtoolsMcpTool = tool({
 
       try {
         await client.mcp.disconnect({
-          path: { name: MCP_NAME },
-          query: { directory: worktree },
+          name: MCP_NAME,
+          directory: worktree,
         })
 
         return {

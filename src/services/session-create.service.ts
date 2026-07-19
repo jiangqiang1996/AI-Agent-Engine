@@ -1,5 +1,5 @@
 import { Effect } from 'effect'
-import type { OpencodeClient } from '@opencode-ai/sdk'
+import type { OpencodeClient } from '@opencode-ai/sdk/v2'
 
 import { ensureBrowserEnvironmentGate } from './browser-environment-gate.js'
 import {

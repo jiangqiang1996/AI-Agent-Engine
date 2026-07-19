@@ -47,22 +47,22 @@ function createMockClient(sessionTexts: Map<string, string>, options?: {
       create: vi.fn(async () => {
         createCallCount++
         if (options?.createErrorOnCall && createCallCount === options.createErrorOnCall) {
-          return { data: undefined, error: { data: { message: '创建临时会话失败' }, name: 'Error' } }
+          return { data: undefined, error: { message: '创建临时会话失败' } }
         }
         const id = `session-${++globalSessionCounter}`
         return { data: { id, title: `session-${id}` }, error: undefined }
       }),
-      prompt: vi.fn(async (args: { path: { id: string } }) => {
+      prompt: vi.fn(async (args: { sessionID: string }) => {
         promptCallCount++
         if (options?.alwaysPromptError || (options?.promptErrorOnCall && promptCallCount === options.promptErrorOnCall)) {
           const msg = options?.promptErrorMessage ?? '模型调用失败'
-          return { data: undefined, error: { data: { message: msg }, name: 'Error' } }
+          return { data: undefined, error: { message: msg } }
         }
-        const text = sessionTexts.get(args.path.id) ?? '默认响应'
+        const text = sessionTexts.get(args.sessionID) ?? '默认响应'
         return { data: { parts: [{ type: 'text', text }] }, error: undefined }
       }),
-      delete: vi.fn(async (args: { path: { id: string } }) => {
-        deletedSessions.push(args.path.id)
+      delete: vi.fn(async (args: { sessionID: string }) => {
+        deletedSessions.push(args.sessionID)
         return { data: undefined, error: undefined }
       }),
     },
@@ -565,12 +565,12 @@ describe('brainstorm-service - 速率限制降级', () => {
           const id = `session-${++globalSessionCounter}`
           return { data: { id, title: `session-${id}` }, error: undefined }
         }),
-        prompt: vi.fn(async (args: { path: { id: string } }) => {
+        prompt: vi.fn(async (args: { sessionID: string }) => {
           promptCallCount++
           if (promptCallCount === 1) {
-            return { data: undefined, error: { data: { message: 'Rate limit exceeded' }, name: 'Error' } }
+            return { data: undefined, error: { message: 'Rate limit exceeded' } }
           }
-          const text = sessionTexts.get(args.path.id) ?? '默认'
+          const text = sessionTexts.get(args.sessionID) ?? '默认'
           return { data: { parts: [{ type: 'text', text }] }, error: undefined }
         }),
         delete: vi.fn(async () => ({ data: undefined, error: undefined })),
@@ -614,11 +614,11 @@ describe('brainstorm-service - 轮询分配模型', () => {
 
     const promptCalls: Array<{ model?: { providerID: string; modelID: string } }> = []
     const { client } = createMockClient(sessionTexts)
-    client.session.prompt.mockImplementation(async (args: { path: { id: string }; body?: { model?: { providerID: string; modelID: string } } }) => {
-      if (args.body?.model) {
-        promptCalls.push({ model: args.body.model })
+    client.session.prompt.mockImplementation(async (args: { sessionID: string; model?: { providerID: string; modelID: string } }) => {
+      if (args.model) {
+        promptCalls.push({ model: args.model })
       }
-      const text = sessionTexts.get(args.path.id) ?? '默认'
+      const text = sessionTexts.get(args.sessionID) ?? '默认'
       return { data: { parts: [{ type: 'text', text }] }, error: undefined }
     })
     mockGetGlobalClient.mockReturnValue(client as never)
@@ -673,11 +673,11 @@ describe('brainstorm-service - 轮询分配模型', () => {
 
     const promptCalls: Array<{ model?: { providerID: string; modelID: string } }> = []
     const { client } = createMockClient(sessionTexts)
-    client.session.prompt.mockImplementation(async (args: { path: { id: string }; body?: { model?: { providerID: string; modelID: string } } }) => {
-      if (args.body?.model) {
-        promptCalls.push({ model: args.body.model })
+    client.session.prompt.mockImplementation(async (args: { sessionID: string; model?: { providerID: string; modelID: string } }) => {
+      if (args.model) {
+        promptCalls.push({ model: args.model })
       }
-      const text = sessionTexts.get(args.path.id) ?? '默认'
+      const text = sessionTexts.get(args.sessionID) ?? '默认'
       return { data: { parts: [{ type: 'text', text }] }, error: undefined }
     })
     mockGetGlobalClient.mockReturnValue(client as never)
@@ -727,8 +727,8 @@ describe('brainstorm-service - session.delete 重试', () => {
           const id = `session-${++globalSessionCounter}`
           return { data: { id, title: `session-${id}` }, error: undefined }
         }),
-        prompt: vi.fn(async (args: { path: { id: string } }) => {
-          const text = sessionTexts.get(args.path.id) ?? '默认'
+        prompt: vi.fn(async (args: { sessionID: string }) => {
+          const text = sessionTexts.get(args.sessionID) ?? '默认'
           return { data: { parts: [{ type: 'text', text }] }, error: undefined }
         }),
         delete: vi.fn(async () => {
@@ -765,8 +765,8 @@ describe('brainstorm-service - session.delete 重试', () => {
           const id = `session-${++globalSessionCounter}`
           return { data: { id, title: `session-${id}` }, error: undefined }
         }),
-        prompt: vi.fn(async (args: { path: { id: string } }) => {
-          const text = sessionTexts.get(args.path.id) ?? '默认'
+        prompt: vi.fn(async (args: { sessionID: string }) => {
+          const text = sessionTexts.get(args.sessionID) ?? '默认'
           return { data: { parts: [{ type: 'text', text }] }, error: undefined }
         }),
         delete: vi.fn(async () => {

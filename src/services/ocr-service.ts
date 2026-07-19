@@ -56,7 +56,7 @@ export interface OcrJsonResult {
  *
  * 模型选择优先级：
  * 1. ae.jsonc modelScenarios.deep 指定的 provider/model
- * 2. opencode 默认模型（client.v2.model.default()）
+ * 2. opencode 默认模型（从 provider.list() 返回的 default 映射提取）
  */
 export async function resolveOcrLlmEnv(): Promise<Record<string, string>> {
   const client = getGlobalClient()
@@ -70,6 +70,8 @@ export async function resolveOcrLlmEnv(): Promise<Record<string, string>> {
     options?: Record<string, unknown>
     models?: Record<string, { api?: { npm?: string } }>
   }>
+  let defaultModelMap: Record<string, string> | undefined
+  let connectedProviders: string[] | undefined
 
   try {
     const result = await Promise.race([
@@ -81,6 +83,14 @@ export async function resolveOcrLlmEnv(): Promise<Record<string, string>> {
     const raw = result as unknown as Record<string, unknown>
     const dataField = raw?.data as Record<string, unknown> | undefined
     providers = (dataField?.all ?? raw?.all ?? []) as typeof providers
+    const defaultRaw = dataField?.default
+    if (defaultRaw && typeof defaultRaw === 'object' && !Array.isArray(defaultRaw)) {
+      defaultModelMap = defaultRaw as Record<string, string>
+    }
+    const connectedRaw = dataField?.connected
+    if (Array.isArray(connectedRaw)) {
+      connectedProviders = connectedRaw.filter((p): p is string => typeof p === 'string')
+    }
     if (providers.length === 0) {
       throw new Error('provider.list 返回空')
     }
@@ -101,20 +111,30 @@ export async function resolveOcrLlmEnv(): Promise<Record<string, string>> {
     }
   }
 
-  // 优先级 2：opencode 默认模型
+  // 优先级 2：opencode 默认模型（从已获取的 provider.list 返回的 default 映射提取）
+  // default 映射是每个 provider 的默认模型，不是全局唯一默认。
+  // 优先从 connected provider 中选择第一个可用的默认模型，
+  // 若无 connected provider 则回退到 default 映射中字典序第一个。
   if (!providerID || !modelID) {
-    const defaultResult = await Promise.race([
-      (client as unknown as { v2: { model: { default: (opts?: unknown) => Promise<unknown> } } }).v2.model.default(),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('model.default 超时')), 5000),
-      ),
-    ])
-    const data = (defaultResult as { data?: { data?: { providerID?: string; id?: string } | null } | null })?.data?.data
-    if (!data?.providerID || !data?.id) {
-      throw new Error('无法从 opencode 获取默认模型')
+    if (!defaultModelMap) {
+      throw new Error('无法从 opencode 获取默认模型：provider.list 未返回 default 映射')
     }
-    providerID = data.providerID
-    modelID = data.id
+    const defaultEntries = Object.entries(defaultModelMap)
+      .filter(([, mid]) => typeof mid === 'string' && mid)
+      .sort(([a], [b]) => a.localeCompare(b))
+    if (defaultEntries.length === 0) {
+      throw new Error('无法从 opencode 获取默认模型：default 映射为空或条目无效')
+    }
+    // 优先选择 connected provider 的默认模型
+    const connectedEntry = connectedProviders
+      ? defaultEntries.find(([pid]) => connectedProviders.includes(pid))
+      : undefined
+    const [defaultProviderID, defaultModelID] = connectedEntry ?? defaultEntries[0]
+    if (!defaultProviderID || !defaultModelID) {
+      throw new Error('无法从 opencode 获取默认模型：default 映射条目无效')
+    }
+    providerID = defaultProviderID
+    modelID = defaultModelID
   }
 
   const configured = providers.find((p) => p.id === providerID)

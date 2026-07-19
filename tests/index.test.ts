@@ -70,7 +70,7 @@ describe('插件入口', () => {
     isolateHome(createTempRoot())
     writeBuiltinConfig(hostRoot)
 
-    const config = await runConfigHook({ worktree: hostRoot, client: {} })
+    const config = await runConfigHook({ worktree: hostRoot, client: {}, serverUrl: new URL('http://localhost:4096') })
 
     expect(config.mcp?.context7).toEqual({
       type: 'remote',
@@ -84,7 +84,7 @@ describe('插件入口', () => {
     const hostRoot = createTempRoot()
     isolateHome(createTempRoot())
 
-    const config = await runConfigHook({ worktree: hostRoot, client: {} })
+    const config = await runConfigHook({ worktree: hostRoot, client: {}, serverUrl: new URL('http://localhost:4096') })
 
     expect(config.command?.['ae-work']?.template).toContain('ae:work')
     expect(config.command?.['ae-commit']?.template).toContain('智能提交当前变更')
@@ -99,7 +99,7 @@ describe('插件入口', () => {
       join(hostRoot, '.opencode', 'commands', 'ae-commit.md'),
       ['---', 'description: project commit', '---', 'project commit template'].join('\n'),
     )
-    const server = await plugin({ worktree: hostRoot, client: {} } as never)
+    const server = await plugin({ worktree: hostRoot, client: {}, serverUrl: new URL('http://localhost:4096') } as never)
     const config: RuntimeConfigShape = {
       command: {
         'ae-commit': {
@@ -127,7 +127,7 @@ describe('插件入口', () => {
       join(hostRoot, '.opencode', 'commands', 'ae-commit.md'),
       ['---', 'description: project commit', 'model: $quick', '---', 'project commit template'].join('\n'),
     )
-    const server = await plugin({ worktree: hostRoot, client: {} } as never)
+    const server = await plugin({ worktree: hostRoot, client: {}, serverUrl: new URL('http://localhost:4096') } as never)
     const config: RuntimeConfigShape = {}
 
     await server.config?.(config as never)
@@ -142,7 +142,7 @@ describe('插件入口', () => {
   it('项目级安装的插件动态命令应该覆盖已有同名动态命令', async () => {
     const hostRoot = `${process.cwd()}${sep}`
     isolateHome(createTempRoot())
-    const server = await plugin({ worktree: hostRoot, client: {} } as never)
+    const server = await plugin({ worktree: hostRoot, client: {}, serverUrl: new URL('http://localhost:4096') } as never)
     const config: RuntimeConfigShape = {
       command: {
         'ae-design': {
@@ -160,7 +160,7 @@ describe('插件入口', () => {
   it('插件位于 worktree 父目录下但不在项目插件目录时不应该被判定为项目级安装', async () => {
     const hostRoot = dirname(process.cwd())
     isolateHome(createTempRoot())
-    const server = await plugin({ worktree: hostRoot, client: {} } as never)
+    const server = await plugin({ worktree: hostRoot, client: {}, serverUrl: new URL('http://localhost:4096') } as never)
     const config: RuntimeConfigShape = {
       command: {
         'ae-design': {
@@ -186,7 +186,7 @@ describe('插件入口', () => {
       join(hostRoot, '.opencode', 'agents', 'ocr-reviewer.md'),
       ['---', 'description: project reviewer', 'mode: primary', '---', 'project reviewer prompt'].join('\n'),
     )
-    const server = await plugin({ worktree: hostRoot, client: {} } as never)
+    const server = await plugin({ worktree: hostRoot, client: {}, serverUrl: new URL('http://localhost:4096') } as never)
     const config: RuntimeConfigShape = {
       agent: {
         'ocr-reviewer': {
@@ -209,7 +209,7 @@ describe('插件入口', () => {
   it('项目级安装的插件动态 agent 应该覆盖已有同名动态 agent', async () => {
     const hostRoot = `${process.cwd()}${sep}`
     isolateHome(createTempRoot())
-    const server = await plugin({ worktree: hostRoot, client: {} } as never)
+    const server = await plugin({ worktree: hostRoot, client: {}, serverUrl: new URL('http://localhost:4096') } as never)
     const config: RuntimeConfigShape = {
       agent: {
         'ocr-reviewer': {
@@ -231,7 +231,7 @@ describe('插件入口', () => {
     const hostRoot = createTempRoot()
     isolateHome(createTempRoot())
 
-    const config = await runConfigHook({ worktree: hostRoot, client: {} })
+    const config = await runConfigHook({ worktree: hostRoot, client: {}, serverUrl: new URL('http://localhost:4096') })
 
     expect(config.command?.['ae-design']?.model).toBeUndefined()
     expect(config.agent?.['ocr-reviewer']?.model).toBeUndefined()
@@ -242,7 +242,7 @@ describe('插件入口', () => {
     isolateHome(createTempRoot())
     writeModelScenariosConfig(hostRoot)
 
-    const config = await runConfigHook({ worktree: hostRoot, client: {} })
+    const config = await runConfigHook({ worktree: hostRoot, client: {}, serverUrl: new URL('http://localhost:4096') })
 
     expect(config.command?.['ae-help']?.model).toBe('project/quick')
     expect(config.command?.['ae-design']?.model).toBe('project/deep')
@@ -258,7 +258,7 @@ describe('插件入口', () => {
     if (!isOverride) {
       writeModelScenariosConfig(hostRoot)
     }
-    const server = await plugin({ worktree: hostRoot, client: {} } as never)
+    const server = await plugin({ worktree: hostRoot, client: {}, serverUrl: new URL('http://localhost:4096') } as never)
     const config: RuntimeConfigShape = {
       command: {
         [commandKey]: { template: `${commandKey} template`, model: '$missing' },
@@ -278,7 +278,7 @@ describe('插件入口', () => {
     const hostRoot = createTempRoot()
     isolateHome(createTempRoot())
     writeModelScenariosConfig(hostRoot)
-    const server = await plugin({ worktree: hostRoot, client: {} } as never)
+    const server = await plugin({ worktree: hostRoot, client: {}, serverUrl: new URL('http://localhost:4096') } as never)
     const config: RuntimeConfigShape = {
       command: {
         'ae-custom': {

@@ -97,7 +97,7 @@ const _sessionCapsMap = new Map<string, ModelMediaCapability>()
 
 /**
  * 从 client.provider.list() 加载所有模型的能力数据。
- * 返回的模型数据中 modalities.input 是字符串数组（如 ["text", "image"]），
+ * 返回的模型数据中 capabilities.input 是布尔字段对象（如 { text, image, audio, video, pdf }），
  * 来自 models.dev 数据源。
  *
  * 加载失败时返回 null（不更新缓存），允许下次调用重试。
@@ -123,12 +123,12 @@ async function loadCapabilitiesFromProviders(): Promise<Map<string, ModelMediaCa
 
       for (const [modelID, model] of Object.entries(models)) {
         const key = makeModelKey(providerID, modelID)
-        const inputModalities = model.modalities?.input ?? []
+        const inputCaps = model.capabilities?.input
         cache.set(key, {
-          image: inputModalities.includes('image'),
-          audio: inputModalities.includes('audio'),
-          video: inputModalities.includes('video'),
-          pdf: inputModalities.includes('pdf'),
+          image: inputCaps?.image ?? false,
+          audio: inputCaps?.audio ?? false,
+          video: inputCaps?.video ?? false,
+          pdf: inputCaps?.pdf ?? false,
         })
       }
     }

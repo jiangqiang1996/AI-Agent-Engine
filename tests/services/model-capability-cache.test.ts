@@ -17,7 +17,7 @@ const NONE_SUPPORTED = { image: false, audio: false, video: false, pdf: false }
 
 function makeMockClient(providers: Array<{
   id: string
-  models: Record<string, { modalities?: { input: string[] } }>
+  models: Record<string, { capabilities?: { input: { text?: boolean; image?: boolean; audio?: boolean; video?: boolean; pdf?: boolean } } }>
 }>): unknown {
   return {
     provider: {
@@ -73,8 +73,8 @@ describe('getCapability', () => {
       {
         id: 'provider1',
         models: {
-          'model1': { modalities: { input: ['text', 'image'] } },
-          'model2': { modalities: { input: ['text'] } },
+          'model1': { capabilities: { input: { text: true, image: true, audio: false, video: false, pdf: false } } },
+          'model2': { capabilities: { input: { text: true, image: false, audio: false, video: false, pdf: false } } },
         },
       },
     ]) as never)
@@ -101,7 +101,7 @@ describe('getCapability', () => {
     expect(caps).toEqual(NONE_SUPPORTED)
   })
 
-  it('modalities.input 缺失时返回全 false', async () => {
+  it('capabilities.input 缺失时返回全 false', async () => {
     setGlobalClient(makeMockClient([
       { id: 'p', models: { 'm': {} } },
     ]) as never)
@@ -124,7 +124,7 @@ describe('cacheSessionModel + getCapabilityBySession', () => {
 
   it('缓存 sessionID 后查询到对应模型能力', async () => {
     setGlobalClient(makeMockClient([
-      { id: 'p1', models: { 'm1': { modalities: { input: ['text', 'image', 'pdf'] } } } },
+      { id: 'p1', models: { 'm1': { capabilities: { input: { text: true, image: true, audio: false, video: false, pdf: true } } } } },
     ]) as never)
 
     cacheSessionModel('session-1', 'p1', 'm1')
@@ -224,7 +224,7 @@ describe('cacheSessionCapabilities + getCapabilityBySession', () => {
   it('直接缓存优先于 sessionModel 映射', async () => {
     // 设置 provider.list 兜底数据（返回 image=false）
     setGlobalClient(makeMockClient([
-      { id: 'p1', models: { 'm1': { modalities: { input: ['text'] } } } },
+      { id: 'p1', models: { 'm1': { capabilities: { input: { text: true, image: false, audio: false, video: false, pdf: false } } } } },
     ]) as never)
 
     // 缓存 sessionID → modelKey
@@ -241,7 +241,7 @@ describe('cacheSessionCapabilities + getCapabilityBySession', () => {
 
   it('直接缓存缺失时回退到 sessionModel + provider.list', async () => {
     setGlobalClient(makeMockClient([
-      { id: 'p1', models: { 'm1': { modalities: { input: ['text', 'image'] } } } },
+      { id: 'p1', models: { 'm1': { capabilities: { input: { text: true, image: true, audio: false, video: false, pdf: false } } } } },
     ]) as never)
 
     cacheSessionModel('session-2', 'p1', 'm1')

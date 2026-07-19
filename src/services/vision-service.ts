@@ -114,18 +114,26 @@ export async function recognizeMediaWithModel(
   let sessionId: string | undefined
   try {
     const createRes = await client.session.create({
-      body: { title: `${options.kind}-临时识别` },
+      title: `${options.kind}-临时识别`,
     })
     if (createRes.error || !createRes.data?.id) {
+      const err = createRes.error as { message?: string; _tag?: string } | undefined
       throw new VisionError(
         `${options.kind}_recognition_unavailable`,
-        `${options.kind} 识别不可用：创建临时会话失败 - ${createRes.error?.data?.message ?? createRes.error?.name ?? '未知错误'}`,
+        `${options.kind} 识别不可用：创建临时会话失败 - ${err?.message ?? err?._tag ?? '未知错误'}`,
       )
     }
     sessionId = createRes.data.id
 
     const defaultPrompt = getDefaultPrompt(options.kind)
-    const promptBody: Record<string, unknown> = {
+    const promptParams: {
+      sessionID: string
+      parts: Array<{ type: 'text'; text: string } | { type: 'file'; mime: string; url: string }>
+      system: string
+      tools: Record<string, boolean>
+      model?: { providerID: string; modelID: string }
+    } = {
+      sessionID: sessionId,
       parts: [
         { type: 'text', text: options.prompt?.trim() || defaultPrompt },
         { type: 'file', mime, url: dataUrl },
@@ -135,18 +143,16 @@ export async function recognizeMediaWithModel(
       tools: { '*': true, edit: false, write: false, patch: false, question: false },
     }
     if (modelRef) {
-      promptBody.model = modelRef
+      promptParams.model = modelRef
     }
 
-    const promptRes = await client.session.prompt({
-      path: { id: sessionId },
-      body: promptBody as Parameters<typeof client.session.prompt>[0]['body'],
-    })
+    const promptRes = await client.session.prompt(promptParams)
 
     if (promptRes.error) {
+      const err = promptRes.error as { message?: string; _tag?: string; data?: { message?: string } }
       throw new VisionError(
         `${options.kind}_recognition_failed`,
-        `${options.kind} 模型识别失败 - ${promptRes.error.data?.message ?? promptRes.error.name ?? '未知错误'}`,
+        `${options.kind} 模型识别失败 - ${err.data?.message ?? err.message ?? err._tag ?? '未知错误'}`,
       )
     }
 
@@ -161,7 +167,7 @@ export async function recognizeMediaWithModel(
   } finally {
     if (sessionId) {
       try {
-        await client.session.delete({ path: { id: sessionId } })
+        await client.session.delete({ sessionID: sessionId })
       } catch {
         // 临时会话清理失败不影响主流程
       }

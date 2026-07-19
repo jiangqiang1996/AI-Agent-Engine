@@ -95,11 +95,11 @@ vi.mock('../../src/services/client-holder.js', () => ({
               : { 'chrome-devtools': { status } },
           })
         }),
-        add: vi.fn().mockImplementation((params: { body: { config: { command: string[] } } }) => {
+        add: vi.fn().mockImplementation((params: { config: { command: string[] } }) => {
           if (mockAddThrow) {
             return Promise.reject(new Error('npx 不可用'))
           }
-          lastAddCommand = params.body.config.command
+          lastAddCommand = params.config.command
           return Promise.resolve({ data: {} })
         }),
         disconnect: vi.fn().mockImplementation(() => {
