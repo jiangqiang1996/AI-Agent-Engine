@@ -107,9 +107,9 @@ const INVARIANTS: Invariant[] = [
   },
   {
     file: 'src/assets/skills/ae-design/SKILL.md',
-    label: 'ae:design 强制维度拆分',
-    mustContain: ['强制维度拆分', '无论文件大小，每个维度必须拆分为独立子文件', 'database（@database-designer）→ 为 api 提供表结构'],
-    mustNotContain: ['unified/split', '<ae-design路径>'],
+    label: 'ae:design 生成时拆分',
+    mustContain: ['生成时拆分，非生成后拆分', '所有维度支持大文件自动拆分', '| database | `@database-designer` |'],
+    mustNotContain: ['unified/split', '<ae-design路径>', '强制维度拆分', '无论文件大小，每个维度必须拆分为独立子文件'],
   },
 ]
 

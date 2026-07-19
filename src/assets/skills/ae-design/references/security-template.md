@@ -1,11 +1,32 @@
 # 安全设计维度契约模板
 
 **触发条件：** prd 标注涉及安全边界/认证授权/敏感数据，或风险维度命中"用户数据输入"（条件必产出）
-**产出文件：** `security/security.md`（始终拆分为独立子文件，不内联，位于 security 子目录中）
+**产出文件：** `security/security.md`（默认单文件，≤ 300 行；超 300 行自动拆分为 `security/01-security.md` 索引 + `security/NN-<domain>.md` 分组实体，domain 如 auth/threat-model/data-protection）
 **产出方：** `@security-designer` 子代理
 **可还原性目标：** 任意 AI 据此实现不引入安全漏洞的代码
 
-## 契约元素（MVCE）
+## 产出方式
+
+**默认单文件产出（1 次调用）。** security 维度内容通常紧凑，默认产出单文件 `security/security.md`。
+
+**自动拆分机制：** 当 security 内容预计超 300 行时（大型系统威胁模型/数据分级/授权矩阵随业务规模膨胀），索引层子代理在 file-plan 中预先声明拆分方案，阶段 2 直接按子主题分组产出多个文件（生成时拆分，非先生成大文件再拆分）：
+- 索引文件 `security/01-security.md`：威胁模型概览 + 信任边界 + 负向设计空间 + file-plan
+- 分组实体文件 `security/NN-<domain>.md`：按子主题分组（如 `02-auth.md` 认证授权流程、`03-data-protection.md` 数据分级与密钥管理、`04-threat-model.md` 详细威胁模型与输入验证 + 审计日志）
+
+拆分判定：索引层子代理评估内容规模，预计超 300 行时在 file-plan 中声明拆分；已产出文件即时校验，超 300 行打回重新按子主题分组生成，最多重试 2 次。
+
+```markdown
+---
+type: design-shard
+status: active
+section: "security"
+parent: "design.md"
+module: "security"
+layer: index
+heading_chain: "设计契约 > 安全设计"
+---
+
+## 安全设计
 
 security 维度的最小可验证契约元素集，标注 `[核心]` 或 `[可选]`：
 

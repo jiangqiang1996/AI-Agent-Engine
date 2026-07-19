@@ -41,12 +41,12 @@
 |------|---------|--------|---------|
 | overview | `overview-template.md` | 主代理产出 | `overview.md`（独立文件） |
 | design-spec | 无（透传维度） | `@ui-design-spec` | N/A（透传） |
-| ui-ux | `ui-ux-template.md` | `@ui-ux-designer` | `ui-ux/ui-ux.md` |
-| architecture | `architecture-template.md` | `@architecture-designer` | `architecture/architecture.md` |
-| api | `api-template.md` | `@api-designer` | `api/api.md` |
-| database | `database-template.md` | `@database-designer` | `database/database.md` |
-| test-cases | `test-cases-template.md` | `@test-cases-designer` | `test-cases/test-cases.md` |
-| security | `security-template.md` | `@security-designer` | `security/security.md` |
-| observability | `observability-template.md` | `@observability-designer` | `observability/observability.md` |
-| non-functional | `non-functional-template.md` | `@non-functional-designer` | `non-functional/non-functional.md` |
+| ui-ux | `ui-ux-template.md` | `@ui-ux-designer` | `ui-ux/01-ui-ux.md` + 分组实体 |
+| architecture | `architecture-template.md` | `@architecture-designer` | `architecture/01-architecture.md` + 分组实体 |
+| api | `api-template.md` | `@api-designer` | `api/01-api.md` + 分组实体 |
+| database | `database-template.md` | `@database-designer` | `database/01-database.md` + 分组实体 |
+| test-cases | `test-cases-template.md` | `@test-cases-designer` | `test-cases/01-test-cases.md` + 分组实体 |
+| security | `security-template.md` | `@security-designer` | `security/security.md`（单文件） |
+| observability | `observability-template.md` | `@observability-designer` | `observability/observability.md`（单文件） |
+| non-functional | `non-functional-template.md` | `@non-functional-designer` | `non-functional/non-functional.md`（单文件） |
 | 跨维度映射表 | `cross-dimension-mapping.md` | 主代理产出 | `traceability.md`（独立文件） |

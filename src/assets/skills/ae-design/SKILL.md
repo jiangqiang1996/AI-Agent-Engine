@@ -27,7 +27,7 @@ argument-hint: "[需求文档路径|design|裸描述] [dimensions=architecture,d
 5. **合理调整 MVCE 覆盖深度** - 简单的任务获得紧凑的契约集，较大的任务获得更完整的契约集。轻量级任务可省略可选 MVCE（最小可验证契约元素）项，但必产出维度的核心 MVCE 不得省略。**核心 MVCE 判定标准：** 该契约元素缺失会导致 ae:work 无法继续实施或 ae:review 无法验证一致性 → 核心；该契约元素缺失只会降低设计质量但不阻塞下游 → 可选。每个维度的 MVCE 清单中标注 `[核心]` 或 `[可选]`。
 6. **跨维度一致性** - overview 必须记录维度间依赖；api 数据模型必须与 database 一致；ui-ux 数据展示必须与 api 响应字段对齐；跨维度映射表（4 类）必须存在且与维度内容对齐。
 7. **只保留对后续执行有用的设计契约** - 不为了"读起来完整"新增无实际约束力的章节；每个维度内容只有在直接影响实现、测试或审查时才记录。
-8. **强制维度拆分** - 无论文件大小，每个维度必须拆分为独立子文件，不在 design.md 中内联维度内容。子代理直接按 `###` 章节产出二级子文件，脚本负责校验和合并（合并后 ≤ 300 行才合回）。`design.md` 为纯索引文件（< 100 行），overview、实施约束和跨维度映射表外迁为独立文件（`overview.md`、`constraints.md`、`traceability.md`）。
+8. **生成时拆分，非生成后拆分** - 子代理直接按功能域产出多个小文件（每文件 ≤ 300 行），不产出大文件再后置拆分。全程无中间大文件，避免 AI 上下文爆炸。采用两阶段分层调度：阶段 1 索引层（每维度 1 次调用，产出索引 + 共享契约 + file-plan），阶段 2 分组实体层（每文件 1 次调用，产出该组实体精确片段）。所有维度支持大文件自动拆分：architecture/api/database/ui-ux/test-cases 始终两阶段拆分；security/observability/non-functional 默认单文件，超 300 行时自动按子主题拆分为索引 + 分组实体。`design.md` 为纯索引文件（< 100 行），overview、实施约束和跨维度映射表外迁为独立文件（`overview.md`、`constraints.md`、`traceability.md`）。
 9. **维度子代理产出** - 不同维度的设计契约由对应的维度专精子代理产出，确保设计质量和专注度。
 10. **使用 ae:grill 追问** - 在产出契约前，推荐使用 `ae:grill` 技能逐个追问设计决策，一问一答推进直到达成共识。用户可选择跳过。
 11. **技术栈依赖审查** - 设计中关于技术栈的选型禁止引入长期不活跃或 stars 数量较少的小众依赖。技术选型理由表中每个引入的第三方依赖必须标注其社区活跃度（最近发布时间、stars 量级）和采用理由；优先选择社区活跃、生态成熟、维护稳定的依赖。具体判定标准见 `references/architecture-template.md` 技术选型理由章节。
@@ -83,17 +83,17 @@ argument-hint: "[需求文档路径|design|裸描述] [dimensions=architecture,d
 |------|--------|---------|
 | overview | 主代理产出 | overview.md（独立文件） |
 | design-spec | `@ui-design-spec` | 设计决策包（透传给 `@ui-ux-designer`，不产出独立文件） |
-| ui-ux | `@ui-ux-designer` | `ui-ux/ui-ux-<章节名>.md` 二级子文件 + `ui-ux/ui-ux.md` 引用清单 |
-| architecture | `@architecture-designer` | `architecture/architecture-<章节名>.md` 二级子文件 + `architecture/architecture.md` 引用清单 |
-| api | `@api-designer` | `api/api-<章节名>.md` 二级子文件 + `api/api.md` 引用清单 |
-| database | `@database-designer` | `database/database-<章节名>.md` 二级子文件 + `database/database.md` 引用清单 |
-| test-cases | `@test-cases-designer` | `test-cases/test-cases-<章节名>.md` 二级子文件 + `test-cases/test-cases.md` 引用清单 |
-| security | `@security-designer` | `security/security-<章节名>.md` 二级子文件 + `security/security.md` 引用清单 |
-| observability | `@observability-designer` | `observability/observability-<章节名>.md` 二级子文件 + `observability/observability.md` 引用清单 |
-| non-functional | `@non-functional-designer` | `non-functional/non-functional-<章节名>.md` 二级子文件 + `non-functional/non-functional.md` 引用清单 |
+| ui-ux | `@ui-ux-designer` | 索引 `ui-ux/01-ui-ux.md` + 分组实体 `ui-ux/NN-pages-<domain>.md` + `ui-ux/NN-components.md` |
+| architecture | `@architecture-designer` | 索引 `architecture/01-architecture.md` + 分组实体 `architecture/NN-module-boundary.md` + `architecture/NN-data-flow.md` |
+| api | `@api-designer` | 索引 `api/01-api.md` + 分组实体 `api/NN-endpoints-<domain>.md` |
+| database | `@database-designer` | 索引 `database/01-database.md` + 分组实体 `database/NN-tables-<domain>.md` |
+| test-cases | `@test-cases-designer` | 索引 `test-cases/01-test-cases.md` + 分组实体 `test-cases/NN-<test-layer>.md` |
+| security | `@security-designer` | `security/security.md`（默认单文件，超 300 行自动拆分） |
+| observability | `@observability-designer` | `observability/observability.md`（默认单文件，超 300 行自动拆分） |
+| non-functional | `@non-functional-designer` | `non-functional/non-functional.md`（默认单文件，超 300 行自动拆分） |
 | 跨维度映射表 | 主代理产出 | traceability.md（独立文件） |
 
-**子目录组织：** 每个维度的文件放在以维度名命名的子目录中。`design.md` 始终在设计目录根下，为纯索引文件（< 100 行），只保留 frontmatter + Split Manifest + 索引表。`overview.md`、`constraints.md`、`traceability.md` 位于设计目录根下。维度一级文件（引用清单）和二级子文件均位于对应维度的子目录中（如 `api/api.md`、`api/api-endpoints.md`）。`design-spec` 为透传维度，不产出文件，不创建子目录。
+**子目录组织：** 每个维度的文件放在以维度名命名的子目录中。`design.md` 始终在设计目录根下，为纯索引文件（< 100 行），只保留 frontmatter + Split Manifest + 索引表。`overview.md`、`constraints.md`、`traceability.md` 位于设计目录根下。维度索引文件（带 `01-` 前缀）和分组实体文件（带 `NN-` 前缀，NN 从 02 开始）均位于对应维度的子目录中（如 `api/01-api.md`、`api/02-endpoints-auth.md`）。`design-spec` 为透传维度，不产出文件，不创建子目录。单文件维度（security/observability/non-functional）不加序号。
 
 **硬性约束：主代理严禁直接产出维度契约内容。** overview、实施约束和跨维度映射表由主代理产出为独立文件，其他维度必须调度对应子代理。违反此约束属于执行错误。
 
@@ -249,71 +249,71 @@ overview 产出到 `overview.md` 独立文件中，按 `references/overview-temp
 
 按确认的维度清单和并行分组策略，调度维度专精子代理产出设计契约。
 
-#### 4.1 并行分组策略
+#### 4.1 两阶段分层调度策略
 
-维度按依赖关系分为三个并行波次：
+采用分层调度（两个主阶段：索引层 + 实体层；中间含 1.5 汇总步骤；test-cases 为依赖实体层的后续阶段），生成时即拆分，全程无中间大文件：
 
-**并行波次 0（前置依赖，串行）：**
-- design-spec（@ui-design-spec）→ 产出设计决策包（设计读数、三旋钮、设计体系、风格变体、负向设计空间），为 ui-ux 提供前置依赖
+**阶段 1：索引层（每维度 1 次调用，全维度并行）**
 
-> design-spec 为透传维度，不产出独立文件。波次 0 完成后，设计决策包作为上下文传递给波次 1 的 ui-ux 子代理。
+子代理只产出索引文件 + 共享契约 + 实体分组方案（file-plan），不产出实体细节：
+- 列出所有实体（页面/端点组/表/测试套件）
+- 按功能域分组，制定 file-plan（同域实体打包，单域超 300 拆 2 文件，允许尾箱不满）
+- 产出共享契约（Token/错误码/认证/路由表/ER 概览...）
 
-**并行波次 1（全部并行，依赖波次 0）：**
-- architecture（@architecture-designer）→ 为 api/database 提供模块边界和分层规则
-- database（@database-designer）→ 为 api 提供表结构（T-XXX）用于字段对齐
-- api（@api-designer）→ 与 database 字段对齐，为 ui-ux 提供端点
-- ui-ux（@ui-ux-designer）→ 接收波次 0 的 design-spec 决策包，与 api 端点对齐
-- security（@security-designer）→ 与 api/database 对齐
-- observability（@observability-designer）→ 与 architecture/api 对齐
-- non-functional（@non-functional-designer）→ 与 architecture/database 对齐
+**阶段 1.5：编排层汇总**
 
-波次 1 中所有维度子代理一次性并行调度，不等待其他维度完成。每个子代理从 overview 获取稳定 ID（T-XXX、EP-XXX、ADR-XXX、ST-XXX 等）和跨维度上下文，基于 overview 预分配的稳定 ID 独立产出契约。即使有关联的维度（如 api 和 database）也并行产出，跨维度一致性在阶段 5 校验。
+主代理读取所有索引文件的 file-plan，汇总待生成文件清单。待生成文件 = 所有维度的 file-plan 中除索引外的文件。
 
-**并行波次 2（依赖波次 1）：**
-- test-cases（@test-cases-designer）→ 依赖所有其他维度的契约元素进行覆盖追溯，在波次 1 全部完成后调度
+**阶段 2：分组实体层（每文件 1 次调用，全文件并行）**
+
+子代理只接收：该维度索引文件 + 该文件对应的实体清单 + 跨维度引用目标（ID 引用，不加载其他维度的实体文件）。产出 1 个文件，含该组所有实体的精确片段（HTML+CSS / OpenAPI / DDL / 行为契约...），≤ 300 行。
+
+**阶段 3：test-cases 实体层（依赖阶段 2）**
+
+test-cases 依赖其他维度的实体清单，按测试层分组调用。
+
+**分组规则：**
+1. 功能域是分组边界，同域实体高内聚打包到一个文件
+2. 单域预算 ≤ 300 → 该域一个文件
+3. 单域预算 > 300 → 该域拆成 2 文件（按实体排序均分，非按单个实体拆）
+4. 允许最后一个文件 < 200 行（尾箱不满）
+5. security/observability/non-functional 默认单文件，超 300 行时自动按子主题拆分为索引 + 分组实体
 
 #### 4.2 并行子代理调度
 
-**波次 0 调度（串行）：** 调度 `@ui-design-spec` 子代理，传入以下上下文：
-- **prd 内容摘要**：需求条目、目标、范围边界、时段标注
-- **ae:grill 追问结果**：设计相关的已确认决策
-- **overview 上下文**：设计读数、范围映射、稳定 ID 体系
+**阶段 1 调度（全维度并行）：** 在同一轮回复中一次性发出所有维度的索引层 Task 调用。每个子代理传入：
+- prd 内容摘要
+- ae:grill 追问结果
+- overview 上下文（稳定 ID 体系）
+- 契约模板路径
 
-波次 0 完成后，设计决策包作为上下文传递给波次 1 的 ui-ux 子代理。
+子代理产出索引文件（`<维度名>/01-<维度名>.md`），含共享契约 + 实体清单 + file-plan。索引层串行生成，每生成一个文件立即校验 ≤ 300 行。
 
-**波次 1 调度（全部并行）：** 在**同一轮回复中一次性发出所有 Task 调用**，启动波次 1 的全部维度子代理。每个子代理传入以下上下文：
-- **prd 内容摘要**：需求条目、目标、范围边界、时段标注
-- **ae:grill 追问结果**：该维度相关的已确认设计决策
-- **overview 上下文**：设计读数、范围映射、跨维度依赖关系、稳定 ID 体系
-- **契约模板路径**：`references/<维度名>-template.md`
-- **跨维度依赖**：overview 中预分配的稳定 ID 和契约元素（不依赖其他维度的实际产出）
-- **设计决策包**（仅 `@ui-ux-designer`）：从波次 0 的 `@ui-design-spec` 产出获取设计决策包参数
+**阶段 1.5 汇总：** 主代理读取所有索引文件的 file-plan，汇总待生成文件清单。
 
-子代理直接按 `###` 章节产出二级子文件，不产出完整维度文件：
-- 二级子文件路径：`<维度名>/<维度名>-<章节名kebab>.md`
-- 二级子文件 frontmatter：`{ type: design-shard, status: active, section: <章节名kebab>, parent: <维度名>.md, module: <维度名>, heading_chain: <完整标题路径> }`
-- 二级子文件正文：该 `###` 章节内容（含 `###` 标题行）
+**阶段 2 调度（串行生成 + 即时校验）：** 按 file-plan 顺序逐个生成实体文件。每生成一个文件立即校验行数 ≤ 300：
+- 校验通过 → 继续生成下一个文件
+- 校验不通过 → 打回该子代理重新生成（调整分组策略），重新生成后再次校验
+- 最多重试 2 次，仍不通过则报错暂停，由主代理介入调整 file-plan
 
-同时产出 `<维度名>/<维度名>.md` 引用清单文件：
-- frontmatter：`{ type: design-shard, status: active, section: <维度名>, parent: design.md, module: <维度名>, sub_split: true, heading_chain: <完整标题路径> }`
-- 正文：子文件引用列表
+每个子代理传入：
+- 该维度的索引文件（提供全局上下文和共享契约）
+- 该文件对应的实体清单（来自 file-plan）
+- 跨维度引用目标（ID 引用，不加载其他维度的实体文件）
 
-波次 1 全部子代理返回后，再调度波次 2 的 test-cases 子代理，传入以下上下文：
-- **prd 内容摘要**：需求条目、目标、范围边界、时段标注
-- **ae:grill 追问结果**：测试相关的已确认决策
-- **overview 上下文**：设计读数、范围映射、跨维度依赖关系、稳定 ID 体系
-- **契约模板路径**：`references/test-cases-template.md`
-- **所有波次 1 维度的稳定 ID 和契约元素**：architecture、api、database、ui-ux、security、observability、non-functional 的产出契约元素
+子代理产出 1 个分组实体文件（`<维度名>/NN-<功能域>.md`，维度名由子目录表达不重复），含该组所有实体的精确片段，≤ 300 行。
+
+**阶段 3 调度（test-cases 实体层）：** 依赖阶段 2 产出的实体清单，按测试层分组串行生成 + 即时校验。
 
 子代理产出后返回：
-- 产出文件路径列表（二级子文件 + 引用清单）
+- 产出文件路径列表
 - 稳定 ID 列表
 - 跨维度映射表行项
 
 #### 4.3 主代理汇总
 
 **所有子代理执行完毕后**，主代理统一汇总，生成元数据文件：
-- 更新 design.md 的 Split Manifest（记录每个维度文件的 file、lines、sub_split 状态，路径包含子目录）
+- 更新 design.md 的 Split Manifest（记录每个文件的 file、lines、layer 状态）
 - 更新 design.md 的产物清单
 - 更新跨维度映射表对应行项
 - 记录稳定 ID 列表
@@ -321,22 +321,31 @@ overview 产出到 `overview.md` 独立文件中，按 `references/overview-temp
 
 **关键约束：** design.md 的 Split Manifest、产物清单和跨维度映射表由主代理在所有子代理执行完毕之后单独生成，子代理不直接修改 design.md。
 
-#### 4.4 维度校验与合并
+#### 4.4 行数校验（即时校验，非最终校验）
 
-**强制拆分规则：** 每个维度必须拆分为独立子文件，不在 design.md 中内联维度内容。`design.md` 为纯索引文件（< 100 行），只保留 frontmatter + Split Manifest + 索引表。overview、实施约束和跨维度映射表分别外迁为 `overview.md`、`constraints.md`、`traceability.md` 独立文件。design-spec 维度为透传维度，不产出独立文件，不参与拆分规则和行数校验。
+**生成时拆分原则：** 子代理直接按功能域产出多个小文件，不产出大文件再后置拆分。每文件目标 250-300 行，硬上限 300 行。文件名带序号（`01-` 索引，`02+` 实体），便于看出生成顺序。
 
-子代理已直接产出二级子文件。运行流水线脚本：
+**即时校验机制：** 每生成一个文件就校验一次，不通过打回重新生成该文件，通过后再生成下一个文件。避免最终校验导致大量返工。
 
-    node <ae-design技能目录>/scripts/pipeline-design-shards.mjs <design目录路径>
+- 索引层：串行生成，每生成一个文件立即校验 ≤ 300 行
+- 实体层：串行生成，每生成一个文件立即校验行数 ≤ 300
+  - 校验通过 → 继续生成下一个文件
+  - 校验不通过 → 打回该子代理重新生成（调整分组策略），重新生成后再次校验
+  - 最多重试 2 次，仍不通过则报错暂停，由主代理介入调整 file-plan
 
-脚本自动完成：
-1. **校验**：所有一级维度文件（引用清单）行数 ≤ 300 行，overview.md/constraints.md/traceability.md 也 ≤ 300 行
-2. **合并**：对每个已二级拆分的维度，计算合并后行数；合并后 ≤ 300 行 → 合并回父文件；> 300 行 → 保持拆分
-3. **递归兜底**：对仍超标的文件，按 `###` → `####` → 段落空行 → 硬切降级链递归切分，注入 heading_chain
+**消除的机制：**
+- 后置拆分脚本已删除（`pipeline-design-shards.mjs`、`enforce-design-limit.mjs`、`merge-design-shards.mjs`、`check-design-lines.mjs`）
+- 生成后合并回父文件
+- 递归兜底硬切
+- 最终统一校验（改为即时校验）
 
-合并由脚本执行，LLM 不介入。
+**保留的机制：**
+- 即时行数校验（每生成一个文件校验一次，超限打回重生）
+- heading_chain（跨文件语义追溯）
+- Split Manifest（记录文件清单）
+- 跨维度引用校验（阶段 5，只读索引）
 
-拆分规则、子文件命名规范、Split Manifest 格式和二级拆分细则见 `references/design-output-template.md`。
+拆分规则、子文件命名规范、Split Manifest 格式和 file-plan 机制见 `references/design-output-template.md`。
 
 ### 阶段 5：跨维度一致性校验
 
@@ -444,7 +453,7 @@ review 闭环收敛后，显式提示用户下一步推荐技能。
 
 ## 产物结构
 
-产物目录结构、design.md 纯索引模板、overview.md/constraints.md/traceability.md 模板和 Split Manifest 格式详见 `references/design-output-template.md`。每个维度的文件放在以维度名命名的子目录中（如 `api/api.md`），Split Manifest 中的 file 路径包含子目录前缀。
+产物目录结构、design.md 纯索引模板、overview.md/constraints.md/traceability.md 模板和 Split Manifest 格式详见 `references/design-output-template.md`。每个维度的文件放在以维度名命名的子目录中（如 `api/01-api.md`），Split Manifest 中的 file 路径包含子目录前缀。
 
 设计维度契约模板详见 `references/` 目录下各维度的独立模板文件：
 - `references/dimension-triggers.md` - 维度触发规则

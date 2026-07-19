@@ -27,17 +27,20 @@
 ```
 ae/prds/<topic>-YYYY-MM-DD/
 ├── prd.md                        # 纯索引（< 100 行）
-├── problem.md                    # ## 问题框架
-├── scope.md                      # ## 范围边界
-├── requirements-<module>.md      # ## 需求 > ### 模块（每个模块一个文件）
-├── non-functional.md             # ## 非功能需求
-├── success-criteria.md           # ## 成功标准
-├── decisions.md                  # ## 关键决策
-├── dependencies.md               # ## 依赖 / 假设
-└── open-questions.md             # ## 待定问题
+├── 01-problem.md                 # ## 问题框架
+├── 02-scope.md                   # ## 范围边界
+├── 03-requirements-<module>.md   # ## 需求 > ### 模块（每个模块一个文件）
+├── 04-non-functional.md          # ## 非功能需求
+├── 05-success-criteria.md        # ## 成功标准
+├── 06-decisions.md               # ## 关键决策
+├── 07-dependencies.md            # ## 依赖 / 假设
+├── 08-open-questions.md          # ## 待定问题
+├── prototype/                    # ## 原型设计
+│   ├── 01-prototype.md           # 索引：页面清单 + 路由表 + 导航结构 + 主题声明
+│   └── NN-pages-<domain>.md      # 按功能域分组的页面原型描述
 ```
 
-**原生分片产出规则：** 每个 `##` 章节产出一个独立文件。需求章节内按 `###` 子章节（模块）拆分时，每个 `###` 对应一个 `requirements-<module>.md` 文件。`prd.md` 为纯索引，只保留 frontmatter + 索引表，不内联实质内容。
+**原生分片产出规则：** 每个 `##` 章节产出一个独立文件，文件名带序号前缀（`01-`、`02-`...，按章节顺序编号）。需求章节内按 `###` 子章节（模块）拆分时，每个 `###` 对应一个 `NN-requirements-<module>.md` 文件。原型设计章节按功能域分组，每组对应一个 `prototype/NN-pages-<domain>.md` 文件。`prd.md` 为纯索引，只保留 frontmatter + 索引表，不内联实质内容。**所有文件生成时即保证 ≤ 300 行，不产出大文件再后置拆分。**
 
 **prd.md 索引文件模板：**
 
@@ -53,15 +56,23 @@ originFingerprint: <上游指纹，若无则删除此行>
 format: human-readable-requirements
 sharded: true
 shards:
-  - file: problem.md
+  - file: 01-problem.md
     module: problem
-  - file: scope.md
+  - file: 02-scope.md
     module: scope
-  - file: requirements-auth.md
+  - file: 03-requirements-auth.md
     module: auth
     requirements: [R1, R2, R3, R4, R5]
-  - file: success-criteria.md
+  - file: 04-non-functional.md
+    module: non-functional
+  - file: 05-success-criteria.md
     module: success-criteria
+  - file: prototype/01-prototype.md
+    module: prototype
+  - file: prototype/02-pages-auth.md
+    module: prototype-auth
+  - file: prototype/03-pages-resource.md
+    module: prototype-resource
 ---
 
 # <主题标题>
@@ -70,10 +81,13 @@ shards:
 
 | 文件 | 章节 | 行数 | 摘要 | 稳定 ID |
 |------|------|------|------|---------|
-| [problem.md](problem.md) | 问题框架 | 45 | 一句话摘要 | — |
-| [scope.md](scope.md) | 范围边界 | 30 | In/Out 摘要 | — |
-| [requirements-auth.md](requirements-auth.md) | 用户认证 | 120 | 登录/注册/密码重置 | R1-R5 |
-| [success-criteria.md](success-criteria.md) | 成功标准 | 25 | 5 个可验证标准 | — |
+| [01-problem.md](01-problem.md) | 问题框架 | 45 | 一句话摘要 | — |
+| [02-scope.md](02-scope.md) | 范围边界 | 30 | In/Out 摘要 | — |
+| [03-requirements-auth.md](03-requirements-auth.md) | 用户认证 | 120 | 登录/注册/密码重置 | R1-R5 |
+| [05-success-criteria.md](05-success-criteria.md) | 成功标准 | 25 | 5 个可验证标准 | — |
+| [prototype/01-prototype.md](prototype/01-prototype.md) | 原型索引 | 80 | 页面清单、路由表 | P-001~004 |
+| [prototype/02-pages-auth.md](prototype/02-pages-auth.md) | 原型-认证页面 | 150 | 登录+注册布局和交互 | P-001~002 |
+| [prototype/03-pages-resource.md](prototype/03-pages-resource.md) | 原型-资源页面 | 200 | 列表+详情布局和交互 | P-003~004 |
 ```
 
 **章节子文件模板：**
@@ -93,7 +107,7 @@ heading_chain: "用户认证系统 > 问题框架"
 [当前问题、目标变化、成功判断和必要范围背景]
 ```
 
-需求子文件按模块命名（如 `requirements-auth.md`），frontmatter 中 `section` 和 `module` 为模块名，`heading_chain` 包含完整路径上下文。
+需求子文件按模块命名（如 `03-requirements-auth.md`），frontmatter 中 `section` 和 `module` 为模块名，`heading_chain` 包含完整路径上下文。
 
 **Frontmatter 字段填写指引：**
 
@@ -118,11 +132,11 @@ heading_chain: "用户认证系统 > 问题框架"
 
 **分片规则：**
 
-需求文档以目录形式产出，所有子文件放于同一个需求目录下。`prd.md` 为纯索引文件（< 100 行），只保留 frontmatter + 索引表。每个 `##` 章节对应一个独立文件，需求章节内按 `###` 子章节（模块）拆分时每个模块对应一个 `requirements-<module>.md` 文件。
+需求文档以目录形式产出，所有子文件放于同一个需求目录下。`prd.md` 为纯索引文件（< 100 行），只保留 frontmatter + 索引表。每个 `##` 章节对应一个独立文件，文件名带序号前缀（`01-`、`02-`...，按章节顺序编号）。需求章节内按 `###` 子章节（模块）拆分时每个模块对应一个 `NN-requirements-<module>.md` 文件。
 
 每个子文件 frontmatter 包含 `section`、`parent`（指向 `prd.md`）和 `heading_chain`（完整标题路径），保证单文件可独立理解。子文件只承载本章节内容，不作为恢复、规划或执行入口的顶层产物。
 
-兜底脚本 `enforce-shard-limit.mjs` 在 LLM 产出的极少数文件超标时介入，按 `###` → `####` → 段落空行 → 硬切降级链递归处理，注入 heading chain 保证语义可追溯。
+**所有文件生成时即保证 ≤ 300 行，不产出大文件再后置拆分。** 超限文件报错重新生成，不做后置递归切分。
 
 对于**标准**和**深入**需求探索，通常需要一份需求数据文档。
 
@@ -184,3 +198,145 @@ heading_chain: "用户认证系统 > 问题框架"
 - 在相关位置内联放置
 - 仅概念层面——用户流程、信息流、模式比较
 - 文字是权威的：视觉辅助与文字不一致时以文字为准
+
+## 原型设计
+
+### 定位
+
+原型设计是 ae:prd 的组成部分，用于在需求阶段确定产品逻辑层的确定性边界。**不是最终页面设计**。最终页面详细设计（HTML 结构、CSS 样式、组件选型、技术栈）属于 ae:design 的 ui-ux 维度。
+
+原型设计用 Markdown 描述页面结构和交互。**不生成 HTML 文件** — 用户可根据 md 自行生成原型 HTML 用于验证。
+
+### 确定性边界（核心原则）
+
+原型 md 必须明确锁定**产品逻辑层**的所有确定性内容。任何人根据这份 md 生成的原型 HTML，在以下方面必须完全一致：
+
+**必须确定的（任何人生成结果一致）：**
+- 页面数量和页面列表
+- 每页面的路由
+- 导航结构（上下菜单 / 左右侧栏 / Tab 切换等布局模式）
+- 主题色声明（如"红色主题"、"深色模式"）
+- 每页面的布局结构（哪些区域、区域排列方式、区域用途）
+- 每页面的核心交互流程（点击什么 → 跳转哪里 / 触发什么）
+- 页面间跳转关系
+- 表单字段清单和必填规则
+
+**允许差异的（视觉实现细节）：**
+- 具体间距、字号、圆角数值
+- 字体选择
+- 动画效果
+- 图标样式
+- 占位内容的具体文字
+
+### 产出内容
+
+#### prototype/01-prototype.md（索引文件，≤ 300 行）
+
+```markdown
+---
+type: prd-shard
+status: drafted
+section: "prototype"
+parent: "prd.md"
+module: "prototype"
+layer: index
+heading_chain: "主题 > 原型设计"
+---
+
+## 原型设计
+
+### 页面清单
+
+| 页面 ID | 页面名 | 路由 | 功能域 | 文件 | 描述 |
+|---------|--------|------|--------|------|------|
+| P-001 | 登录页 | /login | auth | 02-pages-auth.md | 用户登录入口 |
+| P-002 | 注册页 | /register | auth | 02-pages-auth.md | 新用户注册 |
+| P-003 | 资源列表 | /resources | resource | 03-pages-resource.md | 资源浏览和管理 |
+| P-004 | 资源详情 | /resources/:id | resource | 03-pages-resource.md | 单个资源查看 |
+
+### 路由表
+
+| 路由 | 页面 | 权限 | 重定向 |
+|------|------|------|--------|
+| /login | P-001 | 公开 | 已登录 → /resources |
+| /resources | P-003 | 需认证 | 未登录 → /login |
+
+### 导航结构
+
+- 布局模式：[上下菜单 / 左右侧栏 / 顶部 Tab / 无导航]
+- 主导航项：[首页 / 资源列表 / 设置]
+- 次级导航：[如适用]
+- 面包屑规则：[如适用]
+
+### 主题声明
+
+- 主题色：[红色主题 / 蓝色主题 / 深色模式 / 浅色模式]
+- 色调：[暖色 / 冷色 / 中性]
+- 视觉风格关键词：[极简 / 商务 / 活泼 / 科技感]
+
+### file-plan
+
+（按功能域分组的文件生成计划）
+```
+
+#### prototype/pages-<domain>.md（按功能域分组，每组 ≤ 300 行）
+
+每文件含该域所有页面的原型描述。**必须锁定产品逻辑层的确定性内容**：
+
+```markdown
+---
+type: prd-shard
+status: drafted
+section: "prototype-auth"
+parent: "01-prototype.md"
+module: "prototype"
+layer: entity-group
+heading_chain: "主题 > 原型设计 > 认证域页面"
+---
+
+## 认证域页面
+
+### P-001: 登录页
+
+**路由：** /login
+
+**布局结构（确定性）：**
+- 顶部区域：Logo + 页面标题"登录"
+- 中部区域：表单（邮箱输入 + 密码输入）
+- 底部区域：登录按钮 + "忘记密码"链接 + "注册"链接
+- 布局模式：垂直居中，单列
+
+**交互流程（确定性）：**
+- 点击登录按钮 → 提交表单 → 成功跳转 /resources，失败显示错误提示
+- 点击"注册"链接 → 跳转 /register
+- 点击"忘记密码" → 跳转 /forgot-password
+
+**页面元素清单（确定性）：**
+| 元素 | 类型 | 必填 | 验证规则 | 区域 |
+|------|------|------|---------|------|
+| Logo | 图片 | — | — | 顶部 |
+| 页面标题 | 文本 | — | 内容为"登录" | 顶部 |
+| 邮箱 | email input | 是 | 合法邮箱格式 | 中部 |
+| 密码 | password input | 是 | 最少 8 字符 | 中部 |
+| 登录按钮 | submit button | — | — | 底部 |
+| 忘记密码链接 | link | — | 跳转 /forgot-password | 底部 |
+| 注册链接 | link | — | 跳转 /register | 底部 |
+
+### P-002: 注册页
+（同上格式，必须锁定布局结构、交互流程、页面元素清单）
+```
+
+**确定性边界声明：** 以上内容任何人据此生成的原型 HTML 必须一致：页面数量、路由、布局区域划分、交互跳转、表单字段和必填规则。允许差异的仅限视觉实现细节（间距、字号、颜色深浅、动画）。
+
+### 原型与 ae:design ui-ux 的关系
+
+| | ae:prd 原型 | ae:design ui-ux |
+|--|-----------|-----------------|
+| **目的** | 确定产品逻辑层确定性边界 | 最终页面详细设计，供 ae:work 实施 |
+| **确定性内容** | 页面数、路由、布局结构、导航模式、主题色、交互流程、表单字段 | HTML 结构、CSS 样式、组件选型、技术栈、Props 契约、状态机、设计 Token |
+| **允许差异** | 视觉实现细节（间距、字号、动画、图标样式） | 几乎无差异，任何 LLM 生成的实现近乎一模一样 |
+| **输出** | md 描述（用户可自行生成原型 HTML 验证） | 可执行设计契约（ae:work 直接消费） |
+| **消费者** | 用户（验证产品逻辑确定性） | LLM（生成实现代码） |
+| **验证标准** | 任何人据 md 生成的原型在确定性边界内一致 | 任何 LLM 据设计文件生成的实现近乎一模一样 |
+
+ae:design 的 ui-ux 维度以 ae:prd 的原型为输入，将产品逻辑层的确定性边界升级为代码级详细设计，补充技术栈声明、HTML 结构片段、CSS 样式片段、组件选型和 Props 契约。

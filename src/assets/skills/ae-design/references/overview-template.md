@@ -34,8 +34,8 @@ overview 维度的最小可验证契约元素集，标注 `[核心]` 或 `[可�
 
 | prd 需求 | 对应设计维度 | 契约位置 |
 |---------|-------------|---------|
-| 需求 1 | architecture, api | architecture/architecture.md, api/api.md |
-| 需求 2 | ui-ux | ui-ux/ui-ux.md |
+| 需求 1 | architecture, api | architecture/01-architecture.md, api/01-api.md |
+| 需求 2 | ui-ux | ui-ux/01-ui-ux.md |
 
 ### 产物清单
 （本次产出的维度文件列表和状态）
@@ -43,7 +43,7 @@ overview 维度的最小可验证契约元素集，标注 `[核心]` 或 `[可�
 | 维度 | 文件 | 状态 | 版本 |
 |------|------|------|------|
 | overview | overview.md（独立文件） | split | 1.0 |
-| architecture | architecture/architecture.md | split | 1.0 |
+| architecture | architecture/01-architecture.md | split | 1.0 |
 
 ### 契约版本
 - 版本号：1.0（初始）或递增
