@@ -1,10 +1,11 @@
 import { randomBytes } from 'node:crypto'
-import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 
 import { tool } from '@opencode-ai/plugin'
 import { z } from 'zod'
+
+import { spawnAsyncWithLogging } from '../utils/async-spawn.js'
 
 const LOG_BASE_DIR = 'ae/logs'
 
@@ -33,12 +34,20 @@ export const aeAsyncBashTool = tool({
     '异步命令执行器：bash 工具的非阻塞版本，启动指定命令后立即返回，禁止阻塞当前上下文。',
     '',
     '功能说明：',
-    '- 以 detached 子进程启动命令，父进程（工具）立即返回',
-    '- 子进程在后台独立运行，不受会话或 opencode 进程生命周期影响',
-    '- 始终将 stdout/stderr 以追加形式写入日志文件，同时输出到控制台，并返回日志文件路径',
+    '- 以后台子进程启动命令，父进程（工具）立即返回',
+    '- Unix 上使用 detached 子进程独立存活；Windows 上依赖 opencode 长驻进程保活（Node.js 限制）',
+    '- 通过 Node.js pipe 捕获 stdout/stderr，按 encoding 解码后以 UTF-8 流式追加写入日志文件',
+    '- 同时将原始字节原样输出到控制台，由终端自行解码显示',
     '- 不指定 logPath 时，自动生成到当前项目 ae/logs/ 目录下的日志文件',
     '- 返回子进程 PID 和日志文件路径，便于后续排查或终止',
     '- 不返回错误码或退出码：子进程真实执行状态需通过读取日志文件判断',
+    '',
+    '编码说明（重要）：',
+    '- encoding 参数：解码子进程输出使用的编码，默认 utf8',
+    '- 日志文件始终以 UTF-8 编码写入，确保跨平台可读',
+    '- 控制台输出保持子进程原始字节，由终端自行解码显示',
+    '- 日志出现乱码时，更换 encoding 重试：Windows 中文原生程序用 gbk 或 cp936',
+    '- 支持: utf8, gbk, cp936, gb2312, big5, shift_jis, latin1, ascii 等',
     '',
     '输出与日志读取指引（重要）：',
     '- 返回值中包含 "日志路径" 字段，指向一个 .log 文件',
@@ -78,6 +87,11 @@ export const aeAsyncBashTool = tool({
     command: z.string().min(1).describe('要在后台执行的 shell 命令'),
     cwd: z.string().optional().describe('工作目录，默认为当前会话目录'),
     logPath: z.string().optional().describe('日志文件路径（相对或绝对），子进程 stdout 和 stderr 将追加写入此文件；不指定则自动生成到 ae/logs/ 目录'),
+    encoding: z.string().default('utf8').describe(
+      '解码子进程输出使用的编码，默认 utf8。' +
+      '日志出现乱码时更换此值重试：Windows 中文原生程序用 gbk 或 cp936。' +
+      '支持: utf8, gbk, cp936, gb2312, big5, shift_jis, latin1, ascii 等',
+    ),
   },
   execute: async (args, ctx) => {
     const cwd = args.cwd ? path.resolve(ctx.directory, args.cwd) : ctx.directory
@@ -87,59 +101,24 @@ export const aeAsyncBashTool = tool({
     }
 
     const resolvedLogPath = args.logPath ? path.resolve(cwd, args.logPath) : generateDefaultLogPath(cwd, args.command)
-    const logDir = path.dirname(resolvedLogPath)
-    if (!fs.existsSync(logDir)) {
-      fs.mkdirSync(logDir, { recursive: true })
-    }
 
-    // 预创建日志文件，确保调用方可立即读取
-    const touchFd = fs.openSync(resolvedLogPath, 'a')
-    fs.closeSync(touchFd)
-
-    const isWin32 = process.platform === 'win32'
-    const quotedLogPath = `"${resolvedLogPath}"`
-
-    let child: ReturnType<typeof spawn>
+    let result: { pid: number; logPath: string }
 
     try {
-      // 使用平台原生后台 + 重定向机制，让 shell 自行管理子进程后台运行和日志写入。
-      // Node.js 只负责 spawn shell，不参与 I/O 转发，避免事件循环退出导致 pipe 数据丢失。
-      //
-      // Windows: start /B "title" cmd /c "command >> log 2>&1"
-      //   - start /B 启动后台进程（无新窗口）
-      //   - 重定向在 cmd /c 子 shell 中执行，确保 stdout/stderr 均写入日志
-      //
-      // Unix: sh -c 'command >> log 2>&1 &'
-      //   - 末尾 & 将命令放入后台
-      //   - >> 和 2>&1 由 sh 处理重定向
-      const fullCommand = isWin32
-        ? `start /B "ae-async" powershell -NoProfile -Command "${args.command} 2>&1 | Tee-Object -FilePath '${resolvedLogPath}' -Append"`
-        : `${args.command} 2>&1 | tee -a ${quotedLogPath} &`
-
-      child = spawn(fullCommand, {
+      result = spawnAsyncWithLogging({
+        command: args.command,
         cwd,
-        detached: true,
-        shell: true,
-        stdio: ['ignore', 'inherit', 'inherit'],
+        logPath: resolvedLogPath,
+        encoding: args.encoding,
       })
     } catch (e) {
       const reason = e instanceof Error ? e.message : String(e)
       return `错误: 启动命令失败 — ${reason}。日志路径: ${resolvedLogPath}`
     }
 
-    child.on('error', (err) => {
-      try {
-        fs.appendFileSync(resolvedLogPath, `\n[spawn error] ${err.message}\n`)
-      } catch {
-        // 忽略写入错误
-      }
-    })
+    const pid = result.pid
 
-    child.unref()
-
-    const pid = child.pid
-
-    if (pid === undefined) {
+    if (pid === -1) {
       return `错误: 子进程启动失败，未能获取 PID。日志路径: ${resolvedLogPath}`
     }
 
@@ -151,11 +130,13 @@ export const aeAsyncBashTool = tool({
       `命令: ${args.command}`,
       `工作目录: ${cwd}`,
       `日志路径: ${resolvedLogPath}`,
+      `解码编码: ${args.encoding}`,
       '',
-      '子进程在后台独立运行，不会阻塞当前会话。',
-      'stdout/stderr 同时输出到控制台和日志文件（动态追加写入）。',
+      '子进程在后台运行，不会阻塞当前会话。',
+      'stdout/stderr 通过 Node.js pipe 捕获，按指定编码解码后以 UTF-8 流式写入日志文件，同时原样输出到控制台。',
       '请读取上述日志文件分析执行情况；建议等待若干秒后再次读取，对比内容以确认子进程状态。',
       '日志出现错误堆栈/异常/进程退出提示即代表失败；长时间无新增输出也视为启动异常。',
+      '日志出现乱码时，更换 encoding 参数重试（如 gbk、cp936）。',
       '禁止因本工具失败而降级使用 bash 工具执行阻塞型命令。',
       '',
       '重复启动同一服务前（硬约束）：若后续需再次启动同一服务，必须先用 bash 按上述 PID 检查旧进程是否存活',
@@ -168,7 +149,7 @@ export const aeAsyncBashTool = tool({
     return {
       title: `异步命令已启动 (PID: ${pid})`,
       output: lines.join('\n'),
-      metadata: { pid, command: args.command, cwd, logPath: resolvedLogPath },
+      metadata: { pid, command: args.command, cwd, logPath: resolvedLogPath, encoding: args.encoding },
     }
   },
 })

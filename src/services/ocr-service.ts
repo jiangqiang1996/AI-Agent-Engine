@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import { appendFileSync, closeSync, existsSync, mkdirSync, openSync, readFileSync } from 'node:fs'
+import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { createRequire } from 'node:module'
 
@@ -7,6 +7,7 @@ import { getGlobalClient } from './client-holder.js'
 import { getModelScenarioRoutingContext } from './model-scenario-holder.js'
 import { getModelByScenario } from './model-scenario-routing-service.js'
 import { MODEL_SCENARIO } from '../schemas/model-scenario-schema.js'
+import { spawnAsyncWithLogging } from '../utils/async-spawn.js'
 
 /**
  * OCR 审查发现项（来自 --format json 输出）
@@ -306,12 +307,8 @@ export function resolveOcrBinary(): { path: string; source: string } | null {
 /**
  * 以后台 detached 进程启动 ocr viewer，立即返回 PID 和日志路径。
  *
- * 参考 ae-async-bash 的平台原生后台机制：
- * - Windows: start /B "title" powershell -Command "command 2>&1 | Tee-Object -FilePath log -Append"
- * - Unix: sh -c 'command 2>&1 | tee -a log &'
- *
- * shell 自行管理子进程后台运行和日志写入，同时输出继承到父进程 stdout，
- * Node.js 只负责 spawn shell，不参与 I/O 转发。
+ * 通过 Node.js pipe 捕获 stdout/stderr，按 encoding 解码后以 UTF-8 追加写入日志文件，
+ * 同时原样输出到控制台。子进程独立存活，不阻止事件循环退出。
  *
  * ocr 二进制随项目打包，resolveOcrBinary 始终有返回值。
  */
@@ -320,46 +317,23 @@ export function spawnOcrViewer(
   opts?: {
     cwd?: string
     logPath?: string
+    encoding?: string
   },
 ): { pid: number; logPath: string } {
   const binary = resolveOcrBinary()!
 
   const logFile = opts?.logPath ?? path.join(opts?.cwd ?? process.cwd(), 'ae', 'logs', `ocr-viewer-${formatLogTimestamp()}.log`)
-  const logDir = path.dirname(logFile)
-  if (!existsSync(logDir)) {
-    mkdirSync(logDir, { recursive: true })
-  }
-  // 预创建日志文件，确保调用方可立即读取
-  const touchFd = openSync(logFile, 'a')
-  closeSync(touchFd)
 
-  const quotedLog = `"${logFile}"`
-  const isWin32 = process.platform === 'win32'
-
-  // 构建完整命令字符串
   const rawCommand = `${binary.path} ${args.join(' ')}`
-  const fullCommand = isWin32
-    ? `start /B "ocr-viewer" powershell -NoProfile -Command "${rawCommand} 2>&1 | Tee-Object -FilePath '${logFile}' -Append"`
-    : `${rawCommand} 2>&1 | tee -a ${quotedLog} &`
 
-  const child = spawn(fullCommand, {
-    cwd: opts?.cwd,
-    detached: true,
-    shell: true,
-    stdio: ['ignore', 'inherit', 'inherit'],
+  const result = spawnAsyncWithLogging({
+    command: rawCommand,
+    cwd: opts?.cwd ?? process.cwd(),
+    logPath: logFile,
+    encoding: opts?.encoding,
   })
 
-  child.on('error', (err) => {
-    try {
-      appendFileSync(logFile, `\n[spawn error] ${err.message}\n`)
-    } catch {
-      // 忽略写入错误
-    }
-  })
-
-  child.unref()
-
-  return { pid: child.pid ?? -1, logPath: logFile }
+  return { pid: result.pid, logPath: result.logPath }
 }
 
 function formatLogTimestamp(): string {
