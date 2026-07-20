@@ -343,6 +343,16 @@ const GILDED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'], s
   [AGENT.NON_FUNCTIONAL_DESIGNER, 'workflow', '非功能设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 non-functional.md 设计契约，含性能目标、并发模型、事务边界、缓存策略和容量规划'],
 ]
 
+function resolveAgentPath(name: string, stage: AgentDefinition['stage']): string {
+  if (REVIEW_SPECIALIST_AGENT_NAMES.has(name)) {
+    return `reviewers/${name}.md`
+  }
+  if (stage === 'development') {
+    return `developers/${name}.md`
+  }
+  return `${stage}/${name}.md`
+}
+
 function buildAgentList(
   tuples: ReadonlyArray<readonly [string, AgentDefinition['stage'], string, string?]>,
   tier: 'required' | 'gilded',
@@ -353,28 +363,27 @@ function buildAgentList(
       stage,
       tier,
       description: desc,
-      path: customPath
-        ?? (REVIEW_SPECIALIST_AGENT_NAMES.has(name)
-          ? `reviewers/${name}.md`
-          : stage === 'development'
-            ? `developers/${name}.md`
-            : `${stage}/${name}.md`),
+      path: customPath ?? resolveAgentPath(name, stage),
     }),
   )
 }
 
+const PHASE_ONE_ENTRIES_PARSED: AeAssetEntry[] = PHASE_ONE_ENTRIES.map((e) => AeAssetEntrySchema.parse(e))
+const REQUIRED_AGENTS_PARSED: AgentDefinition[] = buildAgentList(REQUIRED_AGENTS, 'required')
+const GILDED_AGENTS_PARSED: AgentDefinition[] = buildAgentList(GILDED_AGENTS, 'gilded')
+
 export function getPhaseOneEntries(): AeAssetEntry[] {
-  return PHASE_ONE_ENTRIES.map((e) => AeAssetEntrySchema.parse(e))
+  return PHASE_ONE_ENTRIES_PARSED
 }
 
 export function getRequiredAgents(): AgentDefinition[] {
-  return buildAgentList(REQUIRED_AGENTS, 'required')
+  return REQUIRED_AGENTS_PARSED
 }
 
 export function getGildedAgents(): AgentDefinition[] {
-  return buildAgentList(GILDED_AGENTS, 'gilded')
+  return GILDED_AGENTS_PARSED
 }
 
 export function getAllAgentDefinitions(): AgentDefinition[] {
-  return [...getRequiredAgents(), ...getGildedAgents()]
+  return [...REQUIRED_AGENTS_PARSED, ...GILDED_AGENTS_PARSED]
 }

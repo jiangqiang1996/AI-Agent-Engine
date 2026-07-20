@@ -19,7 +19,9 @@ export interface AssetModelRoutingEntry {
   reason: string
 }
 
-const COMMAND_SCENARIOS: Record<string, ModelScenario> = {
+const VALID_SCENARIOS = new Set<string>(Object.values(MODEL_SCENARIO))
+
+const COMMAND_SCENARIOS = {
   [COMMAND.BRAINSTORM]: MODEL_SCENARIO.STANDARD,
   [COMMAND.PRD]: MODEL_SCENARIO.STANDARD,
   [COMMAND.DESIGN]: MODEL_SCENARIO.DEEP,
@@ -38,8 +40,6 @@ const COMMAND_SCENARIOS: Record<string, ModelScenario> = {
   [COMMAND.SWAGGER_PARSER]: MODEL_SCENARIO.STANDARD,
   [COMMAND.API_TESTER]: MODEL_SCENARIO.STANDARD,
   [COMMAND.SLIDES_OUTLINE]: MODEL_SCENARIO.DEEP,
-
-
   [COMMAND.IMAGE]: MODEL_SCENARIO.STANDARD,
   [COMMAND.AUDIO]: MODEL_SCENARIO.STANDARD,
   [COMMAND.VIDEO]: MODEL_SCENARIO.STANDARD,
@@ -56,10 +56,27 @@ const COMMAND_SCENARIOS: Record<string, ModelScenario> = {
   [COMMAND.GRILL]: MODEL_SCENARIO.DEEP,
   [COMMAND.OFFICECLI]: MODEL_SCENARIO.STANDARD,
   [COMMAND.OCR]: MODEL_SCENARIO.DEEP,
+} satisfies Record<string, ModelScenario>
+
+const COMMAND_VALUES = new Set<string>(Object.values(COMMAND))
+const COMMAND_SCENARIO_ENTRIES = Object.entries(COMMAND_SCENARIOS)
+const MISSING_SCENARIOS = COMMAND_VALUES.size - COMMAND_SCENARIO_ENTRIES.length
+if (MISSING_SCENARIOS > 0) {
+  const covered = new Set(COMMAND_SCENARIO_ENTRIES.map(([k]) => k))
+  const missing = [...COMMAND_VALUES].filter((v) => !covered.has(v))
+  throw new Error(`COMMAND_SCENARIOS 缺少以下命令的场景映射: ${missing.join(', ')}`)
 }
 
 export function getCommandModelScenario(commandName: string): ModelScenario | undefined {
-  return COMMAND_SCENARIOS[commandName]
+  return (COMMAND_SCENARIOS as Record<string, ModelScenario>)[commandName]
+}
+
+function resolveAgentScenario(modelReference: string | undefined): string | undefined {
+  if (!modelReference) {
+    return undefined
+  }
+  const scenario = modelReference.startsWith('$') ? modelReference.slice(1) : modelReference
+  return VALID_SCENARIOS.has(scenario) ? scenario : undefined
 }
 
 export function getAssetModelRoutingEntries(manifest?: RuntimeAssetManifest): AssetModelRoutingEntry[] {
@@ -81,10 +98,15 @@ export function getAssetModelRoutingEntries(manifest?: RuntimeAssetManifest): As
 
   for (const agent of getAllAgentDefinitions()) {
     const fullPath = join(manifest.agentsDir, agent.path)
-    const content = readFileSync(fullPath, 'utf8')
-    const parsed = parseFrontmatter(content)
-    const modelReference = getFrontmatterString(parsed.data, 'model')
-    const scenario = modelReference?.startsWith('$') ? modelReference.slice(1) : modelReference
+    let modelReference: string | undefined
+    try {
+      const content = readFileSync(fullPath, 'utf8')
+      const parsed = parseFrontmatter(content)
+      modelReference = getFrontmatterString(parsed.data, 'model')
+    } catch {
+      modelReference = undefined
+    }
+    const scenario = resolveAgentScenario(modelReference)
     entries.push({
       type: 'agent',
       name: agent.name,

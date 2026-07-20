@@ -65,6 +65,8 @@ ae/designs/
     ├── overview.md                     # 设计总览
     ├── constraints.md                  # 实施约束
     ├── traceability.md                 # 跨维度映射表
+    ├── design-spec/                    # 设计规范维度
+    │   └── design-spec.md              # 设计读数、三旋钮、设计体系、风格变体、负向设计空间
     ├── architecture/                   # 架构维度
     │   ├── 01-architecture.md          # 索引 + 共享契约 + file-plan
     │   ├── 02-module-boundary.md       # 模块边界 + 依赖方向 + 接口签名
@@ -98,7 +100,7 @@ ae/designs/
         └── non-functional.md
 ```
 
-**子目录组织规则：** 每个维度的文件放在以维度名命名的子目录中。`design.md` 始终在设计目录根下，为纯索引文件（< 100 行）。`overview.md`、`constraints.md`、`traceability.md` 位于设计目录根下。`design-spec` 为透传维度，不产出文件，不创建子目录。
+**子目录组织规则：** 每个维度的文件放在以维度名命名的子目录中。`design.md` 始终在设计目录根下，为纯索引文件（< 100 行）。`overview.md`、`constraints.md`、`traceability.md` 位于设计目录根下。`design-spec` 产出独立文件 `design-spec/design-spec.md`。
 
 **强制拆分规则：** 无论文件大小，每个维度必须拆分为独立子文件，不在 design.md 中内联维度内容。`design.md` 为纯索引，只保留 frontmatter + Split Manifest + 索引表。
 
@@ -112,7 +114,7 @@ ae/designs/
 
 ---
 
-**frontmatter shards 与 Split Manifest 职责区分：** frontmatter `shards` 只列出维度索引文件（`01-<维度名>.md`）和根目录独立文件（overview/constraints/traceability），作为 ae-doc-extract 的索引层入口；Split Manifest 列出全部文件（含分组实体文件 `NN-*.md`），作为完整文件清单。默认单文件的维度（security/observability/non-functional）未拆分时在 shards 和 Split Manifest 中均列出 `security/security.md` 等；触发拆分后 shards 列出 `security/01-security.md`，Split Manifest 列出索引 + 所有分组实体。
+**frontmatter shards 与 Split Manifest 职责区分：** frontmatter `shards` 列出维度索引文件（`01-<维度名>.md`）、根目录独立文件（overview/constraints/traceability）和单文件维度的独立文件（如 `design-spec/design-spec.md`、`security/security.md`），作为 ae-doc-extract 的索引层入口；Split Manifest 列出全部文件（含分组实体文件 `NN-*.md`），作为完整文件清单。默认单文件的维度（security/observability/non-functional/design-spec）未拆分时在 shards 和 Split Manifest 中均列出对应文件；触发拆分后 shards 列出索引文件（如 `security/01-security.md`），Split Manifest 列出索引 + 所有分组实体。
 
 ## design.md 纯索引模板
 
@@ -133,6 +135,8 @@ shards:
     module: constraints
   - file: traceability.md
     module: traceability
+  - file: design-spec/design-spec.md
+    module: design-spec
   - file: architecture/01-architecture.md
     module: architecture
   - file: api/01-api.md
@@ -161,6 +165,8 @@ shards:
     lines: 80
   - file: traceability.md
     lines: 60
+  - file: design-spec/design-spec.md
+    lines: 120
   - file: architecture/01-architecture.md
     lines: 280
   - file: architecture/02-module-boundary.md
@@ -215,6 +221,7 @@ shards:
 | [overview.md](overview.md) | 设计总览 | 150 | 设计读数、范围映射、ADR | ADR-001~003 |
 | [constraints.md](constraints.md) | 实施约束 | 80 | 环境变量、依赖版本 | — |
 | [traceability.md](traceability.md) | 跨维度映射表 | 60 | 4 类映射表 | — |
+| [design-spec/design-spec.md](design-spec/design-spec.md) | 设计规范 | 120 | 设计读数、三旋钮、设计体系、风格变体、负向设计空间 | — |
 | [architecture/01-architecture.md](architecture/01-architecture.md) | 架构-索引 | 280 | 系统上下文图、技术选型、file-plan | ADR-001~003 |
 | [architecture/02-module-boundary.md](architecture/02-module-boundary.md) | 架构-模块边界 | 280 | 模块边界、依赖方向、接口签名 | — |
 | [architecture/03-data-flow.md](architecture/03-data-flow.md) | 架构-数据流 | 250 | 数据流伪代码、错误传播链、跨层状态同步 | — |

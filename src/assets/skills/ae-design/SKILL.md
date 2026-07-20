@@ -84,7 +84,7 @@ argument-hint: "[需求文档路径|design|裸描述] [dimensions=architecture,d
 | 维度 | 子代理 | 产出文件 |
 |------|--------|---------|
 | overview | 主代理产出 | overview.md（独立文件） |
-| design-spec | `@ui-design-spec` | 设计决策包（透传给 `@ui-ux-designer`，不产出独立文件） |
+| design-spec | `@ui-design-spec` | `design-spec/design-spec.md`（独立文件，含设计读数、三旋钮取值、设计体系选择、风格变体推荐、负向设计空间；同时透传给 `@ui-ux-designer`；超 300 行自动拆分为 `design-spec/01-design-spec.md` 索引 + `design-spec/NN-<topic>.md` 分组实体） |
 | ui-ux | `@ui-ux-designer` | 索引 `ui-ux/01-ui-ux.md` + 分组实体 `ui-ux/NN-pages-<domain>.md` + `ui-ux/NN-components.md` |
 | architecture | `@architecture-designer` | 索引 `architecture/01-architecture.md` + 分组实体 `architecture/NN-module-boundary.md` + `architecture/NN-data-flow.md` |
 | api | `@api-designer` | 索引 `api/01-api.md` + 分组实体 `api/NN-endpoints-<domain>.md` |
@@ -95,7 +95,7 @@ argument-hint: "[需求文档路径|design|裸描述] [dimensions=architecture,d
 | non-functional | `@non-functional-designer` | `non-functional/non-functional.md`（默认单文件，超 300 行自动拆分） |
 | 跨维度映射表 | 主代理产出 | traceability.md（独立文件） |
 
-**子目录组织：** 每个维度的文件放在以维度名命名的子目录中。`design.md` 始终在设计目录根下，为纯索引文件（< 100 行），只保留 frontmatter + Split Manifest + 索引表。`overview.md`、`constraints.md`、`traceability.md` 位于设计目录根下。维度索引文件（带 `01-` 前缀）和分组实体文件（带 `NN-` 前缀，NN 从 02 开始）均位于对应维度的子目录中（如 `api/01-api.md`、`api/02-endpoints-auth.md`）。`design-spec` 为透传维度，不产出文件，不创建子目录。单文件维度（security/observability/non-functional）不加序号。
+**子目录组织：** 每个维度的文件放在以维度名命名的子目录中。`design.md` 始终在设计目录根下，为纯索引文件（< 100 行），只保留 frontmatter + Split Manifest + 索引表。`overview.md`、`constraints.md`、`traceability.md` 位于设计目录根下。维度索引文件（带 `01-` 前缀）和分组实体文件（带 `NN-` 前缀，NN 从 02 开始）均位于对应维度的子目录中（如 `api/01-api.md`、`api/02-endpoints-auth.md`）。`design-spec` 产出独立文件 `design-spec/design-spec.md`，同时透传给 `@ui-ux-designer`。单文件维度（security/observability/non-functional）不加序号。
 
 **硬性约束：主代理严禁直接产出维度契约内容。** overview、实施约束和跨维度映射表由主代理产出为独立文件，其他维度必须调度对应子代理。违反此约束属于执行错误。
 
@@ -374,7 +374,7 @@ test-cases 依赖其他维度的实体清单，按测试层分组调用。
 11. **security ↔ database** - security 数据分级与 database 敏感字段标注对齐
 12. **observability ↔ architecture** - observability 指标体系覆盖 architecture 关键数据流
 13. **non-functional ↔ architecture** - non-functional 性能目标与 architecture 技术选型可行
-14. **design-spec ↔ ui-ux** - ui-ux 契约中的设计读数、三旋钮取值和负向设计空间必须与 design-spec 产出的设计决策包一致；design-spec 是 ui-ux 的前置依赖，ui-ux 产出时引用决策包参数保证一致性
+14. **design-spec ↔ ui-ux** - ui-ux 契约中的设计读数、三旋钮取值和负向设计空间必须与 `design-spec/design-spec.md` 产出的设计决策包一致；design-spec 是 ui-ux 的前置依赖，产出独立文件 `design-spec/design-spec.md` 供审查追溯，同时透传给 `@ui-ux-designer`
 
 发现不一致时，在此阶段修复后再进入 review 闭环。映射表缺失时补全，映射表与维度内容不一致时以维度内容为准更新映射表。语义对齐问题（字段类型不兼容、状态机路径断裂、追溯 ID 不存在等）在此阶段修复，减少 review 阶段发现量。
 

@@ -193,6 +193,7 @@ ae/prototype-preview/
 - 文档中写明的交互流程（如"点击登录按钮 → 提交表单 → 成功跳转 /resources"）用原生 JS 实现
 - 跳转用 `window.location.href` 实现
 - 表单验证用原生 HTML5 验证属性（`required`、`type="email"` 等）+ 原生 JS
+- **禁止使用危险 API**：禁止使用 `eval`、`new Function`、`document.write`、`innerHTML`（赋值）、`outerHTML`（赋值）、`insertAdjacentHTML`、`setTimeout`（字符串参数）、`setInterval`（字符串参数）；动态更新 DOM 使用 `textContent`、`createElement` + `appendChild` 等安全 API 替代 `innerHTML`；从原型文档提取的文本内容在写入 HTML 前必须进行 HTML 实体转义（`<` → `&lt;`、`>` → `&gt;`、`"` → `&quot;`、`'` → `&#39;`、`&` → `&amp;`）；交互 JS 仅实现文档明确声明的跳转和表单验证，不执行动态代码生成
 - **禁止实现文档未写明的交互**，即使该交互"显然应该有"
 
 **禁止镀金检查清单（生成每个文件后逐项检查）：**
@@ -204,6 +205,7 @@ ae/prototype-preview/
 - [ ] 是否添加了文档未声明的响应式断点或行为？
 - [ ] 是否引入了任何外部依赖或框架？
 - [ ] 是否使用了任何构建工具语法（如 import、JSX、TS）？
+- [ ] 是否使用了危险 API（eval、new Function、document.write、innerHTML 赋值、outerHTML 赋值、insertAdjacentHTML、setTimeout/setInterval 字符串参数）或未对文本内容进行 HTML 转义？
 - [ ] 是否引用了项目已有组件、样式或源码？（禁止参考项目资产）
 - [ ] 是否写入到正确的隔离子目录？（产出隔离）
 - 任一项为"是"则移除多余内容或补充遗漏内容，仅保留文档写明的部分。
@@ -312,6 +314,7 @@ ae/prototype-preview/
 - **禁止修改源文档** — 不修改原型文档，只读取并还原
 - **禁止修改项目源码** — 所有产出仅写入 `ae/prototype-preview/<子目录>/` 目录
 - **禁止跳过版本冲突询问** — 同原型已存在预览时必须询问用户，`--yes` 不可跳过此询问
+- **禁止使用危险 API** — 禁止 eval/new Function/document.write/innerHTML 赋值/outerHTML 赋值/insertAdjacentHTML/setTimeout(setInterval)字符串参数；动态 DOM 更新使用 textContent/createElement+appendChild；文本内容写入 HTML 前必须 HTML 实体转义
 
 ## 不适用场景
 
