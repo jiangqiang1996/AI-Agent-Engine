@@ -105,6 +105,14 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     ].join(''),
   },
   {
+    skillName: SKILL.PROTOTYPE_PREVIEW,
+    commandName: COMMAND.PROTOTYPE_PREVIEW,
+    description: '将 ae:prd 原型文档转换为技术栈无关的多页面 HTML 静态文件，用于验证原型效果。禁止使用打包构建工具，禁止镀金，仅做原型文档写明的内容。必须完全遵守原型文档中的颜色定义和响应式需求。',
+    argumentHint: '[prd目录路径|原型文档路径] [--no-inspect|--yes]',
+    skillFile: `src/assets/skills/${skillDir(SKILL.PROTOTYPE_PREVIEW)}/SKILL.md`,
+    tier: 'tools',
+  },
+  {
     skillName: SKILL.SLIDES_OUTLINE,
     commandName: COMMAND.SLIDES_OUTLINE,
     description: '幻灯片大纲生成与交互修改：根据主题、需求描述、现有大纲文件或现有 HTML 幻灯片生成逐页完整内容大纲，支持对话反复修改直到用户确认',

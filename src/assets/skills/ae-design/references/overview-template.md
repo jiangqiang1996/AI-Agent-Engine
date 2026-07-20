@@ -87,5 +87,7 @@ overview 中的设计条目必须使用稳定 ID，便于 ae:design / ae:work / 
 - `T-XXX`：数据库表名编号，如 `T-users`、`T-orders`（核心，跨维度映射表 api-field-to-database-column-mapping 依赖）
 - `TC-XXX`：测试用例编号（核心，跨维度映射表 test-case-to-contract-coverage 依赖）
 - `ST-XXX`：UI 交互状态机编号（核心，跨维度映射表 api-error-to-ui-state-mapping 依赖）
+- `COMP-XXX`：UI 组件编号（核心，跨维度映射表 ui-component-to-api-endpoint-mapping 依赖）
+- `PAGE-XXX`：页面编号（核心，ui-ux 维度路由表和页面清单依赖）
 
 稳定 ID 在 design 文档全生命周期不变；版本演化时新增 ID，不重用已废弃 ID。每个前缀对应一个跨维度映射表的追溯目标，移除任一前缀会破坏对应映射表的追溯逻辑。

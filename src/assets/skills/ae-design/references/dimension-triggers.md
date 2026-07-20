@@ -26,9 +26,9 @@
 
 | 任务特征 | 必产出维度 | 选产出维度 |
 |---------|-----------|-----------|
-| 纯前端 UI 任务 | overview、ui-ux、test-cases | architecture、security |
+| 纯前端 UI 任务 | overview、design-spec、ui-ux、test-cases | architecture、security |
 | 纯后端 API 任务 | overview、api、architecture、test-cases | database、security、observability、non-functional |
-| 全栈功能任务 | overview、ui-ux、api、architecture、database、test-cases | security、observability、non-functional |
+| 全栈功能任务 | overview、design-spec、ui-ux、api、architecture、database、test-cases | security、observability、non-functional |
 | 数据迁移/重构任务 | overview、database、architecture、test-cases | api、observability |
 | 基础设施/DevOps 任务 | overview、architecture、observability | security、non-functional |
 | 非软件任务 | overview、test-cases | 按需 |
