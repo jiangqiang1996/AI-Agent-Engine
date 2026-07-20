@@ -86,22 +86,20 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   {
     skillName: SKILL.PLAYWRIGHT,
     commandName: COMMAND.PLAYWRIGHT,
-    description: '@playwright/mcp 浏览器能力中枢：启动或接管浏览器，打开 URL，执行指定任务。ae:playwright 是 ae-playwright-mcp 工具的唯一管理入口，上层技能和代理不应直接调用 ae-playwright-mcp。',
-    argumentHint: '[url] [action] [mode] [browser] [port] [headless] [task=任务描述]',
+    description: 'Automate browser interactions, test web pages and work with Playwright tests.',
     skillFile: `src/assets/skills/${skillDir(SKILL.PLAYWRIGHT)}/SKILL.md`,
     tier: 'tools',
   },
   {
     skillName: SKILL.WEB_FORGE,
     commandName: COMMAND.WEB_FORGE,
-    description: `前端开发统一入口：自动识别技术栈与可复用资产，自适应组合设计/实现/验收阶段，支持无人值守模式。需先完成 ${SKILL.PLAYWRIGHT} MCP 注册，子代理 @ui-design-spec、@ui-architect、@logic-weaver、@browser-inspector`,
+    description: `前端开发统一入口：自动识别技术栈与可复用资产，自适应组合设计/实现/验收阶段，支持无人值守模式。浏览器操作通过 ${SKILL.PLAYWRIGHT} 技能，子代理 @ui-design-spec、@ui-architect、@logic-weaver、@browser-inspector`,
     argumentHint: '[描述|Figma URL|截图路径|页面路由] [--inspect <url>|--no-inspect|--yes]',
     skillFile: `src/assets/skills/${skillDir(SKILL.WEB_FORGE)}/SKILL.md`,
     tier: 'tools',
     customTemplate: [
-      `先使用 \`${SKILL.PLAYWRIGHT} action=register mode=autoConnect\` 技能完成浏览器 MCP 动态注册；`,
-      '未完成 MCP 注册前不得执行任何浏览器控制命令。',
-      `MCP 就绪后，再使用 \`${SKILL.WEB_FORGE}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`,
+      `浏览器操作一律通过 \`${SKILL.PLAYWRIGHT}\` 技能完成，不绕过该技能直接调用底层命令。`,
+      `使用 \`${SKILL.WEB_FORGE}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`,
     ].join(''),
   },
   {

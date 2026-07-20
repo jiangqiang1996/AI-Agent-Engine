@@ -49,7 +49,7 @@ function stripNegativeContext(content: string): string {
     .split(/\r?\n/)
     .filter(
       (line) =>
-        !/(不得|禁止|不要|不能|不提供|不等同|不负责|不构成|不执行|不修改|不跳过|未完成|除非|只有当|仅当|必须先|需要先|要求先|必须阻断|用于限制)/.test(
+        !/(不得|禁止|不要|不能|不提供|不等同|不负责|不构成|不执行|不修改|不跳过|未完成|除非|只有当|仅当|必须先|需要先|要求先|必须阻断|用于限制|Never\s+\w+)/.test(
           line,
         ),
     )
@@ -57,22 +57,6 @@ function stripNegativeContext(content: string): string {
 }
 
 describe('Markdown 协议测试', () => {
-  it('浏览器消费方必须在命令前声明 Playwright MCP 门禁和失败降级', () => {
-    const PLAYWRIGHT_MCP = /browser_\w+/
-    const browserAssets = ASSETS.filter((asset) => PLAYWRIGHT_MCP.test(asset.content) && !asset.path.includes('ae-playwright'))
-    const required = ['ae:playwright', '不得执行', 'MCP 注册', '不能替代']
-
-    for (const asset of browserAssets) {
-      const firstCommandIndex = asset.content.search(PLAYWRIGHT_MCP)
-      const gateIndex = asset.content.indexOf('ae:playwright')
-
-      expect(
-        gateIndex >= 0 && gateIndex < firstCommandIndex && hasAll(asset.content, required) && /(失败|无法验证|停止)/.test(asset.content),
-        `protocol/playwright-mcp-gate/${relative(process.cwd(), asset.path)}: 缺少命令前 Playwright MCP 门禁、未完成停止、MCP 注册不能替代或失败降级语义`,
-      ).toBe(true)
-    }
-  })
-
   it('Git 写操作协议必须绑定授权粒度，且只读命令不触发失败', () => {
     const gateContent = readFileSync('src/assets/rules/ai-core-guidelines.md', 'utf8')
     const required = ['目标仓库', '目标分支', '工作区', '完整命令参数', '授权来源']

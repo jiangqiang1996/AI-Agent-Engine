@@ -1,7 +1,6 @@
 import { Effect } from 'effect'
 import type { OpencodeClient } from '@opencode-ai/sdk/v2'
 
-import { ensureBrowserEnvironmentGate } from './browser-environment-gate.js'
 import {
   createNewSession,
   injectNoReplyMessage,
@@ -45,21 +44,6 @@ export class CreateSessionFlowError extends Error {
 function trimOptional(value: string | undefined): string | undefined {
   const trimmed = value?.trim()
   return trimmed ? trimmed : undefined
-}
-
-function applyAutomaticExecutionGate(
-  systemPrompt: string | undefined,
-  contextMessage: string | undefined,
-  userPrompt: string,
-): string {
-  const executionContext = [systemPrompt, contextMessage, userPrompt].filter(Boolean).join('\n\n')
-  const gatedExecutionContext = ensureBrowserEnvironmentGate(executionContext)
-  if (gatedExecutionContext === executionContext) {
-    return userPrompt
-  }
-
-  const gatedUserPrompt = ensureBrowserEnvironmentGate(userPrompt)
-  return gatedUserPrompt === userPrompt ? gatedExecutionContext : gatedUserPrompt
 }
 
 /** 编排通用的新会话创建、上下文注入、导航和可选自动执行流程。 */
@@ -138,7 +122,7 @@ export function createSessionFlow(
 
     if (autoExecute && userPrompt) {
       promptAttempted = true
-      recoverablePrompt = applyAutomaticExecutionGate(systemPrompt, contextMessage, userPrompt)
+      recoverablePrompt = userPrompt
       yield* submitUserPrompt(client, session.id, recoverablePrompt).pipe(
         Effect.matchEffect({
           onSuccess: () => {

@@ -89,15 +89,6 @@ describe('command-registration', () => {
     expect(config[COMMAND.SWAGGER_PARSER]?.template).toContain(SKILL.SWAGGER_PARSER)
   })
 
-  it('应该为 ae:web-forge 命令保留 playwright 环境门禁顺序', () => {
-    const config = buildCommandConfig('__missing_commands_dir__')
-
-    const baseTemplate = config[COMMAND.WEB_FORGE]?.template ?? ''
-    expect(baseTemplate).toContain(`先使用 \`${SKILL.PLAYWRIGHT} action=register mode=autoConnect\` 技能完成浏览器 MCP 动态注册`)
-    expect(baseTemplate).toContain('未完成 MCP 注册前不得执行任何浏览器控制命令')
-    expect(baseTemplate.indexOf(SKILL.PLAYWRIGHT)).toBeLessThan(baseTemplate.indexOf(SKILL.WEB_FORGE))
-  })
-
   it('应该为 ae:skill-creator 只生成基础命令', () => {
     const config = buildCommandConfig('__missing_commands_dir__')
 
@@ -139,8 +130,8 @@ describe('command-registration', () => {
     const playwrightEntry = getPhaseOneEntries().find((entry) => entry.skillName === SKILL.PLAYWRIGHT)
     const webForgeEntry = getPhaseOneEntries().find((entry) => entry.skillName === SKILL.WEB_FORGE)
 
-    expect(playwrightFrontmatter.description).toContain('playwright')
-    expect(playwrightEntry?.description).toContain('@playwright/mcp')
+    expect(playwrightFrontmatter.description).toContain('Playwright')
+    expect(playwrightEntry?.description).toBe(playwrightFrontmatter.description)
     expect(webForgeFrontmatter.description).toContain('前端开发')
     expect(webForgeEntry?.description).toContain('@ui-architect')
   })

@@ -1,6 +1,7 @@
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { exec } from 'node:child_process'
 
 import { build } from 'esbuild'
 
@@ -104,6 +105,37 @@ export async function main(root = repoRoot) {
     } catch {
       console.warn(`WASM 文件复制跳过（未找到）: ${pkg}/${file}`)
     }
+  }
+
+  await ensurePlaywrightCliGlobal()
+}
+
+/**
+ * 全局安装 @playwright/cli，使 playwright-cli 命令在用户 PATH 中可用。
+ * 安装失败时降级为警告，不阻断构建。
+ */
+async function ensurePlaywrightCliGlobal() {
+  const { promisify } = await import('node:util')
+  const execAsync = promisify(exec)
+
+  try {
+    // 检测是否已全局安装
+    await execAsync('playwright-cli --version')
+    return
+  } catch {
+    // 未安装，继续执行全局安装
+  }
+
+  console.log('正在全局安装 @playwright/cli...')
+  try {
+    await execAsync('npm install -g @playwright/cli@latest', { timeout: 120000 })
+    console.log('@playwright/cli 全局安装完成，playwright-cli 命令已可用。')
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.warn(
+      `@playwright/cli 全局安装失败（不阻断构建）：${message}\n` +
+      '请手动执行 npm install -g @playwright/cli@latest 安装，或使用 npx playwright-cli 调用。',
+    )
   }
 }
 

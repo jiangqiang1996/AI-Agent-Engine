@@ -27,3 +27,4 @@ ae/reviews
 /ae/markdown/
 /ae/documents/
 /ae/slides/
+.playwright-cli

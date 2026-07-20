@@ -104,7 +104,6 @@ export const TOOL = {
   AE_TASK_ANALYZER: 'ae-task-analyzer',
   AE_DOC_EXTRACT: 'ae-doc-extract',
   AE_DOMAIN_CATALOG: 'ae-domain-catalog',
-  AE_PLAYWRIGHT_MCP: 'ae-playwright-mcp',
   AE_TIMER: 'ae-timer',
   AE_WORK_SPECIALIST_SELECT: 'ae-work-specialist-select',
   AE_SPECIALIST_AGGREGATE: 'ae-specialist-aggregate',
