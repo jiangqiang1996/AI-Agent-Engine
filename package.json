@@ -12,7 +12,7 @@
     "test:slow": "vitest run --config vitest.slow.config.ts",
     "test:e2e": "npm run build && vitest run --config vitest.e2e.config.ts",
     "test:all": "npm run test && npm run test:e2e",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.test.json"
   },
   "dependencies": {
     "@alibaba-group/open-code-review": "^1.7.12",
