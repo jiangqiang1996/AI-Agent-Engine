@@ -17,19 +17,19 @@ argument-hint: "[描述|Figma URL|截图路径|页面路由] [--inspect <url>|--
 | `@logic-weaver` | $deep | 前端代码实现：交互逻辑、API联调、状态管理、组件开发、重构、性能优化 | 需要实现非视觉的前端代码逻辑 |
 | `@browser-inspector` | $vision | 浏览器验收：端到端浏览器测试与回归验证 | 用户选择浏览器验收阶段时 |
 
-## chrome-devtools MCP 门禁
+## Playwright MCP 门禁
 
-在执行任何浏览器操作前，必须先使用 `ae:chrome-devtools` 技能完成浏览器 MCP 动态注册并确认连接就绪；`ae:chrome-devtools` 是浏览器 MCP 的唯一管理入口，不应直接调用 `ae-chrome-devtools-mcp` 工具。MCP 未就绪时不得执行浏览器操作。
+在执行任何浏览器操作前，必须先使用 `ae:playwright` 技能完成浏览器 MCP 动态注册并确认连接就绪；`ae:playwright` 是浏览器 MCP 的唯一管理入口，不应直接调用 `ae-playwright-mcp` 工具。MCP 未就绪时不得执行浏览器操作。
 
-MCP 已在配置中声明、用户声称已配置或本地进程检查成功，都不能替代通过 `ae:chrome-devtools` 技能完成的注册确认。MCP 注册失败时不得立即阻断交付，必须按以下浏览器重试策略尽可能完成验收：
+MCP 已在配置中声明、用户声称已配置或本地进程检查成功，都不能替代通过 `ae:playwright` 技能完成的注册确认。MCP 注册失败时不得立即阻断交付，必须按以下浏览器重试策略尽可能完成验收：
 
 **浏览器重试策略（按顺序尝试，每种模式失败后自动尝试下一种）：**
 
-1. Chrome autoConnect — 默认首选，自动发现已运行的 Chrome
-2. Edge autoConnect — Chrome 不可用时，自动发现已运行的 Edge
-3. Chrome/Edge connect — autoConnect 失败时，提示用户提供浏览器调试端口
-4. Chrome isolated — 启动独立 Chrome 实例（干净环境）
-5. Edge isolated — Chrome isolated 失败时，启动独立 Edge 实例
+1. 默认值推断（Chrome 优先）— 不传 mode，由 `ae:playwright` 自动 detect 并接管已运行的 Chrome
+2. Edge 默认值推断 — Chrome 不可用时，不传 mode，由 `ae:playwright` 自动 detect 并接管已运行的 Edge
+3. `mode=cdpEndpoint` + `port` — 默认值推断失败时，提示用户提供浏览器调试端口，通过 CDP 连接
+4. `mode=isolated` browser=Chrome — 启动独立 Chrome 实例（干净环境）
+5. `mode=isolated` browser=Edge — Chrome isolated 失败时，启动独立 Edge 实例
 
 **阻断条件（仅当以下全部满足时方可阻断）：** 所有 5 种注册模式均失败、用户明确拒绝启动任何浏览器、且用户明确拒绝重新执行验收。此时停止浏览器操作命令，同时阻断交付：不得在验收未完成的情况下输出产出文件、声明任务完成或继续执行步骤 4（输出总结）。验收阻断时唯一允许的输出是标注"验收阻断：所有浏览器注册模式均失败"的状态报告，含已尝试的浏览器和模式列表、阻断原因、用户后续可自行验收的指引。该报告不得作为交付凭证。
 
@@ -218,7 +218,7 @@ MCP 已在配置中声明、用户声称已配置或本地进程检查成功，�
 - 可复用资产约束：子代理优先复用已封装组件；需新建时在输出中说明原因
 - 全新项目约束：使用 HTML + JS + CSS 原生实现，除非用户明确指定其他技术栈
 - 设计决策包：设计实现阶段前由 `@ui-design-spec` 产出的设计决策包必须透传给 `@ui-architect`，作为视觉实现的唯一依据
-- chrome-devtools MCP 门禁：涉及浏览器操作的子代理必须先通过 `ae:chrome-devtools` 完成注册
+- Playwright MCP 门禁：涉及浏览器操作的子代理必须先通过 `ae:playwright` 完成注册
 - 截图保存路径：所有截图必须保存到 `ae/screenshot/` 目录
 - 登录检测：打开目标页面后须执行登录检测流程
 - 用户提供的具体约束（CSS 硬约束、设计规格、输出路径等）必须原样传递给子代理

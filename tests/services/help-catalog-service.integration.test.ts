@@ -56,13 +56,13 @@ describe('help-catalog-service 集成', () => {
     expect(text).toContain('生成日报、周报或指定时间段工作总结')
   })
 
-  it('应该在真实帮助目录中展示 ae:web-forge 的 chrome-devtools MCP 门禁语义', () => {
+  it('应该在真实帮助目录中展示 ae:web-forge 的 Playwright MCP 门禁语义', () => {
     const text = generateHelpText('web-forge')
 
     expect(text).toContain(SKILL.WEB_FORGE)
     expect(text).toContain(`/${COMMAND.WEB_FORGE}`)
-    expect(text).toContain(SKILL.CHROME_DEVTOOLS)
+    expect(text).toContain(SKILL.PLAYWRIGHT)
     expect(text).toContain('MCP 注册')
-    expect(text).not.toContain('chrome-devtools 可用')
+    expect(text).not.toContain('playwright 可用')
   })
 })

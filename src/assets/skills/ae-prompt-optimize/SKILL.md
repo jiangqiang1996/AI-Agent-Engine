@@ -125,9 +125,9 @@ argument-hint: "[提示词内容] [mode=auto|pause]"
 
 **浏览器能力门禁：**
 
-- 如果优化后提示词会引导目标新会话使用 `chrome-devtools-mcp`、`ae:web-forge`、`/ae-web-forge`、`@ui-architect`、`@logic-weaver`、`@browser-inspector`，优化后的提示词必须明确要求目标新会话先使用 `ae:chrome-devtools` 技能完成浏览器 MCP 动态注册；`ae:chrome-devtools` 是浏览器 MCP 的唯一管理入口，不应直接调用 `ae-chrome-devtools-mcp` 工具。得到 MCP 连接就绪结果后再执行浏览器流程。
-- 同一工作区的 chrome-devtools MCP 注册状态可以跨会话复用；MCP 未注册、注册失败或连接状态非 connected 时，目标新会话必须自行完成动态注册。
-- chrome-devtools MCP 已在配置中声明、用户声称已配置或本地进程检查成功，都不能替代 MCP 注册校验。
+- 如果优化后提示词会引导目标新会话使用 `@playwright/mcp`、`ae:web-forge`、`/ae-web-forge`、`@ui-architect`、`@logic-weaver`、`@browser-inspector`，优化后的提示词必须明确要求目标新会话先使用 `ae:playwright` 技能完成浏览器 MCP 动态注册；`ae:playwright` 是浏览器 MCP 的唯一管理入口，不应直接调用 `ae-playwright-mcp` 工具。得到 MCP 连接就绪结果后再执行浏览器流程。
+- 同一工作区的 Playwright MCP 注册状态可以跨会话复用；MCP 未注册、注册失败或连接状态非 connected 时，目标新会话必须自行完成动态注册。
+- Playwright MCP 已在配置中声明、用户声称已配置或本地进程检查成功，都不能替代 MCP 注册校验。
 
 **自检清单（优化完成后逐项确认）：**
 

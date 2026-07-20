@@ -48,7 +48,7 @@ describe('asset-model-routing-catalog', () => {
   })
 
   it('视觉相关命令应该引用 vision 场景', () => {
-    expect(getCommandModelScenario(COMMAND.CHROME_DEVTOOLS)).toBe(MODEL_SCENARIO.VISION)
+    expect(getCommandModelScenario(COMMAND.PLAYWRIGHT)).toBe(MODEL_SCENARIO.VISION)
   })
 
   it('web-forge 命令应该引用 deep 场景', () => {

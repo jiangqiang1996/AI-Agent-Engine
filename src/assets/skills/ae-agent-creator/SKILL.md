@@ -113,7 +113,7 @@ node <skill-dir>/scripts/init_agent.mjs code-reviewer --global
 - 不生成已弃用的 `maxSteps` 字段，使用 `steps`。
 - 不默认创建命令。
 - 不默认放宽权限，不默认允许 destructive Git 操作或远程写操作。
-- 不跳过浏览器能力的 chrome-devtools MCP 门禁要求。
+- 不跳过浏览器能力的 Playwright MCP 门禁要求。
 - 不把 AE 插件源码仓库结构当作普通用户项目要求。
 - 不新增或引导寻找 `ae:agent-updater`；创建与更新都由 `ae:agent-creator` 承接。
 - 不把 `ae:install` 描述为代理内容更新器；它只属于 AE 插件安装或源码维护能力。

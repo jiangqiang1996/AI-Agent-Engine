@@ -7,10 +7,9 @@ import * as path from 'node:path'
 
 const execAsync = promisify(exec)
 
-// chrome-devtools-mcp 官方正式支持 Chrome 和 Chrome for Testing；
-// Edge、Chromium 等其他 Chromium 内核浏览器可能可用但不保证
-// 本服务检测 Chrome、Edge、Chromium 三种常见浏览器，用于辅助决策连接方式
-export const BROWSER_NAMES = ['Chrome', 'Edge', 'Chromium'] as const
+// @playwright/mcp 支持 Chromium、Firefox、WebKit 三大浏览器内核
+// 本服务检测 Chrome、Edge、Chromium、Firefox、WebKit 五种常见浏览器，用于辅助决策连接方式
+export const BROWSER_NAMES = ['Chrome', 'Edge', 'Chromium', 'Firefox', 'WebKit'] as const
 
 /** DevToolsActivePort 文件解析结果 */
 interface DevToolsActivePort {
@@ -44,11 +43,15 @@ export function getBrowserUserDataDirs(browser: string): string[] {
       Chrome: [path.join(process.env.LOCALAPPDATA ?? '', 'Google', 'Chrome', 'User Data')],
       Edge: [path.join(process.env.LOCALAPPDATA ?? '', 'Microsoft', 'Edge', 'User Data')],
       Chromium: [path.join(process.env.LOCALAPPDATA ?? '', 'Chromium', 'User Data')],
+      Firefox: [path.join(process.env.APPDATA ?? '', 'Mozilla', 'Firefox')],
+      WebKit: [],
     },
     darwin: {
       Chrome: [path.join(home, 'Library', 'Application Support', 'Google', 'Chrome')],
       Edge: [path.join(home, 'Library', 'Application Support', 'Microsoft Edge')],
       Chromium: [path.join(home, 'Library', 'Application Support', 'Chromium')],
+      Firefox: [path.join(home, 'Library', 'Application Support', 'Firefox')],
+      WebKit: [],
     },
     linux: {
       Chrome: [
@@ -65,6 +68,11 @@ export function getBrowserUserDataDirs(browser: string): string[] {
         path.join(home, 'snap', 'chromium', 'common', 'chromium'),
         path.join(home, '.var', 'app', 'org.chromium.Chromium', 'config', 'chromium'),
       ],
+      Firefox: [
+        path.join(home, '.mozilla', 'firefox'),
+        path.join(xdgConfig, 'firefox'),
+      ],
+      WebKit: [],
     },
   }
 
@@ -78,7 +86,7 @@ function isValidWsPath(wsPath: string): boolean {
 
 /**
  * 解析 DevToolsActivePort 文件
- * 对齐官方 chrome-devtools-mcp 实现：filter 空行 + trim 每行 + 端口范围校验
+ * 对齐 @playwright/mcp 实现：filter 空行 + trim 每行 + 端口范围校验
  */
 async function readDevToolsActivePort(userDataDir: string): Promise<DevToolsActivePort | null> {
   const filePath = path.join(userDataDir, 'DevToolsActivePort')
@@ -133,11 +141,18 @@ function getBrowserExecutablePaths(browser: string): string[] {
         path.join(pf86, 'Chromium', 'Application', 'chrome.exe'),
         path.join(localAppData, 'Chromium', 'Application', 'chrome.exe'),
       ],
+      Firefox: [
+        path.join(pf, 'Mozilla Firefox', 'firefox.exe'),
+        path.join(pf86, 'Mozilla Firefox', 'firefox.exe'),
+      ],
+      WebKit: [],
     },
     darwin: {
       Chrome: ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'],
       Edge: ['/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge'],
       Chromium: ['/Applications/Chromium.app/Contents/MacOS/Chromium'],
+      Firefox: ['/Applications/Firefox.app/Contents/MacOS/firefox'],
+      WebKit: [],
     },
     linux: {
       Chrome: [
@@ -163,6 +178,13 @@ function getBrowserExecutablePaths(browser: string): string[] {
         '/var/lib/flatpak/exports/bin/org.chromium.Chromium',
         path.join(home, '.local', 'share', 'flatpak', 'exports', 'bin', 'org.chromium.Chromium'),
       ],
+      Firefox: [
+        '/usr/bin/firefox',
+        '/usr/bin/firefox-esr',
+        '/usr/local/bin/firefox',
+        '/snap/bin/firefox',
+      ],
+      WebKit: [],
     },
   }
 
@@ -313,14 +335,11 @@ export function buildDetectionAdvice(results: BrowserDetectionResult[]): string[
   if (debuggable.length === 1) {
     const rb = debuggable[0]
     lines.push(`建议：检测到 ${rb.browser} 正在运行并启用远程调试（端口 ${rb.port}）。`)
-    if (rb.wsEndpoint) {
-      lines.push(`  接管参数：["--wsEndpoint", "${rb.wsEndpoint}"]`)
-    }
-    lines.push(`  或使用：["--browserUrl", "http://127.0.0.1:${rb.port}"]`)
+    lines.push(`  接管参数：["--cdp-endpoint", "http://127.0.0.1:${rb.port}"]`)
   } else if (debuggable.length > 1) {
     lines.push('建议：检测到多个浏览器正在运行并启用远程调试，请选择一个接管：')
     for (const rb of debuggable) {
-      lines.push(`  ${rb.browser}（端口 ${rb.port}）：["--wsEndpoint", "${rb.wsEndpoint}"]`)
+      lines.push(`  ${rb.browser}（端口 ${rb.port}）：["--cdp-endpoint", "http://127.0.0.1:${rb.port}"]`)
     }
   } else if (runningNotDebuggable.length > 0) {
     const names = runningNotDebuggable.map((r) => r.browser).join('、')
@@ -329,7 +348,7 @@ export function buildDetectionAdvice(results: BrowserDetectionResult[]): string[
     lines.push('  或使用 --isolated 启动独立浏览器：')
     for (const ib of runningNotDebuggable) {
       if (ib.executablePath) {
-        lines.push(`  ${ib.browser}：["--isolated", "--executablePath", "${ib.executablePath}"]`)
+        lines.push(`  ${ib.browser}：["--isolated", "--executable-path", "${ib.executablePath}"]`)
       }
     }
   } else if (installed.length > 0) {
@@ -338,24 +357,24 @@ export function buildDetectionAdvice(results: BrowserDetectionResult[]): string[
     if (installed.length === 1) {
       const ib = installed[0]
       if (ib.executablePath) {
-        lines.push(`  ["--isolated", "--executablePath", "${ib.executablePath}"]`)
-        lines.push(`  无头模式：["--isolated", "--headless", "--executablePath", "${ib.executablePath}"]`)
+        lines.push(`  ["--isolated", "--executable-path", "${ib.executablePath}"]`)
+        lines.push(`  无头模式：["--isolated", "--headless", "--executable-path", "${ib.executablePath}"]`)
       }
     } else {
       const preferred = installed[0]
       if (preferred.executablePath) {
-        lines.push(`  自动选择优先级最高的 ${preferred.browser}：["--isolated", "--executablePath", "${preferred.executablePath}"]`)
+        lines.push(`  自动选择优先级最高的 ${preferred.browser}：["--isolated", "--executable-path", "${preferred.executablePath}"]`)
       }
       lines.push('  其他浏览器：')
       for (const ib of installed.slice(1)) {
         if (ib.executablePath) {
-          lines.push(`  ${ib.browser}：["--isolated", "--executablePath", "${ib.executablePath}"]`)
+          lines.push(`  ${ib.browser}：["--isolated", "--executable-path", "${ib.executablePath}"]`)
         }
       }
       lines.push('  无头模式追加 "--headless"')
     }
   } else {
-    lines.push('建议：未检测到已安装的 Chromium 内核浏览器。请先安装 Chrome（chrome-devtools-mcp 官方正式支持 Chrome 和 Chrome for Testing，其他 Chromium 浏览器可能可用但不保证）。')
+    lines.push('建议：未检测到已安装的浏览器。请先安装 Chrome、Firefox 或 WebKit（@playwright/mcp 支持 Chromium、Firefox、WebKit 三大浏览器内核）。')
   }
 
   return lines

@@ -17,7 +17,7 @@ export const aeCreateSessionTool: ToolDefinition = tool({
     '- 可选发送 user_prompt 并触发新会话回复；auto_execute 默认 false',
     '- 是否执行前确认完全由 require_confirmation 参数决定，工具不会自行推断',
     '- 通过工具自动执行 user_prompt 时是否请求确认仍由 require_confirmation 决定；调用方必须显式承担该决策',
-    '- 自动执行前会强制为浏览器相关提示词注入 chrome-devtools MCP 动态注册门禁',
+    '- 自动执行前会强制为浏览器相关提示词注入 Playwright MCP 动态注册门禁',
     '- 导航失败不会阻断会话创建或提示词提交结果',
     '- 命令展开：user_prompt 或 context_message 以 /命令名 开头时，工具内部自动获取命令模板并按 opencode 底层参数替换逻辑展开为完整模板提示词后再提交；非命令开头或命令不存在时原样提交',
     '',

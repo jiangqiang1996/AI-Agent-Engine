@@ -134,7 +134,7 @@ remote MCP 的最终 URL 当前允许 `http` / `https`，建议优先使用 `htt
 | `quick` | 快速响应（`/ae-help`、`/ae-graph-query`） | 低延迟、低成本 |
 | `standard` | 常规任务（`/ae-brainstorm`、`/ae-sql`） | 平衡性能与质量 |
 | `deep` | 深度推理（`/ae-design`、`/ae-work`、`/ae-review`，以及声明 `model: $deep` 的 Markdown 命令） | 强推理、长上下文 |
-| `vision` | 视觉任务（`/ae-chrome-devtools`） | 支持图片输入 |
+| `vision` | 视觉任务（`/ae-playwright`） | 支持图片输入 |
 | `audio` | 音频任务 | 支持音频输入 |
 | `video` | 视频任务 | 支持视频输入 |
 
@@ -209,7 +209,7 @@ model: $deep
 | `/ae-brainstorm`、`/ae-prd`、`/ae-agent-creator`、`/ae-work-report`、`/ae-my-code-changes`、`/ae-handoff`、`/ae-sql`、`/ae-swagger-parser`、`/ae-api-tester`、`/ae-image`、`/ae-audio`、`/ae-video`、`/ae-graph-build`、`/ae-project-explore`、`/ae-save-experience`、`/ae-prompt-optimize`、`/ae-skill-creator`、`/ae-docx`、`/ae-pdf`、`/ae-pptx`、`/ae-xlsx`、`/ae-officecli` | `standard` |
 | `/ae-design`、`/ae-work`、`/ae-merge-branch`、`/ae-review`、`/ae-web-forge`、`/ae-slides-outline`、`/ae-task-loop`、`/ae-grill` | `deep` |
 | `/ae-graph-query` | `quick` |
-| `/ae-chrome-devtools` | `vision` |
+| `/ae-playwright` | `vision` |
 | `@repo-research-analyst`、`@web-researcher` | `standard` |
 | `@ui-architect`、`@browser-inspector` | `vision` |
 | `@logic-weaver`、`@spec-flow-analyzer`、全部 13 个审查专精代理 | `deep` |

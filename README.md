@@ -76,7 +76,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 前端和浏览器验收：
 
 ```text
-/ae-chrome-devtools
+/ae-playwright
 /ae-web-forge 实现登录页
 /ae-web-forge --inspect http://localhost:3000/login
 ```
@@ -108,7 +108,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 查看本人代码变更 | `/ae-my-code-changes` |
 | 代码或文档审查 | `/ae-review` |
 | 前端设计、还原、交互或验收 | `/ae-web-forge` |
-| chrome-devtools 浏览器能力 | `/ae-chrome-devtools` |
+| playwright 浏览器能力 | `/ae-playwright` |
 | 接口测试 | `/ae-api-tester` |
 | Swagger/OpenAPI 摘要 | `/ae-swagger-parser` |
 | 图片转 Markdown 描述 | `/ae-image` |
@@ -137,7 +137,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 需求不清先澄清 | 复杂实现前先产出需求或设计，避免直接编码 |
 | 审查先定范围 | 代码、文档或通用混合范围按目标类型选择审查代理 |
 | 交付必须验证 | `/ae-work` 交付前检查验证、审查和 Git 授权证据 |
-| 浏览器先注册 MCP | 当前会话使用 chrome-devtools-mcp 工具前必须先通过 `/ae-chrome-devtools` 完成动态注册或连接状态确认 |
+| 浏览器先注册 MCP | 当前会话使用 @playwright/mcp 工具前必须先通过 `/ae-playwright` 完成动态注册或连接状态确认 |
 | Git 写操作需授权 | 提交、拉取、重置、清理、变基、推送等都需要明确授权；`/ae-commit` 不等同于 push |
 | 远程写操作不默认提供 | 用户侧流程不提供 push、创建 PR、创建 Issue 或 Release 的可复制流程 |
 

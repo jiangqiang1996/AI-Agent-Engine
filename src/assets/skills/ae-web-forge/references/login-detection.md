@@ -2,7 +2,7 @@
 
 本文档定义统一的登录检测流程，供所有浏览器截图能力复用。
 
-在执行本文档中的任何浏览器操作前，必须先通过 `ae:chrome-devtools` 技能完成浏览器 MCP 注册并确认连接就绪；`ae:chrome-devtools` 是浏览器 MCP 的唯一管理入口，不应直接调用 `ae-chrome-devtools-mcp` 工具。配置中已声明 MCP、用户声称已配置或本地进程检查成功都不能替代 MCP 注册确认结果。未完成 MCP 注册确认前不得执行任何浏览器操作命令；MCP 未就绪时使用 `ae:chrome-devtools` 完成 MCP 注册，若 MCP 注册失败、用户拒绝启动或当前环境无法启动，必须停止浏览器流程并记录无法验证原因。
+在执行本文档中的任何浏览器操作前，必须先通过 `ae:playwright` 技能完成浏览器 MCP 注册并确认连接就绪；`ae:playwright` 是浏览器 MCP 的唯一管理入口，不应直接调用 `ae-playwright-mcp` 工具。配置中已声明 MCP、用户声称已配置或本地进程检查成功都不能替代 MCP 注册确认结果。未完成 MCP 注册确认前不得执行任何浏览器操作命令；MCP 未就绪时使用 `ae:playwright` 完成 MCP 注册，若 MCP 注册失败、用户拒绝启动或当前环境无法启动，必须停止浏览器流程并记录无法验证原因。
 
 ## 检测机制
 
@@ -28,7 +28,7 @@
 
 | 优先级 | 检测方式 | 命令 | 适用场景 |
 |--------|---------|------|---------|
-| 1 | URL 变化 | `chrome-devtools_take_snapshot verbose=true` 解析 URL | 传统登录跳转 |
+| 1 | URL 变化 | `browser_snapshot` 解析 URL | 传统登录跳转 |
 | 2 | 用户元素出现 | 检测用户头像或登出按钮 uid | 通用检测 |
 | 3 | 登录元素全部消失 | 检测初始登录相关元素列表均不存在 | 表单提交场景 |
 | 4 | 截图人工判断 | 展示截图 + `question` 工具 | 兜底方案 |
@@ -47,7 +47,7 @@
 
 ### 自动识别条件
 
-通过 `chrome-devtools_take_snapshot verbose=true` 获取页面元素，检测以下信号：
+通过 `browser_snapshot` 获取页面元素，检测以下信号：
 
 | 信号类型 | 检测方式 | 权重 |
 |---------|---------|------|
@@ -59,7 +59,7 @@
 
 ### 识别流程
 
-1. 打开目标 URL 后运行 `chrome-devtools_take_snapshot verbose=true`。
+1. 打开目标 URL 后运行 `browser_snapshot`。
 2. 从快照中读取当前 URL、页面标题和可交互元素列表。
 3. 如 URL 命中登录路径或页面包含密码输入框，判定为需要登录。
 4. 如仅命中登录按钮或标题关键词，结合截图或上下文判断，避免把普通导航按钮误判为登录页。
@@ -121,7 +121,7 @@
 
 ### 步骤 1：检测登录需求
 
-打开目标 URL 后运行 `chrome-devtools_take_snapshot verbose=true` 获取页面状态，并分析是否包含登录路径、密码输入框或登录按钮等信号。
+打开目标 URL 后运行 `browser_snapshot` 获取页面状态，并分析是否包含登录路径、密码输入框或登录按钮等信号。
 
 ### 步骤 2：记录初始状态
 
@@ -166,7 +166,7 @@
 先保存当前页面截图，再使用 `question` 工具询问用户：
 
 ```
-chrome-devtools_take_screenshot filePath=ae/screenshot/login-timeout.png
+browser_take_screenshot filename=ae/screenshot/login-timeout.png
 ```
 
 ```typescript
@@ -187,15 +187,15 @@ question({
 
 ### 在技能中集成
 
-未通过 `ae:chrome-devtools` 技能完成浏览器 MCP 动态注册并确认连接就绪前，不得执行下列示例中的浏览器操作命令。
+未通过 `ae:playwright` 技能完成浏览器 MCP 动态注册并确认连接就绪前，不得执行下列示例中的浏览器操作命令。
 
 ```markdown
 ### 前置检查：登录状态检测
 
 在打开目标页面后、截图前，检测是否需要登录：
 
-1. `chrome-devtools_navigate_page type=url url=[URL]`
-2. `chrome-devtools_take_snapshot verbose=true` 获取页面状态
+1. `browser_navigate url=[URL]`
+2. `browser_snapshot` 获取页面状态
 3. 分析是否包含登录信号（见 login-detection.md）
 4. 如检测到登录，执行登录等待流程
 5. 登录成功后继续执行
@@ -205,14 +205,14 @@ question({
 
 ### 在代理中集成
 
-未通过 `ae:chrome-devtools` 技能完成浏览器 MCP 动态注册并确认连接就绪前，不得执行下列示例中的浏览器操作命令。
+未通过 `ae:playwright` 技能完成浏览器 MCP 动态注册并确认连接就绪前，不得执行下列示例中的浏览器操作命令。
 
 ```markdown
 ## 步骤 0：前置检查
 
 **登录状态检测：**
 
-1. 使用 `chrome-devtools_take_snapshot verbose=true` 获取当前页面状态
+1. 使用 `browser_snapshot` 获取当前页面状态
 2. 检测 URL 是否包含登录路径，或页面是否包含密码输入框
 3. 如检测到登录页面：
    - 输出反馈提示："🔐 检测到登录页面，请完成登录..."

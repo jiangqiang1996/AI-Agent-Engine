@@ -107,13 +107,13 @@ describe('AE catalog 一致性', () => {
     expect(entry?.argumentHint).toBe(frontmatter['argument-hint'])
   })
 
-  it('ae:chrome-devtools 应注册为浏览器能力中枢入口', () => {
-    const entry = getPhaseOneEntries().find((item) => item.skillName === SKILL.CHROME_DEVTOOLS)
-    const frontmatter = readFrontmatter('src/assets/skills/ae-chrome-devtools/SKILL.md')
+  it('ae:playwright 应注册为浏览器能力中枢入口', () => {
+    const entry = getPhaseOneEntries().find((item) => item.skillName === SKILL.PLAYWRIGHT)
+    const frontmatter = readFrontmatter('src/assets/skills/ae-playwright/SKILL.md')
 
     expect(entry).toBeDefined()
-    expect(entry?.commandName).toBe('ae-chrome-devtools')
-    expect(entry?.skillFile).toBe('src/assets/skills/ae-chrome-devtools/SKILL.md')
+    expect(entry?.commandName).toBe('ae-playwright')
+    expect(entry?.skillFile).toBe('src/assets/skills/ae-playwright/SKILL.md')
     expect(entry?.description).toBe(frontmatter.description)
     expect(entry?.argumentHint).toBe(frontmatter['argument-hint'])
     expect(entry?.customTemplate).toBeUndefined()

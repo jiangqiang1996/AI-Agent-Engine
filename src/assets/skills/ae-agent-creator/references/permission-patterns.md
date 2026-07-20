@@ -5,7 +5,7 @@
 - 默认不放宽权限。
 - 只为代理职责需要的工具开放能力。
 - 敏感操作、Git 写操作、网络写操作应保留用户确认。
-- 浏览器能力必须先通过 `ae:chrome-devtools` 技能完成浏览器 MCP 动态注册并确认连接就绪；`ae:chrome-devtools` 是浏览器 MCP 的唯一管理入口，不应直接调用 `ae-chrome-devtools-mcp` 工具。MCP 未就绪时使用 `ae:chrome-devtools` 完成注册，注册失败时停止浏览器流程并记录无法验证，不提供绕过方式。
+- 浏览器能力必须先通过 `ae:playwright` 技能完成浏览器 MCP 动态注册并确认连接就绪；`ae:playwright` 是浏览器 MCP 的唯一管理入口，不应直接调用 `ae-playwright-mcp` 工具。MCP 未就绪时使用 `ae:playwright` 完成注册，注册失败时停止浏览器流程并记录无法验证，不提供绕过方式。
 
 ## 更新敏感变化确认
 
@@ -25,7 +25,7 @@
 - `mode` 从 `subagent` 扩大为 `primary` 或 `all`。
 - 新增工具、移除工具禁用项，或把 `tools` / `permission` 从拒绝、询问改为允许。
 - 新增或放宽 destructive Git、删除文件、覆盖文件、绕过提交钩子、远程写操作、网络写操作或外部副作用指令。
-- 新增浏览器命令或 chrome-devtools-mcp 工具调用；浏览器流程仍必须先通过 `ae:chrome-devtools` 技能完成 MCP 注册确认。
+- 新增浏览器命令或 @playwright/mcp 工具调用；浏览器流程仍必须先通过 `ae:playwright` 技能完成 MCP 注册确认。
 - 删除旧正文中的安全边界、确认要求或禁止事项。
 
 敏感变化不只看 frontmatter；正文新增、删除或重写 destructive Git、远程写操作、浏览器命令、权限放宽和外部副作用指令时，也必须列入敏感变化并单独确认。
@@ -72,13 +72,13 @@ permission:
 
 ## 浏览器验证代理
 
-浏览器代理或命令的提示词必须先要求通过 `ae:chrome-devtools` 技能完成浏览器 MCP 动态注册并确认连接就绪。未通过注册确认前，不得执行任何 chrome-devtools-mcp 工具调用。
+浏览器代理或命令的提示词必须先要求通过 `ae:playwright` 技能完成浏览器 MCP 动态注册并确认连接就绪。未通过注册确认前，不得执行任何 @playwright/mcp 工具调用。
 
 ```yaml
 permission:
   bash:
     "*": ask
-    "chrome-devtools_*": ask
+    "browser_*": ask
 ```
 
 ## 禁止默认配置

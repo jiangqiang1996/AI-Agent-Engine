@@ -89,13 +89,13 @@ describe('command-registration', () => {
     expect(config[COMMAND.SWAGGER_PARSER]?.template).toContain(SKILL.SWAGGER_PARSER)
   })
 
-  it('应该为 ae:web-forge 命令保留 chrome-devtools 环境门禁顺序', () => {
+  it('应该为 ae:web-forge 命令保留 playwright 环境门禁顺序', () => {
     const config = buildCommandConfig('__missing_commands_dir__')
 
     const baseTemplate = config[COMMAND.WEB_FORGE]?.template ?? ''
-    expect(baseTemplate).toContain(`先使用 \`${SKILL.CHROME_DEVTOOLS} action=register mode=autoConnect\` 技能完成浏览器 MCP 动态注册`)
+    expect(baseTemplate).toContain(`先使用 \`${SKILL.PLAYWRIGHT} action=register mode=autoConnect\` 技能完成浏览器 MCP 动态注册`)
     expect(baseTemplate).toContain('未完成 MCP 注册前不得执行任何浏览器控制命令')
-    expect(baseTemplate.indexOf(SKILL.CHROME_DEVTOOLS)).toBeLessThan(baseTemplate.indexOf(SKILL.WEB_FORGE))
+    expect(baseTemplate.indexOf(SKILL.PLAYWRIGHT)).toBeLessThan(baseTemplate.indexOf(SKILL.WEB_FORGE))
   })
 
   it('应该为 ae:skill-creator 只生成基础命令', () => {
@@ -131,16 +131,16 @@ describe('command-registration', () => {
     expect(frontmatter['argument-hint']).toBe(catalogEntry?.argumentHint)
   })
 
-  it('应该保持 ae:chrome-devtools 和 ae:web-forge catalog 与 SKILL.md frontmatter 语义一致', () => {
-    const chromeDevtoolsContent = readFileSync('src/assets/skills/ae-chrome-devtools/SKILL.md', 'utf8')
+  it('应该保持 ae:playwright 和 ae:web-forge catalog 与 SKILL.md frontmatter 语义一致', () => {
+    const playwrightContent = readFileSync('src/assets/skills/ae-playwright/SKILL.md', 'utf8')
     const webForgeContent = readFileSync('src/assets/skills/ae-web-forge/SKILL.md', 'utf8')
-    const chromeDevtoolsFrontmatter = parseFrontmatter(chromeDevtoolsContent).data
+    const playwrightFrontmatter = parseFrontmatter(playwrightContent).data
     const webForgeFrontmatter = parseFrontmatter(webForgeContent).data
-    const chromeDevtoolsEntry = getPhaseOneEntries().find((entry) => entry.skillName === SKILL.CHROME_DEVTOOLS)
+    const playwrightEntry = getPhaseOneEntries().find((entry) => entry.skillName === SKILL.PLAYWRIGHT)
     const webForgeEntry = getPhaseOneEntries().find((entry) => entry.skillName === SKILL.WEB_FORGE)
 
-    expect(chromeDevtoolsFrontmatter.description).toContain('chrome-devtools')
-    expect(chromeDevtoolsEntry?.description).toContain('chrome-devtools-mcp')
+    expect(playwrightFrontmatter.description).toContain('playwright')
+    expect(playwrightEntry?.description).toContain('@playwright/mcp')
     expect(webForgeFrontmatter.description).toContain('前端开发')
     expect(webForgeEntry?.description).toContain('@ui-architect')
   })

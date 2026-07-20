@@ -57,18 +57,18 @@ function stripNegativeContext(content: string): string {
 }
 
 describe('Markdown 协议测试', () => {
-  it('浏览器消费方必须在命令前声明 chrome-devtools MCP 门禁和失败降级', () => {
-    const CHROME_DEVTOOLS_MCP = /chrome-devtools_\w+/
-    const browserAssets = ASSETS.filter((asset) => CHROME_DEVTOOLS_MCP.test(asset.content) && !asset.path.includes('ae-chrome-devtools'))
-    const required = ['ae:chrome-devtools', '不得执行', 'MCP 注册', '不能替代']
+  it('浏览器消费方必须在命令前声明 Playwright MCP 门禁和失败降级', () => {
+    const PLAYWRIGHT_MCP = /browser_\w+/
+    const browserAssets = ASSETS.filter((asset) => PLAYWRIGHT_MCP.test(asset.content) && !asset.path.includes('ae-playwright'))
+    const required = ['ae:playwright', '不得执行', 'MCP 注册', '不能替代']
 
     for (const asset of browserAssets) {
-      const firstCommandIndex = asset.content.search(CHROME_DEVTOOLS_MCP)
-      const gateIndex = asset.content.indexOf('ae:chrome-devtools')
+      const firstCommandIndex = asset.content.search(PLAYWRIGHT_MCP)
+      const gateIndex = asset.content.indexOf('ae:playwright')
 
       expect(
         gateIndex >= 0 && gateIndex < firstCommandIndex && hasAll(asset.content, required) && /(失败|无法验证|停止)/.test(asset.content),
-        `protocol/chrome-devtools-mcp-gate/${relative(process.cwd(), asset.path)}: 缺少命令前 chrome-devtools MCP 门禁、未完成停止、MCP 注册不能替代或失败降级语义`,
+        `protocol/playwright-mcp-gate/${relative(process.cwd(), asset.path)}: 缺少命令前 Playwright MCP 门禁、未完成停止、MCP 注册不能替代或失败降级语义`,
       ).toBe(true)
     }
   })

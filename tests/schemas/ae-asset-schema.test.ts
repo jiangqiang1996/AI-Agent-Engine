@@ -18,9 +18,9 @@ describe('ae-asset-schema', () => {
     expect(AeCommandNameSchema.parse(COMMAND.SWAGGER_PARSER)).toBe('ae-swagger-parser')
   })
 
-  it('应该接受 chrome-devtools 指导技能和命令', () => {
-    expect(AeSkillNameSchema.parse(SKILL.CHROME_DEVTOOLS)).toBe('ae:chrome-devtools')
-    expect(AeCommandNameSchema.parse(COMMAND.CHROME_DEVTOOLS)).toBe('ae-chrome-devtools')
+  it('应该接受 playwright 指导技能和命令', () => {
+    expect(AeSkillNameSchema.parse(SKILL.PLAYWRIGHT)).toBe('ae:playwright')
+    expect(AeCommandNameSchema.parse(COMMAND.PLAYWRIGHT)).toBe('ae-playwright')
   })
 
   it('应该拒绝旧会话沉淀和资产纠偏入口', () => {

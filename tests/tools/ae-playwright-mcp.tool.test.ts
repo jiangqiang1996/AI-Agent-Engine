@@ -62,13 +62,13 @@ vi.mock('../../src/services/client-holder.js', () => ({
           }
           if (statusMode === 'disabled') {
             return Promise.resolve({
-              data: { 'chrome-devtools': { status: 'disabled' } },
+              data: { playwright: { status: 'disabled' } },
             })
           }
           // 默认模式：第一次调用返回 not_registered（让 register 继续），后续按 statusMode
           if (statusCallCount === 1 && statusMode !== 'immediateConnected' && statusMode !== 'needsAuth') {
             return Promise.resolve({
-              data: { 'chrome-devtools': { status: 'not_registered' } },
+              data: { playwright: { status: 'not_registered' } },
             })
           }
           // register 前置检查或 waitForMcpReady 轮询
@@ -91,8 +91,8 @@ vi.mock('../../src/services/client-holder.js', () => ({
           }
           return Promise.resolve({
             data: statusMode === 'immediateFailed'
-              ? { 'chrome-devtools': { status: 'failed', error: '连接被拒绝' } }
-              : { 'chrome-devtools': { status } },
+              ? { playwright: { status: 'failed', error: '连接被拒绝' } }
+              : { playwright: { status } },
           })
         }),
         add: vi.fn().mockImplementation((params: { config: { command: string[] } }) => {
@@ -114,8 +114,8 @@ vi.mock('../../src/services/client-holder.js', () => ({
 }))
 
 async function callTool(args: Record<string, unknown>) {
-  const { aeChromeDevtoolsMcpTool: tool } = await import(
-    '../../src/tools/ae-chrome-devtools-mcp.tool.js'
+  const { aePlaywrightMcpTool: tool } = await import(
+    '../../src/tools/ae-playwright-mcp.tool.js'
   )
   const definition = tool as unknown as {
     execute: (
@@ -154,7 +154,7 @@ function resetState() {
   mockDisconnectThrow = false
 }
 
-describe('ae-chrome-devtools-mcp 工具 - detect action', () => {
+describe('ae-playwright-mcp 工具 - detect action', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
     resetState()
@@ -183,7 +183,7 @@ describe('ae-chrome-devtools-mcp 工具 - detect action', () => {
     expect(r.output).toContain('--isolated')
   })
 
-  it('应该在浏览器可调试时返回 wsEndpoint 和端口', async () => {
+  it('应该在浏览器可调试时返回 cdp-endpoint 和端口', async () => {
     const { mockFsAccess, mockFsReadFile } = await getMocks()
     mockFsAccess.mockResolvedValueOnce(undefined)
     mockFsReadFile.mockResolvedValueOnce('9222\n/devtools/browser/abc123')
@@ -193,7 +193,7 @@ describe('ae-chrome-devtools-mcp 工具 - detect action', () => {
     const r = result as { output: string }
     expect(r.output).toContain('debuggable=true')
     expect(r.output).toContain('port=9222')
-    expect(r.output).toContain('--wsEndpoint')
+    expect(r.output).toContain('--cdp-endpoint')
   })
 
   it('应该在浏览器运行但未启用远程调试时返回提示', async () => {
@@ -221,15 +221,17 @@ describe('ae-chrome-devtools-mcp 工具 - detect action', () => {
     expect(r.output).toContain('processRunning=true')
   })
 
-  it('应该在检测全部浏览器时返回所有三个浏览器的结果', async () => {
+  it('应该在检测全部浏览器时返回所有五个浏览器的结果', async () => {
     const result = await callTool({ action: 'detect' })
     const r = result as { output: string }
     expect(r.output).toContain('Chrome')
     expect(r.output).toContain('Edge')
     expect(r.output).toContain('Chromium')
+    expect(r.output).toContain('Firefox')
+    expect(r.output).toContain('WebKit')
     const lines = r.output.split('\n')
     const detectionLines = lines.filter((l) => l.includes('installed='))
-    expect(detectionLines.length).toBe(3)
+    expect(detectionLines.length).toBe(5)
   })
 
   it('不应该在检测结果中包含 Brave 或 Vivaldi', async () => {
@@ -262,7 +264,7 @@ describe('ae-chrome-devtools-mcp 工具 - detect action', () => {
     expect(r.output).toContain('请选择一个接管')
   })
 
-  it('应该在非Chrome浏览器可调试时建议中包含 wsEndpoint', async () => {
+  it('应该在 Edge 浏览器可调试时建议中包含 cdp-endpoint', async () => {
     const { mockFsAccess, mockFsReadFile } = await getMocks()
     mockFsAccess.mockResolvedValueOnce(undefined)
     mockFsReadFile.mockResolvedValueOnce('9333\n/devtools/browser/def456')
@@ -272,7 +274,7 @@ describe('ae-chrome-devtools-mcp 工具 - detect action', () => {
     const r = result as { output: string }
     expect(r.output).toContain('debuggable=true')
     expect(r.output).toContain('port=9333')
-    expect(r.output).toContain('--wsEndpoint')
+    expect(r.output).toContain('--cdp-endpoint')
   })
 
   it('应该在DevToolsActivePort端口越界(0)时判定为非可调试', async () => {
@@ -362,12 +364,29 @@ describe('ae-chrome-devtools-mcp 工具 - detect action', () => {
     expect(debuggable[0].port).toBe(9222)
     expect(debuggable[0].wsEndpoint).toContain('ws://127.0.0.1:9222')
   })
+
+  it('应该在检测 Firefox 时返回 Firefox 结果', async () => {
+    const { mockFsAccess } = await getMocks()
+    mockFsAccess.mockResolvedValueOnce(undefined)
+
+    const result = await callTool({ action: 'detect', browser: 'Firefox' })
+    const r = result as { output: string }
+    expect(r.output).toContain('Firefox')
+    expect(r.output).toContain('installed=true')
+  })
+
+  it('应该在检测 WebKit 时返回 WebKit 结果', async () => {
+    const result = await callTool({ action: 'detect', browser: 'WebKit' })
+    const r = result as { output: string }
+    expect(r.output).toContain('WebKit')
+    expect(r.output).toContain('installed=false')
+  })
 })
 
-describe('ae-chrome-devtools-mcp 工具 - schema 和描述', () => {
+describe('ae-playwright-mcp 工具 - schema 和描述', () => {
   it('应该包含 detect action 在描述中且标注为只读操作', async () => {
-    const { aeChromeDevtoolsMcpTool: tool } = await import(
-      '../../src/tools/ae-chrome-devtools-mcp.tool.js'
+    const { aePlaywrightMcpTool: tool } = await import(
+      '../../src/tools/ae-playwright-mcp.tool.js'
     )
     const definition = tool as unknown as { description: string }
     expect(definition.description).toContain('detect')
@@ -375,19 +394,21 @@ describe('ae-chrome-devtools-mcp 工具 - schema 和描述', () => {
     expect(definition.description).toContain('不连接')
   })
 
-  it('应该在描述中包含全部三种浏览器', async () => {
-    const { aeChromeDevtoolsMcpTool: tool } = await import(
-      '../../src/tools/ae-chrome-devtools-mcp.tool.js'
+  it('应该在描述中包含全部五种浏览器', async () => {
+    const { aePlaywrightMcpTool: tool } = await import(
+      '../../src/tools/ae-playwright-mcp.tool.js'
     )
     const definition = tool as unknown as { description: string }
     expect(definition.description).toContain('Chrome')
     expect(definition.description).toContain('Edge')
     expect(definition.description).toContain('Chromium')
+    expect(definition.description).toContain('Firefox')
+    expect(definition.description).toContain('WebKit')
   })
 
   it('不应该在描述中包含 Brave 或 Vivaldi', async () => {
-    const { aeChromeDevtoolsMcpTool: tool } = await import(
-      '../../src/tools/ae-chrome-devtools-mcp.tool.js'
+    const { aePlaywrightMcpTool: tool } = await import(
+      '../../src/tools/ae-playwright-mcp.tool.js'
     )
     const definition = tool as unknown as { description: string }
     expect(definition.description).not.toContain('Brave')
@@ -395,8 +416,8 @@ describe('ae-chrome-devtools-mcp 工具 - schema 和描述', () => {
   })
 
   it('应该在描述中包含稳定性轮询等待说明', async () => {
-    const { aeChromeDevtoolsMcpTool: tool } = await import(
-      '../../src/tools/ae-chrome-devtools-mcp.tool.js'
+    const { aePlaywrightMcpTool: tool } = await import(
+      '../../src/tools/ae-playwright-mcp.tool.js'
     )
     const definition = tool as unknown as { description: string }
     expect(definition.description).toContain('轮询')
@@ -404,8 +425,8 @@ describe('ae-chrome-devtools-mcp 工具 - schema 和描述', () => {
   })
 
   it('应该在描述中包含 mcpArgs 参数说明', async () => {
-    const { aeChromeDevtoolsMcpTool: tool } = await import(
-      '../../src/tools/ae-chrome-devtools-mcp.tool.js'
+    const { aePlaywrightMcpTool: tool } = await import(
+      '../../src/tools/ae-playwright-mcp.tool.js'
     )
     const definition = tool as unknown as { description: string }
     expect(definition.description).toContain('mcpArgs')
@@ -414,7 +435,7 @@ describe('ae-chrome-devtools-mcp 工具 - schema 和描述', () => {
   })
 })
 
-describe('ae-chrome-devtools-mcp 工具 - register mcpArgs 透传', () => {
+describe('ae-playwright-mcp 工具 - register mcpArgs 透传', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
     resetState()
@@ -425,30 +446,21 @@ describe('ae-chrome-devtools-mcp 工具 - register mcpArgs 透传', () => {
   })
 
   it('应该将 mcpArgs 原样追加到 BASE_COMMAND 之后', async () => {
-    statusMode = 'immediateConnected'
-    // statusCallCount 从 1 开始跳过前置检查（第一次返回 not_registered）
-    statusCallCount = 0
-    // 但 immediateConnected 模式下第一次返回 connected... 需要特殊处理
-    // 改为 notRegistered 模式让前置检查通过，后续返回 connected
-    statusMode = 'notRegistered'
-    // 重新设置：第一次 status 返回 not_registered（前置检查通过），
-    // 但 notRegistered 模式后续也返回空 data... 不行
-    // 改用 transient 模式 + 0 failures
     statusMode = 'transient'
     transientFailCount = 0
     transientCurrentCount = 0
 
-    const mcpArgs = ['--isolated', '--headless', '--executablePath', 'C:\\edge.exe']
+    const mcpArgs = ['--isolated', '--headless', '--executable-path', 'C:\\edge.exe']
     const result = await callTool({ action: 'register', mcpArgs })
 
     const r = result as { output: string; metadata: Record<string, unknown> }
     expect(r.metadata).toMatchObject({ connected: true, status: 'connected' })
     expect(lastAddCommand).not.toBeNull()
     expect(lastAddCommand!).toContain('npx')
-    expect(lastAddCommand!).toContain('chrome-devtools-mcp@latest')
+    expect(lastAddCommand!).toContain('@playwright/mcp@latest')
     expect(lastAddCommand!).toContain('--isolated')
     expect(lastAddCommand!).toContain('--headless')
-    expect(lastAddCommand!).toContain('--executablePath')
+    expect(lastAddCommand!).toContain('--executable-path')
     expect(lastAddCommand!).toContain('C:\\edge.exe')
   })
 
@@ -462,7 +474,7 @@ describe('ae-chrome-devtools-mcp 工具 - register mcpArgs 透传', () => {
     const r = result as { output: string; metadata: Record<string, unknown> }
     expect(r.metadata).toMatchObject({ connected: true })
     expect(lastAddCommand).not.toBeNull()
-    expect(lastAddCommand!.length).toBe(3) // npx -y chrome-devtools-mcp@latest
+    expect(lastAddCommand!.length).toBe(3) // npx -y @playwright/mcp@latest
   })
 
   it('应该在 mcpArgs 省略时以默认配置启动', async () => {
@@ -478,47 +490,60 @@ describe('ae-chrome-devtools-mcp 工具 - register mcpArgs 透传', () => {
     expect(lastAddCommand!.length).toBe(3)
   })
 
-  it('应该支持 --wsEndpoint 参数透传', async () => {
+  it('应该支持 --cdp-endpoint 参数透传', async () => {
     statusMode = 'transient'
     transientFailCount = 0
     transientCurrentCount = 0
 
-    const wsEndpoint = 'ws://127.0.0.1:9222/devtools/browser/abc123'
-    const result = await callTool({ action: 'register', mcpArgs: ['--wsEndpoint', wsEndpoint] })
+    const cdpEndpoint = 'http://127.0.0.1:9222'
+    const result = await callTool({ action: 'register', mcpArgs: ['--cdp-endpoint', cdpEndpoint] })
 
     const r = result as { output: string; metadata: Record<string, unknown> }
     expect(r.metadata).toMatchObject({ connected: true })
-    expect(lastAddCommand!).toContain('--wsEndpoint')
-    expect(lastAddCommand!).toContain(wsEndpoint)
+    expect(lastAddCommand!).toContain('--cdp-endpoint')
+    expect(lastAddCommand!).toContain(cdpEndpoint)
   })
 
-  it('应该支持 --browserUrl 参数透传', async () => {
+  it('应该支持 --browser firefox 参数透传', async () => {
     statusMode = 'transient'
     transientFailCount = 0
     transientCurrentCount = 0
 
-    const result = await callTool({ action: 'register', mcpArgs: ['--browserUrl', 'http://127.0.0.1:9222'] })
+    const result = await callTool({ action: 'register', mcpArgs: ['--browser', 'firefox'] })
 
     const r = result as { output: string; metadata: Record<string, unknown> }
     expect(r.metadata).toMatchObject({ connected: true })
-    expect(lastAddCommand!).toContain('--browserUrl')
-    expect(lastAddCommand!).toContain('http://127.0.0.1:9222')
+    expect(lastAddCommand!).toContain('--browser')
+    expect(lastAddCommand!).toContain('firefox')
   })
 
-  it('应该支持 --autoConnect 参数透传', async () => {
+  it('应该支持 --browser webkit 参数透传', async () => {
     statusMode = 'transient'
     transientFailCount = 0
     transientCurrentCount = 0
 
-    const result = await callTool({ action: 'register', mcpArgs: ['--autoConnect'] })
+    const result = await callTool({ action: 'register', mcpArgs: ['--browser', 'webkit'] })
 
     const r = result as { output: string; metadata: Record<string, unknown> }
     expect(r.metadata).toMatchObject({ connected: true })
-    expect(lastAddCommand!).toContain('--autoConnect')
+    expect(lastAddCommand!).toContain('--browser')
+    expect(lastAddCommand!).toContain('webkit')
+  })
+
+  it('应该支持 --caps 参数透传', async () => {
+    statusMode = 'transient'
+    transientFailCount = 0
+    transientCurrentCount = 0
+
+    const result = await callTool({ action: 'register', mcpArgs: ['--caps', 'vision,pdf,devtools'] })
+
+    const r = result as { output: string; metadata: Record<string, unknown> }
+    expect(r.metadata).toMatchObject({ connected: true })
+    expect(lastAddCommand!).toContain('--caps')
+    expect(lastAddCommand!).toContain('vision,pdf,devtools')
   })
 
   it('应该在 MCP 已连接时拒绝重复注册', async () => {
-    // immediateConnected 模式下第一次 status 返回 connected
     statusMode = 'immediateConnected'
 
     const result = await callTool({ action: 'register', mcpArgs: ['--isolated'] })
@@ -536,12 +561,12 @@ describe('ae-chrome-devtools-mcp 工具 - register mcpArgs 透传', () => {
 
     const result = await callTool({ action: 'register', mcpArgs: ['--isolated'] })
 
-    expect(result).toContain('注册 chrome-devtools MCP 失败')
+    expect(result).toContain('注册 Playwright MCP 失败')
     expect(result).toContain('npx 不可用')
   })
 })
 
-describe('ae-chrome-devtools-mcp 工具 - 稳定性轮询等待', () => {
+describe('ae-playwright-mcp 工具 - 稳定性轮询等待', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
     resetState()
@@ -616,7 +641,7 @@ describe('ae-chrome-devtools-mcp 工具 - 稳定性轮询等待', () => {
   })
 })
 
-describe('ae-chrome-devtools-mcp 工具 - check 和 disconnect', () => {
+describe('ae-playwright-mcp 工具 - check 和 disconnect', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
     resetState()
@@ -675,7 +700,7 @@ describe('ae-chrome-devtools-mcp 工具 - check 和 disconnect', () => {
 
     const result = await callTool({ action: 'disconnect' })
 
-    expect(result).toContain('断开 chrome-devtools MCP 失败')
+    expect(result).toContain('断开 Playwright MCP 失败')
   })
 
   it('应该在 client 不可用时返回提示', async () => {

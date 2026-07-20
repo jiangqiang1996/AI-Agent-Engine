@@ -35,13 +35,13 @@ description: "Web 视觉实现：根据设计决策包和设计输入，完成�
 - **全新项目**：使用 HTML + JS + CSS 原生实现，除非用户明确指定其他技术栈；此时设计决策包中的框架相关指导不适用
 - **设计决策包**：由 `@ui-design-spec` 产出的设计决策包是本代理的实现依据，包含设计读数、三旋钮配置、设计体系选择、风格变体推荐、负向设计空间、排版建议、色彩建议和布局关键约束。本代理依据设计决策包实现视觉，不得自行重新推断设计读数或覆盖旋钮值。
 
-## chrome-devtools MCP 门禁
+## Playwright MCP 门禁
 
-在执行任何 chrome-devtools 浏览器操作前，必须先使用 `ae:chrome-devtools` 技能完成浏览器 MCP 动态注册并确认连接就绪；`ae:chrome-devtools` 是浏览器 MCP 的唯一管理入口，上层技能和代理不能替代或绕过注册流程直接调用 `ae-chrome-devtools-mcp` 工具。未完成 MCP 注册前不得执行任何浏览器操作命令；注册失败、用户拒绝启动或当前环境无法启动时，必须停止浏览器流程并记录无法验收原因。
+在执行任何浏览器操作前，必须先使用 `ae:playwright` 技能完成浏览器 MCP 动态注册并确认连接就绪；`ae:playwright` 是浏览器 MCP 的唯一管理入口，上层技能和代理不能替代或绕过注册流程直接调用 `ae-playwright-mcp` 工具。未完成 MCP 注册前不得执行任何浏览器操作命令；注册失败、用户拒绝启动或当前环境无法启动时，必须停止浏览器流程并记录无法验收原因。
 
 ## 截图保存路径
 
-所有 `chrome-devtools_take_screenshot` 命令的输出文件必须保存到 opencode 启动目录下的 `ae/screenshot/` 目录中。截图前须确保目录存在：
+所有 `browser_take_screenshot` 命令的输出文件必须保存到 opencode 启动目录下的 `ae/screenshot/` 目录中。截图前须确保目录存在：
 
 ```bash
 mkdir -p ae/screenshot
@@ -166,13 +166,13 @@ New-Item -ItemType Directory -Path ae/screenshot -Force | Out-Null
 
 ### 步骤 6：视觉验证
 
-实现后，通过 `ae:chrome-devtools` 技能完成浏览器 MCP 注册后，使用浏览器工具截图验证。
+实现后，通过 `ae:playwright` 技能完成浏览器 MCP 注册后，使用浏览器工具截图验证。
 
 **前置检查：登录状态检测**
 
 打开目标页面后、截图前，检测目标页面是否需要登录：
 
-使用 `chrome-devtools_take_snapshot verbose=true` 获取页面状态，检测以下信号：
+使用 `browser_snapshot` 获取页面状态，检测以下信号：
 - URL 包含 `/login`、`/signin`、`/auth`、`/oauth`
 - 存在 `input[type="password"]` 密码输入框
 - 存在包含"登录"、"Login"、"Sign In"文本的按钮
@@ -194,6 +194,8 @@ New-Item -ItemType Directory -Path ae/screenshot -Force | Out-Null
 ```
 
 每 5 秒检测一次，最长等待 300 秒。检测到登录成功后继续截图。
+
+**登录超时处理**：300 秒后仍未检测到登录成功，截图当前页面状态，询问用户选择：(1) 继续等待登录；(2) 跳过登录，以当前未登录状态继续验收；(3) 终止验收。用户未选择时不擅自推进。
 
 **验证评估**
 

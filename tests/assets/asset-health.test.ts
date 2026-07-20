@@ -132,8 +132,8 @@ describe('资产健康巡检', () => {
     expect(commandConfig[`${COMMAND.GRAPH_BUILD}-pa`], 'asset-health/prompt-variant/command/ae-graph-build-pa').toBeUndefined()
     expect(commandConfig[`${COMMAND.GRAPH_QUERY}-po`], 'asset-health/prompt-variant/command/ae-graph-query-po').toBeUndefined()
     expect(commandConfig[`${COMMAND.GRAPH_QUERY}-pa`], 'asset-health/prompt-variant/command/ae-graph-query-pa').toBeUndefined()
-    expect(commandConfig[`${COMMAND.CHROME_DEVTOOLS}-po`], 'asset-health/prompt-variant/command/ae-chrome-devtools-po').toBeUndefined()
-    expect(commandConfig[`${COMMAND.CHROME_DEVTOOLS}-pa`], 'asset-health/prompt-variant/command/ae-chrome-devtools-pa').toBeUndefined()
+    expect(commandConfig[`${COMMAND.PLAYWRIGHT}-po`], 'asset-health/prompt-variant/command/ae-playwright-po').toBeUndefined()
+    expect(commandConfig[`${COMMAND.PLAYWRIGHT}-pa`], 'asset-health/prompt-variant/command/ae-playwright-pa').toBeUndefined()
     expect(buildCommandConfig(join(process.cwd(), 'src/assets/commands'))['ae-work-continue'], 'asset-health/disk-command/command/ae-work-continue').toBeDefined()
     expect(commandConfig['ae-work-continue'], 'asset-health/catalog-command/command/ae-work-continue').toBeUndefined()
     expect(commandConfig['ae-work-continue-po'], 'asset-health/prompt-variant/command/ae-work-continue-po').toBeUndefined()
@@ -335,7 +335,7 @@ describe('资产健康巡检', () => {
       COMMAND.MY_CODE_CHANGES,
       COMMAND.REVIEW,
       COMMAND.WEB_FORGE,
-      COMMAND.CHROME_DEVTOOLS,
+      COMMAND.PLAYWRIGHT,
       COMMAND.API_TESTER,
       COMMAND.SWAGGER_PARSER,
       COMMAND.IMAGE,
@@ -371,7 +371,7 @@ describe('资产健康巡检', () => {
       [MODEL_SCENARIO.STANDARD, COMMAND.BRAINSTORM],
       [MODEL_SCENARIO.DEEP, COMMAND.DESIGN],
       [MODEL_SCENARIO.QUICK, COMMAND.GRAPH_QUERY],
-      [MODEL_SCENARIO.VISION, COMMAND.CHROME_DEVTOOLS],
+      [MODEL_SCENARIO.VISION, COMMAND.PLAYWRIGHT],
     ] as const
 
     for (const [scenario, representativeCommand] of scenarios) {
