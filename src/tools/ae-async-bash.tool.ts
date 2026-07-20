@@ -37,7 +37,8 @@ export const aeAsyncBashTool = tool({
     '- 以后台子进程启动命令，父进程（工具）立即返回',
     '- Unix 上使用 detached 子进程独立存活；Windows 上依赖 opencode 长驻进程保活（Node.js 限制）',
     '- 通过 Node.js pipe 捕获 stdout/stderr，按 encoding 解码后以 UTF-8 流式追加写入日志文件',
-    '- 同时将原始字节原样输出到控制台，由终端自行解码显示',
+    '- 不向当前控制台输出任何内容，避免干扰 opencode 终端',
+    '- 通过 encoding 参数控制解码编码，确保日志文件无乱码',
     '- 不指定 logPath 时，自动生成到当前项目 ae/logs/ 目录下的日志文件',
     '- 返回子进程 PID 和日志文件路径，便于后续排查或终止',
     '- 不返回错误码或退出码：子进程真实执行状态需通过读取日志文件判断',
@@ -45,7 +46,7 @@ export const aeAsyncBashTool = tool({
     '编码说明（重要）：',
     '- encoding 参数：解码子进程输出使用的编码，默认 utf8',
     '- 日志文件始终以 UTF-8 编码写入，确保跨平台可读',
-    '- 控制台输出保持子进程原始字节，由终端自行解码显示',
+    '- 子进程输出按 encoding 解码后转 UTF-8 写入日志，避免乱码',
     '- 日志出现乱码时，更换 encoding 重试：Windows 中文原生程序用 gbk 或 cp936',
     '- 支持: utf8, gbk, cp936, gb2312, big5, shift_jis, latin1, ascii 等',
     '',
@@ -88,8 +89,8 @@ export const aeAsyncBashTool = tool({
     cwd: z.string().optional().describe('工作目录，默认为当前会话目录'),
     logPath: z.string().optional().describe('日志文件路径（相对或绝对），子进程 stdout 和 stderr 将追加写入此文件；不指定则自动生成到 ae/logs/ 目录'),
     encoding: z.string().default('utf8').describe(
-      '解码子进程输出使用的编码，默认 utf8。' +
-      '日志出现乱码时更换此值重试：Windows 中文原生程序用 gbk 或 cp936。' +
+      '设置新终端窗口的 codepage/LANG，确保日志文件以指定编码写入，默认 utf8。' +
+      'Windows: utf8→chcp 65001, gbk/cp936→chcp 936; Unix: utf8→LANG=en_US.UTF-8, gbk→LANG=zh_CN.GBK。' +
       '支持: utf8, gbk, cp936, gb2312, big5, shift_jis, latin1, ascii 等',
     ),
   },
@@ -133,7 +134,7 @@ export const aeAsyncBashTool = tool({
       `解码编码: ${args.encoding}`,
       '',
       '子进程在后台运行，不会阻塞当前会话。',
-      'stdout/stderr 通过 Node.js pipe 捕获，按指定编码解码后以 UTF-8 流式写入日志文件，同时原样输出到控制台。',
+      '命令在独立终端窗口中执行，输出实时显示在该窗口，同时流式追加写入日志文件。',
       '请读取上述日志文件分析执行情况；建议等待若干秒后再次读取，对比内容以确认子进程状态。',
       '日志出现错误堆栈/异常/进程退出提示即代表失败；长时间无新增输出也视为启动异常。',
       '日志出现乱码时，更换 encoding 参数重试（如 gbk、cp936）。',

@@ -307,8 +307,8 @@ export function resolveOcrBinary(): { path: string; source: string } | null {
 /**
  * 以后台 detached 进程启动 ocr viewer，立即返回 PID 和日志路径。
  *
- * 通过 Node.js pipe 捕获 stdout/stderr，按 encoding 解码后以 UTF-8 追加写入日志文件，
- * 同时原样输出到控制台。子进程独立存活，不阻止事件循环退出。
+ * 通过 Node.js pipe 捕获 stdout/stderr，按 encoding 解码后以 UTF-8 追加写入日志文件。
+ * 不向当前控制台输出，避免干扰 opencode 终端。子进程独立存活，不阻止事件循环退出。
  *
  * ocr 二进制随项目打包，resolveOcrBinary 始终有返回值。
  */

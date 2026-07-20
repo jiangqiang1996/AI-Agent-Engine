@@ -9,20 +9,21 @@
 - 配置 MCP 客户端时，为 `npx` 加 `--yes`（即 `-y`）参数自动接受安装提示，避免因提示阻塞启动失败。
 - 在 [@playwright/mcp GitHub 仓库](https://github.com/microsoft/playwright-mcp) 搜索已有相似问题。
 
-## 浏览器未安装
+## 浏览器未找到
 
-Playwright 需要浏览器二进制文件。如果启动时报浏览器未找到：
+Playwright 会自动管理浏览器二进制文件的下载和安装。如果启动时报浏览器未找到（`Executable doesn't exist`），通常是首次使用尚未完成自动安装，或安装目录权限问题：
 
-```bash
-npx playwright install
-```
-
-或仅安装特定浏览器：
-
-```bash
-npx playwright install firefox
-npx playwright install webkit
-```
+1. **等待自动安装** — 首次启动时 Playwright 会自动下载所需浏览器二进制，请确保网络可用并稍作等待。
+2. **手动触发安装** — 若自动安装失败，可手动执行：
+   ```bash
+   npx playwright install
+   ```
+   或仅安装特定浏览器：
+   ```bash
+   npx playwright install firefox
+   npx playwright install webkit
+   ```
+3. **检查权限** — 确认浏览器安装目录（如 `~/.cache/ms-playwright/`）可写。
 
 ## `Target closed` 错误
 
@@ -41,15 +42,11 @@ npx playwright install webkit
 
 WSL 环境下浏览器可能无法启动。解决方案：
 
-1. **在 WSL 中安装浏览器**：
-   ```bash
-   npx playwright install chromium
-   ```
-2. **使用镜像网络**：
+1. **使用镜像网络**：
    1. 为 WSL 配置镜像网络。
    2. 在 Windows 侧启动 Chrome：`chrome.exe --remote-debugging-port=9222 --user-data-dir=C:\path\to\dir`
    3. 启动 MCP：`npx @playwright/mcp@latest --cdp-endpoint http://127.0.0.1:9222`
-3. **改用 PowerShell 或 Git Bash** 代替 WSL。
+2. **改用 PowerShell 或 Git Bash** 代替 WSL。
 
 ## Windows：`npx` 执行问题
 

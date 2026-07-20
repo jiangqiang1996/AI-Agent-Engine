@@ -374,7 +374,7 @@ export function buildDetectionAdvice(results: BrowserDetectionResult[]): string[
       lines.push('  无头模式追加 "--headless"')
     }
   } else {
-    lines.push('建议：未检测到已安装的浏览器。请先安装 Chrome、Firefox 或 WebKit（@playwright/mcp 支持 Chromium、Firefox、WebKit 三大浏览器内核）。')
+    lines.push('建议：未检测到已安装的浏览器。@playwright/mcp 支持 Chromium、Firefox、WebKit 三大浏览器内核，首次使用时 Playwright 会自动下载浏览器二进制。也可通过 executablePath 参数指定浏览器可执行文件路径。')
   }
 
   return lines

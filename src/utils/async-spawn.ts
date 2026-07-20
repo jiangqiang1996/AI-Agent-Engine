@@ -37,7 +37,8 @@ export interface AsyncSpawnOptions {
   cwd: string
   /** 日志文件绝对路径 */
   logPath: string
-  /** 解码子进程输出使用的编码，默认 utf8 */
+  /** 解码子进程输出使用的编码，默认 utf8。
+   *  子进程输出按此编码解码后以 UTF-8 写入日志文件，避免乱码。 */
   encoding?: string
   /** 是否使用 shell 执行，默认 true */
   shell?: boolean
@@ -51,12 +52,12 @@ export interface AsyncSpawnResult {
 
 /**
  * 以后台进程启动命令，通过 Node.js pipe 捕获 stdout/stderr，
- * 按 encoding 解码后以 UTF-8 流式追加写入日志文件，同时原样输出到控制台。
+ * 按 encoding 解码后以 UTF-8 流式追加写入日志文件。
  *
  * 架构要点：
  * - stdio: pipe（非 inherit），Node.js 完全控制 I/O 和编码转换
  * - 日志文件始终 UTF-8，通过 WriteStream 流式写入（非同步 I/O）
- * - 控制台输出保持子进程原始字节，由终端自行解码显示
+ * - 不向当前控制台输出任何内容，避免干扰 opencode 终端
  * - Unix: detached + unref，子进程独立存活，不阻止事件循环退出
  * - Windows: 不使用 detached（Node.js 限制：detached + shell + pipe 不传数据），
  *   仅 unref 让事件循环不等待子进程；opencode 为长驻进程，会话期间子进程持续运行
@@ -88,13 +89,9 @@ export function spawnAsyncWithLogging(opts: AsyncSpawnOptions): AsyncSpawnResult
     stdio: ['ignore', 'pipe', 'pipe'],
   })
 
-  // 统一处理 stdout/stderr 数据：原样写控制台 + 解码后以 UTF-8 写日志文件
-  function handleOutput(buf: Buffer, consoleStream: NodeJS.WriteStream) {
-    try {
-      consoleStream.write(buf)
-    } catch {
-      // 控制台写入失败时忽略，不影响日志文件写入
-    }
+  // 统一处理 stdout/stderr 数据：解码后以 UTF-8 写日志文件
+  // 不向当前控制台输出，避免干扰 opencode 终端
+  function handleOutput(buf: Buffer) {
     try {
       const text = decodeBuffer(buf, encoding)
       logStream.write(text)
@@ -103,8 +100,8 @@ export function spawnAsyncWithLogging(opts: AsyncSpawnOptions): AsyncSpawnResult
     }
   }
 
-  child.stdout?.on('data', (buf: Buffer) => handleOutput(buf, process.stdout))
-  child.stderr?.on('data', (buf: Buffer) => handleOutput(buf, process.stderr))
+  child.stdout?.on('data', (buf: Buffer) => handleOutput(buf))
+  child.stderr?.on('data', (buf: Buffer) => handleOutput(buf))
 
   // spawn 错误兜底写入日志
   child.on('error', (err) => {

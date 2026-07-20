@@ -1,7 +1,6 @@
 ---
 name: ae:playwright
 description: "@playwright/mcp 浏览器能力中枢：启动或接管浏览器，打开 URL，执行指定任务。ae:playwright 是 ae-playwright-mcp 工具的唯一管理入口，上层技能和代理不应直接调用 ae-playwright-mcp。"
-argument-hint: "[url] [action] [mode] [browser] [port] [headless] [task=任务描述]"
 ---
 
 # @playwright/mcp 浏览器能力中枢
@@ -14,18 +13,28 @@ argument-hint: "[url] [action] [mode] [browser] [port] [headless] [task=任务�
 
 `ae:playwright` 是 `ae-playwright-mcp` 工具的**唯一管理入口**。上层技能和代理不得直接调用 `ae-playwright-mcp`，必须通过本技能完成浏览器 MCP 的注册、检查和断开。
 
+## 三种浏览器模式
+
+| 模式 | mode 值 | 说明 | 适用场景 |
+|------|---------|------|----------|
+| 接管现有浏览器 | `attach` | 通过 CDP 端点连接运行中的 Chromium 内核浏览器 | 复用已有登录态、调试会话、已打开的标签页 |
+| 新开浏览器 | `launch` | 启动新的有头浏览器实例（可见窗口） | 需要观察浏览器行为、手动登录、验证码、扫码 |
+| 新开无头浏览器 | `launch-headless` | 启动新的无头浏览器实例（无 UI） | CI 环境、服务器环境、无人值守自动化 |
+
+> **硬约束**：任务涉及手动登录、验证码、扫码等需要人工干预的环节时，**禁止**使用 `launch-headless`，必须使用 `attach` 或 `launch`。
+
 ## 参数说明
 
 | 参数 | 必填 | 说明 |
 |------|------|------|
 | `url` | 否 | 目标页面 URL。注册并验证连接后自动打开。 |
 | `task` | 否 | 浏览器中执行的任务描述。 |
-| `action` | 否 | MCP 操作：`check` / `register` / `disconnect` / `detect`。默认自动推断（未连接则注册）。`detect` 需显式指定。 |
-| `mode` | 否 | 注册模式：`isolated` / `cdpEndpoint` / `extension` / `config`。未指定时由**默认值推断**计算。`cdpEndpoint` 通过 CDP 端点连接已有 Chromium 实例；`extension` 通过 Playwright 浏览器扩展连接已运行的 Edge/Chrome。 |
-| `browser` | 否 | 浏览器类型：`Chrome` / `Edge` / `Chromium` / `Firefox` / `WebKit`。未指定时由**默认值推断**计算。 |
-| `port` | 否 | 远程调试端口号（1-65535）。接管已有浏览器时由 detect 自动获取，用户也可显式指定。 |
-| `headless` | 否 | 是否无头模式：`true` / `false`。未指定时由**默认值推断**计算。 |
-| `configPath` | 否 | JSON 配置文件路径，仅 `mode=config` 时使用。 |
+| `action` | 否 | 操作类型，默认自动推断（未连接则按 mode 注册）。 |
+| `mode` | 否 | 浏览器模式：`attach` / `launch` / `launch-headless`。未指定时使用 mcpArgs 直接透传。 |
+| `browser` | 否 | 浏览器类型：`Chrome` / `Edge` / `Chromium` / `Firefox` / `WebKit`。 |
+| `port` | 否 | CDP 远程调试端口号（仅 `attach` 模式）。未提供时自动检测。 |
+| `executablePath` | 否 | 浏览器可执行文件路径（仅 `launch` / `launch-headless` 模式）。 |
+| `mcpArgs` | 否 | 追加的 @playwright/mcp CLI 参数数组，实现高级特性。 |
 
 参数解析规则（三级策略）：
 1. 显式命名：`key=value`、`key:value`、`--key=value` 直接绑定，优先级最高
@@ -34,98 +43,103 @@ argument-hint: "[url] [action] [mode] [browser] [port] [headless] [task=任务�
    | 值模式 | 推断为 |
    |--------|--------|
    | http:// 或 https:// 开头 | url |
-   | register / disconnect / detect / check | action |
-    | isolated / cdpEndpoint / extension / config | mode |
-    | Chrome / Edge / Chromium / Firefox / WebKit | browser |
-    | 独立纯数字 1-65535 | port |
-    | true / false（且上下文提及无头/headless） | headless |
+   | attach / launch / launch-headless | mode |
+   | check / detect / disconnect | action |
+   | Chrome / Edge / Chromium / Firefox / WebKit | browser |
+   | 独立纯数字 1-65535 | port |
 
-3. 顺序兜底：值特征有交集时，按 `url → action → mode → browser → port → headless → task` 顺序匹配
+3. 顺序兜底：值特征有交集时，按 `url → mode → action → browser → port → task` 顺序匹配
 
 **内部调用约定**：本技能被其他技能自动调用时，参数必须使用显式命名格式，不依赖值特征推断。
 
-## 注册模式
+## 模式详解
 
-| 模式 | 适用场景 | 对应 CLI 参数 |
-|------|----------|--------------|
-| `isolated` | 启动独立浏览器实例，使用临时用户数据目录，关闭后自动清理 | `--isolated` |
-| `cdpEndpoint` | 通过 CDP 端点连接运行中的 Chromium 内核浏览器，需提供 `port` | `--cdp-endpoint http://127.0.0.1:<port>` |
-| `extension` | 通过 Playwright 浏览器扩展连接已运行的 Edge/Chrome（需安装扩展，不需要 port，扩展自动发现） | `--extension` |
-| `config` | 使用 JSON 配置文件，适合复杂配置场景 | `--config <path>` |
+### attach（接管现有浏览器）
 
-用户显式指定 `mode` 时，按对应注册模式直接注册，跳过默认值推断：
-- `mode=isolated` → 启动独立浏览器；`browser` 指定时用该浏览器，未指定时取优先级最高的已安装浏览器；`headless=true` 时无头启动
-- `mode=cdpEndpoint` + `port` → 通过 CDP 连接运行中的 Chromium 内核浏览器；未提供 `port` 时由 detect 获取
-- `mode=extension` → 通过 Playwright 扩展连接已运行的 Edge/Chrome
-- `mode=config` + `configPath` → 使用 JSON 配置文件启动
+通过 CDP 端点连接运行中的 Chromium 内核浏览器（Chrome/Edge/Chromium）。
 
-## 默认值推断
+**前提条件**：浏览器已启用远程调试端口。启用方法：
 
-当 `mode`、`browser`、`headless` 未显式指定时，按以下四个场景动态计算默认值。场景中的"浏览器"均指 @playwright/mcp 支持的浏览器（Chrome、Edge、Chromium、Firefox、WebKit）。
+**途径 A（推荐，无需重启浏览器，仅 Chrome >= M144）**：在已运行的 Chrome 地址栏访问 `chrome://inspect/#remote-debugging` 启用。Chrome 会弹出权限对话框，需点击"允许"。
 
-### 场景 1：指定浏览器 + 无头模式
+**途径 B（命令行启动，适用于所有浏览器和版本）**：关闭浏览器后以参数启动：
+- Chrome：`chrome --remote-debugging-port=9222 --user-data-dir=<路径>`
+- Edge：`msedge --remote-debugging-port=9222 --user-data-dir=<路径>`
 
-条件：`browser` 已指定，`headless=true`。
+> **安全要求**：Chrome 要求启用远程调试端口时**必须**使用非默认的 `--user-data-dir`，确保常规浏览数据和配置文件不暴露给调试会话。调试端口开启期间，本机任何应用均可连接该端口控制浏览器，请勿在此期间浏览敏感网站。
 
-决策：直接使用该浏览器进入无头模式，注册模式为 `isolated`。
+**流程**：
+1. 如果提供了 `port`，直接用该端口连接
+2. 如果未提供 `port`，自动检测运行中且可调试的浏览器
+3. 如果指定了 `browser`，只检测该浏览器；否则检测所有支持的浏览器
+4. 多个可调试浏览器时，按优先级选择（Chrome > Edge > Chromium）
+5. 构造 `--cdp-endpoint http://127.0.0.1:<port>` 注册 MCP
 
-流程：
-1. 调用 `ae-playwright-mcp action=detect browser=<指定>` 获取 `executablePath`
-2. 注册 MCP，传入参数：`--isolated`、`--browser <内核名>`、`--headless`、`--executable-path <路径>`
+> `attach` 仅支持 Chromium 内核浏览器（Chrome、Edge、Chromium）。Firefox 和 WebKit 不支持 CDP，需使用 `launch` 或 `launch-headless`。
 
-### 场景 2：指定浏览器 + 非无头模式
+### launch（新开浏览器）
 
-条件：`browser` 已指定，`headless` 未指定或为 `false`。
+启动新的有头浏览器实例，可见浏览器窗口。
 
-决策：分析该浏览器是否正在运行。Chromium 内核浏览器正在运行且可调试则通过 CDP 接管，否则新启动浏览器。Firefox/WebKit 不支持 CDP，始终新启动。
+**流程**：
+1. 如果提供了 `executablePath`，直接用该路径
+2. 如果未提供 `executablePath` 但指定了 `browser`，自动检测该浏览器的安装路径
+3. 如果都未指定，自动检测所有已安装的浏览器，按优先级选择
+4. 构造参数：`--isolated` + `--browser <内核名>` + `--executable-path <路径>`
+5. 注册 MCP
 
-流程：
-1. 调用 `ae-playwright-mcp action=detect browser=<指定>` 检测运行状态
-2. 根据检测结果：
-   - Chromium 内核（Chrome/Edge/Chromium）且正在运行且可调试 → 接管该浏览器，注册模式为 `cdpEndpoint`
-   - Chromium 内核且正在运行但未启用远程调试 → 提示用户在浏览器中启用远程调试后重试
-   - Firefox/WebKit 或未运行 → 新启动该浏览器，注册模式为 `isolated`
+> `--isolated` 使用临时用户数据目录，浏览器关闭后自动清理，避免污染用户常规配置。
 
-### 场景 3：未指定浏览器 + 无头模式
+### launch-headless（新开无头浏览器）
 
-条件：`browser` 未指定，`headless=true`。
+启动新的无头浏览器实例，无 UI 界面。流程与 `launch` 相同，额外添加 `--headless` 参数。
 
-决策：分析当前环境安装了哪些支持的浏览器。只有一个则直接使用，有多个则自动选择一个。注册模式为 `isolated`。
+**适用场景**：CI 环境、服务器环境、无人值守自动化、批量测试。
+**不适用场景**：手动登录、验证码、扫码、需要人工干预的环节。
 
-流程：
-1. 调用 `ae-playwright-mcp action=detect` 检测已安装浏览器
-2. 根据检测结果：
-   - 仅一个已安装 → 使用该浏览器，注册模式为 `isolated`、`--headless`
-   - 多个已安装 → 自动选择优先级最高的（Chrome > Edge > Chromium > Firefox > WebKit），同上
-   - 无已安装 → 提示用户安装 Chrome、Firefox 或 WebKit
+## 高级参数透传（mcpArgs）
 
-### 场景 4：未指定浏览器 + 非无头模式
+`mcpArgs` 追加到 `mode` 生成的基础参数之后，实现 @playwright/mcp 的全部 CLI 特性。`mode` 省略时 `mcpArgs` 作为完整参数直接透传。
 
-条件：`browser` 未指定，`headless` 未指定或为 `false`。
+完整 CLI 参数列表详见 `references/configuration.md`，常用示例：
 
-决策：分析当前是否有正在运行的支持的浏览器。有且只有一个则直接接管，有多个则让用户选择一个。
+| mcpArgs | 说明 |
+|---------|------|
+| `["--caps", "vision,pdf,devtools"]` | 启用坐标交互、PDF、开发者工具能力 |
+| `["--caps", "network,storage,testing"]` | 启用网络控制、存储管理、测试断言 |
+| `["--device", "iPhone 15"]` | 模拟设备 |
+| `["--mobile"]` | 模拟通用移动设备 |
+| `["--viewport-size", "1280x720"]` | 设置视口尺寸 |
+| `["--proxy-server", "http://myproxy:3128"]` | 使用代理 |
+| `["--storage-state", "path/to/state.json"]` | 加载存储状态（cookie/localStorage） |
+| `["--user-data-dir", "/path/to/profile"]` | 指定持久用户数据目录 |
+| `["--config", "path/to/config.json"]` | 使用 JSON 配置文件 |
+| `["--extension"]` | 通过 Playwright 扩展连接已运行的 Edge/Chrome |
+| `["--init-script", "path/to/init.js"]` | 添加初始化脚本 |
+| `["--init-page", "path/to/setup.ts"]` | 添加页面初始化 TypeScript |
+| `["--ignore-https-errors"]` | 忽略 HTTPS 证书错误 |
+| `["--blocked-origins", "https://ads.example.com"]` | 阻止指定来源 |
+| `["--image-responses", "omit"]` | 省略图片响应以节省 token |
+| `["--snapshot-mode", "none"]` | 禁用快照响应 |
+| `["--console-level", "error"]` | 仅返回 error 级别控制台消息 |
+| `["--codegen", "none"]` | 禁用代码生成 |
+| `["--timeout-action", "10000"]` | 设置操作超时 10 秒 |
+| `["--no-sandbox"]` | 禁用沙箱（Docker 环境） |
+| `["--save-session"]` | 保存 Playwright 会话 |
+| `["--secrets", "path/to/.env"]` | 脱敏工具响应中的敏感数据 |
 
-流程：
-1. 调用 `ae-playwright-mcp action=detect` 检测正在运行的浏览器
-2. 根据检测结果：
-   - 仅一个正在运行且可调试 → 接管该浏览器，注册模式为 `cdpEndpoint`
-   - 多个正在运行且可调试 → 向用户展示列表和端口，让用户选择一个后接管，注册模式为 `cdpEndpoint`
-   - 有运行中但未启用远程调试的 → 提示用户启用后重试
-   - 无运行中的 → 选优先级最高的已安装浏览器新启动，注册模式为 `isolated`
+组合示例：
 
-### 用户显式指定 port
+```
+# 新开无头 Chrome + 启用 vision/pdf + 模拟移动设备
+mode=launch-headless browser=Chrome mcpArgs=["--caps","vision,pdf","--mobile"]
 
-用户显式提供 `port` 参数但未指定 `mode` 时，直接用该端口连接（跳过 detect），注册模式为 `cdpEndpoint`。
+# 接管现有浏览器 + 启用网络控制和存储管理
+mode=attach mcpArgs=["--caps","network,storage"]
 
-## headless 语义推断
-
-当用户未显式提供 `headless` 参数时，从自然语言推断：
-
-- **推断为 `true`**：用户提及"无头"、"headless"、"不显示浏览器"、"后台运行"、"无界面"、"CI 环境"、"服务器环境"、"无人值守"、"自动化测试无界面"
-- **推断为 `false`（硬约束，优先级高于 true）**：用户提及"显示浏览器"、"可视化"、"需要观察"，或任务涉及"手动登录"、"验证码"、"扫码"、"人机验证"、"需要人工干预"
-- **无法推断时**：不传该参数（Playwright MCP 默认 headed），不主动询问
-
-> 硬约束：任务涉及手动登录、验证码、扫码等需要人工干预的环节时，headless **必须**为 false，即使任务在 CI/服务器场景或用户提及了无头关键词。此规则不询问、不降级。此约束仅对 `isolated` 模式生效；`cdpEndpoint` / `extension` 连接已有浏览器时不受 headless 影响。
+# 纯透传模式（不使用 mode）
+mcpArgs=["--isolated","--headless","--browser","firefox","--caps","vision"]
+```
 
 ## 浏览器内核名映射
 
@@ -141,18 +155,20 @@ argument-hint: "[url] [action] [mode] [browser] [port] [headless] [task=任务�
 
 ## 输入处理
 
-1. 解析参数（url、task、action、mode、browser、port、headless），按三级解析策略推断。
+1. 解析参数（url、task、action、mode、browser、port、executablePath、mcpArgs），按三级解析策略推断。
 2. 根据 action 决定操作：
    - `action=disconnect` → 调用工具断开连接
    - `action=detect` → 调用工具检测环境，返回结果
-   - `action=register` → 执行注册流程（须遵守注册前检查约束）
-   - 未指定 action 时 → 先检查 MCP 状态，已连接则跳过注册，未连接则执行注册流程
+   - `action=check` → 调用工具检查 MCP 状态
+   - 未指定 action 但指定了 mode → 按 mode 执行注册流程
+   - 未指定 action 和 mode → 先检查 MCP 状态，已连接则跳过，未连接则提示用户选择模式
 3. 注册流程（遵守注册前检查约束）：
    - 调用 `ae-playwright-mcp action=check` 检查 MCP 是否已注册且已连接
    - **已注册且已连接** → 调用 `ae-playwright-mcp action=disconnect` 先注销，再重新注册
    - **未注册或未连接** → 直接注册
-   - 确定注册模式（按显式 mode > 显式 port > 默认值推断的优先级），必要时 detect 获取环境信息
-   - 调用 `ae-playwright-mcp action=register` 注册 MCP
+   - 按 mode 执行对应注册逻辑（attach / launch / launch-headless），生成基础参数
+   - 追加 mcpArgs 到基础参数之后
+   - 调用 `ae-playwright-mcp action=register mode=<mode> browser=<browser> port=<port> executablePath=<path> mcpArgs=<追加参数>` 注册 MCP
 4. 注册完成后，**必须**调用 `browser_tabs action=list` 验证连接可用。此步骤不可省略，调用失败说明注册未生效。
 5. 若提供了 url，打开页面（遵守标签页复用约束）：
    - 调用 `browser_tabs action=list` 获取已打开标签页列表
@@ -167,7 +183,7 @@ argument-hint: "[url] [action] [mode] [browser] [port] [headless] [task=任务�
 
 注册 MCP 前必须先调用 `ae-playwright-mcp action=check` 检查当前 MCP 注册和连接状态。可能的 status 值：`connected`、`not_registered`、`disabled`、`failed`、`needs_auth`、`needs_client_registration`、`check_failed`。
 
-- **已注册且已连接**（`status=connected`）→ **必须**先调用 `action=disconnect` 注销，再调用 `action=register` 重新注册。不得在已连接状态下直接重复注册。
+- **已注册且已连接**（`status=connected`）→ **必须**先调用 `action=disconnect` 注销，再重新注册。不得在已连接状态下直接重复注册。
 - **未注册**（`status=not_registered`）→ 直接注册。
 - **已注册但未连接**（`status=failed` / `needs_auth` / `needs_client_registration`）→ 先调用 `action=disconnect` 清理旧状态，再重新注册。
 - **已禁用**（`status=disabled`）→ 提示用户在 opencode 配置中启用 playwright MCP。
@@ -194,50 +210,72 @@ argument-hint: "[url] [action] [mode] [browser] [port] [headless] [task=任务�
 
 禁止打开标签页后不关闭。任务异常中断时，在恢复流程中也应尝试关闭遗留的标签页。
 
-## 启用远程调试的前置条件
-
-接管已有浏览器（场景 2 和场景 4 的接管路径）需要浏览器已启用远程调试。途径：
-
-**途径 A（推荐，无需重启浏览器，仅 Chrome >= M144）**：在已运行的 Chrome 地址栏访问 `chrome://inspect/#remote-debugging` 启用。
-
-启用后通过 `mode=cdpEndpoint` 注册，自动发现并连接运行中的 Chrome。Chrome 会弹出权限对话框，需点击"允许"。
-
-> `cdpEndpoint` 仅支持 Chromium 内核浏览器（Chrome、Edge、Chromium）。Firefox 和 WebKit 不支持 CDP，需使用 `mode=isolated` 启动独立实例。
-
-**途径 B（命令行启动，适用于所有浏览器和版本）**：关闭浏览器后以参数启动：
-- Chrome：`chrome --remote-debugging-port=<端口> --user-data-dir=<路径>`
-- Edge：`msedge --remote-debugging-port=<端口> --user-data-dir=<路径>`
-
-> **安全要求**：Chrome 要求启用远程调试端口时**必须**使用非默认的 `--user-data-dir`，确保常规浏览数据和配置文件不暴露给调试会话。调试端口开启期间，本机任何应用均可连接该端口控制浏览器，请勿在此期间浏览敏感网站。
-
-> **浏览器启动时机**：MCP 服务器连接本身不会自动启动浏览器；浏览器在 MCP 客户端首次使用需要运行浏览器实例的工具时才自动启动。
-
 ## 示例
 
-### 打开页面并执行任务
+### 接管现有 Edge 浏览器
 
 ```
-/ae-playwright https://example.com 检查页面加载性能
+/ae-playwright mode=attach browser=Edge
 ```
 
-检查 MCP → 未连接则按默认值推断检测并注册 → 验证连接 → 打开页面 → 执行任务。
-
-### 指定浏览器无头模式（场景 1）
+自动检测 Edge 的远程调试端口并连接。也可显式指定端口：
 
 ```
-/ae-playwright https://example.com browser=Firefox headless=true task=检查页面加载性能
+/ae-playwright mode=attach browser=Edge port=9222
 ```
 
-### 指定浏览器接管（场景 2）
+### 新开 Chrome 浏览器
 
 ```
-/ae-playwright https://example.com browser=Edge task=填写登录表单
+/ae-playwright mode=launch browser=Chrome
 ```
 
-### 未指定浏览器无头（场景 3）
+### 新开无头 Firefox 浏览器
 
 ```
-/ae-playwright https://example.com headless=true task=检查页面加载性能
+/ae-playwright mode=launch-headless browser=Firefox
+```
+
+### 新开浏览器并打开页面执行任务
+
+```
+/ae-playwright https://example.com mode=launch task=填写登录表单
+```
+
+### 新开无头浏览器 + 启用 vision/pdf 能力
+
+```
+/ae-playwright mode=launch-headless mcpArgs=["--caps","vision,pdf"]
+```
+
+### 接管现有浏览器 + 启用网络控制和存储管理
+
+```
+/ae-playwright mode=attach mcpArgs=["--caps","network,storage"]
+```
+
+### 新开无头浏览器 + 模拟移动设备 + 代理
+
+```
+/ae-playwright mode=launch-headless mcpArgs=["--mobile","--proxy-server","http://myproxy:3128"]
+```
+
+### 纯透传模式（不使用 mode）
+
+```
+/ae-playwright mcpArgs=["--isolated","--headless","--browser","firefox","--caps","vision"]
+```
+
+### 通过 Playwright 扩展连接已运行的浏览器
+
+```
+/ae-playwright mcpArgs=["--extension"]
+```
+
+### 使用 JSON 配置文件
+
+```
+/ae-playwright mcpArgs=["--config","path/to/config.json"]
 ```
 
 ### 仅检测环境
@@ -246,20 +284,16 @@ argument-hint: "[url] [action] [mode] [browser] [port] [headless] [task=任务�
 /ae-playwright action=detect
 ```
 
-### 显式指定端口连接
+### 检查 MCP 状态
 
 ```
-/ae-playwright https://example.com browser=Edge port=9222 task=填写登录表单
+/ae-playwright action=check
 ```
 
-### 显式指定注册模式
+### 断开连接
 
 ```
-/ae-playwright https://example.com mode=cdpEndpoint port=9222 task=填写登录表单
-```
-
-```
-/ae-playwright https://example.com mode=isolated browser=Firefox headless=true task=检查页面加载性能
+/ae-playwright action=disconnect
 ```
 
 ## 安全边界

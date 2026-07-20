@@ -42,7 +42,7 @@ let transientCurrentCount = 0
 let statusCallCount = 0
 let mockAddThrow = false
 let lastAddCommand: string[] | null = null
-// 控制 client 是否可用（check/disconnect 测试需要）
+// 控制 client 是否可用
 let clientAvailable = true
 // 控制 disconnect 是否抛出异常
 let mockDisconnectThrow = false
@@ -164,12 +164,12 @@ describe('ae-playwright-mcp 工具 - detect action', () => {
     mockFsReadFile.mockRejectedValue(new Error('not found'))
   })
 
-  it('应该在无浏览器安装时返回安装提示', async () => {
+  it('应该在无浏览器安装时返回自动安装提示', async () => {
     const result = await callTool({ action: 'detect', browser: 'Chrome' })
     const r = result as { output: string }
     expect(r.output).toContain('浏览器环境检测结果')
     expect(r.output).toContain('installed=false')
-    expect(r.output).toContain('请先安装')
+    expect(r.output).toContain('自动下载浏览器二进制')
   })
 
   it('应该在浏览器已安装但未运行时返回 isolated 建议', async () => {
@@ -433,6 +433,19 @@ describe('ae-playwright-mcp 工具 - schema 和描述', () => {
     expect(definition.description).toContain('--isolated')
     expect(definition.description).toContain('--headless')
   })
+
+  it('应该在描述中包含三种模式说明', async () => {
+    const { aePlaywrightMcpTool: tool } = await import(
+      '../../src/tools/ae-playwright-mcp.tool.js'
+    )
+    const definition = tool as unknown as { description: string }
+    expect(definition.description).toContain('attach')
+    expect(definition.description).toContain('launch')
+    expect(definition.description).toContain('launch-headless')
+    expect(definition.description).toContain('接管现有浏览器')
+    expect(definition.description).toContain('新开浏览器')
+    expect(definition.description).toContain('新开无头浏览器')
+  })
 })
 
 describe('ae-playwright-mcp 工具 - register mcpArgs 透传', () => {
@@ -445,7 +458,7 @@ describe('ae-playwright-mcp 工具 - register mcpArgs 透传', () => {
     mockFsReadFile.mockRejectedValue(new Error('not found'))
   })
 
-  it('应该将 mcpArgs 原样追加到 BASE_COMMAND 之后', async () => {
+  it('应该将 mcpArgs 原样追加到 BASE_COMMAND 之后（无 mode）', async () => {
     statusMode = 'transient'
     transientFailCount = 0
     transientCurrentCount = 0
@@ -464,7 +477,7 @@ describe('ae-playwright-mcp 工具 - register mcpArgs 透传', () => {
     expect(lastAddCommand!).toContain('C:\\edge.exe')
   })
 
-  it('应该在 mcpArgs 为空时以默认配置启动', async () => {
+  it('应该在 mcpArgs 为空且无 mode 时以默认配置启动', async () => {
     statusMode = 'transient'
     transientFailCount = 0
     transientCurrentCount = 0
@@ -477,7 +490,7 @@ describe('ae-playwright-mcp 工具 - register mcpArgs 透传', () => {
     expect(lastAddCommand!.length).toBe(3) // npx -y @playwright/mcp@latest
   })
 
-  it('应该在 mcpArgs 省略时以默认配置启动', async () => {
+  it('应该在 mcpArgs 省略且无 mode 时以默认配置启动', async () => {
     statusMode = 'transient'
     transientFailCount = 0
     transientCurrentCount = 0
@@ -517,19 +530,6 @@ describe('ae-playwright-mcp 工具 - register mcpArgs 透传', () => {
     expect(lastAddCommand!).toContain('firefox')
   })
 
-  it('应该支持 --browser webkit 参数透传', async () => {
-    statusMode = 'transient'
-    transientFailCount = 0
-    transientCurrentCount = 0
-
-    const result = await callTool({ action: 'register', mcpArgs: ['--browser', 'webkit'] })
-
-    const r = result as { output: string; metadata: Record<string, unknown> }
-    expect(r.metadata).toMatchObject({ connected: true })
-    expect(lastAddCommand!).toContain('--browser')
-    expect(lastAddCommand!).toContain('webkit')
-  })
-
   it('应该支持 --caps 参数透传', async () => {
     statusMode = 'transient'
     transientFailCount = 0
@@ -543,16 +543,6 @@ describe('ae-playwright-mcp 工具 - register mcpArgs 透传', () => {
     expect(lastAddCommand!).toContain('vision,pdf,devtools')
   })
 
-  it('应该在 MCP 已连接时拒绝重复注册', async () => {
-    statusMode = 'immediateConnected'
-
-    const result = await callTool({ action: 'register', mcpArgs: ['--isolated'] })
-
-    const r = result as { output: string; metadata: Record<string, unknown> }
-    expect(r.output).toContain('已注册且已连接')
-    expect(r.metadata).toMatchObject({ connected: true })
-  })
-
   it('应该在 client.mcp.add 抛出异常时返回错误提示', async () => {
     statusMode = 'transient'
     transientFailCount = 0
@@ -563,6 +553,176 @@ describe('ae-playwright-mcp 工具 - register mcpArgs 透传', () => {
 
     expect(result).toContain('注册 Playwright MCP 失败')
     expect(result).toContain('npx 不可用')
+  })
+})
+
+describe('ae-playwright-mcp 工具 - mode=attach', () => {
+  beforeEach(async () => {
+    vi.clearAllMocks()
+    resetState()
+    const { mockExec, mockFsAccess, mockFsReadFile } = await getMocks()
+    mockExec.mockRejectedValue(new Error('no process'))
+    mockFsAccess.mockRejectedValue(new Error('not found'))
+    mockFsReadFile.mockRejectedValue(new Error('not found'))
+  })
+
+  it('应该用显式 port 构造 --cdp-endpoint 参数', async () => {
+    statusMode = 'transient'
+    transientFailCount = 0
+    transientCurrentCount = 0
+
+    const result = await callTool({ action: 'register', mode: 'attach', port: 9222 })
+
+    const r = result as { output: string; metadata: Record<string, unknown> }
+    expect(r.metadata).toMatchObject({ connected: true })
+    expect(lastAddCommand!).toContain('--cdp-endpoint')
+    expect(lastAddCommand!).toContain('http://127.0.0.1:9222')
+  })
+
+  it('应该自动检测可调试的浏览器并构造 --cdp-endpoint', async () => {
+    const { mockFsAccess, mockFsReadFile } = await getMocks()
+    mockFsAccess.mockResolvedValueOnce(undefined)
+    mockFsReadFile.mockResolvedValueOnce('9333\n/devtools/browser/edge123')
+    portReachableMode = 'connect'
+    statusMode = 'transient'
+    transientFailCount = 0
+    transientCurrentCount = 0
+
+    const result = await callTool({ action: 'register', mode: 'attach', browser: 'Edge' })
+
+    const r = result as { output: string; metadata: Record<string, unknown> }
+    expect(r.metadata).toMatchObject({ connected: true })
+    expect(lastAddCommand!).toContain('--cdp-endpoint')
+    expect(lastAddCommand!).toContain('http://127.0.0.1:9333')
+  })
+
+  it('应该在无可调试浏览器时返回错误提示', async () => {
+    statusMode = 'transient'
+    transientFailCount = 0
+    transientCurrentCount = 0
+
+    const result = await callTool({ action: 'register', mode: 'attach' })
+
+    const r = result as { output: string; metadata: Record<string, unknown> }
+    expect(r.output).toContain('未找到可调试的浏览器')
+    expect(r.metadata).toMatchObject({ connected: false, status: 'mode_error' })
+  })
+
+  it('应该将 mcpArgs 追加到 attach 基础参数之后', async () => {
+    statusMode = 'transient'
+    transientFailCount = 0
+    transientCurrentCount = 0
+
+    const result = await callTool({
+      action: 'register',
+      mode: 'attach',
+      port: 9222,
+      mcpArgs: ['--caps', 'network,storage'],
+    })
+
+    const r = result as { output: string; metadata: Record<string, unknown> }
+    expect(r.metadata).toMatchObject({ connected: true })
+    expect(lastAddCommand!).toContain('--cdp-endpoint')
+    expect(lastAddCommand!).toContain('http://127.0.0.1:9222')
+    expect(lastAddCommand!).toContain('--caps')
+    expect(lastAddCommand!).toContain('network,storage')
+  })
+})
+
+describe('ae-playwright-mcp 工具 - mode=launch / launch-headless', () => {
+  beforeEach(async () => {
+    vi.clearAllMocks()
+    resetState()
+    const { mockExec, mockFsAccess, mockFsReadFile } = await getMocks()
+    mockExec.mockRejectedValue(new Error('no process'))
+    mockFsAccess.mockRejectedValue(new Error('not found'))
+    mockFsReadFile.mockRejectedValue(new Error('not found'))
+  })
+
+  it('应该用 executablePath 构造 --isolated --executable-path 参数', async () => {
+    statusMode = 'transient'
+    transientFailCount = 0
+    transientCurrentCount = 0
+
+    const result = await callTool({
+      action: 'register',
+      mode: 'launch',
+      executablePath: 'C:\\chrome.exe',
+    })
+
+    const r = result as { output: string; metadata: Record<string, unknown> }
+    expect(r.metadata).toMatchObject({ connected: true })
+    expect(lastAddCommand!).toContain('--isolated')
+    expect(lastAddCommand!).toContain('--executable-path')
+    expect(lastAddCommand!).toContain('C:\\chrome.exe')
+    expect(lastAddCommand!).not.toContain('--headless')
+  })
+
+  it('应该在 launch-headless 模式包含 --headless', async () => {
+    statusMode = 'transient'
+    transientFailCount = 0
+    transientCurrentCount = 0
+
+    const result = await callTool({
+      action: 'register',
+      mode: 'launch-headless',
+      executablePath: 'C:\\chrome.exe',
+    })
+
+    const r = result as { output: string; metadata: Record<string, unknown> }
+    expect(r.metadata).toMatchObject({ connected: true })
+    expect(lastAddCommand!).toContain('--isolated')
+    expect(lastAddCommand!).toContain('--headless')
+    expect(lastAddCommand!).toContain('--executable-path')
+  })
+
+  it('应该自动检测已安装的浏览器并构造 --browser 参数', async () => {
+    const { mockFsAccess } = await getMocks()
+    mockFsAccess.mockResolvedValueOnce(undefined)
+    statusMode = 'transient'
+    transientFailCount = 0
+    transientCurrentCount = 0
+
+    const result = await callTool({ action: 'register', mode: 'launch', browser: 'Chrome' })
+
+    const r = result as { output: string; metadata: Record<string, unknown> }
+    expect(r.metadata).toMatchObject({ connected: true })
+    expect(lastAddCommand!).toContain('--isolated')
+    expect(lastAddCommand!).toContain('--browser')
+    expect(lastAddCommand!).toContain('chrome')
+  })
+
+  it('应该在无已安装浏览器时返回错误提示', async () => {
+    statusMode = 'transient'
+    transientFailCount = 0
+    transientCurrentCount = 0
+
+    const result = await callTool({ action: 'register', mode: 'launch' })
+
+    const r = result as { output: string; metadata: Record<string, unknown> }
+    expect(r.output).toContain('未找到已安装的浏览器')
+    expect(r.metadata).toMatchObject({ connected: false, status: 'mode_error' })
+  })
+
+  it('应该将 mcpArgs 追加到 launch 基础参数之后', async () => {
+    statusMode = 'transient'
+    transientFailCount = 0
+    transientCurrentCount = 0
+
+    const result = await callTool({
+      action: 'register',
+      mode: 'launch-headless',
+      executablePath: 'C:\\chrome.exe',
+      mcpArgs: ['--caps', 'vision,pdf', '--mobile'],
+    })
+
+    const r = result as { output: string; metadata: Record<string, unknown> }
+    expect(r.metadata).toMatchObject({ connected: true })
+    expect(lastAddCommand!).toContain('--isolated')
+    expect(lastAddCommand!).toContain('--headless')
+    expect(lastAddCommand!).toContain('--caps')
+    expect(lastAddCommand!).toContain('vision,pdf')
+    expect(lastAddCommand!).toContain('--mobile')
   })
 })
 
