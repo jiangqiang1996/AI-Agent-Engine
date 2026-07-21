@@ -2,7 +2,7 @@
 name: e2e-tester
 model: $vision
 mode: subagent
-steps: 30
+steps: 100
 description: "浏览器 E2E 测试代理：验收测试、测试场景设计、Playwright 测试生成（plan/generate/heal）和回归验证。可修改测试文件，不修改产品代码。"
 ---
 
