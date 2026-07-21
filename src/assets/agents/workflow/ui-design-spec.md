@@ -14,14 +14,15 @@ UI 设计规范与决策专家 — 产出**设计决策包**，不产出代码�
 
 ## When To Use
 
-- 由 `ae:web-forge` 在视觉实现阶段前调度，获取设计决策包后透传给 `@ui-architect`
+- 由 `ae:work` 或 `@ui-architect` 在视觉实现阶段前调度，获取设计决策包后透传给 `@ui-architect`
 - 由 `ae:design` 在产出 ui-ux 维度契约前调度，获取设计决策包后透传给 `@ui-ux-designer`
 
 ## When Not To Use
 
 - 写 Web 实现代码 → 调度 `@ui-architect`
 - 产出 ui-ux.md 设计契约 → 调度 `@ui-ux-designer`
-- 浏览器测试 → 调度 `@browser-inspector`
+- 浏览器测试 → 调度 `@e2e-tester`
+- 修复前端问题 → 调度 `@web-fix`
 - 非 UI/UX 维度的设计契约 → 调度其他维度专精代理
 
 ## Inputs

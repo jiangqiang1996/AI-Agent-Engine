@@ -14,7 +14,8 @@
 | 生成工作总结 | `/ae-work-report` |
 | 查看本人代码变更 | `/ae-my-code-changes` |
 | 只看风险，不改文件 | `/ae-review mode:report-only` |
-| 前端设计、还原、交互或验收 | `/ae-web-forge` |
+| 前端修复（视觉/交互/接口） | `/ae-web-fix` |
+| 浏览器 E2E 测试与验收 | `/ae-e2e-tester` |
 | 接口测试 | `/ae-api-tester` |
 | 数据库查询或操作 | `/ae-sql` |
 | Swagger/OpenAPI 联调摘要 | `/ae-swagger-parser` |
@@ -62,11 +63,12 @@
 
 ```text
 /ae-playwright
-/ae-web-forge 实现一个移动端优先的登录页
-/ae-web-forge --inspect http://localhost:3000/login
+/ae-web-fix 修复登录页间距和按钮对齐问题
+/ae-e2e-tester 验收 http://localhost:3000/login
+/ae-e2e-tester 为用户登录流程生成 E2E 测试
 ```
 
-浏览器操作一律通过 `ae:playwright` 技能完成。`/ae-web-forge` 是前端开发统一入口，自动识别技术栈与可复用资产，通过子代理 `@ui-architect`（视觉设计与实现）、`@logic-weaver`（前端代码实现）、`@browser-inspector`（浏览器验收）自适应组合执行。
+浏览器操作一律通过 `ae:playwright` 技能完成。`/ae-web-fix` 是统一前端修复入口，以 DOM 结构化数据诊断为主（computed style、bounding box），覆盖视觉修复、交互修复和接口联调修复，具备诊断→修复→验证内部闭环。`/ae-e2e-tester` 是浏览器 E2E 测试入口，覆盖验收测试、测试场景设计（plan/generate）、测试修复（heal）和回归验证。`ae:work` 在执行前端创建/修改任务时自动调度 `@ui-architect`（视觉实现）和 `@logic-weaver`（逻辑实现）。
 
 ### Swagger/OpenAPI
 
@@ -117,7 +119,8 @@ PDF 文件的 Markdown 读取功能通过 `ae:pdf` 技能的 `to-markdown` 操�
 | `/ae-merge-branch` | `[来源分支名\|本地 worktree 路径]` | 合并来源分支或 worktree 变更 | 本地 Git 写操作需明确授权 |
 | `/ae-review` | `[mode:*] [domain:code\|domain:document] [from:<ref>] [full] [full:<path>] [session] [design:<path>] [路径...]` | 审查代码、文档、设计、全量路径或会话变更 | 代码域和文档域分开处理 |
 | `/ae-playwright` | `[url] [action] [mode] [browser] [port] [task=任务描述]` | 浏览器能力中枢，操作浏览器执行任务 | 通过 ae:playwright 技能操作浏览器 |
-| `/ae-web-forge` | `[描述\|Figma URL\|截图\|路由] [--design\|--match\|--logic\|--inspect]` | 统一前端能力入口：自由设计、设计还原、交互逻辑、浏览器验收 | 浏览器操作通过 ae:playwright 技能 |
+| `/ae-web-fix` | `[问题描述] [url]` | 统一前端修复：视觉修复、交互修复、接口联调修复 | 以 DOM 结构化数据诊断为主，截图为辅 |
+| `/ae-e2e-tester` | `[url\|功能描述] [验收\|生成测试\|修复测试\|回归]` | 浏览器 E2E 测试：验收、测试生成、测试修复和回归 | 浏览器操作通过 ae:playwright 技能 |
 | `/ae-api-tester` | `[接口文档\|接口描述\|已有脚本路径\|业务流程描述]` | 以真实业务流程编排为主的自动化接口测试 | 支持登录认证与脚本生成 |
 | `/ae-handoff` | `—` | 提取上下文并创建独立新会话 | 用于交接 |
 | `/ae-task-loop` | `[一句话目标描述]` | 循环执行和验证直到目标达成 | 不适合需求不清的大型功能 |
@@ -171,9 +174,10 @@ AE 采用 13 代理全并行架构，所有激活代理在同一轮一次性发�
 | `@repo-research-analyst` | 研究仓库结构、文档、约定和实现模式 | 只做仓库研究，不替代实现 |
 | `@web-researcher` | 做外部网络研究、竞品扫描和跨领域类比 | 用于外部上下文，不读取本地私有代码 |
 | `@spec-flow-analyzer` | 分析规格、设计或功能描述中的用户流程缺口 | 不直接写代码 |
-| `@ui-architect` | 视觉设计与实现：自由设计或设计稿还原，根据输入自动切换模式 | 浏览器操作通过 ae:playwright 技能；不负责接口联调 |
-| `@logic-weaver` | 前端代码实现：交互逻辑、API联调、状态管理、组件开发、重构、性能优化 | 不负责视觉设计 |
-| `@browser-inspector` | 端到端浏览器测试与回归验证 | 浏览器操作通过 ae:playwright 技能；不做审美设计迭代 |
+| `@ui-architect` | 视觉设计与实现：自由设计或设计稿还原，根据输入自动切换模式 | 浏览器操作通过 ae:playwright 技能；不负责接口联调或修复 |
+| `@logic-weaver` | 前端代码实现：交互逻辑、API联调、状态管理、组件开发、重构、性能优化 | 不负责视觉设计或修复 |
+| `@web-fix` | 统一前端修复：视觉修复、交互修复、接口联调修复 | 以 DOM 结构化数据诊断为主，截图为辅；具备诊断→修复→验证内部闭环 |
+| `@e2e-tester` | 浏览器 E2E 测试：验收测试、测试场景设计、Playwright 测试生成和回归验证 | 可修改测试文件，不修改产品代码 |
 
 ## 开发专精代理
 
@@ -214,10 +218,12 @@ AE 采用 13 代理全并行架构，所有激活代理在同一轮一次性发�
 
 | 场景 | 顺序 |
 | --- | --- |
-| 有设计稿但没有页面 | `/ae-web-forge --match` |
-| 已有页面，需要贴合 Figma | `/ae-web-forge --match` → `/ae-web-forge --inspect` |
-| 没有设计稿，但要提升视觉质量 | `/ae-web-forge --design` → `/ae-web-forge --inspect` |
-| 只验证功能流程 | `/ae-web-forge --inspect` |
+| 有设计稿但没有页面 | `/ae-work` 调度 `@ui-architect` + `@logic-weaver` |
+| 已有页面，需要贴合 Figma | `/ae-work` 调度 `@ui-architect` → `/ae-e2e-tester` 验收 |
+| 没有设计稿，但要提升视觉质量 | `/ae-work` 调度 `@ui-architect` → `/ae-e2e-tester` 验收 |
+| 修复视觉/交互/接口问题 | `/ae-web-fix` |
+| 只验证功能流程 | `/ae-e2e-tester` |
+| 生成或修复 E2E 测试 | `/ae-e2e-tester` 生成测试/修复测试 |
 
 浏览器相关路径都通过 `ae:playwright` 技能操作浏览器。
 

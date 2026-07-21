@@ -77,8 +77,8 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 
 ```text
 /ae-playwright
-/ae-web-forge 实现登录页
-/ae-web-forge --inspect http://localhost:3000/login
+/ae-web-fix 修复登录页样式问题
+/ae-e2e-tester 验收 http://localhost:3000/login
 ```
 
 解析 Swagger/OpenAPI：
@@ -107,7 +107,8 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 工作总结 | `/ae-work-report` |
 | 查看本人代码变更 | `/ae-my-code-changes` |
 | 代码或文档审查 | `/ae-review` |
-| 前端设计、还原、交互或验收 | `/ae-web-forge` |
+| 前端修复（视觉/交互/接口） | `/ae-web-fix` |
+| 浏览器 E2E 测试与验收 | `/ae-e2e-tester` |
 | playwright 浏览器能力 | `/ae-playwright` |
 | 接口测试 | `/ae-api-tester` |
 | Swagger/OpenAPI 摘要 | `/ae-swagger-parser` |

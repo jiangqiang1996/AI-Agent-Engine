@@ -40,6 +40,8 @@ argument-hint: "[一句话目标描述]"
 | 调试修复为主 | `debug-fix` |
 | 后端代码为主 | `backend-dev` |
 | 前端代码为主 | `frontend-dev` |
+| 前端修复（视觉/交互/接口） | `web-fix` |
+| 前端浏览器测试/验收 | `e2e-tester` |
 
 ### 子代理 prompt 模板
 

@@ -207,11 +207,11 @@ model: $deep
 | 资产 | 场景 |
 | --- | --- |
 | `/ae-brainstorm`、`/ae-prd`、`/ae-agent-creator`、`/ae-work-report`、`/ae-my-code-changes`、`/ae-handoff`、`/ae-sql`、`/ae-swagger-parser`、`/ae-api-tester`、`/ae-image`、`/ae-audio`、`/ae-video`、`/ae-graph-build`、`/ae-project-explore`、`/ae-save-experience`、`/ae-prompt-optimize`、`/ae-skill-creator`、`/ae-docx`、`/ae-pdf`、`/ae-pptx`、`/ae-xlsx`、`/ae-officecli` | `standard` |
-| `/ae-design`、`/ae-work`、`/ae-merge-branch`、`/ae-review`、`/ae-web-forge`、`/ae-slides-outline`、`/ae-task-loop`、`/ae-grill` | `deep` |
+| `/ae-design`、`/ae-work`、`/ae-merge-branch`、`/ae-review`、`/ae-web-fix`、`/ae-slides-outline`、`/ae-task-loop`、`/ae-grill` | `deep` |
 | `/ae-graph-query` | `quick` |
-| `/ae-playwright` | `vision` |
+| `/ae-playwright`、`/ae-e2e-tester` | `vision` |
 | `@repo-research-analyst`、`@web-researcher` | `standard` |
-| `@ui-architect`、`@browser-inspector` | `vision` |
-| `@logic-weaver`、`@spec-flow-analyzer`、全部 13 个审查专精代理 | `deep` |
+| `@ui-architect`、`@e2e-tester` | `vision` |
+| `@logic-weaver`、`@web-fix`、`@spec-flow-analyzer`、全部 13 个审查专精代理 | `deep` |
 | `@frontend-dev`、`@backend-dev`、`@debug-fix` | 继承 opencode 当前默认模型（未声明 `model` frontmatter） |
 | 未列出的内置命令 | 继承 opencode 当前默认模型 |

@@ -91,18 +91,6 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     tier: 'tools',
   },
   {
-    skillName: SKILL.WEB_FORGE,
-    commandName: COMMAND.WEB_FORGE,
-    description: `前端开发统一入口：自动识别技术栈与可复用资产，自适应组合设计/实现/验收阶段，支持无人值守模式。浏览器操作通过 ${SKILL.PLAYWRIGHT} 技能，子代理 @ui-design-spec、@ui-architect、@logic-weaver、@browser-inspector`,
-    argumentHint: '[描述|Figma URL|截图路径|页面路由] [--inspect <url>|--no-inspect|--yes]',
-    skillFile: `src/assets/skills/${skillDir(SKILL.WEB_FORGE)}/SKILL.md`,
-    tier: 'tools',
-    customTemplate: [
-      `浏览器操作一律通过 \`${SKILL.PLAYWRIGHT}\` 技能完成，不绕过该技能直接调用底层命令。`,
-      `使用 \`${SKILL.WEB_FORGE}\` 技能处理这次请求，并沿用参数：\`$ARGUMENTS\`。`,
-    ].join(''),
-  },
-  {
     skillName: SKILL.PROTOTYPE_PREVIEW,
     commandName: COMMAND.PROTOTYPE_PREVIEW,
     description: '将 ae:prd 原型文档转换为技术栈无关的多页面 HTML 静态文件，用于验证原型效果。禁止使用打包构建工具，禁止镀金，仅做原型文档写明的内容。必须完全遵守原型文档中的颜色定义和响应式需求。',
@@ -330,7 +318,8 @@ const GILDED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'], s
   [AGENT.UI_DESIGN_SPEC, 'workflow', 'UI 设计规范与决策专家：推断设计读数、配置三旋钮、选择设计体系、推荐风格变体，产出结构化设计决策包'],
   [AGENT.UI_ARCHITECT, 'workflow', 'Web 视觉实现：根据设计决策包和设计输入，完成页面的视觉代码实现'],
   [AGENT.LOGIC_WEAVER, 'workflow', '前端代码实现：交互逻辑、API联调、状态管理、组件开发、重构、性能优化'],
-  [AGENT.BROWSER_INSPECTOR, 'workflow', '浏览器验收：端到端浏览器测试与回归验证'],
+  [AGENT.WEB_FIX, 'workflow', '统一前端修复：视觉修复、交互修复、接口联调修复，以 DOM 结构化数据诊断为主'],
+  [AGENT.E2E_TESTER, 'workflow', '浏览器 E2E 测试：验收测试、测试场景设计、Playwright 测试生成和回归验证'],
   [AGENT.UI_UX_DESIGNER, 'workflow', 'UI/UX 设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 ui-ux.md 设计契约，含设计读数、信息架构、页面规格、组件契约、设计 Token 和交互状态机'],
   [AGENT.ARCHITECTURE_DESIGNER, 'workflow', '架构设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 architecture.md 设计契约，含模块边界、依赖方向、分层规则、数据流和错误传播链'],
   [AGENT.API_DESIGNER, 'workflow', '接口设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 api.md 设计契约，含端点清单、TypeScript interface、认证授权、错误码体系和幂等性声明'],

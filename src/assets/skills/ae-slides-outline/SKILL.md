@@ -21,7 +21,7 @@ argument-hint: "[主题|需求描述|大纲文件路径|现有 HTML 幻灯片文
 
 - 生成 PPTX 格式幻灯片（确认大纲后使用 `ae:pptx`）
 - 直接创建或编辑 PPTX 但无大纲参考（使用 `ae:pptx`）
-- 纯网页开发不涉及演示场景（使用 `ae:web-forge`）
+- 纯网页开发不涉及演示场景（使用 `ae:work` 调度 `@ui-architect` 和 `@logic-weaver`）
 
 ## 执行流程
 
@@ -46,7 +46,7 @@ argument-hint: "[主题|需求描述|大纲文件路径|现有 HTML 幻灯片文
 ## 边界
 
 - 不生成 PPTX、HTML、PDF 等任何格式的幻灯片产出
-- 不调用 `ae:pptx`、`ae:web-forge`
+- 不调用 `ae:pptx`、`ae:work`
 - 大纲确认前不得声明任务完成
 - 如用户要求修改大纲，调整后必须再次确认
 - 大纲必须写入文件，不得仅在对话中展示而不持久化

@@ -51,8 +51,8 @@ describe('asset-model-routing-catalog', () => {
     expect(getCommandModelScenario(COMMAND.PLAYWRIGHT)).toBe(MODEL_SCENARIO.VISION)
   })
 
-  it('web-forge 命令应该引用 deep 场景', () => {
-    expect(getCommandModelScenario(COMMAND.WEB_FORGE)).toBe(MODEL_SCENARIO.DEEP)
+  it('prototype-preview 命令应该引用 standard 场景', () => {
+    expect(getCommandModelScenario(COMMAND.PROTOTYPE_PREVIEW)).toBe(MODEL_SCENARIO.STANDARD)
   })
 
   it('应该从 agent frontmatter 读取模型路由状态', () => {

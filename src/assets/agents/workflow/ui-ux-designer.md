@@ -27,7 +27,8 @@ UI/UX 设计维度专精代理 — 产出 `ui-ux.md` 设计契约文件。
 
 - 自由设计并实现 UI 页面代码 → 调度 `@ui-architect`
 - 以设计稿/截图为准精确还原实现 → 调度 `@ui-architect`
-- 浏览器端到端测试 → 调度 `@browser-inspector`
+- 浏览器端到端测试 → 调度 `@e2e-tester`
+- 修复前端视觉/交互/接口问题 → 调度 `@web-fix`
 - 非 UI/UX 维度的设计契约 → 调度其他维度专精代理
 
 ## Inputs

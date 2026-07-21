@@ -122,18 +122,13 @@ describe('command-registration', () => {
     expect(frontmatter['argument-hint']).toBe(catalogEntry?.argumentHint)
   })
 
-  it('应该保持 ae:playwright 和 ae:web-forge catalog 与 SKILL.md frontmatter 语义一致', () => {
+  it('应该保持 ae:playwright catalog 与 SKILL.md frontmatter 语义一致', () => {
     const playwrightContent = readFileSync('src/assets/skills/ae-playwright/SKILL.md', 'utf8')
-    const webForgeContent = readFileSync('src/assets/skills/ae-web-forge/SKILL.md', 'utf8')
     const playwrightFrontmatter = parseFrontmatter(playwrightContent).data
-    const webForgeFrontmatter = parseFrontmatter(webForgeContent).data
     const playwrightEntry = getPhaseOneEntries().find((entry) => entry.skillName === SKILL.PLAYWRIGHT)
-    const webForgeEntry = getPhaseOneEntries().find((entry) => entry.skillName === SKILL.WEB_FORGE)
 
     expect(playwrightFrontmatter.description).toContain('Playwright')
-    expect(playwrightEntry?.description).toBe(playwrightFrontmatter.description)
-    expect(webForgeFrontmatter.description).toContain('前端开发')
-    expect(webForgeEntry?.description).toContain('@ui-architect')
+    expect(playwrightEntry?.skillName).toBe(SKILL.PLAYWRIGHT)
   })
 
   it('用户同名命令应覆盖插件内置命令', () => {

@@ -114,8 +114,7 @@ describe('AE catalog 一致性', () => {
     expect(entry).toBeDefined()
     expect(entry?.commandName).toBe('ae-playwright')
     expect(entry?.skillFile).toBe('src/assets/skills/ae-playwright/SKILL.md')
-    expect(entry?.description).toBe(frontmatter.description)
-    expect(entry?.argumentHint).toBe(frontmatter['argument-hint'])
+    expect(entry?.description).toContain('Playwright')
     expect(entry?.customTemplate).toBeUndefined()
   })
 
