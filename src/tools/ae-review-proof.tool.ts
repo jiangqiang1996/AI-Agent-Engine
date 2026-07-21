@@ -44,7 +44,6 @@ interface WorktreeFingerprint {
   head?: string
   statusSummary?: string
   available: boolean
-  degraded?: boolean
   error?: string
 }
 
@@ -71,7 +70,10 @@ function normalizeStatusSummaryForEvidence(statusSummary: string): string {
     .split('\n')
     .filter((line) => !line.startsWith('## '))
     .filter((line) => line.trim())
-    .filter((line) => !isReviewRuntimePath(line.slice(3).trim()))
+    .filter((line) => {
+      const porcelainPayload = line.length > 2 ? line.slice(3) : line.trim()
+      return !isReviewRuntimePath(porcelainPayload.trim())
+    })
     .map((line) => line.trim())
     .join('\n')
 }
@@ -81,7 +83,7 @@ function isReviewRuntimePath(filePath: string): boolean {
   return normalized.startsWith(`${docsAePath(DOCS_AE_SUBDIRS.EVIDENCE)}/`)
     || normalized.startsWith(`${docsAePath(DOCS_AE_SUBDIRS.REVIEWS)}/`)
     || normalized.startsWith(`${docsAePath(DOCS_AE_SUBDIRS.HANDOFFS)}/`)
-    || normalized.startsWith('ae/screenshot/')
+    || normalized.startsWith(`${docsAePath(DOCS_AE_SUBDIRS.SCREENSHOTS)}/`)
 }
 
 function normalizeReviewStatusSummary(statusSummary: string): string {
@@ -128,7 +130,6 @@ async function collectCurrentWorktreeFingerprint(repoRoot: string): Promise<Work
       head,
       statusSummary: normalizeStatusSummaryForEvidence(statusOutput),
       available: true,
-      degraded: false,
     }
   } catch (error) {
     return {
@@ -294,9 +295,7 @@ function isTrustedReviewToolName(candidate: {
 
   return toolNames.some((toolName) => typeof toolName === 'string'
     && (toolName === SKILL.REVIEW
-      || toolName === COMMAND.REVIEW
-      || toolName === TOOL.AE_SPECIALIST_AGGREGATE
-      || toolName === TOOL.AE_REVIEW_SCOPE_ANALYZE))
+      || toolName === COMMAND.REVIEW))
 }
 
 function hasTrustedSourceReviewOutput(context: unknown, sourceReviewRef: string, sourceReviewOutput: string): boolean {
@@ -355,24 +354,6 @@ function hasTrustedSourceReviewOutput(context: unknown, sourceReviewRef: string,
       return true
     }
 
-    const candidateToolNames = [
-      candidate.tool,
-      candidate.toolName,
-      candidate.command,
-      candidate.name,
-      candidate.message?.tool,
-      candidate.message?.toolName,
-      candidate.message?.command,
-      candidate.message?.name,
-    ]
-    const isAggregateTool = candidateToolNames.some((toolName) => typeof toolName === 'string'
-      && (toolName === TOOL.AE_SPECIALIST_AGGREGATE
-        || toolName === TOOL.AE_REVIEW_SCOPE_ANALYZE))
-
-    if (isAggregateTool && content.length > 0) {
-      return true
-    }
-
     return false
   })
 }
@@ -424,10 +405,6 @@ export const aeReviewProofTool: ToolDefinition = tool({
       return `当前工作区指纹不可用，不能写入 ae:review 审查证明：${fingerprint.error ?? '未知错误'}`
     }
 
-    if (fingerprint.degraded) {
-      return '当前工作区指纹省略了未跟踪文件，不能写入 ae:review 审查证明。请清理或纳入未跟踪文件后重试。'
-    }
-
     const trustedReviewPayload = extractTrustedReviewPayload(args.source_review_output)
     const parsedOutput = parseReviewOutputEvidence(trustedReviewPayload)
     if (!parsedOutput
@@ -435,7 +412,7 @@ export const aeReviewProofTool: ToolDefinition = tool({
       || parsedOutput.worktree !== fingerprint.worktreePath
       || parsedOutput.branch !== fingerprint.branch
       || parsedOutput.head !== fingerprint.head
-      || (parsedOutput.statusSummary !== undefined && parsedOutput.statusSummary !== fingerprint.statusSummary)
+      || parsedOutput.statusSummary !== fingerprint.statusSummary
       || (args.review_status === 'passed' && parsedOutput.hasBlockingFinding)) {
       return 'source_review_output 必须包含与当前 worktree 指纹和 review_status 匹配的真实结构化审查输出。'
     }
