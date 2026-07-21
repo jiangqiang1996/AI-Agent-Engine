@@ -28,14 +28,14 @@ description: "浏览器 E2E 测试代理：验收测试、测试场景设计、P
 
 ## 截图保存路径
 
-所有截图保存到 opencode 启动目录下的 `ae/screenshot/` 目录。截图前确保目录存在：
+所有截图保存到 opencode 启动目录下的 `ae/screenshots/` 目录。截图前确保目录存在：
 
 ```bash
-mkdir -p ae/screenshot
+mkdir -p ae/screenshots
 ```
 
 ```powershell
-New-Item -ItemType Directory -Path ae/screenshot -Force | Out-Null
+New-Item -ItemType Directory -Path ae/screenshots -Force | Out-Null
 ```
 
 ## 工作模式
@@ -117,7 +117,7 @@ git diff --name-only main...HEAD
 2. `playwright-cli snapshot` 获取页面快照（执行登录检测）
 3. 验证关键元素：页面标题已渲染、主要内容已展示、无可见错误信息
 4. 测试关键交互：`playwright-cli click <ref>` + `playwright-cli snapshot` 验证交互
-5. `playwright-cli screenshot --filename=ae/screenshot/<page>.png` 截图存证
+5. `playwright-cli screenshot --filename=ae/screenshots/<page>.png` 截图存证
 
 #### 1.6 输出验收结果
 

@@ -37,7 +37,7 @@ describe('graph-filter-suggestion-service', () => {
     expect(getGraphPathDecision('ae/graphs/graph.json', { include: ['ae/graphs/graph.json'], exclude: [] }).hardExcluded).toBe(true)
     expect(getGraphPathDecision('ae/handoffs/test-worktree-handoff.md', { include: ['ae/handoffs/test-worktree-handoff.md'], exclude: [] }).hardExcluded).toBe(true)
     expect(getGraphPathDecision('ae/reviews/run/metadata.json', { include: ['ae/reviews/run/metadata.json'], exclude: [] }).hardExcluded).toBe(true)
-    expect(getGraphPathDecision('ae/screenshot', { include: ['ae/screenshot'], exclude: [] }).hardExcluded).toBe(true)
+    expect(getGraphPathDecision('ae/screenshots', { include: ['ae/screenshots'], exclude: [] }).hardExcluded).toBe(true)
     expect(getGraphPathDecision('src/logo.png', { include: ['src/logo.png'], exclude: [] }).hardExcluded).toBe(true)
   })
 
@@ -123,7 +123,7 @@ describe('graph-filter-suggestion-service', () => {
     const root = createTempRoot()
     write(root, 'ae/handoffs/test-worktree-handoff.md', '# handoff')
     write(root, 'ae/reviews/run/metadata.json', '{}')
-    write(root, 'ae/screenshot/test.png', '...')
+    write(root, 'ae/screenshots/test.png', '...')
     write(root, 'ae/designs/test-design.md', '# design')
 
     const summary = collectGraphFilterCandidateSummary(root, root, { include: ['ae/handoffs/test-worktree-handoff.md'], exclude: [] })
