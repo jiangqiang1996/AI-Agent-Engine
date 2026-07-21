@@ -109,6 +109,8 @@ playwright-cli open https://example.com --profile=/path/to/profile
 
 使用 `attach` 连接已经运行的浏览器，而非启动新实例。
 
+> **Windows 阻塞警告**：`attach` 命令在 Windows 上通过 opencode bash 工具执行会永久阻塞（daemon 进程无法脱离进程树）。Windows 上必须使用 `ae-async-bash` 后台执行 `attach`，然后读取日志文件。详见 [SKILL.md Windows 平台阻塞警告](../SKILL.md)。
+
 ### 通过通道名称连接
 
 通过通道名称连接正在运行的 Chrome 或 Edge 实例。目标浏览器必须启用远程调试 — 在浏览器中导航到 `chrome://inspect/#remote-debugging` 并勾选"允许此浏览器实例进行远程调试"。

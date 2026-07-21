@@ -322,7 +322,7 @@ test-generation 相关命令：
 | 命令 | 用途 |
 |------|------|
 | `npx playwright test --debug=cli` | 后台启动测试调试 |
-| `playwright-cli attach tw-XXXX` | 连接调试会话 |
+| `playwright-cli attach tw-XXXX` | 连接调试会话（Windows 上须用 `ae-async-bash`） |
 | `playwright-cli resume` | 恢复测试执行 |
 | `playwright-cli generate-locator <ref>` | 生成稳定定位器 |
 | `playwright-cli --raw eval "el => el.textContent" <ref>` | 捕获断言期望值 |
