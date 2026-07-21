@@ -1,3 +1,4 @@
+import { statSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
 import type { Part } from '@opencode-ai/sdk'
@@ -185,9 +186,21 @@ export function degradeMediaFileParts(
 ): void {
   const degradableFileParts: MutableFilePart[] = []
   for (const part of parts) {
-    if (isFilePart(part) && shouldDegradeForModel(part, caps)) {
-      degradableFileParts.push(part)
+    if (!isFilePart(part) || !shouldDegradeForModel(part, caps)) {
+      continue
     }
+    // 目录不降级：保留 FilePart 原样传递，不转换为路径
+    const filePath = extractFilePath(part)
+    if (filePath) {
+      try {
+        if (statSync(filePath).isDirectory()) {
+          continue
+        }
+      } catch {
+        // 路径不可访问时按文件处理
+      }
+    }
+    degradableFileParts.push(part)
   }
 
   if (degradableFileParts.length === 0) {
@@ -212,9 +225,10 @@ export function degradeMediaFileParts(
   }
 
   // 移除需要降级的 FilePart
+  const degradableSet = new Set(degradableFileParts)
   for (let i = parts.length - 1; i >= 0; i--) {
     const part = parts[i]
-    if (isFilePart(part) && shouldDegradeForModel(part, caps)) {
+    if (isFilePart(part) && degradableSet.has(part)) {
       parts.splice(i, 1)
     }
   }
