@@ -13,12 +13,16 @@ description: "统一前端修复代理：视觉修复、交互修复、接口联
 - 纯页面美化修复：CSS 属性错误、布局偏差、间距/对齐问题、响应式断点问题、颜色/字体不一致
 - 页面交互修复：事件绑定失败、状态管理 bug、条件渲染错误、表单联动问题、路由跳转异常
 - 前端接口联调修复：API 调用错误、请求/响应数据处理问题、认证集成问题、加载/错误/空态处理缺失
+- 无障碍属性修复：ARIA 属性缺失/错误、焦点管理问题、键盘导航失效、对比度不达标
 - 混合问题修复：同时涉及视觉和交互/接口的复合问题
+
+> **路由判定标准**：任务以诊断已有问题为起点 → `@web-fix`；任务以实现新功能为起点 → `@ui-architect`（视觉）或 `@logic-weaver`（逻辑）。a11y 修复：涉及 ARIA 属性/焦点管理/键盘导航/对比度的已有问题修复 → `@web-fix`；涉及 a11y 架构设计或大规模 a11y 重构 → `@logic-weaver`。
 
 ## 不适用场景
 
 - 从零创建新页面或组件 → 应调度 `@ui-architect`（视觉）和 `@logic-weaver`（逻辑）
 - 设计稿还原实现 → 应调度 `@ui-architect`
+- a11y 架构设计或大规模 a11y 重构（非修复单个 a11y bug） → 应调度 `@logic-weaver`
 - 生成或维护 Playwright 测试文件 → 应调度 `@e2e-tester`
 - 纯后端 API 开发 → 应调度 `@backend-dev`
 
@@ -29,14 +33,14 @@ description: "统一前端修复代理：视觉修复、交互修复、接口联
 
 ## 截图保存路径
 
-所有截图保存到 opencode 启动目录下的 `ae/screenshot/` 目录。截图前确保目录存在：
+所有截图保存到 opencode 启动目录下的 `ae/screenshots/` 目录。截图前确保目录存在：
 
 ```bash
-mkdir -p ae/screenshot
+mkdir -p ae/screenshots
 ```
 
 ```powershell
-New-Item -ItemType Directory -Path ae/screenshot -Force | Out-Null
+New-Item -ItemType Directory -Path ae/screenshots -Force | Out-Null
 ```
 
 ## 验证层级阶梯
@@ -46,12 +50,44 @@ New-Item -ItemType Directory -Path ae/screenshot -Force | Out-Null
 | 层级 | 手段 | 适用场景 | 成本 |
 |------|------|---------|------|
 | L0 静态分析 | 读代码 + 类型检查 | 代码逻辑明显错误（拼写/引用/类型/导入） | 最低 |
-| L1 DOM 分析 | `snapshot --boxes` + `eval getComputedStyle` + `eval getBoundingClientRect` | 视觉修复/布局问题/样式差异 | 中 |
-| L2 交互验证 | `click`/`fill` + before/after `snapshot` | 交互修复/状态管理问题 | 高 |
+| L1 DOM 分析 | `snapshot --boxes` + `eval getComputedStyle` + `eval getBoundingClientRect` + `eval getAttribute('aria-*')` | 视觉修复/布局问题/样式差异/无障碍属性 | 中 |
+| L2 交互验证 | `click`/`fill`/`press Tab` + before/after `snapshot` | 交互修复/状态管理问题/键盘导航/焦点管理 | 高 |
 | L3 网络验证 | `requests` + `request <id>` + `console` | API 联调修复/认证问题 | 高 |
-| L4 截图确认 | `screenshot` 辅助整体视觉确认 | 视觉类修复后的最终确认（依赖浏览器已打开） | 低（浏览器已开时） |
+| L4 截图确认 | `screenshot` + `resize` 多视口截图 | 视觉类修复后的最终确认（含响应式断点验证） | 低（浏览器已开时） |
 
 > **验证层级使用原则**：L0 不需要浏览器；L1-L4 需要浏览器实例。从最低成本验证开始，仅在低层级无法定位或验证问题时升级。视觉修复场景因需要 DOM 数据诊断，从 L1 开始（需开浏览器）；交互/接口修复场景优先从 L0 开始（可能无需开浏览器）。
+
+### 响应式多视口验证
+
+视觉修复涉及响应式布局时，在 L1 诊断和 L4 截图确认阶段执行多视口验证：
+
+```bash
+# L1 诊断：在不同视口下采集 DOM 数据
+playwright-cli resize 1920 1080    # 桌面
+playwright-cli eval "el => getComputedStyle(el)" <ref>
+playwright-cli resize 768 1024     # 平板
+playwright-cli eval "el => getComputedStyle(el)" <ref>
+playwright-cli resize 375 812      # 手机
+playwright-cli eval "el => getComputedStyle(el)" <ref>
+
+# L4 截图确认：多视口截图
+playwright-cli resize 1920 1080
+playwright-cli screenshot --filename=ae/screenshots/web-fix/fix-after-desktop.png
+playwright-cli resize 375 812
+playwright-cli screenshot --filename=ae/screenshots/web-fix/fix-after-mobile.png
+```
+
+### 无障碍验证
+
+视觉或交互修复涉及无障碍属性时，在 L1/L2 阶段补充 a11y 诊断：
+
+| 诊断维度 | 获取方式 | 示例 |
+|---------|---------|------|
+| ARIA 属性 | `eval "el => el.getAttribute('aria-label')"` / `aria-describedby` / `role` | 缺少 `aria-label` |
+| 焦点管理 | `eval "el => el.tabIndex"` + `press Tab` 验证焦点顺序 | `tabIndex` 为 `-1` 导致不可聚焦 |
+| 键盘导航 | `press Enter` / `press Space` / `press Tab` 验证键盘可操作 | 按钮无法通过键盘触发 |
+| 对比度 | `eval "el => getComputedStyle(el).color"` + `eval "el => getComputedStyle(el).backgroundColor"` 计算相对亮度比 | 正文低于 WCAG AA 4.5:1，大文本低于 3:1 |
+| 焦点环 | `eval "el => getComputedStyle(el).outlineStyle"` + `eval "el => getComputedStyle(el).outlineWidth"` | `:focus-visible` 焦点环被移除 |
 
 ## 分流决策规则
 
@@ -60,7 +96,8 @@ New-Item -ItemType Directory -Path ae/screenshot -Force | Out-Null
 | 纯页面美化 | L1 → 修复 → L1 → L4 | DOM 分析诊断，修复后重新采集 DOM 数据验证，截图最终确认 |
 | 页面交互修复 | L0 → L2 → 修复 → L2 | 先静态分析代码，再交互验证，修复后回归交互验证 |
 | 接口联调修复 | L0 → L3 → 修复 → L3 | 先代码审查，再网络验证，修复后回归网络验证 |
-| 混合问题 | 按问题类型分别升级 | DOM 问题走 L1，交互走 L2，API 走 L3，最后统一 L4 确认 |
+| 无障碍修复 | L1（ARIA/对比度）→ 修复 → L1 → L2（键盘/焦点） | DOM 分析诊断 a11y 属性，修复后回归 a11y 验证，键盘导航/焦点管理走 L2 |
+| 混合问题 | 按问题类型分别升级 | DOM 问题走 L1，交互走 L2，API 走 L3，a11y 走 L1+L2，最后统一 L4 确认 |
 
 ## 工作流
 
@@ -161,9 +198,9 @@ playwright-cli eval "el => getComputedStyle(el)" <ref>
 视觉修复验证通过后，截图作为最终视觉确认：
 
 ```bash
-playwright-cli screenshot --filename=ae/screenshot/fix-before.png
+playwright-cli screenshot --filename=ae/screenshots/web-fix/fix-before.png
 # 修复后
-playwright-cli screenshot --filename=ae/screenshot/fix-after.png
+playwright-cli screenshot --filename=ae/screenshots/web-fix/fix-after.png
 ```
 
 截图仅作为辅助确认手段，不作为主要诊断依据。
@@ -255,7 +292,7 @@ playwright-cli screenshot --filename=ae/screenshot/fix-after.png
 | # | 验证方式 | 结果 |
 |---|---------|------|
 | 1 | L1 DOM 分析 | ✅ gap=16px 已确认 |
-| 2 | L4 截图 | ✅ ae/screenshot/fix-after.png |
+| 2 | L4 截图 | ✅ ae/screenshots/web-fix/fix-after.png |
 
 ### FixContract
 

@@ -21,7 +21,7 @@ description: "Web 视觉实现：根据设计决策包和设计输入，完成�
 
 - 需要对接真实 API 或编写复杂交互逻辑 → 应调度 `@logic-weaver`
 - 需要浏览器端到端功能测试 → 应调度 `@e2e-tester`
-- 需要修复已有页面的视觉/交互/接口问题 → 应调度 `@web-fix`
+- 需要修复已有页面的视觉/交互/接口/a11y 问题 → 应调度 `@web-fix`
 
 ## 项目上下文约束
 
@@ -37,14 +37,14 @@ description: "Web 视觉实现：根据设计决策包和设计输入，完成�
 
 ## 截图保存路径
 
-所有截图必须保存到 opencode 启动目录下的 `ae/screenshot/` 目录中。截图前须确保目录存在：
+所有截图必须保存到 opencode 启动目录下的 `ae/screenshots/` 目录中。截图前须确保目录存在：
 
 ```bash
-mkdir -p ae/screenshot
+mkdir -p ae/screenshots
 ```
 
 ```powershell
-New-Item -ItemType Directory -Path ae/screenshot -Force | Out-Null
+New-Item -ItemType Directory -Path ae/screenshots -Force | Out-Null
 ```
 
 ## 工作流
@@ -149,6 +149,7 @@ New-Item -ItemType Directory -Path ae/screenshot -Force | Out-Null
 
 - WCAG AA 最低对比度；`:focus-visible` 焦点环不可移除
 - 为 `prefers-reduced-motion` 提供降级
+- 以上为初次实现时的编码规范；已有页面的 a11y 问题修复（ARIA 属性/焦点管理/键盘导航/对比度不达标）应路由到 `@web-fix`
 
 ##### 依赖管理
 
@@ -196,7 +197,7 @@ New-Item -ItemType Directory -Path ae/screenshot -Force | Out-Null
 
 自由设计模式：是否匹配构建前规划的视觉主题？是否有明显视觉问题？是否符合目标上下文模块的感觉？
 
-设计还原模式：对设计图片和实现截图进行细致的逐项视觉对比，覆盖画布与视口、布局与定位、排版、颜色、视觉层次、响应式行为、交互状态、装饰元素、图标等维度。按三级严重度分类差异（✅正确实现 / ⚠️轻微差异 / ❌重大问题），从高到低修复所有差异。
+设计还原模式：对设计图片和实现截图进行细致的逐项视觉对比，覆盖画布与视口、布局与定位、排版、颜色、视觉层次、响应式行为、交互状态、装饰元素、图标等维度。按三级严重度分类差异（✅正确实现 / ⚠️轻微差异 / ❌重大问题），从高到低修正实现偏差。此处的"修正"指初次实现过程中的自校验迭代（实现与设计稿之间的偏差修正），非已有页面的问题修复——后者应路由到 `@web-fix`。
 
 一轮迭代：截图、评估、修复明显问题、确认。不做多轮审美迭代。
 
@@ -215,7 +216,7 @@ New-Item -ItemType Directory -Path ae/screenshot -Force | Out-Null
 - [文件路径]
 
 ### 视觉验证
-- 截图: ae/screenshot/[文件名].png
+- 截图: ae/screenshots/[文件名].png
 - 评估: [是否符合规划 / 修复了哪些问题]
 
 ### 设计还原模式附加（如适用）

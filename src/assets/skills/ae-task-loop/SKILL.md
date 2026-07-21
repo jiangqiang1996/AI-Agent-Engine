@@ -39,8 +39,9 @@ argument-hint: "[一句话目标描述]"
 | 通用 / 不确定 | `general` |
 | 调试修复为主 | `debug-fix` |
 | 后端代码为主 | `backend-dev` |
-| 前端代码为主 | `frontend-dev` |
-| 前端修复（视觉/交互/接口） | `web-fix` |
+| 前端视觉实现/设计还原 | `ui-architect` |
+| 前端交互逻辑/API联调 | `logic-weaver` |
+| 前端修复（视觉/交互/接口/a11y） | `web-fix` |
 | 前端浏览器测试/验收 | `e2e-tester` |
 
 ### 子代理 prompt 模板
