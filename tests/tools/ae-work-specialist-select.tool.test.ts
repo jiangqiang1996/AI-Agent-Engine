@@ -30,7 +30,7 @@ async function callTool(args: SelectArgs) {
   )
 
   const result = await aeWorkSpecialistSelectTool.execute(
-    { constraints: [], ...args } as Parameters<typeof aeWorkSpecialistSelectTool.execute>[0],
+    args as Parameters<typeof aeWorkSpecialistSelectTool.execute>[0],
     {
       metadata: () => undefined,
     } as unknown as Parameters<typeof aeWorkSpecialistSelectTool.execute>[1],
@@ -107,6 +107,21 @@ describe('ae-work-specialist-select 工具', () => {
       expect(parsed.specialistCount).toBe(1)
       const tasks = parsed.tasks as Array<Record<string, unknown>>
       expect(tasks[0].agent).toBe(AGENT.DEBUG_FIX)
+    })
+
+    it('不传 constraints 时应正常返回且不崩溃', async () => {
+      const result = await callTool({
+        intent: '为 Controller 编写后端单元测试',
+        has_api: true,
+      })
+
+      const parsed = parseResult(result)
+      expect(parsed).not.toHaveProperty('error')
+      expect(parsed).toHaveProperty('tasks')
+      const tasks = parsed.tasks as Array<Record<string, unknown>>
+      expect(tasks.length).toBeGreaterThan(0)
+      const agents = tasks.map((t) => t.agent)
+      expect(agents).toContain(AGENT.BACKEND_DEV)
     })
   })
 })

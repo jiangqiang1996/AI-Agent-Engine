@@ -5,7 +5,7 @@ export const TaskIntentSchema = z.object({
   stage: z.literal('entry').describe('阶段标签'),
   intent: z.string().min(1).describe('意图标签'),
   domain: z.string().describe('目标域名'),
-  constraints: z.array(z.string()).describe('约束条件'),
+  constraints: z.array(z.string()).default([]).describe('约束条件'),
   rawInput: z.string().describe('原始输入'),
   timestamp: z.string().describe('时间戳'),
 })

@@ -125,7 +125,7 @@ export const aeWorkSpecialistSelectTool = tool({
         stage: 'entry' as const,
         intent: args.intent,
         domain: 'development' as const,
-        constraints: args.constraints,
+        constraints: args.constraints ?? [],
         rawInput: args.intent,
         timestamp: new Date().toISOString(),
       }

@@ -74,7 +74,7 @@ function matchesCriteria(
   domain: string,
 ): boolean {
   const intentLower = taskIntent.intent.toLowerCase()
-  const constraintsLower = taskIntent.constraints.map((c) => c.toLowerCase())
+  const constraintsLower = (taskIntent.constraints ?? []).map((c) => c.toLowerCase())
   const contextText = Object.values(domainContext)
     .flatMap((value) => Array.isArray(value) ? value : [value])
     .filter((value): value is string => typeof value === 'string')

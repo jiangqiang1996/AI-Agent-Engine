@@ -257,4 +257,20 @@ describe('domain-dispatch-service', () => {
       expect(names).toContain(AGENT.FRONTEND_DEV)
     })
   })
+
+  describe('constraints 防御性兜底', () => {
+    it('应该在 taskIntent.constraints 为 undefined 时不崩溃', () => {
+      const intent = {
+        stage: 'entry' as const,
+        intent: '实现功能',
+        domain: 'development',
+        constraints: undefined as unknown as string[],
+        rawInput: '实现功能',
+        timestamp: '2026-07-21T00:00:00.000Z',
+      }
+      const names = selectSpecialists('development', intent, { hasApi: true }).map((s) => s.name)
+
+      expect(names).toContain(AGENT.BACKEND_DEV)
+    })
+  })
 })

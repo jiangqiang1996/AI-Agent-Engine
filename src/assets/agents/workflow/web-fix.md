@@ -2,7 +2,7 @@
 name: web-fix
 model: $deep
 mode: subagent
-steps: 30
+steps: 100
 description: "统一前端修复代理：视觉修复、交互修复、接口联调修复。以 DOM 结构化数据诊断为主，截图为辅，具备诊断→修复→验证内部闭环。"
 ---
 
