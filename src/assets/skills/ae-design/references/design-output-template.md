@@ -199,13 +199,13 @@ shards:
     lines: 280
   - file: test-cases/01-test-cases.md
     lines: 280
-  - file: test-cases/02-frontend.md
+  - file: test-cases/02-backend-auth.md
     lines: 280
-  - file: test-cases/03-backend.md
+  - file: test-cases/03-frontend-auth.md
     lines: 280
-  - file: test-cases/04-integration.md
+  - file: test-cases/04-integration-auth.md
     lines: 200
-  - file: test-cases/05-non-functional.md
+  - file: test-cases/05-backend-resource.md
     lines: 250
   - file: security/security.md
     lines: 280
@@ -237,11 +237,11 @@ shards:
 | [ui-ux/03-pages-resource.md](ui-ux/03-pages-resource.md) | UI/UX-资源页面 | 280 | list + detail + form HTML+CSS | PAGE-004~006 |
 | [ui-ux/04-pages-dashboard.md](ui-ux/04-pages-dashboard.md) | UI/UX-仪表盘页面 | 180 | overview + settings HTML+CSS | PAGE-007~008 |
 | [ui-ux/05-components.md](ui-ux/05-components.md) | UI/UX-组件 | 280 | 全局组件 HTML+CSS+Props | COMP-001~010 |
-| [test-cases/01-test-cases.md](test-cases/01-test-cases.md) | 测试-索引 | 280 | 覆盖矩阵、验收映射、file-plan | TC-001~100 |
-| [test-cases/02-frontend.md](test-cases/02-frontend.md) | 测试-前端 | 280 | 组件+交互+UI 状态机+无障碍 | TC-FE-* |
-| [test-cases/03-backend.md](test-cases/03-backend.md) | 测试-后端 | 280 | API+服务层+数据层 | TC-BE-* |
-| [test-cases/04-integration.md](test-cases/04-integration.md) | 测试-集成 | 200 | 集成+契约测试 | TC-INT-*,TC-CT-* |
-| [test-cases/05-non-functional.md](test-cases/05-non-functional.md) | 测试-非功能 | 250 | 性能+安全+架构+可观测性 | TC-PT-*,TC-ST-* |
+| [test-cases/01-test-cases.md](test-cases/01-test-cases.md) | 测试-索引 | 280 | 覆盖矩阵、覆盖密度统计、覆盖清单、file-plan | TC-001~100 |
+| [test-cases/02-backend-auth.md](test-cases/02-backend-auth.md) | 测试-后端-认证域 | 280 | API+服务层+数据层（认证域） | TC-BE-AUTH-* |
+| [test-cases/03-frontend-auth.md](test-cases/03-frontend-auth.md) | 测试-前端-认证域 | 280 | 组件+交互+UI 状态机+无障碍（认证域） | TC-FE-AUTH-* |
+| [test-cases/04-integration-auth.md](test-cases/04-integration-auth.md) | 测试-集成-认证域 | 200 | 集成+契约测试（认证域） | TC-INT-AUTH-* |
+| [test-cases/05-backend-resource.md](test-cases/05-backend-resource.md) | 测试-后端-资源域 | 250 | API+服务层+数据层（资源域） | TC-BE-RES-* |
 | [security/security.md](security/security.md) | 安全 | 280 | 威胁模型、认证流程、数据分级 | — |
 | [observability/observability.md](observability/observability.md) | 可观测性 | 200 | 日志、指标、告警、SLO | — |
 | [non-functional/non-functional.md](non-functional/non-functional.md) | 非功能 | 200 | 性能、并发、缓存、容量 | — |

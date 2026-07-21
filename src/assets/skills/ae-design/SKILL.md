@@ -97,7 +97,7 @@ argument-hint: "[需求文档路径|design|裸描述] [dimensions=architecture,d
 | architecture | `@architecture-designer` | 索引 `architecture/01-architecture.md` + 分组实体 `architecture/NN-module-boundary.md` + `architecture/NN-data-flow.md` |
 | api | `@api-designer` | 索引 `api/01-api.md` + 分组实体 `api/NN-endpoints-<domain>.md` |
 | database | `@database-designer` | 索引 `database/01-database.md` + 分组实体 `database/NN-tables-<domain>.md` |
-| test-cases | `@test-cases-designer` | 索引 `test-cases/01-test-cases.md` + 分组实体 `test-cases/NN-<test-layer>.md` |
+| test-cases | `@test-cases-designer` | 索引 `test-cases/01-test-cases.md` + 分组实体 `test-cases/NN-<test-layer>-<domain>.md` |
 | security | `@security-designer` | `security/security.md`（默认单文件，超 300 行自动拆分） |
 | observability | `@observability-designer` | `observability/observability.md`（默认单文件，超 300 行自动拆分） |
 | non-functional | `@non-functional-designer` | `non-functional/non-functional.md`（默认单文件，超 300 行自动拆分） |
@@ -241,6 +241,8 @@ overview 产出到 `overview.md` 独立文件中，按 `references/overview-temp
 - `T-XXX`：数据库表名编号，如 `T-users`、`T-orders`（核心，跨维度映射表 api-field-to-database-column-mapping 依赖）
 - `TC-XXX`：测试用例编号（核心，跨维度映射表 test-case-to-contract-coverage 依赖）
 - `ST-XXX`：UI 交互状态机编号（核心，跨维度映射表 api-error-to-ui-state-mapping 依赖）
+- `INT-XXX`：UI 交互行为编号（核心，test-cases 交互覆盖完整性表依赖）
+- `BR-XXX`：业务规则编号（核心，test-cases 决策表测试依赖，决策表行号格式 `DT-BR-XXX-N`）
 
 稳定 ID 在 design 文档全生命周期不变；版本演化时新增 ID，不重用已废弃 ID。稳定 ID 体系的完整定义统一在 `references/overview-template.md`，本处为引用提示。
 
@@ -280,7 +282,7 @@ overview 产出到 `overview.md` 独立文件中，按 `references/overview-temp
 
 **阶段 3：test-cases 实体层（依赖阶段 2）**
 
-test-cases 依赖其他维度的实体清单，按测试层分组调用。
+test-cases 依赖其他维度的实体清单，按"功能域 × 测试层"二维分组调用。子代理必须先构建覆盖清单（按等价类/边界值/决策表/状态转换/成对组合/错误猜测方法系统化枚举），再逐文件填充用例细节，最后做覆盖缺口检测。大型项目典型产出 15-40 个 test-cases 文件，每端点 ≥ 7 场景。
 
 **分组规则：**
 1. 功能域是分组边界，同域实体高内聚打包到一个文件
