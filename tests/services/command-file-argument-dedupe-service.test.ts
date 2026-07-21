@@ -35,6 +35,36 @@ function filePart(value: string, url?: string): Extract<Part, { type: 'file' }> 
   }
 }
 
+/**
+ * 构造目录 FilePart：有 file:// URL，mime 为 application/x-directory，无 filename。
+ *
+ * opencode 解析目录引用时生成 file:// URL，但同一目录可能以带尾随斜杠
+ * 或不带的两种形式出现，导致按 url 去重失败。
+ */
+function directoryPart(value: string, url: string): Extract<Part, { type: 'file' }> {
+  const source: Extract<Part, { type: 'file' }>['source'] = value
+    ? {
+        type: 'file' as const,
+        path: url,
+        text: { value, start: 0, end: value.length },
+      }
+    : {
+        type: 'file' as const,
+        path: url,
+        text: { value: '', start: 0, end: 0 },
+      }
+
+  return {
+    id: 'dir-1',
+    sessionID: 'session-1',
+    messageID: 'message-1',
+    type: 'file',
+    mime: 'application/x-directory',
+    url,
+    source,
+  }
+}
+
 describe('command-file-argument-dedupe-service', () => {
   it('应该从文本参数中移除已存在 file part 的 @file 引用', () => {
     const parts: Part[] = [
@@ -100,6 +130,78 @@ describe('command-file-argument-dedupe-service', () => {
     const parts: Part[] = [
       filePart('@a.md', 'file:///repo/a.md'),
       filePart('@b.md', 'file:///repo/b.md'),
+    ]
+
+    dedupeCommandFileArgumentParts(parts)
+
+    expect(parts.length).toBe(2)
+  })
+
+  it('应该去重相同 url 的目录 file part', () => {
+    const parts: Part[] = [
+      directoryPart('@ae/', 'file:///repo/ae'),
+      directoryPart('@ae/', 'file:///repo/ae'),
+    ]
+
+    dedupeCommandFileArgumentParts(parts)
+
+    expect(parts.length).toBe(1)
+    expect(parts[0]).toMatchObject({ type: 'file', url: 'file:///repo/ae' })
+  })
+
+  it('应该归一化尾随斜杠差异去重目录 file part', () => {
+    const parts: Part[] = [
+      directoryPart('', 'file:///repo/src'),
+      directoryPart('@src/', 'file:///repo/src/'),
+    ]
+
+    dedupeCommandFileArgumentParts(parts)
+
+    expect(parts.length).toBe(1)
+    expect((parts[0] as Extract<Part, { type: 'file' }>).source?.text?.value).toBe('@src/')
+  })
+
+  it('应该归一化反斜杠和大小写差异去重目录 file part', () => {
+    const parts: Part[] = [
+      directoryPart('', 'file:///C:/repo/Src'),
+      directoryPart('@src/', 'file:///c:/repo/src\\'),
+    ]
+
+    dedupeCommandFileArgumentParts(parts)
+
+    expect(parts.length).toBe(1)
+  })
+
+  it('去重目录 file part 时应保留带 source.text 的那个', () => {
+    const parts: Part[] = [
+      directoryPart('', 'file:///repo/ae'),
+      directoryPart('@ae/', 'file:///repo/ae'),
+    ]
+
+    dedupeCommandFileArgumentParts(parts)
+
+    expect(parts.length).toBe(1)
+    expect((parts[0] as Extract<Part, { type: 'file' }>).source?.text?.value).toBe('@ae/')
+  })
+
+  it('应该同时去重目录 file part 和文本引用', () => {
+    const parts: Part[] = [
+      textPart('@ae/'),
+      directoryPart('', 'file:///repo/ae'),
+      directoryPart('@ae/', 'file:///repo/ae'),
+    ]
+
+    dedupeCommandFileArgumentParts(parts)
+
+    expect(parts.length).toBe(2)
+    expect(parts[0]).toMatchObject({ type: 'text', text: '' })
+    expect(parts[1]).toMatchObject({ type: 'file', url: 'file:///repo/ae' })
+  })
+
+  it('应该保留不同路径的目录 file part', () => {
+    const parts: Part[] = [
+      directoryPart('@ae/', 'file:///repo/ae'),
+      directoryPart('@src/', 'file:///repo/src'),
     ]
 
     dedupeCommandFileArgumentParts(parts)
