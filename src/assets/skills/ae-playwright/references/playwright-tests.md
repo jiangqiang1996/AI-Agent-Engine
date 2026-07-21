@@ -1,39 +1,38 @@
-# Running Playwright Tests
+# 运行 Playwright 测试
 
-To run Playwright tests, use the `npx playwright test` command, or a package manager script. To avoid opening the interactive html report, use `PLAYWRIGHT_HTML_OPEN=never` environment variable.
+运行 Playwright 测试时，使用 `npx playwright test` 命令或包管理器脚本。为避免打开交互式 HTML 报告，使用 `PLAYWRIGHT_HTML_OPEN=never` 环境变量。
 
 ```bash
-# Run all tests
+# 运行所有测试
 PLAYWRIGHT_HTML_OPEN=never npx playwright test
 
-# Run all tests through a custom npm script
+# 通过自定义 npm 脚本运行所有测试
 PLAYWRIGHT_HTML_OPEN=never npm run special-test-command
 ```
 
-# Debugging Playwright Tests
+# 调试 Playwright 测试
 
-To debug a failing Playwright test, run it with `--debug=cli` option. This command will pause the test at the start and print the debugging instructions.
+调试失败的 Playwright 测试时，使用 `--debug=cli` 选项运行。该命令会在测试开始处暂停并打印调试说明。
 
-**IMPORTANT**: run the command in the background and check the output until "Debugging Instructions" is printed. Make sure to stop the command after you have finished.
+**重要**：在后台运行该命令并检查输出，直到打印出"Debugging Instructions"。完成后务必停止命令。
 
-Once instructions containing a session name are printed, use `playwright-cli` to attach the session and explore the page.
+打印出包含会话名称的说明后，使用 `playwright-cli` 连接该会话并探索页面。
 
 ```bash
-# Run the test
+# 运行测试
 PLAYWRIGHT_HTML_OPEN=never npx playwright test --debug=cli
 # ...
-# ... debugging instructions for "tw-abcdef" session ...
+# ... "tw-abcdef" 会话的调试说明 ...
 # ...
 
-# Attach to the test
+# 连接到测试
 playwright-cli attach tw-abcdef
 ```
 
-Keep the test running in the background while you explore and look for a fix.
-The test is paused at the start, so you should step over or pause at a particular location
-where the problem is most likely to be.
+在后台保持测试运行，同时探索并寻找修复方案。
+测试在开始处暂停，因此应逐步执行或在问题最可能发生的位置暂停。
 
-Every action you perform with `playwright-cli` generates corresponding Playwright TypeScript code.
-This code appears in the output and can be copied directly into the test. Most of the time, a specific locator or an expectation should be updated, but it could also be a bug in the app. Use your judgement.
+使用 `playwright-cli` 执行的每个操作都会生成对应的 Playwright TypeScript 代码。
+该代码出现在输出中，可直接复制到测试里。大多数情况下需要更新特定的定位器或断言，但也可能是应用本身的 bug。请自行判断。
 
-After fixing the test, stop the background test run. Rerun to check that test passes.
+修复测试后，停止后台测试运行。重新运行以确认测试通过。

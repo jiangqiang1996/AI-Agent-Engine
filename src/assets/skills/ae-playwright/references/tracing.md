@@ -1,93 +1,93 @@
-# Tracing
+# 追踪
 
-Capture detailed execution traces for debugging and analysis. Traces include DOM snapshots, screenshots, network activity, and console logs.
+捕获详细的执行追踪用于调试和分析。追踪包含 DOM 快照、截图、网络活动和控制台日志。
 
-## Basic Usage
+## 基本用法
 
 ```bash
-# Start trace recording
+# 开始追踪录制
 playwright-cli tracing-start
 
-# Perform actions
+# 执行操作
 playwright-cli open https://example.com
 playwright-cli click e1
 playwright-cli fill e2 "test"
 
-# Stop trace recording
+# 停止追踪录制
 playwright-cli tracing-stop
 ```
 
-## Trace Output Files
+## 追踪输出文件
 
-When you start tracing, Playwright creates a `traces/` directory with several files:
+开始追踪时，Playwright 会创建 `traces/` 目录并生成多个文件：
 
 ### `trace-{timestamp}.trace`
 
-**Action log** - The main trace file containing:
-- Every action performed (clicks, fills, navigations)
-- DOM snapshots before and after each action
-- Screenshots at each step
-- Timing information
-- Console messages
-- Source locations
+**操作日志** — 主追踪文件，包含：
+- 执行的每个操作（点击、填充、导航）
+- 每个操作前后的 DOM 快照
+- 每一步的截图
+- 时间信息
+- 控制台消息
+- 源码位置
 
 ### `trace-{timestamp}.network`
 
-**Network log** - Complete network activity:
-- All HTTP requests and responses
-- Request headers and bodies
-- Response headers and bodies
-- Timing (DNS, connect, TLS, TTFB, download)
-- Resource sizes
-- Failed requests and errors
+**网络日志** — 完整的网络活动：
+- 所有 HTTP 请求和响应
+- 请求头和请求体
+- 响应头和响应体
+- 时间（DNS、连接、TLS、TTFB、下载）
+- 资源大小
+- 失败的请求和错误
 
 ### `resources/`
 
-**Resources directory** - Cached resources:
-- Images, fonts, stylesheets, scripts
-- Response bodies for replay
-- Assets needed to reconstruct page state
+**资源目录** — 缓存的资源：
+- 图片、字体、样式表、脚本
+- 用于回放的响应体
+- 重建页面状态所需的资源
 
-## What Traces Capture
+## 追踪捕获的内容
 
-| Category | Details |
-|----------|---------|
-| **Actions** | Clicks, fills, hovers, keyboard input, navigations |
-| **DOM** | Full DOM snapshot before/after each action |
-| **Screenshots** | Visual state at each step |
-| **Network** | All requests, responses, headers, bodies, timing |
-| **Console** | All console.log, warn, error messages |
-| **Timing** | Precise timing for each operation |
+| 类别 | 详情 |
+|------|------|
+| **操作** | 点击、填充、悬停、键盘输入、导航 |
+| **DOM** | 每个操作前后的完整 DOM 快照 |
+| **截图** | 每一步的视觉状态 |
+| **网络** | 所有请求、响应、头、体、时间 |
+| **控制台** | 所有 console.log、warn、error 消息 |
+| **时间** | 每个操作的精确时间 |
 
-## Use Cases
+## 使用场景
 
-### Debugging Failed Actions
+### 调试失败的操作
 
 ```bash
 playwright-cli tracing-start
 playwright-cli open https://app.example.com
 
-# This click fails - why?
+# 此点击失败 — 为什么？
 playwright-cli click e5
 
 playwright-cli tracing-stop
-# Open trace to see DOM state when click was attempted
+# 打开追踪查看点击时的 DOM 状态
 ```
 
-### Analyzing Performance
+### 分析性能
 
 ```bash
 playwright-cli tracing-start
 playwright-cli open https://slow-site.com
 playwright-cli tracing-stop
 
-# View network waterfall to identify slow resources
+# 查看网络瀑布图以识别慢资源
 ```
 
-### Capturing Evidence
+### 捕获证据
 
 ```bash
-# Record a complete user flow for documentation
+# 录制完整的用户流程用于文档
 playwright-cli tracing-start
 
 playwright-cli open https://app.example.com/checkout
@@ -97,43 +97,43 @@ playwright-cli fill e3 "123"
 playwright-cli click e4
 
 playwright-cli tracing-stop
-# Trace shows exact sequence of events
+# 追踪展示了事件的精确序列
 ```
 
-## Trace vs Video vs Screenshot
+## 追踪 vs 视频 vs 截图
 
-| Feature | Trace | Video | Screenshot |
-|---------|-------|-------|------------|
-| **Format** | .trace file | .webm video | .png/.jpeg image |
-| **DOM inspection** | Yes | No | No |
-| **Network details** | Yes | No | No |
-| **Step-by-step replay** | Yes | Continuous | Single frame |
-| **File size** | Medium | Large | Small |
-| **Best for** | Debugging | Demos | Quick capture |
+| 特性 | 追踪 | 视频 | 截图 |
+|------|------|------|------|
+| **格式** | .trace 文件 | .webm 视频 | .png/.jpeg 图片 |
+| **DOM 检查** | 是 | 否 | 否 |
+| **网络详情** | 是 | 否 | 否 |
+| **逐步回放** | 是 | 连续 | 单帧 |
+| **文件大小** | 中等 | 大 | 小 |
+| **适用场景** | 调试 | 演示 | 快速捕获 |
 
-## Best Practices
+## 最佳实践
 
-### 1. Start Tracing Before the Problem
+### 1. 在问题发生前开始追踪
 
 ```bash
-# Trace the entire flow, not just the failing step
+# 追踪整个流程，而非仅失败步骤
 playwright-cli tracing-start
 playwright-cli open https://example.com
-# ... all steps leading to the issue ...
+# ... 导致问题的所有步骤 ...
 playwright-cli tracing-stop
 ```
 
-### 2. Clean Up Old Traces
+### 2. 清理旧追踪
 
-Traces can consume significant disk space:
+追踪会占用大量磁盘空间：
 
 ```bash
-# Remove traces older than 7 days
+# 删除 7 天前的追踪
 find .playwright-cli/traces -mtime +7 -delete
 ```
 
-## Limitations
+## 限制
 
-- Traces add overhead to automation
-- Large traces can consume significant disk space
-- Some dynamic content may not replay perfectly
+- 追踪会给自动化增加开销
+- 大型追踪会占用大量磁盘空间
+- 部分动态内容可能无法完美回放

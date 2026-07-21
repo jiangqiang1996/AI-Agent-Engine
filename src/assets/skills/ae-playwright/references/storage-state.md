@@ -1,34 +1,34 @@
-# Storage Management
+# 存储管理
 
-Manage cookies, localStorage, sessionStorage, and browser storage state.
+管理 cookies、localStorage、sessionStorage 和浏览器存储状态。
 
-## Storage State
+## 存储状态
 
-Save and restore complete browser state including cookies and storage.
+保存和恢复完整的浏览器状态，包括 cookies 和存储。
 
-### Save Storage State
+### 保存存储状态
 
 ```bash
-# Save to auto-generated filename (storage-state-{timestamp}.json)
+# 保存到自动生成的文件名（storage-state-{timestamp}.json）
 playwright-cli state-save
 
-# Save to specific filename
+# 保存到指定文件名
 playwright-cli state-save my-auth-state.json
 ```
 
-### Restore Storage State
+### 恢复存储状态
 
 ```bash
-# Load storage state from file
+# 从文件加载存储状态
 playwright-cli state-load my-auth-state.json
 
-# Reload page to apply cookies
+# 重新加载页面以应用 cookies
 playwright-cli open https://example.com
 ```
 
-### Storage State File Format
+### 存储状态文件格式
 
-The saved file contains:
+保存的文件包含：
 
 ```json
 {
@@ -58,58 +58,58 @@ The saved file contains:
 
 ## Cookies
 
-### List All Cookies
+### 列出所有 Cookies
 
 ```bash
 playwright-cli cookie-list
 ```
 
-### Filter Cookies by Domain
+### 按域名筛选 Cookies
 
 ```bash
 playwright-cli cookie-list --domain=example.com
 ```
 
-### Filter Cookies by Path
+### 按路径筛选 Cookies
 
 ```bash
 playwright-cli cookie-list --path=/api
 ```
 
-### Get Specific Cookie
+### 获取特定 Cookie
 
 ```bash
 playwright-cli cookie-get session_id
 ```
 
-### Set a Cookie
+### 设置 Cookie
 
 ```bash
-# Basic cookie
+# 基本 cookie
 playwright-cli cookie-set session abc123
 
-# Cookie with options
+# 带选项的 cookie
 playwright-cli cookie-set session abc123 --domain=example.com --path=/ --httpOnly --secure --sameSite=Lax
 
-# Cookie with expiration (Unix timestamp)
+# 带过期时间的 cookie（Unix 时间戳）
 playwright-cli cookie-set remember_me token123 --expires=1893456000
 ```
 
-### Delete a Cookie
+### 删除 Cookie
 
 ```bash
 playwright-cli cookie-delete session_id
 ```
 
-### Clear All Cookies
+### 清除所有 Cookies
 
 ```bash
 playwright-cli cookie-clear
 ```
 
-### Advanced: Multiple Cookies or Custom Options
+### 高级：多个 Cookies 或自定义选项
 
-For complex scenarios like adding multiple cookies at once, use `run-code`:
+对于一次性添加多个 cookies 等复杂场景，使用 `run-code`：
 
 ```bash
 playwright-cli run-code "async page => {
@@ -122,45 +122,45 @@ playwright-cli run-code "async page => {
 
 ## Local Storage
 
-### List All localStorage Items
+### 列出所有 localStorage 项
 
 ```bash
 playwright-cli localstorage-list
 ```
 
-### Get Single Value
+### 获取单个值
 
 ```bash
 playwright-cli localstorage-get token
 ```
 
-### Set Value
+### 设置值
 
 ```bash
 playwright-cli localstorage-set theme dark
 ```
 
-### Set JSON Value
+### 设置 JSON 值
 
 ```bash
 playwright-cli localstorage-set user_settings '{"theme":"dark","language":"en"}'
 ```
 
-### Delete Single Item
+### 删除单个项
 
 ```bash
 playwright-cli localstorage-delete token
 ```
 
-### Clear All localStorage
+### 清除所有 localStorage
 
 ```bash
 playwright-cli localstorage-clear
 ```
 
-### Advanced: Multiple Operations
+### 高级：批量操作
 
-For complex scenarios like setting multiple values at once, use `run-code`:
+对于一次性设置多个值等复杂场景，使用 `run-code`：
 
 ```bash
 playwright-cli run-code "async page => {
@@ -174,31 +174,31 @@ playwright-cli run-code "async page => {
 
 ## Session Storage
 
-### List All sessionStorage Items
+### 列出所有 sessionStorage 项
 
 ```bash
 playwright-cli sessionstorage-list
 ```
 
-### Get Single Value
+### 获取单个值
 
 ```bash
 playwright-cli sessionstorage-get form_data
 ```
 
-### Set Value
+### 设置值
 
 ```bash
 playwright-cli sessionstorage-set step 3
 ```
 
-### Delete Single Item
+### 删除单个项
 
 ```bash
 playwright-cli sessionstorage-delete step
 ```
 
-### Clear sessionStorage
+### 清除 sessionStorage
 
 ```bash
 playwright-cli sessionstorage-clear
@@ -206,7 +206,7 @@ playwright-cli sessionstorage-clear
 
 ## IndexedDB
 
-### List Databases
+### 列出数据库
 
 ```bash
 playwright-cli run-code "async page => {
@@ -217,7 +217,7 @@ playwright-cli run-code "async page => {
 }"
 ```
 
-### Delete Database
+### 删除数据库
 
 ```bash
 playwright-cli run-code "async page => {
@@ -227,49 +227,49 @@ playwright-cli run-code "async page => {
 }"
 ```
 
-## Common Patterns
+## 常见模式
 
-### Authentication State Reuse
+### 认证状态复用
 
 ```bash
-# Step 1: Login and save state
+# 步骤 1：登录并保存状态
 playwright-cli open https://app.example.com/login
 playwright-cli snapshot
 playwright-cli fill e1 "user@example.com"
 playwright-cli fill e2 "password123"
 playwright-cli click e3
 
-# Save the authenticated state
+# 保存已认证的状态
 playwright-cli state-save auth.json
 
-# Step 2: Later, restore state and skip login
+# 步骤 2：之后恢复状态，跳过登录
 playwright-cli state-load auth.json
 playwright-cli open https://app.example.com/dashboard
-# Already logged in!
+# 已登录！
 ```
 
-### Save and Restore Roundtrip
+### 保存和恢复往返
 
 ```bash
-# Set up authentication state
+# 设置认证状态
 playwright-cli open https://example.com
 playwright-cli eval "() => { document.cookie = 'session=abc123'; localStorage.setItem('user', 'john'); }"
 
-# Save state to file
+# 保存状态到文件
 playwright-cli state-save my-session.json
 
-# ... later, in a new session ...
+# ... 之后，在新会话中 ...
 
-# Restore state
+# 恢复状态
 playwright-cli state-load my-session.json
 playwright-cli open https://example.com
-# Cookies and localStorage are restored!
+# Cookies 和 localStorage 已恢复！
 ```
 
-## Security Notes
+## 安全须知
 
-- Never commit storage state files containing auth tokens
-- Add `*.auth-state.json` to `.gitignore`
-- Delete state files after automation completes
-- Use environment variables for sensitive data
-- By default, sessions run in-memory mode which is safer for sensitive operations
+- 切勿提交包含认证令牌的存储状态文件
+- 将 `*.auth-state.json` 添加到 `.gitignore`
+- 自动化完成后删除状态文件
+- 敏感数据使用环境变量
+- 默认情况下，会话以内存模式运行，对敏感操作更安全

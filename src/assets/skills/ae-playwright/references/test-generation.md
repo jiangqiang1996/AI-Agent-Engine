@@ -1,29 +1,29 @@
-# Test generation (plan → generate → heal)
+# 测试生成（plan → generate → heal）
 
-End-to-end workflow for authoring and maintaining Playwright tests with `playwright-cli`. Every `playwright-cli` action emits the equivalent Playwright TypeScript, and that generated code is the raw material for every test. The sections below can be used independently:
+使用 `playwright-cli` 编写和维护 Playwright 测试的端到端工作流。每个 `playwright-cli` 操作都会生成等效的 Playwright TypeScript 代码，这些生成的代码是每个测试的原材料。以下各节可独立使用：
 
-- **How generation works** — the core mechanic everything else relies on: actions become TypeScript, plus how to add assertions.
-- **Plan** — explore the app, produce a spec file describing what to test.
-- **Generate** — turn a spec into Playwright test files. Update the spec if it's vague or stale.
-- **Heal** — diagnose failing tests, fix the code, reconcile the spec with reality.
+- **生成机制** — 一切依赖的核心机制：操作变为 TypeScript，以及如何添加断言。
+- **Plan** — 探索应用，生成描述测试内容的规格文件。
+- **Generate** — 将规格转换为 Playwright 测试文件。如果规格模糊或过期则更新它。
+- **Heal** — 诊断失败测试，修复代码，使规格与实际保持一致。
 
-Plan / generate / heal lean on the same mechanic: run `npx playwright test --debug=cli` in the background, then `playwright-cli attach tw-XXXX` to drive the paused page interactively. See [playwright-tests.md](playwright-tests.md) for the debug/attach mechanics.
+Plan / generate / heal 依赖同一机制：在后台运行 `npx playwright test --debug=cli`，然后 `playwright-cli attach tw-XXXX` 交互式驱动暂停的页面。调试/连接机制详见 [playwright-tests.md](playwright-tests.md)。
 
 ---
 
-## 0. How generation works
+## 0. 生成机制
 
-Every action you perform with `playwright-cli` generates corresponding Playwright TypeScript code. This code appears in the output and can be copied directly into your test files.
+使用 `playwright-cli` 执行的每个操作都会生成对应的 Playwright TypeScript 代码。该代码出现在输出中，可直接复制到测试文件中。
 
 ```bash
-# Start a session
+# 启动会话
 playwright-cli open https://example.com/login
 
-# Take a snapshot to see elements
+# 获取快照以查看元素
 playwright-cli snapshot
-# Output shows: e1 [textbox "Email"], e2 [textbox "Password"], e3 [button "Sign In"]
+# 输出显示：e1 [textbox "Email"], e2 [textbox "Password"], e3 [button "Sign In"]
 
-# Fill form fields - generates code automatically
+# 填充表单字段 — 自动生成代码
 playwright-cli fill e1 "user@example.com"
 # Ran Playwright code:
 # await page.getByRole('textbox', { name: 'Email' }).fill('user@example.com');
@@ -37,99 +37,99 @@ playwright-cli click e3
 # await page.getByRole('button', { name: 'Sign In' }).click();
 ```
 
-### Building a test file
+### 构建测试文件
 
-Collect the generated code into a Playwright test:
+将生成的代码收集到 Playwright 测试中：
 
 ```typescript
 import { test, expect } from '@playwright/test';
 
 test('login flow', async ({ page }) => {
-  // Generated code from playwright-cli session:
+  // 从 playwright-cli 会话生成的代码：
   await page.goto('https://example.com/login');
   await page.getByRole('textbox', { name: 'Email' }).fill('user@example.com');
   await page.getByRole('textbox', { name: 'Password' }).fill('password123');
   await page.getByRole('button', { name: 'Sign In' }).click();
 
-  // Add assertions
+  // 添加断言
   await expect(page).toHaveURL(/.*dashboard/);
 });
 ```
 
-### Use semantic locators
+### 使用语义化定位器
 
-The generated code uses role-based locators when possible, which are more resilient:
+生成的代码尽可能使用基于角色的定位器，更具韧性：
 
 ```typescript
-// Generated (good - semantic)
+// 生成的（好 — 语义化）
 await page.getByRole('button', { name: 'Submit' }).click();
 
-// Avoid (fragile - CSS selectors)
+// 避免（脆弱 — CSS 选择器）
 await page.locator('#submit-btn').click();
 ```
 
-### Explore before recording
+### 录制前先探索
 
-Take snapshots to understand the page structure before recording actions:
+在录制操作前先获取快照以了解页面结构：
 
 ```bash
 playwright-cli open https://example.com
 playwright-cli snapshot
-# Review the element structure
+# 审查元素结构
 playwright-cli click e5
 ```
 
-### Add assertions manually
+### 手动添加断言
 
-Generated code captures actions but not assertions. Add expectations in your test using one of the recommended matchers:
+生成的代码捕获操作但不捕获断言。使用以下推荐匹配器之一在测试中添加断言：
 
-- `toBeVisible()` — element is rendered and visible
-- `toHaveText(text)` — element text content matches
-- `toHaveValue(value) / toBeEmpty()` — input/select value matches
-- `toBeChecked() / toBeUnchecked()` — checkbox state matches
-- `toMatchAriaSnapshot(snapshot)` — page (or locator) matches a partial accessibility snapshot
+- `toBeVisible()` — 元素已渲染且可见
+- `toHaveText(text)` — 元素文本内容匹配
+- `toHaveValue(value) / toBeEmpty()` — 输入/选择值匹配
+- `toBeChecked() / toBeUnchecked()` — 复选框状态匹配
+- `toMatchAriaSnapshot(snapshot)` — 页面（或定位器）匹配部分无障碍快照
 
-Use `playwright-cli generate-locator <target>` to produce the locator expression for the assertion, and the snapshot/eval commands to capture the expected value.
+使用 `playwright-cli generate-locator <target>` 生成断言用的定位器表达式，使用 snapshot/eval 命令捕获期望值。
 
-When asserting text content, make sure that generated locator does not contain text from the element itself. `getByTestId()` or `getByLabel()` usually work well with asserting text. When locator is text-based, prefer `toBeVisible()` instead.
+断言文本内容时，确保生成的定位器不包含元素自身的文本。`getByTestId()` 或 `getByLabel()` 通常适合断言文本。当定位器基于文本时，优先使用 `toBeVisible()`。
 
-Snapshot to be matched does not have to contain all the information - only capture what's necessary for the assertion. You can use regular expressions for unstable values.
+要匹配的快照不必包含所有信息 — 只需捕获断言所需的内容。可对不稳定的值使用正则表达式。
 
 ```bash
-# Get a stable locator for an element ref to use in the assertion
+# 获取元素 ref 的稳定定位器用于断言
 playwright-cli --raw generate-locator e5
 # getByRole('button', { name: 'Submit' })
 
-# Capture expected text content for toHaveText
+# 捕获 toHaveText 的期望文本内容
 playwright-cli --raw eval "el => el.textContent" e5
 
-# Capture expected input value for toHaveValue/toBeEmpty
+# 捕获 toHaveValue/toBeEmpty 的期望输入值
 playwright-cli --raw eval "el => el.value" e5
 
-# Capture expected aria snapshot for toMatchAriaSnapshot/toBeChecked
-# (whole page, or use a ref to scope to a region)
+# 捕获 toMatchAriaSnapshot/toBeChecked 的期望 aria 快照
+# （整个页面，或使用 ref 限定到某个区域）
 playwright-cli --raw snapshot
 playwright-cli --raw snapshot e5
 ```
 
 ```typescript
-// Generated action
+// 生成的操作
 await page.getByRole('button', { name: 'Submit' }).click();
 
-// Manual assertions using the outputs above:
+// 使用上述输出的手动断言：
 await expect(page.getByRole('alert', { name: 'Success' })).toBeVisible();
 await expect(page.getByTestId('main-header')).toHaveText('Welcome, user');
 await expect(page.getByRole('textbox', { name: 'Email' })).toHaveValue('user@example.com');
 await expect(page.getByRole('checkbox', { name: 'Enable notifications' })).toBeChecked();
 
-// toMatchAriaSnapshot on the whole page, finds a matching region
+// 对整个页面使用 toMatchAriaSnapshot，查找匹配的区域
 await expect(page).toMatchAriaSnapshot(`
   - heading "Welcome, user"
   - link /\\d+ new messages?/
   - button "Sign out"
 `);
 
-// toMatchAriaSnapshot scoped to a region
+// 限定到某个区域的 toMatchAriaSnapshot
 await expect(page.getByRole('navigation')).toMatchAriaSnapshot(`
   - link "Home"
   - link /\\d+ new messages?/
@@ -141,29 +141,29 @@ await expect(page.getByRole('navigation')).toMatchAriaSnapshot(`
 
 ## 1. Planning
 
-Goal: produce a spec file (e.g. `specs/<feature>.plan.md`) that enumerates the scenarios to test. **Always** write the spec to a file.
+目标：生成规格文件（如 `specs/<feature>.plan.md`），枚举要测试的场景。**始终**将规格写入文件。
 
-### 1.1 Prerequisite: workspace
+### 1.1 前置条件：工作区
 
-Check the workspace has Playwright installed before anything else:
+首先检查工作区是否已安装 Playwright：
 
 ```bash
-# Either of these confirms a workspace:
+# 以下任一命令可确认工作区：
 test -f playwright.config.ts || test -f playwright.config.js
 npx --no-install playwright --version
 ```
 
-If there is no Playwright install, bootstrap one and let the user pick the defaults:
+如果未安装 Playwright，初始化一个并让用户选择默认值：
 
 ```bash
 npm init playwright@latest
 ```
 
-### 1.2 Prerequisite: seed test
+### 1.2 前置条件：种子测试
 
-A **seed test** is a minimal test that lands the page in the state every scenario starts from: navigation to the app, any required login, feature flags, etc. Scenarios assume a fresh start *after* the seed. `--debug=cli` pauses *inside* this test, so the seed is where every planning and generation session begins.
+**种子测试**是一个最小测试，将页面置于每个场景开始时的状态：导航到应用、必要的登录、功能开关等。场景假设在种子**之后**的全新开始。`--debug=cli` 在此测试*内部*暂停，因此种子是每个规划和生成会话的起点。
 
-Minimum viable seed:
+最小可行种子：
 
 ```ts
 // tests/seed.spec.ts
@@ -174,7 +174,7 @@ test('seed', async ({ page }) => {
 });
 ```
 
-Preferred — push navigation into a fixture so scenario tests reuse it:
+推荐 — 将导航推入 fixture 以便场景测试复用：
 
 ```ts
 // tests/fixtures.ts
@@ -194,46 +194,46 @@ export const test = baseTest.extend({
 import { test } from './fixtures';
 
 test('seed', async ({ page }) => {
-  // Fixture already navigates. This empty body tells agents where to start.
+  // Fixture 已完成导航。此空函数体告诉代理从哪里开始。
 });
 ```
 
-If no seed exists, create one that at least navigates to the app.
+如果不存在种子，至少创建一个导航到应用的种子。
 
-### 1.3 Explore the app
+### 1.3 探索应用
 
-Launch the app via the seed in the background and attach:
+通过种子在后台启动应用并连接：
 
 ```bash
 PLAYWRIGHT_HTML_OPEN=never npx playwright test tests/seed.spec.ts --debug=cli
-# wait for "Debugging Instructions" and the session name tw-XXXX
+# 等待 "Debugging Instructions" 和会话名 tw-XXXX
 playwright-cli attach tw-XXXX
 ```
 
-Resume so the seed runs, then probe the app:
+恢复执行使种子运行，然后探测应用：
 
 ```bash
-playwright-cli resume                   # resume so that seed test runs fully
-playwright-cli snapshot                 # inventory of interactive elements
-playwright-cli click e5                 # follow a flow
-playwright-cli eval "location.href"     # read URL / state
-playwright-cli show --annotate          # ask the user to point at something
+playwright-cli resume                   # 恢复执行使种子测试完整运行
+playwright-cli snapshot                 # 交互元素清单
+playwright-cli click e5                 # 跟随某个流程
+playwright-cli eval "location.href"     # 读取 URL / 状态
+playwright-cli show --annotate          # 请用户指向某处
 ```
 
-Map out:
+梳理以下内容：
 
-- Interactive surfaces (forms, buttons, lists, filters, modals).
-- Primary user journeys end-to-end.
-- Edge cases: empty states, validation errors, very long input, boundary values.
-- Persistence: reload, local/session storage, URL fragments.
-- Navigation: which controls change the URL, back/forward behaviour.
+- 交互界面（表单、按钮、列表、筛选器、模态框）。
+- 主要用户旅程的端到端流程。
+- 边界情况：空状态、验证错误、超长输入、边界值。
+- 持久化：重新加载、local/session 存储、URL 片段。
+- 导航：哪些控件会改变 URL、前进/后退行为。
 
-**Important**: Do not just open the app url with playwright-cli, always go through the test to capture any custom setup done there.
-**Important**: Stop the background test when done exploring.
+**重要**：不要直接用 playwright-cli 打开应用 URL，始终通过测试以捕获其中的自定义设置。
+**重要**：探索完成后停止后台测试。
 
-### 1.4 Write the spec file
+### 1.4 编写规格文件
 
-Save under `specs/<feature>.plan.md`. Use this structure:
+保存到 `specs/<feature>.plan.md`。使用此结构：
 
 ```markdown
 # <Feature> Test Plan
@@ -268,70 +268,70 @@ Save under `specs/<feature>.plan.md`. Use this structure:
 ...
 ```
 
-Guidelines:
+指南：
 
-- Each scenario is independent and starts from the seed's fresh state — never chain scenarios.
-- Scenario names are kebab-case and match the test file name (`should-add-single-todo` → `should-add-single-todo.spec.ts`).
-- Cover happy path, edge cases, validation, negative flows, persistence.
-- Write steps at the user level ("Type 'Buy milk' into the input"), not the API level ("call `fill`").
-- Put observable outcomes in `- expect:` bullets; each becomes an assertion during generation.
+- 每个场景独立，从种子的全新状态开始 — 切勿串联场景。
+- 场景名称使用 kebab-case 并与测试文件名匹配（`should-add-single-todo` → `should-add-single-todo.spec.ts`）。
+- 覆盖正常路径、边界情况、验证、异常流程、持久化。
+- 以用户层面编写步骤（"在输入框中输入 'Buy milk'"），而非 API 层面（"调用 `fill`"）。
+- 将可观察的结果放在 `- expect:` 条目中；每条在生成时变为一个断言。
 
 ---
 
 ## 2. Generate
 
-Goal: take a spec file and produce Playwright test files. Optionally update the spec if it has drifted.
+目标：读取规格文件并生成 Playwright 测试文件。如果规格已漂移则可选更新。
 
-### 2.1 Inputs
+### 2.1 输入
 
-- **Spec file**, e.g. `specs/basic-operations.plan.md`.
-- **Target**: either a single scenario (e.g. `1.2`), a whole group (`1`), or all.
-- **Seed file**, read from the `**Seed:**` line of the scenario's group.
+- **规格文件**，如 `specs/basic-operations.plan.md`。
+- **目标**：单个场景（如 `1.2`）、整个组（`1`）或全部。
+- **种子文件**，从场景所在组的 `**Seed:**` 行读取。
 
-### 2.2 Generate one scenario
+### 2.2 生成单个场景
 
-For each target scenario, in sequence (never in parallel — scenarios share the seed session):
+对每个目标场景，按顺序执行（切勿并行 — 场景共享种子会话）：
 
 ```bash
-PLAYWRIGHT_HTML_OPEN=never npx playwright test <seed-file> --debug=cli   # background
+PLAYWRIGHT_HTML_OPEN=never npx playwright test <seed-file> --debug=cli   # 后台
 playwright-cli attach tw-XXXX
 # resume
 ```
 
-**Do not** just open the app url with playwright-cli, always go through the test to capture any custom setup done there.
+**不要**直接用 playwright-cli 打开应用 URL，始终通过测试以捕获其中的自定义设置。
 
-Walk the scenario's `Steps:` one by one with `playwright-cli`, treating the spec as the plan and the live app as the source of truth. If a step is vague ("click the button" — which button?), references an element that no longer exists, or contradicts the app's actual behaviour, use your judgement: update the spec to match what the app really does, then keep going. Editing the spec mid-generation is expected.
+使用 `playwright-cli` 逐步执行场景的 `Steps:`，将规格视为计划、实时应用视为真源。如果某步骤模糊（"点击按钮" — 哪个按钮？）、引用了已不存在的元素，或与应用实际行为矛盾，请自行判断：更新规格以匹配应用的真实行为，然后继续。生成过程中编辑规格是预期行为。
 
-Every action prints the equivalent Playwright TypeScript (see [How generation works](#0-how-generation-works)):
+每个操作都会打印等效的 Playwright TypeScript（见[How generation works](#0-how-generation-works)）：
 
 ```bash
-playwright-cli snapshot                         # find refs
+playwright-cli snapshot                         # 查找 ref
 playwright-cli fill e3 "John Doe"               # -> page.getByRole('textbox', {...}).fill(...)
 playwright-cli press Enter
 playwright-cli click e7
 ```
 
-For each `- expect:` bullet, add an explicit assertion. See [How generation works](#0-how-generation-works) for details.
+为每个 `- expect:` 条目添加显式断言。详见[How generation works](#0-how-generation-works)。
 
-Collect the generated code and write the test file at the path given in the spec:
+收集生成的代码并在规格指定的路径写入测试文件：
 
 ```ts
 // spec: specs/basic-operations.plan.md
 // seed: tests/seed.spec.ts
-import { test, expect } from './fixtures';   // or '@playwright/test' if no fixtures file
+import { test, expect } from './fixtures';   // 或 '@playwright/test'（若无 fixtures 文件）
 
 test.describe('Signing in and out', () => {
   test('should sign in', async ({ page }) => {
-    // 1. Navigate to the application
-    // (handled by the seed fixture)
+    // 1. 导航到应用
+    // （由种子 fixture 处理）
 
-    // 2. Type 'John Doe' into the username field
+    // 2. 在用户名字段中输入 'John Doe'
     await page.getByRole('textbox', { name: 'username' }).fill('John Doe');
 
-    // 3. Type password
+    // 3. 输入密码
     await page.getByRole('textbox', { name: 'password' }).fill('TestPassword');
 
-    // 4. Press Enter to submit
+    // 4. 按回车提交
     await page.getByRole('textbox', { name: 'password' }).press('Enter');
 
     await expect(page.getByRole('heading')).toContainText('Welcome, John Doe!');
@@ -339,95 +339,95 @@ test.describe('Signing in and out', () => {
 });
 ```
 
-Rules:
+规则：
 
-- **One test per file.** File path, describe name, and test name come verbatim from the spec (minus the ordinal).
-- Prefix each numbered step with a `// N. <step text>` comment before its actions.
-- Use the describe group name verbatim from the spec (no `1.` ordinal).
-- Import from `./fixtures` if the project has one; otherwise `@playwright/test`.
-- **Important**: close the CLI session and stop the background test before moving to the next scenario.
+- **每个文件一个测试。** 文件路径、describe 名称和测试名称从规格中逐字取用（去掉序号）。
+- 在每个编号步骤的操作前添加 `// N. <步骤文本>` 注释。
+- 从规格中逐字使用 describe 组名（无 `1.` 序号）。
+- 如果项目有 fixtures 文件则从 `./fixtures` 导入；否则从 `@playwright/test` 导入。
+- **重要**：在移至下一个场景前关闭 CLI 会话并停止后台测试。
 
-### 2.3 Generate multiple scenarios
+### 2.3 生成多个场景
 
-Loop 2.2 over the targeted scenarios one at a time, restarting the seed between each so every test starts from a clean page. This is safe to parallelise due to unique generated session names - just make sure each test run is stopped.
+对目标场景逐一循环执行 2.2，每个场景之间重启种子以确保每个测试从干净页面开始。由于生成的会话名唯一，可以安全并行 — 只需确保每个测试运行都已停止。
 
-### 2.4 Run generated tests
+### 2.4 运行生成的测试
 
-After generation, run the new tests once:
+生成后，运行一次新测试：
 
 ```bash
 PLAYWRIGHT_HTML_OPEN=never npx playwright test tests/<group>/<scenario>.spec.ts
 ```
 
-Any failure goes to Section 3.
+任何失败进入第 3 节。
 
 ---
 
 ## 3. Heal
 
-Goal: fix failing tests, and update the spec if the app's intended behaviour changed.
+目标：修复失败测试，并在应用预期行为已变更时更新规格。
 
-### 3.1 Find failing tests
+### 3.1 查找失败测试
 
 ```bash
 PLAYWRIGHT_HTML_OPEN=never npx playwright test
 ```
 
-Record the list of failing `<file>:<line>` entries and process them one at a time. Do not attempt parallel fixes — shared state and the single CLI session make that fragile.
+记录失败的 `<file>:<line>` 条目列表，逐一处理。切勿尝试并行修复 — 共享状态和单一 CLI 会话会使并行修复不可靠。
 
-### 3.2 Debug one failure
+### 3.2 调试单个失败
 
-Run the single failing test in debug mode in the background, then attach:
+在后台以调试模式运行单个失败测试，然后连接：
 
 ```bash
 PLAYWRIGHT_HTML_OPEN=never npx playwright test tests/<group>/<scenario>.spec.ts:<line> --debug=cli
-# wait for "Debugging Instructions" and the tw-XXXX session name
+# 等待 "Debugging Instructions" 和 tw-XXXX 会话名
 playwright-cli attach tw-XXXX
 ```
 
-The test is paused at the start. Step forward or run to until just before the failing action or assertion, then diagnose:
+测试在开始处暂停。逐步执行或运行到失败操作或断言之前，然后诊断：
 
 ```bash
-playwright-cli snapshot                # did the element change / move / rename?
-playwright-cli console                 # app-side errors?
-playwright-cli requests                # failed request? wrong payload?
-playwright-cli show --annotate         # ask the user to point somewhere
+playwright-cli snapshot                # 元素是否改变/移动/重命名？
+playwright-cli console                 # 应用侧错误？
+playwright-cli requests                # 请求失败？载荷错误？
+playwright-cli show --annotate         # 请用户指向某处
 ```
 
-Common causes: selector drift, new wrapper element, label/ARIA rename, timing (transition, async load), assertion text updated in the app, test data leaking between runs.
+常见原因：选择器漂移、新增包装元素、标签/ARIA 重命名、时序问题（过渡、异步加载）、应用中断言文本已更新、测试数据在运行间泄漏。
 
-Rehearse the corrected interaction with `playwright-cli` — the generated code in the output is what you paste back into the test.
+用 `playwright-cli` 演练修正后的交互 — 输出中的生成代码即粘贴回测试的内容。
 
-### 3.3 Apply the fix
+### 3.3 应用修复
 
-Edit the test file: update the locator, assertion, step order, or inputs to match the corrected behaviour. Stop the background debug run. Rerun the single test to confirm green.
+编辑测试文件：更新定位器、断言、步骤顺序或输入以匹配修正后的行为。停止后台调试运行。重新运行单个测试确认通过。
 
-Never skip hooks or add sleeps as a fix. Never use `networkidle`.
+切勿通过跳过 hooks 或添加 sleep 来修复。切勿使用 `networkidle`。
 
-### 3.4 Reconcile with the spec
+### 3.4 与规格对账
 
-Open the spec referenced by the `// spec:` header in the test file and locate the scenario that matches the test.
+打开测试文件中 `// spec:` 头部引用的规格，定位与测试匹配的场景。
 
-- **Fix was purely technical** (locator drift, better assertion shape) and the spec's user-level behaviour still matches the app → leave the spec alone.
-- **Fix changed user-visible steps, inputs, order, or expected outcomes** that the spec describes → update the spec to match reality. Keep the scenario id and file path stable; only the step / expect lines change.
-- **Unclear whether the app change is intentional** (spec is stale) **or a regression** (test was right, app is wrong) → **stop and ask the user**. Provide:
-  - the scenario id (e.g. `2.3`),
-  - the spec lines that no longer match,
-  - the observed app behaviour (quote a snapshot excerpt or a concrete outcome).
+- **修复纯粹是技术性的**（定位器漂移、更好的断言形式）且规格的用户层面行为仍与应用匹配 → 保持规格不变。
+- **修复改变了规格所描述的用户可见步骤、输入、顺序或预期结果** → 更新规格以匹配实际。保持场景 ID 和文件路径不变；仅步骤/expect 行变化。
+- **不确定应用变更是有意为之**（规格过期）**还是回归**（测试正确，应用有误）→ **停止并询问用户**。提供：
+  - 场景 ID（如 `2.3`），
+  - 不再匹配的规格行，
+  - 观察到的应用行为（引用快照摘录或具体结果）。
 
-Only after the user answers, either update the spec (intentional change) or file/flag the test as covering a bug (regression).
+仅在用户回答后，更新规格（有意变更）或将测试标记为覆盖 bug（回归）。
 
-### 3.5 Iteration and giving up
+### 3.5 迭代与放弃
 
-- Fix failures one at a time; rerun after each.
-- If after thorough investigation you are confident the test is correct but the app is wrong *and* the user has confirmed it's a bug: mark the test `test.fixme(...)` with a comment pointing at the user's decision or issue link. Never silently skip.
+- 逐一修复失败；每次修复后重新运行。
+- 如果经过彻底调查后确认测试正确但应用有误，*且*用户已确认是 bug：将测试标记为 `test.fixme(...)` 并附注指向用户的决定或 issue 链接。切勿静默跳过。
 
 ---
 
-## Cross-references
+## 交叉引用
 
-| For... | See |
+| 用途 | 参见 |
 |---|---|
-| `--debug=cli` / attach mechanics | [playwright-tests.md](playwright-tests.md) |
-| Mocking requests during exploration/generation | [request-mocking.md](request-mocking.md) |
-| Managing the CLI browser session | [session-management.md](session-management.md) |
+| `--debug=cli` / 连接机制 | [playwright-tests.md](playwright-tests.md) |
+| 探索/生成期间模拟请求 | [request-mocking.md](request-mocking.md) |
+| 管理 CLI 浏览器会话 | [session-management.md](session-management.md) |

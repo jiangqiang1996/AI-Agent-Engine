@@ -1,51 +1,51 @@
-# Running Custom Playwright Code
+# 运行自定义 Playwright 代码
 
-Use `run-code` to execute arbitrary Playwright code for advanced scenarios not covered by CLI commands.
+使用 `run-code` 执行任意 Playwright 代码，用于处理 CLI 命令未覆盖的高级场景。
 
-## Syntax
+## 语法
 
 ```bash
 playwright-cli run-code "async page => {
-  // Your Playwright code here
-  // Access page.context() for browser context operations
+  // 你的 Playwright 代码
+  // 通过 page.context() 访问浏览器上下文操作
 }"
 ```
 
-You can also load the function from a file:
+也可以从文件加载函数：
 
 ```bash
 playwright-cli run-code --filename=./my-script.js
 ```
 
 
-The code must be a single function expression, it is wrapped in `(...)` and evaluated.
-import/export/require syntax is not supported.
+代码必须是单个函数表达式，会被包裹在 `(...)` 中求值。
+不支持 import/export/require 语法。
 
-## Geolocation
+## 地理位置
 
 ```bash
-# Grant geolocation permission and set location
+# 授予地理位置权限并设置位置
 playwright-cli run-code "async page => {
   await page.context().grantPermissions(['geolocation']);
   await page.context().setGeolocation({ latitude: 37.7749, longitude: -122.4194 });
 }"
 
-# Set location to London
+# 设置位置为伦敦
 playwright-cli run-code "async page => {
   await page.context().grantPermissions(['geolocation']);
   await page.context().setGeolocation({ latitude: 51.5074, longitude: -0.1278 });
 }"
 
-# Clear geolocation override
+# 清除地理位置覆盖
 playwright-cli run-code "async page => {
   await page.context().clearPermissions();
 }"
 ```
 
-## Permissions
+## 权限
 
 ```bash
-# Grant multiple permissions
+# 授予多个权限
 playwright-cli run-code "async page => {
   await page.context().grantPermissions([
     'geolocation',
@@ -55,7 +55,7 @@ playwright-cli run-code "async page => {
   ]);
 }"
 
-# Grant permissions for specific origin
+# 为特定来源授予权限
 playwright-cli run-code "async page => {
   await page.context().grantPermissions(['clipboard-read'], {
     origin: 'https://example.com'
@@ -63,74 +63,74 @@ playwright-cli run-code "async page => {
 }"
 ```
 
-## Media Emulation
+## 媒体模拟
 
 ```bash
-# Emulate dark color scheme
+# 模拟深色配色方案
 playwright-cli run-code "async page => {
   await page.emulateMedia({ colorScheme: 'dark' });
 }"
 
-# Emulate light color scheme
+# 模拟浅色配色方案
 playwright-cli run-code "async page => {
   await page.emulateMedia({ colorScheme: 'light' });
 }"
 
-# Emulate reduced motion
+# 模拟减少动画
 playwright-cli run-code "async page => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
 }"
 
-# Emulate print media
+# 模拟打印媒体
 playwright-cli run-code "async page => {
   await page.emulateMedia({ media: 'print' });
 }"
 ```
 
-## Wait Strategies
+## 等待策略
 
 ```bash
-# Wait for network idle
+# 等待网络空闲
 playwright-cli run-code "async page => {
   await page.waitForLoadState('networkidle');
 }"
 
-# Wait for specific element
+# 等待特定元素
 playwright-cli run-code "async page => {
   await page.locator('.loading').waitFor({ state: 'hidden' });
 }"
 
-# Wait for function to return true
+# 等待函数返回 true
 playwright-cli run-code "async page => {
   await page.waitForFunction(() => window.appReady === true);
 }"
 
-# Wait with timeout
+# 带超时等待
 playwright-cli run-code "async page => {
   await page.locator('.result').waitFor({ timeout: 10000 });
 }"
 ```
 
-## Frames and Iframes
+## 框架和 iframe
 
 ```bash
-# Work with iframe
+# 操作 iframe
 playwright-cli run-code "async page => {
   const frame = page.locator('iframe#my-iframe').contentFrame();
   await frame.locator('button').click();
 }"
 
-# Get all frames
+# 获取所有框架
 playwright-cli run-code "async page => {
   const frames = page.frames();
   return frames.map(f => f.url());
 }"
 ```
 
-## File Downloads
+## 文件下载
 
 ```bash
-# Handle file download
+# 处理文件下载
 playwright-cli run-code "async page => {
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('link', { name: 'Download' }).click();
@@ -140,49 +140,49 @@ playwright-cli run-code "async page => {
 }"
 ```
 
-## Clipboard
+## 剪贴板
 
 ```bash
-# Read clipboard (requires permission)
+# 读取剪贴板（需要权限）
 playwright-cli run-code "async page => {
   await page.context().grantPermissions(['clipboard-read']);
   return await page.evaluate(() => navigator.clipboard.readText());
 }"
 
-# Write to clipboard
+# 写入剪贴板
 playwright-cli run-code "async page => {
   await page.evaluate(text => navigator.clipboard.writeText(text), 'Hello clipboard!');
 }"
 ```
 
-## Page Information
+## 页面信息
 
 ```bash
-# Get page title
+# 获取页面标题
 playwright-cli run-code "async page => {
   return await page.title();
 }"
 
-# Get current URL
+# 获取当前 URL
 playwright-cli run-code "async page => {
   return page.url();
 }"
 
-# Get page content
+# 获取页面内容
 playwright-cli run-code "async page => {
   return await page.content();
 }"
 
-# Get viewport size
+# 获取视口大小
 playwright-cli run-code "async page => {
   return page.viewportSize();
 }"
 ```
 
-## JavaScript Execution
+## JavaScript 执行
 
 ```bash
-# Execute JavaScript and return result
+# 执行 JavaScript 并返回结果
 playwright-cli run-code "async page => {
   return await page.evaluate(() => {
     return {
@@ -193,17 +193,17 @@ playwright-cli run-code "async page => {
   });
 }"
 
-# Pass arguments to evaluate
+# 向 evaluate 传递参数
 playwright-cli run-code "async page => {
   const multiplier = 5;
   return await page.evaluate(m => document.querySelectorAll('li').length * m, multiplier);
 }"
 ```
 
-## Error Handling
+## 错误处理
 
 ```bash
-# Try-catch in run-code
+# run-code 中的 try-catch
 playwright-cli run-code "async page => {
   try {
     await page.getByRole('button', { name: 'Submit' }).click({ timeout: 1000 });
@@ -214,10 +214,10 @@ playwright-cli run-code "async page => {
 }"
 ```
 
-## Complex Workflows
+## 复杂工作流
 
 ```bash
-# Login and save state
+# 登录并保存状态
 playwright-cli run-code "async page => {
   await page.goto('https://example.com/login');
   await page.getByRole('textbox', { name: 'Email' }).fill('user@example.com');
@@ -228,7 +228,7 @@ playwright-cli run-code "async page => {
   return 'Login successful';
 }"
 
-# Scrape data from multiple pages
+# 从多个页面抓取数据
 playwright-cli run-code "async page => {
   const results = [];
   for (let i = 1; i <= 3; i++) {

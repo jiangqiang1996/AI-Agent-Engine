@@ -1,23 +1,23 @@
-# Inspecting Element Attributes
+# 检查元素属性
 
-When the snapshot doesn't show an element's `id`, `class`, `data-*` attributes, or other DOM properties, use `eval` to inspect them.
+当快照未显示元素的 `id`、`class`、`data-*` 属性或其他 DOM 属性时，使用 `eval` 进行检查。
 
-## Examples
+## 示例
 
 ```bash
 playwright-cli snapshot
-# snapshot shows a button as e7 but doesn't reveal its id or data attributes
+# 快照将按钮显示为 e7，但未显示其 id 或 data 属性
 
-# get the element's id
+# 获取元素的 id
 playwright-cli eval "el => el.id" e7
 
-# get all CSS classes
+# 获取所有 CSS 类
 playwright-cli eval "el => el.className" e7
 
-# get a specific attribute
+# 获取特定属性
 playwright-cli eval "el => el.getAttribute('data-testid')" e7
 playwright-cli eval "el => el.getAttribute('aria-label')" e7
 
-# get a computed style property
+# 获取计算样式属性
 playwright-cli eval "el => getComputedStyle(el).display" e7
 ```

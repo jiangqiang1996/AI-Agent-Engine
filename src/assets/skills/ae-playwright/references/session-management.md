@@ -1,225 +1,225 @@
-# Browser Session Management
+# 浏览器会话管理
 
-Run multiple isolated browser sessions concurrently with state persistence.
+并发运行多个隔离的浏览器会话，并支持状态持久化。
 
-## Named Browser Sessions
+## 命名浏览器会话
 
-Use `-s` flag to isolate browser contexts:
+使用 `-s` 标志隔离浏览器上下文：
 
 ```bash
-# Browser 1: Authentication flow
+# 浏览器 1：认证流程
 playwright-cli -s=auth open https://app.example.com/login
 
-# Browser 2: Public browsing (separate cookies, storage)
+# 浏览器 2：公共浏览（独立的 cookies 和存储）
 playwright-cli -s=public open https://example.com
 
-# Commands are isolated by browser session
+# 命令按浏览器会话隔离
 playwright-cli -s=auth fill e1 "user@example.com"
 playwright-cli -s=public snapshot
 ```
 
-## Browser Session Isolation Properties
+## 浏览器会话隔离属性
 
-Each browser session has independent:
+每个浏览器会话独立拥有：
 - Cookies
 - LocalStorage / SessionStorage
 - IndexedDB
-- Cache
-- Browsing history
-- Open tabs
+- 缓存
+- 浏览历史
+- 已打开的标签页
 
-## Browser Session Commands
+## 浏览器会话命令
 
 ```bash
-# List all browser sessions
+# 列出所有浏览器会话
 playwright-cli list
 
-# Stop a browser session (close the browser)
-playwright-cli close                # stop the default browser
-playwright-cli -s=mysession close   # stop a named browser
+# 停止浏览器会话（关闭浏览器）
+playwright-cli close                # 停止默认浏览器
+playwright-cli -s=mysession close   # 停止命名浏览器
 
-# Stop all browser sessions
+# 停止所有浏览器会话
 playwright-cli close-all
 
-# Forcefully kill all daemon processes (for stale/zombie processes)
+# 强制终止所有守护进程（用于清理残留/僵尸进程）
 playwright-cli kill-all
 
-# Delete browser session user data (profile directory)
-playwright-cli delete-data                # delete default browser data
-playwright-cli -s=mysession delete-data   # delete named browser data
+# 删除浏览器会话的用户数据（配置目录）
+playwright-cli delete-data                # 删除默认浏览器数据
+playwright-cli -s=mysession delete-data   # 删除命名浏览器数据
 ```
 
-## Environment Variable
+## 环境变量
 
-Set a default browser session name via environment variable:
+通过环境变量设置默认浏览器会话名称：
 
 ```bash
 export PLAYWRIGHT_CLI_SESSION="mysession"
-playwright-cli open example.com  # Uses "mysession" automatically
+playwright-cli open example.com  # 自动使用 "mysession"
 ```
 
-## Common Patterns
+## 常见模式
 
-### Concurrent Scraping
+### 并发抓取
 
 ```bash
 #!/bin/bash
-# Scrape multiple sites concurrently
+# 并发抓取多个站点
 
-# Start all browsers
+# 启动所有浏览器
 playwright-cli -s=site1 open https://site1.com &
 playwright-cli -s=site2 open https://site2.com &
 playwright-cli -s=site3 open https://site3.com &
 wait
 
-# Take snapshots from each
+# 从每个会话获取快照
 playwright-cli -s=site1 snapshot
 playwright-cli -s=site2 snapshot
 playwright-cli -s=site3 snapshot
 
-# Cleanup
+# 清理
 playwright-cli close-all
 ```
 
-### A/B Testing Sessions
+### A/B 测试会话
 
 ```bash
-# Test different user experiences
+# 测试不同的用户体验
 playwright-cli -s=variant-a open "https://app.com?variant=a"
 playwright-cli -s=variant-b open "https://app.com?variant=b"
 
-# Compare
+# 对比
 playwright-cli -s=variant-a screenshot
 playwright-cli -s=variant-b screenshot
 ```
 
-### Persistent Profile
+### 持久化配置
 
-By default, browser profile is kept in memory only. Use `--persistent` flag on `open` to persist the browser profile to disk:
+默认情况下，浏览器配置仅保留在内存中。在 `open` 时使用 `--persistent` 标志可将浏览器配置持久化到磁盘：
 
 ```bash
-# Use persistent profile (auto-generated location)
+# 使用持久化配置（自动生成位置）
 playwright-cli open https://example.com --persistent
 
-# Use persistent profile with custom directory
+# 使用持久化配置并指定自定义目录
 playwright-cli open https://example.com --profile=/path/to/profile
 ```
 
-## Attaching to a Running Browser
+## 连接到正在运行的浏览器
 
-Use `attach` to connect to a browser that is already running, instead of launching a new one.
+使用 `attach` 连接已经运行的浏览器，而非启动新实例。
 
-### Attach by channel name
+### 通过通道名称连接
 
-Connect to a running Chrome or Edge instance by its channel name. The browser must have remote debugging enabled — navigate to `chrome://inspect/#remote-debugging` in the target browser and check "Allow remote debugging for this browser instance".
+通过通道名称连接正在运行的 Chrome 或 Edge 实例。目标浏览器必须启用远程调试 — 在浏览器中导航到 `chrome://inspect/#remote-debugging` 并勾选"允许此浏览器实例进行远程调试"。
 
 ```bash
-# Attach to Chrome
+# 连接到 Chrome
 playwright-cli attach --cdp=chrome
 
-# Attach to Chrome Canary
+# 连接到 Chrome Canary
 playwright-cli attach --cdp=chrome-canary
 
-# Attach to Microsoft Edge
+# 连接到 Microsoft Edge
 playwright-cli attach --cdp=msedge
 
-# Attach to Edge Dev
+# 连接到 Edge Dev
 playwright-cli attach --cdp=msedge-dev
 ```
 
-Supported channels: `chrome`, `chrome-beta`, `chrome-dev`, `chrome-canary`, `msedge`, `msedge-beta`, `msedge-dev`, `msedge-canary`.
+支持的通道：`chrome`、`chrome-beta`、`chrome-dev`、`chrome-canary`、`msedge`、`msedge-beta`、`msedge-dev`、`msedge-canary`。
 
-When `--session` is not provided, the session is named after the channel (e.g. `--cdp=msedge` creates a session called `msedge`), so parallel attaches to Chrome and Edge don't collide on `default`. Pass `--session=<name>` to override.
+当未提供 `--session` 时，会话以通道名称命名（例如 `--cdp=msedge` 创建名为 `msedge` 的会话），因此并行连接 Chrome 和 Edge 不会在 `default` 上冲突。传入 `--session=<name>` 可覆盖。
 
-### Attach via CDP endpoint
+### 通过 CDP 端点连接
 
-Connect to a browser that exposes a Chrome DevTools Protocol endpoint:
+连接暴露了 Chrome DevTools Protocol 端点的浏览器：
 
 ```bash
 playwright-cli attach --cdp=http://localhost:9222
 ```
 
-### Attach via browser extension
+### 通过浏览器扩展连接
 
-Connect to a browser with the Playwright extension installed:
+连接已安装 Playwright 扩展的浏览器：
 
 ```bash
 playwright-cli attach --extension
 ```
 
-### Detach
+### 断开连接
 
-Tear down an attached session without affecting the external browser:
+断开已连接的会话，不影响外部浏览器：
 
 ```bash
-# Detach the default attached session
+# 断开默认的已连接会话
 playwright-cli detach
 
-# Detach a specific attached session
+# 断开指定的已连接会话
 playwright-cli -s=msedge detach
 ```
 
-`detach` only works on sessions created via `attach`. For sessions created via `open`, use `close`.
+`detach` 仅对通过 `attach` 创建的会话有效。对于通过 `open` 创建的会话，请使用 `close`。
 
-## Default Browser Session
+## 默认浏览器会话
 
-When `-s` is omitted, commands use the default browser session:
+省略 `-s` 时，命令使用默认浏览器会话：
 
 ```bash
-# These use the same default browser session
+# 以下命令使用同一个默认浏览器会话
 playwright-cli open https://example.com
 playwright-cli snapshot
-playwright-cli close  # Stops default browser
+playwright-cli close  # 停止默认浏览器
 ```
 
-## Browser Session Configuration
+## 浏览器会话配置
 
-Configure a browser session with specific settings when opening:
+打开时使用特定设置配置浏览器会话：
 
 ```bash
-# Open with config file
+# 使用配置文件打开
 playwright-cli open https://example.com --config=.playwright/my-cli.json
 
-# Open with specific browser
+# 使用指定浏览器打开
 playwright-cli open https://example.com --browser=firefox
 
-# Open in headed mode
+# 以有头模式打开
 playwright-cli open https://example.com --headed
 
-# Open with persistent profile
+# 使用持久化配置打开
 playwright-cli open https://example.com --persistent
 ```
 
-## Best Practices
+## 最佳实践
 
-### 1. Name Browser Sessions Semantically
+### 1. 为浏览器会话赋予语义化名称
 
 ```bash
-# GOOD: Clear purpose
+# 推荐：用途清晰
 playwright-cli -s=github-auth open https://github.com
 playwright-cli -s=docs-scrape open https://docs.example.com
 
-# AVOID: Generic names
+# 避免：无意义名称
 playwright-cli -s=s1 open https://github.com
 ```
 
-### 2. Always Clean Up
+### 2. 始终清理
 
 ```bash
-# Stop browsers when done
+# 完成后停止浏览器
 playwright-cli -s=auth close
 playwright-cli -s=scrape close
 
-# Or stop all at once
+# 或一次性停止所有
 playwright-cli close-all
 
-# If browsers become unresponsive or zombie processes remain
+# 如果浏览器无响应或残留僵尸进程
 playwright-cli kill-all
 ```
 
-### 3. Delete Stale Browser Data
+### 3. 删除过期的浏览器数据
 
 ```bash
-# Remove old browser data to free disk space
+# 删除旧的浏览器数据以释放磁盘空间
 playwright-cli -s=oldsession delete-data
 ```
