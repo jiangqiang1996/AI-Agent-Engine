@@ -123,12 +123,12 @@ async function loadCapabilitiesFromProviders(): Promise<Map<string, ModelMediaCa
 
       for (const [modelID, model] of Object.entries(models)) {
         const key = makeModelKey(providerID, modelID)
-        const inputCaps = model.capabilities?.input
+        const inputModalities = model.modalities?.input ?? []
         cache.set(key, {
-          image: inputCaps?.image ?? false,
-          audio: inputCaps?.audio ?? false,
-          video: inputCaps?.video ?? false,
-          pdf: inputCaps?.pdf ?? false,
+          image: inputModalities.includes('image'),
+          audio: inputModalities.includes('audio'),
+          video: inputModalities.includes('video'),
+          pdf: inputModalities.includes('pdf'),
         })
       }
     }

@@ -1,4 +1,4 @@
-import type { OpencodeClient } from '@opencode-ai/sdk/v2'
+import type { OpencodeClient } from '@opencode-ai/sdk'
 
 let _client: OpencodeClient | null = null
 

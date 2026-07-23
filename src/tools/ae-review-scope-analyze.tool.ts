@@ -440,16 +440,18 @@ async function analyzeDocContentViaSubSession(
   let sessionId: string | null = null
   try {
     const session = await client.session.create({
-      title: 'ae-review-scope-analyze-content-analysis',
+      body: { title: 'ae-review-scope-analyze-content-analysis' },
     })
     if (session.error || !session.data?.id) return []
     sessionId = session.data.id
 
     await client.session.prompt({
-      sessionID: sessionId,
-      parts: [{ type: 'text', text: promptText }],
-      // '*': true 显式启用所有工具，edit/write/patch: false 禁止文件修改类工具，question: false 禁止提问确保无人值守
-      tools: { '*': true, edit: false, write: false, patch: false, question: false },
+      path: { id: sessionId },
+      body: {
+        parts: [{ type: 'text', text: promptText }],
+        // '*': true 显式启用所有工具，edit/write/patch: false 禁止文件修改类工具，question: false 禁止提问确保无人值守
+        tools: { '*': true, edit: false, write: false, patch: false, question: false },
+      },
     })
 
     const dimensions = await pollForAnalysisResult(client, sessionId)
@@ -459,7 +461,7 @@ async function analyzeDocContentViaSubSession(
   } finally {
     if (sessionId) {
       try {
-        await client.session.delete({ sessionID: sessionId })
+        await client.session.delete({ path: { id: sessionId } })
       } catch {
         // 清理失败不影响主流程
       }
@@ -480,7 +482,7 @@ async function pollForAnalysisResult(
     }
 
     const messages = await client.session.messages({
-      sessionID: sessionId,
+      path: { id: sessionId },
     })
     if (messages.error || !messages.data) continue
 
