@@ -59,7 +59,6 @@ index.ts / tools → services → schemas / utils
 | `help-catalog-service.ts` | 帮助目录构建、过滤和格式化 |
 | `asset-model-routing-catalog.ts` | 命令和代理的模型场景路由 |
 | `runtime-asset-manifest.ts` | 运行时资产清单 |
-| `recovery-service.ts` | AE 产物恢复和阶段回退 |
 
 ## 测试
 

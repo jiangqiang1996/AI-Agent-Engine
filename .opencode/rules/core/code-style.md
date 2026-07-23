@@ -6,12 +6,12 @@
 
 | 类型 | 格式 | 示例 |
 |------|------|------|
-| 工具文件 | `kebab-case.tool.ts` | `ae-review-contract.tool.ts` |
+| 工具文件 | `kebab-case.tool.ts` | `ae-help.tool.ts` |
 | Hook 文件 | `kebab-case.hook.ts` | `chat-message.hook.ts` |
-| 服务文件 | `kebab-case.ts` | `recovery-service.ts` |
-| Schema 文件 | `kebab-case.ts` | `review-catalog.ts` |
+| 服务文件 | `kebab-case.ts` | `graph-filter-suggestion-service.ts` |
+| Schema 文件 | `kebab-case.ts` | `ae-asset-schema.ts` |
 | 工具函数 | `kebab-case.ts` | `string-utils.ts` |
-| 测试文件 | `kebab-case.test.ts` | `recovery-service.test.ts` |
+| 测试文件 | `kebab-case.test.ts` | `graph-filter-suggestion-service.test.ts` |
 
 ### 代码命名
 

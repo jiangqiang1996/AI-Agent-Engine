@@ -14,14 +14,9 @@ function createTestFile(relativePath: string, content = '') {
 beforeAll(() => {
   worktree = mkdtempSync(join(tmpdir(), 'ae-task-analyzer-test-'))
 
-  createTestFile('src/tools/ae-review-contract.tool.ts')
-  createTestFile('src/services/review-selector.ts')
-  createTestFile('src/services/review-catalog.ts')
   createTestFile('src/schemas/ae-asset-schema.ts')
   createTestFile('src/utils/path-utils.ts')
   createTestFile('src/index.ts')
-  createTestFile('tests/tools/ae-review-contract.tool.test.ts')
-  createTestFile('tests/services/review-selector.test.ts')
   createTestFile('src/assets/skills/ae-work/SKILL.md')
   createTestFile('package.json', '{"name":"test"}')
   createTestFile('.env', 'SECRET=123')
@@ -53,15 +48,15 @@ describe('ae-task-analyzer 工具', () => {
     it('应该从任务描述中识别候选文件并输出任务单元', async () => {
       const tool = await getTool()
       const result = await tool.execute(
-        { mode: 'scan', task_description: '修改 review-selector 和 review-catalog', worktree },
+        { mode: 'scan', task_description: '修改 ae-asset-schema 和 path-utils', worktree },
         createMockContext(),
       )
       const parsed = JSON.parse(result) as { units: Array<{ id: string; files: Array<{ path: string }> }>; warnings: string[] }
 
       expect(parsed.units.length).toBeGreaterThanOrEqual(1)
       const allFiles = parsed.units.flatMap((u) => u.files.map((f) => f.path))
-      expect(allFiles.some((f) => f.includes('review-selector'))).toBe(true)
-      expect(allFiles.some((f) => f.includes('review-catalog'))).toBe(true)
+      expect(allFiles.some((f) => f.includes('ae-asset-schema'))).toBe(true)
+      expect(allFiles.some((f) => f.includes('path-utils'))).toBe(true)
     })
 
     it('应该在单文件任务时输出至少 1 个单元和 1 个并行组', async () => {
@@ -91,7 +86,7 @@ describe('ae-task-analyzer 工具', () => {
     it('应该为每个文件标注来源为 tool_scan', async () => {
       const tool = await getTool()
       const result = await tool.execute(
-        { mode: 'scan', task_description: '修改 review-selector', worktree },
+        { mode: 'scan', task_description: '修改 path-utils', worktree },
         createMockContext(),
       )
       const parsed = JSON.parse(result) as { units: Array<{ files: Array<{ source: string }> }> }
@@ -289,7 +284,7 @@ describe('ae-task-analyzer 工具', () => {
     it('应该包含所有必需字段', async () => {
       const tool = await getTool()
       const result = await tool.execute(
-        { mode: 'scan', task_description: '修改 review-selector', worktree },
+        { mode: 'scan', task_description: '修改 path-utils', worktree },
         createMockContext(),
       )
       const parsed = JSON.parse(result) as Record<string, unknown>
@@ -323,7 +318,7 @@ describe('ae-task-analyzer 工具', () => {
     it('应该为每个单元包含 suggested_validation', async () => {
       const tool = await getTool()
       const result = await tool.execute(
-        { mode: 'scan', task_description: '修改 review-selector', worktree },
+        { mode: 'scan', task_description: '修改 path-utils', worktree },
         createMockContext(),
       )
       const parsed = JSON.parse(result) as { units: Array<{ suggested_validation: string[] }> }

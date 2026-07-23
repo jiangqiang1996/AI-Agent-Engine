@@ -87,8 +87,6 @@ export function skillDir(skillName: string): string {
 }
 
 export const TOOL = {
-  AE_RECOVERY: 'ae-recovery',
-  AE_REVIEW_CONTRACT: 'ae-review-contract',
   AE_HANDOFF: 'ae-handoff',
   AE_WORKTREE_HANDOFF: 'ae-worktree-handoff',
   AE_CREATE_SESSION: 'ae-create-session',

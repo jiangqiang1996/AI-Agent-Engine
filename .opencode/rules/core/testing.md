@@ -9,12 +9,9 @@
 ```
 tests/
 ├── tools/
-│   ├── ae-help.tool.test.ts
-│   └── ae-review-contract.tool.test.ts
+│   └── ae-help.tool.test.ts
 ├── services/
-│   ├── recovery-service.test.ts
-│   ├── graph-filter-suggestion-service.test.ts
-│   └── review-selector.test.ts
+│   └── graph-filter-suggestion-service.test.ts
 └── schemas/
     └── artifact-schema.test.ts
 ```
@@ -59,15 +56,15 @@ tests/
 ```typescript
 import { describe, it, expect } from 'vitest'
 
-describe('ae-review-contract 工具', () => {
-  it('应该根据审查类型生成审查团队', async () => {
-    const result = await execute({ kind: 'code', mode: 'interactive' }, mockContext)
-    expect(result).toContain('审查团队')
+describe('ae-help 工具', () => {
+  it('应该返回帮助信息', async () => {
+    const result = await execute({}, mockContext)
+    expect(result).toContain('技能')
   })
 
   it('应该在参数缺失时返回友好提示', async () => {
-    const result = await execute({ kind: 'invalid', mode: 'report-only' }, mockContext)
-    expect(result).toContain('不支持的审查类型')
+    const result = await execute({ query: 'nonexistent' }, mockContext)
+    expect(result).toContain('未找到')
   })
 })
 ```
@@ -81,8 +78,8 @@ describe('ae-review-contract 工具', () => {
 ```typescript
 import { Layer } from 'effect'
 
-const MockRecoveryService = Layer.succeed(RecoveryServiceTag, {
-  recover: () => Effect.succeed({ phase: 'plan', skill: 'ae:design' }),
+const MockFileService = Layer.succeed(FileServiceTag, {
+  read: () => Effect.succeed('file content'),
 })
 ```
 

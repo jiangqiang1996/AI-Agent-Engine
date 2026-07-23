@@ -82,7 +82,7 @@ describe('插件注册完整性', () => {
       const aeTools = toolIds!.filter((id) => id.startsWith('ae-'))
       expect(aeTools.length).toBeGreaterThan(0)
 
-      const expectedTools = ['ae-help', 'ae-review-contract', 'ae-brainstorm']
+      const expectedTools = ['ae-help', 'ae-brainstorm']
       for (const id of expectedTools) {
         expect(toolIds).toContain(id)
       }

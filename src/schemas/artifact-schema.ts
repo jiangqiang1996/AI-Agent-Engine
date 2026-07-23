@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 /**
  * AE 持久产物类型常量。
- * 供 recovery-service、artifact-store 等模块引用，避免硬编码字符串。
+ * 供 artifact-store 等模块引用，避免硬编码字符串。
  */
 export const ARTIFACT_KIND = {
   PRD: 'prd',
