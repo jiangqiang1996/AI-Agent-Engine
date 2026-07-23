@@ -1,13 +1,13 @@
 # 可观测性设计维度契约模板
 
 **触发条件：** prd 标注涉及运维/监控/生产部署，或风险维度命中"生产部署"（条件必产出）
-**产出文件：** `observability/observability.md`（默认单文件，≤ 300 行；超 300 行自动拆分为 `observability/01-observability.md` 索引 + `observability/NN-<topic>.md` 分组实体，topic 如 logging/metrics/alerting/slo）
+**产出位置：** `global.md` §可观测性章节
 **产出方：** `@observability-designer` 子代理
 **可还原性目标：** 任意 AI 据此实现一致性的日志/监控/告警代码
 
 ## 产出方式
 
-**默认单文件产出（1 次调用）。** observability 维度内容通常紧凑，默认产出单文件 `observability/observability.md`。
+**章节片段产出（1 次调用）。** observability 维度内容通常紧凑，产出为 `global.md` §可观测性章节片段。
 
 **自动拆分机制：** 当 observability 内容预计超 300 行时（多服务系统指标/告警规则/SLO 定义较多），索引层子代理在 file-plan 中预先声明拆分方案，阶段 2 直接按子主题分组产出多个文件（生成时拆分，非先生成大文件再拆分）：
 - 索引文件 `observability/01-observability.md`：日志规范概览 + 指标体系概览 + 链路追踪概览 + 告警规则概览 + 健康检查概览 + SLO/SLI 概览 + 负向设计空间 + file-plan

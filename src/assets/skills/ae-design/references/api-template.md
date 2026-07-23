@@ -1,37 +1,25 @@
-# 接口设计维度契约模板
+# 接口设计模块级章节片段模板
 
-**触发条件：** prd 标注涉及 API/服务间通信，或风险维度命中"不可逆决策"
-**产出文件：** `api/` 子目录下多个文件（索引 + 按端点组分组）
+**触发条件：** 模块涉及 API 端点（dimension-triggers.md §模块维度触发）
+**产出位置：** `modules/<m>.md` 的 `## API {#api}` 章节（单文件模式）或 `modules/<m>/module.md` 的 `## API {#api}` 章节（拆分模式）
 **产出方：** `@api-designer` 子代理
 **可还原性目标：** 任意 AI 据此生成一致性的接口实现和客户端调用
 
-## 两阶段产出
+## 章节格式
 
-### 阶段 1：索引层（1 次调用，≤ 300 行）
-
-产出 `api/01-api.md`，含共享契约和分组方案：
+产出为模块级章节片段，以 `## API {#api}` 开头，供模块 agent 合并到 `modules/<m>.md` 单文件或 `modules/<m>/module.md`：
 
 ```markdown
----
-type: design-shard
-status: active
-section: "api"
-parent: "design.md"
-module: "api"
-layer: index
-heading_chain: "设计契约 > 接口设计"
----
-
-## 接口设计
+## API {#api}
 
 ### 端点清单
 
-| 端点 ID | 方法 | 路径 | 描述 | 认证 | 幂等 | 功能域 | 文件 |
-|---------|------|------|------|------|------|--------|------|
-| EP-001 | POST | /api/v1/auth/login | 登录 | — | 否 | auth | 02-endpoints-auth.md |
-| EP-002 | POST | /api/v1/auth/register | 注册 | — | 否 | auth | 02-endpoints-auth.md |
-| EP-003 | GET | /api/v1/resources | 资源列表 | Bearer | 是 | resource | 03-endpoints-resource.md |
-| EP-004 | POST | /api/v1/resources | 创建资源 | Bearer | 否 | resource | 03-endpoints-resource.md |
+| 端点 ID | 方法 | 路径 | 描述 | 认证 | 幂等 | 功能域 |
+|---------|------|------|------|------|------|--------|
+| EP-001 | POST | /api/v1/auth/login | 登录 | — | 否 | auth |
+| EP-002 | POST | /api/v1/auth/register | 注册 | — | 否 | auth |
+| EP-003 | GET | /api/v1/resources | 资源列表 | Bearer | 是 | resource |
+| EP-004 | POST | /api/v1/resources | 创建资源 | Bearer | 否 | resource |
 
 ### 认证授权
 
@@ -68,38 +56,65 @@ heading_chain: "设计契约 > 接口设计"
 - 超限响应：429 + Retry-After
 - 突发配额：[如适用]
 
-### file-plan
+### EP-001: POST /api/v1/auth/login
 
-（按功能域分组的文件生成计划）
+**描述：** 用户登录
+**认证：** —
+**幂等：** 否
 
-### 负向设计空间
+#### 请求
 
-- **禁止 RESTful 反模式**：GET 不得修改数据，POST 不得幂等，DELETE 必须幂等
-- **禁止未版本化端点**：所有端点必须包含版本号
-- **禁止未限流公开端点**：公开端点必须配置限流
-- **禁止未认证敏感操作**：写操作必须认证
-- **禁止错误码泄漏内部信息**：错误响应不得包含堆栈跟踪、SQL 语句或内部模块名
-- **禁止无文档的 breaking change**：破坏性变更必须记录版本策略和迁移指南
+TypeScript interface：
+
+```typescript
+interface LoginRequest {
+  email: string
+  password: string
+}
 ```
 
-### 阶段 2：分组实体层（每端点组 1 次调用，串行生成 + 即时校验）
+JSON Schema：
 
-#### endpoints-<domain>.md（按功能域分组的端点文件，每组 ≤ 300 行）
+```json
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "email": { "type": "string", "format": "email" },
+    "password": { "type": "string", "minLength": 8 }
+  },
+  "required": ["email", "password"]
+}
+```
 
-文件名格式：`NN-endpoints-<domain>.md`（NN 为序号，从 02 开始）。每文件含该域所有端点的 OpenAPI 规格 + TypeScript interface + JSON Schema + 示例：
+#### 响应（200）
 
-```markdown
----
-type: design-shard
-status: active
-section: "api-endpoints-resource"
-parent: "01-api.md"
-module: "api"
-layer: entity-group
-heading_chain: "设计契约 > 接口设计 > 资源端点组"
----
+TypeScript interface：
 
-## 资源端点组
+```typescript
+interface LoginResponse {
+  token: string
+  expiresIn: number
+}
+```
+
+示例：
+
+```http
+POST /api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "12345678"
+}
+
+HTTP/1.1 200 OK
+{
+  "token": "eyJhbGciOiJIUzI1NiIs...",
+  "expiresIn": 3600
+}
+```
 
 ### EP-003: GET /api/v1/resources
 
@@ -176,8 +191,14 @@ HTTP/1.1 200 OK
 }
 ```
 
-### EP-004: POST /api/v1/resources
-（同上格式）
+### 负向设计空间
+
+- **禁止 RESTful 反模式**：GET 不得修改数据，POST 不得幂等，DELETE 必须幂等
+- **禁止未版本化端点**：所有端点必须包含版本号
+- **禁止未限流公开端点**：公开端点必须配置限流
+- **禁止未认证敏感操作**：写操作必须认证
+- **禁止错误码泄漏内部信息**：错误响应不得包含堆栈跟踪、SQL 语句或内部模块名
+- **禁止无文档的 breaking change**：破坏性变更必须记录版本策略和迁移指南
 ```
 
 ## 契约元素（MVCE）

@@ -1,52 +1,47 @@
-# 数据库设计维度契约模板
+# 数据库设计模块级章节片段模板
 
-**触发条件：** prd 标注涉及数据层/持久化，或风险维度命中"数据持久化"
-**产出文件：** `database/` 子目录下多个文件（索引 + 按表域分组）
+**触发条件：** 模块涉及持久化（dimension-triggers.md §模块维度触发）
+**产出位置：** `modules/<m>.md` 的 `## Database {#database}` 章节（单文件模式）或 `modules/<m>/module.md` 的 `## Database {#database}` 章节（拆分模式）
 **产出方：** `@database-designer` 子代理
 **可还原性目标：** 任意 AI 据此生成一致性的 schema 和迁移脚本
 
-## 两阶段产出
+## 章节格式
 
-### 阶段 1：索引层（1 次调用，≤ 300 行）
-
-产出 `database/01-database.md`，含共享契约和分组方案：
+产出为模块级章节片段，以 `## Database {#database}` 开头，供模块 agent 合并到 `modules/<m>.md` 单文件或 `modules/<m>/module.md`：
 
 ```markdown
----
-type: design-shard
-status: active
-section: "database"
-parent: "design.md"
-module: "database"
-layer: index
-heading_chain: "设计契约 > 数据库设计"
----
-
-## 数据库设计
+## Database {#database}
 
 ### ER 模型
 
-（优先使用 Mermaid `erDiagram` 绘制实体关系图）
+（优先使用 Mermaid `erDiagram` 绘制模块内实体关系图）
 
 ```mermaid
 erDiagram
-  USERS ||--o{ ORDERS : places
-  ORDERS ||--|{ ORDER_ITEMS : contains
+  USERS ||--o{ RESOURCES : creates
+  RESOURCES {
+    uuid id PK
+    string name
+    string type
+    uuid created_by FK
+    timestamp created_at
+  }
 ```
 
 ### 表清单
 
-| 表 ID | 表名 | 功能域 | 文件 | 描述 |
-|-------|------|--------|------|------|
-| T-users | users | core | 02-tables-core.md | 用户表 |
-| T-resources | resources | core | 02-tables-core.md | 资源表 |
-| T-audit-log | audit_log | aux | 03-tables-aux.md | 审计日志表 |
+| 表 ID | 表名 | 功能域 | 描述 |
+|-------|------|--------|------|
+| T-users | users | core | 用户表 |
+| T-resources | resources | core | 资源表 |
+| T-audit-log | audit_log | aux | 审计日志表 |
 
 ### 关系与外键
 
 | 源表.字段 | 目标表.字段 | 级联规则 |
 |-----------|------------|---------|
-| orders.user_id | users.id | ON DELETE CASCADE |
+| resources.created_by | users.id | ON DELETE CASCADE |
+| audit_log.user_id | users.id | ON DELETE SET NULL |
 
 ### 范式决策
 
@@ -75,39 +70,6 @@ erDiagram
 |---------|---------|---------|
 | users.email | PII | 加密存储 |
 | users.password_hash | 凭证 | bcrypt + salt |
-
-### file-plan
-
-（按功能域分组的文件生成计划）
-
-### 负向设计空间
-
-- **禁止无索引的外键**：所有外键必须创建索引
-- **禁止无约束的必填字段**：NOT NULL 字段必须有应用层校验
-- **禁止明文存储敏感数据**：密码、密钥、Token 必须加密或哈希存储
-- **禁止无回滚的迁移**：所有迁移脚本必须包含 up 和 down
-- **禁止跨库 join**：分库后不得跨库 join
-- **禁止无分页的列表查询**：列表查询必须包含分页参数
-```
-
-### 阶段 2：分组实体层（每表域 1 次调用，串行生成 + 即时校验）
-
-#### tables-<domain>.md（按功能域分组的表文件，每组 ≤ 300 行）
-
-文件名格式：`NN-tables-<domain>.md`（NN 为序号，从 02 开始）。每文件含该域所有表的完整 DDL：
-
-```markdown
----
-type: design-shard
-status: active
-section: "database-tables-core"
-parent: "01-database.md"
-module: "database"
-layer: entity-group
-heading_chain: "设计契约 > 数据库设计 > 核心域表"
----
-
-## 核心域表
 
 ### T-users: users
 
@@ -148,6 +110,15 @@ CREATE INDEX idx_resources_type ON resources(type);
 INSERT INTO users (email, password_hash, name, role) VALUES
   ('admin@example.com', '$2b$10$...', '管理员', 'admin');
 ```
+
+### 负向设计空间
+
+- **禁止无索引的外键**：所有外键必须创建索引
+- **禁止无约束的必填字段**：NOT NULL 字段必须有应用层校验
+- **禁止明文存储敏感数据**：密码、密钥、Token 必须加密或哈希存储
+- **禁止无回滚的迁移**：所有迁移脚本必须包含 up 和 down
+- **禁止跨库 join**：分库后不得跨库 join
+- **禁止无分页的列表查询**：列表查询必须包含分页参数
 ```
 
 ## 契约元素（MVCE）

@@ -1,13 +1,13 @@
 # 安全设计维度契约模板
 
 **触发条件：** prd 标注涉及安全边界/认证授权/敏感数据，或风险维度命中"用户数据输入"（条件必产出）
-**产出文件：** `security/security.md`（默认单文件，≤ 300 行；超 300 行自动拆分为 `security/01-security.md` 索引 + `security/NN-<domain>.md` 分组实体，domain 如 auth/threat-model/data-protection）
+**产出位置：** `global.md` §安全章节
 **产出方：** `@security-designer` 子代理
 **可还原性目标：** 任意 AI 据此实现不引入安全漏洞的代码
 
 ## 产出方式
 
-**默认单文件产出（1 次调用）。** security 维度内容通常紧凑，默认产出单文件 `security/security.md`。
+**章节片段产出（1 次调用）。** security 维度内容通常紧凑，产出为 `global.md` §安全章节片段。
 
 **自动拆分机制：** 当 security 内容预计超 300 行时（大型系统威胁模型/数据分级/授权矩阵随业务规模膨胀），索引层子代理在 file-plan 中预先声明拆分方案，阶段 2 直接按子主题分组产出多个文件（生成时拆分，非先生成大文件再拆分）：
 - 索引文件 `security/01-security.md`：威胁模型概览 + 信任边界 + 负向设计空间 + file-plan

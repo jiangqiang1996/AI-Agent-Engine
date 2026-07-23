@@ -3,7 +3,9 @@ import { z } from 'zod'
 export const SKILL = {
   BRAINSTORM: 'ae:brainstorm',
   PRD: 'ae:prd',
+  PRD_UPDATE: 'ae:prd-update',
   DESIGN: 'ae:design',
+  DESIGN_UPDATE: 'ae:design-update',
   AGENT_CREATOR: 'ae:agent-creator',
   WORK: 'ae:work',
   WORK_REPORT: 'ae:work-report',

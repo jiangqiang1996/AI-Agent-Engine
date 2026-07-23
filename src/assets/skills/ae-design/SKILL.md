@@ -12,7 +12,7 @@ argument-hint: "[需求文档路径|design|裸描述] [dimensions=architecture,d
 
 `ae:design` 是设计契约冻结阶段，按需产出覆盖完整软件工程的可还原设计契约集。每个契约达到"任意 AI 据此生成一致性产物"的可还原标准。
 
-此工作流的持久输出是一份**设计文档**（`ae/designs/<需求描述名>-YYYY-MM-DD/` 目录，含 `design.md` 纯索引元文件 + overview/constraints/traceability 独立文件 + 各维度独立子文件）。它不是汇报材料；只记录后续实施必须知道的设计决策、架构约束、接口契约、数据模型和实现单元，使 ae:work 不需要再发明这些内容。
+此工作流的持久输出是一份**设计文档**（`ae/designs/<需求描述名>-YYYY-MM-DD/` 目录，含 `index.md` 自动生成纯索引 + `global.md` 全局设计共识单文件 + `modules/<m>.md` 模块设计单文件）。它不是汇报材料；只记录后续实施必须知道的设计决策、架构约束、接口契约、数据模型和实现单元，使 ae:work 不需要再发明这些内容。
 
 此技能不实现代码。它澄清设计决策并记录契约，供 ae:work 执行使用。
 
@@ -25,10 +25,10 @@ argument-hint: "[需求文档路径|design|裸描述] [dimensions=architecture,d
 3. **在此解决设计决策** - 架构选型、接口契约、数据模型、UI/UX 规格属于此工作流。实现单元拆解也在此产出；具体代码实现属于 ae:work 职责。
 4. **契约可还原** - 每个维度契约必须达到"任意 AI 据此生成一致性产物"的标准，禁止模糊表述。
 5. **合理调整 MVCE 覆盖深度** - 简单的任务获得紧凑的契约集，较大的任务获得更完整的契约集。轻量级任务可省略可选 MVCE（最小可验证契约元素）项，但必产出维度的核心 MVCE 不得省略。**核心 MVCE 判定标准：** 该契约元素缺失会导致 ae:work 无法继续实施或 ae:review 无法验证一致性 → 核心；该契约元素缺失只会降低设计质量但不阻塞下游 → 可选。每个维度的 MVCE 清单中标注 `[核心]` 或 `[可选]`。
-6. **跨维度一致性** - overview 必须记录维度间依赖；api 数据模型必须与 database 一致；ui-ux 数据展示必须与 api 响应字段对齐；跨维度映射表（4 类）必须存在且与维度内容对齐。
-7. **只保留对后续执行有用的设计契约** - 不为了"读起来完整"新增无实际约束力的章节；每个维度内容只有在直接影响实现、测试或审查时才记录。
-8. **生成时拆分，非生成后拆分** - 子代理直接按功能域产出多个小文件（每文件 ≤ 300 行），不产出大文件再后置拆分。全程无中间大文件，避免 AI 上下文爆炸。采用两阶段分层调度：阶段 1 索引层（每维度 1 次调用，产出索引 + 共享契约 + file-plan），阶段 2 分组实体层（每文件 1 次调用，产出该组实体精确片段）。所有维度支持大文件自动拆分：architecture/api/database/ui-ux/test-cases 始终两阶段拆分；security/observability/non-functional 默认单文件，超 300 行时自动按子主题拆分为索引 + 分组实体。`design.md` 为纯索引文件（< 100 行），overview、实施约束和跨维度映射表外迁为独立文件（`overview.md`、`constraints.md`、`traceability.md`）。
-9. **维度子代理产出** - 不同维度的设计契约由对应的维度专精子代理产出，确保设计质量和专注度。
+6. **跨模块一致性** - global.md 必须记录模块间依赖；同一模块内 api 数据模型必须与 database 一致；ui-ux 数据展示必须与 api 响应字段对齐；跨模块/跨维度映射表（4 类）必须存在且与内容对齐。
+7. **只保留对后续执行有用的设计契约** - 不为了"读起来完整"新增无实际约束力的章节；每个章节内容只有在直接影响实现、测试或审查时才记录。
+8. **生成时拆分，非生成后拆分** - 子代理直接按模块产出单文件或章节片段（modules/<m>.md ≤ 500 行，超限自适应拆分为 module.md + ui-ux.md + test-cases.md），不产出大文件再后置拆分。全程无中间大文件，避免 AI 上下文爆炸。采用两阶段调度：阶段 1 全局维度并行（产出 global.md 各章节），阶段 2 模块并行（每模块一个 agent，串行产出章节片段合并到单文件）。`index.md` 为自动生成纯索引文件（≤ 100 行），`global.md` 为全局设计共识单文件（≤ 300 行）。所有维度支持大文件自动拆分。
+9. **子代理产出章节片段** - 不同维度的设计契约由对应的专精子代理产出章节片段（写入 global.md 或 modules/<m>.md 对应章节），而非独立文件。子代理的调度逻辑和输入契约不变，仅输出从"独立文件"改为"章节片段"。
 10. **使用 ae:grill 追问** - 在产出契约前，推荐使用 `ae:grill` 技能逐个追问设计决策，一问一答推进直到达成共识。用户可选择跳过。
 11. **技术栈依赖审查** - 设计中关于技术栈的选型禁止引入长期不活跃或 stars 数量较少的小众依赖。技术选型理由表中每个引入的第三方依赖必须标注其社区活跃度（最近发布时间、stars 量级）和采用理由；优先选择社区活跃、生态成熟、维护稳定的依赖。具体判定标准见 `references/architecture-template.md` 技术选型理由章节。
 12. **技术实现路线约束（硬约束）** - 设计阶段必须明确技术实现路线，覆盖前端、后端、数据层、基础设施等各时段：
@@ -37,11 +37,11 @@ argument-hint: "[需求文档路径|design|裸描述] [dimensions=architecture,d
     - **数据层技术栈**：明确数据库类型与版本（MySQL/PostgreSQL/MongoDB/Redis 等）、缓存方案、消息队列、搜索引擎；标注选型理由。
     - **基础设施技术栈**：明确部署方式（Docker/K8s/Serverless 等）、CI/CD 方案、监控方案、日志方案；标注选型理由。
     - **来源优先级**：若 prd 文档中用户已明确指定技术栈，设计必须遵循该约束，不得擅自更换；若 prd 未指定，设计阶段通过 ae:grill 追问或基于项目已有技术栈推断确定，推断依据必须记录在 ADR 中。
-    - **真源位置**：全局技术栈选型决策记录在 overview.md 的 ADR 中；前端技术栈详细信息集中在 ui-ux 维度索引文件的"技术栈声明"章节（见核心原则 14）；后端/数据层/基础设施技术栈详细信息记录在 architecture 维度索引文件中；constraints.md 记录环境变量、依赖版本和配置项。各维度引用 overview ADR 中的技术栈决策 ID，不重复记录选型决策。
-    - **一致性约束**：技术栈选型确定后，architecture/api/database/ui-ux/security/observability/non-functional 等各维度契约必须与该选型一致，禁止维度间出现技术栈矛盾（如 architecture 选了 Vue 但 ui-ux 组件契约引用了 React 专属组件库，或 architecture 选了 MySQL 但 database 契约使用了 PostgreSQL 独有的 JSONB 类型）。
+    - **真源位置**：全局技术栈选型决策记录在 global.md 的 ADR 中；前端技术栈详细信息集中在 global.md 的"前端技术栈声明"章节；后端/数据层/基础设施技术栈详细信息记录在 global.md §系统架构中；global.md §实施约束记录环境变量、依赖版本和配置项。各模块文件引用 global.md ADR 中的技术栈决策 ID，不重复记录选型决策。
+    - **一致性约束**：技术栈选型确定后，各模块的 api/database/ui-ux/security 章节及 global.md 的 architecture/security/observability/non-functional 章节必须与该选型一致，禁止出现技术栈矛盾（如 architecture 选了 Vue 但某模块 ui-ux 章节引用了 React 专属组件库，或 architecture 选了 MySQL 但 database 章节使用了 PostgreSQL 独有的 JSONB 类型）。
 13. **优先使用 Mermaid 图示** - 设计文档中的所有图示（系统上下文图、ER 模型、数据流图、部署拓扑图等）优先使用 Mermaid 语法绘制；Mermaid 无法表达的复杂注释场景可使用 ASCII 制图作为降级方案。
-14. **页面设计技术栈隔离（硬约束）** - ui-ux 维度中，技术栈信息（前端框架、UI 组件库、CSS 方案、图标库、字体、路由方案、第三方依赖等）必须集中在索引文件 `ui-ux/01-ui-ux.md` 的"技术栈声明"章节中统一记录。页面实体文件（`NN-pages-*.md`）和组件文件（`NN-components.md`）禁止散落技术栈或第三方依赖名称，只描述页面结构、交互行为、组件契约和样式片段。技术栈声明章节是技术选型的唯一真源，页面产物通过组件 ID 引用全局组件清单，不直接引用技术栈名称。
-15. **页面设计关注组件复用（硬约束）** - ui-ux 维度的详细设计必须主动关注组件复用，而非仅为每个页面独立产出 HTML 片段。设计时必须：（1）扫描项目已有组件资产，优先复用已有组件而非新建；（2）识别跨页面重复的 UI 结构，抽取为共享组件并纳入全局组件清单；（3）对每个组件明确标注来源（已有复用 / 技术栈库引入 / 新建自研）和复用理由；（4）页面实体文件通过组件 ID 引用全局组件，不内联重复的 HTML 结构。组件复用策略集中记录在索引文件的"组件复用策略"章节，确保 ae:work 实施时不重复造轮子。
+14. **页面设计技术栈隔离（硬约束）** - ui-ux 章节中，技术栈信息（前端框架、UI 组件库、CSS 方案、图标库、字体、路由方案、第三方依赖等）必须集中在 global.md 的"前端技术栈声明"章节中统一记录。模块文件中的 §UI/UX 章节禁止散落技术栈或第三方依赖名称，只描述页面结构、交互行为、组件契约和样式片段。技术栈声明章节是技术选型的唯一真源，页面产物通过组件 ID 引用全局组件清单，不直接引用技术栈名称。
+15. **页面设计关注组件复用（硬约束）** - ui-ux 章节的详细设计必须主动关注组件复用，而非仅为每个页面独立产出 HTML 片段。设计时必须：（1）扫描项目已有组件资产，优先复用已有组件而非新建；（2）识别跨页面重复的 UI 结构，抽取为共享组件并纳入全局组件清单；（3）对每个组件明确标注来源（已有复用 / 技术栈库引入 / 新建自研）和复用理由；（4）模块 §UI/UX 章节通过组件 ID 引用全局组件，不内联重复的 HTML 结构。组件复用策略集中记录在 global.md 的"组件复用策略"章节，确保 ae:work 实施时不重复造轮子。
 
 ## 交互规则
 
@@ -87,25 +87,26 @@ argument-hint: "[需求文档路径|design|裸描述] [dimensions=architecture,d
 
 ## 维度子代理
 
-每个维度由对应的专精子代理产出设计契约，主代理不直接产出维度内容（overview、实施约束和跨维度映射表除外）：
+每个维度由对应的专精子代理产出设计契约章节片段，主代理不直接产出维度内容（global.md 全局章节和跨维度映射表除外）：
 
-| 维度 | 子代理 | 产出文件 |
+| 维度 | 子代理 | 产出位置 |
 |------|--------|---------|
-| overview | 主代理产出 | overview.md（独立文件） |
-| design-spec | `@ui-design-spec` | `design-spec/design-spec.md`（独立文件，含设计读数、三旋钮取值、设计体系选择、风格变体推荐、负向设计空间；同时透传给 `@ui-ux-designer`；超 300 行自动拆分为 `design-spec/01-design-spec.md` 索引 + `design-spec/NN-<topic>.md` 分组实体） |
-| ui-ux | `@ui-ux-designer` | 索引 `ui-ux/01-ui-ux.md` + 分组实体 `ui-ux/NN-pages-<domain>.md` + `ui-ux/NN-components.md` |
-| architecture | `@architecture-designer` | 索引 `architecture/01-architecture.md` + 分组实体 `architecture/NN-module-boundary.md` + `architecture/NN-data-flow.md` |
-| api | `@api-designer` | 索引 `api/01-api.md` + 分组实体 `api/NN-endpoints-<domain>.md` |
-| database | `@database-designer` | 索引 `database/01-database.md` + 分组实体 `database/NN-tables-<domain>.md` |
-| test-cases | `@test-cases-designer` | 索引 `test-cases/01-test-cases.md` + 分组实体 `test-cases/NN-<test-layer>-<domain>.md` |
-| security | `@security-designer` | `security/security.md`（默认单文件，超 300 行自动拆分） |
-| observability | `@observability-designer` | `observability/observability.md`（默认单文件，超 300 行自动拆分） |
-| non-functional | `@non-functional-designer` | `non-functional/non-functional.md`（默认单文件，超 300 行自动拆分） |
-| 跨维度映射表 | 主代理产出 | traceability.md（独立文件） |
+| overview / 实施约束 / 跨维度映射表 | 主代理产出 | `global.md` §概览 + §实施约束 + §跨维度映射表 |
+| design-spec | `@ui-design-spec` | `global.md` §设计规范（含设计读数、三旋钮取值、设计体系选择、风格变体推荐、负向设计空间；同时透传给 `@ui-ux-designer`） |
+| architecture | `@architecture-designer` | `global.md` §系统架构 |
+| security | `@security-designer` | `global.md` §安全 |
+| observability | `@observability-designer` | `global.md` §可观测性 |
+| non-functional | `@non-functional-designer` | `global.md` §非功能 |
+| api | `@api-designer` | `modules/<m>.md` §API 章节片段 |
+| database | `@database-designer` | `modules/<m>.md` §Database 章节片段 |
+| ui-ux | `@ui-ux-designer` | `modules/<m>.md` §UI/UX 章节片段 |
+| test-cases | `@test-cases-designer` | `modules/<m>.md` §Test 章节片段 |
 
-**子目录组织：** 每个维度的文件放在以维度名命名的子目录中。`design.md` 始终在设计目录根下，为纯索引文件（< 100 行），只保留 frontmatter + Split Manifest + 索引表。`overview.md`、`constraints.md`、`traceability.md` 位于设计目录根下。维度索引文件（带 `01-` 前缀）和分组实体文件（带 `NN-` 前缀，NN 从 02 开始）均位于对应维度的子目录中（如 `api/01-api.md`、`api/02-endpoints-auth.md`）。`design-spec` 产出独立文件 `design-spec/design-spec.md`，同时透传给 `@ui-ux-designer`。单文件维度（security/observability/non-functional）不加序号。
+**产物组织：** `index.md`（自动生成，≤ 100 行，纯索引）位于设计目录根下。`global.md`（≤ 300 行，全局设计共识单文件）位于设计目录根下，包含 §概览、§系统架构、§安全、§可观测性、§非功能、§设计规范、§实施约束、§跨维度映射表等全局章节。`modules/<m>.md`（≤ 500 行，模块设计单文件）位于 `modules/` 子目录中，每个模块一个文件，包含 §API、§Database、§UI/UX、§Test Cases、§设计规范（可选）、§约束（可选）章节。模块文件内容边界：禁止出现需求条目/验收标准/原型等产品逻辑层内容。
 
-**硬性约束：主代理严禁直接产出维度契约内容。** overview、实施约束和跨维度映射表由主代理产出为独立文件，其他维度必须调度对应子代理。违反此约束属于执行错误。
+**自适应粒度：** 模块文件 < 500 行 → 单文件 `modules/<m>.md`；模块文件 ≥ 500 行 → 自动拆分为 `modules/<m>/module.md`（§API + §Database）+ `modules/<m>/ui-ux.md`（§UI/UX）+ `modules/<m>/test-cases.md`（§Test Cases）。
+
+**硬性约束：主代理严禁直接产出维度契约内容。** global.md 的全局章节和跨维度映射表由主代理产出，其他维度必须调度对应子代理产出章节片段。违反此约束属于执行错误。
 
 ## 执行流程
 
@@ -116,14 +117,14 @@ argument-hint: "[需求文档路径|design|裸描述] [dimensions=architecture,d
 仅从以下来源识别要恢复的设计文档：
 - 当前会话上下文中用户明确提到的 design 文件名或路径
 - 当前会话中已产出的设计文档
-- `ae/designs/` 目录下匹配"需求描述名"的最新日期目录中的 `design.md`
+- `ae/designs/` 目录下匹配"需求描述名"的最新日期目录中的 `index.md`
 
 #### 0.2 识别输入来源
 
 按优先级识别输入：
 
 1. **prd 文档** - 用户提供 `ae/prds/<topic>-YYYY-MM-DD/prd.md` 路径或会话中已产出 prd 文档时，作为首选输入。读取 prd 的时段标注（前端/后端/数据/安全/运维等）用于维度触发判定。
-2. **design** - 用户提供 `ae/designs/<name>-YYYY-MM-DD/design.md` 路径时，作为版本演化输入。读取 design 的 frontmatter（version/supersededBy）和 Split Manifest，作为新版本的基础。
+2. **design** - 用户提供 `ae/designs/<name>-YYYY-MM-DD/index.md` 路径时，作为版本演化输入。读取 index.md 的 frontmatter（version/supersededBy）和 global.md，作为新版本的基础。
 3. **裸描述** - 用户直接描述设计目标时，降级处理。询问用户是否需要先创建 prd，或直接基于裸描述进行设计。
 
 **"需求描述名"来源规则（D12）：**
@@ -218,22 +219,22 @@ argument-hint: "[需求文档路径|design|裸描述] [dimensions=architecture,d
 
 如果用户在 `ae:grill` 阶段选择跳过某些追问，记录跳过原因，相关维度子代理按默认推荐产出。
 
-### 阶段 3：产出 overview、实施约束和跨维度映射表骨架
+### 阶段 3：产出 global.md 骨架
 
-主代理产出 overview、实施约束和跨维度映射表骨架，分别产出到 `overview.md`、`constraints.md`、`traceability.md` 独立文件，作为后续维度子代理产出的锚点。
+主代理产出 global.md 骨架（全局设计共识单文件），包含 §概览、§实施约束、§跨维度映射表骨架，作为后续全局维度子代理和模块子代理产出章节片段的锚点。
 
-#### 3.1 产出 overview（必产出，独立文件）
+#### 3.1 产出 §概览（必产出）
 
-overview 产出到 `overview.md` 独立文件中，按 `references/overview-template.md` 模板产出，包含：
+global.md §概览按 `references/overview-template.md` 模板产出，包含：
 - 设计读数（一句话声明设计意图和美学家族）
-- 范围映射（prd 需求 → design 维度的对应关系）
-- 产物清单（本次产出的维度文件列表）
+- 范围映射（prd 需求 → design 模块的对应关系）
+- 产物清单（本次产出的文件列表）
 - 契约版本（初始为 1.0，版本演化时递增）
-- 跨维度依赖关系（哪些维度之间有一致性约束）
+- 跨模块依赖关系（哪些模块之间有一致性约束）
 - 设计决策记录（ADR，记录关键设计决策和理由，使用稳定 ID `ADR-XXX`，从 ae:grill 追问结果提炼）
 - 跨维度映射表（4 类映射表的引用，详见 `references/cross-dimension-mapping.md`）
 
-> 实施约束（环境变量、依赖版本、配置项、目录结构、构建命令）产出到 `constraints.md` 独立文件，不属于 overview 维度，详见 `references/design-output-template.md`。
+> 实施约束（环境变量、依赖版本、配置项、目录结构、构建命令）产出到 global.md §实施约束章节，详见 `references/design-output-template.md`。
 
 **稳定 ID 体系：** overview 中的设计条目必须使用稳定 ID，便于 ae:work / ae:review 追溯：
 - `ADR-XXX`：架构决策记录（核心）
@@ -248,146 +249,139 @@ overview 产出到 `overview.md` 独立文件中，按 `references/overview-temp
 
 #### 3.2 产出跨维度映射表骨架
 
-在 overview 和实施约束之后、其他维度之前，先产出"跨维度映射表"骨架到 `traceability.md` 独立文件，作为后续维度产出的锚点。骨架包含 4 类映射表的空表头（具体内容在维度产出后填充）：
+在 §概览和 §实施约束之后、其他章节之前，先产出"跨维度映射表"骨架到 global.md §跨维度映射表章节，作为后续章节产出的锚点。骨架包含 4 类映射表的空表头（具体内容在章节产出后填充）：
 
 - `api-field-to-database-column-mapping`：API 请求/响应字段 ↔ 数据库表字段映射表
 - `api-error-to-ui-state-mapping`：API 错误码 ↔ UI 交互状态机映射表
 - `test-case-to-contract-coverage`：测试用例 ↔ 维度契约元素覆盖追溯表
 - `ui-component-to-api-endpoint-mapping`：UI 组件 ↔ API 端点映射表
 
-骨架产出后，每个维度子代理产出时同步填充对应映射表行项，确保维度间一致性在产出过程中即时维护。映射表模板详见 `references/cross-dimension-mapping.md`。
+骨架产出后，每个子代理产出章节片段时同步填充对应映射表行项，确保一致性在产出过程中即时维护。映射表模板详见 `references/cross-dimension-mapping.md`。
 
-### 阶段 4：调度维度子代理产出契约
+### 阶段 4：调度子代理产出契约
 
-按确认的维度清单和并行分组策略，调度维度专精子代理产出设计契约。
+按确认的维度清单和新调度策略（全局维度并行 + 模块并行），调度专精子代理产出设计契约章节片段。
 
-#### 4.1 两阶段分层调度策略
+#### 4.1 两阶段调度策略（全局维度并行 + 模块并行）
 
-采用分层调度（两个主阶段：索引层 + 实体层；中间含 1.5 汇总步骤；test-cases 为依赖实体层的后续阶段），生成时即拆分，全程无中间大文件：
+采用两阶段调度（阶段 1 全局维度并行 + 阶段 2 模块并行 + 阶段 3 自动索引与校验），生成时即拆分，全程无中间大文件：
 
-**阶段 1：索引层（每维度 1 次调用，全维度并行）**
+**阶段 1：全局维度并行（每全局维度 1 次调用，全并行）**
 
-子代理只产出索引文件 + 共享契约 + 实体分组方案（file-plan），不产出实体细节：
-- 列出所有实体（页面/端点组/表/测试套件）
-- 按功能域分组，制定 file-plan（同域实体打包，单域超 300 拆 2 文件，允许尾箱不满）
-- 产出共享契约（Token/错误码/认证/路由表/ER 概览...）
+全局维度子代理（@architecture-designer、@security-designer、@observability-designer、@non-functional-designer、@ui-design-spec）并行产出 global.md 对应章节片段：
+- @architecture-designer → global.md §系统架构
+- @security-designer → global.md §安全
+- @observability-designer → global.md §可观测性
+- @non-functional-designer → global.md §非功能
+- @ui-design-spec → global.md §设计规范
 
-**阶段 1.5：编排层汇总**
+各子代理产出章节片段后，主代理合并写入 global.md。global.md ≤ 300 行，超限时压缩冗余内容。
 
-主代理读取所有索引文件的 file-plan，汇总待生成文件清单。待生成文件 = 所有维度的 file-plan 中除索引外的文件。
+**阶段 2：模块并行（每模块 1 个 agent，模块内串行产出章节片段）**
 
-**阶段 2：分组实体层（每文件 1 次调用，全文件并行）**
+按 architecture 章节中的模块划分，每个模块分配一个 agent，所有模块并行执行。每个模块 agent 内部串行产出章节片段并合并到单文件 `modules/<m>.md`：
+1. @api-designer → §API 章节片段
+2. @database-designer → §Database 章节片段（依赖 §API 数据模型）
+3. @ui-ux-designer → §UI/UX 章节片段（依赖 §API 响应字段）
+4. @test-cases-designer → §Test 章节片段（依赖 §API + §Database + §UI/UX）
 
-子代理只接收：该维度索引文件 + 该文件对应的实体清单 + 跨维度引用目标（ID 引用，不加载其他维度的实体文件）。产出 1 个文件，含该组所有实体的精确片段（HTML+CSS / OpenAPI / DDL / 行为契约...），≤ 300 行。
+模块 agent 将 4 个章节片段合并写入 `modules/<m>.md`。模块文件 < 500 行；超限时自适应拆分为 `modules/<m>/module.md`（§API + §Database）+ `modules/<m>/ui-ux.md`（§UI/UX）+ `modules/<m>/test-cases.md`（§Test Cases）。
 
-**阶段 3：test-cases 实体层（依赖阶段 2）**
+**阶段 3：自动索引 + 一致性校验 + 自适应粒度拆分**
 
-test-cases 依赖其他维度的实体清单，按"功能域 × 测试层"二维分组调用。子代理必须先构建覆盖清单（按等价类/边界值/决策表/状态转换/成对组合/错误猜测方法系统化枚举），再逐文件填充用例细节，最后做覆盖缺口检测。大型项目典型产出 15-40 个 test-cases 文件，每端点 ≥ 7 场景。
-
-**分组规则：**
-1. 功能域是分组边界，同域实体高内聚打包到一个文件
-2. 单域预算 ≤ 300 → 该域一个文件
-3. 单域预算 > 300 → 该域拆成 2 文件（按实体排序均分，非按单个实体拆）
-4. 允许最后一个文件 < 200 行（尾箱不满）
-5. security/observability/non-functional 默认单文件，超 300 行时自动按子主题拆分为索引 + 分组实体
+主代理自动生成 `index.md`（≤ 100 行，纯索引），执行跨模块一致性校验（阶段 5），对超限模块文件执行自适应粒度拆分。
 
 #### 4.2 并行子代理调度
 
-**阶段 1 调度（全维度并行）：** 在同一轮回复中一次性发出所有维度的索引层 Task 调用。每个子代理传入：
+**阶段 1 调度（全局维度并行）：** 在同一轮回复中一次性发出所有全局维度的 Task 调用。每个子代理传入：
 - prd 内容摘要
 - ae:grill 追问结果
-- overview 上下文（稳定 ID 体系）
+- global.md §概览上下文（稳定 ID 体系）
 - 契约模板路径
 
-子代理产出索引文件（`<维度名>/01-<维度名>.md`），含共享契约 + 实体清单 + file-plan。索引层串行生成，每生成一个文件立即校验 ≤ 300 行。
+子代理产出章节片段返回，主代理合并写入 global.md 对应章节。即时校验 global.md ≤ 300 行。
 
-**阶段 1.5 汇总：** 主代理读取所有索引文件的 file-plan，汇总待生成文件清单。
+**阶段 2 调度（模块并行，模块内串行）：** 从 global.md §系统架构读取模块划分，为每个模块创建一个 agent。所有模块 agent 并行启动，每个 agent 内部串行调用 4 个维度子代理：
 
-**阶段 2 调度（串行生成 + 即时校验）：** 按 file-plan 顺序逐个生成实体文件。每生成一个文件立即校验行数 ≤ 300：
-- 校验通过 → 继续生成下一个文件
-- 校验不通过 → 打回该子代理重新生成（调整分组策略），重新生成后再次校验
-- 最多重试 2 次，仍不通过则报错暂停，由主代理介入调整 file-plan
+每个维度子代理传入：
+- prd 内容摘要
+- ae:grill 追问结果
+- global.md 上下文（§概览 + §系统架构 + §安全 + §设计规范，提供全局上下文和共享契约）
+- 该模块的实体清单
+- 跨模块引用目标（ID 引用，不加载其他模块的文件）
 
-每个子代理传入：
-- 该维度的索引文件（提供全局上下文和共享契约）
-- 该文件对应的实体清单（来自 file-plan）
-- 跨维度引用目标（ID 引用，不加载其他维度的实体文件）
+子代理产出章节片段返回，模块 agent 合并写入 `modules/<m>.md`。即时校验行数 ≤ 500 行，超限标记待自适应拆分。
 
-子代理产出 1 个分组实体文件（`<维度名>/NN-<功能域>.md`，维度名由子目录表达不重复），含该组所有实体的精确片段，≤ 300 行。
-
-**阶段 3 调度（test-cases 实体层）：** 依赖阶段 2 产出的实体清单，按测试层分组串行生成 + 即时校验。
+**阶段 3 调度（自动索引 + 校验 + 拆分）：** 主代理汇总所有模块文件，生成 index.md，执行一致性校验（阶段 5），对超限模块执行自适应拆分。
 
 子代理产出后返回：
-- 产出文件路径列表
+- 章节片段内容
 - 稳定 ID 列表
 - 跨维度映射表行项
 
 #### 4.3 主代理汇总
 
-**所有子代理执行完毕后**，主代理统一汇总，生成元数据文件：
-- 更新 design.md 的 Split Manifest（记录每个文件的 file、lines、layer 状态）
-- 更新 design.md 的产物清单
+**所有子代理执行完毕后**，主代理统一汇总：
+- 生成 index.md（自动索引，≤ 100 行，记录 global.md + 所有 modules/<m>.md 的文件清单和章节索引）
+- 更新 global.md §概览的产物清单
 - 更新跨维度映射表对应行项
 - 记录稳定 ID 列表
-- 检查跨维度一致性（字段对齐、状态机映射等）
+- 检查跨模块一致性（字段对齐、状态机映射等）
 
-**关键约束：** design.md 的 Split Manifest、产物清单和跨维度映射表由主代理在所有子代理执行完毕之后单独生成，子代理不直接修改 design.md。
+**关键约束：** index.md 和 global.md §跨维度映射表由主代理在所有子代理执行完毕之后单独生成，子代理不直接修改 index.md。
 
 #### 4.4 行数校验（即时校验，非最终校验）
 
-**生成时拆分原则：** 子代理直接按功能域产出多个小文件，不产出大文件再后置拆分。每文件目标 250-300 行，硬上限 300 行。文件名带序号（`01-` 索引，`02+` 实体），便于看出生成顺序。
+**生成时拆分原则：** 子代理直接按模块产出章节片段，不产出大文件再后置拆分。
 
-**即时校验机制：** 每生成一个文件就校验一次，不通过打回重新生成该文件，通过后再生成下一个文件。避免最终校验导致大量返工。
+**即时校验机制：**
+- global.md：全局维度章节合并后即时校验 ≤ 300 行，超限压缩冗余内容
+- modules/<m>.md：模块章节合并后即时校验 ≤ 500 行
+  - 校验通过 → 完成
+  - 校验不通过 → 自适应拆分为 module.md + ui-ux.md + test-cases.md
+- index.md：自动生成后校验 ≤ 100 行
 
-- 索引层：串行生成，每生成一个文件立即校验 ≤ 300 行
-- 实体层：串行生成，每生成一个文件立即校验行数 ≤ 300
-  - 校验通过 → 继续生成下一个文件
-  - 校验不通过 → 打回该子代理重新生成（调整分组策略），重新生成后再次校验
-  - 最多重试 2 次，仍不通过则报错暂停，由主代理介入调整 file-plan
-
-**消除的机制：**
-- 后置拆分脚本已删除（`pipeline-design-shards.mjs`、`enforce-design-limit.mjs`、`merge-design-shards.mjs`、`check-design-lines.mjs`）
-- 生成后合并回父文件
-- 递归兜底硬切
-- 最终统一校验（改为即时校验）
+**自适应粒度拆分：** 模块文件 ≥ 500 行时，自动拆分为：
+- `modules/<m>/module.md`（§API + §Database，< 500 行）
+- `modules/<m>/ui-ux.md`（§UI/UX，< 500 行）
+- `modules/<m>/test-cases.md`（§Test Cases，< 500 行）
 
 **保留的机制：**
-- 即时行数校验（每生成一个文件校验一次，超限打回重生）
+- 即时行数校验（每生成一个文件校验一次，超限自适应拆分）
 - heading_chain（跨文件语义追溯）
-- Split Manifest（记录文件清单）
-- 跨维度引用校验（阶段 5，只读索引）
+- 跨模块引用校验（阶段 5，只读索引）
 
-拆分规则、子文件命名规范、Split Manifest 格式和 file-plan 机制见 `references/design-output-template.md`。
+产物结构规范见 `references/design-output-template.md`。
 
-### 阶段 5：跨维度一致性校验
+### 阶段 5：跨模块一致性校验
 
-产出全部维度后，执行跨维度一致性校验（结构守门 + 轻量语义守门，覆盖维度间映射）：
+产出全部章节后，执行跨模块一致性校验（结构守门 + 轻量语义守门，覆盖模块间映射）：
 
 **结构守门（映射表存在性与完整性）：**
 
 1. **4 类映射表存在且非空** - api-field-to-database-column-mapping、api-error-to-ui-state-mapping、test-case-to-contract-coverage、ui-component-to-api-endpoint-mapping 必须存在且非空（维度未产出时标注 N/A 并说明理由）
-2. **overview 跨维度映射表 ↔ 实际维度内容一致性** - 映射表必须与实际维度产出的内容对齐
-3. **overview 依赖关系完整性** - overview 记录的跨维度依赖必须覆盖实际存在的一致性约束
-4. **test-cases 覆盖完整性** - test-cases 必须覆盖所有必产出维度的关键场景
+2. **global.md 跨维度映射表 ↔ 实际内容一致性** - 映射表必须与实际产出的章节内容对齐
+3. **global.md 依赖关系完整性** - global.md 记录的跨模块依赖必须覆盖实际存在的一致性约束
+4. **test-cases 覆盖完整性** - 各模块 §Test 章节必须覆盖该模块 §API + §Database + §UI/UX 的关键场景
 
 **轻量语义守门（映射表行项内容对齐）：**
 
-5. **api ↔ database 字段对齐** - api 请求/响应字段与 database 表字段逐行对齐：字段名映射完整、类型可无损转换（不可无损转换的必须标注转换规则）、`required` ↔ `NOT NULL` 约束对齐
-6. **api 错误码 ↔ ui-ux 状态机映射一致性** - api 维度定义的所有错误码必须在映射表中有对应行项；映射的 UI 状态必须是 ui-ux 状态机中实际存在的状态；状态转换路径在状态机中有定义且闭合
-7. **test-cases 用例 ↔ 维度契约元素覆盖追溯** - 每个 P0/P1 用例至少有 1 条追溯记录，追溯的契约元素 ID 必须在实际维度文件中存在
+5. **api ↔ database 字段对齐** - 同模块内 §API 请求/响应字段与 §Database 表字段逐行对齐：字段名映射完整、类型可无损转换（不可无损转换的必须标注转换规则）、`required` ↔ `NOT NULL` 约束对齐
+6. **api 错误码 ↔ ui-ux 状态机映射一致性** - §API 定义的所有错误码必须在映射表中有对应行项；映射的 UI 状态必须是 §UI/UX 状态机中实际存在的状态；状态转换路径在状态机中有定义且闭合
+7. **test-cases 用例 ↔ 契约元素覆盖追溯** - 每个 P0/P1 用例至少有 1 条追溯记录，追溯的契约元素 ID 必须在实际章节中存在
 8. **ui-ux ↔ api 端点对齐** - 提交数据的交互组件必须映射到对应 api 端点；组件"所需字段"与 api 响应字段对齐（字段名、可选性）
-9. **实施约束与 architecture/api 一致性** - 目录结构约定与模块边界表对齐、环境变量清单与认证授权流程对齐
+9. **实施约束与 architecture/api 一致性** - global.md §实施约束的目录结构约定与 §系统架构模块边界表对齐、环境变量清单与认证授权流程对齐
 
-**维度间逻辑协调性（映射表之外的一致性约束）：**
+**模块间逻辑协调性（映射表之外的一致性约束）：**
 
-10. **architecture ↔ api** - 模块边界与 api 接口分组一致
-11. **security ↔ database** - security 数据分级与 database 敏感字段标注对齐
-12. **observability ↔ architecture** - observability 指标体系覆盖 architecture 关键数据流
-13. **non-functional ↔ architecture** - non-functional 性能目标与 architecture 技术选型可行
-14. **design-spec ↔ ui-ux** - ui-ux 契约中的设计读数、三旋钮取值和负向设计空间必须与 `design-spec/design-spec.md` 产出的设计决策包一致；design-spec 是 ui-ux 的前置依赖，产出独立文件 `design-spec/design-spec.md` 供审查追溯，同时透传给 `@ui-ux-designer`
-15. **技术栈选型 ↔ 各维度契约** - 技术实现路线约束（核心原则 12）中确定的前端/后端/数据层/基础设施技术栈选型必须与各维度契约一致：architecture 模块边界与后端技术栈匹配、api 接口风格与后端 API 风格选型匹配、database 表结构与数据层技术栈选型匹配、ui-ux 技术栈声明与前端技术栈选型匹配、security 认证授权模型与后端认证授权选型匹配、observability 监控/日志方案与基础设施技术栈选型匹配、non-functional 并发模型/缓存策略与后端/数据层技术栈选型匹配
+10. **architecture ↔ api** - global.md §系统架构模块边界与各模块 §API 接口分组一致
+11. **security ↔ database** - global.md §安全数据分级与各模块 §Database 敏感字段标注对齐
+12. **observability ↔ architecture** - global.md §可观测性指标体系覆盖 §系统架构关键数据流
+13. **non-functional ↔ architecture** - global.md §非功能性能目标与 §系统架构技术选型可行
+14. **design-spec ↔ ui-ux** - 各模块 §UI/UX 章节中的设计读数、三旋钮取值和负向设计空间必须与 global.md §设计规范产出的设计决策包一致；design-spec 是 ui-ux 的前置依赖，产出 global.md §设计规范供审查追溯，同时透传给 `@ui-ux-designer`
+15. **技术栈选型 ↔ 各章节契约** - 技术实现路线约束（核心原则 12）中确定的前端/后端/数据层/基础设施技术栈选型必须与各章节契约一致：§系统架构模块边界与后端技术栈匹配、§API 接口风格与后端 API 风格选型匹配、§Database 表结构与数据层技术栈选型匹配、§UI/UX 技术栈声明与前端技术栈选型匹配、§安全认证授权模型与后端认证授权选型匹配、§可观测性监控/日志方案与基础设施技术栈选型匹配、§非功能并发模型/缓存策略与后端/数据层技术栈选型匹配
 
-发现不一致时，在此阶段修复后再进入 review 闭环。映射表缺失时补全，映射表与维度内容不一致时以维度内容为准更新映射表。语义对齐问题（字段类型不兼容、状态机路径断裂、追溯 ID 不存在等）在此阶段修复，减少 review 阶段发现量。
+发现不一致时，在此阶段修复后再进入 review 闭环。映射表缺失时补全，映射表与内容不一致时以内容为准更新映射表。语义对齐问题（字段类型不兼容、状态机路径断裂、追溯 ID 不存在等）在此阶段修复，减少 review 阶段发现量。
 
 ### 阶段 6：技能内 review 闭环
 
@@ -397,7 +391,7 @@ test-cases 依赖其他维度的实体清单，按"功能域 × 测试层"二维
 
 调用方式：
 ```
-ae:review mode=headless domain=document <design-dir>/design.md
+ae:review mode=headless domain=document <design-dir>/index.md
 ```
 
 审查者：`design-integrity-reviewer`（激活条件：hasDesignContract=true）
@@ -405,19 +399,33 @@ ae:review mode=headless domain=document <design-dir>/design.md
 传入参数：
 - `has_design_contract=true`
 - `document_type=design`
-- `targets=<产出的维度文件列表>`
+- `targets=<产出的文件列表：index.md, global.md, modules/*.md>`
 
 ae:review 内部调用时不输出下一步引导（D13），由 ae:design 自身负责。
 
-#### 6.2 auto 修复范围
+#### 6.2 置信度门控（替代硬性不镀金）
+
+设计阶段适用置信度门控，替代硬性不镀金判定。每个潜在的设计发现/建议计算置信度：
+
+```
+confidence = 0.5 × 需求明确提及 + 0.3 × 工程基线必要性 + 0.2 × 缺失后果严重度
+```
+
+- **confidence ≥ 0.8** → 产出为正式发现（P0/P1/P2）
+- **0.5 ≤ confidence < 0.8** → 产出为 INFO 级别工程建议（不阻断，供参考）
+- **confidence < 0.5** → 不产出
+
+**审查范围约束（硬约束）：** 审查设计文档时严格按需求范围，禁止无边界镀金。需求（prd）没有提及的一律不报告为发现。仅在需求范围内按置信度门控产出发现和建议。
+
+#### 6.3 auto 修复范围
 
 ae:review 的 auto 修复范围：
 - 章节缺失（必产出维度未产出或章节不完整）
-- token 定义不全（ui-ux 维度的设计 token 缺失字段）
+- token 定义不全（§UI/UX 章节的设计 token 缺失字段）
 - 契约字段模糊（如"高性能"未量化、"适当缓存"未定义策略）
-- 跨维度不一致（api 与 database 字段不对齐等）
+- 跨模块不一致（§API 与 §Database 字段不对齐等）
 
-#### 6.3 收敛协议（D9）
+#### 6.4 收敛协议（D9）
 
 按收敛协议执行：
 - **上限 2 轮** - 最多执行 2 轮 review → auto 修复 → review 循环
@@ -453,22 +461,51 @@ review 闭环收敛后，显式提示用户下一步推荐技能。
 
 - **不做代码实施** - 只记录设计契约和实现单元，不产出可执行代码
 - **不生成实际测试代码** - 只设计测试用例契约，不写测试代码
-- **不画真实视觉稿** - UI/UX 维度用结构化描述（布局家族、组件契约、token），不画像素级视觉稿
+- **不画真实视觉稿** - §UI/UX 章节用结构化描述（布局家族、组件契约、token），不画像素级视觉稿
 - **不扩展需求边界** - prd 冻结后，design 不得擅自扩展范围，越界项回退 prd 决策
-- **主代理不直接产出维度契约** - 除 overview 和跨维度映射表外，维度契约必须由对应子代理产出
+- **主代理不直接产出维度契约** - 除 global.md 全局章节和跨维度映射表外，维度契约必须由对应子代理产出章节片段
 - **技术栈选型必须经过审查** — 引入的第三方依赖必须标注社区活跃度和采用理由，禁止引入长期不活跃或小众依赖（见核心原则 11、12）
 
 ## 验证方式
 
 - 技能内 review 闭环通过（无新增 P0/P1）
-- 跨维度一致性校验通过
-- 每个维度契约达到可还原标准
-- 技术实现路线约束满足（前端/后端/数据层/基础设施各层技术栈已明确且维度间无矛盾）
+- 跨模块一致性校验通过
+- 每个章节契约达到可还原标准
+- 技术实现路线约束满足（前端/后端/数据层/基础设施各层技术栈已明确且章节间无矛盾）
 - ae:grill 追问完成（或用户明确选择跳过），设计决策已达成共识或已记录跳过原因
+- 置信度门控已应用（≥0.8 产出发现，0.5-0.8 INFO 建议，<0.5 不产出）
 
 ## 产物结构
 
-产物目录结构、design.md 纯索引模板、overview.md/constraints.md/traceability.md 模板和 Split Manifest 格式详见 `references/design-output-template.md`。每个维度的文件放在以维度名命名的子目录中（如 `api/01-api.md`），Split Manifest 中的 file 路径包含子目录前缀。
+产物目录结构、index.md 纯索引模板、global.md 模板和 modules/<m>.md 模板详见 `references/design-output-template.md`。产物目录结构如下：
+
+```
+ae/designs/<name>-YYYY-MM-DD/
+├── index.md              # 自动生成纯索引（≤ 100 行）
+├── global.md             # 全局设计共识单文件（≤ 300 行）
+│   ├── §概览
+│   ├── §系统架构          # @architecture-designer 产出
+│   ├── §安全              # @security-designer 产出
+│   ├── §可观测性          # @observability-designer 产出
+│   ├── §非功能            # @non-functional-designer 产出
+│   ├── §设计规范          # @ui-design-spec 产出
+│   ├── §实施约束
+│   └── §跨维度映射表
+└── modules/
+    ├── <m1>.md           # 模块设计单文件（≤ 500 行，自适应拆分）
+    │   ├── §API          # @api-designer 产出片段
+    │   ├── §Database     # @database-designer 产出片段
+    │   ├── §UI/UX        # @ui-ux-designer 产出片段
+    │   ├── §Test Cases   # @test-cases-designer 产出片段
+    │   ├── §设计规范（可选）
+    │   └── §约束（可选）
+    ├── <m2>.md
+    └── ...
+```
+
+**模块文件内容边界：** §API + §Database + §UI/UX + §Test Cases + §设计规范（可选）+ §约束（可选）。禁止出现需求条目/验收标准/原型等产品逻辑层内容。
+
+**自适应粒度：** 模块文件 < 500 行 → 单文件；≥ 500 行 → 拆分为 `modules/<m>/module.md` + `modules/<m>/ui-ux.md` + `modules/<m>/test-cases.md`。
 
 设计维度契约模板详见 `references/` 目录下各维度的独立模板文件：
 - `references/dimension-triggers.md` - 维度触发规则

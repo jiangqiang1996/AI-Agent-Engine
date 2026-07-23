@@ -1,13 +1,13 @@
 # 非功能设计维度契约模板
 
 **触发条件：** prd 标注涉及性能/并发/事务/容量，或风险维度命中"性能敏感"（条件必产出）
-**产出文件：** `non-functional/non-functional.md`（默认单文件，≤ 300 行；超 300 行自动拆分为 `non-functional/01-non-functional.md` 索引 + `non-functional/NN-<topic>.md` 分组实体，topic 如 performance/concurrency/caching/capacity）
+**产出位置：** `global.md` §非功能章节
 **产出方：** `@non-functional-designer` 子代理
 **可还原性目标：** 任意 AI 据此实现满足非功能指标的代码
 
 ## 产出方式
 
-**默认单文件产出（1 次调用）。** non-functional 维度内容通常紧凑（性能目标按系统级而非按端点级声明，行数有界），默认产出单文件 `non-functional/non-functional.md`。
+**章节片段产出（1 次调用）。** non-functional 维度内容通常紧凑（性能目标按系统级而非按端点级声明，行数有界），产出为 `global.md` §非功能章节片段。
 
 **自动拆分机制：** 当 non-functional 内容预计超 300 行时（复杂系统多缓存层/多并发模型/详细容量规划），索引层子代理在 file-plan 中预先声明拆分方案，阶段 2 直接按子主题分组产出多个文件（生成时拆分，非先生成大文件再拆分）：
 - 索引文件 `non-functional/01-non-functional.md`：性能目标概览 + 负向设计空间 + file-plan

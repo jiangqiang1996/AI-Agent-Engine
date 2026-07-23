@@ -1,44 +1,36 @@
-# 架构设计维度契约模板
+# 全局架构维度契约模板
 
-**触发条件：** prd 标注涉及结构调整/新模块，或风险维度命中"结构性变更"
-**产出文件：** `architecture/` 子目录下多个文件（索引 + 按关注点分组）
+**触发条件：** prd 标注涉及结构调整/新模块，或风险维度命中"结构性变更"或"不可逆决策"
+**产出位置：** `global.md` §系统架构章节
 **产出方：** `@architecture-designer` 子代理
 **可还原性目标：** 任意 AI 据此理解模块职责和依赖关系，不破坏边界
 
-## 两阶段产出
+## 契约元素（MVCE）
 
-### 阶段 1：索引层（1 次调用，≤ 300 行）
+- `[核心]` **技术选型**：前端/后端/数据层/基础设施四类决策点
+- `[核心]` **ADR 真源**：关键架构决策记录，使用稳定 ID `ADR-XXX`，global.md 是 ADR 的唯一真源
+- `[核心]` **系统上下文图**：系统与外部系统的边界和交互
+- `[核心]` **模块清单与边界**：模块名、职责、对外接口、依赖模块
+- `[核心]` **跨模块依赖关系图**：模块间依赖关系，必须为 DAG
+- `[核心]` **全局数据流**：跨模块数据流路径
+- `[可选]` **部署拓扑**：服务部署关系
+- `[可选]` **错误传播链**：跨模块错误传播路径和转换规则
+- `[可选]` **跨层状态同步机制**：多层级状态的同步机制
+- `[核心]` **负向设计空间**：禁止的架构模式
 
-产出 `architecture/01-architecture.md`，含共享契约和分组方案：
+## 契约内容
 
 ```markdown
----
-type: design-shard
-status: active
-section: "architecture"
-parent: "design.md"
-module: "architecture"
-layer: index
-heading_chain: "设计契约 > 架构设计"
----
+## 系统架构
 
-## 架构设计
-
-### 系统上下文图
-
-（优先使用 Mermaid `graph` 绘制系统与外部系统的边界和交互）
-
-```mermaid
-graph TB
-  System[本系统] --> ExternalA[外部系统 A]
-  System --> ExternalB[外部系统 B]
-```
-
-### 技术选型理由
+### 技术选型
 
 | 决策点 | 选项 | 选择 | 理由 |
 |--------|------|------|------|
-| [决策点] | [选项列表] | [选择] | [理由] |
+| 前端框架 | React 19 / Vue 3 / Svelte 5 | React 19 | 生态成熟、团队熟悉 |
+| 后端框架 | Express / Fastify / NestJS | Fastify | 高性能、TypeScript 原生支持 |
+| 数据层 | PostgreSQL / MySQL / SQLite | PostgreSQL | 支持 JSONB、全文搜索 |
+| 基础设施 | Docker Compose / K8s | Docker Compose | 单机部署满足当前规模 |
 
 **第三方依赖审查要求：**
 
@@ -52,123 +44,93 @@ graph TB
 - **优先选择**：stars > 1000 且最近三个月有更新
 - **豁免**：项目已有依赖的版本升级不在此审查范围内
 
-### 部署拓扑
+### ADR 真源
 
-（优先使用 Mermaid `graph` 绘制服务部署关系）
+（关键架构决策的唯一真源，使用稳定 ID `ADR-XXX`）
 
-### 架构决策记录（ADR）
+#### ADR-001: [决策标题]
+- **状态：** 已采纳
+- **背景：** [决策背景]
+- **决策：** [具体决策]
+- **理由：** [选择理由]
+- **后果：** [预期后果]
 
-（关键架构决策，与 overview 的 ADR 对齐或补充）
+#### ADR-002: [决策标题]
+- **状态：** 已采纳
+- **背景：** [决策背景]
+- **决策：** [具体决策]
+- **理由：** [选择理由]
+- **后果：** [预期后果]
 
-### file-plan
+### 系统上下文图
 
-（按关注点分组的文件生成计划）
+（优先使用 Mermaid `graph` 绘制系统与外部系统的边界和交互）
 
-### 负向设计空间
-
-- **禁止循环依赖**：模块间依赖必须形成 DAG
-- **禁止跨层直接调用**：Controller 不得直接调用 Repository
-- **禁止未捕获异常传播**：所有层必须捕获并转换异常
-- **禁止隐式状态同步**：跨层状态同步必须显式声明
-- **禁止上帝模块**：单个模块不得承担超过 3 个不相关职责
-- **禁止引入小众依赖**：禁止引入最近一年无更新或 stars < 100 的第三方依赖
+```mermaid
+graph TB
+  System[本系统] --> ExternalA[外部系统 A]
+  System --> ExternalB[外部系统 B]
 ```
 
-### 阶段 2：分组实体层（按关注点分组，串行生成 + 即时校验）
-
-#### module-boundary.md（模块边界 + 依赖方向 + 接口签名，≤ 300 行）
-
-文件名格式：`NN-module-boundary.md`（NN 为序号，从 02 开始）。
-
-```markdown
----
-type: design-shard
-status: active
-section: "architecture-module-boundary"
-parent: "01-architecture.md"
-module: "architecture"
-layer: entity-group
-heading_chain: "设计契约 > 架构设计 > 模块边界"
----
-
-## 模块边界
-
-### 模块清单
+### 模块清单与边界
 
 | 模块名 | 职责 | 对外接口 | 依赖模块 |
 |--------|------|---------|---------|
-| [模块名] | [职责描述] | [接口列表] | [依赖列表] |
+| auth | 认证授权 | login, register, verifyToken | — |
+| resource | 资源管理 | CRUD /resources | auth |
+| audit | 审计日志 | writeLog | — |
 
-### 依赖方向
+### 跨模块依赖关系图
 
-（允许的依赖方向，禁止的循环依赖）
+（优先使用 Mermaid `graph` 绘制模块间依赖，必须为 DAG）
 
-### 分层规则
-
-（如：Controller → Service → Repository → Model）
-
-### 接口签名（伪代码）
-
-```typescript
-// UserService
-interface UserService {
-  createUser(input: CreateUserInput): Promise<User>
-  findById(id: string): Promise<User | null>
-  update(id: string, input: UpdateUserInput): Promise<User>
-}
-
-// ResourceRepository
-interface ResourceRepository {
-  save(resource: Resource): Promise<Resource>
-  findById(id: string): Promise<Resource | null>
-  list(query: ListQuery): Promise<{ data: Resource[], total: number }>
-}
-```
+```mermaid
+graph TB
+  auth --> resource
+  audit --> auth
+  audit --> resource
 ```
 
-#### data-flow.md（数据流 + 错误传播链 + 跨层状态同步，≤ 300 行）
+### 全局数据流
 
-文件名格式：`NN-data-flow.md`（NN 为序号）。
+（优先使用 Mermaid `flowchart` 或 `sequenceDiagram` 绘制跨模块数据流）
 
-```markdown
----
-type: design-shard
-status: active
-section: "architecture-data-flow"
-parent: "01-architecture.md"
-module: "architecture"
-layer: entity-group
-heading_chain: "设计契约 > 架构设计 > 数据流"
----
+```mermaid
+flowchart LR
+  Client --> auth[auth 模块]
+  auth --> resource[resource 模块]
+  resource --> DB[(数据库)]
+  resource --> audit[audit 模块]
+  audit --> AuditDB[(审计库)]
+```
 
-## 数据流
+### 部署拓扑
 
-（优先使用 Mermaid `flowchart` 或 `sequenceDiagram` 绘制主要数据流路径）
+（优先使用 Mermaid `graph` 绘制服务部署关系）
 
 ### 错误传播链
 
 | 错误来源 | 错误类型 | 传播路径 | 转换规则 | 用户可见形式 |
 |---------|---------|---------|---------|------------|
-| Repository | EntityNotFound | Repository → Service → Controller → UI | 转换为 404 | "资源不存在"提示 |
-| Service | ValidationFailed | Service → Controller → UI | 转换为 400 | 表单字段错误标注 |
+| auth | TokenExpired | auth → resource → UI | 转换为 401 | "会话已过期"提示 |
+| resource | EntityNotFound | resource → UI | 转换为 404 | "资源不存在"提示 |
+| audit | LogWriteFailed | audit → 调用方 | 降级为异步重试 | 用户无感知 |
 
 ### 跨层状态同步机制
 
 | 状态类型 | 前端持有 | 后端持有 | 数据库持久化 | 同步触发 | 冲突解决 |
 |---------|---------|---------|------------|---------|---------|
 | 用户会话 | session token | session 元数据 | session 记录 | 登录/登出/过期 | 以后端为准 |
+
+### 负向设计空间
+
+- **禁止循环依赖**：模块间依赖必须形成 DAG
+- **禁止跨层直接调用**：Controller 不得直接调用 Repository
+- **禁止跨模块直接访问数据层**：模块间只能通过接口调用，不得直接访问其他模块的数据库表
+- **禁止未捕获异常传播**：所有层必须捕获并转换异常
+- **禁止隐式状态同步**：跨层状态同步必须显式声明
+- **禁止上帝模块**：单个模块不得承担超过 3 个不相关职责
+- **禁止引入小众依赖**：禁止引入最近一年无更新或 stars < 100 的第三方依赖
 ```
-
-## 契约元素（MVCE）
-
-- `[核心]` **模块边界表**：模块名、职责、对外接口、依赖模块
-- `[核心]` **依赖方向声明**：允许的依赖方向，禁止的循环依赖
-- `[核心]` **分层规则**：如 Controller → Service → Repository → Model
-- `[核心]` **接口签名**：关键模块的 TypeScript interface 伪代码
-- `[核心]` **数据流描述**：主要数据流路径（从输入到输出）
-- `[可选]` **技术选型理由表**：决策点、选项、选择、理由
-- `[核心]` **错误传播链**：错误从产生层到用户可见层的传播路径和转换规则
-- `[可选]` **跨层状态同步机制**：多层级状态的同步机制
-- `[核心]` **负向设计空间**：禁止的架构模式
 
 轻量级任务可省略 `[可选]` 元素。
