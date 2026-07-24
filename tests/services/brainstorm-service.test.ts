@@ -6,11 +6,12 @@ import {
   buildPerspectivePrompt,
   buildSynthesisPrompt,
   extractCoreViewpoint,
-  extractTextFromParts,
-  isRateLimitLikeError,
-  parseModelReference,
   type PerspectiveOutput,
 } from '../../src/services/brainstorm-service.js'
+import {
+  isRateLimitLikeError,
+  parseModelReference,
+} from '../../src/services/subtask-session-service.js'
 
 import { setBrainstormConfig } from '../../src/services/brainstorm-config-holder.js'
 import { setModelScenarioRoutingContext } from '../../src/services/model-scenario-holder.js'
@@ -70,7 +71,7 @@ function createMockClient(sessionTexts: Map<string, string>, options?: {
   return { client, deletedSessions, getCreateCallCount: () => createCallCount, getPromptCallCount: () => promptCallCount }
 }
 
-describe('brainstorm-service - parseModelReference', () => {
+describe('subtask-session-service - parseModelReference', () => {
   it('应该正确解析 provider/model 格式', () => {
     const result = parseModelReference('anthropic/claude-3-5-sonnet')
     expect(result).toEqual({ providerID: 'anthropic', modelID: 'claude-3-5-sonnet' })
@@ -94,43 +95,7 @@ describe('brainstorm-service - parseModelReference', () => {
   })
 })
 
-describe('brainstorm-service - extractTextFromParts', () => {
-  it('应该提取 text 类型 parts 的文本', () => {
-    const parts = [
-      { type: 'text', text: '第一段' },
-      { type: 'text', text: '第二段' },
-    ]
-    expect(extractTextFromParts(parts)).toBe('第一段\n第二段')
-  })
-
-  it('应该过滤非 text 类型的 parts', () => {
-    const parts = [
-      { type: 'text', text: '文本' },
-      { type: 'image', text: '图片描述' },
-      { type: 'reasoning', text: '推理' },
-    ]
-    expect(extractTextFromParts(parts)).toBe('文本')
-  })
-
-  it('应该过滤 text 属性非字符串的 parts', () => {
-    const parts = [
-      { type: 'text', text: '文本' },
-      { type: 'text' },
-    ]
-    expect(extractTextFromParts(parts)).toBe('文本')
-  })
-
-  it('应该对空数组返回空字符串', () => {
-    expect(extractTextFromParts([])).toBe('')
-  })
-
-  it('应该 trim 首尾空白', () => {
-    const parts = [{ type: 'text', text: '  内容  ' }]
-    expect(extractTextFromParts(parts)).toBe('内容')
-  })
-})
-
-describe('brainstorm-service - isRateLimitLikeError', () => {
+describe('subtask-session-service - isRateLimitLikeError', () => {
   it('应该识别 rate limit 关键词', () => {
     expect(isRateLimitLikeError(new Error('Rate limit exceeded'))).toBe(true)
     expect(isRateLimitLikeError(new Error('429 Too Many Requests'))).toBe(true)

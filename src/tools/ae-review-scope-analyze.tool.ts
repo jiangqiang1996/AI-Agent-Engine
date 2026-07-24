@@ -5,8 +5,8 @@ import { tool } from '@opencode-ai/plugin'
 import { z } from 'zod'
 
 import { AGENT } from '../schemas/ae-asset-schema.js'
-import { getGlobalClient } from '../services/client-holder.js'
 import { SPECIALIST_PROMPT_TEMPLATES } from '../services/specialist-prompt-templates.js'
+import { runSubtaskSession } from '../services/subtask-session-service.js'
 
 /**
  * OCR (OpenCodeReview) 支持审查的文件扩展名白名单。
@@ -417,9 +417,6 @@ async function analyzeDocContentViaSubSession(
   docFiles: string[],
   worktree: string,
 ): Promise<string[]> {
-  const client = getGlobalClient()
-  if (!client) return []
-
   const nonDesignDocs = docFiles.filter((f) => !isDesignDoc(f) && !isPrdDoc(f))
   if (nonDesignDocs.length === 0) return []
 
@@ -437,83 +434,31 @@ async function analyzeDocContentViaSubSession(
 
   const promptText = `${CONTENT_ANALYSIS_PROMPT}\n\n以下是需要分析的文档内容：\n\n${fileContents.join('\n\n')}`
 
-  let sessionId: string | null = null
   try {
-    const session = await client.session.create({
-      body: { title: 'ae-review-scope-analyze-content-analysis' },
+    const result = await runSubtaskSession({
+      title: 'ae-review-scope-analyze-content-analysis',
+      prompt: promptText,
     })
-    if (session.error || !session.data?.id) return []
-    sessionId = session.data.id
-
-    await client.session.prompt({
-      path: { id: sessionId },
-      body: {
-        parts: [{ type: 'text', text: promptText }],
-        // '*': true 显式启用所有工具，edit/write/patch: false 禁止文件修改类工具，question: false 禁止提问确保无人值守
-        tools: { '*': true, edit: false, write: false, patch: false, question: false },
-      },
-    })
-
-    const dimensions = await pollForAnalysisResult(client, sessionId)
-    return dimensions
+    return parseDimensionsFromText(result.text)
   } catch {
     return []
-  } finally {
-    if (sessionId) {
-      try {
-        await client.session.delete({ path: { id: sessionId } })
-      } catch {
-        // 清理失败不影响主流程
-      }
-    }
   }
 }
 
-const MAX_POLL_ATTEMPTS = 10
-const POLL_INTERVAL_MS = 1000
+function parseDimensionsFromText(text: string): string[] {
+  const jsonMatch = text.match(/\[[\s\S]*\]/)
+  if (!jsonMatch) return []
 
-async function pollForAnalysisResult(
-  client: NonNullable<ReturnType<typeof getGlobalClient>>,
-  sessionId: string,
-): Promise<string[]> {
-  for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt++) {
-    if (attempt > 0) {
-      await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS))
-    }
+  try {
+    const parsed = JSON.parse(jsonMatch[0]) as unknown
+    if (!Array.isArray(parsed)) return []
 
-    const messages = await client.session.messages({
-      path: { id: sessionId },
-    })
-    if (messages.error || !messages.data) continue
-
-    const assistantMessages = messages.data.filter(
-      (m: { info: { role?: string }; parts: Array<{ type: string; text?: string }> }) =>
-        m.info?.role === 'assistant',
+    return parsed.filter(
+      (item): item is string => typeof item === 'string' && VALID_DIMENSIONS.has(item),
     )
-    if (assistantMessages.length === 0) continue
-
-    const lastMessage = assistantMessages[assistantMessages.length - 1]
-    const textParts = lastMessage.parts
-      ?.filter((p) => p.type === 'text')
-      .map((p) => p.text ?? '')
-      .join('') ?? ''
-
-    const jsonMatch = textParts.match(/\[[\s\S]*\]/)
-    if (!jsonMatch) continue
-
-    try {
-      const parsed = JSON.parse(jsonMatch[0]) as unknown
-      if (!Array.isArray(parsed)) continue
-
-      return parsed.filter(
-        (item): item is string => typeof item === 'string' && VALID_DIMENSIONS.has(item),
-      )
-    } catch {
-      continue
-    }
+  } catch {
+    return []
   }
-
-  return []
 }
 
 export const aeReviewScopeAnalyzeTool = tool({

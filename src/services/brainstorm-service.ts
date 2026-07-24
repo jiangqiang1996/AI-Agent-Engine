@@ -1,27 +1,13 @@
-import type { OpencodeClient } from '@opencode-ai/sdk'
-import { getGlobalClient } from './client-holder.js'
 import { resolveBrainstormModels } from './brainstorm-config-service.js'
 import { getModelByScenario } from './model-scenario-routing-service.js'
 import { getModelScenarioRoutingContext } from './model-scenario-holder.js'
 import { MODEL_SCENARIO } from '../schemas/model-scenario-schema.js'
-
-export function parseModelReference(model: string | undefined): { providerID: string; modelID: string } | undefined {
-  if (!model) return undefined
-  const slashIndex = model.indexOf('/')
-  if (slashIndex <= 0) return undefined
-  return {
-    providerID: model.slice(0, slashIndex),
-    modelID: model.slice(slashIndex + 1),
-  }
-}
-
-export function extractTextFromParts(parts: Array<{ type: string; text?: string }>): string {
-  return parts
-    .filter((part) => part.type === 'text' && typeof part.text === 'string')
-    .map((part) => part.text as string)
-    .join('\n')
-    .trim()
-}
+import {
+  runSubtaskSession,
+  parseModelReference,
+  isRateLimitLikeError,
+  SubtaskSessionError,
+} from './subtask-session-service.js'
 
 interface PerspectiveDef {
   id: string
@@ -116,63 +102,25 @@ function modelDisplayLabel(model: string | undefined): string {
   return model ?? 'opencode 动态模型'
 }
 
-async function deleteSessionWithRetry(client: OpencodeClient, sessionId: string): Promise<void> {
-  try {
-    await client.session.delete({ path: { id: sessionId } })
-  } catch (err) {
-    if (!isRateLimitLikeError(err)) return
-    await new Promise<void>((r) => setTimeout(r, SESSION_DELETE_RETRY_DELAY_MS + Math.floor(Math.random() * 300)))
-    try {
-      await client.session.delete({ path: { id: sessionId } })
-    } catch {
-      // 重试仍失败时放弃清理，不阻塞主流程
-    }
-  }
-}
-
 async function runTemporarySession(
   title: string,
   userPrompt: string,
   systemPrompt: string,
   modelRef: { providerID: string; modelID: string } | undefined,
 ): Promise<string> {
-  const client = getGlobalClient()
-  if (!client) {
-    throw new Error('opencode 客户端未初始化')
-  }
-
-  let sessionId: string | undefined
   try {
-    const createRes = await client.session.create({ body: { title } })
-    if (createRes.error || !createRes.data?.id) {
-      throw new Error(`[${title}] 创建临时会话失败 - ${createRes.error?.data?.message ?? createRes.error?.name ?? '未知错误'}`)
-    }
-    sessionId = createRes.data.id
-
-    const promptBody: Record<string, unknown> = {
-      parts: [{ type: 'text', text: userPrompt }],
+    const result = await runSubtaskSession({
+      title,
+      prompt: userPrompt,
       system: systemPrompt,
-      // '*': true 显式启用所有工具，edit/write/patch: false 禁止文件修改类工具，question: false 禁止提问确保无人值守
-      tools: { '*': true, edit: false, write: false, patch: false, question: false },
-    }
-    if (modelRef) {
-      promptBody.model = modelRef
-    }
-
-    const promptRes = await client.session.prompt({
-      path: { id: sessionId },
-      body: promptBody as Parameters<typeof client.session.prompt>[0]['body'],
+      model: modelRef,
     })
-
-    if (promptRes.error) {
-      throw new Error(`[${title}] 模型调用失败 - ${promptRes.error.data?.message ?? promptRes.error.name ?? '未知错误'}`)
+    return result.text
+  } catch (error: unknown) {
+    if (error instanceof SubtaskSessionError) {
+      throw new Error(`[${title}] ${error.message}`)
     }
-
-    return extractTextFromParts(promptRes.data?.parts ?? [])
-  } finally {
-    if (sessionId) {
-      await deleteSessionWithRetry(client, sessionId)
-    }
+    throw error
   }
 }
 
@@ -253,13 +201,6 @@ const ADAPTIVE_POOL_MIN_CONCURRENCY = 2
 const ADAPTIVE_POOL_MAX_RETRIES = 2
 const BACKOFF_BASE_MS = 1000
 const BACKOFF_MAX_MS = 8000
-const SESSION_DELETE_RETRY_DELAY_MS = 1000
-
-export function isRateLimitLikeError(error: unknown): boolean {
-  if (!(error instanceof Error)) return false
-  const msg = error.message.toLowerCase()
-  return /rate[\s_-]*limit|429|too\s*many|quota|capacity|throttl|resource[\s_-]*exhausted|overloaded|usage[\s_-]*limit/.test(msg)
-}
 
 type AdaptivePoolResult<T> =
   | { status: 'fulfilled'; value: T }
@@ -339,11 +280,9 @@ export async function executeBrainstorm(options: BrainstormOptions): Promise<Bra
     throw new Error(`未找到有效视角。可选视角：${PERSPECTIVE_IDS.join(', ')}`)
   }
 
-  // 配置了模型时轮询分配：每个视角分配一个模型，会话数 = 视角数 × 轮次
-  // 未配置时全部传 undefined（opencode 动态路由），会话数 = 视角数 × 轮次
   const models = resolved.models
   const totalPerspectiveSessions = selectedPerspectives.length * rounds
-  const totalSessions = totalPerspectiveSessions + 1 // +1 synthesis
+  const totalSessions = totalPerspectiveSessions + 1
   const perspectiveOutputs: PerspectiveOutput[] = []
   let sessionIndex = 0
 
