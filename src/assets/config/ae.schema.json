@@ -19,29 +19,6 @@
         ]
       }
     },
-    "graph": {
-      "type": "object",
-      "description": "项目文件关系图谱过滤配置。include 优先于 exclude，但不覆盖安全硬排除。",
-      "additionalProperties": true,
-      "properties": {
-        "include": {
-          "type": "array",
-          "description": "显式纳入图谱的路径或 glob 规则，优先于 graph.exclude。",
-          "items": {
-            "type": "string",
-            "minLength": 1
-          }
-        },
-        "exclude": {
-          "type": "array",
-          "description": "显式排除图谱的路径或 glob 规则；如需重新纳入请使用 graph.include，不支持 ! 否定规则。",
-          "items": {
-            "type": "string",
-            "minLength": 1
-          }
-        }
-      }
-    },
     "brainstorm": {
       "type": "array",
       "description": "头脑风暴模型列表。每项为 provider/model 格式，1-3 个。每个模型扮演所有视角角色，形成跨模型认知多样性。未配置时 fallback 到 modelScenarios.deep。",

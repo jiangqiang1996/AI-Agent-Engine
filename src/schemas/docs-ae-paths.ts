@@ -13,7 +13,6 @@ export const DOCS_AE_SUBDIRS = {
   EVIDENCE: 'evidence',
   REVIEWS: 'reviews',
   HANDOFFS: 'handoffs',
-  GRAPHS: 'graphs',
   SCREENSHOTS: 'screenshots',
 } as const
 

@@ -6,7 +6,7 @@ import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
 
 const BRANCH_PREFIX_PATTERN = /^(feat|fix|refactor|docs|test|chore)\//
 
-/** A→B worktree 交接输入参数，包含来源/目标 worktree 信息、Git 授权证据和执行基线。需求/设计/图谱/AE 配置路径在 A 端条件必选：上游产物或物理文件存在时必须迁移并传入；B 端缺失时降级为可选上下文。当无 design_path 时，task_brief 必填——将任务详情直接写入交接文件，确保 B worktree 无需读取 A worktree 文件即可执行。 */
+/** A→B worktree 交接输入参数，包含来源/目标 worktree 信息、Git 授权证据和执行基线。需求/设计/AE 配置路径在 A 端条件必选：上游产物或物理文件存在时必须迁移并传入；B 端缺失时降级为可选上下文。当无 design_path 时，task_brief 必填——将任务详情直接写入交接文件，确保 B worktree 无需读取 A worktree 文件即可执行。 */
 export interface WorktreeHandoffInput {
   source_session_id: string
   session_evidence?: string
@@ -22,7 +22,6 @@ export interface WorktreeHandoffInput {
   creation_result: string
   requirements_path?: string
   design_path?: string
-  graph_path?: string
   ae_config_path?: string
   task_brief?: string
   execution_baseline: string
@@ -75,9 +74,6 @@ function buildMigratedArtifacts(input: WorktreeHandoffInput): string {
   }
   if (input.task_brief?.trim() && !input.design_path?.trim()) {
     lines.push('- task_brief: 内联于交接文件 Task Brief 章节')
-  }
-  if (input.graph_path?.trim()) {
-    lines.push(`- graph: \`${input.graph_path}\``)
   }
   if (input.ae_config_path?.trim()) {
     lines.push(`- ae_config: \`${input.ae_config_path}\``)
@@ -142,9 +138,6 @@ function buildStartupProof(input: WorktreeHandoffInput, handoffRelPath: string):
   }
   if (input.task_brief?.trim() && !input.design_path?.trim()) {
     lines.push('  - task_brief: 内联于交接文件（无 design_path 时作为执行输入）')
-  }
-  if (input.graph_path?.trim()) {
-    lines.push(`  - graph: \`${input.graph_path}\``)
   }
   if (input.ae_config_path?.trim()) {
     lines.push(`  - ae_config: \`${input.ae_config_path}\``)

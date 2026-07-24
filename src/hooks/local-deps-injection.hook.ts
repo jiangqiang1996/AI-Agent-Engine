@@ -8,8 +8,8 @@ import { isInsideRoot } from '../utils/path-utils.js'
 /**
  * tool.execute.after hook：Edit 工具后置即时依赖注入。
  *
- * 核心理念（来自头脑风暴共识）：
- * - 不依赖持久化图谱，消除 freshness 滞后问题
+ * 核心理念：
+ * - 即时解析依赖，无缓存滞后问题
  * - LLM 调用 Edit 工具编辑文件后，自动即时解析该文件的上下游依赖
  * - 将依赖分析追加到工具输出，帮助 LLM 了解影响范围并决定后续操作
  *

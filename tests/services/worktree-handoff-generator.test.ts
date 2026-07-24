@@ -154,29 +154,23 @@ describe('worktree-handoff-generator', () => {
       expect('error' in result).toBe(true)
     })
 
-    it('有图谱和 AE 配置路径时应在迁移产物中体现', () => {
+    it('有 AE 配置路径时应在迁移产物中体现', () => {
       const result = generateHandoffMarkdown(validInput({
-        graph_path: 'ae/graphs/',
         ae_config_path: '.opencode/ae.jsonc',
       }))
       if ('error' in result) return
 
-      expect(result.markdown).toContain('- graph: `ae/graphs/`')
       expect(result.markdown).toContain('- ae_config: `.opencode/ae.jsonc`')
-      expect(result.markdown).toContain('  - graph: `ae/graphs/`')
       expect(result.markdown).toContain('  - ae_config: `.opencode/ae.jsonc`')
     })
 
-    it('无图谱和 AE 配置路径时不应在交接文件中提及这些产物', () => {
+    it('无 AE 配置路径时不应在交接文件中提及该产物', () => {
       const result = generateHandoffMarkdown(validInput({
-        graph_path: '   ',
         ae_config_path: '',
       }))
       if ('error' in result) return
 
-      expect(result.markdown).not.toContain('- graph:')
       expect(result.markdown).not.toContain('- ae_config:')
-      expect(result.markdown).not.toContain('  - graph:')
       expect(result.markdown).not.toContain('  - ae_config:')
     })
 

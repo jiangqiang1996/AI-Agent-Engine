@@ -34,7 +34,6 @@
 | Office 文档原生操作 | `/ae-officecli` |
 | 幻灯片大纲生成 | `/ae-slides-outline` |
 | 原型预览 | `/ae-prototype-preview` |
-| 构建或查询项目关系图谱 | `/ae-graph-build`、`/ae-graph-query` |
 | 项目结构探索 | `/ae-project-explore` |
 | 保存经验 | `/ae-save-experience` |
 | 提示词优化 | `/ae-prompt-optimize` |
@@ -150,8 +149,6 @@ PDF 文件的 Markdown 读取功能通过 `ae:pdf` 技能的 `to-markdown` 操�
 | `/ae-xlsx` | `[创建\|编辑\|分析\|读取\|追加\|公式\|透视表] [文件路径] [任务描述]` | 创建、编辑、分析 Excel 电子表格 | 底层通过 ae-officecli 工具执行 |
 | `/ae-officecli` | `[文件路径] [command=...] [path=...] [props=...]` | 通过 OfficeCLI 原生二进制操作 Office 文档 | 支持 L1 读取/L2 DOM 编辑/L3 raw XML |
 | `/ae-slides-outline` | `[主题\|需求描述\|大纲文件路径\|现有 HTML 幻灯片文件路径]` | 幻灯片大纲生成与交互修改 | 支持对话反复修改直到用户确认 |
-| `/ae-graph-build` | `[target:<PATH>] [mode:auto\|full\|incremental] [depth:shallow] [include:<PATH>...] [exclude:<PATH>...]` | 构建或增量维护项目文件关系图谱 | `include` 优先于 `exclude`，但不覆盖安全硬排除 |
-| `/ae-graph-query` | `[mode:deps\|impact\|health\|filter\|path\|core\|stats\|pattern] [file:<PATH>] [target:<PATH>]` | 查询依赖、影响范围、核心模块和健康状态 | 图谱缺失时先构建 |
 | `/ae-project-explore` | `[target] [focus=structure\|content\|relations\|patterns\|all] [depth=quick\|standard\|deep]` | 探索和分析任意文件集合的结构与关系 | 输出带置信度标注的结构化画像 |
 | `/ae-save-experience` | `[经验摘要\|保存目标]` | 保存 solution，并按需提炼 rules | 不把临时结论直接当长期规则 |
 | `/ae-prompt-optimize` | `[提示词内容] [mode=auto\|pause]` | 优化提示词并通过 ae-create-session 新开会话自动执行或暂停等待；mode=auto/pause 跳过确认提问 | 禁止与原始逻辑违背 |
@@ -226,8 +223,6 @@ AE 采用 13 代理全并行架构，所有激活代理在同一轮一次性发�
 | `ae-image` | 将本地图片转换为 Markdown 描述                  | 不支持远程 URL，不处理音频/视频 |
 | `ae-audio` | 将本地音频转换为 Markdown 描述                  | 不支持远程 URL，不处理图片/视频 |
 | `ae-video` | 将本地视频转换为 Markdown 描述                  | 不支持远程 URL，不处理图片/音频 |
-| `ae-graph-build` | 构建或增量维护项目文件关系图谱                       | 不分析运行时动态依赖或符号级调用链 |
-| `ae-graph-query` | 查询图谱中的依赖、影响范围、核心模块和健康状态               | 不构建图谱 |
 | `ae-doc-extract` | 从人读需求或设计文档及其分片中提取结构化上下文               | 不生成、转换或迁移文档 |
 | `ae-worktree-handoff` | 生成 A→B worktree 转移交接文件                | 不创建新会话 |
 | `ae-create-session` | 创建独立新会话，可选注入上下文或自动执行                  | 不做会话级上下文交接 |
@@ -263,7 +258,6 @@ AE 采用 13 代理全并行架构，所有激活代理在同一轮一次性发�
 | `ae/prds/` | 需求文档 |
 | `ae/designs/` | 设计文档 |
 | `ae/solutions/` | 历史方案、研究和经验沉淀 |
-| `ae/graphs/` | 项目文件关系图谱 |
 | `ae/reviews/` | 审查证明 |
 | `ae/markdown/` | 文件转 Markdown 产物 |
 | `.opencode/rules/` | 项目长期规则，可由经验沉淀流程写入 |

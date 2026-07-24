@@ -163,7 +163,7 @@ export function formatHelpCatalog(catalog: HelpCatalog, query?: string): string 
     const tierOrder: Array<{ tier: string; label: string; desc: string }> = [
       { tier: 'core', label: '核心工程流程', desc: 'PRD/设计/实现/审查/交付主链路' },
       { tier: 'docs', label: '文档生成', desc: 'DOCX/PDF/PPTX/XLSX 等' },
-      { tier: 'tools', label: '辅助工具', desc: '浏览器/图谱/接口/媒体识别等' },
+      { tier: 'tools', label: '辅助工具', desc: '浏览器/接口/媒体识别等' },
       { tier: 'meta', label: '维护与配置', desc: '技能/代理创建与配置管理' },
     ]
     const byTier = new Map<string, SkillEntry[]>()

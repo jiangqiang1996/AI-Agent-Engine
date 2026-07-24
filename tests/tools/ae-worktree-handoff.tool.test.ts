@@ -25,10 +25,9 @@ afterEach(() => {
 })
 
 describe('ae-worktree-handoff 工具', () => {
-  it('应该公开图谱和 AE 项目配置路径参数', () => {
+  it('应该公开 AE 项目配置路径参数', () => {
     const tool = aeWorktreeHandoffTool as unknown as { args: Record<string, unknown> }
 
-    expect(tool.args.graph_path).toBeDefined()
     expect(tool.args.ae_config_path).toBeDefined()
     expect(tool.args.design_path).toBeDefined()
   })
@@ -79,7 +78,7 @@ describe('ae-worktree-handoff 工具', () => {
     expect(output).toContain('design_path 和 task_brief 至少传入一个')
   })
 
-  it('应该把图谱和 AE 项目配置路径转发到交接文件', async () => {
+  it('应该把 AE 项目配置路径转发到交接文件', async () => {
     const targetDir = createTempDir()
     const tool = aeWorktreeHandoffTool as unknown as ToolLike
     const output = await tool.execute({
@@ -95,21 +94,18 @@ describe('ae-worktree-handoff 工具', () => {
       final_command_args: 'git worktree add "../worktrees/feat-graph-config" -b "feat/graph-config" HEAD',
       creation_result: 'Git worktree 创建成功',
       design_path: 'ae/designs/test/design.md',
-      graph_path: 'ae/graphs/',
       ae_config_path: '.opencode/ae.jsonc',
       execution_baseline: '必须从阶段 1 继续执行',
       verification_requirements: '交付前运行 Vitest 和 typecheck',
     }, { metadata: () => {} })
 
-    expect(output).toContain('✅ 交接文件已生成并写入。')
+    expect(output).toContain('交接文件已生成并写入。')
     const match = output.match(/文件路径：(.+)/)
     expect(match).not.toBeNull()
     if (match === null) return
 
     const content = readFileSync(match[1].trim(), 'utf-8')
-    expect(content).toContain('- graph: `ae/graphs/`')
     expect(content).toContain('- ae_config: `.opencode/ae.jsonc`')
-    expect(content).toContain('  - graph: `ae/graphs/`')
     expect(content).toContain('  - ae_config: `.opencode/ae.jsonc`')
   })
 })

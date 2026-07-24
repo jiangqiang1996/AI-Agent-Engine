@@ -2,20 +2,23 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, extname, join, relative, resolve } from 'node:path'
 
 import { isInsideRoot, toPosixPath } from '../utils/path-utils.js'
-import { RESOLVABLE_EXTENSIONS } from './graph-parse-service.js'
 
 /**
  * 按需即时依赖解析服务。
  *
- * 核心理念（来自头脑风暴共识）：
+ * 核心理念：
  * - 不持久化、不预构建——消除"更新滞后"和"与真实文件不一致"问题
  * - 实时解析目标文件的 import/require/include，返回工作区内可解析的依赖
  * - 局部反向搜索：扫描目标文件同目录及相邻目录，找出谁引用了该文件
  *
- * 这是持久化图谱的轻量替代方案：~200 行纯函数，无状态，即时可用。
- *
- * RESOLVABLE_EXTENSIONS 从 graph-parse-service 导入，避免重复定义和漂移。
+ * ~200 行纯函数，无状态，即时可用。
  */
+
+const RESOLVABLE_EXTENSIONS = [
+  '.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.py', '.java', '.go', '.rs', '.c', '.cpp', '.h', '.rb', '.php',
+  '.swift', '.kt', '.scala', '.vue', '.svelte', '.css', '.scss', '.less', '.html', '.sql', '.prisma', '.graphql',
+  '.md', '.txt', '.rst', '.adoc', '.json', '.jsonc', '.yaml', '.yml', '.toml', '.xml',
+]
 
 const MAX_FILE_BYTES = 2 * 1024 * 1024
 const MAX_DOWNWARD_SCAN_FILES = 400
@@ -43,7 +46,7 @@ interface ComputeLocalDepsOptions {
 
 /**
  * 即时计算单个文件的本地依赖。
- * 不读取图谱、不持久化、不缓存——每次调用都是实时解析真实文件。
+ * 不持久化、不缓存——每次调用都是实时解析真实文件。
  */
 export function computeLocalDeps(worktree: string, filePath: string, options?: ComputeLocalDepsOptions): LocalDepsResult {
   const root = resolve(worktree)
@@ -373,7 +376,7 @@ export function formatLocalDepsForInjection(result: LocalDepsResult): string {
       lines.push(`  - ${ref}`)
     }
   }
-  lines.push(`提示: 此结果为即时解析，不依赖持久化图谱，无 freshness 滞后问题。`)
+  lines.push(`提示: 此结果为即时解析，无缓存滞后问题。`)
   return lines.join('\n')
 }
 

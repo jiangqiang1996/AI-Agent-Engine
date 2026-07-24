@@ -87,26 +87,6 @@ export async function main(root = repoRoot) {
   await rm(distAssetsDir, { recursive: true, force: true })
   await cp(sourceAssetsDir, distAssetsDir, { recursive: true })
 
-  const wasmDestDir = join(distAssetsDir, 'wasm')
-  const wasmSources = [
-    ['web-tree-sitter', 'web-tree-sitter.wasm'],
-    ['tree-sitter-java', 'tree-sitter-java.wasm'],
-    ['tree-sitter-python', 'tree-sitter-python.wasm'],
-    ['tree-sitter-go', 'tree-sitter-go.wasm'],
-    ['tree-sitter-javascript', 'tree-sitter-javascript.wasm'],
-    ['tree-sitter-typescript', 'tree-sitter-typescript.wasm'],
-    ['tree-sitter-typescript', 'tree-sitter-tsx.wasm'],
-  ]
-  await mkdir(wasmDestDir, { recursive: true })
-  for (const [pkg, file] of wasmSources) {
-    const src = join(root, 'node_modules', pkg, file)
-    try {
-      await cp(src, join(wasmDestDir, file))
-    } catch {
-      console.warn(`WASM 文件复制跳过（未找到）: ${pkg}/${file}`)
-    }
-  }
-
   await ensurePlaywrightCliGlobal()
 }
 

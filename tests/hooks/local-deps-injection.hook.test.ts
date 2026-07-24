@@ -19,7 +19,7 @@ describe('local-deps-injection hook', () => {
   it('非编辑工具调用应直接跳过', async () => {
     const hook = createLocalDepsInjectionHook(tempDir)
     const output = { title: 'test', output: 'result', metadata: {} }
-    await hook({ tool: 'ae-graph-query', sessionID: 's1', callID: 'c1', args: { mode: 'deps' } }, output)
+    await hook({ tool: 'ae-help', sessionID: 's1', callID: 'c1', args: {} }, output)
     expect(output.output).toBe('result')
   })
 

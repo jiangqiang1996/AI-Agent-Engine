@@ -23,8 +23,6 @@ argument-hint: "[target] [focus=structure|content|relations|patterns|all] [depth
 ## 不适用场景
 
 - 已知目标文件或内容模式，只需快速搜索定位（直接使用 grep / glob / read 工具）
-- 只需查询单文件依赖或影响范围（使用 ae:graph-query）
-- 需要构建或更新文件关系图谱（使用 ae:graph-build）
 
 ## 参数说明
 
@@ -239,7 +237,7 @@ argument-hint: "[target] [focus=structure|content|relations|patterns|all] [depth
 - 不解析 `.env*`、凭证文件、密钥文件、私钥或 `.git` 目录内容
 - 跳过二进制文件和媒体文件的深度解析（仅记录元信息）
 - 依赖目录（node_modules / vendor / __pycache__ / .venv 等）仅统计不深入
-- 不依赖 ae:graph-build、ae:graph-query 或其他 AE 技能
+- 不依赖其他 AE 技能
 
 ## 盲区声明原则
 

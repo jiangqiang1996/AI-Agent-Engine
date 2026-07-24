@@ -50,10 +50,6 @@ const WorktreeHandoffInputSchema = z.object({
     .string()
     .optional()
     .describe('设计文档相对路径，例如 ae/designs/xxx/design.md。A 端条件必选：上游设计产物真实存在时必须迁移并传入（即使被 .gitignore 忽略也按物理存在迁移）；不存在时可不传，但此时必须传 task_brief'),
-  graph_path: z
-    .string()
-    .optional()
-    .describe('图谱目录相对路径。A 端条件必选：ae/graphs/ 真实存在时必须迁移并传入（即使被 .gitignore 忽略也按物理存在迁移）；不存在时不传'),
   ae_config_path: z
     .string()
     .optional()
@@ -79,7 +75,7 @@ export const aeWorktreeHandoffTool: ToolDefinition = tool({
     '- 交接文件采用结构化章节和 resume_entrypoint 作为真源',
     '- 返回简短交接提示，供 A 会话最后回复使用',
     '- A→B Startup Proof 按固定 schema 逐字段输出，不允许遗漏',
-    '- 需求、设计、图谱和 AE 项目配置路径在 A 端是条件必选：当上游产物或物理文件真实存在时必须迁移并传入；不存在时不传。B 端缺失时降级为可选上下文，不阻断继续执行',
+    '- 需求、设计和 AE 项目配置路径在 A 端是条件必选：当上游产物或物理文件真实存在时必须迁移并传入；不存在时不传。B 端缺失时降级为可选上下文，不阻断继续执行',
     '- design_path 和 task_brief 至少传入一个：有设计文档时传 design_path 并迁移到 B worktree；无设计文档时必须通过 task_brief 将任务详情写入交接文件，确保 B worktree 无需读取 A worktree 任何文件即可执行',
     '- 产物独立性约束：ae:prd 和 ae:design 的产物不得引用之前的产物文件（如当前 prd 禁止引用上一个需求或设计的产物路径）；交接文件中只迁移当前任务的直接上游产物，不迁移历史产物',
     '- source_session_id=unavailable 时强制要求 session_evidence',
@@ -107,7 +103,6 @@ export const aeWorktreeHandoffTool: ToolDefinition = tool({
     creation_result: WorktreeHandoffInputSchema.shape.creation_result,
     requirements_path: WorktreeHandoffInputSchema.shape.requirements_path,
     design_path: WorktreeHandoffInputSchema.shape.design_path,
-    graph_path: WorktreeHandoffInputSchema.shape.graph_path,
     ae_config_path: WorktreeHandoffInputSchema.shape.ae_config_path,
     task_brief: WorktreeHandoffInputSchema.shape.task_brief,
     execution_baseline: WorktreeHandoffInputSchema.shape.execution_baseline,
@@ -137,9 +132,6 @@ export const aeWorktreeHandoffTool: ToolDefinition = tool({
     }
     if (args.design_path !== undefined) {
       input.design_path = args.design_path
-    }
-    if (args.graph_path !== undefined) {
-      input.graph_path = args.graph_path
     }
     if (args.ae_config_path !== undefined) {
       input.ae_config_path = args.ae_config_path

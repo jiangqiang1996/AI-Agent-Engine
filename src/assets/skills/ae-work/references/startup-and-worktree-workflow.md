@@ -6,9 +6,9 @@
 
 设计文档输入必须完整阅读工作文档，视为决策产物，并检查每个单元的 `Execution note`、`Deferred to Implementation`、`Scope Boundaries`。若用户明确要求 TDD，即使设计无 Execution note 也要遵循。
 
-B worktree 继续执行路径必须解析交接文件并产出 `handoff_context`：目标 B worktree、需求文档路径、设计文档路径、任务详情、图谱目录、AE 项目配置路径、A→B 启动证明和执行基线声明。交接文件是唯一必需文件；需求、设计、图谱目录和 AE 项目配置在 A 端条件必选迁移（上游产物或物理文件存在时必须迁移），design_path 和 task_brief 至少传入一个（有上游 ae:design 产物时优先迁移 design_path；无上游产物时可通过 task_brief 内联任务详情，或生成上下文派生设计并迁移）；B 端只在交接文件引用且当前 B worktree 中真实存在时读取，缺失时降级为可选上下文不阻断继续执行（design_path 和 task_brief 均缺失时硬阻断）。存在性判断必须使用文件系统视角，不得依赖 `git status`、`git ls-files` 或其他会受 `.gitignore` 影响的 Git 视角。继续执行以结构化章节和 `resume_entrypoint` 为真源。
+B worktree 继续执行路径必须解析交接文件并产出 `handoff_context`：目标 B worktree、需求文档路径、设计文档路径、任务详情、AE 项目配置路径、A→B 启动证明和执行基线声明。交接文件是唯一必需文件；需求、设计和 AE 项目配置在 A 端条件必选迁移（上游产物或物理文件存在时必须迁移），design_path 和 task_brief 至少传入一个（有上游 ae:design 产物时优先迁移 design_path；无上游产物时可通过 task_brief 内联任务详情，或生成上下文派生设计并迁移）；B 端只在交接文件引用且当前 B worktree 中真实存在时读取，缺失时降级为可选上下文不阻断继续执行（design_path 和 task_brief 均缺失时硬阻断）。存在性判断必须使用文件系统视角，不得依赖 `git status`、`git ls-files` 或其他会受 `.gitignore` 影响的 Git 视角。继续执行以结构化章节和 `resume_entrypoint` 为真源。
 
-B worktree 继续执行必须校验当前目录和 `git rev-parse --show-toplevel` 输出是否与目标 B worktree 一致；不一致时停止并报告，不得回到 A worktree 写文件。交接文件缺少执行基线声明或启动证明时停止；交接文件未提供需求/设计路径、图谱目录或 AE 项目配置，或引用路径在 B 中不存在时，只记录可选上下文缺失，不得在 B 中补做文档审查或回 A 补迁移。交接文件未提供 `design_path` 且未提供 `task_brief`，或 `design_path` 在 B 中不存在且无 `task_brief` 时停止执行，按 input-routing-workflow 的停止执行规则处理。
+B worktree 继续执行必须校验当前目录和 `git rev-parse --show-toplevel` 输出是否与目标 B worktree 一致；不一致时停止并报告，不得回到 A worktree 写文件。交接文件缺少执行基线声明或启动证明时停止；交接文件未提供需求/设计路径或 AE 项目配置，或引用路径在 B 中不存在时，只记录可选上下文缺失，不得在 B 中补做文档审查或回 A 补迁移。交接文件未提供 `design_path` 且未提供 `task_brief`，或 `design_path` 在 B 中不存在且无 `task_brief` 时停止执行，按 input-routing-workflow 的停止执行规则处理。
 
 ## Git 状态检查
 
@@ -55,8 +55,8 @@ git log --oneline -1
 仅当用户选择创建 worktree 时执行本节。创建 worktree 前必须获得用户对具体 `git worktree add` 命令参数的明确授权。
 
 - 本地目录固定为 `../worktrees/<name>`，`<name>` 使用分支名或任务名净化后的短名。
-- 创建 B 后，A 会话不得再写入 A worktree 的任何文件，也不得在 B 中修改代码、测试或其他项目文件；仅允许迁移真实存在且已确定为执行基线的需求/设计产物、`ae/graphs/`、`.opencode/ae.jsonc`（A 端条件必选迁移义务）以及 design_path 或 task_brief（至少一个），以及写入唯一规范交接文件。
-- A 会话只允许在 B 写入真实存在且已确定为执行基线的需求/设计产物、`ae/graphs/`、`.opencode/ae.jsonc`、design_path（含上下文派生设计）或 task_brief（内联任务详情），以及唯一规范交接文件 `ae/handoffs/<timestamp>-worktree-handoff.md`。A 端迁移义务：需求/设计产物、`ae/graphs/`、`.opencode/ae.jsonc` 在 A worktree 中真实存在时必须迁移到 B（即使路径被 `.gitignore` 忽略），design_path 和 task_brief 至少传入一个（有上游 ae:design 产物时优先迁移 design_path；无上游 ae:design 产物时可通过 task_brief 内联任务详情，或生成上下文派生设计并迁移）；迁移前必须用文件系统工具或等价 shell 文件系统命令确认源路径存在并复制；不得用 `git status`、`git ls-files`、Git diff 或图谱结果判断它们不存在；其中 `.opencode/ae.jsonc` 只能作为已确定的 AE 项目配置上下文迁移并在交接文件中显式记录；未迁移的需求/设计、图谱或 AE 项目配置产物不在交接文件中出现，不得声称已复制。
+- 创建 B 后，A 会话不得再写入 A worktree 的任何文件，也不得在 B 中修改代码、测试或其他项目文件；仅允许迁移真实存在且已确定为执行基线的需求/设计产物、`.opencode/ae.jsonc`（A 端条件必选迁移义务）以及 design_path 或 task_brief（至少一个），以及写入唯一规范交接文件。
+- A 会话只允许在 B 写入真实存在且已确定为执行基线的需求/设计产物、`.opencode/ae.jsonc`、design_path（含上下文派生设计）或 task_brief（内联任务详情），以及唯一规范交接文件 `ae/handoffs/<timestamp>-worktree-handoff.md`。A 端迁移义务：需求/设计产物、`.opencode/ae.jsonc` 在 A worktree 中真实存在时必须迁移到 B（即使路径被 `.gitignore` 忽略），design_path 和 task_brief 至少传入一个（有上游 ae:design 产物时优先迁移 design_path；无上游 ae:design 产物时可通过 task_brief 内联任务详情，或生成上下文派生设计并迁移）；迁移前必须用文件系统工具或等价 shell 文件系统命令确认源路径存在并复制；不得用 `git status`、`git ls-files`、Git diff 判断它们不存在；其中 `.opencode/ae.jsonc` 只能作为已确定的 AE 项目配置上下文迁移并在交接文件中显式记录；未迁移的需求/设计或 AE 项目配置产物不在交接文件中出现，不得声称已复制。
 
 ### 上下文派生设计生成（无上游设计时必需）
 
@@ -92,7 +92,7 @@ git log --oneline -1
 
 - **禁止自行拼接交接 Markdown**，必须调用 `ae-worktree-handoff` 工具生成交接文件。
 - 继续执行入口必须写入 A→B 启动证明和执行基线，B worktree 通过 `ae:work <交接文件>` 读取结构化交接文件继续。
-- A→B 启动证明必须包含 source_session_id、source_worktree、target_worktree、branch、head、授权来源、命令参数、创建结果、迁移产物状态和执行基线；迁移产物状态只列出实际迁移的需求/设计、`ae/graphs/` 和 `.opencode/ae.jsonc`，未迁移的不出现。
+- A→B 启动证明必须包含 source_session_id、source_worktree、target_worktree、branch、head、授权来源、命令参数、创建结果、迁移产物状态和执行基线；迁移产物状态只列出实际迁移的需求/设计和 `.opencode/ae.jsonc`，未迁移的不出现。
 - 调用工具时传入所有必填参数；工具会按固定模板生成 Markdown、写入目标 B worktree 并返回 A 会话最终回复使用的简短交接提示。
 - `source_session_id`：运行时可见时记录；不可见时传 `unavailable`，并**同时**传入 `session_evidence`（可引用的消息或会话证据），否则工具会返回错误。
 - `design_path` 和 `task_brief` 至少传入一个：有设计文档时传 design_path 并迁移到 B worktree；无设计文档时必须通过 task_brief 将任务详情写入交接文件，确保 B worktree 无需读取 A worktree 任何文件即可执行。

@@ -131,7 +131,7 @@ remote MCP 的最终 URL 当前允许 `http` / `https`，建议优先使用 `htt
 
 | 场景 | 用途 | 典型模型特征 |
 | --- | --- | --- |
-| `quick` | 快速响应（`/ae-help`、`/ae-graph-query`） | 低延迟、低成本 |
+| `quick` | 快速响应（`/ae-help`） | 低延迟、低成本 |
 | `standard` | 常规任务（`/ae-brainstorm`、`/ae-sql`） | 平衡性能与质量 |
 | `deep` | 深度推理（`/ae-design`、`/ae-work`、`/ae-review`，以及声明 `model: $deep` 的 Markdown 命令） | 强推理、长上下文 |
 | `vision` | 视觉任务（`/ae-playwright`） | 支持图片输入 |
@@ -206,9 +206,8 @@ model: $deep
 
 | 资产 | 场景 |
 | --- | --- |
-| `/ae-brainstorm`、`/ae-prd`、`/ae-prd-update`、`/ae-agent-creator`、`/ae-work-report`、`/ae-my-code-changes`、`/ae-handoff`、`/ae-sql`、`/ae-swagger-parser`、`/ae-api-tester`、`/ae-image`、`/ae-audio`、`/ae-video`、`/ae-graph-build`、`/ae-project-explore`、`/ae-save-experience`、`/ae-prompt-optimize`、`/ae-skill-creator`、`/ae-docx`、`/ae-pdf`、`/ae-pptx`、`/ae-xlsx`、`/ae-officecli`、`/ae-prototype-preview` | `standard` |
+| `/ae-brainstorm`、`/ae-prd`、`/ae-prd-update`、`/ae-agent-creator`、`/ae-work-report`、`/ae-my-code-changes`、`/ae-handoff`、`/ae-sql`、`/ae-swagger-parser`、`/ae-api-tester`、`/ae-image`、`/ae-audio`、`/ae-video`、`/ae-project-explore`、`/ae-save-experience`、`/ae-prompt-optimize`、`/ae-skill-creator`、`/ae-docx`、`/ae-pdf`、`/ae-pptx`、`/ae-xlsx`、`/ae-officecli`、`/ae-prototype-preview` | `standard` |
 | `/ae-design`、`/ae-design-update`、`/ae-work`、`/ae-merge-branch`、`/ae-review`、`/ae-web-fix`、`/ae-slides-outline`、`/ae-task-loop`、`/ae-grill`、`/ae-ocr` | `deep` |
-| `/ae-graph-query` | `quick` |
 | `/ae-playwright`、`/ae-e2e-tester` | `vision` |
 | `@repo-research-analyst`、`@web-researcher` | `standard` |
 | `@ui-architect`、`@e2e-tester` | `vision` |

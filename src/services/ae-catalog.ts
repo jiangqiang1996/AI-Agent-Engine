@@ -187,22 +187,6 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     tier: 'tools',
   },
   {
-    skillName: SKILL.GRAPH_BUILD,
-    commandName: COMMAND.GRAPH_BUILD,
-    description: '构建或增量维护项目文件关系图谱',
-    argumentHint: '[target] [mode] [depth] [include=...] [exclude=...]',
-    skillFile: `src/assets/skills/${skillDir(SKILL.GRAPH_BUILD)}/SKILL.md`,
-    tier: 'tools',
-  },
-  {
-    skillName: SKILL.GRAPH_QUERY,
-    commandName: COMMAND.GRAPH_QUERY,
-    description: '查询项目文件关系图谱中的依赖、影响范围和健康状态',
-    argumentHint: '[mode] [file=<PATH>] [target=<PATH>] [directory=<PATH>]',
-    skillFile: `src/assets/skills/${skillDir(SKILL.GRAPH_QUERY)}/SKILL.md`,
-    tier: 'tools',
-  },
-  {
     skillName: SKILL.PROJECT_EXPLORE,
     commandName: COMMAND.PROJECT_EXPLORE,
     description: '探索和分析任意文件集合的结构与关系——代码项目、文档库、配置仓库、数据目录、复刻前调研。@explore 增强版：增加分类识别、关系映射、模式推断和复刻指南',

@@ -127,7 +127,6 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 创建或编辑 XLSX | `/ae-xlsx` |
 | Office 文档原生操作 | `/ae-officecli` |
 | 幻灯片大纲生成 | `/ae-slides-outline` |
-| 项目关系图谱 | `/ae-graph-build`、`/ae-graph-query` |
 | 项目结构探索 | `/ae-project-explore` |
 | 探索性修复 | `/ae-task-loop` |
 | 数据库操作 | `/ae-sql` |

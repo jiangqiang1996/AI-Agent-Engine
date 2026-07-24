@@ -68,8 +68,6 @@ describe('command-registration', () => {
     for (const [skillName, commandName] of [
       [SKILL.AGENT_CREATOR, COMMAND.AGENT_CREATOR],
       [SKILL.WORK_REPORT, COMMAND.WORK_REPORT],
-      [SKILL.GRAPH_BUILD, COMMAND.GRAPH_BUILD],
-      [SKILL.GRAPH_QUERY, COMMAND.GRAPH_QUERY],
     ] as const) {
       expect(config[commandName]?.template).toContain(`使用 \`${skillName}\` 技能处理这次请求`)
     }

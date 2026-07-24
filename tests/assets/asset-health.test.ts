@@ -128,10 +128,6 @@ describe('资产健康巡检', () => {
     expect(commandConfig['ae-doc-structure-pa'], 'asset-health/prompt-variant/command/ae-doc-structure-pa').toBeUndefined()
     expect(commandConfig[`${COMMAND.TASK_LOOP}-po`], 'asset-health/prompt-variant/command/ae-task-loop-po').toBeUndefined()
     expect(commandConfig[`${COMMAND.TASK_LOOP}-pa`], 'asset-health/prompt-variant/command/ae-task-loop-pa').toBeUndefined()
-    expect(commandConfig[`${COMMAND.GRAPH_BUILD}-po`], 'asset-health/prompt-variant/command/ae-graph-build-po').toBeUndefined()
-    expect(commandConfig[`${COMMAND.GRAPH_BUILD}-pa`], 'asset-health/prompt-variant/command/ae-graph-build-pa').toBeUndefined()
-    expect(commandConfig[`${COMMAND.GRAPH_QUERY}-po`], 'asset-health/prompt-variant/command/ae-graph-query-po').toBeUndefined()
-    expect(commandConfig[`${COMMAND.GRAPH_QUERY}-pa`], 'asset-health/prompt-variant/command/ae-graph-query-pa').toBeUndefined()
     expect(commandConfig[`${COMMAND.PLAYWRIGHT}-po`], 'asset-health/prompt-variant/command/ae-playwright-po').toBeUndefined()
     expect(commandConfig[`${COMMAND.PLAYWRIGHT}-pa`], 'asset-health/prompt-variant/command/ae-playwright-pa').toBeUndefined()
     expect(buildCommandConfig(join(process.cwd(), 'src/assets/commands'))['ae-work-continue'], 'asset-health/disk-command/command/ae-work-continue').toBeDefined()
@@ -344,8 +340,6 @@ describe('资产健康巡检', () => {
       COMMAND.XLSX,
       COMMAND.OFFICECLI,
       COMMAND.SLIDES_OUTLINE,
-      COMMAND.GRAPH_BUILD,
-      COMMAND.GRAPH_QUERY,
       COMMAND.TASK_LOOP,
       COMMAND.SQL,
       COMMAND.HANDOFF,
@@ -369,7 +363,6 @@ describe('资产健康巡检', () => {
     const scenarios = [
       [MODEL_SCENARIO.STANDARD, COMMAND.BRAINSTORM],
       [MODEL_SCENARIO.DEEP, COMMAND.DESIGN],
-      [MODEL_SCENARIO.QUICK, COMMAND.GRAPH_QUERY],
       [MODEL_SCENARIO.VISION, COMMAND.PLAYWRIGHT],
     ] as const
 

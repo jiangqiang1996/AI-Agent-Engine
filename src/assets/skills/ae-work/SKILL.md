@@ -54,11 +54,10 @@ argument-hint: "[设计路径|交接文件路径|任务描述]"
 - 如果调用方是 `ae:task-loop`，固定按 `current-worktree` 执行，记录 `worktree_decision: rejected`，不得询问 worktree 模式、不得创建 worktree、不得把未传值补齐为 `auto`。
 - `ae:task-loop ae:work`、`/ae-task-loop ae:work` 都必须归一化为上游编排器委派，按当前工作区执行。
 - 传入规范 worktree 交接文件路径时，必须把交接文件作为唯一必需输入，在当前可观察 worktree 中继续执行；不得按裸提示词处理，不得再次创建 worktree。
-- A 会话创建 B worktree 后，不得继续实现；必须迁移当前任务已确定、真实存在的需求/设计产物、`ae/graphs/` 和 `.opencode/ae.jsonc`（A 端条件必选：上游产物或物理文件存在时必须迁移，不存在时才不传），design_path 和 task_brief 至少传入一个（有上游 ae:design 产物时优先迁移 design_path；无上游 ae:design 产物时可通过 task_brief 内联任务详情，或生成上下文派生设计并迁移），并调用 `ae-worktree-handoff` 工具生成交接文件；存在性判断和复制必须使用文件系统视角，即使路径被 `.gitignore` 忽略也必须按真实文件系统存在性迁移，不能依赖 `git status`、`git ls-files` 或其他会受 `.gitignore` 影响的 Git 视角；未迁移的产物不得出现在交接文件中，禁止自行拼接交接 Markdown。
+- A 会话创建 B worktree 后，不得继续实现；必须迁移当前任务已确定、真实存在的需求/设计产物和 `.opencode/ae.jsonc`（A 端条件必选：上游产物或物理文件存在时必须迁移，不存在时才不传），design_path 和 task_brief 至少传入一个（有上游 ae:design 产物时优先迁移 design_path；无上游 ae:design 产物时可通过 task_brief 内联任务详情，或生成上下文派生设计并迁移），并调用 `ae-worktree-handoff` 工具生成交接文件；存在性判断和复制必须使用文件系统视角，即使路径被 `.gitignore` 忽略也必须按真实文件系统存在性迁移，不能依赖 `git status`、`git ls-files` 或其他会受 `.gitignore` 影响的 Git 视角；未迁移的产物不得出现在交接文件中，禁止自行拼接交接 Markdown。
 - `ae-worktree-handoff` 工具会按固定模板生成结构化交接文件并返回 A 会话最终回复使用的简短交接提示；B worktree 通过 `ae:work <交接文件>` 继续执行，`/ae-work-continue` 只是查找交接文件后调用 `ae:work` 的便捷包装。A→B 启动证明的结构由工具保证，AI 只需填值。
 - A 会话转移完成后必须记录 `worktree_decision: transferred`，不得进入普通交付模板。
 - 执行后必须由主代理独立运行 Git diff/status 核验真实修改文件，不得只依赖专精代理自报。
-- 使用知识图谱定位、拆解或评估影响范围时，必须读取 `freshness`；`freshness.status` 不是 `fresh` 时，图谱只能作为候选定位线索，不得作为无影响、无依赖、完整覆盖或无需修改的交付结论，必须刷新图谱或用真实文件、Git 状态和验证命令补证。
 - 正式交付前必须运行相关验证、完成代码审查或明确无法审查原因，并记录 Git 操作状态。
 - 验证或审查存在阻断项时必须先补齐阻断项，不得宣称交付完成。
 
