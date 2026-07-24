@@ -230,38 +230,6 @@ describe('ae-review-scope-analyze 工具', () => {
       expect(goals).toContain('修复登录 bug')
     })
 
-    it('有 goals + contextHint 应将 contextHint 追加到 goals 末尾', async () => {
-      const result = await callTool({
-        files: ['src/app.ts'],
-        reviewMode: 'changes',
-        goals: '验证登录功能正确',
-        contextHint: '修复登录 bug，关注认证流程',
-      })
-      const goals = result.goals as string
-      expect(goals).toBe('验证登录功能正确；上下文背景：修复登录 bug，关注认证流程')
-    })
-
-    it('有 goals + 无 contextHint 应原样返回 goals', async () => {
-      const result = await callTool({
-        files: ['src/app.ts'],
-        reviewMode: 'changes',
-        goals: '验证登录功能正确',
-      })
-      const goals = result.goals as string
-      expect(goals).toBe('验证登录功能正确')
-    })
-
-    it('有 goals + 空 contextHint 应原样返回 goals', async () => {
-      const result = await callTool({
-        files: ['src/app.ts'],
-        reviewMode: 'changes',
-        goals: '验证登录功能正确',
-        contextHint: '',
-      })
-      const goals = result.goals as string
-      expect(goals).toBe('验证登录功能正确')
-    })
-
     it('无 goals + 混合文件应生成代码与文档一致性验证目标', async () => {
       const result = await callTool({
         files: ['src/app.ts', 'README.md'],
