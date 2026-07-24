@@ -7,7 +7,7 @@
 | 路径 | 作用 |
 | --- | --- |
 | `src/index.ts` | server 插件入口，负责注册和依赖组装 |
-| `src/tools/` | opencode 工具定义（25 个工具） |
+| `src/tools/` | opencode 工具定义（23 个工具） |
 | `src/services/` | 业务逻辑、注册逻辑和运行时服务 |
 | `src/schemas/` | Zod Schema 与资产常量（`ae-asset-schema.ts` 是技能/命令/代理/工具名常量真源） |
 | `src/utils/` | 无业务状态的通用工具函数 |

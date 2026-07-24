@@ -100,19 +100,27 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 查看当前能力 | `/ae-help` |
 | 多视角发散讨论 | `/ae-brainstorm` |
 | 需求澄清与需求文档 | `/ae-prd` |
+| 需求变更 | `/ae-prd-update` |
 | 设计阶段（架构、接口、数据模型、实现单元） | `/ae-design` |
+| 增量更新设计 | `/ae-design-update` |
+| 深度追问方案决策 | `/ae-grill` |
 | 计划执行 | `/ae-work` |
 | Worktree 继续执行 | `/ae-work-continue` |
 | 分支或 worktree 合并 | `/ae-merge-branch` |
 | 工作总结 | `/ae-work-report` |
 | 查看本人代码变更 | `/ae-my-code-changes` |
 | 代码或文档审查 | `/ae-review` |
+| 快速审查并自动修复 | `/ae-review-auto` |
+| 代码审查（CLI 模式） | `/ae-ocr` |
 | 前端修复（视觉/交互/接口） | `/ae-web-fix` |
 | 浏览器 E2E 测试与验收 | `/ae-e2e-tester` |
 | playwright 浏览器能力 | `/ae-playwright` |
+| 原型预览 | `/ae-prototype-preview` |
 | 接口测试 | `/ae-api-tester` |
 | Swagger/OpenAPI 摘要 | `/ae-swagger-parser` |
 | 图片转 Markdown 描述 | `/ae-image` |
+| 音频转 Markdown 描述 | `/ae-audio` |
+| 视频转 Markdown 描述 | `/ae-video` |
 | 创建或编辑 DOCX | `/ae-docx` |
 | 创建或编辑 PDF | `/ae-pdf` |
 | 创建或编辑 PPTX | `/ae-pptx` |
@@ -120,9 +128,11 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | Office 文档原生操作 | `/ae-officecli` |
 | 幻灯片大纲生成 | `/ae-slides-outline` |
 | 项目关系图谱 | `/ae-graph-build`、`/ae-graph-query` |
+| 项目结构探索 | `/ae-project-explore` |
 | 探索性修复 | `/ae-task-loop` |
 | 数据库操作 | `/ae-sql` |
 | 会话交接 | `/ae-handoff` |
+| 保存经验 | `/ae-save-experience` |
 | 创建技能 | `/ae-skill-creator` |
 | 提示词优化 | `/ae-prompt-optimize` |
 | 创建代理 | `/ae-agent-creator` |
@@ -146,10 +156,10 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 
 | 类型 | 当前快照 | 真源 |
 | --- | ---: | --- |
-| 技能 | 33 | `src/assets/skills/`、`src/schemas/ae-asset-schema.ts` |
-| 命令 | 40 | `src/services/command-registration.ts`、`src/assets/commands/` |
+| 技能 | 35 | `src/assets/skills/`、`src/schemas/ae-asset-schema.ts` |
+| 命令 | 44 | `src/services/command-registration.ts`、`src/assets/commands/` |
 | 代理 | 32 | `src/assets/agents/`、`src/services/agent-registration.ts` |
-| 工具 | 26 | `src/tools/` |
+| 工具 | 23 | `src/tools/` |
 | 规则 | 4 | `src/assets/rules/` |
 | 内置配置 | 1 | `src/assets/config/ae.jsonc` |
 
