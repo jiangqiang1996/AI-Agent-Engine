@@ -627,7 +627,7 @@ describe('brainstorm-service - 轮询分配模型', () => {
     expect(result.modelsUsed).toEqual(['p/m1', 'p/m2'])
   })
 
-  it('深化轮时模型应向后偏移一位，避免同一视角两轮使用同一模型', async () => {
+  it('深化轮时模型应通过扁平槽位轮询分配', async () => {
     mockResolveBrainstormModels.mockReturnValue({ models: ['p/m1', 'p/m2', 'p/m3'], source: 'test' })
 
     const sessionTexts = new Map<string, string>()
@@ -658,12 +658,88 @@ describe('brainstorm-service - 轮询分配模型', () => {
     expect(result.totalSessions).toBe(5)
     expect(promptCalls).toHaveLength(4)
 
-    // R1: critic→m1, optimist→m2
+    // R1: slot 0→m1, slot 1→m2
     expect(promptCalls[0].model).toEqual({ providerID: 'p', modelID: 'm1' })
     expect(promptCalls[1].model).toEqual({ providerID: 'p', modelID: 'm2' })
-    // R2: critic→m2, optimist→m3（偏移1位）
-    expect(promptCalls[2].model).toEqual({ providerID: 'p', modelID: 'm2' })
-    expect(promptCalls[3].model).toEqual({ providerID: 'p', modelID: 'm3' })
+    // R2: slot 2→m3, slot 3→m1（扁平槽位 round-robin）
+    expect(promptCalls[2].model).toEqual({ providerID: 'p', modelID: 'm3' })
+    expect(promptCalls[3].model).toEqual({ providerID: 'p', modelID: 'm1' })
+  })
+
+  it('模型数不超过总槽位时应保证每个模型都被使用', async () => {
+    mockResolveBrainstormModels.mockReturnValue({ models: ['p/m1', 'p/m2', 'p/m3'], source: 'test' })
+
+    const sessionTexts = new Map<string, string>()
+    for (let i = 1; i <= 7; i++) {
+      sessionTexts.set(`session-${i}`, `## 核心观点\n- 洞察${i}`)
+    }
+    sessionTexts.set('session-7', '## 汇总')
+
+    const promptCalls: Array<{ model?: { providerID: string; modelID: string } }> = []
+    const { client } = createMockClient(sessionTexts)
+    client.session.prompt.mockImplementation(async (args: { path: { id: string }; body?: { model?: { providerID: string; modelID: string } } }) => {
+      if (args.body?.model) {
+        promptCalls.push({ model: args.body.model })
+      }
+      const text = sessionTexts.get(args.path.id) ?? '默认'
+      return { data: { parts: [{ type: 'text', text }] }, error: undefined }
+    })
+    mockGetGlobalClient.mockReturnValue(client as never)
+
+    const { executeBrainstorm } = await import('../../src/services/brainstorm-service.js')
+
+    const result = await executeBrainstorm({
+      topic: '主题',
+      perspectives: ['critic', 'optimist', 'pragmatist'],
+      rounds: 2,
+    })
+
+    expect(result.totalSessions).toBe(7)
+    expect(promptCalls).toHaveLength(6)
+    // 3 视角 × 2 轮 = 6 槽位，3 模型，每个模型应被使用 2 次
+    expect(result.modelsUsed).toEqual(['p/m1', 'p/m2', 'p/m3'])
+    const modelCounts: Record<string, number> = {}
+    for (const call of promptCalls) {
+      const key = `${call.model!.providerID}/${call.model!.modelID}`
+      modelCounts[key] = (modelCounts[key] ?? 0) + 1
+    }
+    expect(modelCounts).toEqual({ 'p/m1': 2, 'p/m2': 2, 'p/m3': 2 })
+  })
+
+  it('单模型时应正确分配到所有视角', async () => {
+    mockResolveBrainstormModels.mockReturnValue({ models: ['p/m1'], source: 'test' })
+
+    const sessionTexts = new Map<string, string>()
+    for (let i = 1; i <= 4; i++) {
+      sessionTexts.set(`session-${i}`, `## 核心观点\n- 洞察${i}`)
+    }
+    sessionTexts.set('session-4', '## 汇总')
+
+    const promptCalls: Array<{ model?: { providerID: string; modelID: string } }> = []
+    const { client } = createMockClient(sessionTexts)
+    client.session.prompt.mockImplementation(async (args: { path: { id: string }; body?: { model?: { providerID: string; modelID: string } } }) => {
+      if (args.body?.model) {
+        promptCalls.push({ model: args.body.model })
+      }
+      const text = sessionTexts.get(args.path.id) ?? '默认'
+      return { data: { parts: [{ type: 'text', text }] }, error: undefined }
+    })
+    mockGetGlobalClient.mockReturnValue(client as never)
+
+    const { executeBrainstorm } = await import('../../src/services/brainstorm-service.js')
+
+    const result = await executeBrainstorm({
+      topic: '主题',
+      perspectives: ['critic', 'optimist', 'pragmatist'],
+      rounds: 1,
+    })
+
+    expect(result.totalSessions).toBe(4)
+    expect(promptCalls).toHaveLength(3)
+    expect(promptCalls[0].model).toEqual({ providerID: 'p', modelID: 'm1' })
+    expect(promptCalls[1].model).toEqual({ providerID: 'p', modelID: 'm1' })
+    expect(promptCalls[2].model).toEqual({ providerID: 'p', modelID: 'm1' })
+    expect(result.modelsUsed).toEqual(['p/m1'])
   })
 })
 

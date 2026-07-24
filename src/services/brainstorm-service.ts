@@ -306,11 +306,12 @@ export async function executeBrainstorm(options: BrainstormOptions): Promise<Bra
       progressIndex: number
     }> = []
 
-    const modelOffset = models.length > 1 ? (round - 1) % models.length : 0
+    const slotBase = (round - 1) * selectedPerspectives.length
 
     for (let i = 0; i < selectedPerspectives.length; i++) {
       const perspective = selectedPerspectives[i]
-      const model = models.length > 0 ? models[(i + modelOffset) % models.length] : undefined
+      const slotIndex = slotBase + i
+      const model = models.length > 0 ? models[slotIndex % models.length] : undefined
       const modelRef = parseModelReference(model)
       sessionIndex++
       let userPrompt = `讨论主题：${topic}\n\n请从${perspective.role}的角度出发进行讨论。`
