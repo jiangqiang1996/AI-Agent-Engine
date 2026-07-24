@@ -13,14 +13,19 @@
 | 增量更新设计 | `/ae-design-update` |
 | 深度追问方案决策 | `/ae-grill` |
 | 已有设计，需要执行 | `/ae-work` |
+| Worktree 继续执行 | `/ae-work-continue` |
 | 合并分支或 worktree | `/ae-merge-branch` |
 | 生成工作总结 | `/ae-work-report` |
 | 查看本人代码变更 | `/ae-my-code-changes` |
+| 探索性修复（循环验证） | `/ae-task-loop` |
+| 智能提交变更 | `/ae-commit` |
+| 清理分支/worktree | `/ae-remove-local-branch-worktree` |
 | 只看风险，不改文件 | `/ae-review mode:report-only` |
 | 快速审查并自动修复 | `/ae-review-auto` |
 | 代码审查（CLI 模式） | `/ae-ocr` |
 | 前端修复（视觉/交互/接口） | `/ae-fix frontend` |
 | 后端修复（错误分析/根因定位） | `/ae-fix backend` |
+| 浏览器操作 | `/ae-playwright` |
 | 浏览器 E2E 测试与验收 | `/ae-test e2e` |
 | 后端单元测试 | `/ae-test unit` |
 | 接口测试 | `/ae-test api` |
@@ -40,7 +45,128 @@
 | 保存经验 | `/ae-save-experience` |
 | 提示词优化 | `/ae-prompt-optimize` |
 | 交接到新会话 | `/ae-handoff` |
+| 创建或更新技能 | `/ae-skill-creator` |
+| 创建或更新代理 | `/ae-agent-creator` |
+| 安装或更新插件 | `/ae-install` |
+| 卸载插件 | `/ae-uninstall` |
 | 查看完整帮助 | `/ae-help` |
+
+## 使用场景速查
+
+按开发场景分类，快速找到对应的技能、命令和代理。
+
+### 需求与设计
+
+从想法到可执行设计的完整链路。
+
+| 场景 | 命令/技能 | 代理 | 说明 |
+| --- | --- | --- | --- |
+| 多角度发散讨论 | `/ae-brainstorm` | — | 不产出文档，讨论结果转 `/ae-prd` 沉淀 |
+| 产出需求文档 | `/ae-prd` | — | 澄清目标、边界、约束和成功标准 |
+| 需求变更 | `/ae-prd-update` | — | 维护软删除链和变更摘要 |
+| 深度追问方案决策 | `/ae-grill` | — | 适用于模糊需求逐层澄清 |
+| 产出设计文档 | `/ae-design` | `@architecture-designer` `@api-designer` `@database-designer` `@ui-ux-designer` `@security-designer` `@observability-designer` `@non-functional-designer` `@test-cases-designer` | 含架构、接口、数据模型、测试用例与验收标准 |
+| 增量更新设计 | `/ae-design-update` | 同上 | 仅处理过期模块，不触碰未受影响文件 |
+| 原型预览 | `/ae-prototype-preview` | — | 将原型文档转为 HTML 静态文件验证效果 |
+| 项目结构探索 | `/ae-project-explore` | `@repo-research-analyst` | 分析任意文件集合的结构与关系 |
+
+### 前端开发
+
+| 场景 | 命令/技能 | 代理 | 说明 |
+| --- | --- | --- | --- |
+| 有设计稿实现页面 | `/ae-work` | `@ui-architect` + `@logic-weaver` | 视觉实现 + 交互逻辑/状态管理/API 联调 |
+| 无设计稿提升视觉 | `/ae-work` | `@ui-architect` | 自由设计模式，按决策包实现 |
+| 前端修复（视觉/交互/接口） | `/ae-fix frontend` | `@frontend-fix` | DOM 结构化数据诊断为主，截图为辅 |
+| 浏览器操作 | `/ae-playwright` | — | 所有浏览器操作一律通过本技能 |
+| 原型转 HTML 预览 | `/ae-prototype-preview` | — | 技术栈无关，禁止打包构建工具 |
+| UI 设计规范决策 | — | `@ui-design-spec` | 推断设计读数、设计体系选择和风格变体 |
+| UI/UX 设计维度 | — | `@ui-ux-designer` | 产出信息架构、页面规格、组件契约、设计 Token |
+
+`/ae-work` 在执行前端任务时自动调度 `@ui-architect`（视觉实现）和 `@logic-weaver`（逻辑实现），用户一般不需要手动指定代理。
+
+### 后端开发
+
+| 场景 | 命令/技能 | 代理 | 说明 |
+| --- | --- | --- | --- |
+| 实现后端功能 | `/ae-work` | `@backend-dev` | 处理 API、数据层、业务逻辑和中间件 |
+| 后端修复 | `/ae-fix backend` | `@backend-fix` | 错误分析、根因定位、修复实现和回归验证 |
+| 数据库查询或操作 | `/ae-sql` | — | 通过 JDBC 连接任意数据库执行 SQL |
+| 接口文档解析 | `/ae-swagger-parser` | — | 解析 Swagger/OpenAPI 输出联调摘要 |
+| 接口设计维度 | — | `@api-designer` | 端点清单、TypeScript interface、错误码体系 |
+| 数据库设计维度 | — | `@database-designer` | ER 模型、表结构、关系与外键、迁移策略 |
+| 架构设计维度 | — | `@architecture-designer` | 模块边界、依赖方向、分层规则、数据流 |
+
+### 测试
+
+| 场景 | 命令/技能 | 代理 | 说明 |
+| --- | --- | --- | --- |
+| 后端单元测试 | `/ae-test unit` | `@unit-test-runner` | 生成、执行、覆盖率分析；路由 Vitest/JUnit/pytest/Go test/Rust test |
+| 接口测试 | `/ae-test api` | — | 业务流程编排为主、接口边界测试为辅；支持登录认证 |
+| 浏览器 E2E 测试 | `/ae-test e2e` | `@e2e-test-runner` | 验收测试、测试生成、测试修复和回归；底层依赖 ae:playwright |
+| 测试用例设计 | — | `@test-cases-designer` | 覆盖矩阵、P0-P3 用例、行为契约规格 |
+| 测试失败诊断 | — | `@test-triage` | 分析失败根因并分派修复方向 |
+| 统一测试入口 | `/ae-test [unit\|e2e\|api]` | — | 按参数或上下文自动推测路由到对应测试技能 |
+
+单元测试有设计用例时从用例规格编译骨架，无则从代码结构推断测试点。接口测试有设计用例时从用例规格编译接口测试骨架，无则从接口文档生成。E2E 测试有设计用例时从用例规格编译 Playwright 骨架，无则从页面描述生成。
+
+### 代码审查
+
+| 场景 | 命令/技能 | 代理 | 说明 |
+| --- | --- | --- | --- |
+| 通用审查 | `/ae-review` | 13 个审查代理全并行 | 自动识别场景，支持代码/文档/设计/混合范围 |
+| 只审查不修改 | `/ae-review mode:report-only` | 同上 | 只报告发现，不自动修复 |
+| 快速审查并自动修复 | `/ae-review-auto` | 同上 | 审查与修复一体化 |
+| CLI 代码审查 | `/ae-ocr` | `@ocr-reviewer` | 覆盖 bug/安全/性能/可维护性/测试覆盖/风格 |
+| 文档审查 | `/ae-review domain:document` | `@document-reviewer` 等 | 不会把文档当代码 diff 处理 |
+| 设计审查 | `/ae-review design:<path>` | `@design-integrity-reviewer` 等 | 审查设计文档各维度产物 |
+| 目标对齐审查 | `/ae-review goals=<text>` | `@goal-alignment-reviewer` | 对照审查目标逐条校验是否达成 |
+
+审查代理全并行调度只找问题不做修复，合并层负责去重、冲突解决、因果分析和修复方案生成。
+
+### 文档生成
+
+| 场景 | 命令/技能 | 说明 |
+| --- | --- | --- |
+| 创建或编辑 Word | `/ae-docx` | 段落、表格、修订追踪、页眉页脚、目录等 |
+| 创建或编辑 PDF | `/ae-pdf` | 创建、合并、拆分、提取、表单、水印等；to-markdown 转 Markdown |
+| 创建或编辑 PowerPoint | `/ae-pptx` | 幻灯片、形状、图表、动画、母版等 |
+| 创建或编辑 Excel | `/ae-xlsx` | 公式计算、数据透视表、条件格式、图表等 |
+| Office 原生操作 | `/ae-officecli` | L1 读取/L2 DOM 编辑/L3 raw XML |
+| 幻灯片大纲生成 | `/ae-slides-outline` | 逐页内容大纲，支持对话反复修改 |
+
+### 媒体识别
+
+| 场景 | 命令/技能 | 说明 |
+| --- | --- | --- |
+| 图片转 Markdown | `/ae-image` | JPG/PNG/GIF/WebP/BMP |
+| 音频转 Markdown | `/ae-audio` | MP3/WAV/OGG/FLAC/M4A/AAC |
+| 视频转 Markdown | `/ae-video` | MP4/WebM/AVI/MOV/MKV/FLV |
+
+模型不支持对应媒体输入时，系统自动降级为路径文本，LLM 按需调用对应技能识别内容。
+
+### 通用任务与协作
+
+| 场景 | 命令/技能 | 说明 |
+| --- | --- | --- |
+| 通用实施 | `/ae-work` | 执行设计或直接任务，产出代码、文档、测试等交付物 |
+| 探索性修复 | `/ae-task-loop` | 循环执行和验证直到目标达成 |
+| 会话交接 | `/ae-handoff` | 提取上下文创建独立新会话 |
+| 工作总结 | `/ae-work-report` | 基于提交和未提交变更生成日报/周报 |
+| 查看本人代码变更 | `/ae-my-code-changes` | 指定时间内本人提交的所有代码变更 |
+| 分支或 worktree 合并 | `/ae-merge-branch` | 合并变更并用 AE 交接验证 |
+| 智能提交 | `/ae-commit` | 遵循项目 Git 提交规范，只做本地提交 |
+| 经验沉淀 | `/ae-save-experience` | 保存 solution，并按需提炼 rules |
+| 提示词优化 | `/ae-prompt-optimize` | 优化后新开会话自动执行或暂停等待 |
+
+### 维护与配置
+
+| 场景 | 命令/技能 | 说明 |
+| --- | --- | --- |
+| 创建或更新技能 | `/ae-skill-creator` | 支持技能、命令或二者同时创建 |
+| 创建或更新代理 | `/ae-agent-creator` | 默认项目级，支持全局级和同级命令 |
+| 安装或更新插件 | `/ae-install` | 自动判断已装则更新、未装则安装 |
+| 卸载插件 | `/ae-uninstall` | 自动检测安装范围供用户选择 |
+| 查看帮助 | `/ae-help` | 权威只读入口，列出所有运行时能力 |
 
 ## 经典用法
 
@@ -204,6 +330,24 @@ AE 采用 13 代理全并行架构，所有激活代理在同一轮一次性发�
 | `@logic-weaver` | 前端代码实现：交互逻辑、API联调、状态管理、组件开发、重构、性能优化 | 不负责视觉设计或修复 |
 | `@frontend-fix` | 统一前端修复：视觉修复、交互修复、接口联调修复 | 以 DOM 结构化数据诊断为主，截图为辅；具备诊断→修复→验证内部闭环 |
 | `@e2e-test-runner` | 浏览器 E2E 测试：验收测试、测试场景设计、Playwright 测试生成和回归验证 | 可修改测试文件，不修改产品代码 |
+| `@unit-test-runner` | 单元测试执行：生成、执行并分析覆盖率 | 支持 Vitest/JUnit/pytest/Go test/Rust test |
+| `@test-triage` | 测试失败诊断：分析失败根因并分派修复方向 | 不直接修复代码 |
+
+## 设计维度代理
+
+设计维度代理由 `ae:design` 编排层自动调度，用户一般不需要手动指定。
+
+| 代理 | 用途 | 边界 |
+| --- | --- | --- |
+| `@ui-design-spec` | UI 设计规范与决策：推断设计读数、设计体系选择和风格变体推荐 | 不写代码、不操作浏览器、不产出契约文件 |
+| `@ui-ux-designer` | UI/UX 设计维度：信息架构、页面规格、组件契约、设计 Token、交互状态机 | 主动扫描已有组件资产，优先复用 |
+| `@architecture-designer` | 架构设计维度：模块边界、依赖方向、分层规则、数据流、错误传播链 | — |
+| `@api-designer` | 接口设计维度：端点清单、TypeScript interface、认证授权、错误码体系 | — |
+| `@database-designer` | 数据库设计维度：ER 模型、表结构、关系与外键、迁移策略 | — |
+| `@test-cases-designer` | 测试用例设计维度：覆盖矩阵、P0-P3 用例、行为契约规格 | — |
+| `@security-designer` | 安全设计维度：威胁模型、信任边界、认证授权流程、数据分级 | — |
+| `@observability-designer` | 可观测性设计维度：日志规范、指标体系、告警规则、健康检查 | — |
+| `@non-functional-designer` | 非功能设计维度：性能目标、并发模型、事务边界、缓存策略 | — |
 
 ## 开发专精代理
 
@@ -241,6 +385,7 @@ AE 采用 13 代理全并行架构，所有激活代理在同一轮一次性发�
 | `ae-brainstorm` | 多视角头脑风暴，多模型并行讨论并汇总                    | 不产出持久产物 |
 | `ae-officecli` | 通过 OfficeCLI 操作 Office 文档             | 仅处理 .docx/.xlsx/.pptx |
 | `ae-ocr` | 通过 OpenCodeReview CLI 执行 AI 代码审查     | 审查只找问题，不做修复 |
+| `ae-test-triage` | 诊断测试失败根因并分派修复方向 | 不直接修复代码 |
 
 ## 前端能力怎么选
 
@@ -254,6 +399,18 @@ AE 采用 13 代理全并行架构，所有激活代理在同一轮一次性发�
 | 生成或修复 E2E 测试 | `/ae-test e2e` 生成测试/修复测试 |
 
 浏览器相关路径都通过 `ae:playwright` 技能操作浏览器。
+
+## 测试能力怎么选
+
+| 场景 | 命令 | 代理 | 说明 |
+| --- | --- | --- | --- |
+| 后端单元测试 | `/ae-test unit` | `@unit-test-runner` | 有设计用例从用例编译骨架，无则从代码结构推断 |
+| 接口测试 | `/ae-test api` | — | 有设计用例从用例编译骨架，无则从接口文档生成 |
+| 浏览器 E2E 测试 | `/ae-test e2e` | `@e2e-test-runner` | 有设计用例从用例编译 Playwright 骨架，无则从页面描述生成 |
+| 测试失败根因诊断 | — | `@test-triage` | 按 5 条优先级短路规则分类根因并分派修复方向 |
+| 测试用例设计 | — | `@test-cases-designer` | 产出覆盖矩阵、P0-P3 用例、行为契约规格 |
+
+`/ae-test` 是统一测试入口，显式传 `unit`/`e2e`/`api` 时直接路由；未传时按目标描述关键词、变更文件类型、已有测试资产和设计用例路径自动推测。
 
 ## 产物路径
 

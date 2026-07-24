@@ -113,10 +113,12 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 快速审查并自动修复 | `/ae-review-auto` |
 | 代码审查（CLI 模式） | `/ae-ocr` |
 | 前端修复（视觉/交互/接口） | `/ae-fix frontend` |
+| 后端修复（错误分析/根因定位） | `/ae-fix backend` |
 | 浏览器 E2E 测试与验收 | `/ae-test e2e` |
+| 后端单元测试 | `/ae-test unit` |
+| 接口测试 | `/ae-test api` |
 | playwright 浏览器能力 | `/ae-playwright` |
 | 原型预览 | `/ae-prototype-preview` |
-| 接口测试 | `/ae-test api` |
 | Swagger/OpenAPI 摘要 | `/ae-swagger-parser` |
 | 图片转 Markdown 描述 | `/ae-image` |
 | 音频转 Markdown 描述 | `/ae-audio` |
@@ -129,6 +131,8 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 幻灯片大纲生成 | `/ae-slides-outline` |
 | 项目结构探索 | `/ae-project-explore` |
 | 探索性修复 | `/ae-task-loop` |
+| 智能提交 | `/ae-commit` |
+| 清理分支/worktree | `/ae-remove-local-branch-worktree` |
 | 数据库操作 | `/ae-sql` |
 | 会话交接 | `/ae-handoff` |
 | 保存经验 | `/ae-save-experience` |
@@ -138,7 +142,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 安装或更新 AE 插件 | `/ae-install` |
 | 卸载 AE 插件 | `/ae-uninstall` |
 
-详细参数、代理分工、工具边界和产物路径见 [docs/usage-guide.md](docs/usage-guide.md)。配置合并和模型场景路由见 [docs/builtin-config.md](docs/builtin-config.md)。
+详细参数、代理分工、工具边界和产物路径见 [docs/usage-guide.md](docs/usage-guide.md)。按开发场景分类的能力速查见 [docs/usage-guide.md#使用场景速查](docs/usage-guide.md#使用场景速查)。配置合并和模型场景路由见 [docs/builtin-config.md](docs/builtin-config.md)。
 
 ## 工作规则
 
@@ -155,10 +159,10 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 
 | 类型 | 当前快照 | 真源 |
 | --- | ---: | --- |
-| 技能 | 35 | `src/assets/skills/`、`src/schemas/ae-asset-schema.ts` |
-| 命令 | 44 | `src/services/command-registration.ts`、`src/assets/commands/` |
-| 代理 | 32 | `src/assets/agents/`、`src/services/agent-registration.ts` |
-| 工具 | 23 | `src/tools/` |
+| 技能 | 37 | `src/assets/skills/`、`src/schemas/ae-asset-schema.ts` |
+| 命令 | 46 | `src/services/command-registration.ts`、`src/assets/commands/` |
+| 代理 | 34 | `src/assets/agents/`、`src/services/agent-registration.ts` |
+| 工具 | 21 | `src/tools/` |
 | 规则 | 4 | `src/assets/rules/` |
 | 内置配置 | 1 | `src/assets/config/ae.jsonc` |
 
