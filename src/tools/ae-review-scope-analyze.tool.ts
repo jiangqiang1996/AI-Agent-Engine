@@ -317,15 +317,6 @@ function generateGoalsFromContext(
   return goals.join('；')
 }
 
-/**
- * 将上下文提示追加到用户显式传入的 goals 末尾。
- * contextHint 作为审查背景补充，帮助 goal-alignment-reviewer 更精准对齐。
- */
-function appendContextHint(goals: string, contextHint: string): string {
-  if (contextHint.length === 0) return goals
-  return `${goals}；上下文背景：${contextHint}`
-}
-
 function isDimensionReviewer(name: string): boolean {
   return Object.values(DIMENSION_TO_AGENT).includes(name)
 }
@@ -500,35 +491,11 @@ export const aeReviewScopeAnalyzeTool = tool({
     goals: z
       .string()
       .optional()
-      .describe('审查目标（成功条件列表）。用户显式传入时作为审查目标基础，contextHint 非空时自动追加为背景补充，跳过自动分析；未传入时工具自动从 contextHint、文件路径、目录结构、设计维度、测试覆盖、配置变更等多维度推断详细审查目标'),
+      .describe('审查目标（成功条件列表）。用户显式传入时直接透传，跳过自动分析；未传入时工具自动从 contextHint、文件路径、目录结构、设计维度、测试覆盖、配置变更等多维度推断详细审查目标'),
     contextHint: z
       .string()
       .optional()
-      .describe([
-        '上下文提示：向工具提供本次审查的背景信息，用于补充审查目标（goals）的对齐上下文。',
-        '',
-        '作用说明：',
-        '- 本字段不参与代理选择逻辑（代理由文件类型和设计维度自动决定）',
-        '- 当 goals 未传入时，本字段作为"上下文背景"条目纳入自动生成的审查目标',
-        '- 当 goals 已显式传入时，本字段以"上下文背景：..."格式追加到 goals 末尾，为 goal-alignment-reviewer 提供变更背景',
-        '- 无论 goals 是否传入，本字段非空时都会生效',
-        '',
-        '内容建议（传入越详细、越全面，审查目标对齐越精准）：',
-        '- 审查来源：如"会话变更"、"Git diff main..feature"、"全量扫描"、"首次提交"、"用户指定路径"',
-        '- 触发原因：如"修复登录 bug"、"新增支付模块"、"重构数据层"、"配置变更后回归"',
-        '- 关注重点：如"重点验证幂等性"、"关注向后兼容性"、"检查错误处理链路"',
-        '- 已知风险或约束：如"涉及数据库迁移"、"包含 API 契约变更"、"有破坏性变更风险"',
-        '',
-        '与 goals 的关系：',
-        '- goals 是显式审查目标（成功条件列表），本字段是隐式审查背景，二者互补而非互斥',
-        '- goals 缺失时：工具自动从本字段、文件路径、目录结构、设计维度、测试覆盖等多维度推断目标',
-        '- goals 存在时：本字段追加到 goals 末尾作为背景补充，不替换用户目标',
-        '',
-        '示例：',
-        '- "会话变更审查，修复登录 bug，关注认证流程和错误处理"',
-        '- "全量审查，首次提交，重点验证架构边界和模块依赖方向"',
-        '- "Git diff main..feature，新增支付模块，涉及数据库迁移，关注向后兼容性"',
-      ].join('\n')),
+      .describe('上下文提示：描述审查背景（如"会话变更"、"全量审查"、"首次提交"等），用于推断目标代理激活'),
     worktree: z
       .string()
       .optional()
@@ -591,11 +558,11 @@ export const aeReviewScopeAnalyzeTool = tool({
       }
 
       const hasExplicitGoals = args.goals && args.goals.trim().length > 0
-      const hint = (args.contextHint ?? '').trim()
+      const contextHint = (args.contextHint ?? '').toLowerCase()
 
-      const effectiveGoals = hasExplicitGoals
-        ? appendContextHint(args.goals!.trim(), hint)
-        : generateGoalsFromContext(hint, args.reviewMode, codeFiles, docFiles)
+      const effectiveGoals = hasExplicitGoals && args.goals
+        ? args.goals.trim()
+        : generateGoalsFromContext(args.contextHint ?? '', args.reviewMode, codeFiles, docFiles)
 
       if (hasExplicitGoals) {
         if (!agents.includes(AGENT.GOAL_ALIGNMENT_REVIEWER)) {
