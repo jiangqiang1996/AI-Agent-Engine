@@ -101,7 +101,6 @@ export const TOOL = {
   AE_VIDEO: 'ae-video',
   AE_GRAPH_BUILD: 'ae-graph-build',
   AE_GRAPH_QUERY: 'ae-graph-query',
-  AE_TASK_ANALYZER: 'ae-task-analyzer',
   AE_DOC_EXTRACT: 'ae-doc-extract',
   AE_DOMAIN_CATALOG: 'ae-domain-catalog',
   AE_TIMER: 'ae-timer',
