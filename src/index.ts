@@ -1,4 +1,4 @@
-import type {Config, Plugin} from '@opencode-ai/plugin'
+import type {Config, Plugin, Hooks} from '@opencode-ai/plugin'
 import {join, resolve} from 'node:path'
 
 import {isInsideRoot} from './utils/path-utils.js'
@@ -30,6 +30,7 @@ import {getCapabilityBySession} from './services/model-capability-cache.js'
 import {chatMessageHook} from './hooks/media-fallback-chat-message.hook.js'
 import {messagesTransformHook} from './hooks/media-fallback-messages-transform.hook.js'
 import {createLocalDepsInjectionHook} from './hooks/local-deps-injection.hook.js'
+import {createMdReadEnhancementHook} from './hooks/md-read-enhancement.hook.js'
 import {dispatchSessionEvent, extractSessionID} from './services/event-bus.js'
 
 interface RuntimeConfigShape {
@@ -118,6 +119,24 @@ function resolveConfiguredModelReferences(
     }
 }
 
+/**
+ * 组合多个 tool.execute.after hook，按顺序执行。
+ * 前一个 hook 对 output 的修改会传递给后一个 hook。
+ */
+function createComposedAfterHook(
+    ...hooks: Array<NonNullable<Hooks['tool.execute.after']>>
+): NonNullable<Hooks['tool.execute.after']> {
+    return async (input, output) => {
+        for (const hook of hooks) {
+            try {
+                await hook(input, output)
+            } catch (error) {
+                console.warn('[ae] composed after hook 执行失败:', error)
+            }
+        }
+    }
+}
+
 const plugin: Plugin = async (input) => {
     const manifest = createRuntimeAssetManifest(import.meta.url)
     const hostWorktree = input.worktree
@@ -149,7 +168,10 @@ const plugin: Plugin = async (input) => {
         },
         'chat.message': chatMessageHook,
         'experimental.chat.messages.transform': messagesTransformHook,
-        'tool.execute.after': createLocalDepsInjectionHook(input.worktree),
+        'tool.execute.after': createComposedAfterHook(
+            createLocalDepsInjectionHook(input.worktree),
+            createMdReadEnhancementHook(),
+        ),
         event: async (eventInput) => {
             const sessionID = extractSessionID({
                 type: eventInput.event.type,
