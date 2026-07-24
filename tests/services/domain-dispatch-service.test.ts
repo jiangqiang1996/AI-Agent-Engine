@@ -30,7 +30,7 @@ describe('domain-dispatch-service', () => {
     expect(names).toContain(AGENT.BACKEND_DEV)
   })
 
-  it('应该在开发域零关键词匹配时兜底选中 debug-fix', () => {
+  it('应该在开发域零关键词匹配时兜底选中 backend-fix', () => {
     const intent: TaskIntent = {
       stage: 'entry',
       intent: '添加日志到配置模块',
@@ -41,10 +41,10 @@ describe('domain-dispatch-service', () => {
     }
     const names = selectSpecialists('development', intent, {}).map((s) => s.name)
 
-    expect(names).toContain(AGENT.DEBUG_FIX)
+    expect(names).toContain(AGENT.BACKEND_FIX)
   })
 
-  it('应该在开发域无匹配关键词时兜底选中 debug-fix', () => {
+  it('应该在开发域无匹配关键词时兜底选中 backend-fix', () => {
     const intent: TaskIntent = {
       stage: 'entry',
       intent: '执行未知任务',
@@ -55,7 +55,7 @@ describe('domain-dispatch-service', () => {
     }
     const names = selectSpecialists('development', intent, {}).map((s) => s.name)
 
-    expect(names).toContain(AGENT.DEBUG_FIX)
+    expect(names).toContain(AGENT.BACKEND_FIX)
   })
 
   it('应该在开发域关键词命中时不触发兜底', () => {
@@ -70,7 +70,7 @@ describe('domain-dispatch-service', () => {
     const names = selectSpecialists('development', intent, {}).map((s) => s.name)
 
     expect(names).toContain(AGENT.BACKEND_DEV)
-    expect(names).not.toContain(AGENT.DEBUG_FIX)
+    expect(names).not.toContain(AGENT.BACKEND_FIX)
   })
 
   it('应该使用 hasApi 和 hasUi flags 匹配开发专精代理', () => {

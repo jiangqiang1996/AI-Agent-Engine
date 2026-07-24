@@ -21,8 +21,8 @@ const DEVELOPMENT_SPECIALISTS: SpecialistDef[] = [
     outputContract: '后端实现和接口代码',
   },
   {
-    name: AGENT.DEBUG_FIX,
-    capabilities: ['错误分析', '根因定位', '修复实现', '回归验证', '问题', '报错', '异常', '崩溃', '排查'],
+    name: AGENT.BACKEND_FIX,
+    capabilities: ['错误分析', '根因定位', '修复实现', '回归验证', '问题', '报错', '异常', '崩溃', '排查', '修复', 'bug'],
     selectionCriteria: '任务涉及调试/修复/Bug 时选中',
     inputContract: '任务描述和错误上下文',
     outputContract: '修复代码和验证结果',

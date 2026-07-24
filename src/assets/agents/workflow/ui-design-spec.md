@@ -21,8 +21,8 @@ UI 设计规范与决策专家 — 产出**设计决策包**，不产出代码�
 
 - 写 Web 实现代码 → 调度 `@ui-architect`
 - 产出 ui-ux.md 设计契约 → 调度 `@ui-ux-designer`
-- 浏览器测试 → 调度 `@e2e-tester`
-- 修复前端问题 → 调度 `@web-fix`
+- 浏览器测试 → 调度 `@e2e-test-runner`
+- 修复前端问题 → 调度 `@frontend-fix`
 - 非 UI/UX 维度的设计契约 → 调度其他维度专精代理
 
 ## Inputs

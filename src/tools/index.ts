@@ -21,6 +21,7 @@ import { aePdfTool } from './ae-pdf.tool.js'
 import { aeBrainstormTool } from './ae-brainstorm.tool.js'
 import { aeOfficecliTool } from './ae-officecli.tool.js'
 import { aeOcrTool } from './ae-ocr.tool.js'
+import { aeTestTriageTool } from './ae-test-triage.tool.js'
 
 export function createToolRegistry(): Record<string, ToolDefinition> {
   return {
@@ -45,5 +46,6 @@ export function createToolRegistry(): Record<string, ToolDefinition> {
     [TOOL.AE_BRAINSTORM]: aeBrainstormTool,
     [TOOL.AE_OFFICECLI]: aeOfficecliTool,
     [TOOL.AE_OCR]: aeOcrTool,
+    [TOOL.AE_TEST_TRIAGE]: aeTestTriageTool,
   }
 }

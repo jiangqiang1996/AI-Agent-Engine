@@ -18,7 +18,11 @@ export const SKILL = {
   TASK_LOOP: 'ae:task-loop',
   SQL: 'ae:sql',
   SWAGGER_PARSER: 'ae:swagger-parser',
-  API_TESTER: 'ae:api-tester',
+  API_TEST: 'ae:api-test',
+  UNIT_TEST: 'ae:unit-test',
+  E2E_TEST: 'ae:e2e-test',
+  FRONTEND_FIX: 'ae:frontend-fix',
+  BACKEND_FIX: 'ae:backend-fix',
   SLIDES_OUTLINE: 'ae:slides-outline',
 
   IMAGE: 'ae:image',
@@ -66,8 +70,11 @@ export const AGENT = {
   SPEC_FLOW_ANALYZER: 'spec-flow-analyzer',
   UI_ARCHITECT: 'ui-architect',
   LOGIC_WEAVER: 'logic-weaver',
-  WEB_FIX: 'web-fix',
-  E2E_TESTER: 'e2e-tester',
+  E2E_TEST_RUNNER: 'e2e-test-runner',
+  UNIT_TEST_RUNNER: 'unit-test-runner',
+  TEST_TRIAGE: 'test-triage',
+  FRONTEND_FIX: 'frontend-fix',
+  BACKEND_FIX: 'backend-fix',
   UI_UX_DESIGNER: 'ui-ux-designer',
   UI_DESIGN_SPEC: 'ui-design-spec',
   ARCHITECTURE_DESIGNER: 'architecture-designer',
@@ -79,7 +86,6 @@ export const AGENT = {
   NON_FUNCTIONAL_DESIGNER: 'non-functional-designer',
   FRONTEND_DEV: 'frontend-dev',
   BACKEND_DEV: 'backend-dev',
-  DEBUG_FIX: 'debug-fix',
 } as const
 
 export function skillDir(skillName: string): string {
@@ -108,6 +114,7 @@ export const TOOL = {
   AE_BRAINSTORM: 'ae-brainstorm',
   AE_OFFICECLI: 'ae-officecli',
   AE_OCR: 'ae-ocr',
+  AE_TEST_TRIAGE: 'ae-test-triage',
 } as const
 
 export const AeModeSchema = z

@@ -46,9 +46,9 @@ export function selectSpecialists(
   }
 
   if (domain === 'development' && selected.length === 0) {
-    const debugFix = catalog.specialists.find((s) => s.name === AGENT.DEBUG_FIX)
-    if (debugFix) {
-      selected.push({ ...debugFix, selectionCriteria: `${debugFix.selectionCriteria}（兜底选中）` })
+    const backendFix = catalog.specialists.find((s) => s.name === AGENT.BACKEND_FIX)
+    if (backendFix) {
+      selected.push({ ...backendFix, selectionCriteria: `${backendFix.selectionCriteria}（兜底选中）` })
     }
   }
 

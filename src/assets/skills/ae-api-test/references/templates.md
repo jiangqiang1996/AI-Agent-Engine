@@ -1,6 +1,6 @@
 # 请求模板库
 
-本文件定义 `ae:api-tester` 的模板子模块，由主技能在工作流步骤 4 中按需选取组装。
+本文件定义 `ae:api-test` 的模板子模块，由主技能在工作流步骤 4 中按需选取组装。
 
 ## 基础配置
 
@@ -316,11 +316,11 @@ async function runTests(tests) {
   // 写入 JSON report
   const fs = await import('fs');
   const path = await import('path');
-  const reportDir = path.join(process.cwd(), 'ae', 'reports', 'api-tester');
+  const reportDir = path.join(process.cwd(), 'ae', 'reports', 'api-test');
   await fs.promises.mkdir(reportDir, { recursive: true });
   const runId = `run-${Date.now()}`;
   await fs.promises.writeFile(path.join(reportDir, `${runId}.json`), JSON.stringify(report, null, 2));
-  console.log(`报告已写入: ae/reports/api-tester/${runId}.json`);
+  console.log(`报告已写入: ae/reports/api-test/${runId}.json`);
 
   if (failed > 0) process.exit(1);
 }
@@ -411,7 +411,7 @@ interface ApiTesterReport {
 }
 ```
 
-报告写入 `ae/reports/api-tester/<run-id>.json`，可被 `ae:work-report` 按 glob 聚合消费。
+报告写入 `ae/reports/api-test/<run-id>.json`，可被 `ae:work-report` 按 glob 聚合消费。
 
 ---
 
@@ -562,4 +562,4 @@ while (hasMore) {
 - 副作用数据必须在 `finally` 块中按创建逆序清理；`irreversible` 项跳过清理；`path` 缺失时跳过清理并输出警告；清理失败不抛异常
 - 模块化模式（接口数 > 5）拆分到 `lib/` 目录；单文件模式（接口数 ≤ 5）全部内联
 - DELETE 方法支持可选 `body` 参数
-- 退出码遵循 0/1/2/3 语义，JSON report 写入 `ae/reports/api-tester/`
+- 退出码遵循 0/1/2/3 语义，JSON report 写入 `ae/reports/api-test/`

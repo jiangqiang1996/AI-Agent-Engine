@@ -98,7 +98,7 @@ describe('ae-work-specialist-select 工具', () => {
       expect(agents).toContain(AGENT.BACKEND_DEV)
     })
 
-    it('无法匹配关键词时应兜底选中 debug-fix', async () => {
+    it('无法匹配关键词时应兜底选中 backend-fix', async () => {
       const result = await callTool({
         intent: '无法匹配任何专精的意图',
       })
@@ -106,7 +106,7 @@ describe('ae-work-specialist-select 工具', () => {
       const parsed = parseResult(result)
       expect(parsed.specialistCount).toBe(1)
       const tasks = parsed.tasks as Array<Record<string, unknown>>
-      expect(tasks[0].agent).toBe(AGENT.DEBUG_FIX)
+      expect(tasks[0].agent).toBe(AGENT.BACKEND_FIX)
     })
 
     it('不传 constraints 时应正常返回且不崩溃', async () => {

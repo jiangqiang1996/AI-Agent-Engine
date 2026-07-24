@@ -77,8 +77,8 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 
 ```text
 /ae-playwright
-/ae-web-fix 修复登录页样式问题
-/ae-e2e-tester 验收 http://localhost:3000/login
+/ae-fix frontend 修复登录页样式问题
+/ae-test e2e 验收 http://localhost:3000/login
 ```
 
 解析 Swagger/OpenAPI：
@@ -112,11 +112,11 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 代码或文档审查 | `/ae-review` |
 | 快速审查并自动修复 | `/ae-review-auto` |
 | 代码审查（CLI 模式） | `/ae-ocr` |
-| 前端修复（视觉/交互/接口） | `/ae-web-fix` |
-| 浏览器 E2E 测试与验收 | `/ae-e2e-tester` |
+| 前端修复（视觉/交互/接口） | `/ae-fix frontend` |
+| 浏览器 E2E 测试与验收 | `/ae-test e2e` |
 | playwright 浏览器能力 | `/ae-playwright` |
 | 原型预览 | `/ae-prototype-preview` |
-| 接口测试 | `/ae-api-tester` |
+| 接口测试 | `/ae-test api` |
 | Swagger/OpenAPI 摘要 | `/ae-swagger-parser` |
 | 图片转 Markdown 描述 | `/ae-image` |
 | 音频转 Markdown 描述 | `/ae-audio` |

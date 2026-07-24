@@ -122,7 +122,7 @@ argument-hint: "[提示词内容] [mode=auto|pause]"
 - 优化后提示词的长度应适中——不过度膨胀，也不遗漏关键信息。
 - 优先保持用户原有表述风格，仅在确实模糊时才改写。
 - 补充的上下文应有明确依据（用户已提及或显而易见），不凭空假设。
-- 如果优化后提示词会引导目标新会话使用 `@ui-architect`、`@logic-weaver`、`@web-fix`、`@e2e-tester`、`/ae-web-fix`、`/ae-e2e-tester` 等涉及浏览器操作的技能或代理，优化后的提示词必须明确要求目标新会话通过 `ae:playwright` 技能操作浏览器，不得绕过该技能直接调用底层命令。
+- 如果优化后提示词会引导目标新会话使用 `@ui-architect`、`@logic-weaver`、`@frontend-fix`、`@e2e-test-runner`、`/ae-fix frontend`、`/ae-test e2e` 等涉及浏览器操作的技能或代理，优化后的提示词必须明确要求目标新会话通过 `ae:playwright` 技能操作浏览器，不得绕过该技能直接调用底层命令。
 
 **自检清单（优化完成后逐项确认）：**
 

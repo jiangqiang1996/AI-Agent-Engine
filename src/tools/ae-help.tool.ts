@@ -11,7 +11,7 @@ export const aeHelpTool = tool({
     '这是获取 AE 帮助信息的唯一正确方式：',
     '- 技能（如 ae:brainstorm、ae:design 等）及其对应命令',
     '- 代理（@ocr-reviewer、@web-researcher 等，按类别分组）',
-    '- 开发专精代理（@frontend-dev、@backend-dev、@debug-fix，由 ae:work 编排层通过 Task 调度）',
+    '- 开发专精代理（@frontend-dev、@backend-dev、@backend-fix，由 ae:work 编排层通过 Task 调度）',
     '- 自定义命令',
     '',
     '适用场景：',

@@ -323,7 +323,7 @@ ae/prototype-preview/
 
 ## 浏览器操作
 
-仅当执行验收阶段（步骤 3）时需要浏览器操作。浏览器操作一律通过 `ae:playwright` 技能完成（`ae:prototype-preview` 的验收需求为对比原型文档与 HTML 产出，涉及 P0 级页面数量/路由/颜色 HEX/响应式声明校验，与 `@e2e-tester` 通用验收模式能力不匹配，因此直接调用 `ae:playwright`）。无法完成验收时标注"验收跳过"，不阻断 HTML 文件生成。
+仅当执行验收阶段（步骤 3）时需要浏览器操作。浏览器操作一律通过 `ae:playwright` 技能完成（`ae:prototype-preview` 的验收需求为对比原型文档与 HTML 产出，涉及 P0 级页面数量/路由/颜色 HEX/响应式声明校验，与 `@e2e-test-runner` 通用验收模式能力不匹配，因此直接调用 `ae:playwright`）。无法完成验收时标注"验收跳过"，不阻断 HTML 文件生成。
 
 ## 安全边界
 

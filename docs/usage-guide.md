@@ -19,9 +19,11 @@
 | 只看风险，不改文件 | `/ae-review mode:report-only` |
 | 快速审查并自动修复 | `/ae-review-auto` |
 | 代码审查（CLI 模式） | `/ae-ocr` |
-| 前端修复（视觉/交互/接口） | `/ae-web-fix` |
-| 浏览器 E2E 测试与验收 | `/ae-e2e-tester` |
-| 接口测试 | `/ae-api-tester` |
+| 前端修复（视觉/交互/接口） | `/ae-fix frontend` |
+| 后端修复（错误分析/根因定位） | `/ae-fix backend` |
+| 浏览器 E2E 测试与验收 | `/ae-test e2e` |
+| 后端单元测试 | `/ae-test unit` |
+| 接口测试 | `/ae-test api` |
 | 数据库查询或操作 | `/ae-sql` |
 | Swagger/OpenAPI 联调摘要 | `/ae-swagger-parser` |
 | 图片转 Markdown 描述 | `/ae-image` |
@@ -72,12 +74,12 @@
 
 ```text
 /ae-playwright
-/ae-web-fix 修复登录页间距和按钮对齐问题
-/ae-e2e-tester 验收 http://localhost:3000/login
-/ae-e2e-tester 为用户登录流程生成 E2E 测试
+/ae-fix frontend 修复登录页间距和按钮对齐问题
+/ae-test e2e 验收 http://localhost:3000/login
+/ae-test e2e 为用户登录流程生成 E2E 测试
 ```
 
-浏览器操作一律通过 `ae:playwright` 技能完成。`/ae-web-fix` 是统一前端修复入口，以 DOM 结构化数据诊断为主（computed style、bounding box），覆盖视觉修复、交互修复和接口联调修复，具备诊断→修复→验证内部闭环。`/ae-e2e-tester` 是浏览器 E2E 测试入口，覆盖验收测试、测试场景设计（plan/generate）、测试修复（heal）和回归验证。`ae:work` 在执行前端创建/修改任务时自动调度 `@ui-architect`（视觉实现）和 `@logic-weaver`（逻辑实现）。
+浏览器操作一律通过 `ae:playwright` 技能完成。`/ae-fix frontend` 是统一前端修复入口，以 DOM 结构化数据诊断为主（computed style、bounding box），覆盖视觉修复、交互修复和接口联调修复，具备诊断→修复→验证内部闭环。`/ae-test e2e` 是浏览器 E2E 测试入口，覆盖验收测试、测试场景设计（plan/generate）、测试修复（heal）和回归验证。`ae:work` 在执行前端创建/修改任务时自动调度 `@ui-architect`（视觉实现）和 `@logic-weaver`（逻辑实现）。
 
 ### Swagger/OpenAPI
 
@@ -90,7 +92,7 @@
 ### 接口测试
 
 ```text
-/ae-api-tester ./openapi.json
+/ae-test api ./openapi.json
 ```
 
 以真实业务流程编排为主、接口边界测试为辅的自动化接口测试，支持登录认证与接口请求脚本生成。
@@ -133,9 +135,11 @@ PDF 文件的 Markdown 读取功能通过 `ae:pdf` 技能的 `to-markdown` 操�
 | `/ae-ocr` | `[review\|scan] [路径或 ref]` | 通过 ae-ocr 工具调用 OpenCodeReview CLI 执行 AI 代码审查 | 覆盖 bug/安全/性能/可维护性/测试覆盖/风格 |
 | `/ae-playwright` | `[url] [action] [mode] [browser] [port] [task=任务描述]` | 浏览器能力中枢，操作浏览器执行任务 | 通过 ae:playwright 技能操作浏览器 |
 | `/ae-prototype-preview` | `[prd目录路径\|原型文档路径] [--no-inspect\|--yes]` | 将 ae:prd 原型文档转换为多页面 HTML 静态文件 | 禁止使用打包构建工具，禁止镀金 |
-| `/ae-web-fix` | `[问题描述] [url]` | 统一前端修复：视觉修复、交互修复、接口联调修复 | 以 DOM 结构化数据诊断为主，截图为辅 |
-| `/ae-e2e-tester` | `[url\|功能描述] [验收\|生成测试\|修复测试\|回归]` | 浏览器 E2E 测试：验收、测试生成、测试修复和回归 | 浏览器操作通过 ae:playwright 技能 |
-| `/ae-api-tester` | `[接口文档\|接口描述\|已有脚本路径\|业务流程描述]` | 以真实业务流程编排为主的自动化接口测试 | 支持登录认证与脚本生成 |
+| `/ae-fix frontend` | `[问题描述] [url]` | 统一前端修复：视觉修复、交互修复、接口联调修复 | 以 DOM 结构化数据诊断为主，截图为辅 |
+| `/ae-fix backend` | `[问题描述\|错误信息]` | 后端修复：错误分析、根因定位、修复实现 | |
+| `/ae-test e2e` | `[url\|功能描述] [设计用例路径(可选)]` | 浏览器 E2E 测试：验收、测试生成、测试修复和回归 | 浏览器操作通过 ae:playwright 技能 |
+| `/ae-test unit` | `[代码文件/目录] [设计用例路径(可选)]` | 后端单元测试：生成、执行、覆盖率分析 | |
+| `/ae-test api` | `[接口文档\|业务流程描述] [设计用例路径(可选)]` | 接口级后端测试：业务流程编排为主、接口边界测试为辅 | |
 | `/ae-handoff` | `—` | 提取上下文并创建独立新会话 | 用于交接 |
 | `/ae-task-loop` | `[一句话目标描述]` | 循环执行和验证直到目标达成 | 不适合需求不清的大型功能 |
 | `/ae-sql` | `[SQL 语句]` | 通过 JDBC 连接数据库并执行 SQL | 执行前应确认目标库和语句风险 |
@@ -198,8 +202,8 @@ AE 采用 13 代理全并行架构，所有激活代理在同一轮一次性发�
 | `@spec-flow-analyzer` | 分析规格、设计或功能描述中的用户流程缺口 | 不直接写代码 |
 | `@ui-architect` | 视觉设计与实现：自由设计或设计稿还原，根据输入自动切换模式 | 浏览器操作通过 ae:playwright 技能；不负责接口联调或修复 |
 | `@logic-weaver` | 前端代码实现：交互逻辑、API联调、状态管理、组件开发、重构、性能优化 | 不负责视觉设计或修复 |
-| `@web-fix` | 统一前端修复：视觉修复、交互修复、接口联调修复 | 以 DOM 结构化数据诊断为主，截图为辅；具备诊断→修复→验证内部闭环 |
-| `@e2e-tester` | 浏览器 E2E 测试：验收测试、测试场景设计、Playwright 测试生成和回归验证 | 可修改测试文件，不修改产品代码 |
+| `@frontend-fix` | 统一前端修复：视觉修复、交互修复、接口联调修复 | 以 DOM 结构化数据诊断为主，截图为辅；具备诊断→修复→验证内部闭环 |
+| `@e2e-test-runner` | 浏览器 E2E 测试：验收测试、测试场景设计、Playwright 测试生成和回归验证 | 可修改测试文件，不修改产品代码 |
 
 ## 开发专精代理
 
@@ -209,7 +213,7 @@ AE 采用 13 代理全并行架构，所有激活代理在同一轮一次性发�
 | --- | --- | --- |
 | `@frontend-dev` | 前端开发专精代理：处理 UI 组件、样式、交互逻辑和响应式设计 | 由 ae:work 编排层调度 |
 | `@backend-dev` | 后端开发专精代理：处理 API、数据层、业务逻辑和中间件 | 由 ae:work 编排层调度 |
-| `@debug-fix` | 调试修复专精代理：处理错误分析、根因定位、修复实现和回归验证 | 由 ae:work 编排层调度 |
+| `@backend-fix` | 后端修复专精代理：处理错误分析、根因定位、修复实现和回归验证 | 由 ae:work 编排层调度 |
 
 ## 工具层能力
 
@@ -243,11 +247,11 @@ AE 采用 13 代理全并行架构，所有激活代理在同一轮一次性发�
 | 场景 | 顺序 |
 | --- | --- |
 | 有设计稿但没有页面 | `/ae-work` 调度 `@ui-architect` + `@logic-weaver` |
-| 已有页面，需要贴合 Figma | `/ae-work` 调度 `@ui-architect` → `/ae-e2e-tester` 验收 |
-| 没有设计稿，但要提升视觉质量 | `/ae-work` 调度 `@ui-architect` → `/ae-e2e-tester` 验收 |
-| 修复视觉/交互/接口问题 | `/ae-web-fix` |
-| 只验证功能流程 | `/ae-e2e-tester` |
-| 生成或修复 E2E 测试 | `/ae-e2e-tester` 生成测试/修复测试 |
+| 已有页面，需要贴合 Figma | `/ae-work` 调度 `@ui-architect` → `/ae-test e2e` 验收 |
+| 没有设计稿，但要提升视觉质量 | `/ae-work` 调度 `@ui-architect` → `/ae-test e2e` 验收 |
+| 修复视觉/交互/接口问题 | `/ae-fix frontend` |
+| 只验证功能流程 | `/ae-test e2e` |
+| 生成或修复 E2E 测试 | `/ae-test e2e` 生成测试/修复测试 |
 
 浏览器相关路径都通过 `ae:playwright` 技能操作浏览器。
 
