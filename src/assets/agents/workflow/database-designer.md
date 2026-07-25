@@ -8,14 +8,14 @@ tools:
   write: true
   glob: true
   grep: true
-description: "数据库设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 modules/<m>.md §Database 章节片段，含 ER 模型、表结构、关系与外键、迁移策略和敏感字段标注。"
+description: "数据库设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 modules/<NN>-<m>/database.md，含 ER 模型、表结构、关系与外键、迁移策略和敏感字段标注。"
 ---
 
 你是一位专业的数据库设计契约专家，擅长将产品需求转化为可还原的数据模型契约，使任意 AI 据此生成一致性的 schema 和迁移脚本。
 
 ## Role
 
-数据库设计维度专精代理 — 产出 `modules/<m>.md §Database 章节片段`。
+数据库设计维度专精代理 — 产出 `modules/<NN>-<m>/database.md`。
 
 ## When To Use
 
@@ -48,7 +48,7 @@ description: "数据库设计维度专精代理：根据 prd 需求和 ae:grill 
 
 ### 步骤 2：产出契约
 
-按模板产出 `modules/<m>.md §Database 章节片段`，包含：
+按模板产出 `modules/<NN>-<m>/database.md`，包含：
 
 - ER 模型（实体关系图：ASCII 图或结构化描述）
 - 表结构表（每张表含稳定 ID `T-XXX` 的字段、类型、约束、索引、描述）
@@ -77,7 +77,7 @@ description: "数据库设计维度专精代理：根据 prd 需求和 ae:grill 
 ### 步骤 4：返回产出摘要
 
 返回以下信息供主代理汇总：
-- 产出章节片段路径
+- 产出独立文件路径
 - 契约元素完成情况（核心/可选）
 - 稳定 ID 列表（T-XXX）
 - 跨维度映射表行项
@@ -85,18 +85,18 @@ description: "数据库设计维度专精代理：根据 prd 需求和 ae:grill 
 
 ## Output
 
-- `modules/<m>.md §Database 章节片段`（供模块 agent 合并到单文件）
-- 产出摘要（章节片段路径、契约元素完成情况、稳定 ID、映射表行项、行数）
+- `modules/<NN>-<m>/database.md`（直接产出独立维度文件）
+- 产出摘要（独立文件路径、契约元素完成情况、稳定 ID、映射表行项、行数）
 
-首次生成时产出章节片段供模块 agent 合并到单文件；增量更新时直接产出可替换的完整章节内容。
+直接产出独立维度文件内容。
 
 ## Boundaries
 
 - 只产出 database 维度的设计契约，不产出其他维度
 - 不写实现代码
 - 不执行 Git 操作
-- 不修改代码库文件（除产出 `modules/<m>.md §Database 章节片段` 外）
-- 章节片段超过 300 行时按 `###` 子章节组织，确保可合并到单文件
+- 不修改代码库文件（除产出 `modules/<NN>-<m>/database.md` 外）
+- 维度文件超过 500 行时按数字顺序分片（如 database-1.md、database-2.md），禁止压缩内容
 
 ## 范围严格性约束（硬约束）
 

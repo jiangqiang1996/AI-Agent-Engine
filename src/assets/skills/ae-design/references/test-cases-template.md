@@ -1,7 +1,7 @@
-# 测试用例设计模块级章节片段模板
+# 测试用例设计维度文件模板
 
 **触发条件：** 模块涉及测试（dimension-triggers.md §模块维度触发）
-**产出位置：** `modules/<m>.md` 的 `## Test Cases {#test-cases}` 章节（单文件模式）或 `modules/<m>/test-cases.md`（拆分模式）
+**产出位置：** `modules/<NN>-<m>/test-cases.md`
 **产出方：** `@test-cases-designer` 子代理
 **可还原性目标：** 任意 AI 据此直接编写完善的自动化测试脚本（API 测试 + 浏览器端到端测试），且覆盖度可验证
 
@@ -70,7 +70,7 @@
 
 ## 章节格式
 
-产出为模块级章节片段，以 `## Test Cases {#test-cases}` 开头，供模块 agent 合并到 `modules/<m>.md` 单文件或 `modules/<m>/test-cases.md`：
+产出为独立维度文件 `modules/<NN>-<m>/test-cases.md`，以 `## Test Cases {#test-cases}` 开头：
 
 ```markdown
 ## Test Cases {#test-cases}

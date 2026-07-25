@@ -11,7 +11,8 @@ describe('人读与机器可提取文档契约', () => {
   })
 
   it('应该声明分片子文件 parent 和 module 规则', () => {
-    expect(requirementsCapture).toContain('type: prd-shard')
+    expect(requirementsCapture).toContain('type: prd-module')
+    expect(requirementsCapture).toContain('type: prd-prototype')
     expect(requirementsCapture).toContain('parent:')
     expect(requirementsCapture).toContain('module:')
   })

@@ -61,9 +61,9 @@ argument-hint: "[模块名] [--dry-run]"
 
 对每个过期模块（或用户指定的模块）：
 
-1. 读 prd `modules/<m>.md`（当前态需求，superseded 记录自动排除）
+1. 读 prd `modules/<NN>-<m>/module.md`（当前态需求，superseded 记录自动排除）
 2. 读 prd `changes` 数组中该模块的变更条目
-3. 读 design `modules/<m>.md`（当前设计）
+3. 读 design `modules/<NN>-<m>/<dimension>.md`（当前设计）
 4. 读 design `global.md`（仅受影响章节，如 §architecture/§traceability）
 5. 不读取未过期模块
 
@@ -76,13 +76,13 @@ argument-hint: "[模块名] [--dry-run]"
 
    | 设计文件 | 章节 | 原始内容 | 修改后内容 | 变更依据 |
    |---------|------|---------|-----------|---------|
-   | modules/auth.md | §API @EP-001 | password: string | password: string (≥12位含特殊字符) | R1 变更 |
-   | modules/auth.md | §Database @T-users | password_hash VARCHAR(255) | password_hash VARCHAR(255) + 密码策略 | R1 变更 |
-   | modules/auth.md | §UI/UX @PAGE-001 | password(必填,≥8位) | password(必填,≥12位含特殊字符) | R1 变更 |
-   | modules/auth.md | §Test @TC-001 | 验证8位密码注册 | 验证12位含特殊字符密码注册 | R1 变更 |
+   | modules/01-auth/api.md | @EP-001 | password: string | password: string (≥12位含特殊字符) | R1 变更 |
+   | modules/01-auth/database.md | @T-users | password_hash VARCHAR(255) | password_hash VARCHAR(255) + 密码策略 | R1 变更 |
+   | modules/01-auth/ui-ux.md | @PAGE-001 | password(必填,≥8位) | password(必填,≥12位含特殊字符) | R1 变更 |
+   | modules/01-auth/test-cases.md | @TC-001 | 验证8位密码注册 | 验证12位含特殊字符密码注册 | R1 变更 |
 
 3. 计算设计变更的 blast radius：
-   - Radius 1: `modules/<m>.md` 内部各维度一致性
+   - Radius 1: `modules/<NN>-<m>/` 下各维度文件间一致性
    - Radius 2: `global.md` §traceability（如 API 签名变更影响跨模块映射）
    - Radius 3: 其他模块（如 auth API 变更影响 resource 的鉴权调用）
 4. 展示方案 → 用户确认
@@ -97,10 +97,10 @@ argument-hint: "[模块名] [--dry-run]"
 1. 确定受影响子代理集合（从 `changes` 数组的 `affectedDimensions` 推导）
 2. 重跑受影响子代理：
    - 读取该子代理的完整输入上下文（prd 当前态 + design global + 该模块当前设计）
-   - 子代理产出可替换的完整章节内容（含章节标题和全部内容）
-3. 主代理用 edit 工具将该章节整体替换：
-   - 匹配旧章节标题到下一章节标题之间的内容
-   - 旧章节内容用 `superseded_by` 标记（HTML 注释隐藏）
+   - 子代理产出可替换的完整维度文件内容
+ 3. 主代理用 edit 工具将该维度文件整体替换：
+   - 匹配旧维度文件全部内容
+   - 旧维度文件内容用 `superseded_by` 标记（HTML 注释隐藏）
    - 替换为新章节内容
 4. 更新 `contentHash`
 5. 更新 frontmatter `changes` 数组
@@ -148,7 +148,7 @@ argument-hint: "[模块名] [--dry-run]"
 | 读取范围 | 全部 prd 产物 | 仅 changes 数组 + 过期模块 |
 | 生成范围 | 全部 design 产物 | 仅过期模块（scoped regeneration） |
 | 子代理 | 全部 design 子代理 | 仅过期模块涉及的子代理 |
-| 合并者 | 模块 agent 合并片段 | 无需合并者（子代理直接产出可替换章节） |
+| 合并者 | 无需合并者（子代理直接产出独立维度文件） | 无需合并者（子代理直接产出独立维度文件） |
 | 一致性校验 | 全量校验 | 局部校验（仅受影响文件） |
 | 耗时 | 长（全量） | 短（仅变更部分） |
 

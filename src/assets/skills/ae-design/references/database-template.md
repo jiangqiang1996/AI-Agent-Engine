@@ -1,13 +1,13 @@
-# 数据库设计模块级章节片段模板
+# 数据库设计维度文件模板
 
 **触发条件：** 模块涉及持久化（dimension-triggers.md §模块维度触发）
-**产出位置：** `modules/<m>.md` 的 `## Database {#database}` 章节（单文件模式）或 `modules/<m>/module.md` 的 `## Database {#database}` 章节（拆分模式）
+**产出位置：** `modules/<NN>-<m>/database.md`
 **产出方：** `@database-designer` 子代理
 **可还原性目标：** 任意 AI 据此生成一致性的 schema 和迁移脚本
 
-## 章节格式
+## 文件格式
 
-产出为模块级章节片段，以 `## Database {#database}` 开头，供模块 agent 合并到 `modules/<m>.md` 单文件或 `modules/<m>/module.md`：
+产出为独立维度文件 `modules/<NN>-<m>/database.md`，以 `## Database {#database}` 开头：
 
 ```markdown
 ## Database {#database}

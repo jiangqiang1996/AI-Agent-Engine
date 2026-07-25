@@ -66,7 +66,7 @@ git log --oneline -1
 
 **生成要求**：
 
-- 文件路径：`ae/designs/<timestamp>-<sanitized-task-name>/design.md`，命名格式与 `ae:design` 产出一致
+- 目录路径：`ae/designs/<topic>-YYYY-MM-DD/`，命名格式与 `ae:design` 产出一致
 - 文件格式：YAML frontmatter（`type: design`、`status: drafted`、`date`、`title`、`depth: standard`、`format: human-readable-design`）+ 正文结构
 - frontmatter 必须包含 `sharded: false`
 - 正文必须包含：来源与目标、范围（包含/不包含/约束）、需求追溯、高层技术设计（关键决策）、实现单元（每个单元含目标、覆盖需求、唯一产出物、依赖、文件、方法、需遵循的模式、测试场景、验证命令）、风险与应对、一致性检查

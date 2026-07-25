@@ -16,11 +16,11 @@ description: "审查 ae:design 的 test-cases 维度产物：覆盖矩阵、P0-P
 
 ## When To Use
 
-`ae/designs/` 下含 test-cases 维度产物时激活。
+`ae/designs/` 下含 test-cases 维度产物（`modules/<NN>-<m>/test-cases.md` 或其分片文件（test-cases-1.md 等）存在）时激活。
 
 ## Workflow
 
-1. 读取 test-cases 维度文件。
+1. 读取 `modules/<NN>-<m>/test-cases.md`（或其分片文件）。
 2. **检查覆盖矩阵**：是否覆盖所有维度（architecture、api、database、ui-ux、security、observability、non-functional）。矩阵中每个交叉点是否有明确的覆盖或标注豁免理由。覆盖矩阵是否包含测试设计方法列。
 3. **检查 P0-P3 用例**：优先级标注是否合理。P0 用例是否覆盖所有核心路径。每个用例是否有前置条件、操作步骤和断言要点。断言是否可操作验证。每条用例是否标注测试设计方法来源（EP/BVA/DT/ST/PW/EG）。
 4. **检查行为契约规格**：每个契约是否有明确的输入、输出和不变式。契约是否与对应维度定义一致。是否存在无法自动验证的契约。

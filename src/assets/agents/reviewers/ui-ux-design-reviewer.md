@@ -16,11 +16,11 @@ UI/UX 设计维度审查代理。检查信息架构、页面规格、组件契�
 
 ## When To Use
 
-`ae/designs/` 下含 ui-ux 或 design-spec 维度产物时激活。
+`ae/designs/` 下含 ui-ux 维度产物（`modules/<NN>-<m>/ui-ux.md` 存在）或 design-spec 维度产物时激活。
 
 ## Workflow
 
-1. 读取 ui-ux 和 design-spec 维度文件。
+1. 读取 `modules/<NN>-<m>/ui-ux.md` 和 design-spec 维度文件。
 2. **检查信息架构**：页面层级是否合理。导航路径是否覆盖所有主要功能。是否存在孤立页面。
 3. **检查页面规格**：每页是否有明确的布局描述、内容区域和响应式断点。页面间跳转关系是否闭合。
 4. **检查组件契约**：组件是否有明确的 props 定义、事件声明和状态范围。组件复用边界是否清晰。是否存在职责过重的组件。

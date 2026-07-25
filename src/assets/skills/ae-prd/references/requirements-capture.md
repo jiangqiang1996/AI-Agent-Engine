@@ -12,7 +12,7 @@
 
 format: human-readable-requirements
 
-**分片规则：** 需求文档以目录形式产出时，采用 `index.md` + `global.md` + `modules/<m>.md` 三层结构。模块文件采用 section anchor 分区（`##` 章节带 `{#anchor}`），不按章节拆分为独立子文件。模块文件 frontmatter 声明 `type: prd-module`、`parent:`（指向 index.md）和 `module:`（模块名）。超 300 行硬上限时按章节拆分为 `modules/<m>/` 目录。
+**分片规则：** 需求文档以目录形式产出时，采用 `index.md` + `global.md` + `modules/<NN>-<m>/module.md` + `modules/<NN>-<m>/prototype.md`（仅 involvesUI=true 时）三层结构。每个模块位于 `modules/<NN>-<m>/` 子目录（`<NN>` 为零填充数字序号如 01、02、03），子目录名带数字固定顺序。模块文件采用 section anchor 分区（`##` 章节带 `{#anchor}`）。`module.md` 的 frontmatter 声明 `type: prd-module`、`parent:`（指向 index.md）和 `module:`（模块名）；`prototype.md` 的 frontmatter 声明 `type: prd-prototype`、`parent:`（指向 index.md）和 `module:`（模块名）。各文件超行数上限时禁止压缩内容，按数字顺序分片（如 `module-1.md`、`module-2.md`...；`prototype-1.md`、`prototype-2.md`...；`global-1.md`、`global-2.md`...），每片在 `##` 章节边界切分保持片内语义完整，分片文件名数字固定顺序。`prototype.md` 仅当模块 `involvesUI=true` 时产出，不存在即表示该模块不涉及 UI。
 
 **省略没有实质内容的可选章节**，避免生成无内容占位章节。
 
@@ -34,16 +34,18 @@ format: human-readable-requirements
 
 ```
 ae/prds/<topic>-YYYY-MM-DD/
-├── index.md                        # L0 索引（自动生成，≤ 100 行）
+├── index.md                        # L0 索引（自动生成，无行数限制）
 ├── global.md                       # 全局共识（单文件，section anchor 分区，≤ 300 行）
 └── modules/
-    └── <module-name>.md            # 模块需求（单文件，section anchor 分区，≤ 300 行）
+    └── <NN>-<module-name>/         # 模块子目录（数字序号 + 模块名）
+        ├── module.md               # §需求 + §成功标准（≤ 300 行）
+        └── prototype.md            # §原型 + §响应式布局（≤ 300 行，仅 involvesUI=true 时存在）
 ```
 
 **小项目模式**（<3 模块且无跨模块依赖）：
 ```
 ae/prds/<topic>-YYYY-MM-DD/
-├── index.md                        # L0 索引（自动生成，≤ 100 行）
+├── index.md                        # L0 索引（自动生成，无行数限制）
 └── prd.md                          # 全局 + 唯一模块合并单文件（≤ 300 行）
 ```
 
@@ -66,8 +68,8 @@ version: "1.0"
 ## 模块导航
 | 模块 | 描述 | 涉及 UI | 需求 IDs（当前态） | 文件 |
 |------|------|--------|------------------|------|
-| auth | 用户认证 | 是 | R1-R5 | modules/auth.md |
-| resource | 资源管理 | 是 | R6-R12 | modules/resource.md |
+| auth | 用户认证 | 是 | R1-R5 | modules/01-auth/module.md, modules/01-auth/prototype.md |
+| resource | 资源管理 | 否 | R6-R12 | modules/02-resource/module.md |
 
 ## 全局导航
 | 章节 | Anchor | IDs | 摘要 |
@@ -79,7 +81,7 @@ version: "1.0"
 ## ID 索引（当前态）
 | ID | 类型 | 模块 | 文件 | Anchor |
 |----|------|------|------|--------|
-| R1 | requirement | auth | modules/auth.md | {#requirements} |
+| R1 | requirement | auth | modules/01-auth/module.md | {#requirements} |
 
 ## 跨模块依赖
 | 源模块 | 目标模块 | 依赖类型 | 引用 IDs |
@@ -153,7 +155,7 @@ ids: [D1, D2, D3, NFR1, NFR2]
 - 说明: 未要求响应式，固定布局
 ```
 
-## modules/\<m\>.md 模板
+## modules/\<NN>-\<m\>/module.md 模板
 
 ```markdown
 ---
@@ -161,7 +163,7 @@ type: prd-module
 parent: "index.md"
 module: auth
 involvesUI: true
-ids: [R1, R2, R3, R4, R5, PAGE-001, PAGE-002, PAGE-003]
+ids: [R1, R2, R3, R4, R5]
 dependsOn: [resource]
 dependedBy: [audit]
 changes: []
@@ -182,6 +184,17 @@ changes: []
 
 ### SC1: 注册成功后用户存在于系统中
 ### SC2: 登录成功后返回有效会话令牌
+```
+
+## modules/\<NN>-\<m\>/prototype.md 模板（仅 involvesUI=true 时产出）
+
+```markdown
+---
+type: prd-prototype
+parent: "index.md"
+module: auth
+ids: [PAGE-001, PAGE-002, PAGE-003]
+---
 
 ## 原型 {#prototype}
 
@@ -198,7 +211,9 @@ changes: []
 
 ## 响应式布局 {#responsive}
 
-不支持响应式，固定布局（默认）
+> 仅当 global.md §设计愿景声明为响应式时产出此章节。非响应式时省略，响应式声明集中在 global.md §设计愿景一次性声明。
+
+[各断点下的布局变化描述]
 ```
 
 ## Frontmatter 字段说明
@@ -221,7 +236,7 @@ changes: []
 | `parent` | `"index.md"` | 指向索引文件 |
 | `ids` | ID 数组 | 全局定义的所有稳定 ID |
 
-### modules/\<m\>.md
+### modules/\<NN>-\<m\>/module.md
 
 | 字段 | 值 | 说明 |
 |------|-----|------|
@@ -229,10 +244,19 @@ changes: []
 | `parent` | `"index.md"` | 指向索引文件 |
 | `module` | 模块名 | kebab-case 模块名 |
 | `involvesUI` | `true`/`false` | 是否涉及 UI |
-| `ids` | ID 数组 | 模块定义的所有稳定 ID |
+| `ids` | ID 数组 | 模块定义的稳定 ID（R、SC） |
 | `dependsOn` | 模块名数组 | 依赖的模块 |
 | `dependedBy` | 模块名数组 | 被依赖的模块 |
 | `changes` | 变更数组 | 变更记录（初始为空数组） |
+
+### modules/\<NN>-\<m\>/prototype.md
+
+| 字段 | 值 | 说明 |
+|------|-----|------|
+| `type` | `prd-prototype` | 固定值 |
+| `parent` | `"index.md"` | 指向索引文件 |
+| `module` | 模块名 | kebab-case 模块名 |
+| `ids` | ID 数组 | 原型定义的稳定 ID（PAGE） |
 
 ## superseded_by 变更追踪
 
@@ -277,11 +301,11 @@ changes:
 
 原型设计是 ae:prd 的组成部分，用于在需求阶段确定产品逻辑层的确定性边界。**不是最终页面设计**。最终页面详细设计（HTML 结构、CSS 样式、组件选型、技术栈）属于 ae:design 的 ui-ux 维度。
 
-原型设计用 Markdown 描述页面结构和交互，内化在各模块的 `modules/<m>.md` §原型章节中。**不生成独立文件**。
+原型设计用 Markdown 描述页面结构和交互，产出在各模块的 `modules/<NN>-<m>/prototype.md` 独立文件中。仅当模块 `involvesUI=true` 时产出。
 
 ### 技术栈隔离规则（硬约束）
 
-原型设计产物（`modules/<m>.md` 的 §原型章节）**禁止出现任何前端开发技术栈或第三方依赖名称**。页面产物只描述**产品逻辑层语义**：页面要做什么、长什么样、怎么交互。技术栈信息集中收录到 `global.md` §技术栈约束。
+原型设计产物（`modules/<NN>-<m>/prototype.md`）**禁止出现任何前端开发技术栈或第三方依赖名称**。页面产物只描述**产品逻辑层语义**：页面要做什么、长什么样、怎么交互。技术栈信息集中收录到 `global.md` §技术栈约束。
 
 ### 确定性边界
 
@@ -309,7 +333,7 @@ changes:
 | | ae:prd 原型 | ae:design ui-ux |
 |--|-----------|-----------------|
 | **目的** | 确定产品逻辑层确定性边界 | 最终页面详细设计，供 ae:work 实施 |
-| **位置** | modules/\<m\>.md §原型 | design modules/\<m\>.md §UI/UX |
+| **位置** | modules/\<NN>-\<m\>/prototype.md | design modules/\<NN>-\<m\>/ui-ux.md |
 | **技术栈** | **禁止出现** | 集中声明在 design global.md |
 | **消费者** | 用户（验证产品逻辑确定性） | LLM（生成实现代码） |
 
@@ -317,11 +341,14 @@ changes:
 
 | 文件 | 限制 | 超限处理 |
 |------|------|---------|
-| index.md | ≤ 100 行 | - |
-| global.md | ≤ 300 行硬上限 | 按章节拆分为 global/ 目录 |
-| modules/\<m\>.md | ≤ 300 行硬上限 | 按章节拆分为 modules/\<m\>/ 目录 |
+| index.md | 无行数限制 | - |
+| global.md | ≤ 300 行硬上限 | 禁止压缩，按数字顺序分片为 `global-1.md`、`global-2.md`、...，每片 ≤ 300 行 |
+| modules/\<NN>-\<m\>/module.md | ≤ 300 行硬上限 | 禁止压缩，按数字顺序分片为 `module-1.md`、`module-2.md`、...，每片 ≤ 300 行 |
+| modules/\<NN>-\<m\>/prototype.md | ≤ 300 行硬上限 | 禁止压缩，按数字顺序分片为 `prototype-1.md`、`prototype-2.md`、...，每片 ≤ 300 行 |
 
-**所有文件生成时即保证不超限，不产出大文件再后置拆分。**
+分片在 `##` 章节边界切分，保持片内语义完整。分片文件名数字固定顺序，`index.md` 记录所有分片文件清单。
+
+**所有文件生成时即保证不超限，不产出大文件再后置拆分。超限时禁止压缩内容，必须按数字顺序分片。**
 
 ## 完整性检查
 
@@ -349,7 +376,7 @@ changes:
 | 需求描述的是... | 视觉辅助 | 放置位置 |
 |---|---|---|
 | 多步骤用户工作流或流程 | Mermaid 流程图（`flowchart`） | 在 global.md §问题框架之后 |
-| 3+ 种行为模式、变体或状态 | Markdown 比较表 | 在 modules/\<m\>.md §需求内 |
+| 3+ 种行为模式、变体或状态 | Markdown 比较表 | 在 modules/\<NN>-\<m\>/module.md §需求内 |
 | 3+ 个交互参与者 | Mermaid 关系图 | 在 global.md §问题框架之后 |
 | 多个竞争方案 | 比较表 | 在阶段 2 方案探索中 |
 

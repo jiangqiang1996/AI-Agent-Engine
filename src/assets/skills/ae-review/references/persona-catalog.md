@@ -15,8 +15,8 @@
 | `test-cases-design-reviewer` | 测试用例维度：覆盖矩阵、P0-P3 用例、行为契约 | 文档涉及测试用例 |
 | `security-design-reviewer` | 安全维度：威胁模型、信任边界、认证授权、数据分级、密钥管理 | 文档涉及安全 |
 | `observability-design-reviewer` | 可观测性维度：日志规范、指标体系、告警规则、SLO/SLI | 文档涉及可观测性 |
-| `non-functional-design-reviewer` | 非功能维度：性能目标、并发模型、事务边界、缓存策略 | 文档涉及非功能需求 |
-| `design-integrity-reviewer` | 跨维度完整性：冲突检测、字段匹配、映射表完整性 | `ae/designs/` 下 2+ 维度产物 |
+| `non-functional-design-reviewer` | 非功能维度：性能目标、并发模型、事务边界、缓存策略、容量规划 | 文档涉及非功能需求 |
+| `design-integrity-reviewer` | 跨维度完整性：冲突检测、字段匹配、映射表完整性 | `ae/designs/` modules/<NN>-<m>/ 下存在 2+ 维度文件 |
 | `traceability-reviewer` | 跨文档追溯：锚点覆盖、断裂引用、孤儿条目 | 范围包含 2+ 类项目文档（需求 ae/prds/、设计 ae/designs/、测试 tests/ 目录下） |
 | `goal-alignment-reviewer` | 目标对齐：对照审查目标逐条校验变更是否达成 | 始终激活（用户显式传入 goals 时透传，否则工具自动推断） |
 

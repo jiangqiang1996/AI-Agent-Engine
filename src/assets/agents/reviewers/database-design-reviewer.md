@@ -16,11 +16,11 @@ description: "审查 ae:design 的 database 维度产物：ER 模型、表结构
 
 ## When To Use
 
-`ae/designs/` 下含 database 维度产物（`modules/<m>.md` 的 §Database 章节）时激活。
+`ae/designs/` 下含 database 维度产物（`modules/<NN>-<m>/database.md` 存在）时激活。
 
 ## Workflow
 
-1. 读取 `modules/<m>.md` 的 §Database 章节。
+1. 读取 `modules/<NN>-<m>/database.md`。
 2. **检查 ER 模型**：实体关系是否完整定义。关系基数（1:1、1:N、N:M）是否明确。是否存在孤立实体。
 3. **检查表结构**：每张表是否有主键。字段类型是否合理。约束（NOT NULL、UNIQUE、CHECK）是否完整。索引策略是否定义。
 4. **检查外键关系**：外键是否与 ER 模型一致。级联策略（CASCADE、SET NULL、RESTRICT）是否合理。是否存在悬空外键风险。

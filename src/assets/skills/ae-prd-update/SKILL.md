@@ -76,7 +76,7 @@ argument-hint: "[变更意图描述] [--auto-sync-design]"
 
 ### 阶段 2：上下文加载
 
-1. SELECTIVE_LOAD: 读 `index.md` + `global.md` + `modules/<m>.md`
+1. SELECTIVE_LOAD: 读 `index.md` + `global.md` + `modules/<NN>-<m>/module.md`（+ `modules/<NN>-<m>/prototype.md` 如涉及 UI）
 2. 理解目标需求的完整上下文（依赖链、验收条件、原型引用）
 3. 读 design `index.md` → 预估 blast radius（哪些 design 模块会受影响）
 
@@ -93,8 +93,9 @@ argument-hint: "[变更意图描述] [--auto-sync-design]"
 
    | 受影响文件 | 受影响 ID | 变更类型 |
    |-----------|---------|---------|
-   | prd modules/auth.md | R1, PAGE-001 | modify |
-   | design modules/auth.md | EP-001, T-users, ST-001, TC-001 | stale |
+   | prd modules/01-auth/module.md | R1 | modify |
+   | prd modules/01-auth/prototype.md | PAGE-001 | modify |
+   | design modules/01-auth/api.md | EP-001, T-users, ST-001, TC-001 | stale |
 
 3. 展示方案 → 用户确认
    - 确认 → 进入阶段 4
@@ -103,12 +104,12 @@ argument-hint: "[变更意图描述] [--auto-sync-design]"
 
 ### 阶段 4：执行修改
 
-1. Read `modules/<m>.md` 完整内容
+1. Read `modules/<NN>-<m>/module.md`（+ `prototype.md` 如涉及 UI）完整内容
 2. 用 edit 工具精确修改目标条目：
    - 修改需求描述（如 R1 描述）
    - 旧条目添加 `supersededBy: <新版本号>` + `validFrom` + `supersededAt`
    - 新条目添加 `supersedes: <旧版本号>` + `changedAt`
-   - 修改关联原型/验收条件（如有）
+   - 修改关联原型（如涉及 UI，编辑 `modules/<NN>-<m>/prototype.md` 而非 `module.md` §原型）/验收条件（如有）
 3. superseded 记录用 HTML 注释隐藏：`<!-- ### R1.v1: 用户注册（已废弃） -->`
 4. diff 引擎自动生成 frontmatter `changes` 数组条目
 5. 更新 `contentHash`

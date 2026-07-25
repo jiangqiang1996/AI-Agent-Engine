@@ -3,12 +3,12 @@
 ## 核心原则：index + global + modules 三层结构
 
 - 产物采用 L0 索引 + 全局共识 + 模块级设计三层结构
-- `index.md` 自动生成，≤ 100 行，只含 frontmatter + 模块清单 + Split Manifest
-- `global.md` 单文件，≤ 300 行，含全局设计共识（设计读数、架构、跨模块映射等）
-- `modules/` 下按模块组织，每模块自适应粒度：小模块单文件（< 500 行），大模块拆分（≥ 500 行）
+- `index.md` 自动生成，无行数限制，只含 frontmatter + 模块清单 + Split Manifest
+- `global.md` 单文件，≤ 300 行，含全局设计共识（设计读数、架构、跨模块映射等）；超限禁止压缩，按数字顺序分片
+- `modules/` 下按模块组织，每个模块位于 `modules/<NN>-<m>/` 子目录（`<NN>` 为零填充数字序号如 01、02、03），子目录名带数字固定顺序；含 `api.md` / `database.md` / `ui-ux.md` / `test-cases.md` 独立维度文件，每个 ≤ 500 行，超限按语义前缀 + 数字分片（如 `api-1.md`、`api-2.md`...）
 - 全程无中间大文件，避免 AI 上下文爆炸
 
-> 注意：本模板描述的是产物组织方式，不是维度拆分规则。维度拆分规则见 SKILL.md 核心原则 8（生成时拆分，非生成后拆分）。无论文件大小，每个维度必须拆分为独立子文件这一旧规则已废弃，当前采用自适应粒度。
+> 注意：本模板描述的是产物组织方式，不是维度拆分规则。维度拆分规则见 SKILL.md 核心原则 8（生成时拆分，非生成后拆分）。超限处理统一采用数字顺序分片，禁止压缩内容。
 
 ## 产物目录结构
 
@@ -17,25 +17,36 @@
 ```
 ae/designs/
 └── user-auth-2026-06-24/              # topic-日期
-    ├── index.md                        # L0 索引（自动生成，≤ 100 行）
+    ├── index.md                        # L0 索引（自动生成，无行数限制）
     ├── global.md                       # 全局设计共识（单文件，≤ 300 行）
     └── modules/
-        ├── auth.md                     # 小模块：单文件（< 500 行）
-        ├── resource/                   # 大模块：自适应拆分（≥ 500 行）
-        │   ├── module.md               # API + Database
-        │   ├── ui-ux.md                # UI/UX
-        │   └── test-cases.md           # Test Cases
-        └── audit.md                    # 小模块：单文件
+        ├── 01-auth/                    # 模块子目录（数字序号 + 模块名）
+        │   ├── api.md                  # API 维度（≤ 500 行）
+        │   ├── database.md             # Database 维度（≤ 500 行）
+        │   ├── ui-ux.md                # UI/UX 维度（≤ 500 行）
+        │   └── test-cases.md           # Test Cases 维度（≤ 500 行）
+        ├── 02-resource/                # 模块子目录
+        │   ├── api-1.md                # 大模块 API 分片第 1 片（≤ 500 行）
+        │   ├── api-2.md                # 大模块 API 分片第 2 片（≤ 500 行）
+        │   ├── database.md             # Database 维度（≤ 500 行）
+        │   ├── ui-ux.md                # UI/UX 维度（≤ 500 行）
+        │   └── test-cases.md           # Test Cases 维度（≤ 500 行）
+        └── 03-audit/                   # 模块子目录
+            ├── api.md                  # API 维度（≤ 500 行）
+            └── test-cases.md           # Test Cases 维度（≤ 500 行）
 ```
 
-### 自适应粒度规则
+### 数字分片规则
 
-| 模块规模 | 产出形式 | 文件 |
-|---------|---------|------|
-| < 500 行 | 单文件 | `modules/<m>.md`（含 §API + §Database + §UI/UX + §Test Cases 全部章节） |
-| ≥ 500 行 | 拆分 | `modules/<m>/module.md`（§API + §Database）+ `modules/<m>/ui-ux.md`（§UI/UX）+ `modules/<m>/test-cases.md`（§Test Cases） |
+| 文件 | 行数上限 | 超限处理 |
+|------|---------|---------|
+| global.md | ≤ 300 行 | 禁止压缩，按数字顺序分片为 `global-1.md`、`global-2.md`、...，每片 ≤ 300 行 |
+| modules/<NN>-<m>/api.md | ≤ 500 行 | 禁止压缩，按语义前缀 + 数字顺序分片为 `modules/<NN>-<m>/api-1.md`、`api-2.md`、...，每片 ≤ 500 行 |
+| modules/<NN>-<m>/database.md | ≤ 500 行 | 禁止压缩，按语义前缀 + 数字顺序分片为 `modules/<NN>-<m>/database-1.md`、`database-2.md`、...，每片 ≤ 500 行 |
+| modules/<NN>-<m>/ui-ux.md | ≤ 500 行 | 禁止压缩，按语义前缀 + 数字顺序分片为 `modules/<NN>-<m>/ui-ux-1.md`、`ui-ux-2.md`、...，每片 ≤ 500 行 |
+| modules/<NN>-<m>/test-cases.md | ≤ 500 行 | 禁止压缩，按语义前缀 + 数字顺序分片为 `modules/<NN>-<m>/test-cases-1.md`、`test-cases-2.md`、...，每片 ≤ 500 行 |
 
-拆分阈值以模块总行数（API + Database + UI/UX + Test Cases）为准。拆分后 `module.md` 仍可超 500 行（含 API + Database），但不再进一步拆分——模块是设计最小内聚单元。
+模块子目录名格式：`<NN>-<module-name>`，`<NN>` 为零填充两位数字序号（01、02、03、...），按 architecture 章节中模块划分顺序编号。分片在 `##` 章节边界切分，保持片内语义完整。分片文件名数字固定顺序，`index.md` 记录所有分片文件清单。
 
 ### "需求描述名"来源规则（D12）
 
@@ -69,27 +80,45 @@ last_updated: "2026-06-24"
 | 模块 | 文件 | 行数 | 摘要 | 稳定 ID |
 |------|------|------|------|---------|
 | global | [global.md](global.md) | 280 | 设计读数、全局架构、跨模块映射 | ADR-001~003 |
-| auth | [modules/auth.md](modules/auth.md) | 320 | 认证模块（单文件） | EP-001~003, T-users |
-| resource | [modules/resource/module.md](modules/resource/module.md) | 480 | 资源模块 API + Database | EP-004~006, T-resources |
-| resource | [modules/resource/ui-ux.md](modules/resource/ui-ux.md) | 350 | 资源模块 UI/UX | PAGE-003~006 |
-| resource | [modules/resource/test-cases.md](modules/resource/test-cases.md) | 400 | 资源模块测试用例 | TC-* |
-| audit | [modules/audit.md](modules/audit.md) | 180 | 审计模块（单文件） | T-audit-log |
+| auth | [modules/01-auth/api.md](modules/01-auth/api.md) | 180 | 认证模块 API | EP-001~003 |
+| auth | [modules/01-auth/database.md](modules/01-auth/database.md) | 90 | 认证模块数据库 | T-users |
+| auth | [modules/01-auth/ui-ux.md](modules/01-auth/ui-ux.md) | 50 | 认证模块 UI/UX | — |
+| auth | [modules/01-auth/test-cases.md](modules/01-auth/test-cases.md) | 100 | 认证模块测试用例 | TC-* |
+| resource | [modules/02-resource/api-1.md](modules/02-resource/api-1.md) | 480 | 资源模块 API 第 1 片 | EP-004~006 |
+| resource | [modules/02-resource/api-2.md](modules/02-resource/api-2.md) | 200 | 资源模块 API 第 2 片 | EP-007~008 |
+| resource | [modules/02-resource/database.md](modules/02-resource/database.md) | 150 | 资源模块数据库 | T-resources |
+| resource | [modules/02-resource/ui-ux.md](modules/02-resource/ui-ux.md) | 350 | 资源模块 UI/UX | PAGE-003~006 |
+| resource | [modules/02-resource/test-cases.md](modules/02-resource/test-cases.md) | 120 | 资源模块测试用例 | TC-* |
+| audit | [modules/03-audit/api.md](modules/03-audit/api.md) | 80 | 审计模块 API | — |
+| audit | [modules/03-audit/test-cases.md](modules/03-audit/test-cases.md) | 100 | 审计模块测试用例 | T-audit-log |
 
 ## Split Manifest
 
 - split_files:
   - file: global.md
     lines: 280
-  - file: modules/auth.md
-    lines: 320
-  - file: modules/resource/module.md
-    lines: 480
-  - file: modules/resource/ui-ux.md
-    lines: 350
-  - file: modules/resource/test-cases.md
-    lines: 400
-  - file: modules/audit.md
+  - file: modules/01-auth/api.md
     lines: 180
+  - file: modules/01-auth/database.md
+    lines: 90
+  - file: modules/01-auth/ui-ux.md
+    lines: 50
+  - file: modules/01-auth/test-cases.md
+    lines: 100
+  - file: modules/02-resource/api-1.md
+    lines: 480
+  - file: modules/02-resource/api-2.md
+    lines: 200
+  - file: modules/02-resource/database.md
+    lines: 150
+  - file: modules/02-resource/ui-ux.md
+    lines: 350
+  - file: modules/02-resource/test-cases.md
+    lines: 120
+  - file: modules/03-audit/api.md
+    lines: 80
+  - file: modules/03-audit/test-cases.md
+    lines: 100
 
 > index.md 为自动生成的纯索引，不含设计内容。设计内容分布在 global.md 和 modules/ 下。
 ```
@@ -170,6 +199,14 @@ heading_chain: "设计契约 > 全局设计共识"
 
 （Mermaid flowchart 或 sequenceDiagram 绘制跨模块数据流）
 
+## 安全
+
+（详见 security-template.md）
+
+## 可观测性
+
+（详见 observability-template.md）
+
 ## 跨模块映射
 
 （详见 cross-dimension-mapping.md §跨模块映射）
@@ -187,9 +224,11 @@ heading_chain: "设计契约 > 全局设计共识"
 | 用户删除后资源级联 | auth, resource | ON DELETE CASCADE |
 | 所有写操作审计 | auth, resource, audit | 同步写入 audit_log |
 
-## 全局非功能约束
+## 非功能
 
-（性能、安全、可观测性等跨模块约束，按需产出）
+（详见 non-functional-template.md）
+
+（性能、并发、缓存等跨模块约束，按需产出）
 
 ## 负向设计空间
 
@@ -203,14 +242,14 @@ heading_chain: "设计契约 > 全局设计共识"
 
 ## 行数校验
 
-- `index.md` ≤ 100 行（自动生成，豁免人工校验）
-- `global.md` ≤ 300 行
-- `modules/<m>.md`（单文件）< 500 行
-- `modules/<m>/module.md` 无硬上限（含 API + Database，但建议 ≤ 500 行）
-- `modules/<m>/ui-ux.md` ≤ 500 行
-- `modules/<m>/test-cases.md` ≤ 500 行
+- `index.md` 无行数限制
+- `global.md` ≤ 300 行；超限禁止压缩，按数字顺序分片为 `global-1.md`、`global-2.md`、...，每片 ≤ 300 行
+- `modules/<NN>-<m>/api.md` ≤ 500 行；超限禁止压缩，按语义前缀 + 数字顺序分片为 `modules/<NN>-<m>/api-1.md`、`api-2.md`、...，每片 ≤ 500 行
+- `modules/<NN>-<m>/database.md` ≤ 500 行；超限禁止压缩，按语义前缀 + 数字顺序分片为 `modules/<NN>-<m>/database-1.md`、`database-2.md`、...，每片 ≤ 500 行
+- `modules/<NN>-<m>/ui-ux.md` ≤ 500 行；超限禁止压缩，按语义前缀 + 数字顺序分片为 `modules/<NN>-<m>/ui-ux-1.md`、`ui-ux-2.md`、...，每片 ≤ 500 行
+- `modules/<NN>-<m>/test-cases.md` ≤ 500 行；超限禁止压缩，按语义前缀 + 数字顺序分片为 `modules/<NN>-<m>/test-cases-1.md`、`test-cases-2.md`、...，每片 ≤ 500 行
 
-每生成一个文件就校验一次，不通过打回重新生成该文件。
+分片在 `##` 章节边界切分，保持片内语义完整。分片文件名数字固定顺序。每生成一个文件就校验一次，不通过则分片，禁止压缩内容。
 
 ---
 
@@ -224,14 +263,14 @@ heading_chain: "设计契约 > 全局设计共识"
 ---
 type: design-shard
 status: active
-section: "resource"
+section: "resource-api"
 parent: "index.md"
 module: "resource"
-heading_chain: "设计契约 > 资源模块 > API + Database"
+heading_chain: "设计契约 > 资源模块 > API"
 ---
 ```
 
-模块级章节片段（拆分后的 `module.md`/`ui-ux.md`/`test-cases.md`）的 `section` 为 `<模块名>-<章节>`，`heading_chain` 为 `设计契约 > <模块名> > <章节名>`。
+模块级维度文件（`modules/<NN>-<m>/api.md`/`database.md`/`ui-ux.md`/`test-cases.md`）的 `section` 为 `<模块名>-<维度名>`，`heading_chain` 为 `设计契约 > <模块名> > <维度名>`。模块级分片文件（如 `modules/<NN>-<m>/api-1.md`/`api-2.md`/...）的 `section` 为 `<模块名>-api-<片号>`，`heading_chain` 为 `设计契约 > <模块名> > API > 第 <片号> 片`。
 
 ---
 
@@ -239,4 +278,4 @@ heading_chain: "设计契约 > 资源模块 > API + Database"
 
 模块间引用通过稳定 ID（EP-XXX、T-XXX、ST-XXX、COMP-XXX、PAGE-XXX、TC-XXX）松耦合，不直接加载其他模块文件。跨模块映射收敛到 `global.md` §跨模块映射，只保留模块间关系。
 
-校验时只读 `index.md` + `global.md`（合计 ≤ 400 行），不读模块文件，避免上下文膨胀。
+校验时只读 `index.md` + `global.md`，不读模块文件，避免上下文膨胀。

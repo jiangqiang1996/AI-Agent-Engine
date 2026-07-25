@@ -14,9 +14,9 @@ const INVARIANTS: Invariant[] = [
     file: 'src/assets/skills/ae-design/references/design-output-template.md',
     label: 'ae:design 管道边界',
     mustContain: [
-      '无论文件大小，每个维度必须拆分为独立子文件',
+      '超限禁止压缩，按数字顺序分片',
     ],
-    mustNotContain: ['根据选择路由'],
+    mustNotContain: ['根据选择路由', '自适应粒度', 'module.md（§API + §Database）'],
   },
   {
     file: 'src/assets/skills/ae-task-loop/SKILL.md',
@@ -108,8 +108,20 @@ const INVARIANTS: Invariant[] = [
   {
     file: 'src/assets/skills/ae-design/SKILL.md',
     label: 'ae:design 生成时拆分',
-    mustContain: ['生成时拆分，非生成后拆分', '所有维度支持大文件自动拆分', '| database | `@database-designer` |'],
-    mustNotContain: ['unified/split', '<ae-design路径>', '强制维度拆分', '无论文件大小，每个维度必须拆分为独立子文件'],
+    mustContain: ['生成时拆分，非生成后拆分', '禁止压缩内容', '按数字顺序分片', '| database | `@database-designer` |', 'modules/<NN>-<m>/api.md'],
+    mustNotContain: ['unified/split', '<ae-design路径>', '强制维度拆分', '无论文件大小，每个维度必须拆分为独立子文件', '自适应拆分', '压缩冗余内容', 'modules/<m>.md §API'],
+  },
+  {
+    file: 'src/assets/skills/ae-design/SKILL.md',
+    label: 'ae:design 维度独立文件',
+    mustContain: ['modules/<NN>-<m>/api.md', 'modules/<NN>-<m>/database.md', 'modules/<NN>-<m>/ui-ux.md', 'modules/<NN>-<m>/test-cases.md'],
+    mustNotContain: [],
+  },
+  {
+    file: 'src/assets/skills/ae-prd/SKILL.md',
+    label: 'ae:prd 原型独立文件',
+    mustContain: ['prototype.md', 'type: prd-prototype'],
+    mustNotContain: [],
   },
 ]
 

@@ -49,7 +49,7 @@ ae-ocr(command="review", from="main", to="feature-branch", background="{code_int
 
 调用示例（文件上下文）：
 ```
-ae-ocr(command="review", backgroundFile="./ae/prds/feature-x.md")
+ae-ocr(command="review", backgroundFile="./ae/prds/feature-x-2026-07-24/index.md")
 ```
 
 ### 第二步：解析工具返回值

@@ -157,6 +157,16 @@ function detectDesignDimensions(docFiles: string[]): string[] {
 
   if (designDocs.length === 0) return dimensions
 
+  // 文件名直接匹配维度
+  for (const f of designDocs) {
+    const lower = f.toLowerCase()
+    if (lower.endsWith('/api.md') || lower.includes('/api-')) dimensions.push('api')
+    if (lower.endsWith('/database.md') || lower.includes('/database-')) dimensions.push('database')
+    if (lower.endsWith('/ui-ux.md') || lower.includes('/ui-ux-')) dimensions.push('ui-ux')
+    if (lower.endsWith('/test-cases.md') || lower.includes('/test-cases-')) dimensions.push('test-cases')
+  }
+
+  // 关键词匹配作为兜底
   const designPaths = designDocs.join(' ').toLowerCase()
 
   if (/架构|模块|分层|边界|依赖方向|architecture/.test(designPaths)) {
@@ -184,7 +194,7 @@ function detectDesignDimensions(docFiles: string[]): string[] {
     dimensions.push('non-functional')
   }
 
-  return dimensions
+  return [...new Set(dimensions)]
 }
 
 function detectDocCategories(docFiles: string[]): number {

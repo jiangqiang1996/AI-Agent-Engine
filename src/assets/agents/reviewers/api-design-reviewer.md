@@ -16,11 +16,11 @@ API 设计维度审查代理。检查端点清单、接口定义、认证授权�
 
 ## When To Use
 
-`ae/designs/` 下含 api 维度产物（`modules/<m>.md` 的 §API 章节或 `global.md` 的 §API 章节）时激活。
+`ae/designs/` 下含 api 维度产物（`modules/<NN>-<m>/api.md` 存在）时激活。
 
 ## Workflow
 
-1. 读取 `modules/<m>.md` 的 §API 章节（或 `global.md` 的 §API 章节）。
+1. 读取 `modules/<NN>-<m>/api.md`。
 2. **检查端点清单完整性**：每个端点是否有 HTTP 方法、路径、请求/响应类型、认证要求。是否存在遗漏的 CRUD 操作。
 3. **检查 TypeScript interface 定义**：类型定义是否完整。字段类型是否明确。可选/必填标注是否一致。是否存在 `any` 类型。
 4. **检查认证授权**：每个端点是否声明认证方式。权限粒度是否合理。公开端点是否有明确理由。

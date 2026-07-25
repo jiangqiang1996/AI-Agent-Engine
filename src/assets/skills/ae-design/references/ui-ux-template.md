@@ -1,7 +1,7 @@
-# UI/UX 设计模块级章节片段模板
+# UI/UX 设计维度文件模板
 
 **触发条件：** 模块涉及 UI（dimension-triggers.md §模块维度触发）
-**产出位置：** `modules/<m>.md` 的 `## UI/UX {#ui-ux}` 章节（单文件模式）或 `modules/<m>/ui-ux.md`（拆分模式）
+**产出位置：** `modules/<NN>-<m>/ui-ux.md`
 **产出方：** `@ui-ux-designer` 子代理
 **可还原性目标：** 任意 AI 据此生成一致性页面和交互，精确到组件选型、HTML 结构、CSS 样式
 
@@ -19,7 +19,7 @@ ae:design 的 ui-ux 维度是**最终页面详细设计**，供 ae:work 直接�
 
 ## 章节格式
 
-产出为模块级章节片段，以 `## UI/UX {#ui-ux}` 开头，供模块 agent 合并到 `modules/<m>.md` 单文件或 `modules/<m>/ui-ux.md`：
+产出为独立维度文件 `modules/<NN>-<m>/ui-ux.md`，以 `## UI/UX {#ui-ux}` 开头：
 
 ```markdown
 ## UI/UX {#ui-ux}
@@ -80,7 +80,7 @@ ae:design 的 ui-ux 维度是**最终页面详细设计**，供 ae:work 直接�
 
 ### 响应式断点
 
-> 断点定义来自 ae:prd 原型文档的响应式声明；ae:prd 未声明响应式时此章节标注"不支持响应式，固定布局"。
+> 断点定义来自 ae:prd `global.md` §设计愿景的响应式声明；ae:prd 声明非响应式时省略此章节，不重复标注"不支持响应式，固定布局"。
 
 | 断点 | 宽度 | 布局变化 |
 |------|------|---------|
@@ -259,7 +259,7 @@ interface ButtonProps {
 ## 与 ae:prd 原型的衔接
 
 1. 读取 ae:prd 的 `index.md` 获取模块导航和 ID 索引
-2. 读取 ae:prd 的 `modules/<m>.md` §原型章节获取页面清单、路由表和每页面的布局结构描述及交互流程
+2. 读取 ae:prd 的 `modules/<NN>-<m>/prototype.md` 获取页面清单、路由表和每页面的布局结构描述及交互流程
 3. **读取 ae:prd 的响应式声明和各页面的响应式布局描述**，映射到 ui-ux 的响应式断点表（保留 ae:prd 声明的断点数值和布局变化描述）
 4. **扫描项目已有组件资产**（grep/glob 搜索组件目录），识别可复用组件，记录在"组件复用策略"章节
 5. 将文字描述升级为 HTML 结构片段 + CSS 样式片段

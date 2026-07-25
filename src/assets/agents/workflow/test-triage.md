@@ -31,7 +31,7 @@ description: "测试失败诊断代理：分析 TestFailureBundle，按 5 条优
 当被调度执行规则 3 真源对齐判断时：
 
 1. 读取 PRD 文件（`prdPath` 指向 `ae/prds/` 下最新有效需求）
-2. 读取设计用例文件（`designCasePath` 指向 `ae/designs/` 下 test-cases 维度）
+2. 读取设计用例文件（`designCasePath` 指向 `ae/designs/` 下 modules/<NN>-<m>/test-cases.md）
 3. 对每个失败包，将断言期望值和产品实际行为分别与真源规格对比：
    - 断言符合真源 + 产品不符 → production bug
      → rootCause: "production", domain: 按失败特征分 frontend/backend, dispatchTarget: 对应修复技能

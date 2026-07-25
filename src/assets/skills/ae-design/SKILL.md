@@ -12,7 +12,7 @@ argument-hint: "[需求文档路径|design|裸描述] [dimensions=architecture,d
 
 `ae:design` 是设计契约冻结阶段，按需产出覆盖完整软件工程的可还原设计契约集。每个契约达到"任意 AI 据此生成一致性产物"的可还原标准。
 
-此工作流的持久输出是一份**设计文档**（`ae/designs/<需求描述名>-YYYY-MM-DD/` 目录，含 `index.md` 自动生成纯索引 + `global.md` 全局设计共识单文件 + `modules/<m>.md` 模块设计单文件）。它不是汇报材料；只记录后续实施必须知道的设计决策、架构约束、接口契约、数据模型和实现单元，使 ae:work 不需要再发明这些内容。
+此工作流的持久输出是一份**设计文档**（`ae/designs/<需求描述名>-YYYY-MM-DD/` 目录，含 `index.md` 自动生成纯索引 + `global.md` 全局设计共识单文件 + `modules/<NN>-<m>/` 下各维度独立文件）。它不是汇报材料；只记录后续实施必须知道的设计决策、架构约束、接口契约、数据模型和实现单元，使 ae:work 不需要再发明这些内容。
 
 此技能不实现代码。它澄清设计决策并记录契约，供 ae:work 执行使用。
 
@@ -27,8 +27,8 @@ argument-hint: "[需求文档路径|design|裸描述] [dimensions=architecture,d
 5. **合理调整 MVCE 覆盖深度** - 简单的任务获得紧凑的契约集，较大的任务获得更完整的契约集。轻量级任务可省略可选 MVCE（最小可验证契约元素）项，但必产出维度的核心 MVCE 不得省略。**核心 MVCE 判定标准：** 该契约元素缺失会导致 ae:work 无法继续实施或 ae:review 无法验证一致性 → 核心；该契约元素缺失只会降低设计质量但不阻塞下游 → 可选。每个维度的 MVCE 清单中标注 `[核心]` 或 `[可选]`。
 6. **跨模块一致性** - global.md 必须记录模块间依赖；同一模块内 api 数据模型必须与 database 一致；ui-ux 数据展示必须与 api 响应字段对齐；跨模块/跨维度映射表（4 类）必须存在且与内容对齐。
 7. **只保留对后续执行有用的设计契约** - 不为了"读起来完整"新增无实际约束力的章节；每个章节内容只有在直接影响实现、测试或审查时才记录。
-8. **生成时拆分，非生成后拆分** - 子代理直接按模块产出单文件或章节片段（modules/<m>.md ≤ 500 行，超限自适应拆分为 module.md + ui-ux.md + test-cases.md），不产出大文件再后置拆分。全程无中间大文件，避免 AI 上下文爆炸。采用两阶段调度：阶段 1 全局维度并行（产出 global.md 各章节），阶段 2 模块并行（每模块一个 agent，串行产出章节片段合并到单文件）。`index.md` 为自动生成纯索引文件（≤ 100 行），`global.md` 为全局设计共识单文件（≤ 300 行）。所有维度支持大文件自动拆分。
-9. **子代理产出章节片段** - 不同维度的设计契约由对应的专精子代理产出章节片段（写入 global.md 或 modules/<m>.md 对应章节），而非独立文件。子代理的调度逻辑和输入契约不变，仅输出从"独立文件"改为"章节片段"。
+8. **生成时拆分，非生成后拆分** - 子代理直接按模块产出各维度独立文件（modules/<NN>-<m>/ 下各维度文件 ≤ 500 行，超限按语义前缀 + 数字分片（如 `api-1.md`、`api-2.md`...）），不产出大文件再后置拆分。全程无中间大文件，避免 AI 上下文爆炸。采用两阶段调度：阶段 1 全局维度并行（产出 global.md 各章节），阶段 2 模块并行（每模块一个 agent，串行产出各维度独立文件）。`index.md` 为自动生成纯索引文件（无行数限制），`global.md` 为全局设计共识单文件（≤ 300 行，超限按数字顺序分片为 `global-1.md`、`global-2.md`、...）。所有文件超限时禁止压缩内容，必须按数字顺序分片，分片在 `##` 章节边界切分保持片内语义完整，每片不超过行数上限。
+9. **子代理产出各维度独立文件** - 不同维度的设计契约由对应的专精子代理产出独立维度文件（写入 global.md 或 modules/<NN>-<m>/ 对应维度文件），而非章节片段合并到单文件。子代理的调度逻辑和输入契约不变，仅输出从"章节片段"改为"独立维度文件"。
 10. **使用 ae:grill 追问** - 在产出契约前，推荐使用 `ae:grill` 技能逐个追问设计决策，一问一答推进直到达成共识。用户可选择跳过。
 11. **技术栈依赖审查** - 设计中关于技术栈的选型禁止引入长期不活跃或 stars 数量较少的小众依赖。技术选型理由表中每个引入的第三方依赖必须标注其社区活跃度（最近发布时间、stars 量级）和采用理由；优先选择社区活跃、生态成熟、维护稳定的依赖。具体判定标准见 `references/architecture-template.md` 技术选型理由章节。
 12. **技术实现路线约束（硬约束）** - 设计阶段必须明确技术实现路线，覆盖前端、后端、数据层、基础设施等各时段：
@@ -87,7 +87,7 @@ argument-hint: "[需求文档路径|design|裸描述] [dimensions=architecture,d
 
 ## 维度子代理
 
-每个维度由对应的专精子代理产出设计契约章节片段，主代理不直接产出维度内容（global.md 全局章节和跨维度映射表除外）：
+全局维度由对应的专精子代理产出章节片段合并到 global.md，模块维度由对应的专精子代理产出独立维度文件，主代理不直接产出维度内容（global.md 全局章节和跨维度映射表除外）：
 
 | 维度 | 子代理 | 产出位置 |
 |------|--------|---------|
@@ -97,16 +97,16 @@ argument-hint: "[需求文档路径|design|裸描述] [dimensions=architecture,d
 | security | `@security-designer` | `global.md` §安全 |
 | observability | `@observability-designer` | `global.md` §可观测性 |
 | non-functional | `@non-functional-designer` | `global.md` §非功能 |
-| api | `@api-designer` | `modules/<m>.md` §API 章节片段 |
-| database | `@database-designer` | `modules/<m>.md` §Database 章节片段 |
-| ui-ux | `@ui-ux-designer` | `modules/<m>.md` §UI/UX 章节片段 |
-| test-cases | `@test-cases-designer` | `modules/<m>.md` §Test 章节片段 |
+| api | `@api-designer` | `modules/<NN>-<m>/api.md` |
+| database | `@database-designer` | `modules/<NN>-<m>/database.md` |
+| ui-ux | `@ui-ux-designer` | `modules/<NN>-<m>/ui-ux.md` |
+| test-cases | `@test-cases-designer` | `modules/<NN>-<m>/test-cases.md` |
 
-**产物组织：** `index.md`（自动生成，≤ 100 行，纯索引）位于设计目录根下。`global.md`（≤ 300 行，全局设计共识单文件）位于设计目录根下，包含 §概览、§系统架构、§安全、§可观测性、§非功能、§设计规范、§实施约束、§跨维度映射表等全局章节。`modules/<m>.md`（≤ 500 行，模块设计单文件）位于 `modules/` 子目录中，每个模块一个文件，包含 §API、§Database、§UI/UX、§Test Cases、§设计规范（可选）、§约束（可选）章节。模块文件内容边界：禁止出现需求条目/验收标准/原型等产品逻辑层内容。
+**产物组织：** `index.md`（自动生成，无行数限制，纯索引）位于设计目录根下。`global.md`（≤ 300 行，全局设计共识单文件）位于设计目录根下，包含 §概览、§系统架构、§安全、§可观测性、§非功能、§设计规范、§实施约束、§跨维度映射表等全局章节。每个模块位于 `modules/<NN>-<m>/` 子目录中（`<NN>` 为零填充数字序号如 01、02、03），子目录名带数字固定顺序。模块下各维度独立文件（`api.md` / `database.md` / `ui-ux.md` / `test-cases.md`，每个 ≤ 500 行），每个维度文件仅当对应维度存在时产出，不存在即显式否定。维度文件内容边界：禁止出现需求条目/验收标准/原型等产品逻辑层内容。
 
-**自适应粒度：** 模块文件 < 500 行 → 单文件 `modules/<m>.md`；模块文件 ≥ 500 行 → 自动拆分为 `modules/<m>/module.md`（§API + §Database）+ `modules/<m>/ui-ux.md`（§UI/UX）+ `modules/<m>/test-cases.md`（§Test Cases）。
+**数字分片：** 各维度文件 ≤ 500 行；超限禁止压缩内容，按语义前缀 + 数字顺序分片（如 `modules/<NN>-<m>/api-1.md`、`api-2.md`...），每片 ≤ 500 行，在 `##` 章节边界切分保持片内语义完整。global.md ≥ 300 行 → 禁止压缩内容，按数字顺序分片为 `global-1.md`、`global-2.md`、...，每片 ≤ 300 行。分片文件名数字固定顺序，`index.md` 记录所有分片文件清单。
 
-**硬性约束：主代理严禁直接产出维度契约内容。** global.md 的全局章节和跨维度映射表由主代理产出，其他维度必须调度对应子代理产出章节片段。违反此约束属于执行错误。
+**硬性约束：主代理严禁直接产出维度契约内容。** global.md 的全局章节和跨维度映射表由主代理产出，其他维度必须调度对应子代理产出（全局维度产出章节片段合并到 global.md，模块维度产出独立维度文件）。违反此约束属于执行错误。
 
 ## 执行流程
 
@@ -221,7 +221,7 @@ argument-hint: "[需求文档路径|design|裸描述] [dimensions=architecture,d
 
 ### 阶段 3：产出 global.md 骨架
 
-主代理产出 global.md 骨架（全局设计共识单文件），包含 §概览、§实施约束、§跨维度映射表骨架，作为后续全局维度子代理和模块子代理产出章节片段的锚点。
+主代理产出 global.md 骨架（全局设计共识单文件），包含 §概览、§实施约束、§跨维度映射表骨架，作为后续全局维度子代理产出章节片段和模块子代理产出独立维度文件的锚点。
 
 #### 3.1 产出 §概览（必产出）
 
@@ -275,21 +275,21 @@ global.md §概览按 `references/overview-template.md` 模板产出，包含：
 - @non-functional-designer → global.md §非功能
 - @ui-design-spec → global.md §设计规范
 
-各子代理产出章节片段后，主代理合并写入 global.md。global.md ≤ 300 行，超限时压缩冗余内容。
+各子代理产出章节片段后，主代理合并写入 global.md。global.md ≤ 300 行，超限时禁止压缩内容，按数字顺序分片为 `global-1.md`、`global-2.md`、...，每片 ≤ 300 行。
 
 **阶段 2：模块并行（每模块 1 个 agent，模块内串行产出章节片段）**
 
-按 architecture 章节中的模块划分，每个模块分配一个 agent，所有模块并行执行。每个模块 agent 内部串行产出章节片段并合并到单文件 `modules/<m>.md`：
-1. @api-designer → §API 章节片段
-2. @database-designer → §Database 章节片段（依赖 §API 数据模型）
-3. @ui-ux-designer → §UI/UX 章节片段（依赖 §API 响应字段）
-4. @test-cases-designer → §Test 章节片段（依赖 §API + §Database + §UI/UX）
+按 architecture 章节中的模块划分，每个模块分配一个 agent，所有模块并行执行。每个模块 agent 内部串行产出各维度独立文件 `modules/<NN>-<m>/api.md`、`database.md`、`ui-ux.md`、`test-cases.md`，无需合并：
+1. @api-designer → `modules/<NN>-<m>/api.md`
+2. @database-designer → `modules/<NN>-<m>/database.md`（依赖 api.md 数据模型）
+3. @ui-ux-designer → `modules/<NN>-<m>/ui-ux.md`（依赖 api.md 响应字段）
+4. @test-cases-designer → `modules/<NN>-<m>/test-cases.md`（依赖 api.md + database.md + ui-ux.md）
 
-模块 agent 将 4 个章节片段合并写入 `modules/<m>.md`。模块文件 < 500 行；超限时自适应拆分为 `modules/<m>/module.md`（§API + §Database）+ `modules/<m>/ui-ux.md`（§UI/UX）+ `modules/<m>/test-cases.md`（§Test Cases）。
+各维度子代理直接产出独立文件，无需合并。各维度文件 ≤ 500 行；超限时禁止压缩内容，按语义前缀 + 数字顺序分片（如 `modules/<NN>-<m>/api-1.md`、`api-2.md`...），每片 ≤ 500 行，在 `##` 章节边界切分保持片内语义完整。
 
-**阶段 3：自动索引 + 一致性校验 + 自适应粒度拆分**
+**阶段 3：自动索引 + 一致性校验 + 数字顺序分片**
 
-主代理自动生成 `index.md`（≤ 100 行，纯索引），执行跨模块一致性校验（阶段 5），对超限模块文件执行自适应粒度拆分。
+主代理自动生成 `index.md`（无行数限制，纯索引），执行跨模块一致性校验（阶段 5），对超限模块文件执行数字顺序分片。
 
 #### 4.2 并行子代理调度
 
@@ -310,19 +310,19 @@ global.md §概览按 `references/overview-template.md` 模板产出，包含：
 - 该模块的实体清单
 - 跨模块引用目标（ID 引用，不加载其他模块的文件）
 
-子代理产出章节片段返回，模块 agent 合并写入 `modules/<m>.md`。即时校验行数 ≤ 500 行，超限标记待自适应拆分。
+子代理产出各维度独立文件返回，直接写入对应维度文件 `modules/<NN>-<m>/<dimension>.md`。即时校验行数 ≤ 500 行，超限标记待语义前缀 + 数字顺序分片。
 
-**阶段 3 调度（自动索引 + 校验 + 拆分）：** 主代理汇总所有模块文件，生成 index.md，执行一致性校验（阶段 5），对超限模块执行自适应拆分。
+**阶段 3 调度（自动索引 + 校验 + 分片）：** 主代理汇总所有模块文件，生成 index.md，执行一致性校验（阶段 5），对超限模块执行数字顺序分片。
 
 子代理产出后返回：
-- 章节片段内容
+- 章节片段内容（全局维度）或独立维度文件内容（模块维度）
 - 稳定 ID 列表
 - 跨维度映射表行项
 
 #### 4.3 主代理汇总
 
 **所有子代理执行完毕后**，主代理统一汇总：
-- 生成 index.md（自动索引，≤ 100 行，记录 global.md + 所有 modules/<m>.md 的文件清单和章节索引）
+- 生成 index.md（自动索引，无行数限制，记录 global.md + 所有 modules/<NN>-<m>/ 下各维度文件的清单和章节索引）
 - 更新 global.md §概览的产物清单
 - 更新跨维度映射表对应行项
 - 记录稳定 ID 列表
@@ -332,22 +332,27 @@ global.md §概览按 `references/overview-template.md` 模板产出，包含：
 
 #### 4.4 行数校验（即时校验，非最终校验）
 
-**生成时拆分原则：** 子代理直接按模块产出章节片段，不产出大文件再后置拆分。
+**生成时拆分原则：** 子代理直接按模块产出独立维度文件，不产出大文件再后置拆分。
 
 **即时校验机制：**
-- global.md：全局维度章节合并后即时校验 ≤ 300 行，超限压缩冗余内容
-- modules/<m>.md：模块章节合并后即时校验 ≤ 500 行
+- global.md：全局维度章节合并后即时校验 ≤ 300 行，超限禁止压缩内容，按数字顺序分片为 `global-1.md`、`global-2.md`、...，每片 ≤ 300 行
+- modules/<NN>-<m>/ 各维度文件即时校验 ≤ 500 行
   - 校验通过 → 完成
-  - 校验不通过 → 自适应拆分为 module.md + ui-ux.md + test-cases.md
-- index.md：自动生成后校验 ≤ 100 行
+  - 校验不通过 → 禁止压缩内容，按语义前缀 + 数字顺序分片（如 `modules/<NN>-<m>/api-1.md`、`api-2.md`...），每片 ≤ 500 行，在 `##` 章节边界切分保持片内语义完整
+- index.md：无行数限制
 
-**自适应粒度拆分：** 模块文件 ≥ 500 行时，自动拆分为：
-- `modules/<m>/module.md`（§API + §Database，< 500 行）
-- `modules/<m>/ui-ux.md`（§UI/UX，< 500 行）
-- `modules/<m>/test-cases.md`（§Test Cases，< 500 行）
+**语义前缀 + 数字顺序分片：** 各维度文件 ≥ 500 行时，禁止压缩内容，按语义前缀 + 数字顺序分片为：
+- `modules/<NN>-<m>/api-1.md`（api 第 1 片，≤ 500 行）
+- `modules/<NN>-<m>/api-2.md`（api 第 2 片，≤ 500 行）
+- `modules/<NN>-<m>/database-1.md`（database 第 1 片，≤ 500 行）
+- ...以此类推
+
+global.md ≥ 300 行时，禁止压缩内容，按数字顺序分片为 `global-1.md`、`global-2.md`、...，每片 ≤ 300 行。
+
+分片在 `##` 章节边界切分，保持片内语义完整。分片文件名数字固定顺序，`index.md` 记录所有分片文件清单。
 
 **保留的机制：**
-- 即时行数校验（每生成一个文件校验一次，超限自适应拆分）
+- 即时行数校验（每生成一个文件校验一次，超限按数字顺序分片，禁止压缩内容）
 - heading_chain（跨文件语义追溯）
 - 跨模块引用校验（阶段 5，只读索引）
 
@@ -362,7 +367,7 @@ global.md §概览按 `references/overview-template.md` 模板产出，包含：
 1. **4 类映射表存在且非空** - api-field-to-database-column-mapping、api-error-to-ui-state-mapping、test-case-to-contract-coverage、ui-component-to-api-endpoint-mapping 必须存在且非空（维度未产出时标注 N/A 并说明理由）
 2. **global.md 跨维度映射表 ↔ 实际内容一致性** - 映射表必须与实际产出的章节内容对齐
 3. **global.md 依赖关系完整性** - global.md 记录的跨模块依赖必须覆盖实际存在的一致性约束
-4. **test-cases 覆盖完整性** - 各模块 §Test 章节必须覆盖该模块 §API + §Database + §UI/UX 的关键场景
+4. **test-cases 覆盖完整性** - 各模块 test-cases.md 必须覆盖该模块 api.md + database.md + ui-ux.md 的关键场景
 
 **轻量语义守门（映射表行项内容对齐）：**
 
@@ -399,7 +404,7 @@ ae:review mode=headless domain=document <design-dir>/index.md
 传入参数：
 - `has_design_contract=true`
 - `document_type=design`
-- `targets=<产出的文件列表：index.md, global.md, modules/*.md>`
+- `targets=<产出的文件列表：index.md, global.md, modules/**/*.md>`
 
 ae:review 内部调用时不输出下一步引导（D13），由 ae:design 自身负责。
 
@@ -463,7 +468,7 @@ review 闭环收敛后，显式提示用户下一步推荐技能。
 - **不生成实际测试代码** - 只设计测试用例契约，不写测试代码
 - **不画真实视觉稿** - §UI/UX 章节用结构化描述（布局家族、组件契约、token），不画像素级视觉稿
 - **不扩展需求边界** - prd 冻结后，design 不得擅自扩展范围，越界项回退 prd 决策
-- **主代理不直接产出维度契约** - 除 global.md 全局章节和跨维度映射表外，维度契约必须由对应子代理产出章节片段
+- **主代理不直接产出维度契约** - 除 global.md 全局章节和跨维度映射表外，维度契约必须由对应子代理产出（全局维度产出章节片段，模块维度产出独立维度文件）
 - **技术栈选型必须经过审查** — 引入的第三方依赖必须标注社区活跃度和采用理由，禁止引入长期不活跃或小众依赖（见核心原则 11、12）
 
 ## 验证方式
@@ -477,12 +482,12 @@ review 闭环收敛后，显式提示用户下一步推荐技能。
 
 ## 产物结构
 
-产物目录结构、index.md 纯索引模板、global.md 模板和 modules/<m>.md 模板详见 `references/design-output-template.md`。产物目录结构如下：
+产物目录结构、index.md 纯索引模板、global.md 模板和 modules/<NN>-<m>/ 下各维度文件模板详见 `references/design-output-template.md`。产物目录结构如下：
 
 ```
 ae/designs/<name>-YYYY-MM-DD/
-├── index.md              # 自动生成纯索引（≤ 100 行）
-├── global.md             # 全局设计共识单文件（≤ 300 行）
+├── index.md              # 自动生成纯索引（无行数限制）
+├── global.md             # 全局设计共识单文件（≤ 300 行，超限数字分片）
 │   ├── §概览
 │   ├── §系统架构          # @architecture-designer 产出
 │   ├── §安全              # @security-designer 产出
@@ -492,20 +497,22 @@ ae/designs/<name>-YYYY-MM-DD/
 │   ├── §实施约束
 │   └── §跨维度映射表
 └── modules/
-    ├── <m1>.md           # 模块设计单文件（≤ 500 行，自适应拆分）
-    │   ├── §API          # @api-designer 产出片段
-    │   ├── §Database     # @database-designer 产出片段
-    │   ├── §UI/UX        # @ui-ux-designer 产出片段
-    │   ├── §Test Cases   # @test-cases-designer 产出片段
-    │   ├── §设计规范（可选）
-    │   └── §约束（可选）
-    ├── <m2>.md
+    ├── 01-<m1>/          # 模块子目录（数字序号 + 模块名）
+    │   ├── api.md        # @api-designer 产出（≤ 500 行，超限 → api-1.md...）
+    │   ├── database.md   # @database-designer 产出（≤ 500 行，超限 → database-1.md...）
+    │   ├── ui-ux.md      # @ui-ux-designer 产出（≤ 500 行，超限 → ui-ux-1.md...）
+    │   └── test-cases.md # @test-cases-designer 产出（≤ 500 行，超限 → test-cases-1.md...）
+    ├── 02-<m2>/
+    │   ├── api.md
+    │   ├── database.md
+    │   ├── ui-ux.md
+    │   └── test-cases.md
     └── ...
 ```
 
-**模块文件内容边界：** §API + §Database + §UI/UX + §Test Cases + §设计规范（可选）+ §约束（可选）。禁止出现需求条目/验收标准/原型等产品逻辑层内容。
+**模块各维度文件内容边界：** `api.md` 含 §API；`database.md` 含 §Database；`ui-ux.md` 含 §UI/UX；`test-cases.md` 含 §Test Cases。每个维度文件仅当对应维度存在时产出，不存在即显式否定。禁止出现需求条目/验收标准/原型等产品逻辑层内容。
 
-**自适应粒度：** 模块文件 < 500 行 → 单文件；≥ 500 行 → 拆分为 `modules/<m>/module.md` + `modules/<m>/ui-ux.md` + `modules/<m>/test-cases.md`。
+**数字分片：** 各维度文件 ≤ 500 行；超限禁止压缩内容，按语义前缀 + 数字顺序分片（如 `modules/<NN>-<m>/api-1.md`、`api-2.md`...），每片 ≤ 500 行。global.md ≥ 300 行 → 禁止压缩内容，按数字顺序分片为 `global-1.md`、`global-2.md`、...，每片 ≤ 300 行。分片在 `##` 章节边界切分，分片文件名数字固定顺序。
 
 设计维度契约模板详见 `references/` 目录下各维度的独立模板文件：
 - `references/dimension-triggers.md` - 维度触发规则
