@@ -284,8 +284,9 @@ export interface DetailEntry {
 const STAGE_LABELS: Record<string, string> = {
   research: '研究',
   review: '审查',
-  workflow: '工作流',
-  development: '开发专精代理',
+  design: '设计',
+  develop: '开发',
+  test: '测试',
 }
 
 /** 根据精确名称在帮助目录中查找详情条目，聚合关联元素。 */

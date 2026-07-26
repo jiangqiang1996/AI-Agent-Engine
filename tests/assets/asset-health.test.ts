@@ -178,7 +178,7 @@ describe('资产健康巡检', () => {
 
     for (const agentName of designAgents) {
       expect(definitionNames.has(agentName), `asset-health/design-agent/registration/${agentName}: 维度专精代理未注册`).toBe(true)
-      const agentPath = join(process.cwd(), 'src/assets/agents/workflow', `${agentName}.md`)
+      const agentPath = join(process.cwd(), 'src/assets/agents/designers', `${agentName}.md`)
       expect(existsSync(agentPath), `asset-health/design-agent/file/${agentName}: 缺少代理文件`).toBe(true)
     }
   })

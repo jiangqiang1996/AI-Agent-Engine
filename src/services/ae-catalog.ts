@@ -308,70 +308,56 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   },
 ]
 
-const REVIEW_SPECIALIST_AGENT_NAMES = new Set<string>([
-  AGENT.OCR_REVIEWER,
-  AGENT.DOCUMENT_REVIEWER,
-  AGENT.SECURITY_DESIGN_REVIEWER,
-  AGENT.ARCHITECTURE_DESIGN_REVIEWER,
-  AGENT.API_DESIGN_REVIEWER,
-  AGENT.DATABASE_DESIGN_REVIEWER,
-  AGENT.UI_UX_DESIGN_REVIEWER,
-  AGENT.TEST_CASES_DESIGN_REVIEWER,
-  AGENT.OBSERVABILITY_DESIGN_REVIEWER,
-  AGENT.NON_FUNCTIONAL_DESIGN_REVIEWER,
-  AGENT.TRACEABILITY_REVIEWER,
-  AGENT.GOAL_ALIGNMENT_REVIEWER,
-  AGENT.DESIGN_INTEGRITY_REVIEWER,
-])
-
 const REQUIRED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'], string, string?]> = [
-  [AGENT.DOCUMENT_REVIEWER, 'review', '文档审查主引擎：审查内部一致性、可行性、产品视角、步骤粒度、需求质量和证据核验', 'reviewers/document-reviewer.md'],
-  [AGENT.SECURITY_DESIGN_REVIEWER, 'review', '文档域安全审查：评估设计文档中的安全缺口、认证授权假设、数据暴露和威胁模型', 'reviewers/security-design-reviewer.md'],
+  [AGENT.DOCUMENT_REVIEWER, 'review', '文档审查主引擎：审查内部一致性、可行性、产品视角、步骤粒度、需求质量和证据核验'],
+  [AGENT.SECURITY_DESIGN_REVIEWER, 'review', '文档域安全审查：评估设计文档中的安全缺口、认证授权假设、数据暴露和威胁模型'],
   [AGENT.REPO_RESEARCH_ANALYST, 'research', '研究仓库结构与已有模式'],
   [AGENT.WEB_RESEARCHER, 'research', '搜索并总结网络信息'],
-  [AGENT.SPEC_FLOW_ANALYZER, 'workflow', '分析阶段流转和边界情况'],
-  [AGENT.OCR_REVIEWER, 'review', 'OCR 代码审查主引擎：通过 ae-ocr 工具覆盖 bug/安全/性能/可维护性/测试覆盖/风格/规范/对抗式/代理就绪/可靠性', 'reviewers/ocr-reviewer.md'],
-  [AGENT.API_DESIGN_REVIEWER, 'review', '审查接口契约破坏性变更和兼容性', 'reviewers/api-design-reviewer.md'],
-  [AGENT.ARCHITECTURE_DESIGN_REVIEWER, 'review', '从架构视角分析代码变更，检查架构边界、跨模块依赖和系统级抽象', 'reviewers/architecture-design-reviewer.md'],
-  [AGENT.DATABASE_DESIGN_REVIEWER, 'review', '审查数据迁移方案与执行细节（含数据库审查）', 'reviewers/database-design-reviewer.md'],
-  [AGENT.UI_UX_DESIGN_REVIEWER, 'review', '审查 UI/UX 设计维度的交互流程完整性、状态覆盖、与需求的一致性以及原型完整性', 'reviewers/ui-ux-design-reviewer.md'],
-  [AGENT.TEST_CASES_DESIGN_REVIEWER, 'review', '审查测试用例维度的结构完整性、覆盖完备性、步骤可执行性、结果可验证性和需求对齐程度', 'reviewers/test-cases-design-reviewer.md'],
-  [AGENT.OBSERVABILITY_DESIGN_REVIEWER, 'review', '审查可观测性维度产物：日志规范、指标体系、告警规则、健康检查和 SLO/SLI 定义', 'reviewers/observability-design-reviewer.md'],
-  [AGENT.NON_FUNCTIONAL_DESIGN_REVIEWER, 'review', '审查非功能维度产物：性能目标、并发模型、事务边界、缓存策略和容量规划', 'reviewers/non-functional-design-reviewer.md'],
-  [AGENT.GOAL_ALIGNMENT_REVIEWER, 'review', '对照审查目标逐条校验变更是否达成，识别未达成项和偏离', 'reviewers/goal-alignment-reviewer.md'],
-  [AGENT.TRACEABILITY_REVIEWER, 'review', '审查需求-设计-原型-实现-测试链路追溯，识别断裂引用、孤儿条目和未声明延期', 'reviewers/traceability-reviewer.md'],
-  [AGENT.DESIGN_INTEGRITY_REVIEWER, 'review', '审查设计文档与需求的一致性、设计维度完整性、架构与数据模型可行性和安全设计覆盖', 'reviewers/design-integrity-reviewer.md'],
-  [AGENT.FRONTEND_DEV, 'development', '前端开发专精代理：处理 UI 组件、样式、交互逻辑和响应式设计', 'developers/frontend-dev.md'],
-  [AGENT.BACKEND_DEV, 'development', '后端开发专精代理：处理 API、数据层、业务逻辑和中间件', 'developers/backend-dev.md'],
-  [AGENT.BACKEND_FIX, 'development', '后端修复专精代理：处理错误分析、根因定位、修复实现和回归验证', 'developers/backend-fix.md'],
-  [AGENT.UNIT_TEST_RUNNER, 'workflow', '单元测试执行代理：生成、执行单元测试并分析覆盖率'],
-  [AGENT.TEST_TRIAGE, 'workflow', '测试失败诊断代理：分析 TestFailureBundle，按优先级短路规则分类根因并分派修复方向'],
+  [AGENT.SPEC_FLOW_ANALYZER, 'research', '分析阶段流转和边界情况'],
+  [AGENT.OCR_REVIEWER, 'review', 'OCR 代码审查主引擎：通过 ae-ocr 工具覆盖 bug/安全/性能/可维护性/测试覆盖/风格/规范/对抗式/代理就绪/可靠性'],
+  [AGENT.API_DESIGN_REVIEWER, 'review', '审查接口契约破坏性变更和兼容性'],
+  [AGENT.ARCHITECTURE_DESIGN_REVIEWER, 'review', '从架构视角分析代码变更，检查架构边界、跨模块依赖和系统级抽象'],
+  [AGENT.DATABASE_DESIGN_REVIEWER, 'review', '审查数据迁移方案与执行细节（含数据库审查）'],
+  [AGENT.UI_UX_DESIGN_REVIEWER, 'review', '审查 UI/UX 设计维度的交互流程完整性、状态覆盖、与需求的一致性以及原型完整性'],
+  [AGENT.TEST_CASES_DESIGN_REVIEWER, 'review', '审查测试用例维度的结构完整性、覆盖完备性、步骤可执行性、结果可验证性和需求对齐程度'],
+  [AGENT.OBSERVABILITY_DESIGN_REVIEWER, 'review', '审查可观测性维度产物：日志规范、指标体系、告警规则、健康检查和 SLO/SLI 定义'],
+  [AGENT.NON_FUNCTIONAL_DESIGN_REVIEWER, 'review', '审查非功能维度产物：性能目标、并发模型、事务边界、缓存策略和容量规划'],
+  [AGENT.GOAL_ALIGNMENT_REVIEWER, 'review', '对照审查目标逐条校验变更是否达成，识别未达成项和偏离'],
+  [AGENT.TRACEABILITY_REVIEWER, 'review', '审查需求-设计-原型-实现-测试链路追溯，识别断裂引用、孤儿条目和未声明延期'],
+  [AGENT.DESIGN_INTEGRITY_REVIEWER, 'review', '审查设计文档与需求的一致性、设计维度完整性、架构与数据模型可行性和安全设计覆盖'],
+  [AGENT.FRONTEND_DEV, 'develop', '前端开发专精代理：处理 UI 组件、样式、交互逻辑和响应式设计'],
+  [AGENT.BACKEND_DEV, 'develop', '后端开发专精代理：处理 API、数据层、业务逻辑和中间件'],
+  [AGENT.BACKEND_FIX, 'develop', '后端修复专精代理：处理错误分析、根因定位、修复实现和回归验证'],
+  [AGENT.UNIT_TEST_RUNNER, 'test', '单元测试执行代理：生成、执行单元测试并分析覆盖率'],
+  [AGENT.TEST_TRIAGE, 'test', '测试失败诊断代理：分析 TestFailureBundle，按优先级短路规则分类根因并分派修复方向'],
 ]
 
 const GILDED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'], string]> = [
-  [AGENT.UI_DESIGN_SPEC, 'workflow', 'UI 设计规范与决策专家：推断设计读数、配置三旋钮、选择设计体系、推荐风格变体，产出结构化设计决策包'],
-  [AGENT.UI_ARCHITECT, 'workflow', 'Web 视觉实现：根据设计决策包和设计输入，完成页面的视觉代码实现'],
-  [AGENT.LOGIC_WEAVER, 'workflow', '前端代码实现：交互逻辑、API联调、状态管理、组件开发、重构、性能优化'],
-  [AGENT.E2E_TEST_RUNNER, 'workflow', '浏览器 E2E 测试执行代理：通过 ae:playwright 生成和执行 Playwright 测试'],
-  [AGENT.FRONTEND_FIX, 'workflow', '前端修复代理：视觉修复 + 交互逻辑修复 + 状态管理修复 + API 联调修复'],
-  [AGENT.UI_UX_DESIGNER, 'workflow', 'UI/UX 设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 ui-ux.md 设计契约，含设计读数、信息架构、页面规格、组件契约、设计 Token 和交互状态机'],
-  [AGENT.ARCHITECTURE_DESIGNER, 'workflow', '架构设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 architecture.md 设计契约，含模块边界、依赖方向、分层规则、数据流和错误传播链'],
-  [AGENT.API_DESIGNER, 'workflow', '接口设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 api.md 设计契约，含端点清单、TypeScript interface、认证授权、错误码体系和幂等性声明'],
-  [AGENT.DATABASE_DESIGNER, 'workflow', '数据库设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 database.md 设计契约，含 ER 模型、表结构、关系与外键、迁移策略和敏感字段标注'],
-  [AGENT.TEST_CASES_DESIGNER, 'workflow', '测试用例设计维度专精代理：根据 prd 需求、其他维度契约和 ae:grill 追问结果产出 test-cases.md 设计契约，含覆盖矩阵、P0-P3 用例、行为契约规格和维度覆盖追溯'],
-  [AGENT.SECURITY_DESIGNER, 'workflow', '安全设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 security.md 设计契约，含威胁模型、信任边界、认证授权流程、数据分级和密钥管理'],
-  [AGENT.OBSERVABILITY_DESIGNER, 'workflow', '可观测性设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 observability.md 设计契约，含日志规范、指标体系、告警规则、健康检查和 SLO/SLI 定义'],
-  [AGENT.NON_FUNCTIONAL_DESIGNER, 'workflow', '非功能设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 non-functional.md 设计契约，含性能目标、并发模型、事务边界、缓存策略和容量规划'],
+  [AGENT.UI_DESIGN_SPEC, 'design', 'UI 设计规范与决策专家：推断设计读数、配置三旋钮、选择设计体系、推荐风格变体，产出结构化设计决策包'],
+  [AGENT.UI_ARCHITECT, 'develop', 'Web 视觉实现：根据设计决策包和设计输入，完成页面的视觉代码实现'],
+  [AGENT.LOGIC_WEAVER, 'develop', '前端代码实现：交互逻辑、API联调、状态管理、组件开发、重构、性能优化'],
+  [AGENT.E2E_TEST_RUNNER, 'test', '浏览器 E2E 测试执行代理：通过 ae:playwright 生成和执行 Playwright 测试'],
+  [AGENT.FRONTEND_FIX, 'develop', '前端修复代理：视觉修复 + 交互逻辑修复 + 状态管理修复 + API 联调修复'],
+  [AGENT.UI_UX_DESIGNER, 'design', 'UI/UX 设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 ui-ux.md 设计契约，含设计读数、信息架构、页面规格、组件契约、设计 Token 和交互状态机'],
+  [AGENT.ARCHITECTURE_DESIGNER, 'design', '架构设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 architecture.md 设计契约，含模块边界、依赖方向、分层规则、数据流和错误传播链'],
+  [AGENT.API_DESIGNER, 'design', '接口设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 api.md 设计契约，含端点清单、TypeScript interface、认证授权、错误码体系和幂等性声明'],
+  [AGENT.DATABASE_DESIGNER, 'design', '数据库设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 database.md 设计契约，含 ER 模型、表结构、关系与外键、迁移策略和敏感字段标注'],
+  [AGENT.TEST_CASES_DESIGNER, 'design', '测试用例设计维度专精代理：根据 prd 需求、其他维度契约和 ae:grill 追问结果产出 test-cases.md 设计契约，含覆盖矩阵、P0-P3 用例、行为契约规格和维度覆盖追溯'],
+  [AGENT.SECURITY_DESIGNER, 'design', '安全设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 security.md 设计契约，含威胁模型、信任边界、认证授权流程、数据分级和密钥管理'],
+  [AGENT.OBSERVABILITY_DESIGNER, 'design', '可观测性设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 observability.md 设计契约，含日志规范、指标体系、告警规则、健康检查和 SLO/SLI 定义'],
+  [AGENT.NON_FUNCTIONAL_DESIGNER, 'design', '非功能设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 non-functional.md 设计契约，含性能目标、并发模型、事务边界、缓存策略和容量规划'],
 ]
 
+const STAGE_TO_DIR: Record<AgentDefinition['stage'], string> = {
+  review: 'reviewers',
+  research: 'research',
+  design: 'designers',
+  develop: 'developers',
+  test: 'testers',
+}
+
 function resolveAgentPath(name: string, stage: AgentDefinition['stage']): string {
-  if (REVIEW_SPECIALIST_AGENT_NAMES.has(name)) {
-    return `reviewers/${name}.md`
-  }
-  if (stage === 'development') {
-    return `developers/${name}.md`
-  }
-  return `${stage}/${name}.md`
+  return `${STAGE_TO_DIR[stage]}/${name}.md`
 }
 
 function buildAgentList(

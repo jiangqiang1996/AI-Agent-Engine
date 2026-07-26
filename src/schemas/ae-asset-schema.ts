@@ -145,7 +145,7 @@ export const AeAssetEntrySchema = z.object({
 })
 
 export const AgentStageSchema = z
-  .enum(['review', 'research', 'workflow', 'development'])
+  .enum(['review', 'research', 'design', 'develop', 'test'])
   .describe('Agent 所属目录')
 
 export const AgentTierSchema = z

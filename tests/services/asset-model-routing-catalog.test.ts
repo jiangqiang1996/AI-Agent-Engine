@@ -75,7 +75,7 @@ describe('asset-model-routing-catalog', () => {
     const entries = getAssetModelRoutingEntries(manifest).filter((entry) => entry.type === 'agent')
 
     for (const entry of entries) {
-      const stage = ['review', 'research', 'workflow'].find((value) =>
+      const stage = ['review', 'research', 'design', 'develop', 'test'].find((value) =>
         existsSync(join(manifest.agentsDir, value, `${entry.name}.md`)),
       )
       if (!stage) {
