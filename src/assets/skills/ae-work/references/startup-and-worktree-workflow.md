@@ -62,7 +62,7 @@ git log --oneline -1
 
 当 A 会话准备创建 B worktree 交接，但当前任务没有上游 `ae:design` 产物时，A 会话必须在交接前内联生成上下文派生设计文件，或通过 `task_brief` 将任务详情直接写入交接文件。此步骤是 `design_path` 和 `task_brief` 至少一个的强制补位，不得跳过。
 
-**触发条件**：A 会话准备调用 `ae-worktree-handoff` 工具，但当前任务无上游 `ae:design` 产物（即 `ae/designs/` 中没有与当前任务对应的设计文件）。
+**触发条件**：A 会话准备运行 `scripts/worktree-handoff.mjs` 脚本，但当前任务无上游 `ae:design` 产物（即 `ae/designs/` 中没有与当前任务对应的设计文件）。
 
 **生成要求**：
 
@@ -87,29 +87,29 @@ git log --oneline -1
 - 生成后必须迁移到 B worktree，并在交接文件的 `design_path` 中引用
 - B worktree 中 `design_path` 指向的文件必须真实存在
 
-### 交接文件生成（必须调用工具）
+### 交接文件生成（必须运行脚本）
 
-- **禁止自行拼接交接 Markdown**，必须调用 `ae-worktree-handoff` 工具生成交接文件。
+- **禁止自行拼接交接 Markdown**，必须运行 `scripts/worktree-handoff.mjs` 脚本生成交接文件。
 - 继续执行入口必须写入 A→B 启动证明和执行基线，B worktree 通过 `ae:work <交接文件>` 读取结构化交接文件继续。
 - A→B 启动证明必须包含 source_session_id、source_worktree、target_worktree、branch、head、授权来源、命令参数、创建结果、迁移产物状态和执行基线；迁移产物状态只列出实际迁移的需求/设计和 `.opencode/ae.jsonc`，未迁移的不出现。
-- 调用工具时传入所有必填参数；工具会按固定模板生成 Markdown、写入目标 B worktree 并返回 A 会话最终回复使用的简短交接提示。
-- `source_session_id`：运行时可见时记录；不可见时传 `unavailable`，并**同时**传入 `session_evidence`（可引用的消息或会话证据），否则工具会返回错误。
+- 运行脚本时传入所有必填参数；脚本会按固定模板生成 Markdown、写入目标 B worktree 并返回 A 会话最终回复使用的简短交接提示。
+- `source_session_id`：运行时可见时记录；不可见时传 `unavailable`，并**同时**传入 `session_evidence`（可引用的消息或会话证据），否则脚本会返回错误。
 - `design_path` 和 `task_brief` 至少传入一个：有设计文档时传 design_path 并迁移到 B worktree；无设计文档时必须通过 task_brief 将任务详情写入交接文件，确保 B worktree 无需读取 A worktree 任何文件即可执行。
 - `execution_baseline`：描述进入 B 后必须遵守的基线约束，例如"必须从 ae:work 阶段 1 的任务分析继续执行，优先执行设计的 U0 决策门"。
 - `verification_requirements`：描述交付前必须运行的验证命令和标准，例如"交付前至少运行相关 Vitest、npm run typecheck 和必要的 npm run build"。
 
 ### A 会话终止行为
 
-- A 会话最后回复**必须逐字使用**工具返回的简短交接提示（userInstruction）；不得改写、缩写或重组。
+- A 会话最后回复**必须逐字使用**脚本返回的简短交接提示（userInstruction）；不得改写、缩写或重组。
 - A 会话最后回复只能输出 B worktree 路径、交接 Markdown 路径和简短交接提示；不得输出"已完成/已验证/未验证/Git 操作状态/审查状态/剩余风险"等普通交付分区。
-- 创建 B worktree、迁移产物并调用工具写入规范交接 Markdown 后，立即停止 `ae:work` 阶段 2-4；终止状态必须记录并返回 `worktree_decision: transferred`，供 `ae:task-loop` 等调用方识别停点；不得进入普通交付模板。
+- 创建 B worktree、迁移产物并运行脚本写入规范交接 Markdown 后，立即停止 `ae:work` 阶段 2-4；终止状态必须记录并返回 `worktree_decision: transferred`，供 `ae:task-loop` 等调用方识别停点；不得进入普通交付模板。
 
 ### 交接后确认清单
 
-工具调用成功后，A 会话确认以下 3 点即可终止：
+脚本运行成功后，A 会话确认以下 3 点即可终止：
 
-1. 工具返回成功（无错误提示）
-2. A 会话最后回复逐字使用了工具返回的简短交接提示
+1. 脚本返回成功（无错误提示）
+2. A 会话最后回复逐字使用了脚本返回的简短交接提示
 3. 交接文件路径符合 `ae/handoffs/<timestamp>-worktree-handoff.md` 格式
 
 ## 输出契约

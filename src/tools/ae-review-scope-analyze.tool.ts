@@ -516,7 +516,7 @@ export const aeReviewScopeAnalyzeTool = tool({
     '- ae:review 编排层在确定审查范围后调用本工具，获取代理列表和审查上下文',
     '',
     '不适用场景：',
-    '- 开发域调度（使用 ae-work-specialist-select，仅限 ae:work 流程）',
+    '- 开发域调度（使用 scripts/specialist-select.mjs 脚本，仅限 ae:work 流程）',
     '- 域目录查询（使用 ae-domain-catalog）',
   ].join('\n'),
   args: {

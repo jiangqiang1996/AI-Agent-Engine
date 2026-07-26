@@ -94,7 +94,6 @@ export function skillDir(skillName: string): string {
 
 export const TOOL = {
   AE_HANDOFF: 'ae-handoff',
-  AE_WORKTREE_HANDOFF: 'ae-worktree-handoff',
   AE_CREATE_SESSION: 'ae-create-session',
   AE_HELP: 'ae-help',
   AE_REVIEW_PROOF: 'ae-review-proof',
@@ -105,7 +104,6 @@ export const TOOL = {
   AE_VIDEO: 'ae-video',
   AE_DOMAIN_CATALOG: 'ae-domain-catalog',
   AE_TIMER: 'ae-timer',
-  AE_WORK_SPECIALIST_SELECT: 'ae-work-specialist-select',
   AE_SPECIALIST_AGGREGATE: 'ae-specialist-aggregate',
   AE_REVIEW_SCOPE_ANALYZE: 'ae-review-scope-analyze',
   AE_ASYNC_BASH: 'ae-async-bash',

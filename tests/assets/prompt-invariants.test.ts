@@ -46,7 +46,7 @@ const INVARIANTS: Invariant[] = [
     label: 'ae:work worktree 决策',
     mustContain: [
       '禁止自行拼接交接 Markdown',
-      '必须调用 `ae-worktree-handoff` 工具生成交接文件',
+      '必须运行 `scripts/worktree-handoff.mjs` 脚本生成交接文件',
       '创建 B 后，A 会话不得再写入 A worktree 的任何文件',
       'A→B 启动证明必须包含',
       '非 Git 场景不得伪造 branch 或 HEAD',
