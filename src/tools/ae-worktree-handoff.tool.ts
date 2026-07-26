@@ -45,11 +45,11 @@ const WorktreeHandoffInputSchema = z.object({
   requirements_path: z
     .string()
     .optional()
-    .describe('需求文档相对路径，例如 ae/prds/<topic>-YYYY-MM-DD/index.md。A 端条件必选：当前任务对应的上游需求产物真实存在时必须迁移并传入（即使被 .gitignore 忽略也按物理存在迁移）；不存在时不传'),
+    .describe('需求文档相对路径，例如 ae/prds/<topic>-YYYY-MM-DD/overview.md。A 端条件必选：当前任务对应的上游需求产物真实存在时必须迁移并传入（即使被 .gitignore 忽略也按物理存在迁移）；不存在时不传'),
   design_path: z
     .string()
     .optional()
-    .describe('设计文档相对路径，例如 ae/designs/<topic>-YYYY-MM-DD/index.md。A 端条件必选：上游设计产物真实存在时必须迁移并传入（即使被 .gitignore 忽略也按物理存在迁移）；不存在时可不传，但此时必须传 task_brief'),
+    .describe('设计文档相对路径，例如 ae/designs/<topic>-YYYY-MM-DD/overview.md。A 端条件必选：上游设计产物真实存在时必须迁移并传入（即使被 .gitignore 忽略也按物理存在迁移）；不存在时可不传，但此时必须传 task_brief'),
   ae_config_path: z
     .string()
     .optional()

@@ -27,7 +27,7 @@ argument-hint: "[url|功能描述] [设计用例路径(可选)]"
 
 1. 解析输入：URL 或功能描述 + 可选设计用例路径
 2. 编译测试骨架：
-   - 有设计用例 → 从用例规格编译 Playwright 骨架
+   - 有设计用例 → 从 design overview.md 定位 `modules/<NN>-<m>/test-cases.md`，从用例规格编译 Playwright 骨架
    - 无设计用例 → 从页面描述生成测试场景
 3. 生成测试脚本到 `ae/tests/e2e/`
 4. 通过 `ae:playwright` 执行测试
@@ -87,3 +87,7 @@ argument-hint: "[url|功能描述] [设计用例路径(可选)]"
 - 测试脚本已生成到 `ae/tests/e2e/`
 - 测试已执行并输出结果
 - 成功脚本已复制到 `ae/tests/e2e/golden/`
+
+## 设计用例入口
+
+有设计用例时，从 design `overview.md` 获取模块清单和导航，定位 `modules/<NN>-<m>/test-cases.md` 读取用例规格。

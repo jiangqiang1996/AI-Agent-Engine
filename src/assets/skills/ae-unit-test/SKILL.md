@@ -33,7 +33,7 @@ argument-hint: "[代码文件/目录] [设计用例路径(可选)]"
    - Go → Go test
    - Rust → Rust test
 3. 编译测试骨架：
-   - 有设计用例 → 从用例规格编译骨架
+   - 有设计用例 → 从 design overview.md 定位 `modules/<NN>-<m>/test-cases.md`，从用例规格编译骨架
    - 无设计用例 → 从代码结构推断测试点（公共函数、类方法、分支逻辑）
 4. 生成测试文件到项目自身测试目录（如 `tests/`、`src/test/`）
 5. 执行测试
@@ -77,3 +77,7 @@ argument-hint: "[代码文件/目录] [设计用例路径(可选)]"
 - 测试文件已生成到项目测试目录
 - 测试已执行并输出结果
 - 覆盖率已分析（如框架支持）
+
+## 设计用例入口
+
+有设计用例时，从 design `overview.md` 获取模块清单和导航，定位 `modules/<NN>-<m>/test-cases.md` 读取用例规格。

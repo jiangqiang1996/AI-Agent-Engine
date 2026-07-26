@@ -26,7 +26,7 @@
 - 数据层实现 → 对照 `database` 维度核验 schema、约束、索引、迁移脚本
 - 架构变更 → 对照 `architecture` 维度核验模块边界、依赖方向
 - 安全实现 → 对照 `security` 维度核验认证/授权、输入校验、权限检查
-- 其他维度按 Split Manifest 声明的维度清单对照核验（维度子文件 `sub_split: true` 时，进一步读取其 `sub_files` 中的二级子文件获取实际内容）
+- 其他维度按 `overview.md` 产物清单对照核验，读取存在的独立维度文件
 
 **不一致处理：** 发现实现与 design 契约不一致时，记录为一致性发现，传递给 `shipping-workflow.md` 的技能内 review 闭环处理。不一致发现不直接阻断验证，但纳入 review 闭环审查范围。
 

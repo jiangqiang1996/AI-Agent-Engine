@@ -16,11 +16,11 @@ description: "审查 ae:design 的 architecture 维度产物：模块边界、�
 
 ## When To Use
 
-`ae/designs/` 下含 architecture 维度产物（`global.md` 的 §系统架构 章节）时激活。
+`ae/designs/` 下含 architecture 维度产物（`architecture.md`）时激活。
 
 ## Workflow
 
-1. 读取 `global.md` 的 §系统架构 章节。
+1. 读取 `architecture.md`。
 2. **检查模块边界完整性**：每个模块是否有明确的职责描述、接口定义和边界约束。是否存在职责重叠或边界模糊的模块。
 3. **检查依赖方向正确性**：模块间依赖是否遵循既定分层规则。是否存在循环依赖。依赖方向是否与架构文档声明一致。
 4. **检查分层规则一致性**：分层是否清晰定义。跨层调用是否违反规则。同层依赖是否最小化。

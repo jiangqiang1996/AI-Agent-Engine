@@ -1,12 +1,12 @@
 # 跨维度映射表模板
 
-跨维度映射分为模块内 ID 引用松耦合和跨模块映射两部分。模块内引用在各模块文件中通过稳定 ID 松耦合，跨模块映射收敛到 `global.md` §跨模块映射。
+跨维度映射分为模块内 ID 引用松耦合和跨模块映射两部分。模块内引用在各模块文件中通过稳定 ID 松耦合，跨模块映射收敛到 `cross-mapping.md`。
 
 ## 1. 模块内 ID 引用松耦合
 
 模块内各章节通过稳定 ID 互相引用，不直接加载其他章节的完整内容。引用关系在模块文件内声明，校验时只读 ID 清单。
 
-### §API → §Database 引用
+### api.md → database.md 引用
 
 API 端点的请求/响应字段引用数据库表字段（T-XXX）：
 
@@ -15,9 +15,9 @@ API 端点的请求/响应字段引用数据库表字段（T-XXX）：
 | EP-001 (POST /resources) | request.name | T-resources.name | VARCHAR(100) | required | 直接映射 |
 | EP-001 (POST /resources) | response.id | T-resources.id | UUID | required | 数据库生成 |
 
-**降级规则：** 模块无 §Database 时，标注 `N/A` 并说明理由。
+**降级规则：** 模块无 database.md 时，标注 `N/A` 并说明理由。
 
-### §UI/UX → §API 引用
+### ui-ux.md → api.md 引用
 
 UI 组件和页面引用 API 端点（EP-XXX）：
 
@@ -26,9 +26,9 @@ UI 组件和页面引用 API 端点（EP-XXX）：
 | ResourceForm | EP-001 (POST /resources) | name, type | ST-button: loading | 显示错误提示，保留输入 |
 | ResourceList | EP-002 (GET /resources) | id, name, type | ST-list: loading | 显示空状态 + 重试按钮 |
 
-**降级规则：** 模块无 §API 时，标注 `N/A` 并说明理由。
+**降级规则：** 模块无 api.md 时，标注 `N/A` 并说明理由。
 
-### §API 错误码 → §UI/UX 状态机引用
+### api.md 错误码 → ui-ux.md 状态机引用
 
 API 错误码引用 UI 交互状态机（ST-XXX）：
 
@@ -38,9 +38,9 @@ API 错误码引用 UI 交互状态机（ST-XXX）：
 | UNAUTHORIZED | 401 | ST-auth | expired | "会话已过期" | 跳转登录页 |
 | NOT_FOUND | 404 | ST-page | not_found | "资源不存在" | 返回列表页 |
 
-**降级规则：** 模块无 §UI/UX 时，标注 `N/A` 并说明理由。
+**降级规则：** 模块无 ui-ux.md 时，标注 `N/A` 并说明理由。
 
-### §Test Cases → §API/§Database/§UI/UX 引用
+### test-cases.md → api.md/database.md/ui-ux.md 引用
 
 测试用例引用模块内契约元素（EP-XXX、T-XXX、ST-XXX、COMP-XXX）：
 
@@ -65,14 +65,14 @@ API 错误码引用 UI 交互状态机（ST-XXX）：
 - `ST-XXX`：UI 交互状态机编号
 - `COMP-XXX`：UI 组件编号
 - `PAGE-XXX`：页面编号
-- `ADR-XXX`：架构决策记录（全局，在 global.md 中）
+- `ADR-XXX`：架构决策记录（全局，在 architecture.md 中）
 - `BR-XXX`：业务规则编号
 
 稳定 ID 在 design 文档全生命周期不变；版本演化时新增 ID，不重用已废弃 ID。ID 前缀在模块内引用和跨模块映射中通用。
 
 ## 2. 跨模块映射
 
-跨模块映射收敛到 `global.md` §跨模块映射，只保留模块间关系，不重复模块内细节。
+跨模块映射收敛到 `cross-mapping.md`，只保留模块间关系，不重复模块内细节。
 
 **产出方：** 主代理（ae:design 自身），不调度子代理
 

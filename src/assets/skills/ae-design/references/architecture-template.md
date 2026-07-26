@@ -1,16 +1,17 @@
 # 全局架构维度契约模板
 
 **触发条件：** prd 标注涉及结构调整/新模块，或风险维度命中"结构性变更"或"不可逆决策"
-**产出位置：** `global.md` §系统架构章节
+**产出位置：** `architecture.md`
 **产出方：** `@architecture-designer` 子代理
 **可还原性目标：** 任意 AI 据此理解模块职责和依赖关系，不破坏边界
 
 ## 契约元素（MVCE）
 
 - `[核心]` **技术选型**：前端/后端/数据层/基础设施四类决策点
-- `[核心]` **ADR 真源**：关键架构决策记录，使用稳定 ID `ADR-XXX`，global.md 是 ADR 的唯一真源
+- `[核心]` **ADR 真源**：关键架构决策记录，使用稳定 ID `ADR-XXX`，architecture.md 是 ADR 的唯一真源
 - `[核心]` **系统上下文图**：系统与外部系统的边界和交互
 - `[核心]` **模块清单与边界**：模块名、职责、对外接口、依赖模块
+- `[核心]` **分层规则**：各模块内的分层结构（如 Controller → Service → Repository → Model）和跨层调用约束
 - `[核心]` **跨模块依赖关系图**：模块间依赖关系，必须为 DAG
 - `[核心]` **全局数据流**：跨模块数据流路径
 - `[可选]` **部署拓扑**：服务部署关系
@@ -79,6 +80,19 @@ graph TB
 | auth | 认证授权 | login, register, verifyToken | — |
 | resource | 资源管理 | CRUD /resources | auth |
 | audit | 审计日志 | writeLog | — |
+
+### 分层规则
+
+| 模块 | 分层结构 | 跨层调用约束 |
+|------|---------|-------------|
+| auth | Controller → Service → Repository → Model | Controller 不得直接访问 Model；Service 不得跨模块调用其他模块的 Repository |
+| resource | Controller → Service → Repository → Model | 同上 |
+| audit | Controller → Service → Repository | 同上 |
+
+**通用分层约束：**
+- 上层可调用下层，禁止下层反向调用上层
+- 跨模块调用只能通过 Service 层暴露的接口，禁止跨模块直接访问 Repository 或 Model
+- 公共工具层可被任意层调用，但不依赖任何业务模块
 
 ### 跨模块依赖关系图
 

@@ -7,7 +7,7 @@
 
 ## 文件格式
 
-产出为独立维度文件 `modules/<NN>-<m>/database.md`，以 `## Database {#database}` 开头：
+产出为独立维度文件 `modules/<NN>-<m>/database.md`，frontmatter 为 `type: design-database`，以 `## Database {#database}` 开头：
 
 ```markdown
 ## Database {#database}

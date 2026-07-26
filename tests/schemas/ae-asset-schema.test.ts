@@ -77,14 +77,6 @@ describe('ae-asset-schema', () => {
     expect(registry[TOOL.AE_REVIEW_PROOF]).toHaveProperty('execute')
   })
 
-  it('工具注册表应该暴露文档提取工具', () => {
-    const registry = createToolRegistry()
-
-    expect(TOOL.AE_DOC_EXTRACT).toBe('ae-doc-extract')
-    expect(registry[TOOL.AE_DOC_EXTRACT]).toBeDefined()
-    expect(registry[TOOL.AE_DOC_EXTRACT]).toHaveProperty('execute')
-  })
-
   it('接受提示词优化技能并派生命令名', () => {
     expect(AeSkillNameSchema.parse(SKILL.PROMPT_OPTIMIZE)).toBe('ae:prompt-optimize')
     expect(COMMAND.PROMPT_OPTIMIZE).toBe('ae-prompt-optimize')

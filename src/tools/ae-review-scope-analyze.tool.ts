@@ -61,6 +61,7 @@ const EXCLUDED_EXTENSIONS = new Set([
 const VALID_DIMENSIONS = new Set([
   'architecture', 'api', 'database', 'ui-ux', 'test-cases',
   'security', 'observability', 'non-functional',
+  'design-spec', 'constraints', 'cross-mapping', 'overview',
 ])
 
 const DIMENSION_TO_AGENT: Record<string, string> = {
@@ -72,6 +73,10 @@ const DIMENSION_TO_AGENT: Record<string, string> = {
   'security': AGENT.SECURITY_DESIGN_REVIEWER,
   'observability': AGENT.OBSERVABILITY_DESIGN_REVIEWER,
   'non-functional': AGENT.NON_FUNCTIONAL_DESIGN_REVIEWER,
+  'design-spec': AGENT.UI_UX_DESIGN_REVIEWER,
+  'constraints': AGENT.ARCHITECTURE_DESIGN_REVIEWER,
+  'cross-mapping': AGENT.DESIGN_INTEGRITY_REVIEWER,
+  'overview': AGENT.DESIGN_INTEGRITY_REVIEWER,
 }
 
 function getExt(filePath: string): string {
@@ -164,6 +169,14 @@ function detectDesignDimensions(docFiles: string[]): string[] {
     if (lower.endsWith('/database.md') || lower.includes('/database-')) dimensions.push('database')
     if (lower.endsWith('/ui-ux.md') || lower.includes('/ui-ux-')) dimensions.push('ui-ux')
     if (lower.endsWith('/test-cases.md') || lower.includes('/test-cases-')) dimensions.push('test-cases')
+    if (lower.endsWith('/architecture.md') || lower.includes('/architecture-')) dimensions.push('architecture')
+    if (lower.endsWith('/security.md') || lower.includes('/security-')) dimensions.push('security')
+    if (lower.endsWith('/observability.md') || lower.includes('/observability-')) dimensions.push('observability')
+    if (lower.endsWith('/non-functional.md') || lower.includes('/non-functional-')) dimensions.push('non-functional')
+    if (lower.endsWith('/design-spec.md') || lower.includes('/design-spec-')) dimensions.push('design-spec')
+    if (lower.endsWith('/constraints.md') || lower.includes('/constraints-')) dimensions.push('constraints')
+    if (lower.endsWith('/cross-mapping.md') || lower.includes('/cross-mapping-')) dimensions.push('cross-mapping')
+    if (lower.endsWith('/overview.md') || lower.includes('/overview-')) dimensions.push('overview')
   }
 
   // 关键词匹配作为兜底
@@ -192,6 +205,18 @@ function detectDesignDimensions(docFiles: string[]): string[] {
   }
   if (/性能|并发|容量|缓存|non-functional|latency|throughput/.test(designPaths)) {
     dimensions.push('non-functional')
+  }
+  if (/设计规范|design.spec|视觉规范|design.token/.test(designPaths)) {
+    dimensions.push('design-spec')
+  }
+  if (/实施约束|约束|constraints|技术约束/.test(designPaths)) {
+    dimensions.push('constraints')
+  }
+  if (/跨维度|映射|cross.mapping|维度映射/.test(designPaths)) {
+    dimensions.push('cross-mapping')
+  }
+  if (/设计总览|总览|overview|设计概览/.test(designPaths)) {
+    dimensions.push('overview')
   }
 
   return [...new Set(dimensions)]
@@ -301,6 +326,10 @@ function generateGoalsFromContext(
         'security': '安全',
         'observability': '可观测性',
         'non-functional': '非功能',
+        'design-spec': '设计规范',
+        'constraints': '实施约束',
+        'cross-mapping': '跨维度映射',
+        'overview': '设计总览',
       }
       const dimLabels = dimensions.map((d) => dimNames[d] ?? d)
       goals.push(`设计文档涉及 ${dimLabels.join('、')} 维度，验证各维度设计产物的完整性和维度间一致性`)

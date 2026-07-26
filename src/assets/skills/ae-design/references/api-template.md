@@ -7,7 +7,7 @@
 
 ## 文件格式
 
-产出为独立维度文件 `modules/<NN>-<m>/api.md`，以 `## API {#api}` 开头：
+产出为独立维度文件 `modules/<NN>-<m>/api.md`，frontmatter 为 `type: design-api`，以 `## API {#api}` 开头：
 
 ```markdown
 ## API {#api}

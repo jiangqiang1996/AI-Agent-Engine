@@ -27,6 +27,7 @@ argument-hint: "[目标描述|需求文档路径]"
 7. **将 YAGNI 应用于维护成本而非编码工作量** - 优先选择能交付有意义价值的最简方案。
 8. **只保留对后续执行有用的需求语义** - 不为了"读起来完整"新增用户与场景、术语表、视觉辅助或其他解释性章节；这些内容只有在直接影响需求行为、验收或范围时才记录。
 9. **模块边界是初始提议而非冻结** - prd 阶段识别的模块边界标注为"初始边界"，design 阶段可通过置信度门控提调整申请。
+10. **自包含约束（硬约束）** - 需求文档目录完全自包含，禁止引用外部工作空间文件。目录内文件只通过稳定 ID 相互引用。版本演化 = 独立新目录，不指向旧版本。
 
 ## 交互规则
 
@@ -52,17 +53,56 @@ argument-hint: "[目标描述|需求文档路径]"
 
 ```
 ae/prds/<topic>-YYYY-MM-DD/
-├── index.md                        # L0 索引（自动生成，无行数限制）
-├── global.md                       # 全局共识（单文件，section anchor 分区，≤ 300 行）
+├── overview.md                     # 问题框架、范围边界、模块清单
+├── decisions.md                    # 跨模块决策（可选）
+├── non-functional.md               # 全局非功能（可选）
+├── tech-stack.md                   # 技术栈约束（可选，用户明确指定时）
+├── design-vision.md                # 设计愿景 + 路由表 + 导航结构（可选，涉及 UI 时）
 └── modules/
-    └── <NN>-<module-name>/         # 模块子目录（数字序号 + 模块名）
-        ├── module.md               # §需求 + §成功标准（≤ 300 行）
-        └── prototype.md            # §原型 + §响应式布局（≤ 300 行，仅 involvesUI=true 时存在）
+    └── <NN>-<module-name>/         # 模块子目录（两位数字序号 + 模块名）
+        ├── requirements.md          # 模块需求 + 成功标准
+        └── pages/                   # 每个页面独立文件（涉及 UI 时）
+            ├── <NN>-<page-name>.md   # 路由、布局结构、交互流程、字段清单、响应式布局
+            └── ...
 ```
 
-**小项目模式**（<3 模块且无跨模块依赖）：`index.md` + `prd.md`（全局 + 唯一模块合并单文件）。
+**各文件职责：**
 
-**prd 模块文件内容边界**：`module.md` 只含 §需求 + §成功标准；`prototype.md` 只含 §原型 + §响应式布局（仅响应式时）。禁止出现 API/Database/UI-UX/Test 等设计维度内容。非响应式时 `prototype.md` 中省略 §响应式布局章节，响应式声明集中在 `global.md` §设计愿景中一次性声明。`prototype.md` 仅当模块 `involvesUI=true` 时产出，不存在即表示该模块不涉及 UI。
+| 文件 | 内容 | 必产出 |
+|------|------|--------|
+| `overview.md` | 问题框架、范围边界（In/Out Scope）、模块清单（含边界声明） | 是 |
+| `decisions.md` | 跨模块决策 D1, D2...（含理由） | 有决策时 |
+| `non-functional.md` | 全局非功能 NFR1, NFR2... | 有非功能时 |
+| `tech-stack.md` | 用户明确指定的技术栈约束 | 用户指定时 |
+| `design-vision.md` | 主题色 HEX、响应式声明、视觉风格关键词、路由表、导航结构 | 涉及 UI 时 |
+| `requirements.md` | 模块需求 R1, R2... + 成功标准 SC1, SC2... | 是 |
+| `pages/<NN>-<page-name>.md` | 页面 ID、路由、布局结构、交互流程、字段清单、响应式布局 | 涉及 UI 时 |
+
+**页面文件内容（每个 `<NN>-<page-name>.md`）：**
+- 页面 ID、名称、路由
+- 布局结构
+- 交互流程
+- **字段清单**：字段名、类型、必填、验证规则、所属区域
+- 响应式布局（仅响应式时）
+
+**Frontmatter（极简，仅保留以下字段）：**
+
+| 文件 | frontmatter |
+|------|------------|
+| `overview.md` | `type: prd-overview` |
+| `decisions.md` | `type: prd-decisions`, `ids` |
+| `non-functional.md` | `type: prd-non-functional`, `ids` |
+| `tech-stack.md` | `type: prd-tech-stack` |
+| `design-vision.md` | `type: prd-design-vision` |
+| `requirements.md` | `type: prd-module`, `involvesUI`, `dependsOn`, `ids` |
+| `pages/<NN>-<page-name>.md` | `type: prd-page`, `ids` |
+
+**核心约束：**
+- **自包含**：目录完全自包含，禁止引用外部工作空间文件，目录内文件只通过稳定 ID 相互引用
+- **无行数限制**：单个文件不限制大小
+- **无分片**：不产出 `index.md`、不分片
+- **无变更追踪**：版本演化 = 独立新目录
+- **Frontmatter 极简**：仅保留 `type`、`ids`、`dependsOn`（仅 requirements.md）、`involvesUI`（仅 requirements.md）
 
 详见 `references/requirements-capture.md` 获取完整模板、格式规则和完整性检查。
 
@@ -144,9 +184,8 @@ ae/prds/<topic>-YYYY-MM-DD/
 
 - **模块划分依据**：业务域内聚（同域实体高内聚），跨模块耦合点通过 API 暴露
 - **向用户展示建议模块划分**（模块名、包含需求、理由），用户确认
-- **跨模块依赖**：记录在 `global.md` §范围边界的模块清单中，标注依赖类型（API 调用、数据共享、事件订阅）
+- **跨模块依赖**：记录在 `overview.md` 范围边界的模块清单中，标注依赖类型（API 调用、数据共享、事件订阅）
 - **模块边界标注为"初始边界"**：design 阶段可通过置信度门控提调整申请
-- **小项目模式判定**：<3 模块且无跨模块依赖 → 启用小项目模式（全局 + 唯一模块合并单文件）
 
 ### 阶段 2：探索方案
 
@@ -164,58 +203,53 @@ ae/prds/<topic>-YYYY-MM-DD/
 
 仅当对话产生了值得保留的持久决策时，才编写或更新需求数据文档。阅读 `references/requirements-capture.md` 获取文档模板、格式规则和完整性检查。
 
-**产物结构**（标准模式）：
+**产物结构**：
 
-1. **主代理产出 `global.md`**（全局共识单文件，≤ 300 行）：
-   - §问题框架 {#problem} — 用户目标、当前痛点、成功判据
-   - §范围边界 {#scope} — In/Out Scope + 模块清单（含边界声明和可调整标记）
-   - §跨模块决策 {#decisions} — D1, D2...（含理由）
-   - §全局非功能 {#non-functional} — NFR1, NFR2...
-   - §技术栈约束 {#tech-stack} — 仅当用户明确指定时产出
-   - §设计愿景 {#design-vision} — 仅当涉及 UI 时产出（主题色 HEX、响应式声明、视觉风格关键词）
+1. **主代理产出 `overview.md`**（总览）：
+   - §问题框架 — 用户目标、当前痛点、成功判据
+   - §范围边界 — In/Out Scope + 模块清单（含边界声明和可调整标记）
 
-2. **主代理为每个模块产出 `modules/<NN>-<m>/module.md`**（模块需求单文件，≤ 300 行）：
-   - §需求 {#requirements} — R1, R2...（含 `-> 验收:` 语法和模块内依赖）
-   - §成功标准 {#success-criteria} — SC1, SC2...（仅本模块可验证部分）
+2. **主代理按需产出全局方向文件**：
+   - `decisions.md` — 跨模块决策 D1, D2...（含理由），有决策时产出
+   - `non-functional.md` — 全局非功能 NFR1, NFR2...，有非功能时产出
+   - `tech-stack.md` — 仅当用户明确指定技术栈时产出
+   - `design-vision.md` — 仅当涉及 UI 时产出（主题色 HEX、响应式声明、视觉风格关键词、路由表、导航结构）
 
-   当模块 `involvesUI=true` 时，同时产出 `modules/<NN>-<m>/prototype.md`（原型单文件，≤ 300 行）：
-   - §原型 {#prototype} — PAGE-XXX（产品逻辑层语义，禁止技术栈名称）
-   - §响应式布局 {#responsive} — 仅当 global.md §设计愿景声明为响应式时产出；非响应式时省略此章节，不重复标注
+3. **主代理为每个模块产出 `modules/<NN>-<m>/requirements.md`**（模块需求）：
+   - §需求 — R1, R2...（含 `-> 验收:` 语法和模块内依赖）
+   - §成功标准 — SC1, SC2...（仅本模块可验证部分）
 
-3. **自动生成 `index.md`**（L0 索引，无行数限制）：
-   - 模块导航表（模块名 / 描述 / 涉及 UI / 需求 IDs / 文件）
-   - 全局导航表（章节 / Anchor / IDs / 摘要）
-   - ID 索引表（ID / 类型 / 模块 / 文件 / Anchor）
-   - 跨模块依赖表
-   - 变更历史摘要（如有变更）
+   当模块 `involvesUI=true` 时，同时产出 `modules/<NN>-<m>/pages/` 目录，每个页面独立文件 `<NN>-<page-name>.md`：
+   - 页面 ID、名称、路由
+   - 布局结构、交互流程
+   - **字段清单**（字段名/类型/必填/验证规则/区域）
+   - 响应式布局（仅当 `design-vision.md` 声明为响应式时）
 
-**Frontmatter 字段填写规则**：`global.md` 的 frontmatter 包含 `type: prd-global`、`parent: "index.md"`、`ids`。`modules/<NN>-<m>/module.md` 的 frontmatter 包含 `type: prd-module`、`parent: "index.md"`、`module`、`involvesUI`、`ids`、`dependsOn`、`dependedBy`、`changes`（如有变更）。`modules/<NN>-<m>/prototype.md` 的 frontmatter 包含 `type: prd-prototype`、`parent: "index.md"`、`module`、`ids`。`index.md` 的 frontmatter 包含 `type: prd-index`、`autoGenerated: true`、`sourceHash`、`version`。
+**页面产物技术栈隔离规则（硬约束）：** 原型设计产物（`pages/<NN>-<page-name>.md`）禁止出现任何前端开发技术栈或第三方依赖名称（如 React/Vue/Angular、Ant Design/Element Plus、Tailwind CSS、axios 等）。页面产物只描述产品逻辑层语义（页面要做什么、长什么样、怎么交互），不描述用什么技术实现。如果需求中确实需要明确技术栈，必须将技术栈信息集中收录到 `tech-stack.md`，不得散落在各页面描述中。
+
+**确定性边界约束：** 任何人据此 md 生成的原型 HTML，在页面数量、路由、布局区域划分、交互跳转、表单字段和必填规则、主题色和次要颜色 HEX 值、响应式行为方面必须完全一致。允许差异的仅限视觉实现细节（间距、字号、动画）。
+
+**原型验证**：提示用户可根据 `pages/` 下文件自行生成原型 HTML 用于验证。用户反馈后更新对应页面文件。
 
 对于**轻量**需求探索，保持文档紧凑。当用户只需要简短对齐且不需要保留持久决策时，跳过文档创建。
 
 ### 阶段 3.1：原型设计（涉及前端时）
 
-当需求涉及前端页面或用户交互时，在各模块的 `modules/<NN>-<m>/prototype.md` 中产出原型设计。详见 `references/requirements-capture.md` 原型设计章节。
-
-**页面产物技术栈隔离规则（硬约束）：** 原型设计产物（`modules/<NN>-<m>/prototype.md`）禁止出现任何前端开发技术栈或第三方依赖名称（如 React/Vue/Angular、Ant Design/Element Plus、Tailwind CSS、axios 等）。页面产物只描述产品逻辑层语义（页面要做什么、长什么样、怎么交互），不描述用什么技术实现。如果需求中确实需要明确技术栈，必须将技术栈信息集中收录到 `global.md` 的 §技术栈约束章节，不得散落在各页面描述中。
+当需求涉及前端页面或用户交互时，在各模块的 `modules/<NN>-<m>/pages/` 目录下产出原型设计。详见 `references/requirements-capture.md` 原型设计章节。
 
 **原型内容要求**：
 - 页面清单（页面 ID、名称、路由、功能域）
-- 路由表
-- 导航结构
-- 主题声明（**必填**：主题色 HEX 值、次要颜色 HEX 值、色调、视觉风格关键词）— 集中在 `global.md` §设计愿景
-- 响应式声明（**必填**：是否响应式；响应式时给出断点定义和各断点下的布局变化描述；非响应式时明确写明"不支持响应式，固定布局"）— 集中在 `global.md` §设计愿景，全局只声明一次
-- 每页面的布局结构、交互流程、页面元素清单、响应式布局（仅响应式时产出各页面在各断点下的布局变化描述）
-
-**确定性边界约束：** 任何人据此 md 生成的原型 HTML，在页面数量、路由、布局区域划分、交互跳转、表单字段和必填规则、主题色和次要颜色 HEX 值、响应式行为方面必须完全一致。允许差异的仅限视觉实现细节（间距、字号、动画）。
-
-**原型验证**：提示用户可根据 `prototype.md` 自行生成原型 HTML 用于验证。用户反馈后更新对应模块的 `prototype.md`。
+- 路由表（集中在 `design-vision.md`）
+- 导航结构（集中在 `design-vision.md`）
+- 主题声明（**必填**：主题色 HEX 值、次要颜色 HEX 值、色调、视觉风格关键词）— 集中在 `design-vision.md`
+- 响应式声明（**必填**：是否响应式；响应式时给出断点定义和各断点下的布局变化描述；非响应式时明确写明"不支持响应式，固定布局"）— 集中在 `design-vision.md`，全局只声明一次
+- 每页面的布局结构、交互流程、**字段清单**、响应式布局（仅响应式时产出各页面在各断点下的布局变化描述）
 
 ### 阶段 3.5：技能内 review 闭环
 
 当创建或更新了需求数据文档时，运行技能内 review 闭环。此环节复用现有文档审查逻辑，补强 auto 修复范围和收敛协议。
 
-**审查调用：** 调用 `ae:review mode=headless domain=document <requirements-doc-path>`，审查者为 `document-reviewer`（通过文件类型路由加载需求检查框架）。`mode=headless` 表示 ae:review 被技能内部调用时不输出"下一步推荐技能"引导，仅返回审查结果（status/findings/summary）给本技能，由 ae:prd 自身负责下一步引导。
+**审查调用：** 调用 `ae:review mode=headless domain=document <requirements-doc-path>/overview.md`，审查者为 `document-reviewer`（通过文件类型路由加载需求检查框架）。`mode=headless` 表示 ae:review 被技能内部调用时不输出"下一步推荐技能"引导，仅返回审查结果（status/findings/summary）给本技能，由 ae:prd 自身负责下一步引导。
 
 **auto 修复范围：** 格式不规范、章节缺失、成功标准不可验证、In/Out Scope 模糊。ae:review 返回的 auto 可修复发现由本技能自动应用修复，修复后重新运行审查。
 
@@ -226,18 +260,7 @@ ae/prds/<topic>-YYYY-MM-DD/
 - 收敛判定：重新审查后无新增 P0/P1 发现即为收敛
 - 未收敛处理：2 轮后仍有 P0/P1 阻断，回退用户澄清（返回阶段 1.3 继续提问），不进入阶段 4
 
-**结果呈现：** 若文档审查返回了自动应用的发现，在呈现交接选项时简要提及。若收敛后有 INFO 级别工程建议，提及它们以便用户决定是否纳入。收敛后进入阶段 3.6。
-
-### 阶段 3.6：产物行数校验（即时校验）
-
-当创建或更新了需求数据文档时，主代理运行即时行数校验：**每生成一个文件就校验一次，不通过则按数字顺序分片，禁止压缩内容，通过后再生成下一个文件。** 避免最终校验导致大量返工。
-- `global.md` ≤ 300 行硬上限；超限禁止压缩，按数字顺序分片为 `global-1.md`、`global-2.md`、...，每片 ≤ 300 行
-- `modules/<NN>-<m>/module.md` ≤ 300 行硬上限；超限禁止压缩，按数字顺序分片为 `modules/<NN>-<m>/module-1.md`、`modules/<NN>-<m>/module-2.md`、...，每片 ≤ 300 行
-- `modules/<NN>-<m>/prototype.md` ≤ 300 行硬上限；超限禁止压缩，按数字顺序分片为 `modules/<NN>-<m>/prototype-1.md`、`modules/<NN>-<m>/prototype-2.md`、...，每片 ≤ 300 行
-- `index.md` 无行数限制
-- 校验不通过 → 禁止压缩内容，按数字顺序分片，在 `##` 章节边界切分保持片内语义完整，分片文件名数字固定顺序
-
-校验通过后进入阶段 4。
+**结果呈现：** 若文档审查返回了自动应用的发现，在呈现交接选项时简要提及。若收敛后有 INFO 级别工程建议，提及它们以便用户决定是否纳入。收敛后进入阶段 4。
 
 ### 阶段 4：交接
 

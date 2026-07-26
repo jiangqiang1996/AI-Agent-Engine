@@ -79,7 +79,7 @@
 ## 审查结果
 
 **域：** document
-**文档：** ae/designs/feat-user-auth-2026-03-15/index.md
+**文档：** ae/designs/feat-user-auth-2026-03-15/overview.md
 **类型：** design
 **审查代理：** document-reviewer, architecture-design-reviewer, security-design-reviewer, design-integrity-reviewer
 

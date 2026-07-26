@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { Effect } from 'effect'
 
 import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
-import { ARTIFACT_KIND, isShardArtifactKind, type ArtifactKind } from '../schemas/artifact-schema.js'
+import { ARTIFACT_KIND, type ArtifactKind } from '../schemas/artifact-schema.js'
 import { docsAePath, DOCS_AE_SUBDIRS } from '../schemas/docs-ae-paths.js'
 import { parseFrontmatter, type FrontmatterData } from '../utils/frontmatter.js'
 
@@ -55,7 +55,7 @@ function getArtifactDirectory(
   type: ArtifactKind,
 ): string {
   const directory = CONTEXT_DIR_TYPE_MAP[type]
-  if (!directory || isShardArtifactKind(type)) {
+  if (!directory) {
     throw new Error(`产物类型 ${type} 不作为顶层 AE 产物扫描`)
   }
   return join(manifest.repoRoot, docsAePath(directory))

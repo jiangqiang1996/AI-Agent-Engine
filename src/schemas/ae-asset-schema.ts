@@ -103,7 +103,6 @@ export const TOOL = {
   AE_IMAGE: 'ae-image',
   AE_AUDIO: 'ae-audio',
   AE_VIDEO: 'ae-video',
-  AE_DOC_EXTRACT: 'ae-doc-extract',
   AE_DOMAIN_CATALOG: 'ae-domain-catalog',
   AE_TIMER: 'ae-timer',
   AE_WORK_SPECIALIST_SELECT: 'ae-work-specialist-select',

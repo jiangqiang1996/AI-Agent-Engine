@@ -4,9 +4,9 @@
 
 ## 全局维度触发（按风险维度）
 
-全局维度触发决定 `global.md` 中必须产出的全局章节。主触发逻辑基于风险维度。
+全局维度触发决定设计目录根下必须产出的全局独立文件。主触发逻辑基于风险维度。
 
-| 风险维度 | 触发条件 | 必产出全局章节 | 条件必产出规则 |
+| 风险维度 | 触发条件 | 必产出全局文件 | 条件必产出规则 |
 |---------|---------|--------------|--------------|
 | 不可逆决策 | API 签名/schema/认证模型变更 | architecture、security | - |
 | 结构性变更 | 新增模块/跨模块依赖/公共配置 | overview、architecture | - |
@@ -16,15 +16,11 @@
 
 ### 显式否定机制
 
-对于未触发且不适用的全局维度，必须显式否定（`<维度名>: explicitly-omitted`），消除"默认值黑洞"。必产出维度不得使用显式否定。
-
-- 格式：`<维度名>: explicitly-omitted`
-- 含义：该维度不是本设计关注点，使用最简默认实现，不产出独立契约
-- 必产出维度不得使用显式否定；显式否定需在 global.md 的设计读数中记录理由
+对于未触发且不适用的全局维度，不产出对应文件即可。文件不存在即表示该维度不适用。
 
 ### 降级参考表（仅在风险信号无法识别时使用）
 
-| 任务特征 | 必产出全局章节 | 选产出全局章节 |
+| 任务特征 | 必产出全局文件 | 选产出全局文件 |
 |---------|--------------|--------------|
 | 纯前端 UI 任务 | overview、design-spec | architecture、security |
 | 纯后端 API 任务 | overview、architecture | security、observability、non-functional |
@@ -35,42 +31,43 @@
 
 ## 模块维度触发（按模块内特征）
 
-模块维度触发决定每个 `modules/<NN>-<m>/` 子文件中必须产出的章节。每个模块根据其涉及的特征独立触发。
+模块维度触发决定每个 `modules/<NN>-<m>/` 子目录中必须产出的独立维度文件。每个模块根据其涉及的特征独立触发。
 
-| 模块内特征 | 触发章节 | 产出位置 | 说明 |
+| 模块内特征 | 触发维度文件 | 产出位置 | 说明 |
 |-----------|---------|---------|------|
-| 涉及 API 端点 | §API {#api} | `modules/<NN>-<m>/module.md` | 端点清单、OpenAPI 规格、认证、错误码 |
-| 涉及持久化 | §Database {#database} | `modules/<NN>-<m>/module.md` | ER 模型、DDL、迁移策略、敏感字段 |
-| 涉及 UI | §UI/UX {#ui-ux} | `modules/<NN>-<m>/ui-ux.md` | 页面设计、组件、状态机、设计 Token |
-| 涉及测试 | §Test Cases {#test-cases} | `modules/<NN>-<m>/test-cases.md` | 覆盖矩阵、用例、行为契约 |
+| 涉及 API 端点 | api.md | `modules/<NN>-<m>/api.md` | 端点清单、OpenAPI 规格、认证、错误码 |
+| 涉及持久化 | database.md | `modules/<NN>-<m>/database.md` | ER 模型、DDL、迁移策略、敏感字段 |
+| 涉及 UI | ui-ux.md + pages/ | `modules/<NN>-<m>/ui-ux.md` + `modules/<NN>-<m>/pages/` | 页面设计、组件、状态机、设计 Token |
+| 涉及测试 | test-cases.md | `modules/<NN>-<m>/test-cases.md` | 覆盖矩阵、用例、行为契约 |
 
 ### 模块章节组合规则
 
-- 每个模块至少产出 1 个章节（空模块不产出文件）
-- §API 和 §Database 通常高内聚，合并产出到 `module.md`
-- §UI/UX 和 §Test Cases 独立产出为独立维度文件
-- 模块未涉及的特征对应的章节显式省略，不产出空章节
+- 每个模块至少产出 1 个维度文件（空模块不产出文件）
+- 各维度独立产出为独立文件
+- 模块未涉及的特征对应的维度文件省略，不产出空文件
 
 ### 模块清单确定
 
-模块清单在 `global.md` §模块清单与边界 中声明。每个模块根据 prd 需求条目映射确定其涉及的章节：
+模块清单在 `overview.md` 模块清单与边界 中声明。每个模块根据 prd 需求条目映射确定其涉及的维度：
 
-| prd 需求 | 映射模块 | 触发章节 |
+| prd 需求 | 映射模块 | 触发维度文件 |
 |---------|---------|---------|
-| 用户登录注册 | auth | §API, §Database, §UI/UX, §Test Cases |
-| 资源 CRUD | resource | §API, §Database, §UI/UX, §Test Cases |
-| 操作审计 | audit | §Database, §Test Cases |
+| 用户登录注册 | auth | api.md, database.md, ui-ux.md, test-cases.md |
+| 资源 CRUD | resource | api.md, database.md, ui-ux.md, test-cases.md |
+| 操作审计 | audit | database.md, test-cases.md |
 
 ## 维度清单与模板索引
 
 | 维度 | 模板文件 | 产出位置 |
 |------|---------|---------|
-| global（设计读数+架构+跨模块映射） | `overview-template.md` + `architecture-template.md` | `global.md` |
-| 跨模块映射 | `cross-dimension-mapping.md` | `global.md` §跨模块映射 |
-| 模块 §API | `api-template.md` | `modules/<NN>-<m>/module.md` |
-| 模块 §Database | `database-template.md` | `modules/<NN>-<m>/module.md` |
-| 模块 §UI/UX | `ui-ux-template.md` | `modules/<NN>-<m>/ui-ux.md` |
-| 模块 §Test Cases | `test-cases-template.md` | `modules/<NN>-<m>/test-cases.md` |
-| 全局 §安全 | `security-template.md` | `global.md` §安全 |
-| 全局 §可观测性 | `observability-template.md` | `global.md` §可观测性 |
-| 全局 §非功能 | `non-functional-template.md` | `global.md` §非功能 |
+| overview | `overview-template.md` | `overview.md` |
+| architecture | `architecture-template.md` | `architecture.md` |
+| design-spec | `ui-ux-template.md`（设计规范部分） | `design-spec.md` |
+| 跨模块映射 | `cross-dimension-mapping.md` | `cross-mapping.md` |
+| 模块 api | `api-template.md` | `modules/<NN>-<m>/api.md` |
+| 模块 database | `database-template.md` | `modules/<NN>-<m>/database.md` |
+| 模块 ui-ux | `ui-ux-template.md` | `modules/<NN>-<m>/ui-ux.md` + `modules/<NN>-<m>/pages/` |
+| 模块 test-cases | `test-cases-template.md` | `modules/<NN>-<m>/test-cases.md` |
+| security | `security-template.md` | `security.md` |
+| observability | `observability-template.md` | `observability.md` |
+| non-functional | `non-functional-template.md` | `non-functional.md` |

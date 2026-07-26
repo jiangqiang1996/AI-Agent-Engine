@@ -371,7 +371,6 @@ AE 采用 13 代理全并行架构，所有激活代理在同一轮一次性发�
 | `ae-image` | 将本地图片转换为 Markdown 描述                  | 不支持远程 URL，不处理音频/视频 |
 | `ae-audio` | 将本地音频转换为 Markdown 描述                  | 不支持远程 URL，不处理图片/视频 |
 | `ae-video` | 将本地视频转换为 Markdown 描述                  | 不支持远程 URL，不处理图片/音频 |
-| `ae-doc-extract` | 从人读需求或设计文档及其分片中提取结构化上下文               | 不生成、转换或迁移文档 |
 | `ae-worktree-handoff` | 生成 A→B worktree 转移交接文件                | 不创建新会话 |
 | `ae-create-session` | 创建独立新会话，可选注入上下文或自动执行                  | 不做会话级上下文交接 |
 | `ae-domain-catalog` | 查询开发专精代理目录，获取专精代理信息                   | 不执行代理调度 |

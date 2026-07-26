@@ -17,9 +17,9 @@
 
 **检测：** 检查 `ae/designs/` 下是否存在与当前任务匹配的 design 目录。匹配规则：设计路径或交接文件中引用了 design 目录，或按设计标题/需求描述名在 `ae/designs/` 下找到对应目录。
 
-**契约读取：** 读取 `design.md` 及其 Split Manifest 引用的各维度子文件。Split Manifest `status: unified` 时从 `design.md` 内联章节读取；`status: split` 时按 Split Manifest 引用的子文件路径读取；当维度子文件的 `sub_split: true` 时，进一步读取其 `sub_files` 中的二级子文件获取实际内容。
+**契约读取：** 读取 `overview.md` 获取模块导航和产物清单，按产物清单读取各维度独立文件（`architecture.md`、`security.md`、`observability.md`、`non-functional.md`、`design-spec.md`、`constraints.md`、`cross-mapping.md` 以及 `modules/<NN>-<m>/` 下的 `api.md`、`database.md`、`ui-ux.md`、`test-cases.md`）。只读取存在的文件。
 
-**对照依据准备：** 将以下维度作为实现对照依据，按 Split Manifest 声明的维度清单确定哪些维度存在：
+**对照依据准备：** 将以下维度作为实现对照依据，按 `overview.md` 产物清单确定哪些维度存在：
 - `ui-ux`：布局家族、组件契约、token、状态机
 - `api`：端点、Schema、错误码
 - `database`：schema、约束、索引

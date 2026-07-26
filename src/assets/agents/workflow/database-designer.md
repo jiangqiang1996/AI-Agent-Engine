@@ -96,7 +96,6 @@ description: "数据库设计维度专精代理：根据 prd 需求和 ae:grill 
 - 不写实现代码
 - 不执行 Git 操作
 - 不修改代码库文件（除产出 `modules/<NN>-<m>/database.md` 外）
-- 维度文件超过 500 行时按数字顺序分片（如 database-1.md、database-2.md），禁止压缩内容
 
 ## 范围严格性约束（硬约束）
 

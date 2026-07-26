@@ -74,14 +74,12 @@ export function extractIds(content: string): string[] {
  */
 export function extractDependencies(frontmatter: Record<string, unknown>): {
   dependsOn: string[]
-  dependedBy: string[]
 } {
   const filterStrings = (arr: unknown): string[] =>
     Array.isArray(arr) ? (arr as unknown[]).filter((v): v is string => typeof v === 'string') : []
 
   return {
     dependsOn: filterStrings(frontmatter.dependsOn),
-    dependedBy: filterStrings(frontmatter.dependedBy),
   }
 }
 

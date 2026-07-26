@@ -1,7 +1,7 @@
 # UI/UX 设计维度文件模板
 
 **触发条件：** 模块涉及 UI（dimension-triggers.md §模块维度触发）
-**产出位置：** `modules/<NN>-<m>/ui-ux.md`
+**产出位置：** `modules/<NN>-<m>/ui-ux.md` + `modules/<NN>-<m>/pages/<NN>-<page-name>.md`
 **产出方：** `@ui-ux-designer` 子代理
 **可还原性目标：** 任意 AI 据此生成一致性页面和交互，精确到组件选型、HTML 结构、CSS 样式
 
@@ -19,7 +19,7 @@ ae:design 的 ui-ux 维度是**最终页面详细设计**，供 ae:work 直接�
 
 ## 章节格式
 
-产出为独立维度文件 `modules/<NN>-<m>/ui-ux.md`，以 `## UI/UX {#ui-ux}` 开头：
+产出为独立维度文件 `modules/<NN>-<m>/ui-ux.md`（含共享内容）+ `modules/<NN>-<m>/pages/` 目录下各页面独立文件，以 `## UI/UX {#ui-ux}` 开头：
 
 ```markdown
 ## UI/UX {#ui-ux}
@@ -35,21 +35,12 @@ ae:design 的 ui-ux 维度是**最终页面详细设计**，供 ae:work 直接�
 - 字体：[Geist / Outfit / Cabinet Grotesk]
 - 路由方案：[React Router 7 / Vue Router 4 / TanStack Router]
 
-### 设计读数
-
-- 页面类型：[落地页/仪表盘/作品集/编辑/应用]
-- 受众：[B2B采购团队/设计敏感消费者/招聘者]
-- 氛围：[极简/活泼/高端消费品/暗色科技]
-- DESIGN_VARIANCE: [1-10]
-- MOTION_INTENSITY: [1-10]
-- VISUAL_DENSITY: [1-10]
-
 ### 路由表
 
-| 路由 | 页面 ID | 页面名 | 权限 |
-|------|---------|--------|------|
-| /login | PAGE-001 | 登录页 | 公开 |
-| /resources | PAGE-003 | 资源列表 | 需认证 |
+| 路由 | 页面 ID | 页面名 | 权限 | 页面文件 |
+|------|---------|--------|------|---------|
+| /login | PAGE-001 | 登录页 | 公开 | pages/01-login.md |
+| /resources | PAGE-003 | 资源列表 | 需认证 | pages/01-resource-list.md |
 
 ### 设计 Token
 
@@ -80,7 +71,7 @@ ae:design 的 ui-ux 维度是**最终页面详细设计**，供 ae:work 直接�
 
 ### 响应式断点
 
-> 断点定义来自 ae:prd `global.md` §设计愿景的响应式声明；ae:prd 声明非响应式时省略此章节，不重复标注"不支持响应式，固定布局"。
+> 断点定义来自 ae:prd `design-vision.md` 的响应式声明；ae:prd 声明非响应式时省略此章节。
 
 | 断点 | 宽度 | 布局变化 |
 |------|------|---------|
@@ -137,65 +128,7 @@ ae:design 的 ui-ux 维度是**最终页面详细设计**，供 ae:work 直接�
 
 ### PAGE-001: 登录页
 
-**路由：** /login
-**布局家族：** Centered Card
-
-#### HTML 结构片段
-
-```html
-<div class="min-h-[100dvh] flex items-center justify-center bg-background">
-  <div class="w-full max-w-sm mx-auto p-6">
-    <div class="flex flex-col items-center gap-4 mb-8">
-      <img src="/logo.svg" alt="Logo" class="h-10 w-10" />
-      <h1 class="text-2xl font-semibold tracking-tight">登录</h1>
-    </div>
-    <form class="flex flex-col gap-4" data-state-machine="ST-form">
-      <div class="flex flex-col gap-2">
-        <label for="email" class="text-sm font-medium">邮箱</label>
-        <input id="email" type="email" name="email" required
-               class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
-      </div>
-      <div class="flex flex-col gap-2">
-        <label for="password" class="text-sm font-medium">密码</label>
-        <input id="password" type="password" name="password" required
-               class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
-      </div>
-      <button type="submit" data-component="COMP-001" data-variant="primary"
-              class="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium">
-        登录
-      </button>
-    </form>
-    <div class="flex justify-between mt-4 text-sm">
-      <a href="/forgot-password" class="text-muted-foreground hover:text-foreground">忘记密码</a>
-      <a href="/register" class="text-muted-foreground hover:text-foreground">注册</a>
-    </div>
-  </div>
-</div>
-```
-
-#### CSS 样式片段（如需补充 Tailwind 之外的样式）
-
-```css
-/* 登录页专属样式（如有） */
-```
-
-#### 组件实例化
-
-| 位置 | 组件 ID | 组件名 | Props |
-|------|---------|--------|-------|
-| 提交按钮 | COMP-001 | Button | { variant: "primary", type: "submit" } |
-| 表单 | — | Form | { stateMachine: "ST-form" } |
-
-#### 交互行为
-
-- 提交表单 → POST /api/v1/auth/login → 成功跳转 /resources，失败显示错误提示
-- 点击"注册" → 跳转 /register
-- 点击"忘记密码" → 跳转 /forgot-password
-
-#### 响应式行为
-
-- ≤ [N]px：全宽，padding 缩小至 p-4
-- > [N]px：max-w-sm 居中
+> 页面详细设计产出在 `pages/01-login.md` 独立文件中，包含：页面路由、布局家族、组件放置与布局、字段到组件映射、页面级交互状态机、页面级响应式行为。
 
 ### COMP-001: Button
 
@@ -227,46 +160,35 @@ interface ButtonProps {
 ```
 
 **状态机 ST-button：** idle → loading → success → error
-
-### 负向设计空间
-
-- **禁止 Inter 字体作为默认**：使用 Geist、Outfit、Cabinet Grotesk、Satoshi 或品牌适配字体
-- **禁止 AI 紫色渐变**：无自动紫色按钮辉光，无随机霓虹渐变
-- **禁止 3 列等宽功能卡片**：用 2 列 Z 字形、不对称网格、滚动固定或水平滚动替代
-- **禁止 div 假截图**：使用真实图片、生成图片或跳过预览
-- **禁止手绘 SVG 图标**：使用 Phosphor、HugeIcons、Radix、Tabler 等图标库
-- **禁止 em-dash（—）**：标题、眉标、药丸、正文、按钮文字中均不可用
-- **禁止纯黑（#000000）和纯白（#ffffff）**：使用近黑、zinc-950 和近白
-- **禁止 h-screen 做全高 Hero**：使用 min-h-[100dvh] 防止移动端布局跳动
 ```
 
 ## 契约元素（MVCE）
 
 - `[核心]` **技术栈声明**：前端框架、UI 组件库、CSS 方案、图标库、字体、路由方案 — **集中统一声明，页面和组件描述禁止散落技术栈名称**
-- `[核心]` **设计读数**：含三旋钮（DESIGN_VARIANCE、MOTION_INTENSITY、VISUAL_DENSITY）
-- `[核心]` **路由表**：每页面含路由、页面 ID、权限
-- `[核心]` **页面详细设计**：每页面含 HTML 结构片段 + CSS 样式片段 + 组件实例化 + 交互行为 + 响应式行为
+- `[核心]` **路由表**：每页面含路由、页面 ID、权限、页面文件路径
+- `[核心]` **页面详细设计**：每页面独立文件（`pages/<NN>-<page-name>.md`），含组件放置与布局、字段到组件映射、页面级交互状态机、页面级响应式行为
 - `[核心]` **组件清单**：含 TypeScript interface 签名 + HTML 结构片段 + 来源（已有复用/技术栈库引入/新建自研）
 - `[核心]` **组件复用策略**：已有组件资产扫描 + 跨页面复用分析 + 组件来源分类 + 抽取规则 — **确保 ae:work 实施时不重复造轮子**
 - `[核心]` **设计 Token**：色彩、字号、间距、圆角四类
 - `[核心]` **交互状态机表**：每个组件的状态、过渡动画、减少动效回退
 - `[核心]` **无障碍要求**：对比度、焦点环、aria 标注、键盘导航
-- `[核心]` **负向设计空间**：禁止使用的库/模式/方案列表
 - `[可选]` **响应式断点表**：标准断点的布局变化
+
+> 设计读数（三旋钮、设计体系、风格变体、负向设计空间）由 `design-spec.md` 独占产出，ui-ux.md 不再重复。
 
 轻量级任务可省略 `[可选]` 元素。
 
 ## 与 ae:prd 原型的衔接
 
-1. 读取 ae:prd 的 `index.md` 获取模块导航和 ID 索引
-2. 读取 ae:prd 的 `modules/<NN>-<m>/prototype.md` 获取页面清单、路由表和每页面的布局结构描述及交互流程
+1. 读取 ae:prd 的 `overview.md` 获取模块导航和 ID 索引
+2. 读取 ae:prd 的 `modules/<NN>-<m>/pages/` 获取页面清单、路由表和每页面的布局结构描述及交互流程
 3. **读取 ae:prd 的响应式声明和各页面的响应式布局描述**，映射到 ui-ux 的响应式断点表（保留 ae:prd 声明的断点数值和布局变化描述）
 4. **扫描项目已有组件资产**（grep/glob 搜索组件目录），识别可复用组件，记录在"组件复用策略"章节
 5. 将文字描述升级为 HTML 结构片段 + CSS 样式片段
 6. 将页面元素清单升级为组件选型 + Props 契约，优先复用已有组件，跨页面重复结构抽取为共享组件
-7. 补充技术栈声明（ae:prd 原型不含技术栈）：优先从 ae:prd 的 `global.md` §技术栈约束章节获取用户已确定的技术栈选型，未提供时由 ae:design 自身决策
+7. 补充技术栈声明（ae:prd 原型不含技术栈）：优先从 ae:prd 的 `tech-stack.md` 获取用户已确定的技术栈选型，未提供时由 ae:design 自身决策
 8. 补充设计 Token（ae:prd 原型已声明主题色和次要颜色 HEX 值，需在此基础上补充中性色阶、字号阶、间距阶、圆角等代码级设计 Token）
 
-**技术栈信息流向：** `ae:prd global.md §技术栈约束`（可选）→ `## UI/UX {#ui-ux}` 技术栈声明章节（唯一真源）→ 页面/组件描述通过 ID 引用。技术栈信息不在页面产物中散落，确保技术选型可独立审查和变更。
+**技术栈信息流向：** `ae:prd tech-stack.md`（可选）→ `ui-ux.md` 技术栈声明章节（唯一真源）→ 页面/组件描述通过 ID 引用。技术栈信息不在页面产物中散落，确保技术选型可独立审查和变更。
 
 **组件复用信息流向：** 项目已有组件资产扫描 → 组件复用策略章节（唯一真源）→ 全局组件清单 → 页面描述通过组件 ID 引用。确保 ae:work 实施时优先复用已有组件，不重复造轮子。
