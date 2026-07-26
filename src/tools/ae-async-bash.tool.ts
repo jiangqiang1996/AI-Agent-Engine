@@ -117,17 +117,11 @@ export const aeAsyncBashTool = tool({
       return `错误: 启动命令失败 — ${reason}。日志路径: ${resolvedLogPath}`
     }
 
-    const pid = result.pid
-
-    if (pid === -1) {
-      return `错误: 子进程启动失败，未能获取 PID。日志路径: ${resolvedLogPath}`
-    }
-
-    ctx.metadata({ title: `异步命令已启动 (PID: ${pid})`, metadata: { pid, command: args.command, logPath: resolvedLogPath } })
+    ctx.metadata({ title: `异步命令已启动 (PID: ${result.pid})`, metadata: { pid: result.pid, command: args.command, logPath: resolvedLogPath } })
 
     const lines = [
       '异步命令已启动',
-      `PID: ${pid}`,
+      `PID: ${result.pid}`,
       `命令: ${args.command}`,
       `工作目录: ${cwd}`,
       `日志路径: ${resolvedLogPath}`,
@@ -141,16 +135,15 @@ export const aeAsyncBashTool = tool({
       '禁止因本工具失败而降级使用 bash 工具执行阻塞型命令。',
       '',
       '重复启动同一服务前（硬约束）：若后续需再次启动同一服务，必须先用 bash 按上述 PID 检查旧进程是否存活',
-      '（Windows: tasklist /FI "PID eq ' + pid + '"；Unix: ps -p ' + pid + '）；',
+      '（Windows: tasklist /FI "PID eq ' + result.pid + '"；Unix: ps -p ' + result.pid + '）；',
       '存活则复用本实例（引用上述 PID/日志，不再调用本工具），或需重启时先用 bash 终止旧进程',
-      '（Windows: taskkill /PID ' + pid + ' /F；Unix: kill ' + pid + '，必要时 kill -9）再重新启动。',
+      '（Windows: taskkill /PID ' + result.pid + ' /F；Unix: kill ' + result.pid + '，必要时 kill -9）再重新启动。',
       '禁止未检查重复启动，避免端口占用/资源泄漏/多实例冲突；仅可终止由本工具或本会话启动的进程。',
     ]
 
     return {
-      title: `异步命令已启动 (PID: ${pid})`,
       output: lines.join('\n'),
-      metadata: { pid, command: args.command, cwd, logPath: resolvedLogPath, encoding: args.encoding },
+      metadata: { pid: result.pid, command: args.command, cwd, logPath: resolvedLogPath, encoding: args.encoding },
     }
   },
 })

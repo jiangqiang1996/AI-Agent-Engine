@@ -71,6 +71,6 @@ function formatResult(label: string, planned: number, elapsed: number, aborted: 
   }
   return {
     output: parts.join('\n'),
-    metadata: { duration: planned, elapsed, label, aborted: aborted || undefined, nextStep: nextStep || undefined },
+    metadata: { duration: planned, elapsed, label, aborted, nextStep: nextStep || undefined },
   }
 }
