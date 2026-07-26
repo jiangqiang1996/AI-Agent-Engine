@@ -2,7 +2,7 @@
 name: e2e-test-runner
 model: $vision
 mode: subagent
-steps: 100
+steps: 200
 description: "浏览器 E2E 测试执行代理：通过 ae:playwright 生成和执行 Playwright 测试，可修改测试文件，不修改产品代码"
 ---
 

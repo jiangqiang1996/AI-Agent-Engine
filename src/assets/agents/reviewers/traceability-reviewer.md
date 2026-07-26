@@ -2,7 +2,7 @@
 name: traceability-reviewer
 model: $deep
 mode: subagent
-steps: 25
+steps: 50
 description: "审查需求/设计/原型/测试用例之间的追溯一致性，识别孤儿条目、断裂引用和未声明的延期。激活条件：审查范围包含两类及以上文档。"
 ---
 

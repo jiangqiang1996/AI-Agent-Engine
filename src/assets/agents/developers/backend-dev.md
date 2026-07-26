@@ -2,7 +2,7 @@
 name: backend-dev
 description: 后端开发专精代理：处理 API、数据层、业务逻辑和中间件
 mode: subagent
-steps: 50
+steps: 100
 ---
 
 # 后端开发专精代理

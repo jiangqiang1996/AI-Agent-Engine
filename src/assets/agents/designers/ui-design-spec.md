@@ -2,7 +2,7 @@
 name: ui-design-spec
 model: $deep
 mode: subagent
-steps: 35
+steps: 70
 description: "UI 设计规范与决策专家：根据需求推断设计读数、三旋钮取值、设计体系选择和风格变体推荐，产出结构化设计决策包。不写代码、不操作浏览器、不产出契约文件。"
 ---
 

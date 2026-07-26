@@ -2,7 +2,7 @@
 name: test-cases-design-reviewer
 model: $deep
 mode: subagent
-steps: 35
+steps: 70
 description: "审查 ae:design 的 test-cases 维度产物：覆盖矩阵、P0-P3 用例、行为契约规格、维度覆盖追溯"
 ---
 

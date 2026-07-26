@@ -2,7 +2,7 @@
 name: test-cases-designer
 model: $deep
 mode: subagent
-steps: 80
+steps: 160
 tools:
   read: true
   write: true

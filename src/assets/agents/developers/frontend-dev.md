@@ -2,7 +2,7 @@
 name: frontend-dev
 description: 前端开发专精代理：处理 UI 组件、样式、交互逻辑和响应式设计
 mode: subagent
-steps: 50
+steps: 100
 ---
 
 # 前端开发专精代理

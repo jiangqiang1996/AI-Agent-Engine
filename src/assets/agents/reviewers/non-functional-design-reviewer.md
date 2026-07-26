@@ -2,7 +2,7 @@
 name: non-functional-design-reviewer
 model: $deep
 mode: subagent
-steps: 25
+steps: 50
 description: "审查 ae:design 的 non-functional 维度产物：性能目标、并发模型、事务边界、缓存策略、容量规划"
 ---
 

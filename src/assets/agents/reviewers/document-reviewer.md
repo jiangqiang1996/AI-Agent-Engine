@@ -2,7 +2,7 @@
 name: document-reviewer
 model: $deep
 mode: subagent
-steps: 25
+steps: 50
 description: "通用文档审查代理：审查任意文本类型文件（需求文档、设计文档属性、通用文档），通过类型路由加载对应检查框架，共享断言提取→证据匹配→矛盾检测底层原语"
 ---
 

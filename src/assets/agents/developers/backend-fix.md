@@ -2,7 +2,7 @@
 name: backend-fix
 model: $deep
 mode: subagent
-steps: 50
+steps: 100
 description: "后端修复代理：错误分析、根因定位、修复实现和回归验证"
 ---
 
