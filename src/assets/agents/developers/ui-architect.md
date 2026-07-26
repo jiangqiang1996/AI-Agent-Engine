@@ -2,7 +2,7 @@
 name: ui-architect
 model: $vision
 mode: subagent
-steps: 25
+steps: 50
 description: "Web 视觉实现：根据设计决策包和设计输入，完成页面的视觉代码实现。自由设计模式下按决策包实现；设计还原模式下以设计稿/截图/文字规格为唯一真源精确还原。含一轮视觉验证。不负责设计决策推断、接口联调、修复或浏览器功能测试。"
 ---
 

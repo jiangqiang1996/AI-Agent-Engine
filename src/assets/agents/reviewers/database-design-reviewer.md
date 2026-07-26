@@ -2,7 +2,7 @@
 name: database-design-reviewer
 model: $deep
 mode: subagent
-steps: 15
+steps: 25
 description: "审查 ae:design 的 database 维度产物：ER 模型、表结构、外键关系、迁移策略、敏感字段标注"
 ---
 

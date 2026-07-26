@@ -2,7 +2,7 @@
 name: api-design-reviewer
 model: $deep
 mode: subagent
-steps: 15
+steps: 25
 description: "审查 ae:design 的 api 维度产物：端点清单、TypeScript interface、认证授权、错误码体系、版本策略、幂等性"
 ---
 

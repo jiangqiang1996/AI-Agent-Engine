@@ -2,7 +2,7 @@
 name: observability-design-reviewer
 model: $deep
 mode: subagent
-steps: 15
+steps: 25
 description: "审查 ae:design 的 observability 维度产物：日志规范、指标体系、告警规则、健康检查、SLO/SLI 定义"
 ---
 

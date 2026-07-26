@@ -2,7 +2,7 @@
 name: database-designer
 model: $deep
 mode: subagent
-steps: 25
+steps: 35
 tools:
   read: true
   write: true

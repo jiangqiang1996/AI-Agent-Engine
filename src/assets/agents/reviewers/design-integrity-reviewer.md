@@ -2,7 +2,7 @@
 name: design-integrity-reviewer
 model: $deep
 mode: subagent
-steps: 20
+steps: 35
 description: "审查跨维度完整性与确定性：拆分设计文件间冲突、字段匹配、映射表完整性、维度间引用一致性、矛盾检测"
 ---
 
