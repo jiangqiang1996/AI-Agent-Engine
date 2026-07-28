@@ -50,7 +50,7 @@ argument-hint: "[代码文件/目录] [设计用例路径(可选)]"
    - 工具直接返回诊断结果（规则 1/2/4/5 命中）→ 展示 summary，按 dispatchTarget 执行
    - 工具返回 `needs_agent_diagnosis: true`（规则 3 真源对齐）→ 调度 `@test-triage` 代理执行语义对齐判断，代理返回诊断结果后展示 summary
 5. 向用户展示 triage 返回的 summary
-6. 按 dispatchTarget 执行（修复技能 / self-fix / ae:design-update / manual）
+6. 按 dispatchTarget 执行（修复技能 / self-fix / ae:design / manual）
 7. 修复后询问用户是否回归验证
 8. 用户确认后回归：重新运行同层全部测试
 

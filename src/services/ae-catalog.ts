@@ -28,27 +28,11 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     tier: 'core',
   },
   {
-    skillName: SKILL.PRD_UPDATE,
-    commandName: COMMAND.PRD_UPDATE,
-    description: 'AI 辅助需求变更：根据自然语言变更意图修改已有需求文件，维护 superseded_by 软删除链和 changes 变更摘要，触发增量索引更新和 design 过期标记',
-    argumentHint: '[变更意图描述] [--auto-sync-design]',
-    skillFile: `src/assets/skills/${skillDir(SKILL.PRD_UPDATE)}/SKILL.md`,
-    tier: 'core',
-  },
-  {
     skillName: SKILL.DESIGN,
     commandName: COMMAND.DESIGN,
     description: getLifecycleCatalogDescription('design'),
     argumentHint: '[需求文档路径|design|裸描述] [dimensions=architecture,database] [refactor=true]',
     skillFile: `src/assets/skills/${skillDir(SKILL.DESIGN)}/SKILL.md`,
-    tier: 'core',
-  },
-  {
-    skillName: SKILL.DESIGN_UPDATE,
-    commandName: COMMAND.DESIGN_UPDATE,
-    description: '根据已变更需求增量更新设计文件：读取 prd changes 数组精确变更信号，重跑受影响子代理 scoped regeneration，仅处理过期模块',
-    argumentHint: '[模块名] [--dry-run]',
-    skillFile: `src/assets/skills/${skillDir(SKILL.DESIGN_UPDATE)}/SKILL.md`,
     tier: 'core',
   },
   {

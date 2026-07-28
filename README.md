@@ -100,9 +100,7 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 查看当前能力 | `/ae-help` |
 | 多视角发散讨论 | `/ae-brainstorm` |
 | 需求澄清与需求文档 | `/ae-prd` |
-| 需求变更 | `/ae-prd-update` |
 | 设计阶段（架构、接口、数据模型、实现单元） | `/ae-design` |
-| 增量更新设计 | `/ae-design-update` |
 | 深度追问方案决策 | `/ae-grill` |
 | 计划执行 | `/ae-work` |
 | Worktree 继续执行 | `/ae-work-continue` |

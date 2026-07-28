@@ -20,7 +20,7 @@ export const aeTestTriageTool = tool({
     '诊断规则（按顺序短路匹配）：',
     '1. 测试代码自身有明显错误 → self-fix（工具确定性判断）',
     '2. 全部测试失败 → manual（环境问题，工具确定性判断）',
-    '3. 有真源时对齐判断：断言对+产品错→修复产品；产品对+断言错→self-fix；两者都不符→design-update',
+    '3. 有真源时对齐判断：断言对+产品错→修复产品；产品对+断言错→self-fix；两者都不符→ae:design',
     '   规则 3 需要语义推理，工具返回 needs_agent_diagnosis 标记，调用方应委托 test-triage 代理执行',
     '4. 无真源 → manual（工具确定性判断）',
     '5. 兜底 → 默认判定为产品代码问题（工具确定性判断）',

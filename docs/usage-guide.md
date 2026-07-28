@@ -8,9 +8,7 @@
 | --- | --- |
 | 想多角度发散讨论一个主题 | `/ae-brainstorm` |
 | 产出需求文档 | `/ae-prd` |
-| 需求变更 | `/ae-prd-update` |
 | 产出设计文档（架构、接口、数据模型、实现单元） | `/ae-design` |
-| 增量更新设计 | `/ae-design-update` |
 | 深度追问方案决策 | `/ae-grill` |
 | 已有设计，需要执行 | `/ae-work` |
 | Worktree 继续执行 | `/ae-work-continue` |
@@ -62,11 +60,9 @@
 | 场景 | 命令/技能 | 代理 | 说明 |
 | --- | --- | --- | --- |
 | 多角度发散讨论 | `/ae-brainstorm` | — | 不产出文档，讨论结果转 `/ae-prd` 沉淀 |
-| 产出需求文档 | `/ae-prd` | — | 澄清目标、边界、约束和成功标准 |
-| 需求变更 | `/ae-prd-update` | — | 维护软删除链和变更摘要 |
+| 产出需求文档 | `/ae-prd` | — | 澄清目标、边界、约束和成功标准；修改已有需求时传入需求文档路径 |
 | 深度追问方案决策 | `/ae-grill` | — | 适用于模糊需求逐层澄清 |
-| 产出设计文档 | `/ae-design` | `@architecture-designer` `@api-designer` `@database-designer` `@ui-ux-designer` `@security-designer` `@observability-designer` `@non-functional-designer` `@test-cases-designer` | 含架构、接口、数据模型、测试用例与验收标准 |
-| 增量更新设计 | `/ae-design-update` | 同上 | 仅处理过期模块，不触碰未受影响文件 |
+| 产出设计文档 | `/ae-design` | `@architecture-designer` `@api-designer` `@database-designer` `@ui-ux-designer` `@security-designer` `@observability-designer` `@non-functional-designer` `@test-cases-designer` | 含架构、接口、数据模型、测试用例与验收标准；修改已有设计时传入设计路径 |
 | 原型预览 | `/ae-prototype-preview` | — | 将原型文档转为 HTML 静态文件验证效果 |
 | 项目结构探索 | `/ae-project-explore` | `@repo-research-analyst` | 分析任意文件集合的结构与关系 |
 
@@ -248,10 +244,8 @@ PDF 文件的 Markdown 读取功能通过 `ae:pdf` 技能的 `to-markdown` 操�
 | 命令 | 参数 | 用途 | 关键边界 |
 | --- | --- | --- | --- |
 | `/ae-brainstorm` | `[讨论主题]` | 使用多个子代理从不同视角进行多轮发散讨论并汇总 | 不产出持久文档；需求沉淀转 `/ae-prd` |
-| `/ae-prd` | `[目标描述\|需求文档路径]` | 澄清目标、边界、约束、成功标准和待定问题，产出需求文档 | 产物是需求文档 |
-| `/ae-prd-update` | `[变更意图描述] [--auto-sync-design]` | 根据自然语言变更意图修改已有需求文件 | 维护软删除链和变更摘要 |
-| `/ae-design` | `[需求文档路径\|旧 design\|裸描述] [dimensions=...] [refactor=true]` | 产出设计文档，含概览、架构、接口、数据模型、测试用例与实现单元；`refactor=true` 用于重构或技术债治理 | 供实施和审查对齐 |
-| `/ae-design-update` | `[模块名] [--dry-run]` | 根据已变更需求增量更新设计文件 | 仅处理过期模块，不触碰未受影响文件 |
+| `/ae-prd` | `[目标描述\|需求文档路径]` | 澄清目标、边界、约束、成功标准和待定问题，产出需求文档；传入已有路径时修改该需求 | 产物是需求文档 |
+| `/ae-design` | `[需求文档路径\|旧 design\|裸描述] [dimensions=...] [refactor=true]` | 产出设计文档，含概览、架构、接口、数据模型、测试用例与实现单元；`refactor=true` 用于重构或技术债治理；传入已有设计路径时全量重新生成 | 供实施和审查对齐 |
 | `/ae-grill` | `[需求文档路径\|设计文档路径\|方案描述]` | 深度追问方案决策，一问一答推进共识 | 适用于模糊需求逐层澄清 |
 | `/ae-work` | `[设计路径\|交接文件路径\|工作描述]` | 按设计执行变更并验证 | 交付前检查验证、审查和 Git 授权证据 |
 | `/ae-work-report` | `[日报\|周报\|时间段\|提交范围]` | 基于提交和未提交变更生成工作报告 | 不执行 Git 写操作 |

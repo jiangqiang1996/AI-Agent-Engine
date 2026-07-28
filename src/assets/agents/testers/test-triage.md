@@ -38,7 +38,7 @@ description: "测试失败诊断代理：分析 TestFailureBundle，按 5 条优
    - 产品符合真源 + 断言不符 → test bug
      → rootCause: "test", dispatchTarget: "self-fix"
    - 两者都不符 → design-drift
-     → rootCause: "design-drift", dispatchTarget: "ae:design-update"
+      → rootCause: "design-drift", dispatchTarget: "ae:design"
 4. PRD 与设计冲突时以 PRD 为准
 5. PRD 自身模糊（无法判定对错）时 → dispatchTarget: "manual", summary 说明需用户确认
 
@@ -48,7 +48,7 @@ description: "测试失败诊断代理：分析 TestFailureBundle，按 5 条优
 {
   "rootCause": "production" | "test" | "env" | "design-drift",
   "domain": "frontend" | "backend" | null,
-  "dispatchTarget": "ae:frontend-fix" | "ae:backend-fix" | "ae:design-update" | "self-fix" | "manual",
+  "dispatchTarget": "ae:frontend-fix" | "ae:backend-fix" | "ae:design" | "self-fix" | "manual",
   "summary": "一句话人话解释，必须展示给用户",
   "evidence": "诊断依据"
 }

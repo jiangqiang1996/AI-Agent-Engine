@@ -40,7 +40,7 @@ export const TestTriageResultSchema = z.object({
   rootCause: z.enum(['production', 'test', 'env', 'design-drift']).describe('根因分类'),
   domain: z.enum(['frontend', 'backend']).nullable().describe('域分类，rootCause 非 production 时为 null'),
   dispatchTarget: z
-    .enum(['ae:frontend-fix', 'ae:backend-fix', 'ae:design-update', 'self-fix', 'manual'])
+    .enum(['ae:frontend-fix', 'ae:backend-fix', 'ae:design', 'self-fix', 'manual'])
     .describe('分派目标'),
   summary: z.string().describe('一句话诊断结论，必须展示给用户'),
   evidence: z.string().describe('诊断依据'),
