@@ -109,7 +109,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   {
     skillName: SKILL.PROTOTYPE_PREVIEW,
     commandName: COMMAND.PROTOTYPE_PREVIEW,
-    description: '将 ae:prd 原型文档转换为技术栈无关的多页面 HTML 静态文件，用于验证原型效果。禁止使用打包构建工具，禁止镀金，仅做原型文档写明的内容。必须完全遵守原型文档中的颜色定义和响应式需求。',
+    description: '将 ae:prd 原型文档转换为技术栈无关的多页面 HTML 静态文件，用于验证原型效果。禁止使用打包构建工具，禁止镀金，仅做原型文档写明的内容。必须完全遵守原型文档中的颜色定义和响应式需求。生成所有 HTML 后强制逐页面、子页面、弹窗核对字段与原型文档一致性，审查修复通过后才进入浏览器验收。',
     argumentHint: '[prd目录路径|原型文档路径] [--no-inspect|--yes]',
     skillFile: `src/assets/skills/${skillDir(SKILL.PROTOTYPE_PREVIEW)}/SKILL.md`,
     tier: 'tools',
