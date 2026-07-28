@@ -115,24 +115,24 @@ argument-hint: "[设计路径|交接文件路径|任务描述]"
 #### 步骤 3.1：准备调度
 
 运行 `scripts/specialist-select.mjs` 脚本，传入 intent、constraints 以及顶层布尔标记（has_ui、has_security、has_api 等）。脚本返回：
-- `tasks`：每个选中专精代理的 agent 名、prompt 模板和能力描述
-- `strategy`：协调策略（parallel-then-sequential + merge）
+- `domain`：域名标识（development）
+- `agents`：选中的专精代理名称列表（string[]），均为已注册的 opencode 代理名
+- `strategy`：协调策略对象，包含 `strategy: 'parallel-then-sequential'` 和 `aggregation: 'merge'` 两个子字段
 - `specialistCount`：选中数量
 
-如果未匹配到任何专精代理，脚本会兜底选中 backend-fix；`specialistCount` 为 0 仅在脚本异常时出现，此时报错并提示用户检查参数。
+如果未匹配到任何专精代理，脚本会兜底返回 `general` 代理。异常时返回 `{ domain, strategy: null, agents: [], specialistCount: 0, error: string }`，消费方应检查 `error` 字段或 `strategy` 为 null 的情况。
 
 #### 步骤 3.2：并行调度专精代理
 
-在同一轮回复中，使用 Task 工具并行调用 `tasks` 数组中的每个专精代理。
+在同一轮回复中，使用 Task 工具并行调用 `agents` 数组中的每个代理。返回的代理名称均为已注册的 opencode 代理，根据返回结果无条件调用，不做二次筛选或跳过。
 
 **并行调度硬约束**：你必须在同一轮回复中一次性发出所有 Task 工具调用，禁止等上一个 Task 返回后再发出下一个。
 
 **平台并行行为说明**：OpenCode Task 工具支持在同一条消息中发出多个调用时并行执行。如果你的回复仅包含一个 Task 调用，它将串行执行——这是导致"伪并行"的常见原因。务必在同一条回复中包含所有 Task 调用。
 
-**串行降级**：如果平台硬性不支持多工具调用（需可验证证据），退化为逐个串行发出全部 Task 调用。**不得因此跳过任何一个专精代理**。
+**串行降级**：如果平台硬性不支持多工具调用（需可验证证据），退化为逐个串行发出全部 Task 调用。**不得因此跳过任何一个代理**。
 
 每个 Task 调用的 prompt 必须包含：
-- 专精代理的 prompt 模板（来自 select 脚本的 `tasks[].prompt`）
 - 代理 markdown 文件内容（通过 `@{agent_name}` 引用对应代理）
 - 任务描述（含待办单元、文件范围、实现要求）
 - 已确认的参数和约束
@@ -141,7 +141,7 @@ argument-hint: "[设计路径|交接文件路径|任务描述]"
 
 #### 步骤 3.3：顺序集成（parallel-then-sequential 策略）
 
-并行阶段完成后，如果 strategy 为 `parallel-then-sequential` 且存在需要集成的跨专精产出：
+并行阶段完成后，如果 strategy.strategy 为 `parallel-then-sequential` 且存在需要集成的跨专精产出：
 1. 检查并行结果中是否有跨代理文件冲突
 2. 如有冲突，使用 Task 调用 `@backend-fix` 或相关专精代理解决集成问题
 3. 如无冲突，跳过此步骤

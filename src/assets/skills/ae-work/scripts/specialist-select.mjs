@@ -1,45 +1,56 @@
 /**
  * 开发专精代理选择脚本
  *
- * 为 ae:work 预计算开发专精代理列表、协调策略和 prompt 模板。
+ * 为 ae:work 预计算开发专精代理名称列表和协调策略。
+ * 脚本只返回选中的代理名称，由 ae:work 技能自行根据名称调度。
  *
  * 用法：
  *   node specialist-select.mjs --intent="任务意图" [--has_ui] [--has_api] ...
  *   echo '{"intent":"...","has_ui":true}' | node specialist-select.mjs
  *
- * 输出：JSON 到 stdout，包含 domain、strategy、tasks、specialistCount
+ * 输出：JSON 到 stdout，包含 domain、strategy、agents、specialistCount
  */
 
-// ── 静态数据：开发专精代理目录 ──
+// ── 开发专精代理名称常量 ──
 
-const DEVELOPMENT_SPECIALISTS = [
-  {
-    name: 'frontend-dev',
-    capabilities: ['UI 组件', '样式', '交互逻辑', '响应式设计', '前端', '页面', '表单', '组件', '视图', 'html', 'css'],
-    selectionCriteria: '任务涉及前端/UI/组件/样式时选中',
-    inputContract: '任务描述和前端上下文',
-    outputContract: '前端实现和样式代码',
-  },
-  {
-    name: 'backend-dev',
-    capabilities: ['API', '数据层', '业务逻辑', '中间件', '接口', '服务层', '逻辑', 'controller', 'service'],
-    selectionCriteria: '任务涉及 API/数据库/服务/后端时选中',
-    inputContract: '任务描述和后端上下文',
-    outputContract: '后端实现和接口代码',
-  },
-  {
-    name: 'backend-fix',
-    capabilities: ['错误分析', '根因定位', '修复实现', '回归验证', '问题', '报错', '异常', '崩溃', '排查', '修复', 'bug'],
-    selectionCriteria: '任务涉及调试/修复/Bug 时选中',
-    inputContract: '任务描述和错误上下文',
-    outputContract: '修复代码和验证结果',
-  },
-]
+const AGENT = {
+  FRONTEND_DEV: 'frontend-dev',
+  BACKEND_DEV: 'backend-dev',
+  BACKEND_FIX: 'backend-fix',
+  FRONTEND_FIX: 'frontend-fix',
+  LOGIC_WEAVER: 'logic-weaver',
+  UI_ARCHITECT: 'ui-architect',
+}
 
-const SPECIALIST_PROMPT_TEMPLATES = {
-  'frontend-dev': '你是一位前端开发专精代理。处理 UI 组件、样式、交互逻辑和响应式设计。',
-  'backend-dev': '你是一位后端开发专精代理。处理 API、数据层、业务逻辑和中间件。',
-  'backend-fix': '你是一位后端修复专精代理。处理错误分析、根因定位、修复实现和回归验证。',
+const FALLBACK_AGENT = 'general'
+
+// ── 选择规则：关键词与布尔标记匹配 ──
+
+const SELECTION_RULES = {
+  [AGENT.FRONTEND_DEV]: {
+    keywords: ['前端', 'ui', '组件', '样式', '页面', '表单', '视图', 'html', 'css', '界面', '响应式'],
+    flags: ['hasUi'],
+  },
+  [AGENT.BACKEND_DEV]: {
+    keywords: ['后端', 'api', '数据层', '业务逻辑', '中间件', '接口', '服务层', 'controller', 'service'],
+    flags: ['hasApi', 'hasDatabase'],
+  },
+  [AGENT.BACKEND_FIX]: {
+    keywords: ['修复', 'bug', '报错', '异常', '崩溃', '排查', '错误分析', '根因', '回归'],
+    flags: [],
+  },
+  [AGENT.FRONTEND_FIX]: {
+    keywords: ['前端修复', '视觉修复', '交互修复', '样式问题', '布局问题', '无障碍', 'aria', '联调修复', '间距'],
+    flags: [],
+  },
+  [AGENT.LOGIC_WEAVER]: {
+    keywords: ['交互逻辑', 'api 联调', '状态管理', '组件开发', '前端重构', '性能优化', '可访问性', '认证集成', '数据流', '表单联动', '条件渲染', '懒加载', 'memo', 'bundle 优化', '重构'],
+    flags: ['hasPerformance'],
+  },
+  [AGENT.UI_ARCHITECT]: {
+    keywords: ['视觉实现', '页面设计', '设计还原', 'ui 布局', '视觉代码', '设计稿', '截图', 'figma', '还原', '从零设计'],
+    flags: [],
+  },
 }
 
 const DOMAIN_COORDINATION = {
@@ -48,22 +59,14 @@ const DOMAIN_COORDINATION = {
 
 // ── 核心逻辑 ──
 
-function getSpecialistPrompt(specialistName) {
-  return SPECIALIST_PROMPT_TEMPLATES[specialistName] ?? `你是一位专精代理: ${specialistName}。`
-}
-
 function getCoordinationStrategy(domain) {
   return DOMAIN_COORDINATION[domain] ?? { strategy: 'parallel', aggregation: 'merge' }
 }
 
-function isAlwaysOn(specialist, domain, domainContext) {
-  if (domain === 'development' && domainContext.defaultToAll === true) {
-    return true
-  }
-  return false
-}
+function matchesCriteria(name, taskIntent, domainContext) {
+  const rule = SELECTION_RULES[name]
+  if (!rule) return false
 
-function matchesCriteria(specialist, taskIntent, domainContext, domain) {
   const intentLower = taskIntent.intent.toLowerCase()
   const constraintsLower = (taskIntent.constraints ?? []).map((c) => c.toLowerCase())
   const contextText = Object.values(domainContext)
@@ -72,50 +75,36 @@ function matchesCriteria(specialist, taskIntent, domainContext, domain) {
     .map((value) => value.toLowerCase())
   const allText = [intentLower, ...constraintsLower, (taskIntent.rawInput ?? '').toLowerCase(), ...contextText].join(' ')
 
-  const criteriaLower = specialist.selectionCriteria.toLowerCase()
-  const capabilityTerms = specialist.capabilities.map((c) => c.toLowerCase())
-
-  for (const term of capabilityTerms) {
-    if (allText.includes(term)) return true
+  for (const term of rule.keywords) {
+    if (allText.includes(term.toLowerCase())) return true
   }
 
-  if (criteriaLower.includes('安全') && allText.includes('安全')) return true
-  if (criteriaLower.includes('api') && allText.includes('api')) return true
-  if (criteriaLower.includes('性能') && allText.includes('性能')) return true
-  if (criteriaLower.includes('架构') && allText.includes('架构')) return true
-  if (criteriaLower.includes('ui') && (allText.includes('ui') || allText.includes('界面'))) return true
-  if (criteriaLower.includes('迁移') && allText.includes('迁移')) return true
-  if (specialist.name === 'frontend-dev' && domainContext.hasUi === true) return true
-  if (specialist.name === 'backend-dev' && (domainContext.hasApi === true || domainContext.hasDatabase === true)) {
-    return true
+  for (const flag of rule.flags) {
+    if (domainContext[flag] === true) return true
   }
 
   return false
 }
 
 function selectSpecialists(domain, taskIntent, domainContext = {}) {
-  const catalog = { domain: 'development', specialists: DEVELOPMENT_SPECIALISTS }
-  if (catalog.domain !== domain) return []
+  if (domain !== 'development') return []
 
+  const allNames = Object.values(AGENT)
   const selected = []
 
-  for (const specialist of catalog.specialists) {
-    if (isAlwaysOn(specialist, domain, domainContext)) {
-      selected.push(specialist)
+  for (const name of allNames) {
+    if (domainContext.defaultToAll === true) {
+      selected.push(name)
       continue
     }
-
-    if (matchesCriteria(specialist, taskIntent, domainContext, domain)) {
-      selected.push(specialist)
+    if (matchesCriteria(name, taskIntent, domainContext)) {
+      selected.push(name)
     }
   }
 
-  // 兜底：development 域未选中任何专精时选中 backend-fix
-  if (domain === 'development' && selected.length === 0) {
-    const backendFix = catalog.specialists.find((s) => s.name === 'backend-fix')
-    if (backendFix) {
-      selected.push({ ...backendFix, selectionCriteria: `${backendFix.selectionCriteria}（兜底选中）` })
-    }
+  // 兜底：未选中任何专精时使用 general 代理
+  if (selected.length === 0) {
+    selected.push(FALLBACK_AGENT)
   }
 
   return selected
@@ -126,7 +115,6 @@ function selectSpecialists(domain, taskIntent, domainContext = {}) {
 function parseArgs() {
   const argvArgs = process.argv.slice(2)
 
-  // 有 argv 参数时优先从 argv 解析
   if (argvArgs.length > 0) {
     const params = { constraints: [] }
 
@@ -155,7 +143,6 @@ function parseArgs() {
     return
   }
 
-  // 无 argv 参数时从 stdin 读取 JSON
   const chunks = []
   process.stdin.resume()
   process.stdin.setEncoding('utf8')
@@ -216,39 +203,21 @@ function run(args) {
       requirementCount: args.requirement_count,
     }
 
-    const specialists = selectSpecialists('development', taskIntent, domainContext)
+    const agents = selectSpecialists('development', taskIntent, domainContext)
     const strategy = getCoordinationStrategy('development')
-
-    if (specialists.length === 0) {
-      console.log(JSON.stringify({
-        domain: 'development',
-        strategy,
-        tasks: [],
-        specialistCount: 0,
-        errorHint: '未选中任何开发专精代理。请检查 intent 和布尔标记参数是否正确。',
-      }, null, 2))
-      return
-    }
-
-    const tasks = specialists.map((s) => ({
-      agent: s.name,
-      prompt: getSpecialistPrompt(s.name),
-      capabilities: s.capabilities,
-      selectionCriteria: s.selectionCriteria,
-    }))
 
     console.log(JSON.stringify({
       domain: 'development',
       strategy,
-      tasks,
-      specialistCount: specialists.length,
+      agents,
+      specialistCount: agents.length,
     }, null, 2))
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     console.log(JSON.stringify({
       domain: 'development',
       strategy: null,
-      tasks: [],
+      agents: [],
       specialistCount: 0,
       error: message,
     }, null, 2))
