@@ -38,7 +38,7 @@ argument-hint: "[需求文档路径|design|裸描述] [dimensions=architecture,d
     - **后端技术栈**：明确后端语言与框架（Spring Boot/Express/FastAPI/Django 等）、ORM/数据访问层、认证授权方案、API 风格（REST/GraphQL/RPC）、中间件选型；标注版本范围和选型理由。
     - **数据层技术栈**：明确数据库类型与版本（MySQL/PostgreSQL/MongoDB/Redis 等）、缓存方案、消息队列、搜索引擎；标注选型理由。
     - **基础设施技术栈**：明确部署方式（Docker/K8s/Serverless 等）、CI/CD 方案、监控方案、日志方案；标注选型理由。
-    - **来源优先级**：若 prd 文档中用户已明确指定技术栈，设计必须遵循该约束，不得擅自更换；若 prd 未指定，设计阶段通过 ae:grill 追问或基于项目已有技术栈推断确定，推断依据必须记录在 ADR 中。
+    - **来源优先级**：若 prd 文档中用户已明确指定技术栈，设计必须遵循该约束，不得擅自更换；若 prd 未指定，优先沿用核心原则第 20 条"存量项目感知"识别到的已有技术栈；未感知到已有技术栈时通过 ae:grill 追问确定。所有推断依据必须记录在 ADR 中。
     - **真源位置**：全局技术栈选型决策记录在 architecture.md 的 ADR 中；前端技术栈详细信息集中在 architecture.md 的"前端技术栈声明"章节；后端/数据层/基础设施技术栈详细信息记录在 architecture.md 中；constraints.md 记录环境变量、依赖版本和配置项。各模块文件引用 architecture.md ADR 中的技术栈决策 ID，不重复记录选型决策。
     - **一致性约束**：技术栈选型确定后，各模块的 api/database/ui-ux/security 章节及 architecture/security/observability/non-functional 章节必须与该选型一致，禁止出现技术栈矛盾。
 13. **优先使用 Mermaid 图示** - 设计文档中的所有图示（系统上下文图、ER 模型、数据流图、部署拓扑图等）优先使用 Mermaid 语法绘制；Mermaid 无法表达的复杂注释场景可使用 ASCII 制图作为降级方案。
@@ -48,6 +48,12 @@ argument-hint: "[需求文档路径|design|裸描述] [dimensions=architecture,d
 17. **无行数限制** - 单个文件不限制大小，不产出 `index.md`、不分片。
 18. **无变更追踪** - 不维护变更链，版本演化 = 独立新目录。
 19. **Frontmatter 极简** - 仅保留 `type`、`ids`（有稳定 ID 时）。
+20. **存量项目感知（硬约束）** - 除非用户明确声明不参考当前项目（如"不读取项目文件"、"不使用现有技术栈"、"全新项目"、"从零开始"、"greenfield"、“指定了明确冲突的技术栈”等表述），设计必须主动感知当前项目现状。本条感知行为由用户触发 ae:design 时执行，属于用户明确请求的项目上下文读取，不构成插件运行时默认依赖：
+    - **技术栈感知**：通过读取 `package.json`/`go.mod`/`pom.xml`/`Cargo.toml`/`pyproject.toml` 等依赖清单文件，识别项目已有技术栈，供第 12 条来源优先级决策使用。
+    - **结构感知**：通过 glob/grep 扫描项目源码目录结构（如 `src/`、`app/`、`internal/` 等），识别已有模块划分、分层模式和目录约定。扫描时排除敏感目录和文件（如 `.env*`、`secrets/`、`credentials/`、`*.key`、`*.pem`、`.ssh/`）。设计中的模块边界和目录结构应与现有结构对齐，而非凭空发明。
+    - **约定感知**：通过读取项目配置文件（如 `.eslintrc`/`biome.json`/`.prettierrc`/`tsconfig.json` 等）和少量入口源码文件，识别已有编码约定（命名风格、导入方式、错误处理模式等）。仅读取入口文件和配置文件，不读取含疑似密钥/凭证的文件。设计契约中的实现指引应与现有约定一致。
+    - **感知结果记录**：技术栈感知结果纳入 architecture.md ADR；结构感知结果纳入 constraints.md 目录结构章节；约定感知结果纳入 constraints.md 实施约束章节。感知结果必须内化为设计文档内容（如"项目使用 React 18.2"），不得以路径引用形式指向外部工作空间文件（如"参见 package.json"），以遵守第 16 条自包含约束。写入前脱敏，屏蔽密钥、token、连接字符串中的凭证部分，仅记录技术栈名称和目录结构骨架。
+    - **用户豁免**：用户明确声明不参考当前项目时，跳过感知步骤，在 ADR 中记录豁免原因。
 
 ## 交互规则
 
