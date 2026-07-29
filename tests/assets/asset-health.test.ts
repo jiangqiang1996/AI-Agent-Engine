@@ -164,7 +164,7 @@ describe('资产健康巡检', () => {
 
   it('ae:design 维度专精代理应该全部注册且文件存在', () => {
     const designAgents = [
-      'ui-ux-designer',
+      'ui-designer',
       'architecture-designer',
       'api-designer',
       'database-designer',

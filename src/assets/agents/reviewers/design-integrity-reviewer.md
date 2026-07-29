@@ -20,7 +20,7 @@ description: "审查跨维度完整性与确定性：拆分设计文件间冲突
 
 ## Workflow
 
-1. **独立读取全部设计维度文件**（不依赖其他代理输出）：读取 `overview.md` 获取模块导航，读取 `cross-mapping.md` 获取跨维度映射表，读取全局维度独立文件（`architecture.md`、`security.md`、`observability.md`、`non-functional.md`、`design-spec.md`），读取各 `modules/<NN>-<m>/` 目录下的维度文件（`api.md`、`database.md`、`ui-ux.md`、`test-cases.md`）。
+1. **独立读取全部设计维度文件**（不依赖其他代理输出）：读取 `overview.md` 获取模块导航，读取 `cross-mapping.md` 获取跨维度映射表，读取全局维度独立文件（`architecture.md`、`security.md`、`observability.md`、`non-functional.md`、`design-spec.md`），读取各 `modules/<NN>-<m>/` 目录下的维度文件（`api.md`、`database.md`、`ui-ux.md`、`test-cases.md`）。`design-spec.md` 和 `ui-ux.md` 由同一代理 `@ui-designer` 产出，内部一致性由代理保证，本代理仍需检查跨文件引用一致性。
 2. **检查跨维度冲突**：不同维度对同一事物的描述是否矛盾。例如 architecture 声明无状态服务但 non-functional 定义了会话缓存。
 3. **检查字段匹配**：
    - API 字段 ↔ 数据库列：名称、类型、约束是否对齐。

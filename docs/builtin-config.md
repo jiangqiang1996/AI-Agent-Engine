@@ -211,6 +211,6 @@ model: $deep
 | `/ae-playwright`、`/ae-test e2e`、`/ae-fix frontend` | `vision` |
 | `@repo-research-analyst`、`@web-researcher` | `standard` |
 | `@ui-architect`、`@e2e-test-runner`、`@frontend-fix` | `vision` |
-| `@logic-weaver`、`@spec-flow-analyzer`、`@ui-design-spec`、`@ui-ux-designer`、`@architecture-designer`、`@api-designer`、`@database-designer`、`@test-cases-designer`、`@security-designer`、`@observability-designer`、`@non-functional-designer`、全部 13 个审查专精代理 | `deep` |
+| `@logic-weaver`、`@spec-flow-analyzer`、`@ui-designer`、`@architecture-designer`、`@api-designer`、`@database-designer`、`@test-cases-designer`、`@security-designer`、`@observability-designer`、`@non-functional-designer`、全部 13 个审查专精代理 | `deep` |
 | `@frontend-dev`、`@backend-dev`、`@backend-fix` | 继承 opencode 当前默认模型（未声明 `model` frontmatter） |
 | 未列出的内置命令 | 继承 opencode 当前默认模型 |

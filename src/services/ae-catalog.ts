@@ -317,12 +317,11 @@ const REQUIRED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'],
 ]
 
 const GILDED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'], string]> = [
-  [AGENT.UI_DESIGN_SPEC, 'design', 'UI 设计规范与决策专家：推断设计读数、配置三旋钮、选择设计体系、推荐风格变体，产出结构化设计决策包'],
+  [AGENT.UI_DESIGNER, 'design', '统一 UI/UX 设计入口代理：支持 spec/contract/full/inline 四种模式，产出设计决策包和 ui-ux 设计契约'],
   [AGENT.UI_ARCHITECT, 'develop', 'Web 视觉实现：根据设计决策包和设计输入，完成页面的视觉代码实现'],
   [AGENT.LOGIC_WEAVER, 'develop', '前端代码实现：交互逻辑、API联调、状态管理、组件开发、重构、性能优化'],
   [AGENT.E2E_TEST_RUNNER, 'test', '浏览器 E2E 测试执行代理：通过 ae:playwright 生成和执行 Playwright 测试'],
   [AGENT.FRONTEND_FIX, 'develop', '前端修复代理：视觉修复 + 交互逻辑修复 + 状态管理修复 + API 联调修复'],
-  [AGENT.UI_UX_DESIGNER, 'design', 'UI/UX 设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 ui-ux.md 设计契约，含设计读数、信息架构、页面规格、组件契约、设计 Token 和交互状态机'],
   [AGENT.ARCHITECTURE_DESIGNER, 'design', '架构设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 architecture.md 设计契约，含模块边界、依赖方向、分层规则、数据流和错误传播链'],
   [AGENT.API_DESIGNER, 'design', '接口设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 api.md 设计契约，含端点清单、TypeScript interface、认证授权、错误码体系和幂等性声明'],
   [AGENT.DATABASE_DESIGNER, 'design', '数据库设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 database.md 设计契约，含 ER 模型、表结构、关系与外键、迁移策略和敏感字段标注'],

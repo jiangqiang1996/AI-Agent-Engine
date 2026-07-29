@@ -62,7 +62,7 @@
 |------|---------|---------|
 | overview | `overview-template.md` | `overview.md` |
 | architecture | `architecture-template.md` | `architecture.md` |
-| design-spec | `ui-ux-template.md`（设计规范部分） | `design-spec.md` |
+| design-spec | `ui-ux-template.md`（设计规范部分） | `design-spec.md`（由 `@ui-designer` mode=spec 产出） |
 | 跨模块映射 | `cross-dimension-mapping.md` | `cross-mapping.md` |
 | 模块 api | `api-template.md` | `modules/<NN>-<m>/api.md` |
 | 模块 database | `database-template.md` | `modules/<NN>-<m>/database.md` |

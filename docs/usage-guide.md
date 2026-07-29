@@ -62,7 +62,7 @@
 | 多角度发散讨论 | `/ae-brainstorm` | — | 不产出文档，讨论结果转 `/ae-prd` 沉淀 |
 | 产出需求文档 | `/ae-prd` | — | 澄清目标、边界、约束和成功标准；修改已有需求时传入需求文档路径 |
 | 深度追问方案决策 | `/ae-grill` | — | 适用于模糊需求逐层澄清 |
-| 产出设计文档 | `/ae-design` | `@architecture-designer` `@api-designer` `@database-designer` `@ui-ux-designer` `@security-designer` `@observability-designer` `@non-functional-designer` `@test-cases-designer` | 含架构、接口、数据模型、测试用例与验收标准；修改已有设计时传入设计路径 |
+| 产出设计文档 | `/ae-design` | `@architecture-designer` `@api-designer` `@database-designer` `@ui-designer` `@security-designer` `@observability-designer` `@non-functional-designer` `@test-cases-designer` | 含架构、接口、数据模型、测试用例与验收标准；修改已有设计时传入设计路径 |
 | 原型预览 | `/ae-prototype-preview` | — | 将原型文档转为 HTML 静态文件验证效果 |
 | 项目结构探索 | `/ae-project-explore` | `@repo-research-analyst` | 分析任意文件集合的结构与关系 |
 
@@ -75,9 +75,7 @@
 | 前端修复（视觉/交互/接口） | `/ae-fix frontend` | `@frontend-fix` | DOM 结构化数据诊断为主，截图为辅 |
 | 浏览器操作 | `/ae-playwright` | — | 所有浏览器操作一律通过本技能 |
 | 原型转 HTML 预览 | `/ae-prototype-preview` | — | 技术栈无关，禁止打包构建工具 |
-| UI 设计规范决策 | — | `@ui-design-spec` | 推断设计读数、设计体系选择和风格变体 |
-| UI/UX 设计维度 | — | `@ui-ux-designer` | 产出信息架构、页面规格、组件契约、设计 Token |
-
+| UI/UX 设计 | — | `@ui-designer` | 统一 UI/UX 设计入口：设计决策包（spec）、ui-ux 契约（contract）、内联决策（inline） |
 `/ae-work` 在执行前端任务时自动调度 `@ui-architect`（视觉实现）和 `@logic-weaver`（逻辑实现），用户一般不需要手动指定代理。
 
 ### 后端开发
@@ -333,8 +331,7 @@ AE 采用 13 代理全并行架构，所有激活代理在同一轮一次性发�
 
 | 代理 | 用途 | 边界 |
 | --- | --- | --- |
-| `@ui-design-spec` | UI 设计规范与决策：推断设计读数、设计体系选择和风格变体推荐 | 不写代码、不操作浏览器、不产出契约文件 |
-| `@ui-ux-designer` | UI/UX 设计维度：信息架构、页面规格、组件契约、设计 Token、交互状态机 | 主动扫描已有组件资产，优先复用 |
+| `@ui-designer` | 统一 UI/UX 设计入口：支持 spec/contract/full/inline 四种模式，产出设计决策包和 ui-ux 设计契约 | 不写实现代码、不操作浏览器 |
 | `@architecture-designer` | 架构设计维度：模块边界、依赖方向、分层规则、数据流、错误传播链 | — |
 | `@api-designer` | 接口设计维度：端点清单、TypeScript interface、认证授权、错误码体系 | — |
 | `@database-designer` | 数据库设计维度：ER 模型、表结构、关系与外键、迁移策略 | — |

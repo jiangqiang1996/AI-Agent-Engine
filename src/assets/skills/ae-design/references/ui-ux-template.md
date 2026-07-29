@@ -2,7 +2,7 @@
 
 **触发条件：** 模块涉及 UI（dimension-triggers.md §模块维度触发）
 **产出位置：** `modules/<NN>-<m>/ui-ux.md` + `modules/<NN>-<m>/pages/<NN>-<page-name>.md`
-**产出方：** `@ui-ux-designer` 子代理
+**产出方：** `@ui-designer` 子代理
 **可还原性目标：** 任意 AI 据此生成一致性页面和交互，精确到组件选型、HTML 结构、CSS 样式
 
 ## 定位

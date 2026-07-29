@@ -4,7 +4,7 @@
 
 - 产物采用总览层独立文件 + 模块级独立文件两层结构
 - `overview.md` 包含设计读数、跨模块一致性约束、模块清单与边界
-- 各全局方向独立文件（`architecture.md` / `security.md` / `observability.md` / `non-functional.md` / `design-spec.md` / `constraints.md` / `cross-mapping.md`）位于设计目录根下
+- 各全局方向独立文件（`architecture.md` / `security.md` / `observability.md` / `non-functional.md` / `design-spec.md`（由 `@ui-designer` mode=spec 产出） / `constraints.md` / `cross-mapping.md`）位于设计目录根下
 - `modules/` 下按模块组织，每个模块位于 `modules/<NN>-<m>/` 子目录，含 `api.md` / `database.md` / `ui-ux.md` / `test-cases.md` 独立维度文件；涉及 UI 时含 `pages/` 目录下各页面独立文件
 - 全程无中间大文件，避免 AI 上下文爆炸
 

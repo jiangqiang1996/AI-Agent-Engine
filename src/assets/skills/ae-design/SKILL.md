@@ -104,14 +104,14 @@ argument-hint: "[需求文档路径|design|裸描述] [dimensions=architecture,d
 | 维度 | 子代理 | 产出位置 |
 |------|--------|---------|
 | overview / 实施约束 / 跨维度映射表 | 主代理产出 | `overview.md` + `constraints.md` + `cross-mapping.md` |
-| design-spec | `@ui-design-spec` | `design-spec.md`（含设计读数、三旋钮取值、设计体系选择、风格变体推荐、负向设计空间；同时透传给 `@ui-ux-designer`） |
+| design-spec | `@ui-designer`（mode=spec） | `design-spec.md`（含设计读数、三旋钮取值、设计体系选择、风格变体推荐、负向设计空间；同时透传给 `@ui-designer` mode=contract） |
 | architecture | `@architecture-designer` | `architecture.md` |
 | security | `@security-designer` | `security.md` |
 | observability | `@observability-designer` | `observability.md` |
 | non-functional | `@non-functional-designer` | `non-functional.md` |
 | api | `@api-designer` | `modules/<NN>-<m>/api.md` |
 | database | `@database-designer` | `modules/<NN>-<m>/database.md` |
-| ui-ux | `@ui-ux-designer` | `modules/<NN>-<m>/ui-ux.md` + `modules/<NN>-<m>/pages/*.md` |
+| ui-ux | `@ui-designer`（mode=contract） | `modules/<NN>-<m>/ui-ux.md` + `modules/<NN>-<m>/pages/*.md` |
 | test-cases | `@test-cases-designer` | `modules/<NN>-<m>/test-cases.md` |
 
 **产物组织：** `overview.md` 位于设计目录根下，包含设计读数、跨模块一致性约束、模块清单与边界。每个全局方向独立文件（`architecture.md` / `security.md` / `observability.md` / `non-functional.md` / `design-spec.md` / `constraints.md` / `cross-mapping.md`）位于设计目录根下。每个模块位于 `modules/<NN>-<m>/` 子目录中（`<NN>` 为零填充数字序号如 01、02、03），子目录名带数字固定顺序。模块下各维度独立文件（`api.md` / `database.md` / `ui-ux.md` / `test-cases.md`），每个维度文件仅当对应维度存在时产出，不存在即省略。涉及 UI 时，模块下 `pages/` 目录包含每个页面的独立文件。维度文件内容边界：禁止出现需求条目/验收标准/原型等产品逻辑层内容。
@@ -215,7 +215,7 @@ argument-hint: "[需求文档路径|design|裸描述] [dimensions=architecture,d
 | observability | 监控/日志/追踪方案选型、日志结构、监控指标、告警阈值、SLO 目标 |
 | non-functional | 性能目标、并发模型、事务边界、缓存策略、容量规划 |
 
-> design-spec 不需要 ae:grill 追问。`@ui-design-spec` 有自己的设计决策推断流程。
+> design-spec 不需要 ae:grill 追问。`@ui-designer` mode=spec 有自己的设计决策推断流程。
 
 #### 2.3 追问结果带回
 
@@ -274,19 +274,19 @@ overview.md 按 `references/overview-template.md` 模板产出，包含：
 
 **阶段 1：全局维度并行（每全局维度 1 次调用，全并行）**
 
-全局维度子代理（@architecture-designer、@security-designer、@observability-designer、@non-functional-designer、@ui-design-spec）并行产出独立文件：
+全局维度子代理（@architecture-designer、@security-designer、@observability-designer、@non-functional-designer、@ui-designer mode=spec）并行产出独立文件：
 - @architecture-designer → `architecture.md`
 - @security-designer → `security.md`
 - @observability-designer → `observability.md`
 - @non-functional-designer → `non-functional.md`
-- @ui-design-spec → `design-spec.md`
+- @ui-designer mode=spec → `design-spec.md`
 
 **阶段 2：模块并行（每模块 1 个 agent，模块内串行产出各维度独立文件）**
 
 按 architecture.md 中的模块划分，每个模块分配一个 agent，所有模块并行执行。每个模块 agent 内部串行产出各维度独立文件：
 1. @api-designer → `modules/<NN>-<m>/api.md`
 2. @database-designer → `modules/<NN>-<m>/database.md`（依赖 api.md 数据模型）
-3. @ui-ux-designer → `modules/<NN>-<m>/ui-ux.md` + `modules/<NN>-<m>/pages/*.md`（依赖 api.md 响应字段）
+3. @ui-designer mode=contract → `modules/<NN>-<m>/ui-ux.md` + `modules/<NN>-<m>/pages/*.md`（依赖 api.md 响应字段）
 4. @test-cases-designer → `modules/<NN>-<m>/test-cases.md`（依赖 api.md + database.md + ui-ux.md）
 
 **阶段 3：自动校验 + 一致性校验**
@@ -353,7 +353,7 @@ overview.md 按 `references/overview-template.md` 模板产出，包含：
 11. **security ↔ database** - security.md 数据分级与各模块 database.md 敏感字段标注对齐
 12. **observability ↔ architecture** - observability.md 指标体系覆盖 architecture.md 关键数据流
 13. **non-functional ↔ architecture** - non-functional.md 性能目标与 architecture.md 技术选型可行
-14. **design-spec ↔ ui-ux** - `design-spec.md` 独占设计读数（三旋钮、设计体系、风格变体、负向设计空间），`ui-ux.md` 不得出现设计读数和负向设计空间
+14. **design-spec ↔ ui-ux** - `design-spec.md` 和 `ui-ux.md` 由同一代理 `@ui-designer` 产出，内部一致性由代理保证。`design-spec.md` 独占设计读数（三旋钮、设计体系、风格变体、负向设计空间），`ui-ux.md` 不得出现设计读数和负向设计空间
 15. **技术栈选型 ↔ 各章节契约** - 技术实现路线约束中确定的技术栈选型必须与各章节契约一致
 
 发现不一致时，在此阶段修复后再进入 review 闭环。
