@@ -2,6 +2,7 @@
 name: logic-weaver
 model: $deep
 mode: subagent
+temperature: 0
 steps: 100
 description: "前端代码实现：交互逻辑、API联调、状态管理、组件开发、前端重构、性能优化、可访问性修复。覆盖所有非视觉的前端代码工作。不负责视觉设计或浏览器测试。"
 ---

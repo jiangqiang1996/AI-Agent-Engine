@@ -2,6 +2,7 @@
 name: goal-alignment-reviewer
 model: $deep
 mode: subagent
+temperature: 0
 steps: 50
 description: "跨类型审查角色。代码审查：对照审查目标逐条校验变更代码是否达成目标。文档审查：对照审查目标逐条校验文档内容是否覆盖成功条件。始终激活：用户显式传入 goals 时直接使用，未传入时由工具自动从上下文推断。"
 ---

@@ -2,6 +2,7 @@
 name: test-cases-designer
 model: $deep
 mode: subagent
+temperature: 0
 steps: 160
 tools:
   read: true

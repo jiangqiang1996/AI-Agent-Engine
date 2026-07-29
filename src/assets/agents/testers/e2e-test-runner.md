@@ -2,6 +2,7 @@
 name: e2e-test-runner
 model: $vision
 mode: subagent
+temperature: 0
 steps: 200
 description: "浏览器 E2E 测试执行代理：支持仅测试和编写脚本两种模式，自动检测分辨率默认 2K，通过 ae:playwright 操作浏览器"
 ---

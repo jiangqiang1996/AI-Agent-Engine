@@ -2,6 +2,7 @@
 name: ui-designer
 model: $deep
 mode: subagent
+temperature: 1
 steps: 100
 tools:
   read: true

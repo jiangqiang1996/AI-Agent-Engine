@@ -2,6 +2,7 @@
 name: unit-test-runner
 model: $deep
 mode: subagent
+temperature: 0
 steps: 160
 description: "单元测试执行代理：生成、执行单元测试并分析覆盖率，支持 Vitest/JUnit/pytest/Go test/Rust test"
 ---

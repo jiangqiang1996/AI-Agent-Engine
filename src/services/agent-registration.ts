@@ -21,6 +21,41 @@ type AgentMode = 'subagent' | 'primary' | 'all'
 type AgentConfigEntry = NonNullable<NonNullable<AgentConfigShape['agent']>[string]>
 const VALID_AGENT_MODES = new Set<AgentMode>(['primary', 'subagent', 'all'])
 
+/**
+ * opencode agent 配置合法字段白名单。
+ * 仅这些字段会从 frontmatter 透传到 opencode config.agent，
+ * 其余字段（如 AE 自有的 name/license/compatibility/metadata）会被过滤，
+ * 防止被 opencode normalize 移入 options 后作为模型参数透传给 provider。
+ */
+const OPencode_AGENT_KEYS = new Set([
+  'description',
+  'prompt',
+  'mode',
+  'model',
+  'temperature',
+  'top_p',
+  'steps',
+  'maxSteps',
+  'tools',
+  'permission',
+  'disable',
+  'disabled',
+  'hidden',
+  'color',
+  'options',
+  'variant',
+])
+
+function filterAgentFrontmatter(data: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(data)) {
+    if (OPencode_AGENT_KEYS.has(key)) {
+      result[key] = value
+    }
+  }
+  return result
+}
+
 export function buildAgentConfig(
   manifest: RuntimeAssetManifest,
   routingContext?: ModelScenarioRoutingContext,
@@ -32,9 +67,10 @@ export function buildAgentConfig(
     const fullPath = join(manifest.agentsDir, relativePath)
     const content = readFileSync(fullPath, 'utf8')
     const parsed = parseFrontmatter(content)
+    const restData = filterAgentFrontmatter(parsed.data)
 
     const agentConfig: AgentConfigEntry = {
-      ...parsed.data,
+      ...restData,
       description: getFrontmatterString(parsed.data, 'description') || agent.description,
       prompt: getFrontmatterString(parsed.data, 'prompt') ?? parsed.body.trim(),
       mode: resolveAgentMode(getFrontmatterString(parsed.data, 'mode'), agent.name),
@@ -65,8 +101,9 @@ function loadAgentFiles(
     const name = file.slice(0, -'.md'.length)
     const content = readFileSync(join(agentsDir, file), 'utf8')
     const parsed = parseFrontmatter(content)
+    const restData = filterAgentFrontmatter(parsed.data)
     const agentConfig: AgentConfigEntry = {
-      ...parsed.data,
+      ...restData,
       description: getFrontmatterString(parsed.data, 'description'),
       prompt: getFrontmatterString(parsed.data, 'prompt') ?? parsed.body.trim(),
       mode: resolveAgentMode(getFrontmatterString(parsed.data, 'mode'), name),

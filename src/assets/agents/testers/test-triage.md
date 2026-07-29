@@ -2,6 +2,7 @@
 name: test-triage
 model: $deep
 mode: subagent
+temperature: 0
 steps: 50
 description: "测试失败诊断代理：分析 TestFailureBundle，按 5 条优先级短路规则分类根因并分派修复方向"
 ---

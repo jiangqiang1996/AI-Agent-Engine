@@ -2,6 +2,7 @@
 name: web-researcher
 model: $standard
 mode: subagent
+temperature: 1
 steps: 100
 description: "执行迭代式网络研究，返回结构化的外部参考信息（现有方案、相邻解决方案、市场信号、跨领域类比）。在代码库之外进行创意构思、验证现有方案、扫描竞品模式、寻找跨领域类比，或任何受益于当前外部上下文的任务时使用。"
 ---

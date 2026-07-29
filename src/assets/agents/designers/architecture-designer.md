@@ -2,6 +2,7 @@
 name: architecture-designer
 model: $deep
 mode: subagent
+temperature: 0
 steps: 70
 tools:
   read: true

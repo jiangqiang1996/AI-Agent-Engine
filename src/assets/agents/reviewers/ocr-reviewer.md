@@ -2,6 +2,7 @@
 name: ocr-reviewer
 model: $deep
 mode: subagent
+temperature: 0
 steps: 100
 description: "代码审查主引擎：通过 ae-ocr 工具调用 OpenCodeReview CLI 审查全部代码（含测试代码、配置文件）。通过 --rule 参数注入项目级规则（替代 standards-reviewer、architecture-strategist、api-contract-reviewer、reliability-reviewer、data-migrations-reviewer、agent-native-reviewer 职责），通过 adversarial.rule.json 注入对抗性审查规则（替代 adversarial-reviewer），开启测试文件纳入。审查只找问题，不做修复。"
 ---
