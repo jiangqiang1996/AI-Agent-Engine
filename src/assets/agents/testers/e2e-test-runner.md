@@ -68,7 +68,7 @@ E2E 测试执行代理。根据 URL 或功能描述，按 `mode` 参数分流执
 5. 辅助编写脚本：用 `ae:playwright` 探索页面结构、`generate-locator` 生成定位器、`eval` 捕获期望值、收集输出中生成的 Playwright TypeScript 代码
 6. 生成 `.spec.ts` 文件到 `ae/tests/e2e/`，在测试中设置视口（如 `page.setViewportSize({ width: 2560, height: 1440 })` 或通过 fixture 设置；移动端项目使用 `devices['iPhone 15']` 配置 fixture）
 7. 关闭浏览器
-8. 通过 `npx playwright test` 执行测试
+8. 通过 `npx playwright test` 执行测试，配置 HTML reporter 并启用 `doNotInlineAssets: true` 和 `open: 'never'`，报告输出到 `ae/tests/e2e/reports/`（HTML/CSS/JS/Data 独立文件，避免单文件过大）
 9. 收集结果：通过/失败/截图/DOM 快照
 10. 成功的测试脚本复制到 `ae/tests/e2e/golden/`（覆盖同名旧脚本）
 11. 如有失败，构建 TestFailureBundle（含 domSnapshot、screenshot）
@@ -83,6 +83,7 @@ E2E 测试执行代理。根据 URL 或功能描述，按 `mode` 参数分流执
 
 - 生成的测试产物列表（`.sh` 序列文件或 `.spec.ts` 测试文件）
 - 测试执行结果（通过/失败/跳过）
+- 分离式 HTML 报告路径 `ae/tests/e2e/reports/index.html`（script 模式）
 - 截图路径和 DOM 快照（如有失败）
 - TestFailureBundle 数组（如有失败）
 
@@ -90,7 +91,7 @@ E2E 测试执行代理。根据 URL 或功能描述，按 `mode` 参数分流执
 
 - 只生成和修改测试文件，不修改产品代码
 - test-only 模式产物放在 `ae/tests/e2e/sequences/`，成功序列放在 `ae/tests/e2e/sequences/golden/`
-- script 模式产物放在 `ae/tests/e2e/`，成功脚本放在 `ae/tests/e2e/golden/`
+- script 模式产物放在 `ae/tests/e2e/`，成功脚本放在 `ae/tests/e2e/golden/`，报告放在 `ae/tests/e2e/reports/`
 - 不执行 Git 操作
 - 浏览器操作一律通过 `ae:playwright` 技能
 - 测试修复仅限 triage 判定 rootCause=test 时执行；未经 triage 诊断不得自行修改测试以"匹配应用实际行为"——若应用存在 bug，自行修改测试会将 buggy 行为固化为期望值

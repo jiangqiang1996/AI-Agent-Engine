@@ -2,10 +2,10 @@
 
 ## 脚本存储
 
-| 模式 | 工作目录 | golden 目录 |
-|------|---------|------------|
-| test-only | `ae/tests/e2e/sequences/` | `ae/tests/e2e/sequences/golden/` |
-| script | `ae/tests/e2e/` | `ae/tests/e2e/golden/` |
+| 模式 | 工作目录 | golden 目录 | 报告目录 |
+|------|---------|------------|---------|
+| test-only | `ae/tests/e2e/sequences/` | `ae/tests/e2e/sequences/golden/` | — |
+| script | `ae/tests/e2e/` | `ae/tests/e2e/golden/` | `ae/tests/e2e/reports/` |
 
 ## golden 生命周期管理
 

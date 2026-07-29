@@ -48,7 +48,7 @@ argument-hint: "[url|功能描述] [mode=test-only|script(可选)] [设计用例
 
 ### 编写脚本模式（mode=script）概要
 
-解析输入 → 检测分辨率 → 编译骨架 → `ae:playwright` 辅助编写 → 生成 `.spec.ts` 到 `ae/tests/e2e/` → `npx playwright test` 运行 → 通过的脚本复制到 `golden/`
+解析输入 → 检测分辨率 → 编译骨架 → `ae:playwright` 辅助编写 → 生成 `.spec.ts` 到 `ae/tests/e2e/` → `npx playwright test` 运行（配置 HTML reporter + `doNotInlineAssets`）→ 生成分离式 HTML 报告到 `ae/tests/e2e/reports/` → 通过的脚本复制到 `golden/`
 
 ## `.sh` 序列文件格式
 
@@ -57,6 +57,10 @@ argument-hint: "[url|功能描述] [mode=test-only|script(可选)] [设计用例
 ## 脚本存储、golden 生命周期与失败处理
 
 脚本存储路径、golden 生命周期管理、测试失败处理和自修复详见 [golden 生命周期与失败处理](references/golden-lifecycle.md)。
+
+## 测试报告生成
+
+script 模式运行后生成分离式 HTML 测试报告。详见 [测试报告生成](references/report-generation.md)。
 
 ## 调度代理
 
@@ -85,6 +89,7 @@ argument-hint: "[url|功能描述] [mode=test-only|script(可选)] [设计用例
 
 - `.spec.ts` 测试脚本已生成到 `ae/tests/e2e/`
 - 测试已执行并输出结果
+- 分离式 HTML 报告已生成到 `ae/tests/e2e/reports/`（HTML/CSS/JS/Data 独立文件）
 - 成功脚本已复制到 `ae/tests/e2e/golden/`（如有）
 - 如全部失败，所有失败已构建 TestFailureBundle 并触发 triage 流程
 
@@ -94,3 +99,4 @@ argument-hint: "[url|功能描述] [mode=test-only|script(可选)] [设计用例
 - [测试模式执行流程](references/test-modes.md) — test-only 和 script 两种模式详细步骤
 - [序列文件格式](references/sequence-format.md) — `.sh` 序列文件格式规范
 - [golden 生命周期与失败处理](references/golden-lifecycle.md) — 脚本存储、golden 管理、失败处理和自修复
+- [测试报告生成](references/report-generation.md) — 分离式 HTML 报告生成规范

@@ -27,7 +27,7 @@
 5. 辅助编写脚本：用 `ae:playwright` 探索页面结构、`generate-locator` 生成定位器、`eval` 捕获期望值、收集输出中的生成代码
 6. 生成 `.spec.ts` 文件到 `ae/tests/e2e/`，在测试中设置视口（如 `page.setViewportSize({ width: 2560, height: 1440 })` 或通过 fixture 设置；移动端项目使用 `devices['iPhone 15']` 配置 fixture）
 7. 关闭浏览器
-8. 通过 `npx playwright test` 执行测试
+8. 通过 `npx playwright test` 执行测试，配置 HTML reporter 并启用 `doNotInlineAssets: true`（详见 [测试报告生成](report-generation.md)），报告输出到 `ae/tests/e2e/reports/`
 9. 收集结果：通过/失败/截图/DOM 快照
 10. 成功的测试脚本复制到 `ae/tests/e2e/golden/` 作为回归资产（覆盖同名旧脚本）
 11. 如有失败，构建 TestFailureBundle 并进入测试失败处理流程
