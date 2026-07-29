@@ -1,18 +1,20 @@
 ---
 name: ae:e2e-test
-description: "浏览器自动化测试 + 保留成功 .spec.ts 脚本作为回归资产。有设计用例时从用例规格编译 Playwright 骨架；无则从页面描述生成。底层依赖 ae:playwright"
-argument-hint: "[url|功能描述] [设计用例路径(可选)]"
+description: "浏览器自动化测试，支持仅测试和编写脚本两种模式，自动检测分辨率默认 2K，底层依赖 ae:playwright"
+argument-hint: "[url|功能描述] [mode=test-only|script(可选)] [设计用例路径(可选)]"
 ---
 
 # ae:e2e-test
 
 ## 角色
 
-浏览器端到端测试生成与执行器。根据 URL 或功能描述，生成 Playwright 测试脚本并执行。有设计用例时从用例规格编译骨架；无则从页面描述生成。成功的测试脚本保留为回归资产。
+浏览器端到端测试执行器。支持两种模式：仅测试模式直接调用 `ae:playwright` 交互测试并保存通过的命令序列；编写脚本模式生成 Playwright `.spec.ts` 测试文件后运行。有设计用例时从用例规格编译骨架；无则从页面描述生成。自动检测项目类型并设置分辨率，默认 2K（2560×1440）。
 
 ## 适用场景
 
 - 用户要求对指定 URL 或功能进行 E2E 测试
+- 用户要求仅交互测试不生成脚本（mode=test-only）
+- 用户要求编写测试脚本并运行（mode=script）
 - 用户提供了设计用例路径，需要从用例规格编译 Playwright 骨架
 - 用户要求执行已有 E2E 测试
 - 用户要求修复失败的 E2E 测试（triage 判定为 test bug 时）
@@ -23,54 +25,42 @@ argument-hint: "[url|功能描述] [设计用例路径(可选)]"
 - 接口级测试 → 使用 `ae:api-test`
 - 纯前端修复 → 使用 `ae:frontend-fix`
 
+## 模式选择
+
+通过 `mode` 参数指定执行模式，缺省时询问用户选择。
+
+| 参数 | 模式 | 说明 |
+|------|------|------|
+| `mode=test-only` | 仅测试模式 | 直接调用 `ae:playwright` 逐步交互测试，通过的命令序列保存为 `.sh` 文件 |
+| `mode=script` | 编写脚本模式 | 先编写 Playwright `.spec.ts` 测试脚本，可调用 `ae:playwright` 辅助编写，最终运行脚本 |
+
+## 分辨率自动检测
+
+按四级优先级检测项目类型并设置分辨率，默认 2K（2560×1440）。详见 [分辨率自动检测](references/resolution-detection.md)。
+
 ## 执行流程
 
-1. 解析输入：URL 或功能描述 + 可选设计用例路径
-2. 编译测试骨架：
-   - 有设计用例 → 从 design overview.md 定位 `modules/<NN>-<m>/test-cases.md`，从用例规格编译 Playwright 骨架
-   - 无设计用例 → 从页面描述生成测试场景
-3. 生成测试脚本到 `ae/tests/e2e/`
-4. 通过 `ae:playwright` 执行测试
-5. 收集结果
-6. 成功的测试脚本复制到 `ae/tests/e2e/golden/` 作为回归资产
+两种模式的详细执行流程见 [测试模式执行流程](references/test-modes.md)。
 
-## 测试失败处理
+### 仅测试模式（mode=test-only）概要
 
-失败后：
-1. 输出 TestFailureBundle 报告
-2. 询问用户："检测到 N 个失败，是否自动诊断修复？"
-3. 用户确认后调用 `ae-test-triage` 工具
-4. 检查工具返回：
-   - 工具直接返回诊断结果（规则 1/2/4/5 命中）→ 展示 summary，按 dispatchTarget 执行
-   - 工具返回 `needs_agent_diagnosis: true`（规则 3 真源对齐）→ 调度 `@test-triage` 代理执行语义对齐判断，代理返回诊断结果后展示 summary
-5. 向用户展示 triage 返回的 summary
-6. 按 dispatchTarget 执行（修复技能 / self-fix / ae:design / manual）
-7. 修复后询问用户是否回归验证
-8. 用户确认后回归：重新运行同层全部测试
+解析输入 → 检测分辨率 → 确定测试场景 → `ae:playwright` 交互测试 → 记录命令序列 → 通过的序列写入 `.sh` 到 `ae/tests/e2e/sequences/` → 复制到 `sequences/golden/`
 
-## 自修复
+### 编写脚本模式（mode=script）概要
 
-当 triage 判定 `test` 时，修复失败的 Playwright 测试。
+解析输入 → 检测分辨率 → 编译骨架 → `ae:playwright` 辅助编写 → 生成 `.spec.ts` 到 `ae/tests/e2e/` → `npx playwright test` 运行 → 通过的脚本复制到 `golden/`
 
-## 脚本存储
+## `.sh` 序列文件格式
 
-- 生成脚本存 `ae/tests/e2e/`
-- 成功回归脚本存 `ae/tests/e2e/golden/`
+仅测试模式下通过的命令序列以 `.sh` 文件保存。格式规范见 [序列文件格式](references/sequence-format.md)。
 
-## golden 脚本生命周期管理
+## 脚本存储、golden 生命周期与失败处理
 
-| 阶段 | 行为 |
-|------|------|
-| 生成 | 测试脚本生成到 `ae/tests/e2e/` |
-| 执行 | 通过 `ae:playwright` 执行 `ae/tests/e2e/` 中的脚本 |
-| 固化 | 测试通过的脚本复制到 `ae/tests/e2e/golden/`，覆盖同名旧脚本 |
-| 回归 | 回归验证时只运行 `ae/tests/e2e/golden/` 中的脚本（不重复运行 `ae/tests/e2e/` 工作目录） |
-| 失败 | golden 脚本回归失败时，触发 triage 流程；triage 判定为 production bug 时从 golden/ 移除该脚本（避免后续回归持续失败）；判定为 test bug 时修复后更新 golden/ |
-| 淘汰 | 重新执行 `ae:e2e-test` 生成新脚本时，`ae/tests/e2e/` 被新脚本覆盖；用户确认新脚本通过后再复制到 golden/ 覆盖旧版本 |
+脚本存储路径、golden 生命周期管理、测试失败处理和自修复详见 [golden 生命周期与失败处理](references/golden-lifecycle.md)。
 
 ## 调度代理
 
-使用 `@e2e-test-runner` 代理执行测试生成和执行。
+使用 `@e2e-test-runner` 代理执行测试生成和执行。代理根据 `mode` 参数分流执行对应流程。
 
 ## 底层依赖
 
@@ -84,10 +74,23 @@ argument-hint: "[url|功能描述] [设计用例路径(可选)]"
 
 ## 完成标准
 
-- 测试脚本已生成到 `ae/tests/e2e/`
+### test-only 模式
+
+- `.sh` 序列文件已生成到 `ae/tests/e2e/sequences/`（如有通过的场景）
 - 测试已执行并输出结果
-- 成功脚本已复制到 `ae/tests/e2e/golden/`
+- 成功序列已复制到 `ae/tests/e2e/sequences/golden/`（如有）
+- 如全部失败，所有失败已构建 TestFailureBundle 并触发 triage 流程
 
-## 设计用例入口
+### script 模式
 
-有设计用例时，从 design `overview.md` 获取模块清单和导航，定位 `modules/<NN>-<m>/test-cases.md` 读取用例规格。
+- `.spec.ts` 测试脚本已生成到 `ae/tests/e2e/`
+- 测试已执行并输出结果
+- 成功脚本已复制到 `ae/tests/e2e/golden/`（如有）
+- 如全部失败，所有失败已构建 TestFailureBundle 并触发 triage 流程
+
+## 参考文档
+
+- [分辨率自动检测](references/resolution-detection.md) — 四级优先级检测逻辑和信号清单
+- [测试模式执行流程](references/test-modes.md) — test-only 和 script 两种模式详细步骤
+- [序列文件格式](references/sequence-format.md) — `.sh` 序列文件格式规范
+- [golden 生命周期与失败处理](references/golden-lifecycle.md) — 脚本存储、golden 管理、失败处理和自修复
