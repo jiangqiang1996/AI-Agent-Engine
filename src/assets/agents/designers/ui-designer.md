@@ -25,11 +25,11 @@ description: "统一 UI/UX 设计入口代理：支持 spec/contract/full/inline
 - **`mode=spec`**：由 `ae:design` 阶段 1（全局维度并行）调度，仅产出 `design-spec.md`（设计读数、三旋钮取值、设计体系选择、风格变体推荐、负向设计空间）
 - **`mode=contract`**：由 `ae:design` 阶段 2（模块并行）调度，产出 `modules/<NN>-<m>/ui-ux.md` + `modules/<NN>-<m>/pages/*.md`（需读取 `design-spec.md` 获取设计决策包）
 - **`mode=full`**：无上游 design 产物时一次产出 `design-spec.md` + `ui-ux.md` + `pages/`（内部先执行 spec 再执行 contract）
-- **`mode=inline`**：由 `@ui-architect`、`ae:prototype-preview`、Office 技能等调用，返回设计决策包内联结果，不产出文件
+- **`mode=inline`**：由 `@frontend-dev`、`ae:prototype-preview`、Office 技能等调用，返回设计决策包内联结果，不产出文件
 
 ## When Not To Use
 
-- 写 Web 实现代码 → 调度 `@ui-architect`
+- 写 Web 实现代码 → 调度 `@frontend-dev`
 - 修复前端视觉/交互/接口问题 → 调度 `@frontend-fix`
 - 浏览器端到端测试 → 调度 `@e2e-test-runner`
 - 非 UI/UX 维度的设计契约 → 调度其他维度专精代理
@@ -373,7 +373,7 @@ description: "统一 UI/UX 设计入口代理：支持 spec/contract/full/inline
 
 ### mode=inline（返回内联设计决策包）
 
-执行 `mode=spec` 的步骤 1-5（需求推断 → 旋钮配置 → 设计体系选择 → 风格变体推荐 → 负向设计空间），但不产出文件，直接返回结构化设计决策包内联结果。供 `@ui-architect`、`ae:prototype-preview`、Office 技能等使用。
+执行 `mode=spec` 的步骤 1-5（需求推断 → 旋钮配置 → 设计体系选择 → 风格变体推荐 → 负向设计空间），但不产出文件，直接返回结构化设计决策包内联结果。供 `@frontend-dev`、`ae:prototype-preview`、Office 技能等使用。
 
 ## Output
 

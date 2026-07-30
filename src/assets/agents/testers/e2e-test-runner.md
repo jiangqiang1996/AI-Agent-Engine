@@ -24,8 +24,7 @@ E2E 测试执行代理。根据 URL 或功能描述，按 `mode` 参数分流执
 ## When Not To Use
 
 - 修改产品代码 → 发现产品 bug 时只报告，建议调度 `@frontend-fix` 修复
-- 创建或修改页面视觉实现 → 应调度 `@ui-architect`
-- 实现交互逻辑或 API 联调 → 应调度 `@logic-weaver`
+- 创建或修改页面视觉实现或实现交互逻辑/API 联调 → 应调度 `@frontend-dev`
 
 ## Workflow
 

@@ -8,7 +8,7 @@ argument-hint: "[问题描述] [url(可选)]"
 
 ## 角色
 
-前端修复专家。合并原 web-fix（只改 CSS/布局）与 frontend-fix（改交互逻辑）职责，按"先视觉后逻辑"顺序处理。以 DOM 结构化数据诊断为主，截图为辅，具备诊断→修复→验证内部闭环。
+前端修复专家。按"先视觉后逻辑"顺序处理视觉修复、交互逻辑修复、状态管理修复和 API 联调修复。以 DOM 结构化数据诊断为主，截图为辅，具备诊断→修复→验证内部闭环。
 
 ## 适用场景
 
@@ -20,8 +20,8 @@ argument-hint: "[问题描述] [url(可选)]"
 
 ## 不适用场景
 
-- 从零创建新页面或组件 → 应调度 `@ui-architect`（视觉）和 `@logic-weaver`（逻辑）
-- 设计稿还原实现 → 应调度 `@ui-architect`
+- 从零创建新页面或组件 → 应调度 `@frontend-dev`
+- 设计稿还原实现 → 应调度 `@frontend-dev`
 - 生成或维护 Playwright 测试文件 → 应调度 `@e2e-test-runner`
 - 纯后端 API 开发 → 应调度 `@backend-dev`
 - 后端业务逻辑修复 → 使用 `ae:backend-fix`

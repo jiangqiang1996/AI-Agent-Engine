@@ -21,7 +21,7 @@ argument-hint: "[主题|需求描述|大纲文件路径|现有 HTML 幻灯片文
 
 - 生成 PPTX 格式幻灯片（确认大纲后使用 `ae:pptx`）
 - 直接创建或编辑 PPTX 但无大纲参考（使用 `ae:pptx`）
-- 纯网页开发不涉及演示场景（使用 `ae:work` 调度 `@ui-architect` 和 `@logic-weaver`）
+- 纯网页开发不涉及演示场景（使用 `ae:work` 调度 `@frontend-dev`）
 
 ## 执行流程
 

@@ -66,8 +66,6 @@ export const AGENT = {
   REPO_RESEARCH_ANALYST: 'repo-research-analyst',
   WEB_RESEARCHER: 'web-researcher',
   SPEC_FLOW_ANALYZER: 'spec-flow-analyzer',
-  UI_ARCHITECT: 'ui-architect',
-  LOGIC_WEAVER: 'logic-weaver',
   E2E_TEST_RUNNER: 'e2e-test-runner',
   UNIT_TEST_RUNNER: 'unit-test-runner',
   TEST_TRIAGE: 'test-triage',

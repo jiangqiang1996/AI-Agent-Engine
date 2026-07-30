@@ -424,10 +424,10 @@ ae/prototype-preview/
 
 ## 不适用场景
 
-- 需要真实前端开发实现 → 使用 `ae:work` 调度 `@ui-architect` 和 `@logic-weaver`
+- 需要真实前端开发实现 → 使用 `ae:work` 调度 `@frontend-dev`
 - 需要可交付的生产代码 → 使用 `ae:work`
-- 需要引入技术栈和组件库 → 使用 `ae:work` 调度 `@ui-architect` 和 `@logic-weaver`
-- 需要参考项目已有组件资产 → 使用 `ae:work` 调度 `@ui-architect` 和 `@logic-weaver`
+- 需要引入技术栈和组件库 → 使用 `ae:work` 调度 `@frontend-dev`
+- 需要参考项目已有组件资产 → 使用 `ae:work` 调度 `@frontend-dev`
 - 需要验证 ae:design 页面设计文档 → 使用 `ae:work`（设计文档含技术栈，不适用本技能）
 
 ## 验证方式

@@ -70,13 +70,13 @@
 
 | 场景 | 命令/技能 | 代理 | 说明 |
 | --- | --- | --- | --- |
-| 有设计稿实现页面 | `/ae-work` | `@ui-architect` + `@logic-weaver` | 视觉实现 + 交互逻辑/状态管理/API 联调 |
-| 无设计稿提升视觉 | `/ae-work` | `@ui-architect` | 自由设计模式，按决策包实现 |
+| 有设计稿实现页面 | `/ae-work` | `@frontend-dev` | 视觉实现 + 交互逻辑/状态管理/API 联调 |
+| 无设计稿提升视觉 | `/ae-work` | `@frontend-dev` | 自由设计模式，按决策包实现 |
 | 前端修复（视觉/交互/接口） | `/ae-fix frontend` | `@frontend-fix` | DOM 结构化数据诊断为主，截图为辅 |
 | 浏览器操作 | `/ae-playwright` | — | 所有浏览器操作一律通过本技能 |
 | 原型转 HTML 预览 | `/ae-prototype-preview` | — | 技术栈无关，禁止打包构建工具 |
 | UI/UX 设计 | — | `@ui-designer` | 统一 UI/UX 设计入口：设计决策包（spec）、ui-ux 契约（contract）、内联决策（inline） |
-`/ae-work` 在执行前端任务时自动调度 `@ui-architect`（视觉实现）和 `@logic-weaver`（逻辑实现），用户一般不需要手动指定代理。
+`/ae-work` 在执行前端任务时自动调度 `@frontend-dev`（视觉实现和逻辑实现），用户一般不需要手动指定代理。
 
 ### 后端开发
 
@@ -199,7 +199,7 @@
 /ae-test e2e 为用户登录流程生成 E2E 测试
 ```
 
-浏览器操作一律通过 `ae:playwright` 技能完成。`/ae-fix frontend` 是统一前端修复入口，以 DOM 结构化数据诊断为主（computed style、bounding box），覆盖视觉修复、交互修复和接口联调修复，具备诊断→修复→验证内部闭环。`/ae-test e2e` 是浏览器 E2E 测试入口，覆盖验收测试、测试场景设计（plan/generate）、测试修复（heal）和回归验证。`ae:work` 在执行前端创建/修改任务时自动调度 `@ui-architect`（视觉实现）和 `@logic-weaver`（逻辑实现）。
+浏览器操作一律通过 `ae:playwright` 技能完成。`/ae-fix frontend` 是统一前端修复入口，以 DOM 结构化数据诊断为主（computed style、bounding box），覆盖视觉修复、交互修复和接口联调修复，具备诊断→修复→验证内部闭环。`/ae-test e2e` 是浏览器 E2E 测试入口，覆盖验收测试、测试场景设计（plan/generate）、测试修复（heal）和回归验证。`ae:work` 在执行前端创建/修改任务时自动调度 `@frontend-dev`（视觉实现和逻辑实现）。
 
 ### Swagger/OpenAPI
 
@@ -318,8 +318,7 @@ AE 采用 13 代理全并行架构，所有激活代理在同一轮一次性发�
 | `@repo-research-analyst` | 研究仓库结构、文档、约定和实现模式 | 只做仓库研究，不替代实现 |
 | `@web-researcher` | 做外部网络研究、竞品扫描和跨领域类比 | 用于外部上下文，不读取本地私有代码 |
 | `@spec-flow-analyzer` | 分析规格、设计或功能描述中的用户流程缺口 | 不直接写代码 |
-| `@ui-architect` | 视觉设计与实现：自由设计或设计稿还原，根据输入自动切换模式 | 浏览器操作通过 ae:playwright 技能；不负责接口联调或修复 |
-| `@logic-weaver` | 前端代码实现：交互逻辑、API联调、状态管理、组件开发、重构、性能优化 | 不负责视觉设计或修复 |
+| `@frontend-dev` | 前端开发：视觉实现（自由设计/设计稿还原）+ 交互逻辑、API联调、状态管理、组件开发、重构、性能优化 | 浏览器操作通过 ae:playwright 技能；不负责设计决策推断或修复 |
 | `@frontend-fix` | 统一前端修复：视觉修复、交互修复、接口联调修复 | 以 DOM 结构化数据诊断为主，截图为辅；具备诊断→修复→验证内部闭环 |
 | `@e2e-test-runner` | 浏览器 E2E 测试：验收测试、测试场景设计、Playwright 测试生成和回归验证 | 可修改测试文件，不修改产品代码 |
 | `@unit-test-runner` | 单元测试执行：生成、执行并分析覆盖率 | 支持 Vitest/JUnit/pytest/Go test/Rust test |
@@ -346,7 +345,7 @@ AE 采用 13 代理全并行架构，所有激活代理在同一轮一次性发�
 
 | 代理 | 用途 | 边界 |
 | --- | --- | --- |
-| `@frontend-dev` | 前端开发专精代理：处理 UI 组件、样式、交互逻辑和响应式设计 | 由 ae:work 编排层调度 |
+| `@frontend-dev` | 前端开发：视觉实现（设计还原/自由设计）、交互逻辑、API联调、状态管理、组件开发、重构、性能优化、可访问性 | 由 ae:work 编排层调度 |
 | `@backend-dev` | 后端开发专精代理：处理 API、数据层、业务逻辑和中间件 | 由 ae:work 编排层调度 |
 | `@backend-fix` | 后端修复专精代理：处理错误分析、根因定位、修复实现和回归验证 | 由 ae:work 编排层调度 |
 
@@ -381,9 +380,9 @@ AE 采用 13 代理全并行架构，所有激活代理在同一轮一次性发�
 
 | 场景 | 顺序 |
 | --- | --- |
-| 有设计稿但没有页面 | `/ae-work` 调度 `@ui-architect` + `@logic-weaver` |
-| 已有页面，需要贴合 Figma | `/ae-work` 调度 `@ui-architect` → `/ae-test e2e` 验收 |
-| 没有设计稿，但要提升视觉质量 | `/ae-work` 调度 `@ui-architect` → `/ae-test e2e` 验收 |
+| 有设计稿但没有页面 | `/ae-work` 调度 `@frontend-dev` |
+| 已有页面，需要贴合 Figma | `/ae-work` 调度 `@frontend-dev` → `/ae-test e2e` 验收 |
+| 没有设计稿，但要提升视觉质量 | `/ae-work` 调度 `@frontend-dev` → `/ae-test e2e` 验收 |
 | 修复视觉/交互/接口问题 | `/ae-fix frontend` |
 | 只验证功能流程 | `/ae-test e2e` |
 | 生成或修复 E2E 测试 | `/ae-test e2e` 生成测试/修复测试 |

@@ -18,8 +18,6 @@ const AGENT = {
   BACKEND_DEV: 'backend-dev',
   BACKEND_FIX: 'backend-fix',
   FRONTEND_FIX: 'frontend-fix',
-  LOGIC_WEAVER: 'logic-weaver',
-  UI_ARCHITECT: 'ui-architect',
 }
 
 const FALLBACK_AGENT = 'general'
@@ -28,8 +26,8 @@ const FALLBACK_AGENT = 'general'
 
 const SELECTION_RULES = {
   [AGENT.FRONTEND_DEV]: {
-    keywords: ['前端', 'ui', '组件', '样式', '页面', '表单', '视图', 'html', 'css', '界面', '响应式'],
-    flags: ['hasUi'],
+    keywords: ['前端', 'ui', '组件', '样式', '页面', '表单', '视图', 'html', 'css', '界面', '响应式', '交互逻辑', 'api 联调', '状态管理', '组件开发', '前端重构', '性能优化', '可访问性', '认证集成', '数据流', '表单联动', '条件渲染', '懒加载', 'memo', 'bundle 优化', '重构', '视觉实现', '页面设计', '设计还原', 'ui 布局', '视觉代码', '设计稿', '截图', 'figma', '还原', '从零设计'],
+    flags: ['hasUi', 'hasPerformance'],
   },
   [AGENT.BACKEND_DEV]: {
     keywords: ['后端', 'api', '数据层', '业务逻辑', '中间件', '接口', '服务层', 'controller', 'service'],
@@ -41,14 +39,6 @@ const SELECTION_RULES = {
   },
   [AGENT.FRONTEND_FIX]: {
     keywords: ['前端修复', '视觉修复', '交互修复', '样式问题', '布局问题', '无障碍', 'aria', '可访问性', '联调修复', '间距'],
-    flags: [],
-  },
-  [AGENT.LOGIC_WEAVER]: {
-    keywords: ['交互逻辑', 'api 联调', '状态管理', '组件开发', '前端重构', '性能优化', '可访问性', '认证集成', '数据流', '表单联动', '条件渲染', '懒加载', 'memo', 'bundle 优化', '重构'],
-    flags: ['hasPerformance'],
-  },
-  [AGENT.UI_ARCHITECT]: {
-    keywords: ['视觉实现', '页面设计', '设计还原', 'ui 布局', '视觉代码', '设计稿', '截图', 'figma', '还原', '从零设计'],
     flags: [],
   },
 }

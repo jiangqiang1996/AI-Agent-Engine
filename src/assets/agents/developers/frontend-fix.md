@@ -23,8 +23,8 @@ description: "前端修复代理：视觉修复 + 交互逻辑修复 + 状态管
 
 ## When Not To Use
 
-- 从零创建新页面或组件 → @ui-architect + @logic-weaver
-- 设计稿还原实现 → @ui-architect
+- 从零创建新页面或组件 → @frontend-dev
+- 设计稿还原实现 → @frontend-dev
 - 生成或维护 Playwright 测试文件 → @e2e-test-runner
 - 纯后端 API 开发 → @backend-dev
 - 后端业务逻辑修复 → @backend-fix

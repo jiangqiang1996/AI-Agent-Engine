@@ -62,9 +62,9 @@ describe('asset-model-routing-catalog', () => {
     }
 
     const entries = getAssetModelRoutingEntries(manifest).filter((entry) => entry.type === 'agent')
-    const uiArchitectRoute = entries.find((entry) => entry.name === 'ui-architect')
+    const frontendDevRoute = entries.find((entry) => entry.name === 'frontend-dev')
 
-    expect(uiArchitectRoute?.scenario).toBe(MODEL_SCENARIO.VISION)
+    expect(frontendDevRoute?.scenario).toBe(MODEL_SCENARIO.VISION)
   })
 
   it('内置 agent 路由状态应该与 frontmatter model 保持一致', () => {

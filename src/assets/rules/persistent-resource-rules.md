@@ -59,7 +59,7 @@
 
 本规则适用于一切**不支持幂等性执行**的操作，包括但不限于：服务启动（web 服务器、watch 进程、长连接服务等）、浏览器实例、浏览器标签页、`ae-async-bash` 服务启动、占用端口或留下持续运行状态的任何操作。凡是"重复执行会产生多个并存实例、占用资源或导致状态冲突"的操作均适用本规则。
 
-具体覆盖场景包括：内置技能（`ae:work` 等）、工作流代理（`@ui-architect`/`@logic-weaver`/`@frontend-fix`/`@e2e-test-runner`）、命令（`/ae-fix frontend`、`/ae-test e2e` 等）、自动执行的新会话、通过 `ae:playwright` 技能的浏览器操作、子代理，以及未来新增的任何产生持久副作用的技能/代理/命令/工具。
+具体覆盖场景包括：内置技能（`ae:work` 等）、工作流代理（`@frontend-dev`/`@frontend-fix`/`@e2e-test-runner`）、命令（`/ae-fix frontend`、`/ae-test e2e` 等）、自动执行的新会话、通过 `ae:playwright` 技能的浏览器操作、子代理，以及未来新增的任何产生持久副作用的技能/代理/命令/工具。
 
 ## 3. 与现有规则的关系
 
