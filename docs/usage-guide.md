@@ -21,8 +21,8 @@
 | 只看风险，不改文件 | `/ae-review mode:report-only` |
 | 快速审查并自动修复 | `/ae-review-auto` |
 | 代码审查（CLI 模式） | `/ae-ocr` |
-| 前端修复（视觉/交互/接口） | `/ae-fix frontend` |
-| 后端修复（错误分析/根因定位） | `/ae-fix backend` |
+| 前端修复（视觉/交互/状态管理/接口/无障碍） | `/ae-fix frontend` |
+| 后端修复（错误分析/根因定位/修复实现/回归验证） | `/ae-fix backend` |
 | 浏览器操作 | `/ae-playwright` |
 | 浏览器 E2E 测试与验收 | `/ae-test e2e` |
 | 后端单元测试 | `/ae-test unit` |
@@ -72,7 +72,7 @@
 | --- | --- | --- | --- |
 | 有设计稿实现页面 | `/ae-work` | `@frontend-dev` | 视觉实现 + 交互逻辑/状态管理/API 联调 |
 | 无设计稿提升视觉 | `/ae-work` | `@frontend-dev` | 自由设计模式，按决策包实现 |
-| 前端修复（视觉/交互/接口） | `/ae-fix frontend` | `@frontend-fix` | DOM 结构化数据诊断为主，截图为辅 |
+| 前端修复（视觉/交互/接口） | `/ae-fix frontend` | `@frontend-fix` | 以 DOM 结构化数据诊断为主，截图为辅；具备上下文检测→诊断→修复→验证闭环；修复遵循项目开发规范 |
 | 浏览器操作 | `/ae-playwright` | — | 所有浏览器操作一律通过本技能 |
 | 原型转 HTML 预览 | `/ae-prototype-preview` | — | 技术栈无关，禁止打包构建工具 |
 | UI/UX 设计 | — | `@ui-designer` | 统一 UI/UX 设计入口：设计决策包（spec）、ui-ux 契约（contract）、内联决策（inline） |
@@ -83,7 +83,7 @@
 | 场景 | 命令/技能 | 代理 | 说明 |
 | --- | --- | --- | --- |
 | 实现后端功能 | `/ae-work` | `@backend-dev` | 处理 API、数据层、业务逻辑和中间件 |
-| 后端修复 | `/ae-fix backend` | `@backend-fix` | 错误分析、根因定位、修复实现和回归验证 |
+| 后端修复 | `/ae-fix backend` | `@backend-fix` | 错误分析、根因定位、修复实现和回归验证，遵循项目架构规范 |
 | 数据库查询或操作 | `/ae-sql` | — | 通过 JDBC 连接任意数据库执行 SQL |
 | 接口文档解析 | `/ae-swagger-parser` | — | 解析 Swagger/OpenAPI 输出联调摘要 |
 | 接口设计维度 | — | `@api-designer` | 端点清单、TypeScript interface、错误码体系 |
@@ -199,7 +199,7 @@
 /ae-test e2e 为用户登录流程生成 E2E 测试
 ```
 
-浏览器操作一律通过 `ae:playwright` 技能完成。`/ae-fix frontend` 是统一前端修复入口，以 DOM 结构化数据诊断为主（computed style、bounding box），覆盖视觉修复、交互修复和接口联调修复，具备诊断→修复→验证内部闭环。`/ae-test e2e` 是浏览器 E2E 测试入口，覆盖验收测试、测试场景设计（plan/generate）、测试修复（heal）和回归验证。`ae:work` 在执行前端创建/修改任务时自动调度 `@frontend-dev`（视觉实现和逻辑实现）。
+浏览器操作一律通过 `ae:playwright` 技能完成。`/ae-fix frontend` 是统一前端修复入口，以 DOM 结构化数据诊断为主（computed style、bounding box），覆盖视觉修复、交互修复、状态管理修复、接口联调修复和无障碍修复，具备上下文检测→诊断→修复→验证内部闭环。`/ae-test e2e` 是浏览器 E2E 测试入口，覆盖验收测试、测试场景设计（plan/generate）、测试修复（heal）和回归验证。`ae:work` 在执行前端创建/修改任务时自动调度 `@frontend-dev`（视觉实现和逻辑实现）。
 
 ### Swagger/OpenAPI
 
@@ -253,8 +253,8 @@ PDF 文件的 Markdown 读取功能通过 `ae:pdf` 技能的 `to-markdown` 操�
 | `/ae-ocr` | `[review\|scan] [路径或 ref]` | 通过 ae-ocr 工具调用 OpenCodeReview CLI 执行 AI 代码审查 | 覆盖 bug/安全/性能/可维护性/测试覆盖/风格 |
 | `/ae-playwright` | `[url] [action] [mode] [browser] [port] [task=任务描述]` | 浏览器能力中枢，操作浏览器执行任务 | 通过 ae:playwright 技能操作浏览器 |
 | `/ae-prototype-preview` | `[prd目录路径\|原型文档路径] [--no-inspect\|--yes]` | 将 ae:prd 原型文档转换为多页面 HTML 静态文件 | 禁止使用打包构建工具，禁止镀金 |
-| `/ae-fix frontend` | `[问题描述] [url]` | 统一前端修复：视觉修复、交互修复、接口联调修复 | 以 DOM 结构化数据诊断为主，截图为辅 |
-| `/ae-fix backend` | `[问题描述\|错误信息]` | 后端修复：错误分析、根因定位、修复实现 | |
+| `/ae-fix frontend` | `[问题描述] [url]` | 统一前端修复：视觉修复、交互修复、状态管理修复、接口联调修复、无障碍修复 | 以 DOM 结构化数据诊断为主，截图为辅 |
+| `/ae-fix backend` | `[问题描述\|错误信息]` | 后端修复：错误分析、根因定位、修复实现和回归验证 | |
 | `/ae-test e2e` | `[url\|功能描述] [设计用例路径(可选)]` | 浏览器 E2E 测试：验收、测试生成、测试修复和回归 | 浏览器操作通过 ae:playwright 技能 |
 | `/ae-test unit` | `[代码文件/目录] [设计用例路径(可选)]` | 后端单元测试：生成、执行、覆盖率分析 | |
 | `/ae-test api` | `[接口文档\|业务流程描述] [设计用例路径(可选)]` | 接口级后端测试：业务流程编排为主、接口边界测试为辅 | |
@@ -318,8 +318,8 @@ AE 采用 13 代理全并行架构，所有激活代理在同一轮一次性发�
 | `@repo-research-analyst` | 研究仓库结构、文档、约定和实现模式 | 只做仓库研究，不替代实现 |
 | `@web-researcher` | 做外部网络研究、竞品扫描和跨领域类比 | 用于外部上下文，不读取本地私有代码 |
 | `@spec-flow-analyzer` | 分析规格、设计或功能描述中的用户流程缺口 | 不直接写代码 |
-| `@frontend-dev` | 前端开发：视觉实现（自由设计/设计稿还原）+ 交互逻辑、API联调、状态管理、组件开发、重构、性能优化 | 浏览器操作通过 ae:playwright 技能；不负责设计决策推断或修复 |
-| `@frontend-fix` | 统一前端修复：视觉修复、交互修复、接口联调修复 | 以 DOM 结构化数据诊断为主，截图为辅；具备诊断→修复→验证内部闭环 |
+| `@frontend-dev` | 前端开发：视觉实现（自由设计/设计稿还原）+ 交互逻辑、API联调、状态管理、组件开发、重构、性能优化、可访问性 | 浏览器操作通过 ae:playwright 技能；不负责设计决策推断或修复 |
+| `@frontend-fix` | 统一前端修复：视觉修复、交互修复、状态管理修复、接口联调修复、无障碍修复 | 以 DOM 结构化数据诊断为主，截图为辅；具备上下文检测→诊断→修复→验证闭环；修复遵循项目开发规范 |
 | `@e2e-test-runner` | 浏览器 E2E 测试：验收测试、测试场景设计、Playwright 测试生成和回归验证 | 可修改测试文件，不修改产品代码 |
 | `@unit-test-runner` | 单元测试执行：生成、执行并分析覆盖率 | 支持 Vitest/JUnit/pytest/Go test/Rust test |
 | `@test-triage` | 测试失败诊断：分析失败根因并分派修复方向 | 不直接修复代码 |
@@ -347,7 +347,7 @@ AE 采用 13 代理全并行架构，所有激活代理在同一轮一次性发�
 | --- | --- | --- |
 | `@frontend-dev` | 前端开发：视觉实现（设计还原/自由设计）、交互逻辑、API联调、状态管理、组件开发、重构、性能优化、可访问性 | 由 ae:work 编排层调度 |
 | `@backend-dev` | 后端开发专精代理：处理 API、数据层、业务逻辑和中间件 | 由 ae:work 编排层调度 |
-| `@backend-fix` | 后端修复专精代理：处理错误分析、根因定位、修复实现和回归验证 | 由 ae:work 编排层调度 |
+| `@backend-fix` | 后端修复专精代理：处理错误分析、根因定位、修复实现和回归验证，遵循项目架构规范 | 由 ae:work 编排层调度 |
 
 ## 工具层能力
 
