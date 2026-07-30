@@ -31,7 +31,7 @@
 
 **如果用户选择"继续梳理需求"：** 返回阶段 1.3，继续提问澄清问题。暂不显示结束摘要。
 
-**如果用户要求再次运行文档审查：** 加载 `ae:review` 技能并以 `mode=headless domain=document <requirements-doc-path>/overview.md` 应用于需求数据文档。审查完成后返回阶段 4 选项。
+**如果用户要求再次运行文档审查：** 加载 `ae:review` 技能并以 `mode=headless <requirements-doc-path>/overview.md` 应用于需求数据文档。审查完成后返回阶段 4 选项。
 
 **如果用户选择"暂时完成"：** 显示结束摘要（见 4.3）并结束本轮。
 

@@ -1,5 +1,5 @@
 ---
-name: playwright-cli
+name: ae:playwright
 description: 自动化浏览器交互、测试网页并处理 Playwright 测试。
 allowed-tools: Bash(playwright-cli:*) Bash(npx:*) Bash(npm:*) ae-async-bash
 ---

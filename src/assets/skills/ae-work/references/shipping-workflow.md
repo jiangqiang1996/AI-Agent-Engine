@@ -12,7 +12,7 @@
 
    每项变更都要审查。深度随变更风险调整。
 
-   **层级 2：完整审查（默认）** — 调用 `ae:review domain=code mode=autofix`，审查当前实现产生的 Git diff 或会话变更，并传递 `design=<path>` 作为实现意图上下文。`design=<path>` 不得作为文档审查目标，不得触发需求或设计文档审查、深化或转换。
+   **层级 2：完整审查（默认）** — 调用 `ae:review mode=autofix`，审查当前实现产生的 Git diff 或会话变更，并传递 `design=<path>` 作为实现意图上下文。`design=<path>` 不得作为文档审查目标，不得触发需求或设计文档审查、深化或转换。
 
    **层级 1：内联自审** — 仅在以下全部四条为真时：
    - 纯增量（仅新文件）
@@ -36,7 +36,7 @@
 
    对实际改动文件运行技能内 review 闭环。此环节在 `代码审查（层级 2）` 之后、最终证据汇总之前执行，确保实现与 design 契约一致且无遗漏缺陷。
 
-   **审查调用：** 调用 `ae:review mode=headless domain=code <changed-files>`，传入 `design=<design-path>` 作为实现意图上下文。当存在 design 契约时，传入 `has_design_contract=true`。`mode=headless` 表示 ae:review 被技能内部调用时不输出"下一步推荐技能"引导，仅返回审查结果（status/findings/summary）给本技能，由 ae:work 自身负责下一步引导。
+   **审查调用：** 调用 `ae:review mode=headless <changed-files>`，传入 `design=<design-path>` 作为实现意图上下文。当存在 design 契约时，传入 `has_design_contract=true`。`mode=headless` 表示 ae:review 被技能内部调用时不输出"下一步推荐技能"引导，仅返回审查结果（status/findings/summary）给本技能，由 ae:work 自身负责下一步引导。
 
    **审查者调度：** 当 `has_design_contract=true` 时，按存在的 design 维度自动调度对应一致性审查者：
    - 任意实现代码 → `design-integrity-reviewer`（覆盖 database/security/architecture 等维度一致性）

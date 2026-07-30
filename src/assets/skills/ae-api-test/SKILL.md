@@ -60,7 +60,8 @@ argument-hint: "[接口文档|业务流程描述] [设计用例路径(可选)]"
 ### 1. 内置编译：设计用例编译
 
 检查是否提供了设计用例路径：
-- **有设计用例** → 从 design overview.md 定位 `modules/<NN>-<m>/test-cases.md`，从用例规格编译接口测试骨架
+- **传入 test-cases.md 路径** → 直接读取用例规格编译接口测试骨架
+- **传入设计目录路径** → 从 design overview.md 定位 `modules/<NN>-<m>/test-cases.md`，从用例规格编译接口测试骨架
 - **无设计用例** → 从接口文档或业务流程描述生成，继续步骤 2
 
 ### 2. 确认是否需要登录
@@ -162,4 +163,6 @@ argument-hint: "[接口文档|业务流程描述] [设计用例路径(可选)]"
 
 ## 设计用例入口
 
-有设计用例时，从 design `overview.md` 获取模块清单和导航，定位 `modules/<NN>-<m>/test-cases.md` 读取用例规格。
+有设计用例时，按以下优先级定位用例规格：
+1. 直接传入 `test-cases.md` 路径 → 直接读取
+2. 传入设计目录路径 → 从 design `overview.md` 获取模块清单和导航，定位 `modules/<NN>-<m>/test-cases.md`

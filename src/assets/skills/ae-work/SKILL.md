@@ -26,10 +26,13 @@ argument-hint: "[设计路径|交接文件路径|任务描述]"
 
 | 任务特征 | 路由代理 | 说明 |
 |---------|---------|------|
-| 修复已有页面的视觉/交互/接口问题 | `@frontend-fix` | 统一前端修复入口，具备诊断→修复→验证内部闭环 |
+| 修复已有页面的视觉/交互/接口/a11y问题 | `@frontend-fix` | 统一前端修复入口，具备诊断→修复→验证内部闭环 |
 | 浏览器 E2E 测试、验收测试、测试生成 | `@e2e-test-runner` | 浏览器测试代理，覆盖 plan/generate/heal 全链路 |
 | 创建/修改页面视觉实现 | `@ui-architect` | 视觉代码实现，含一轮截图验证 |
 | 实现交互逻辑/API联调/状态管理 | `@logic-weaver` | 非视觉的前端代码实现 |
+| 前端开发（UI 组件、样式、响应式设计） | `@frontend-dev` | 前端开发专精代理，处理 UI 组件和样式系统 |
+| 后端开发（API、数据层、业务逻辑、中间件） | `@backend-dev` | 后端开发专精代理，处理 API 和数据层实现 |
+| 后端 Bug 修复 | `@backend-fix` | 后端修复代理，错误分析、根因定位、修复实现 |
 
 路由判定在任务分析阶段（阶段一）完成，路由结果作为调度上下文传入专精代理。
 
@@ -51,8 +54,6 @@ argument-hint: "[设计路径|交接文件路径|任务描述]"
 - 修改任何项目文件之前，必须完成输入分流、Git 状态检查和 worktree 决策。
 - 必须实际运行并记录 `git status --short`、`git branch --show-current`、`git log --oneline -1`。
 - 单独使用 `ae:work` 且未显式传入 `worktree`、`current-worktree`、`auto` 时，必须按任务大小向用户询问执行位置，不得自行默认 `auto`。
-- 如果调用方是 `ae:task-loop`，固定按 `current-worktree` 执行，记录 `worktree_decision: rejected`，不得询问 worktree 模式、不得创建 worktree、不得把未传值补齐为 `auto`。
-- `ae:task-loop ae:work`、`/ae-task-loop ae:work` 都必须归一化为上游编排器委派，按当前工作区执行。
 - 传入规范 worktree 交接文件路径时，必须把交接文件作为唯一必需输入，在当前可观察 worktree 中继续执行；不得按裸提示词处理，不得再次创建 worktree。
 - A 会话创建 B worktree 后，不得继续实现；必须迁移当前任务已确定、真实存在的需求/设计产物和 `.opencode/ae.jsonc`（A 端条件必选：上游产物或物理文件存在时必须迁移，不存在时才不传），design_path 和 task_brief 至少传入一个（有上游 ae:design 产物时优先迁移 design_path；无上游 ae:design 产物时可通过 task_brief 内联任务详情，或生成上下文派生设计并迁移），并运行 `scripts/worktree-handoff.mjs` 脚本生成交接文件；存在性判断和复制必须使用文件系统视角，即使路径被 `.gitignore` 忽略也必须按真实文件系统存在性迁移，不能依赖 `git status`、`git ls-files` 或其他会受 `.gitignore` 影响的 Git 视角；未迁移的产物不得出现在交接文件中，禁止自行拼接交接 Markdown。
 - `scripts/worktree-handoff.mjs` 脚本会按固定模板生成结构化交接文件并返回 A 会话最终回复使用的简短交接提示；B worktree 通过 `ae:work <交接文件>` 继续执行，`/ae-work-continue` 只是查找交接文件后调用 `ae:work` 的便捷包装。A→B 启动证明的结构由脚本保证，AI 只需填值。
@@ -60,7 +61,7 @@ argument-hint: "[设计路径|交接文件路径|任务描述]"
 - 执行后必须由主代理独立运行 Git diff/status 核验真实修改文件，不得只依赖专精代理自报。
 - 正式交付前必须运行相关验证、完成代码审查或明确无法审查原因，并记录 Git 操作状态。
 - 验证或审查存在阻断项时必须先补齐阻断项，不得宣称交付完成。
-- **存量项目感知**：除非用户明确声明不参考当前项目（如"不读取项目文件"、"不使用现有技术栈"、"全新项目"、"从零开始"、"greenfield"等表述），实施前必须主动感知当前项目技术栈和结构：通过读取依赖清单文件（`package.json`/`go.mod`/`pom.xml`/`Cargo.toml`/`pyproject.toml` 等）识别已有技术栈，通过 glob 扫描源码目录识别已有结构，通过读取项目配置文件（如 `.eslintrc`/`tsconfig.json` 等）和少量入口源码文件识别编码约定。扫描时排除敏感目录和文件（如 `.env*`、`secrets/`、`credentials/`、`*.key`、`*.pem`）。感知在阶段一入口完成后、阶段二交互前执行，感知结果作为调度上下文传入阶段三专精代理。有设计时遵循设计契约中指定的技术栈和结构（设计已通过 ae:design 第 12 条来源优先级处理技术栈选型），无设计时遵循感知到的项目已有技术栈、目录结构和编码风格。两种情况下均不得自行更换技术栈或偏离现有约定。用户明确声明不参考时跳过感知，记录豁免原因。
+- **存量项目感知**：除非用户明确声明不参考当前项目（如"不读取项目文件"、"不使用现有技术栈"、"全新项目"、"从零开始"、"greenfield"等表述），实施前必须主动感知当前项目技术栈和结构：通过读取依赖清单文件（`package.json`/`go.mod`/`pom.xml`/`Cargo.toml`/`pyproject.toml` 等）识别已有技术栈，通过 glob 扫描源码目录识别已有结构，通过读取项目配置文件（如 `.eslintrc`/`tsconfig.json` 等）和少量入口源码文件识别编码约定。扫描时排除敏感目录和文件（如 `.env*`、`secrets/`、`credentials/`、`*.key`、`*.pem`、`.ssh/`、`.aws/`、`.gnupg/`、`.docker/`、`.kube/`、`.npmrc`、`.pypirc`、`.netrc`）。感知在阶段一入口完成后、阶段二交互前执行，感知结果作为调度上下文传入阶段三专精代理。有设计时遵循设计契约中指定的技术栈和结构（设计已通过 ae:design 第 12 条来源优先级处理技术栈选型），无设计时遵循感知到的项目已有技术栈、目录结构和编码风格。两种情况下均不得自行更换技术栈或偏离现有约定。用户明确声明不参考时跳过感知，记录豁免原因。
 
 ## 四阶段编排协议
 

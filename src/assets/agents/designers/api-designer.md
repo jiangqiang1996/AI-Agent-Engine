@@ -36,7 +36,7 @@ description: "接口设计维度专精代理：根据 prd 需求和 ae:grill 追
 - **ae:grill 追问结果**：已确认的 API 相关设计决策（端点设计、认证方式、版本策略）
 - **overview 上下文**：设计读数、范围映射、跨维度依赖关系、稳定 ID 体系（EP-XXX 用于本维度）
 - **契约模板路径**：`references/api-template.md`
-- **跨维度依赖**：database 维度的表结构（T-XXX）用于字段对齐
+- **跨维度依赖**：database 维度负责字段对齐（api 先于 database 产出，database 读取 api 字段对齐）
 
 ## Workflow
 
@@ -65,7 +65,7 @@ description: "接口设计维度专精代理：根据 prd 需求和 ae:grill 追
 
 **关键约束：**
 - 端点必须使用稳定 ID `EP-XXX`，供跨维度映射表 `ui-component-to-api-endpoint-mapping` 和 `api-field-to-database-column-mapping` 追溯
-- 请求/响应字段必须与 database 表字段对齐（如 database 已产出）
+- 请求/响应字段定义后由 database 维度负责字段对齐（首次设计时 api 先于 database 产出）
 - 错误码必须在 ui-ux 状态机中有对应的状态转换（如 ui-ux 已产出）
 - 所有端点必须包含版本号
 - 遵守 api 维度的负向设计空间
@@ -73,7 +73,7 @@ description: "接口设计维度专精代理：根据 prd 需求和 ae:grill 追
 ### 步骤 3：更新跨维度映射表行项
 
 产出契约后，同步填充以下跨维度映射表行项（返回给主代理）：
-- `api-field-to-database-column-mapping`：API 字段 ↔ database 表字段
+- `api-field-to-database-column-mapping`：API 字段 → database 表字段（仅填充 API 侧字段，database 侧由 database-designer 后续补充）
 - `api-error-to-ui-state-mapping`：API 错误码 ↔ UI 状态机
 - `ui-component-to-api-endpoint-mapping`：UI 组件 ↔ API 端点
 

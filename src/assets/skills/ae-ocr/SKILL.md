@@ -39,6 +39,7 @@ argument-hint: "[command=review] [from=main] [to=branch] [background=...] [backg
 
 对审查输出中的每条发现，按优先级分类并报告：
 
+- **Critical**: 严重安全漏洞、数据丢失风险、生产环境崩溃等必须立即修复的问题
 - **High**: 明显 bug、安全问题、明确错误或有充分依据的修复建议
 - **Medium**: 合理但依赖上下文的建议、风格/性能优化、需手动实现的修复
 - **Low**: 可能的误报、上下文不足、吹毛求疵或无意义的建议（静默丢弃）
@@ -69,7 +70,7 @@ argument-hint: "[command=review] [from=main] [to=branch] [background=...] [backg
 | `config` | — | 管理配置（set/unset/provider/model） |
 | `llm` | — | LLM 工具（test/providers） |
 | `rules` | — | 检查规则匹配 |
-| `viewer` | `v` | 启动 WebUI 会话查看器（阻塞型服务） |
+| `viewer` | `v` | 启动 WebUI 会话查看器（工具层已内置后台处理，不会阻塞会话） |
 | `session` | `sessions` | 列出/查看审查会话 |
 | `version` | — | 显示版本信息 |
 
@@ -199,7 +200,12 @@ command=newcmd args=["--flag"]
 ## OCR 代码审查结果
 
 **审查文件数**: N
-**发现问题数**: X high / Y medium / Z low
+**发现问题数**: W critical / X high / Y medium / Z low
+
+### Critical Priority
+
+- **`path/to/file.java:42`** [security] — 严重安全漏洞描述
+  > 建议修复: `修复代码`
 
 ### High Priority
 

@@ -127,7 +127,7 @@ description: "统一 UI/UX 设计入口代理：支持 spec/contract/full/inline
 | Atlassian / Jira 风格产品 | Atlaskit + tokens |
 | GitHub 风格开发工具 | Primer CSS / Brand |
 | 英国公共服务 | GOV.UK Frontend |
-| 玎国公共服务 / 信任优先 | USWDS |
+| 美国公共服务 / 信任优先 | USWDS |
 | 快速本地商家 / 代理商 MVP | Bootstrap 5.3 |
 | 现代无障碍 React 基础 | Radix Themes |
 | 现代 SaaS（自持组件） | shadcn/ui（永不交付默认状态） |
@@ -323,7 +323,7 @@ description: "统一 UI/UX 设计入口代理：支持 spec/contract/full/inline
 
 #### 步骤 2：读取模板和上下文
 
-读取 `references/ui-ux-template.md` 获取契约元素清单和内容模板。将设计读数、三旋钮取值和负向设计空间直接引用到设计契约中，确保与规范一致。结合 prd 需求和 ae:grill 追问结果，确定本维度需要产出的契约元素。
+读取 `references/ui-ux-template.md` 获取契约元素清单和内容模板。从 `design-spec.md` 读取设计读数、三旋钮取值和负向设计空间作为参考，但不写入 ui-ux.md 契约（设计读数由 design-spec.md 独占）。结合 prd 需求和 ae:grill 追问结果，确定本维度需要产出的契约元素。
 
 #### 步骤 3：扫描项目已有组件资产
 
@@ -331,7 +331,7 @@ description: "统一 UI/UX 设计入口代理：支持 spec/contract/full/inline
 
 #### 步骤 4：产出契约
 
-按模板产出 `modules/<NN>-<m>/ui-ux.md`，包含：
+按模板产出 `modules/<NN>-<m>/ui-ux.md` + `modules/<NN>-<m>/pages/*.md`（每页独立文件），ui-ux.md 包含：
 
 - 信息架构（页面树状结构、导航层级、主要入口）
 - 页面规格（每页含布局家族 + 段落顺序 + CTA 配置 + 移动端折叠规则）
@@ -341,6 +341,7 @@ description: "统一 UI/UX 设计入口代理：支持 spec/contract/full/inline
 - 交互状态机表（使用稳定 ID `ST-XXX`）
 - 响应式断点表
 - 无障碍要求
+- 技术栈声明（前端框架、UI 组件库、CSS 方案、图标库、字体、路由方案、第三方依赖等，引用 architecture.md ADR 中的技术栈决策 ID）
 
 **关键约束：**
 - 组件 Props 必须使用 TypeScript interface 签名，不得用描述性文字
@@ -426,7 +427,7 @@ description: "统一 UI/UX 设计入口代理：支持 spec/contract/full/inline
 
 ### mode=contract
 
-- `modules/<NN>-<m>/ui-ux.md`（直接产出独立维度文件）
+- `modules/<NN>-<m>/ui-ux.md` + `modules/<NN>-<m>/pages/*.md`（直接产出独立维度文件）
 - 产出摘要（独立文件路径、契约元素完成情况、稳定 ID、映射表行项、组件复用统计、行数）
 
 ### mode=full

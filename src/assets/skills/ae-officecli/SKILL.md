@@ -69,7 +69,7 @@ argument-hint: "[文件路径] [command=...] [path=...] [props=...]"
 | `add-part` | 创建新文档部件 |
 | `save` | 保存（flush 到磁盘） |
 | `refresh` | 刷新 TOC 页码/交叉引用 |
-| `watch` | 启动实时预览服务器 |
+| `watch` | 启动实时预览服务器（工具层已内置超时保护，不会阻塞会话） |
 | `unwatch` | 停止预览 |
 | `goto` | 滚动浏览器到元素 |
 | `mark` | 添加编辑标记 |
@@ -486,4 +486,4 @@ ae-officecli file=<file> command=add-part parent=<parent>                 # 创�
 - 每次工具调用自动管理 open/close 生命周期（try/finally 包裹），无需手动释放
 - 修改后用 `validate` 和/或 `view issues` 验证
 - **不确定时运行 `help` 而非猜测**
-- `watch` 命令会启动持续运行的服务器，谨慎使用
+- `watch` 命令会启动持续运行的预览服务器，工具层已内置超时保护，不会阻塞会话。使用 `unwatch` 停止预览

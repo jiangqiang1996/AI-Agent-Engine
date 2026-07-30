@@ -33,13 +33,13 @@ subtask: false
 4. 更新场景需说明：执行 `git reset --hard HEAD`、`git clean -fd --exclude=node_modules`、`git pull` 会丢弃该仓库的本地未提交修改和未追踪文件
 5. 全新安装场景需说明：将克隆仓库并构建产物
 6. 授权来源：用户通过 `/ae-install` 命令触发的交互式 confirm 授权
-7. 完整命令参数：`node scripts/install.js --yes <scope>`（目标仓库为 AE 插件源码仓库，目标分支为 `master`，工作区为安装目录）
+7. 完整命令参数：`node scripts/install.js --yes <scope>`（目标仓库为 AE 插件源码仓库，目标分支为 `main`，工作区为安装目录）
 
 用户明确授权后直接进入第二步执行脚本，**不再二次请求授权**。未授权则停止流程。
 
 ## 第二步：执行安装或更新脚本
 
-授权确认后，在 AE 插件源码仓库根目录（目标仓库：`ai-agent-engine`，目标分支：`master`，工作区：安装目录）执行完整命令参数：
+授权确认后，在 AE 插件源码仓库根目录（目标仓库：`ai-agent-engine`，目标分支：`main`，工作区：安装目录）执行完整命令参数：
 
 ```bash
 node scripts/install.js --yes <scope>

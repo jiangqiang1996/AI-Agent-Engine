@@ -3,7 +3,7 @@ description: 快速审查并自动修复
 model: $deep
 subtask: false
 ---
-使用 `ae:review mode:autofix` 技能处理本次请求。
+使用 `ae:review mode=autofix` 技能处理本次请求。
 
 ## 审查范围
 

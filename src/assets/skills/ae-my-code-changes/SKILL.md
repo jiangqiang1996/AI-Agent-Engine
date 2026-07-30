@@ -26,7 +26,7 @@ argument-hint: "since=<date> [until=<date>]"
 
 通过 `$ARGUMENTS` 传入，格式为 `since=<date> [until=<date>]`：
 
-- `since`（必填）：起始时间，支持任何 git 兼容的日期格式，如 `2025-06-01`、`2 weeks ago`
+- `since`（必填）：起始时间，支持任何 git 兼容的日期格式，如 `2026-06-01`、`2 weeks ago`
 - `until`（选填）：截止时间，省略则到当前时刻；传入未来时间视为当前时刻，此时包含未提交变更
 
 ## 执行流程
@@ -70,7 +70,7 @@ Changed files: N (committed: M, uncommitted: K)
 核心逻辑由 `scripts/my-code-changes.mjs` 实现，纯 Node.js ESM，无外部依赖：
 
 ```bash
-node scripts/my-code-changes.mjs --since=2025-06-01 --until=2025-06-10
+node scripts/my-code-changes.mjs --since=2026-06-01 --until=2026-06-10
 ```
 
 ## 验证

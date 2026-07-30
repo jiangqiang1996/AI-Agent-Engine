@@ -50,7 +50,7 @@ argument-hint: "[需求文档路径|design|裸描述] [dimensions=architecture,d
 19. **Frontmatter 极简** - 仅保留 `type`、`ids`（有稳定 ID 时）。
 20. **存量项目感知（硬约束）** - 除非用户明确声明不参考当前项目（如"不读取项目文件"、"不使用现有技术栈"、"全新项目"、"从零开始"、"greenfield"、“指定了明确冲突的技术栈”等表述），设计必须主动感知当前项目现状。本条感知行为由用户触发 ae:design 时执行，属于用户明确请求的项目上下文读取，不构成插件运行时默认依赖：
     - **技术栈感知**：通过读取 `package.json`/`go.mod`/`pom.xml`/`Cargo.toml`/`pyproject.toml` 等依赖清单文件，识别项目已有技术栈，供第 12 条来源优先级决策使用。
-    - **结构感知**：通过 glob/grep 扫描项目源码目录结构（如 `src/`、`app/`、`internal/` 等），识别已有模块划分、分层模式和目录约定。扫描时排除敏感目录和文件（如 `.env*`、`secrets/`、`credentials/`、`*.key`、`*.pem`、`.ssh/`）。设计中的模块边界和目录结构应与现有结构对齐，而非凭空发明。
+    - **结构感知**：通过 glob/grep 扫描项目源码目录结构（如 `src/`、`app/`、`internal/` 等），识别已有模块划分、分层模式和目录约定。扫描时排除敏感目录和文件（如 `.env*`、`secrets/`、`credentials/`、`*.key`、`*.pem`、`.ssh/`、`.aws/`、`.gnupg/`、`.docker/`、`.kube/`、`.npmrc`、`.pypirc`、`.netrc`）。设计中的模块边界和目录结构应与现有结构对齐，而非凭空发明。
     - **约定感知**：通过读取项目配置文件（如 `.eslintrc`/`biome.json`/`.prettierrc`/`tsconfig.json` 等）和少量入口源码文件，识别已有编码约定（命名风格、导入方式、错误处理模式等）。仅读取入口文件和配置文件，不读取含疑似密钥/凭证的文件。设计契约中的实现指引应与现有约定一致。
     - **感知结果记录**：技术栈感知结果纳入 architecture.md ADR；结构感知结果纳入 constraints.md 目录结构章节；约定感知结果纳入 constraints.md 实施约束章节。感知结果必须内化为设计文档内容（如"项目使用 React 18.2"），不得以路径引用形式指向外部工作空间文件（如"参见 package.json"），以遵守第 16 条自包含约束。写入前脱敏，屏蔽密钥、token、连接字符串中的凭证部分，仅记录技术栈名称和目录结构骨架。
     - **用户豁免**：用户明确声明不参考当前项目时，跳过感知步骤，在 ADR 中记录豁免原因。
@@ -268,11 +268,11 @@ overview.md 按 `references/overview-template.md` 模板产出，包含：
 
 按确认的维度清单和新调度策略（全局维度并行 + 模块并行），调度专精子代理产出设计契约独立文件。
 
-#### 4.1 两阶段调度策略（全局维度并行 + 模块并行）
+#### 4.1 三步调度策略（全局维度并行 + 模块并行 + 自动校验）
 
-采用两阶段调度（阶段 1 全局维度并行 + 阶段 2 模块并行 + 阶段 3 自动校验），全程无中间大文件：
+采用三步调度（步骤 4.1a 全局维度并行 + 步骤 4.1b 模块并行 + 步骤 4.1c 自动校验），全程无中间大文件：
 
-**阶段 1：全局维度并行（每全局维度 1 次调用，全并行）**
+**步骤 4.1a：全局维度并行（每全局维度 1 次调用，全并行）**
 
 全局维度子代理（@architecture-designer、@security-designer、@observability-designer、@non-functional-designer、@ui-designer mode=spec）并行产出独立文件：
 - @architecture-designer → `architecture.md`
@@ -281,7 +281,7 @@ overview.md 按 `references/overview-template.md` 模板产出，包含：
 - @non-functional-designer → `non-functional.md`
 - @ui-designer mode=spec → `design-spec.md`
 
-**阶段 2：模块并行（每模块 1 个 agent，模块内串行产出各维度独立文件）**
+**步骤 4.1b：模块并行（每模块 1 个 agent，模块内串行产出各维度独立文件）**
 
 按 architecture.md 中的模块划分，每个模块分配一个 agent，所有模块并行执行。每个模块 agent 内部串行产出各维度独立文件：
 1. @api-designer → `modules/<NN>-<m>/api.md`
@@ -289,13 +289,13 @@ overview.md 按 `references/overview-template.md` 模板产出，包含：
 3. @ui-designer mode=contract → `modules/<NN>-<m>/ui-ux.md` + `modules/<NN>-<m>/pages/*.md`（依赖 api.md 响应字段）
 4. @test-cases-designer → `modules/<NN>-<m>/test-cases.md`（依赖 api.md + database.md + ui-ux.md）
 
-**阶段 3：自动校验 + 一致性校验**
+**步骤 4.1c：自动校验 + 一致性校验**
 
 主代理执行跨模块一致性校验（阶段 5），更新 cross-mapping.md。
 
 #### 4.2 并行子代理调度
 
-**阶段 1 调度（全局维度并行）：** 在同一轮回复中一次性发出所有全局维度的 Task 调用。每个子代理传入：
+**步骤 4.1a 调度（全局维度并行）：** 在同一轮回复中一次性发出所有全局维度的 Task 调用。每个子代理传入：
 - prd 内容摘要
 - ae:grill 追问结果
 - overview.md 上下文（稳定 ID 体系）
@@ -303,7 +303,7 @@ overview.md 按 `references/overview-template.md` 模板产出，包含：
 
 子代理产出独立文件返回。
 
-**阶段 2 调度（模块并行，模块内串行）：** 从 architecture.md 读取模块划分，为每个模块创建一个 agent。所有模块 agent 并行启动，每个 agent 内部串行调用维度子代理：
+**步骤 4.1b 调度（模块并行，模块内串行）：** 从 architecture.md 读取模块划分，为每个模块创建一个 agent。所有模块 agent 并行启动，每个 agent 内部串行调用维度子代理：
 
 每个维度子代理传入：
 - prd 内容摘要
@@ -366,7 +366,7 @@ overview.md 按 `references/overview-template.md` 模板产出，包含：
 
 调用方式：
 ```
-ae:review mode=headless domain=document <design-dir>/overview.md
+ae:review mode=headless <design-dir>/overview.md
 ```
 
 审查者：`design-integrity-reviewer`（激活条件：hasDesignContract=true）
@@ -461,7 +461,7 @@ ae/designs/<name>-YYYY-MM-DD/
     └── <NN>-<module-name>/
         ├── api.md                  # API 契约
         ├── database.md             # 数据库契约
-        ├── ui-ux.md                # 路由表 + 设计 Token + 组件清单 + 组件定义 + 状态机 + 无障碍 + 组件复用策略
+        ├── ui-ux.md                # 路由表 + 技术栈声明 + 设计 Token + 组件清单 + 组件定义 + 交互状态机总表 + 无障碍 + 组件复用策略
         ├── pages/                   # 每个页面独立文件（涉及 UI 时）
         │   ├── <NN>-<page-name>.md   # 组件放置、字段到组件映射、页面级状态机、页面级响应式行为
         │   └── ...

@@ -1,5 +1,6 @@
 ---
 name: backend-dev
+model: $deep
 description: 后端开发专精代理：处理 API、数据层、业务逻辑和中间件
 mode: subagent
 temperature: 0

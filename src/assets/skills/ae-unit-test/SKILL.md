@@ -21,7 +21,7 @@ argument-hint: "[代码文件/目录] [设计用例路径(可选)]"
 
 - 浏览器 E2E 测试 → 使用 `ae:e2e-test`
 - 接口级测试 → 使用 `ae:api-test`
-- 前端组件测试 → 使用 `ae:e2e-test`
+- 前端组件测试（组件渲染、交互、视觉验证） → 使用 `ae:e2e-test`（通过浏览器验证组件行为）
 
 ## 执行流程
 
@@ -33,7 +33,8 @@ argument-hint: "[代码文件/目录] [设计用例路径(可选)]"
    - Go → Go test
    - Rust → Rust test
 3. 编译测试骨架：
-   - 有设计用例 → 从 design overview.md 定位 `modules/<NN>-<m>/test-cases.md`，从用例规格编译骨架
+   - 传入 test-cases.md 路径 → 直接读取用例规格编译骨架
+   - 传入设计目录路径 → 从 design overview.md 定位 `modules/<NN>-<m>/test-cases.md`，从用例规格编译骨架
    - 无设计用例 → 从代码结构推断测试点（公共函数、类方法、分支逻辑）
 4. 生成测试文件到项目自身测试目录（如 `tests/`、`src/test/`）
 5. 执行测试
@@ -80,4 +81,6 @@ argument-hint: "[代码文件/目录] [设计用例路径(可选)]"
 
 ## 设计用例入口
 
-有设计用例时，从 design `overview.md` 获取模块清单和导航，定位 `modules/<NN>-<m>/test-cases.md` 读取用例规格。
+有设计用例时，按以下优先级定位用例规格：
+1. 直接传入 `test-cases.md` 路径 → 直接读取
+2. 传入设计目录路径 → 从 design `overview.md` 获取模块清单和导航，定位 `modules/<NN>-<m>/test-cases.md`

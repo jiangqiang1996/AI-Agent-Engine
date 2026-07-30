@@ -142,8 +142,8 @@ argument-hint: "[一句话目标描述]"
 
 #### Step 2：ae:review mode=autofix
 
-- **软件任务**（涉及代码文件变更）：`ae:review mode=autofix goals=<成功条件列表>`（默认 domain=code）
-- **非软件任务**（无代码变更）：`ae:review mode=autofix domain=document goals=<成功条件列表>`
+- **软件任务**（涉及代码文件变更）：`ae:review mode=autofix goals=<成功条件列表>`
+- **非软件任务**（无代码变更）：`ae:review mode=autofix goals=<成功条件列表>`
 - **混合任务**：按软件任务处理，审查范围描述同时包含代码和文档质量方向
 - 成功条件列表通过 `goals=` 参数传入 ae:review，激活 goal-alignment-reviewer 逐条校验变更是否达成各项目标
 

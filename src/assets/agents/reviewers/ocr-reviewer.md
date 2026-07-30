@@ -99,7 +99,7 @@ ae-ocr(command="scan", path="src/main/java/com/example/{auth,config,mapper}/", b
 
 ae-ocr 工具返回 JSON 格式的审查结果（format=json 默认），包含：
 - 审查文件数
-- 按严重级别分组的问题列表（high/medium/low）
+- 按严重级别分组的问题列表（critical/high/medium/low）
 - 每条发现的文件路径、行号、审查意见和修复建议
 
 多批次时，将所有批次返回的发现合并为统一列表：
@@ -112,7 +112,7 @@ ae-ocr 工具返回 JSON 格式的审查结果（format=json 默认），包含�
 - critical → P0
 - high → P1
 - medium → P2
-- low → P3（静默丢弃，不输出）
+- low → 丢弃（不输出）
 
 ```json
 {

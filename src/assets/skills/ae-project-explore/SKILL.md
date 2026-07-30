@@ -8,7 +8,7 @@ argument-hint: "[target] [focus=structure|content|relations|patterns|all] [depth
 
 探索并分析任意文件集合（目录、项目、仓库、文档集等），输出带置信度标注的结构化画像。不依赖其他 AE 技能，独立完成全部探索与分析。
 
-本技能是 `@explore` 代理的增强版：除快速搜索定位外，增加结构分析、关系映射、内容采样、模式识别和画像生成能力。
+本技能是 opencode 内置 `@explore` 代理的增强版：除快速搜索定位外，增加结构分析、关系映射、内容采样、模式识别和画像生成能力。
 
 ## 使用场景
 

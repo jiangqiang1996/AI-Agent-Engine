@@ -40,7 +40,7 @@ const SELECTION_RULES = {
     flags: [],
   },
   [AGENT.FRONTEND_FIX]: {
-    keywords: ['前端修复', '视觉修复', '交互修复', '样式问题', '布局问题', '无障碍', 'aria', '联调修复', '间距'],
+    keywords: ['前端修复', '视觉修复', '交互修复', '样式问题', '布局问题', '无障碍', 'aria', '可访问性', '联调修复', '间距'],
     flags: [],
   },
   [AGENT.LOGIC_WEAVER]: {
