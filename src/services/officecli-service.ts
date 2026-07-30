@@ -32,6 +32,15 @@ export interface OfficeCliBatchItem {
 }
 
 /**
+ * 打开文档并返回句柄，不自动 close。
+ * 适用于 watch 等需要保持文档打开的持续运行场景。
+ * 调用方负责在适当时机调用 doc.close()。
+ */
+export async function openDocument(filePath: string): Promise<OfficeCliDocument> {
+  return await oc.open(filePath, { autoInstall: true })
+}
+
+/**
  * 在 try/finally 中管理文档句柄。
  * open 在 try 第一行，close 在 finally 中，确保异常时也能释放。
  */

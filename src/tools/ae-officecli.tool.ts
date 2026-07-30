@@ -2,7 +2,7 @@ import { tool } from '@opencode-ai/plugin'
 import { z } from 'zod'
 
 import { TOOL } from '../schemas/ae-asset-schema.js'
-import { batchCommands, sendCommand, type OfficeCliBatchItem } from '../services/officecli-service.js'
+import { batchCommands, openDocument, sendCommand, type OfficeCliBatchItem } from '../services/officecli-service.js'
 import { formatDocumentToolError } from '../utils/document-tool-errors.js'
 import { normalizeUserFilePath } from '../utils/document-path-security.js'
 
@@ -85,6 +85,60 @@ export const aeOfficecliTool = tool({
         return {
           output: typeof result === 'string' ? result : JSON.stringify(result, null, 2),
           metadata: { tool: TOOL.AE_OFFICECLI, command: 'batch', file: filePath },
+        }
+      }
+
+      if (args.command === 'watch') {
+        const watchItem: OfficeCliBatchItem = {
+          command: 'watch',
+        }
+        if (args.options !== undefined) {
+          for (const [k, v] of Object.entries(args.options)) {
+            if (watchItem[k] === undefined) watchItem[k] = v
+          }
+        }
+
+        // watch 命令启动持续运行的预览服务器，需要保持文档打开
+        // 直接 open 文档（不走 withDocument，因为 withDocument 会在返回后 close 文档）
+        // 使用超时保护，防止 send 不返回时阻塞会话
+        const WATCH_TIMEOUT_MS = 10_000
+        let timer: ReturnType<typeof setTimeout> | undefined
+        try {
+          const doc = await openDocument(filePath)
+          const result = await Promise.race([
+            doc.send(watchItem, true).then((r) => ({ success: true, result: r, timedOut: false })),
+            new Promise<{ success: boolean; result: unknown; timedOut: boolean }>((resolve) => {
+              timer = setTimeout(() => resolve({ success: true, result: null, timedOut: true }), WATCH_TIMEOUT_MS)
+            }),
+          ])
+          clearTimeout(timer!)
+
+          // 从结果中提取实际预览地址，兜底使用默认端口
+          const previewUrl = (result.result && typeof result.result === 'object' && (result.result as Record<string, unknown>).url)
+            ? String((result.result as Record<string, unknown>).url)
+            : 'http://localhost:26315'
+
+          if (result.timedOut) {
+            return {
+              output: [
+                `officecli watch 已启动（超时保护触发，视为预览服务器已就绪）`,
+                `文件: ${filePath}`,
+                `预览地址: ${previewUrl}`,
+                '',
+                '预览服务器在后台持续运行，不会阻塞当前会话。',
+                `如需停止预览: 使用 command=unwatch 停止。`,
+              ].join('\n'),
+              metadata: { tool: TOOL.AE_OFFICECLI, command: 'watch', file: filePath, timedOut: true },
+            }
+          }
+
+          return {
+            output: typeof result.result === 'string' ? result.result : JSON.stringify(result.result, null, 2),
+            metadata: { tool: TOOL.AE_OFFICECLI, command: 'watch', file: filePath },
+          }
+        } catch (error) {
+          clearTimeout(timer!)
+          return formatDocumentToolError('ae-officecli', error)
         }
       }
 
