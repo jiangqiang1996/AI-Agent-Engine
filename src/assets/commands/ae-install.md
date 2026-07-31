@@ -23,7 +23,23 @@ subtask: false
 
 > Windows 环境下 `~` 对应 `%USERPROFILE%`，`~/.config/opencode/` 实际路径为 `%USERPROFILE%\.config\opencode\`
 
-## 第一步：一次性授权确认
+## 第一步：环境检查
+
+在执行安装脚本前，必须先校验必要环境。依次执行以下命令，任一失败则**停止流程**，直接提示用户安装对应工具，不执行后续步骤：
+
+```bash
+node --version
+npm --version
+git --version
+```
+
+- **Node.js**：执行 `node --version`，如果命令不存在或版本主号低于 18，提示用户从 https://nodejs.org/ 下载并安装 LTS 版本
+- **npm**：执行 `npm --version`，如果命令不存在，提示用户 npm 随 Node.js 一起安装，请从 https://nodejs.org/ 下载并安装 LTS 版本
+- **git**：执行 `git --version`，如果命令不存在，提示用户从 https://git-scm.com/ 下载并安装 Git
+
+三个命令都成功且 Node.js 版本 ≥ 18 时，继续下一步。
+
+## 第二步：一次性授权确认
 
 使用 question 工具向用户确认授权，**只确认一次**。确认内容必须包含：
 
@@ -33,23 +49,34 @@ subtask: false
 4. 更新场景需说明：执行 `git reset --hard HEAD`、`git clean -fd --exclude=node_modules`、`git pull` 会丢弃该仓库的本地未提交修改和未追踪文件
 5. 全新安装场景需说明：将克隆仓库并构建产物
 6. 授权来源：用户通过 `/ae-install` 命令触发的交互式 confirm 授权
-7. 完整命令参数：`node scripts/install.js --yes <scope>`（目标仓库为 AE 插件源码仓库，目标分支为 `main`，工作区为安装目录）
+7. 完整命令参数：`node scripts/install.js --yes <scope>`（目标仓库为 AE 插件源码仓库，目标分支为 `master`，工作区为安装目录）
 
-用户明确授权后直接进入第二步执行脚本，**不再二次请求授权**。未授权则停止流程。
+用户明确授权后直接进入第三步执行脚本，**不再二次请求授权**。未授权则停止流程。
 
-## 第二步：执行安装或更新脚本
+## 第三步：执行安装或更新脚本
 
-授权确认后，在 AE 插件源码仓库根目录（目标仓库：`ai-agent-engine`，目标分支：`main`，工作区：安装目录）执行完整命令参数：
+授权确认后，在 AE 插件源码仓库根目录（目标仓库：`ai-agent-engine`，目标分支为 `master`，工作区为安装目录）执行完整命令参数：
 
 ```bash
 node scripts/install.js --yes <scope>
 ```
 
-`--yes` 标志跳过脚本内交互式 confirm（授权已在第一步通过用户明确授权完成）。
+`--yes` 标志跳过脚本内交互式 confirm（授权已在第二步通过用户明确授权完成）。
 
 脚本会自动完成全部步骤，无需 LLM 关注内部流程。
 
-## 第三步：完成
+## 第四步：验证 playwright-cli
+
+脚本执行完成后，**无论脚本是否报告成功**，都必须独立验证 `playwright-cli` 是否可用：
+
+```bash
+playwright-cli --version
+```
+
+- **验证成功**：继续第五步
+- **验证失败**：提示用户 `playwright-cli` 未正确安装，询问是否自动修复。若用户同意，执行 `npm install -g --force @playwright/cli`，然后再次验证。若仍失败或用户拒绝，告知用户浏览器自动化功能将不可用，继续第五步
+
+## 第五步：完成
 
 展示安装或更新结果：
 

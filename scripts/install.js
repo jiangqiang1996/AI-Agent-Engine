@@ -12,17 +12,17 @@
  * - 已安装 → 更新：拉取最新代码，重新安装依赖并构建
  * - 未安装 → 克隆仓库、安装依赖、构建产物（全新安装）
  *
+ * 环境检查（Node.js/npm/git）由调用方（/ae-install 命令模板）在脚本执行前完成。
+ *
  * 不传 --yes 时，脚本内置交互式 confirm，destructive 操作前等待用户确认。
  */
 
 import { existsSync } from 'node:fs'
 import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { createInterface } from 'node:readline'
 import { spawn } from 'node:child_process'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
 const REPO_URL = 'https://gitee.com/jiangqiang1996/ai-agent-engine.git'
 const BRIDGE_CONTENT = "export { default } from '../ai-agent-engine/dist/src/index.js'\n"
 
