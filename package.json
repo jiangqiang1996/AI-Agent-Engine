@@ -7,8 +7,6 @@
   "main": ".opencode/plugins/ae-server.js",
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/postbuild.mjs",
-    "postinstall": "node scripts/ensure-playwright.mjs",
-    "postupdate": "node scripts/ensure-playwright.mjs",
     "sync-talk-normal": "node scripts/sync-talk-normal.mjs",
     "test": "vitest run",
     "test:slow": "vitest run --config vitest.slow.config.ts",

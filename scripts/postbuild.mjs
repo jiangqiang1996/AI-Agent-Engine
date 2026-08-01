@@ -3,7 +3,6 @@ import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { build } from 'esbuild'
-import { ensurePlaywrightCliGlobal } from './ensure-playwright-lib.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(__dirname, '..')
@@ -86,8 +85,6 @@ export async function main(root = repoRoot) {
   await removeTuiConfigPlugin(tuiConfigPath, './tui-plugins/ae-tui.js')
   await rm(distAssetsDir, { recursive: true, force: true })
   await cp(sourceAssetsDir, distAssetsDir, { recursive: true })
-
-  await ensurePlaywrightCliGlobal()
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
