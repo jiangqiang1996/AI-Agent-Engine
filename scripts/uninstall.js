@@ -19,16 +19,16 @@ import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline'
 
-function getPaths(scope) {
+function getPaths(scope, projectRoot) {
   const home = process.env[process.platform === 'win32' ? 'USERPROFILE' : 'HOME']
   const opencodeDir = join(home, '.config', 'opencode')
 
   if (scope === 'project') {
-    const projectRoot = process.cwd()
+    const resolvedRoot = projectRoot || process.cwd()
     return {
       scope,
-      repoDir: join(projectRoot, '.opencode', 'ai-agent-engine'),
-      bridgeFile: join(projectRoot, '.opencode', 'plugins', 'ae-server.js'),
+      repoDir: join(resolvedRoot, '.opencode', 'ai-agent-engine'),
+      bridgeFile: join(resolvedRoot, '.opencode', 'plugins', 'ae-server.js'),
     }
   }
 
@@ -39,11 +39,11 @@ function getPaths(scope) {
   }
 }
 
-function detectStatus() {
+function detectStatus(projectRoot) {
   const scopes = ['global', 'project']
   const result = {}
   for (const scope of scopes) {
-    const paths = getPaths(scope)
+    const paths = getPaths(scope, projectRoot)
     const bridgeExists = existsSync(paths.bridgeFile)
     const repoExists = existsSync(paths.repoDir)
     const installed = bridgeExists || repoExists
@@ -67,8 +67,8 @@ function makeConfirm(autoYes) {
   }
 }
 
-async function uninstallScope(scope, confirmFn) {
-  const paths = getPaths(scope)
+async function uninstallScope(scope, confirmFn, projectRoot) {
+  const paths = getPaths(scope, projectRoot)
   console.log(`AE 插件卸载（${scope === 'project' ? '项目级' : '全局'}）`)
   console.log(`仓库目录: ${paths.repoDir}`)
   console.log(`桥接文件: ${paths.bridgeFile}`)
@@ -110,25 +110,29 @@ function parseArgs(argv) {
   const detect = argv.includes('--detect')
   const yes = argv.includes('--yes') || argv.includes('-y')
   const scopes = []
+  let projectRoot = null
   for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === '--scope' && argv[i + 1]) {
+    if (argv[i] === '--scope' && argv[i + 1] && !argv[i + 1].startsWith('-')) {
       scopes.push(argv[i + 1] === 'project' ? 'project' : 'global')
       i++
+    } else if (argv[i] === '--project-root' && argv[i + 1] && !argv[i + 1].startsWith('-')) {
+      projectRoot = argv[i + 1]
+      i++
+    } else if (scopes.length === 0 && (argv[i] === 'project' || argv[i] === 'global')) {
+      scopes.push(argv[i] === 'project' ? 'project' : 'global')
     }
   }
   if (scopes.length === 0) {
-    const positional = argv.filter((a) => !a.startsWith('-'))
-    const arg = positional[0] || 'global'
-    scopes.push(arg === 'project' ? 'project' : 'global')
+    scopes.push('global')
   }
-  return { detect, yes, scopes }
+  return { detect, yes, scopes, projectRoot }
 }
 
 async function main() {
-  const { detect, yes: autoYes, scopes } = parseArgs(process.argv.slice(2))
+  const { detect, yes: autoYes, scopes, projectRoot } = parseArgs(process.argv.slice(2))
 
   if (detect) {
-    const status = detectStatus()
+    const status = detectStatus(projectRoot)
     console.log(JSON.stringify(status, null, 2))
     return
   }
@@ -136,7 +140,7 @@ async function main() {
   const confirmFn = makeConfirm(autoYes)
 
   for (const scope of scopes) {
-    await uninstallScope(scope, confirmFn)
+    await uninstallScope(scope, confirmFn, projectRoot)
   }
 }
 

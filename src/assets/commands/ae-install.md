@@ -68,8 +68,17 @@ subtask: false
 
 ## 第三步：执行安装脚本
 
+`/ae-install` 命令仅在 AE 插件已加载时可用，因此脚本必然已存在于安装目录。按 scope 解析脚本绝对路径：
+
+- **全局**：脚本位于 `~/.config/opencode/ai-agent-engine/scripts/install.js`（Windows: `%USERPROFILE%\.config\opencode\ai-agent-engine\scripts\install.js`）
+- **项目级**：脚本位于 `<当前项目根目录>/.opencode/ai-agent-engine/scripts/install.js`
+
+> 当前项目根目录取 `process.cwd()`，即执行命令时的工作目录。`--project-root` 参数显式传入该值，确保脚本在不同 cwd 下也能定位正确项目；项目级安装时该参数决定安装位置，全局安装时不影响路径但保持命令形式统一。
+
+执行命令（`<scope>` 填 `global` 或 `project`）：
+
 ```bash
-node scripts/install.js --yes <scope>
+node "<脚本绝对路径>" --yes --project-root "<当前项目根目录>" <scope>
 ```
 
 脚本自动完成安装或更新，无需 LLM 关注内部流程。

@@ -15,8 +15,17 @@ subtask: false
 
 ## 第零步：检测安装状态
 
+`/ae-uninstall` 命令仅在 AE 插件已加载时可用，因此脚本必然已存在于安装目录。按 scope 解析脚本绝对路径：
+
+- **全局**：`~/.config/opencode/ai-agent-engine/scripts/uninstall.js`（Windows: `%USERPROFILE%\.config\opencode\ai-agent-engine\scripts\uninstall.js`）
+- **项目级**：`<当前项目根目录>/.opencode/ai-agent-engine/scripts/uninstall.js`
+
+> 当前项目根目录取 `process.cwd()`，即执行命令时的工作目录。`--project-root` 参数显式传入该值，确保脚本在不同 cwd 下也能定位正确项目；项目级卸载时该参数决定卸载位置，全局卸载时不影响路径但保持命令形式统一。
+
+执行检测命令：
+
 ```bash
-node scripts/uninstall.js --detect
+node "<脚本绝对路径>" --detect --project-root "<当前项目根目录>"
 ```
 
 脚本输出 JSON 格式的安装状态，解析后确定哪些范围已安装。
@@ -46,7 +55,7 @@ node scripts/uninstall.js --detect
 `<scope>` 根据第一步用户选择的范围填充，可重复传入多个 `--scope`：
 
 ```bash
-node scripts/uninstall.js --scope <scope> --yes
+node "<脚本绝对路径>" --scope <scope> --yes --project-root "<当前项目根目录>"
 ```
 
 脚本自动完成卸载，无需 LLM 关注内部流程。

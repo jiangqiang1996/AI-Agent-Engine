@@ -28,9 +28,17 @@ const BRIDGE_CONTENT = "export { default } from '../ai-agent-engine/dist/src/ind
 
 function parseArgs(argv) {
   const yes = argv.includes('--yes') || argv.includes('-y')
-  const positional = argv.filter((a) => !a.startsWith('-'))
-  const scope = positional[0] === 'project' ? 'project' : 'global'
-  return { yes, scope }
+  let scope = 'global'
+  let projectRoot = null
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === '--project-root' && argv[i + 1] && !argv[i + 1].startsWith('-')) {
+      projectRoot = argv[i + 1]
+      i++
+    } else if (argv[i] === 'project' || argv[i] === 'global') {
+      scope = argv[i] === 'project' ? 'project' : 'global'
+    }
+  }
+  return { yes, scope, projectRoot }
 }
 
 function makeConfirm(autoYes) {
@@ -86,18 +94,18 @@ function isGitRepo(dir) {
   return existsSync(join(dir, '.git'))
 }
 
-function getPaths(scope) {
+function getPaths(scope, projectRoot) {
   const home = process.env[process.platform === 'win32' ? 'USERPROFILE' : 'HOME']
   const opencodeDir = join(home, '.config', 'opencode')
 
   if (scope === 'project') {
-    const projectRoot = process.cwd()
+    const resolvedRoot = projectRoot || process.cwd()
     return {
       scope,
-      repoDir: join(projectRoot, '.opencode', 'ai-agent-engine'),
-      pluginsDir: join(projectRoot, '.opencode', 'plugins'),
-      bridgeFile: join(projectRoot, '.opencode', 'plugins', 'ae-server.js'),
-      workDir: projectRoot,
+      repoDir: join(resolvedRoot, '.opencode', 'ai-agent-engine'),
+      pluginsDir: join(resolvedRoot, '.opencode', 'plugins'),
+      bridgeFile: join(resolvedRoot, '.opencode', 'plugins', 'ae-server.js'),
+      workDir: resolvedRoot,
     }
   }
 
@@ -173,10 +181,10 @@ async function freshInstall(paths, confirmFn) {
 }
 
 async function main() {
-  const { yes: autoYes, scope } = parseArgs(process.argv.slice(2))
+  const { yes: autoYes, scope, projectRoot } = parseArgs(process.argv.slice(2))
   const confirmFn = makeConfirm(autoYes)
 
-  const paths = getPaths(scope)
+  const paths = getPaths(scope, projectRoot)
   console.log(`AE 插件安装或更新（${scope === 'project' ? '项目级' : '全局'}）`)
   console.log(`仓库目录: ${paths.repoDir}`)
   console.log(`桥接文件: ${paths.bridgeFile}`)
