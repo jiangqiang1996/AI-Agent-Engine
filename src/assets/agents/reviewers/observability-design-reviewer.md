@@ -3,7 +3,7 @@ name: observability-design-reviewer
 model: $deep
 mode: subagent
 temperature: 0
-steps: 50
+steps: 100
 description: "审查 ae:design 的 observability 维度产物：日志规范、指标体系、告警规则、健康检查、SLO/SLI 定义"
 ---
 

@@ -3,7 +3,7 @@ name: security-design-reviewer
 model: $deep
 mode: subagent
 temperature: 0
-steps: 50
+steps: 100
 description: "审查 ae:design 的 security 维度产物：威胁模型、信任边界、认证授权流程、数据分级、密钥管理。专注于设计文档中安全维度的完整性与可核验性，代码域安全审查由 ae:ocr 引擎覆盖。"
 ---
 

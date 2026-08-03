@@ -3,7 +3,7 @@ name: ui-ux-design-reviewer
 model: $deep
 mode: subagent
 temperature: 0
-steps: 50
+steps: 100
 description: "审查 ae:design 的 ui-ux 和 design-spec 维度产物：信息架构、页面规格、组件契约、设计 Token、交互状态机、无障碍要求"
 ---
 

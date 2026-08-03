@@ -3,7 +3,7 @@ name: architecture-design-reviewer
 model: $deep
 mode: subagent
 temperature: 0
-steps: 50
+steps: 100
 description: "审查 ae:design 的 architecture 维度产物：模块边界、依赖方向、分层规则、数据流、错误传播链"
 ---
 
