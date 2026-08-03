@@ -67,6 +67,7 @@ export const AGENT = {
   WEB_RESEARCHER: 'web-researcher',
   SPEC_FLOW_ANALYZER: 'spec-flow-analyzer',
   E2E_TEST_RUNNER: 'e2e-test-runner',
+  API_TEST_RUNNER: 'api-test-runner',
   UNIT_TEST_RUNNER: 'unit-test-runner',
   TEST_TRIAGE: 'test-triage',
   FRONTEND_FIX: 'frontend-fix',

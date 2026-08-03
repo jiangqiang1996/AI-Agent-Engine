@@ -1,7 +1,7 @@
 ---
 name: backend-fix
 model: $deep
-mode: all
+mode: subagent
 temperature: 0
 steps: 120
 description: "后端修复代理：错误分析、根因定位、修复实现和回归验证。修复时遵循项目已有架构规范，确保接口契约一致。"

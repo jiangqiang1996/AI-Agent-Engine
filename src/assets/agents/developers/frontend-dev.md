@@ -1,7 +1,7 @@
 ---
 name: frontend-dev
 model: $vision
-mode: all
+mode: subagent
 temperature: 0
 steps: 150
 description: "前端开发专精代理：视觉实现（设计还原/自由设计）、交互逻辑、API联调、状态管理、组件开发、前端重构、性能优化、可访问性。含一轮视觉验证。不负责设计决策推断、修复或浏览器功能测试。"

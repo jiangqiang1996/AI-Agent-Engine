@@ -312,13 +312,14 @@ const REQUIRED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'],
   [AGENT.FRONTEND_DEV, 'develop', '前端开发专精代理：视觉实现（设计还原/自由设计）、交互逻辑、API联调、状态管理、组件开发、前端重构、性能优化、可访问性。含一轮视觉验证'],
   [AGENT.BACKEND_DEV, 'develop', '后端开发专精代理：处理 API、数据层、业务逻辑和中间件'],
   [AGENT.BACKEND_FIX, 'develop', '后端修复专精代理：处理错误分析、根因定位、修复实现和回归验证'],
-  [AGENT.UNIT_TEST_RUNNER, 'test', '单元测试执行代理：生成、执行单元测试并分析覆盖率'],
+  [AGENT.API_TEST_RUNNER, 'test', '接口测试执行代理：接收已确认的编排方案和认证片段，组装测试脚本、执行业务流程测试与接口边界测试、分层归因修复'],
+  [AGENT.UNIT_TEST_RUNNER, 'test', '单元测试执行代理：生成、执行单元测试并分析覆盖率，支持 Vitest/JUnit/pytest/Go test/Rust test'],
+  [AGENT.E2E_TEST_RUNNER, 'test', '浏览器 E2E 测试执行代理：支持仅测试和编写脚本两种模式，自动检测分辨率默认 2K，通过 ae:playwright 操作浏览器'],
   [AGENT.TEST_TRIAGE, 'test', '测试失败诊断代理：分析 TestFailureBundle，按优先级短路规则分类根因并分派修复方向'],
 ]
 
 const GILDED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'], string]> = [
   [AGENT.UI_DESIGNER, 'design', '统一 UI/UX 设计入口代理：支持 spec/contract/full/inline 四种模式，产出设计决策包和 ui-ux 设计契约'],
-  [AGENT.E2E_TEST_RUNNER, 'test', '浏览器 E2E 测试执行代理：支持仅测试和编写脚本两种模式，自动检测分辨率默认 2K，通过 ae:playwright 操作浏览器'],
   [AGENT.FRONTEND_FIX, 'develop', '前端修复代理：视觉修复 + 交互逻辑修复 + 状态管理修复 + API 联调修复'],
   [AGENT.ARCHITECTURE_DESIGNER, 'design', '架构设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 architecture.md 设计契约，含模块边界、依赖方向、分层规则、数据流和错误传播链'],
   [AGENT.API_DESIGNER, 'design', '接口设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 api.md 设计契约，含端点清单、TypeScript interface、认证授权、错误码体系和幂等性声明'],

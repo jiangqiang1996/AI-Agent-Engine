@@ -1,7 +1,7 @@
 ---
 name: frontend-fix
 model: $vision
-mode: all
+mode: subagent
 temperature: 0
 steps: 150
 description: "前端修复代理：视觉修复 + 交互逻辑修复 + 状态管理修复 + API 联调修复 + 无障碍修复。以 DOM 结构化数据诊断为主，截图为辅，具备上下文检测→诊断→修复→验证内部闭环。修复时遵循项目已有开发模式和编码规范。"
