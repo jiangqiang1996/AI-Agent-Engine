@@ -81,12 +81,6 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 /ae-test e2e 验收 http://localhost:3000/login
 ```
 
-解析 Swagger/OpenAPI：
-
-```text
-/ae-swagger-parser ./openapi.json method:POST keyword:login mode:detail
-```
-
 探索性修复：
 
 ```text
@@ -117,7 +111,6 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 | 接口测试 | `/ae-test api` |
 | playwright 浏览器能力 | `/ae-playwright` |
 | 原型预览 | `/ae-prototype-preview` |
-| Swagger/OpenAPI 摘要 | `/ae-swagger-parser` |
 | 图片转 Markdown 描述 | `/ae-image` |
 | 音频转 Markdown 描述 | `/ae-audio` |
 | 视频转 Markdown 描述 | `/ae-video` |
@@ -157,10 +150,10 @@ Fetch and follow the project-level install instructions from https://gitee.com/j
 
 | 类型 | 当前快照 | 真源 |
 | --- | ---: | --- |
-| 技能 | 37 | `src/assets/skills/`、`src/schemas/ae-asset-schema.ts` |
-| 命令 | 46 | `src/services/command-registration.ts`、`src/assets/commands/` |
+| 技能 | 36 | `src/assets/skills/`、`src/schemas/ae-asset-schema.ts` |
+| 命令 | 45 | `src/services/command-registration.ts`、`src/assets/commands/` |
 | 代理 | 34 | `src/assets/agents/`、`src/services/agent-registration.ts` |
-| 工具 | 21 | `src/tools/` |
+| 工具 | 20 | `src/tools/` |
 | 规则 | 4 | `src/assets/rules/` |
 | 内置配置 | 1 | `src/assets/config/ae.jsonc` |
 

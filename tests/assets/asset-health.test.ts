@@ -336,7 +336,6 @@ describe('资产健康巡检', () => {
       COMMAND.E2E_TEST,
       COMMAND.FRONTEND_FIX,
       COMMAND.BACKEND_FIX,
-      COMMAND.SWAGGER_PARSER,
       COMMAND.IMAGE,
       COMMAND.DOCX,
       COMMAND.PDF,

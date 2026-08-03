@@ -5,7 +5,6 @@ import { aeHandoffTool } from './ae-handoff.tool.js'
 import { aeCreateSessionTool } from './ae-create-session.tool.js'
 import { aeHelpTool } from './ae-help.tool.js'
 import { aeReviewProofTool } from './ae-review-proof.tool.js'
-import { aeSwaggerParserTool } from './ae-swagger-parser.tool.js'
 import { aeImageTool } from './ae-image.tool.js'
 import { aeAudioTool } from './ae-audio.tool.js'
 import { aeVideoTool } from './ae-video.tool.js'
@@ -26,8 +25,6 @@ export function createToolRegistry(): Record<string, ToolDefinition> {
     [TOOL.AE_CREATE_SESSION]: aeCreateSessionTool,
     [TOOL.AE_HELP]: aeHelpTool,
     [TOOL.AE_REVIEW_PROOF]: aeReviewProofTool,
-    [TOOL.AE_SWAGGER_PARSER]: aeSwaggerParserTool,
-
     [TOOL.AE_IMAGE]: aeImageTool,
     [TOOL.AE_AUDIO]: aeAudioTool,
     [TOOL.AE_VIDEO]: aeVideoTool,

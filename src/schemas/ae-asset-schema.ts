@@ -15,7 +15,6 @@ export const SKILL = {
   HANDOFF: 'ae:handoff',
   TASK_LOOP: 'ae:task-loop',
   SQL: 'ae:sql',
-  SWAGGER_PARSER: 'ae:swagger-parser',
   API_TEST: 'ae:api-test',
   UNIT_TEST: 'ae:unit-test',
   E2E_TEST: 'ae:e2e-test',
@@ -93,7 +92,6 @@ export const TOOL = {
   AE_CREATE_SESSION: 'ae-create-session',
   AE_HELP: 'ae-help',
   AE_REVIEW_PROOF: 'ae-review-proof',
-  AE_SWAGGER_PARSER: 'ae-swagger-parser',
 
   AE_IMAGE: 'ae-image',
   AE_AUDIO: 'ae-audio',

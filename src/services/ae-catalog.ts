@@ -131,14 +131,6 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     tier: 'tools',
   },
   {
-    skillName: SKILL.SWAGGER_PARSER,
-    commandName: COMMAND.SWAGGER_PARSER,
-    description: '解析 Swagger/OpenAPI JSON/YAML 并输出接口联调摘要',
-    argumentHint: '[source] [method] [path] [tag=TAG] [keyword=TEXT] [mode]',
-    skillFile: `src/assets/skills/${skillDir(SKILL.SWAGGER_PARSER)}/SKILL.md`,
-    tier: 'tools',
-  },
-  {
     skillName: SKILL.API_TEST,
     commandName: COMMAND.API_TEST,
     description: '接口级后端测试：业务流程编排为主、接口边界测试为辅，支持登录认证与接口请求脚本生成',

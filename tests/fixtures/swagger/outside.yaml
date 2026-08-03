@@ -1,5 +1,0 @@
-components:
-  schemas:
-    Leak:
-      type: string
-      description: 泄露字段

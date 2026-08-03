@@ -13,11 +13,6 @@ describe('ae-asset-schema', () => {
     expect(AeCommandNameSchema.parse(COMMAND.SKILL_CREATOR)).toBe('ae-skill-creator')
   })
 
-  it('应该接受 swagger-parser 技能和命令', () => {
-    expect(AeSkillNameSchema.parse(SKILL.SWAGGER_PARSER)).toBe('ae:swagger-parser')
-    expect(AeCommandNameSchema.parse(COMMAND.SWAGGER_PARSER)).toBe('ae-swagger-parser')
-  })
-
   it('应该接受 playwright 指导技能和命令', () => {
     expect(AeSkillNameSchema.parse(SKILL.PLAYWRIGHT)).toBe('ae:playwright')
     expect(AeCommandNameSchema.parse(COMMAND.PLAYWRIGHT)).toBe('ae-playwright')

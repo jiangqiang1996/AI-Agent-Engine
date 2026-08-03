@@ -13,7 +13,7 @@ argument-hint: "[接口文档|业务流程描述] [设计用例路径(可选)]"
 ## 适用场景
 
 - 用户要求按业务流程编写接口自动化测试脚本（如"测试从创建到审批的完整流程"）
-- 用户提供了接口文档（Swagger/OpenAPI）、接口描述或接口实现代码，需要生成业务流程测试
+- 用户提供了接口描述或接口实现代码，需要生成业务流程测试
 - 用户提供了设计用例路径，需要从用例规格编译接口测试骨架
 - 用户需要对一组接口按业务顺序进行联调测试
 - 用户需要先登录再测试的认证场景
@@ -45,7 +45,7 @@ argument-hint: "[接口文档|业务流程描述] [设计用例路径(可选)]"
 | 文件 | 职责 |
 |------|------|
 | [references/auth.md](references/auth.md) | 认证流程：多认证支持、登录检测、Token/BasicAuth 注入、401 三路分流、auth plugin |
-| [references/collector.md](references/collector.md) | 接口采集：优先调用 ae:swagger-parser 工具，从 Swagger/代码/描述/直接信息中提取结构化接口定义 |
+| [references/collector.md](references/collector.md) | 接口采集：从代码/描述/直接信息中提取结构化接口定义 |
 | [references/templates.md](references/templates.md) | 模板库：模块化 lib/ 拆分、请求方法、断言、运行器、环境安全护栏、数据清理、条件分支、JSON report |
 
 ## 工作流程
@@ -87,7 +87,6 @@ argument-hint: "[接口文档|业务流程描述] [设计用例路径(可选)]"
 1. **理解业务流程**：向用户确认要测试的业务流程，或从用户描述、接口文档和现有测试代码中推断流程
 2. **接口信息采集**（→ references/collector.md）：按流程顺序采集各步骤涉及的接口定义
    - 优先参考项目中已有的集成测试代码
-   - 当来源为 Swagger/OpenAPI 时，**优先调用 `ae-swagger-parser` 工具**解析文档
    - 从代码/描述/直接信息中提取结构化接口定义
 3. **编排流程**：确定接口调用顺序、上下游数据传递、前置条件依赖
    - 为每个步骤分配稳定 stepId
@@ -140,10 +139,6 @@ argument-hint: "[接口文档|业务流程描述] [设计用例路径(可选)]"
 ## 调度代理
 
 使用 `@api-test-runner` 代理执行测试脚本组装和执行。
-
-## 复用工具
-
-- `ae:swagger-parser`：解析 Swagger/OpenAPI 文档
 
 ## 安全边界
 

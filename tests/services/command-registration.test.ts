@@ -80,13 +80,6 @@ describe('command-registration', () => {
     expect(config[COMMAND.TASK_LOOP]?.template).toContain(`使用 \`${SKILL.TASK_LOOP}\` 技能处理这次请求`)
   })
 
-  it('应该为 ae:swagger-parser 只生成基础命令', () => {
-    const config = buildCommandConfig('__missing_commands_dir__')
-
-    expect(config[COMMAND.SWAGGER_PARSER]).toBeDefined()
-    expect(config[COMMAND.SWAGGER_PARSER]?.template).toContain(SKILL.SWAGGER_PARSER)
-  })
-
   it('应该为 ae:skill-creator 只生成基础命令', () => {
     const config = buildCommandConfig('__missing_commands_dir__')
 
@@ -101,12 +94,6 @@ describe('command-registration', () => {
 
     expect(config[COMMAND.SAVE_EXPERIENCE]).toBeDefined()
     expect(config[COMMAND.SAVE_EXPERIENCE]?.template).toContain(`使用 \`${SKILL.SAVE_EXPERIENCE}\` 技能处理这次请求`)
-  })
-
-  it('应该保持 ae:swagger-parser catalog 与 SKILL.md frontmatter 名称一致', () => {
-    const skillContent = readFileSync('src/assets/skills/ae-swagger-parser/SKILL.md', 'utf8')
-
-    expect(skillContent).toContain(`name: ${SKILL.SWAGGER_PARSER}`)
   })
 
   it('应该保持 ae:skill-creator catalog 与 SKILL.md frontmatter 一致', () => {

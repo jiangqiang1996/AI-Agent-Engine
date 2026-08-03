@@ -28,7 +28,6 @@
 | 后端单元测试 | `/ae-test unit` |
 | 接口测试 | `/ae-test api` |
 | 数据库查询或操作 | `/ae-sql` |
-| Swagger/OpenAPI 联调摘要 | `/ae-swagger-parser` |
 | 图片转 Markdown 描述 | `/ae-image` |
 | 音频转 Markdown 描述 | `/ae-audio` |
 | 视频转 Markdown 描述 | `/ae-video` |
@@ -85,7 +84,6 @@
 | 实现后端功能 | `/ae-work` | `@backend-dev` | 处理 API、数据层、业务逻辑和中间件 |
 | 后端修复 | `/ae-fix backend` | `@backend-fix` | 错误分析、根因定位、修复实现和回归验证，遵循项目架构规范 |
 | 数据库查询或操作 | `/ae-sql` | — | 通过 JDBC 连接任意数据库执行 SQL |
-| 接口文档解析 | `/ae-swagger-parser` | — | 解析 Swagger/OpenAPI 输出联调摘要 |
 | 接口设计维度 | — | `@api-designer` | 端点清单、TypeScript interface、错误码体系 |
 | 数据库设计维度 | — | `@database-designer` | ER 模型、表结构、关系与外键、迁移策略 |
 | 架构设计维度 | — | `@architecture-designer` | 模块边界、依赖方向、分层规则、数据流 |
@@ -201,14 +199,6 @@
 
 浏览器操作一律通过 `ae:playwright` 技能完成。`/ae-fix frontend` 是统一前端修复入口，以 DOM 结构化数据诊断为主（computed style、bounding box），覆盖视觉修复、交互修复、状态管理修复、接口联调修复和无障碍修复，具备上下文检测→诊断→修复→验证内部闭环。`/ae-test e2e` 是浏览器 E2E 测试入口，覆盖验收测试、测试场景设计（plan/generate）、测试修复（heal）和回归验证。`ae:work` 在执行前端创建/修改任务时自动调度 `@frontend-dev`（视觉实现和逻辑实现）。
 
-### Swagger/OpenAPI
-
-```text
-/ae-swagger-parser ./openapi.json method:POST keyword:login mode:detail
-```
-
-`mode:overview` 输出接口概览，`mode:detail` 输出单接口或少量接口的联调摘要。该能力不请求业务接口，不生成 SDK，也不自动爬取 Swagger UI 页面中的规格地址。
-
 ### 接口测试
 
 ```text
@@ -261,7 +251,6 @@ PDF 文件的 Markdown 读取功能通过 `ae:pdf` 技能的 `to-markdown` 操�
 | `/ae-handoff` | `—` | 提取上下文并创建独立新会话 | 用于交接 |
 | `/ae-task-loop` | `[一句话目标描述]` | 循环执行和验证直到目标达成 | 不适合需求不清的大型功能 |
 | `/ae-sql` | `[SQL 语句]` | 通过 JDBC 连接数据库并执行 SQL | 执行前应确认目标库和语句风险 |
-| `/ae-swagger-parser` | `[source] [method:<HTTP_METHOD>] [path:<PATH>] [tag:<TAG>] [keyword:<TEXT>] [mode:overview\|detail]` | 解析 Swagger/OpenAPI 并输出联调摘要 | 不请求业务接口 |
 | `/ae-image` | `file=图片路径 [format=jpg|png] [outputPath=路径]` | 将本地图片转换为 Markdown 描述 | 支持 JPG/PNG/GIF/WebP/BMP |
 | `/ae-audio` | `file=音频路径 [format=mp3\|wav\|ogg\|flac\|m4a\|aac] [outputPath=路径]` | 将本地音频转换为 Markdown 描述 | 支持 MP3/WAV/OGG/FLAC/M4A/AAC |
 | `/ae-video` | `file=视频路径 [format=mp4\|webm\|avi\|mov\|mkv\|flv] [outputPath=路径]` | 将本地视频转换为 Markdown 描述 | 支持 MP4/WebM/AVI/MOV/MKV/FLV |
@@ -357,7 +346,6 @@ AE 采用 13 代理全并行架构，所有激活代理在同一轮一次性发�
 | --- |---------------------------------------| --- |
 | `ae-help` | 生成当/前运行时帮助                            | 不修改配置 |
 | `ae-handoff` | 创建独立新会话并注入上下文                         | 不做提示词优化 |
-| `ae-swagger-parser` | 解析 Swagger/OpenAPI 规格                 | 不请求业务接口 |
 | `ae-image` | 将本地图片转换为 Markdown 描述                  | 不支持远程 URL，不处理音频/视频 |
 | `ae-audio` | 将本地音频转换为 Markdown 描述                  | 不支持远程 URL，不处理图片/视频 |
 | `ae-video` | 将本地视频转换为 Markdown 描述                  | 不支持远程 URL，不处理图片/音频 |
