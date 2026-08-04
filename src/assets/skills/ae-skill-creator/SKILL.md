@@ -66,7 +66,7 @@ argument-hint: "<技能名或需求描述> [--global] [--no-command|--command-on
 7. 更新既有命令：先读取命令文件；如果该命令包装技能，还要读取对应 `SKILL.md`；如果是独立命令，所有流程、边界和验证方式必须直接写在命令正文中。
 8. 写入前确认：向用户展示更新摘要或草案，说明创建模式和触及文件；得到明确确认后再编辑 `SKILL.md` 或同级命令。
 9. 编辑 `SKILL.md`：写清角色、适用场景、输入处理、执行步骤、边界和验证方式；默认只写 `name` 和 `description`，仅在用户明确需要时添加 `license`、`compatibility`、`metadata` 等可选 frontmatter；更新时优先保留仍有效的现有约束。
-10. 编辑命令文件：包装技能的命令正文应明确要求加载并使用同名技能，并传递 `$ARGUMENTS`；独立命令正文必须直接包含完整处理流程，并保留 `$ARGUMENTS`；仅在需要指定执行代理、子任务或模型时写入 `agent`、`subtask`、`model`。
+10. 编辑命令文件：包装技能的命令正文应明确要求加载并使用同名技能，并传递 `$ARGUMENTS`；独立命令正文必须直接包含完整处理流程，并保留 `$ARGUMENTS`；命令 frontmatter 默认包含 `subtask` 元数据（布尔值，默认 `false`）和 `model` 场景变量（`$quick` 查询帮助类、`$standard` 创建交互类、`$deep` 规划审查执行类、`$vision` 浏览器视觉类、`$audio` 音频识别类、`$video` 视频识别类）；仅在需要绑定指定执行代理时写入 `agent`。
 11. 校验结构：同时创建时运行 `node <skill-creator路径>/scripts/quick_validate.mjs <技能目录> --with-command`；只创建技能时省略 `--with-command`；只创建命令时运行 `node <skill-creator路径>/scripts/quick_validate.mjs --command-file <命令文件>`。
 12. 如校验失败，按错误信息修复 frontmatter、目录名或命令路径后再次校验。
 

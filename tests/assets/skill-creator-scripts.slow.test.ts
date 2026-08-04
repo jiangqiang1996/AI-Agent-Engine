@@ -107,7 +107,7 @@ describe('skill-creator 脚本', () => {
     expect(validate.status, validate.stderr).toBe(0)
   })
 
-  it('quick_validate 应该允许 OpenCode 支持的 skill 和 command 可选 frontmatter', () => {
+  it('quick_validate 应该允许 OpenCode 支持的 skill 和 command frontmatter', () => {
     const projectRoot = createTempDir()
     const skillDir = join(projectRoot, '.opencode/skills/test-skill')
     const commandDir = join(projectRoot, '.opencode/commands')

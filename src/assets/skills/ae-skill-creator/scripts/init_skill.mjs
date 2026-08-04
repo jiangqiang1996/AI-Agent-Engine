@@ -99,11 +99,11 @@ function skillTemplate(name, description) {
 }
 
 function commandTemplate(name) {
-  return `---\ndescription: 使用 ${name} 技能处理请求\n---\n\n请使用 \`skill\` 工具加载 \`${name}\` 技能，并严格按照该技能处理以下请求：\n\n$ARGUMENTS\n`
+  return `---\ndescription: 使用 ${name} 技能处理请求\nmodel: $standard\nsubtask: false\n---\n\n请使用 \`skill\` 工具加载 \`${name}\` 技能，并严格按照该技能处理以下请求：\n\n$ARGUMENTS\n`
 }
 
 function commandOnlyTemplate(name, description) {
-  return `---\ndescription: ${JSON.stringify(description)}\n---\n\n# ${name}\n\n请直接按照以下流程处理用户请求，不要尝试加载同名技能：\n\n1. 理解用户目标和约束。\n2. 读取必要上下文。\n3. 执行任务并验证结果。\n4. 汇报完成项、验证结果和剩余风险。\n\n用户请求：\n\n$ARGUMENTS\n`
+  return `---\ndescription: ${JSON.stringify(description)}\nmodel: $deep\nsubtask: false\n---\n\n# ${name}\n\n请直接按照以下流程处理用户请求，不要尝试加载同名技能：\n\n1. 理解用户目标和约束。\n2. 读取必要上下文。\n3. 执行任务并验证结果。\n4. 汇报完成项、验证结果和剩余风险。\n\n用户请求：\n\n$ARGUMENTS\n`
 }
 
 function printLine(message) {

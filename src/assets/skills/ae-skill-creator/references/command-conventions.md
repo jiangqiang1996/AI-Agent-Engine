@@ -16,6 +16,8 @@ OpenCode 命令是 Markdown 文件。项目级命令只影响当前项目，全�
 ```markdown
 ---
 description: 使用 api-tester 技能处理请求
+model: $standard
+subtask: false
 ---
 
 请使用 `skill` 工具加载 `api-tester` 技能，并严格按照该技能处理以下请求：
@@ -28,6 +30,8 @@ $ARGUMENTS
 ```markdown
 ---
 description: 执行 API 联调流程
+model: $deep
+subtask: false
 ---
 
 请直接按照以下流程处理用户请求，不要尝试加载同名技能：
@@ -48,6 +52,21 @@ $ARGUMENTS
 - 命令正文应明确说明如何使用这些参数，而不是只重复占位符。
 - 如果需要固定位置参数，应在命令正文中写清顺序和含义。
 
+## model 场景选择
+
+创建命令时 frontmatter 默认写入 `model` 场景变量，按命令复杂度选择：
+
+| 场景变量 | 适用命令类型 | 示例 |
+|---------|------------|------|
+| `$quick` | 查询、帮助、列表类 | `/ae-help` |
+| `$standard` | 创建、交互、常规执行类 | `/ae-prd`、`/ae-design` |
+| `$deep` | 规划、审查、复杂执行类 | `/ae-work`、`/ae-review` |
+| `$vision` | 浏览器视觉、截图类 | `/ae-test e2e` |
+| `$audio` | 音频识别类 | `/ae-audio` |
+| `$video` | 视频识别类 | `/ae-video` |
+
+也可写模型常量名直接指定模型。`subtask` 默认 `false`（当前会话执行），需要隔离上下文时设为 `true`。
+
 ## 同级约定
 
 - 项目级技能对应项目级命令，适合只服务当前仓库的工作流。
@@ -58,7 +77,8 @@ $ARGUMENTS
 
 - 命令文件存在于与技能同级的命令目录。
 - frontmatter 包含 `description`。
-- 可选 frontmatter 包括 `agent`、`subtask`、`model`；只有需要绑定指定代理、强制子任务运行或覆盖模型时才写入。
+- frontmatter 默认包含 `subtask`（布尔值，默认 `false`）和 `model`（场景变量 `$quick`/`$standard`/`$deep`/`$vision`，也可写模型常量名）；`subtask: false` 表示在当前会话执行，`subtask: true` 表示强制子任务运行。
+- 可选 frontmatter 包括 `agent`；只有需要绑定指定执行代理时才写入。
 - 命令正文是 `template`；Markdown 命令文件通常不需要在 frontmatter 中写 `template`。
 - 包装技能的命令正文明确要求加载同名技能；独立命令正文直接包含完整执行流程。
 - 正文保留 `$ARGUMENTS`，避免丢失用户请求。
