@@ -64,6 +64,107 @@ describe('ae-review-scope-analyze 工具', () => {
     })
   })
 
+  describe('排除规则', () => {
+    it('node_modules 下文件应被排除', async () => {
+      const result = await callTool({
+        files: ['node_modules/react/index.js', 'src/app.ts'],
+        reviewMode: 'changes',
+      })
+      const excluded = result.excludedFiles as string[]
+      expect(excluded).toContain('node_modules/react/index.js')
+    })
+
+    it('ae/reviews 下文件应被排除', async () => {
+      const result = await callTool({
+        files: ['ae/reviews/run-1/metadata.json', 'src/app.ts'],
+        reviewMode: 'changes',
+      })
+      const excluded = result.excludedFiles as string[]
+      expect(excluded).toContain('ae/reviews/run-1/metadata.json')
+    })
+
+    it('ae/handoffs 下文件应被排除', async () => {
+      const result = await callTool({
+        files: ['ae/handoffs/20260101-worktree-handoff.md', 'src/app.ts'],
+        reviewMode: 'changes',
+      })
+      const excluded = result.excludedFiles as string[]
+      expect(excluded).toContain('ae/handoffs/20260101-worktree-handoff.md')
+    })
+
+    it('ae/logs 下文件应被排除', async () => {
+      const result = await callTool({
+        files: ['ae/logs/cmd-20260101-abc.log', 'src/app.ts'],
+        reviewMode: 'changes',
+      })
+      const excluded = result.excludedFiles as string[]
+      expect(excluded).toContain('ae/logs/cmd-20260101-abc.log')
+    })
+
+    it('ae/screenshots 下文件应被排除', async () => {
+      const result = await callTool({
+        files: ['ae/screenshots/test.png', 'src/app.ts'],
+        reviewMode: 'changes',
+      })
+      const excluded = result.excludedFiles as string[]
+      expect(excluded).toContain('ae/screenshots/test.png')
+    })
+
+    it('ae/markdown 下文件应被排除', async () => {
+      const result = await callTool({
+        files: ['ae/markdown/image-to-markdown-001.md', 'src/app.ts'],
+        reviewMode: 'changes',
+      })
+      const excluded = result.excludedFiles as string[]
+      expect(excluded).toContain('ae/markdown/image-to-markdown-001.md')
+    })
+
+    it('ae/documents 下文件应被排除', async () => {
+      const result = await callTool({
+        files: ['ae/documents/pdf/report.pdf', 'src/app.ts'],
+        reviewMode: 'changes',
+      })
+      const excluded = result.excludedFiles as string[]
+      expect(excluded).toContain('ae/documents/pdf/report.pdf')
+    })
+
+    it('ae/reports 下文件应被排除', async () => {
+      const result = await callTool({
+        files: ['ae/reports/api-test/run-1.json', 'src/app.ts'],
+        reviewMode: 'changes',
+      })
+      const excluded = result.excludedFiles as string[]
+      expect(excluded).toContain('ae/reports/api-test/run-1.json')
+    })
+
+    it('.opencode 下文件不应被排除', async () => {
+      const result = await callTool({
+        files: ['.opencode/rules/custom.md', 'src/app.ts'],
+        reviewMode: 'changes',
+      })
+      const excluded = result.excludedFiles as string[]
+      expect(excluded).not.toContain('.opencode/rules/custom.md')
+    })
+
+    it('ae/solutions 下文件不应被排除', async () => {
+      const result = await callTool({
+        files: ['ae/solutions/2026-01-01-fix.md', 'src/app.ts'],
+        reviewMode: 'changes',
+      })
+      const excluded = result.excludedFiles as string[]
+      expect(excluded).not.toContain('ae/solutions/2026-01-01-fix.md')
+    })
+
+    it('.env 文件应被排除（回归保护）', async () => {
+      const result = await callTool({
+        files: ['.env', 'src/app.ts'],
+        reviewMode: 'changes',
+      })
+      const excluded = result.excludedFiles as string[]
+      expect(excluded).toContain('.env')
+    })
+  })
+
   describe('OCR 支持的文件格式', () => {
     it('.sql 文件应激活 ocr-reviewer', async () => {
       const result = await callTool({

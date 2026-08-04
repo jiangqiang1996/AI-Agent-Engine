@@ -85,15 +85,24 @@ function getExt(filePath: string): string {
   return filePath.slice(lastDot + 1).toLowerCase()
 }
 
+const EXCLUDED_DIR_PREFIXES = [
+  'node_modules/',
+  'ae/reviews/',
+  'ae/handoffs/',
+  'ae/logs/',
+  'ae/screenshots/',
+  'ae/markdown/',
+  'ae/documents/',
+  'ae/reports/',
+]
+
 function isExcluded(filePath: string): boolean {
   const normalized = normalizePath(filePath)
   const ext = getExt(normalized)
   const basename = normalized.split('/').pop() ?? normalized
   if (ext === 'env') return true
   if (basename.startsWith('.env') && basename !== '.env.example' && basename !== '.env.template') return true
-  if (normalized.startsWith('.opencode/')) return true
-  if (normalized.startsWith('ae/reviews/')) return true
-  if (normalized.startsWith('ae/solutions/')) return true
+  if (EXCLUDED_DIR_PREFIXES.some((prefix) => normalized.startsWith(prefix))) return true
   if (EXCLUDED_EXTENSIONS.has(ext)) return true
   if (normalized === 'package-lock.json' || normalized === 'yarn.lock' || normalized === 'pnpm-lock.yaml') return true
   return false

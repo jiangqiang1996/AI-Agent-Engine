@@ -22,8 +22,10 @@
 - 数据：.csv .xlsx .xls .pdf .doc .docx
 - 锁文件：package-lock.json yarn.lock pnpm-lock.yaml
 - 密钥：.env .env.*（保留 .env.example .env.template）——**在文件收集阶段即从变更文件列表中移除，后续任何阶段不可读取或引用这些文件的内容**
-- 运行时目录：.opencode/ 下的所有文件——**始终排除，不可覆盖**
-- 受保护产物：ae/reviews/* ae/solutions/*
+- 依赖目录：node_modules/ 下的所有文件——**始终排除，不可覆盖**
+- 受保护产物：ae/reviews/* ae/handoffs/* ae/logs/* ae/screenshots/* ae/markdown/* ae/documents/* ae/reports/*——**始终排除，不可覆盖**
+- 运行时目录：.opencode/ 下的所有文件——**默认排除，用户明确指定时纳入**
+- 经验沉淀：ae/solutions/*——**默认排除，用户明确指定时纳入**
 
 ## 路由定义
 
