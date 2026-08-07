@@ -49,7 +49,7 @@
 
 ### 4.1 阻塞型命令工具禁令（硬约束）
 
-- **bash 工具禁止在任何情况下调用存在阻塞风险的命令**：包括但不限于 web 服务器（如 `npm run dev`、`vite`、`ng serve`）、watch 进程（如 `tsc --watch`、`nodemon`）、交互式 REPL（如 `node`、`python`、`irb`）、长连接服务（如 `tail -f`、`kafka-console-consumer`）、监听端口/订阅循环的程序。这类命令必须使用 `ae-async-bash` 后台执行
+- **bash 工具禁止在任何情况下调用存在阻塞风险的命令**：包括但不限于 web 服务器（如 `npm run dev`、`vite`、`ng serve`）、watch 进程（如 `tsc --watch`、`nodemon`）、交互式 REPL（如 `node`、`python`、`irb`）、长连接服务（如 `tail -f`、`kafka-console-consumer`）、监听端口/订阅循环的程序、浏览器 daemon 启动命令（如 `playwright-cli open`、`playwright-cli attach`）。这类命令必须使用 `ae-async-bash` 后台执行
 - **阻塞风险判定原则**：命令具备以下任一特征即视为存在阻塞风险：会监听端口或文件变化、会启动持续运行的服务进程、会进入交互式输入等待、会进入无限或长时间循环、会建立并保持长连接、会进入订阅/轮询循环、会以 daemon/后台常驻方式运行、命令明确属于服务器类或 watch 类启动命令
 - **不确定即按存在阻塞风险处理**：当无法确定命令是否存在阻塞风险时，必须按有阻塞风险处理，使用 `ae-async-bash` 工具后台执行
 - **`ae-async-bash` 调用失败后禁止降级使用 bash 工具**：当 `ae-async-bash` 启动命令失败（如命令语法错误、路径不存在、权限不足）时，**在任何情况下**都不得转而用 bash 工具执行同一阻塞型命令。应先排查并修复失败原因（校正命令、修正路径、补全权限），修复后重试 `ae-async-bash`；无法修复时向用户报告失败原因和日志路径，由用户决定后续操作

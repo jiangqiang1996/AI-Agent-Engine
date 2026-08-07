@@ -4,14 +4,14 @@ description: 自动化浏览器交互、测试网页并处理 Playwright 测试�
 allowed-tools: Bash(playwright-cli:*) Bash(npx:*) Bash(npm:*) ae-async-bash
 ---
 
-## Windows 平台阻塞警告
+## 浏览器启动命令的阻塞约束
 
-`playwright-cli attach` 和 `playwright-cli open` 在 Windows 上会启动长生命周期 daemon 进程。由于 Windows 进程树脱离机制的限制（参见 [playwright issue #41530](https://github.com/microsoft/playwright/issues/41530)），这些命令通过 opencode bash 工具执行时会**永久阻塞**——输出能正常打印，但调用进程永不返回。
+`playwright-cli open` 和 `playwright-cli attach` 会启动长生命周期 daemon 进程，属于阻塞型命令。**一律使用 `ae-async-bash` 后台执行**，然后读取日志文件获取输出，禁止用 bash 工具直接执行。其他短命令（`snapshot`、`click`、`goto` 等）不受影响，可正常用 bash 工具执行。
 
-**Windows 上必须使用 `ae-async-bash` 后台执行 `attach` 和 `open` 命令**，然后读取日志文件获取输出。其他短命令（`snapshot`、`click`、`goto` 等）不受影响，可正常用 bash 工具执行。
+Windows 上阻塞更严重：由于进程树脱离机制限制（参见 [playwright issue #41530](https://github.com/microsoft/playwright/issues/41530)），通过 bash 工具执行会**永久阻塞**——输出能正常打印，但调用进程永不返回。
 
 ```bash
-# Windows 上启动浏览器（必须用 ae-async-bash）
+# 启动浏览器（必须用 ae-async-bash）
 # ae-async-bash: playwright-cli attach --cdp=msedge
 # 等待几秒后读取日志文件确认连接成功
 
@@ -19,8 +19,6 @@ allowed-tools: Bash(playwright-cli:*) Bash(npx:*) Bash(npm:*) ae-async-bash
 playwright-cli snapshot
 playwright-cli click e5
 ```
-
-macOS/Linux 不受此问题影响，可正常使用 bash 工具执行所有命令。
 
 # 使用 playwright-cli 进行浏览器自动化
 

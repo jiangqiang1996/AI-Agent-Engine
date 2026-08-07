@@ -109,7 +109,7 @@ playwright-cli open https://example.com --profile=/path/to/profile
 
 使用 `attach` 连接已经运行的浏览器，而非启动新实例。
 
-> **Windows 阻塞警告**：`attach` 命令在 Windows 上通过 opencode bash 工具执行会永久阻塞（daemon 进程无法脱离进程树）。Windows 上必须使用 `ae-async-bash` 后台执行 `attach`，然后读取日志文件。详见 [SKILL.md Windows 平台阻塞警告](../SKILL.md)。
+> **阻塞约束**：`attach` 命令会启动长生命周期 daemon 进程，一律使用 `ae-async-bash` 后台执行，禁止用 bash 工具直接执行。详见 [SKILL.md 浏览器启动命令的阻塞约束](../SKILL.md)。
 
 ### 通过通道名称连接
 
