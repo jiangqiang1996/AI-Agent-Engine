@@ -36,6 +36,7 @@ export const SKILL = {
   GRILL: 'ae:grill',
   OFFICECLI: 'ae:officecli',
   OCR: 'ae:ocr',
+  SPEC_HTML: 'ae:spec-html',
 } as const
 
 type SkillToCommand<S extends string> = S extends `ae:${infer R}` ? `ae-${R}` : S
@@ -81,6 +82,8 @@ export const AGENT = {
   NON_FUNCTIONAL_DESIGNER: 'non-functional-designer',
   FRONTEND_DEV: 'frontend-dev',
   BACKEND_DEV: 'backend-dev',
+  SPEC_AUTHOR: 'spec-author',
+  SPEC_TRANSLATOR: 'spec-translator',
 } as const
 
 export function skillDir(skillName: string): string {

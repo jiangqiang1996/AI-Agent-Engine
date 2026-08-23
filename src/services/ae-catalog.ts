@@ -282,6 +282,14 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
     skillFile: `src/assets/skills/${skillDir(SKILL.OCR)}/SKILL.md`,
     tier: 'tools',
   },
+  {
+    skillName: SKILL.SPEC_HTML,
+    commandName: COMMAND.SPEC_HTML,
+    description: '需求规格与软件双向同步：编排 @spec-author 生成纯静态 HTML 需求产物 + 业务描述文件，@spec-translator 翻译为目标软件源码。需求产物扁平自包含、最小需求、业务闭环、功能完整、交互完整，不含安全和并发需求。最后一步强制分析需求与源码一致性，不一致时分析同步方向或列出所有差异询问用户。',
+    argumentHint: '[需求描述|源码路径|规格产物路径] [--sync-direction=auto|spec-to-code|code-to-spec]',
+    skillFile: `src/assets/skills/${skillDir(SKILL.SPEC_HTML)}/SKILL.md`,
+    tier: 'core',
+  },
 ]
 
 const REQUIRED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'], string, string?]> = [
@@ -320,6 +328,8 @@ const GILDED_AGENTS: ReadonlyArray<readonly [string, AgentDefinition['stage'], s
   [AGENT.SECURITY_DESIGNER, 'design', '安全设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 security.md 设计契约，含威胁模型、信任边界、认证授权流程、数据分级和密钥管理'],
   [AGENT.OBSERVABILITY_DESIGNER, 'design', '可观测性设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 observability.md 设计契约，含日志规范、指标体系、告警规则、健康检查和 SLO/SLI 定义'],
   [AGENT.NON_FUNCTIONAL_DESIGNER, 'design', '非功能设计维度专精代理：根据 prd 需求和 ae:grill 追问结果产出 non-functional.md 设计契约，含性能目标、并发模型、事务边界、缓存策略和容量规划'],
+  [AGENT.SPEC_AUTHOR, 'design', '需求规格编写代理：从需求描述、现有源码或用户描述生成纯静态 HTML 需求产物 + 业务描述文件。HTML 精确复刻操作、布局（含自适应）、表单字段和业务逻辑；描述文件补充业务逻辑并记录主题色。新建需求时由编排层代为执行 ae:grill 澄清，追问结果作为输入传入。'],
+  [AGENT.SPEC_TRANSLATOR, 'develop', '需求规格翻译代理：将纯静态 HTML 需求产物 + 业务描述文件翻译为目标软件源码（web/桌面/移动端）。在不违反需求约束基础上自行设计更美观的视觉。自动检测目标平台，识别失败时询问用户。'],
 ]
 
 const STAGE_TO_DIR: Record<AgentDefinition['stage'], string> = {
