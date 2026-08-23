@@ -285,7 +285,7 @@ const PHASE_ONE_ENTRIES: AeAssetEntry[] = [
   {
     skillName: SKILL.SPEC_HTML,
     commandName: COMMAND.SPEC_HTML,
-    description: '需求规格与软件双向同步：编排 @spec-author 生成纯静态 HTML 需求产物 + 业务描述文件，@spec-translator 翻译为目标软件源码。需求产物扁平自包含、最小需求、业务闭环、功能完整、交互完整，不含安全和并发需求。最后一步强制分析需求与源码一致性，不一致时分析同步方向或列出所有差异询问用户。',
+    description: '需求规格与软件双向同步：编排 @spec-author 生成纯静态 HTML 需求产物 + 业务描述文件，@spec-translator 翻译为目标软件源码。需求产物扁平自包含、最小需求、业务闭环、功能完整、交互完整，不含安全需求、并发需求和非功能需求。涉及软件源码时强制分析需求与源码一致性，不一致时分析同步方向或列出所有差异询问用户。支持自然语言意图识别。',
     argumentHint: '[需求描述|源码路径|规格产物路径] [--sync-direction=auto|spec-to-code|code-to-spec]',
     skillFile: `src/assets/skills/${skillDir(SKILL.SPEC_HTML)}/SKILL.md`,
     tier: 'core',
