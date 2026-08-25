@@ -3,10 +3,14 @@
 /**
  * AE 插件安装或更新脚本
  *
- * 用法：node scripts/install.js [--yes] [global|project]
- * --yes：跳过所有交互式确认，直接执行（适用于 LLM 代理已获授权的场景）
- * - global（默认）：安装到 ~/.config/opencode/ai-agent-engine
- * - project：安装到 <当前项目根目录>/.opencode/ai-agent-engine
+ * 用法：node scripts/install.js --scope <global|project> [--yes] [--project-root <path>]
+ *   --scope <global|project>：指定安装范围（必须显式指定，避免误操作全局安装）
+ *     - global：安装到 ~/.config/opencode/ai-agent-engine
+ *     - project：安装到 <当前项目根目录>/.opencode/ai-agent-engine
+ *   --yes / -y：跳过所有交互式确认，直接执行（适用于 LLM 代理已获授权的场景）
+ *   --project-root <path>：显式指定项目根目录（项目级安装时决定安装位置）
+ *
+ * 向后兼容：也接受 `global` 或 `project` 位置参数形式，但推荐使用 --scope flag。
  *
  * 自动判断：
  * - 已安装 → 更新：拉取最新代码，重新安装依赖并构建
@@ -14,7 +18,8 @@
  *
  * 环境检查（Node.js/npm/git）由调用方（/ae-install 命令模板）在脚本执行前完成。
  *
- * 不传 --yes 时，脚本内置交互式 confirm，destructive 操作前等待用户确认。
+ * 未传 --yes 时，脚本内置交互式 confirm，destructive 操作前等待用户确认。
+ * 未显式指定 scope 时报错退出，不静默回退到全局，避免误操作全局安装。
  */
 
 import { existsSync } from 'node:fs'
@@ -28,13 +33,24 @@ const BRIDGE_CONTENT = "export { default } from '../ai-agent-engine/dist/src/ind
 
 function parseArgs(argv) {
   const yes = argv.includes('--yes') || argv.includes('-y')
-  let scope = 'global'
+  let scope = null
   let projectRoot = null
+  let scopeFromFlag = false
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === '--project-root' && argv[i + 1] && !argv[i + 1].startsWith('-')) {
       projectRoot = argv[i + 1]
       i++
-    } else if (argv[i] === 'project' || argv[i] === 'global') {
+    } else if (argv[i] === '--scope' && argv[i + 1] && !argv[i + 1].startsWith('-')) {
+      const scopeVal = argv[i + 1]
+      if (scopeVal !== 'project' && scopeVal !== 'global') {
+        console.error(`错误：无效的 scope 值 "${scopeVal}"，必须为 global 或 project。`)
+        process.exit(1)
+      }
+      scope = scopeVal
+      scopeFromFlag = true
+      i++
+    } else if (!scopeFromFlag && (argv[i] === 'project' || argv[i] === 'global')) {
+      // 向后兼容：接受位置参数形式，但 --scope flag 优先
       scope = argv[i] === 'project' ? 'project' : 'global'
     }
   }
@@ -182,6 +198,13 @@ async function freshInstall(paths, confirmFn) {
 
 async function main() {
   const { yes: autoYes, scope, projectRoot } = parseArgs(process.argv.slice(2))
+
+  if (!scope) {
+    console.error('错误：必须显式指定安装范围。使用 --scope global 或 --scope project。')
+    console.error('用法：node scripts/install.js --scope <global|project> [--yes] [--project-root <path>]')
+    process.exit(1)
+  }
+
   const confirmFn = makeConfirm(autoYes)
 
   const paths = getPaths(scope, projectRoot)

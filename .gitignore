@@ -25,3 +25,4 @@ ae/reviews
 /ae/documents/
 /ae/slides/
 .playwright-cli
+.codefree-o/

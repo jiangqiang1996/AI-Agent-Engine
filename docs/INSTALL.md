@@ -54,25 +54,25 @@ AE 支持两种安装模式：
 脚本自动判断已安装则更新、未安装则全新安装。
 
 ```text
-# 全局安装或更新（默认）
-/ae-install
+# 全局安装或更新
+/ae-install global
 
 # 项目级安装或更新
 /ae-install project
 ```
 
-不传参数时默认执行全局安装。传入 `project` 时执行项目级安装。
+不传参数时默认执行全局安装。传入 `project` 时执行项目级安装，传入 `global` 时执行全局安装。
 
 ### 流程
 
-0. **确定安装范围**：不传参数或 `global` 为全局，`project` 为项目级
+0. **确定安装范围**：模型从用户提示词解析范围（`project` 为项目级，`global` 为全局，用户未明确说明时默认 `global`），通过 `--scope` flag 显式传给脚本
 1. **环境前置检查**：见上方「一、环境前置检查」
 2. **一次性授权确认**：使用 question 工具向用户确认授权（包含路径和操作说明），只确认一次
    - 操作类型：安装或更新（已安装时为更新）
    - 安装范围：全局或项目级
    - 具体路径：仓库目录和桥接文件路径
    - 更新场景需说明：会丢弃该仓库的本地未提交修改和未追踪文件
-3. **执行安装脚本**：`node "<脚本绝对路径>" --yes --project-root "<当前项目根目录>" <scope>`，脚本自动完成安装或更新（脚本路径按 scope 解析，见下方手动安装章节）
+3. **执行安装脚本**：`node "<脚本绝对路径>" --scope <scope> --yes --project-root "<当前项目根目录>"`，脚本自动完成安装或更新（脚本路径按 scope 解析，见下方手动安装章节；必须使用 `--scope` flag 显式指定范围，脚本未收到显式 scope 时报错退出）
 4. **playwright-cli 自动安装**（无需用户授权，此步骤由 `/ae-install` 命令模板在安装脚本执行完成后执行，不在 `scripts/install.js` 内部）：
    - 执行 `playwright-cli --version` 检查是否可用
    - 不可用时直接执行 `npm install -g --force @playwright/cli@latest`（`--force` 确保覆盖已有旧版本）
@@ -90,7 +90,7 @@ AE 支持两种安装模式：
 在任意目录执行（`<脚本路径>` 为仓库中 `scripts/install.js` 的绝对路径）：
 
 ```bash
-node "<脚本路径>" --yes --project-root "<当前项目根目录>" global
+node "<脚本路径>" --scope global --yes --project-root "<当前项目根目录>"
 ```
 
 #### 项目级
@@ -98,10 +98,10 @@ node "<脚本路径>" --yes --project-root "<当前项目根目录>" global
 显式指定目标项目根目录（无需切换工作目录）：
 
 ```bash
-node "<脚本路径>" --yes --project-root "<目标项目根目录>" project
+node "<脚本路径>" --scope project --yes --project-root "<目标项目根目录>"
 ```
 
-> **注意：** 项目级安装仅对指定项目生效。如需全局生效，请使用全局安装。项目级安装和全局安装可以共存，项目级优先。
+> **注意：** 必须显式指定安装范围（推荐使用 `--scope` flag，也向后兼容 `global`/`project` 位置参数形式），脚本未收到任何显式 scope 时报错退出。项目级安装仅对指定项目生效。如需全局生效，请使用全局安装。项目级安装和全局安装可以共存，项目级优先。
 
 ---
 

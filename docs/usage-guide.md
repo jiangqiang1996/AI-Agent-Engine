@@ -266,7 +266,7 @@ PDF 文件的 Markdown 读取功能通过 `ae:pdf` 技能的 `to-markdown` 操�
 | `/ae-agent-creator` | `[代理用途\|代理名称] [--global] [--command]` | 创建或更新 OpenCode 原生代理 | 默认项目级；全局级需显式指定 |
 | `/ae-skill-creator` | `<技能名或需求描述> [--global] [--no-command\|--command-only] [--from-session]` | 创建或更新 OpenCode 原生技能和命令 | 支持技能、命令或二者同时创建；`--from-session` 从当前会话沉淀技能 |
 | `/ae-help` | `[技能名或关键词]` | 查看运行时能力清单 | 权威只读入口 |
-| `/ae-install` | `[global\|project]` | 安装或更新 AE 插件 | 自动判断已装则更新、未装则安装 |
+| `/ae-install` | `[global\|project]` | 安装或更新 AE 插件 | 自动判断已装则更新、未装则安装；范围必须显式指定 |
 | `/ae-uninstall` | `[global\|project]` | 卸载 AE 插件 | 删除桥接文件和仓库目录 |
 
 ## 非技能基础命令

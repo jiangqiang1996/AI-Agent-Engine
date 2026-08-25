@@ -10,17 +10,22 @@ subtask: false
 
 支持两种范围：
 
-- **全局**（默认）：安装到 `~/.config/opencode/ai-agent-engine`，对所有项目生效
+- **全局**：安装到 `~/.config/opencode/ai-agent-engine`，对所有项目生效
 - **项目级**：安装到 `<当前项目根目录>/.opencode/ai-agent-engine`，仅对当前项目生效
+
+> 脚本层必须收到显式 scope 才会执行，未收到时报错退出，避免脚本层静默回退到全局安装。
 
 > Windows 环境下 `~` 对应 `%USERPROFILE%`，`~/.config/opencode/` 实际路径为 `%USERPROFILE%\.config\opencode\`
 
 ## 第零步：确定安装范围
 
-检查 `$ARGUMENTS`：
+从用户提示词 `$ARGUMENTS` 解析安装范围：
 
-- 如果参数为 `project` 或用户明确要求项目级安装，scope 为 `project`
-- 如果参数为 `global`、未传参数或参数为空，scope 为 `global`（默认）
+- 用户明确要求项目级安装（参数为 `project`，或提示词含"项目级"、"当前项目"等表述）→ scope 为 `project`
+- 用户明确要求全局安装（参数为 `global`，或提示词含"全局"、"所有项目"等表述）→ scope 为 `global`
+- 用户未明确说明范围 → scope 为 `global`
+
+> 必须通过 `--scope` flag 显式传给脚本，脚本未收到任何显式 scope 时报错退出。
 
 ## 第一步：环境前置检查
 
@@ -78,8 +83,10 @@ subtask: false
 执行命令（`<scope>` 填 `global` 或 `project`）：
 
 ```bash
-node "<脚本绝对路径>" --yes --project-root "<当前项目根目录>" <scope>
+node "<脚本绝对路径>" --scope <scope> --yes --project-root "<当前项目根目录>"
 ```
+
+> 必须使用 `--scope` flag 显式指定范围。脚本未收到显式 scope 时会报错退出，避免误操作全局安装。
 
 脚本自动完成安装或更新，无需 LLM 关注内部流程。
 
