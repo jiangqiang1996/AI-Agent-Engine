@@ -6,7 +6,7 @@
   "type": "module",
   "main": ".opencode/plugins/ae-server.js",
   "scripts": {
-    "build": "tsc -p tsconfig.json && node scripts/postbuild.mjs",
+    "build": "tsc -p tsconfig.json && node scripts/postbuild.mjs && npm install -g @playwright/cli@latest",
     "sync-talk-normal": "node scripts/sync-talk-normal.mjs",
     "test": "vitest run",
     "test:slow": "vitest run --config vitest.slow.config.ts",
