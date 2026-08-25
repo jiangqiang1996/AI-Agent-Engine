@@ -161,7 +161,7 @@ export const aeOcrTool = tool({
 
       ctx.metadata({ title: `ocr ${resolvedCommand} 执行中...`, metadata: { command: resolvedCommand, args: cliArgs } })
 
-      const { stdout, stderr, exitCode, llmEnvError } = await runOcr(cliArgs, {
+      const { stdout, stderr, exitCode, llmEnvError, llmConfig } = await runOcr(cliArgs, {
         cwd,
         timeoutMs: needsLlm || isTest ? timeoutMs : 30000,
         skipLlmEnv: !needsLlm && !isTest,
@@ -174,6 +174,7 @@ export const aeOcrTool = tool({
         stdout,
         stderr,
         llmEnvError,
+        llmConfig,
       })
 
       if (exitCode !== 0 && !stdout.trim()) {

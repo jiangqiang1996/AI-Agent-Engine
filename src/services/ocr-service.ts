@@ -10,6 +10,20 @@ import { MODEL_SCENARIO } from '../schemas/model-scenario-schema.js'
 import { spawnAsyncWithLogging } from '../utils/async-spawn.js'
 
 /**
+ * OCR LLM 模型配置信息（用于日志记录）
+ */
+export interface OcrLlmConfig {
+  providerID: string
+  modelID: string
+  baseURL?: string
+  ocrURL?: string
+  protocol: string
+  npm?: string
+  apiKey?: string
+  source: string
+}
+
+/**
  * OCR 审查发现项（来自 --format json 输出）
  */
 export interface OcrFinding {
@@ -59,7 +73,7 @@ export interface OcrJsonResult {
  * 1. ae.jsonc modelScenarios.deep 指定的 provider/model
  * 2. opencode 默认模型（从 provider.list() 返回的 default 映射提取）
  */
-export async function resolveOcrLlmEnv(): Promise<Record<string, string>> {
+export async function resolveOcrLlmEnv(): Promise<{ env: Record<string, string>; config: OcrLlmConfig }> {
   const client = getGlobalClient()
   if (!client) {
     throw new Error('opencode client 不可用，无法获取 provider 配置')
@@ -101,6 +115,7 @@ export async function resolveOcrLlmEnv(): Promise<Record<string, string>> {
 
   let providerID: string | undefined
   let modelID: string | undefined
+  let source = 'opencode-default'
 
   // 优先级 1：ae.jsonc modelScenarios.deep 指定的模型
   const deepModel = getModelByScenario(getModelScenarioRoutingContext() ?? undefined, MODEL_SCENARIO.DEEP)
@@ -109,6 +124,7 @@ export async function resolveOcrLlmEnv(): Promise<Record<string, string>> {
     if (slashIndex > 0) {
       providerID = deepModel.slice(0, slashIndex)
       modelID = deepModel.slice(slashIndex + 1)
+      source = 'modelScenarios.deep'
     }
   }
 
@@ -168,7 +184,18 @@ export async function resolveOcrLlmEnv(): Promise<Record<string, string>> {
     env.OCR_LLM_URL = ocrURL
   }
 
-  return env
+  const config: OcrLlmConfig = {
+    providerID: configured.id,
+    modelID,
+    baseURL: rawBaseURL,
+    ocrURL,
+    protocol,
+    npm,
+    apiKey,
+    source,
+  }
+
+  return { env, config }
 }
 
 /**
@@ -355,7 +382,7 @@ export async function runOcr(
     extraEnv?: Record<string, string>
     skipLlmEnv?: boolean
   },
-): Promise<{ stdout: string; stderr: string; exitCode: number; llmEnvError?: string }> {
+): Promise<{ stdout: string; stderr: string; exitCode: number; llmEnvError?: string; llmConfig?: OcrLlmConfig }> {
   const binary = resolveOcrBinary()
   if (!binary) {
     throw new Error('ocr 二进制未找到。请运行 npm install @alibaba-group/open-code-review 安装')
@@ -363,11 +390,13 @@ export async function runOcr(
 
   let env: Record<string, string> = { ...process.env as Record<string, string> }
   let llmEnvError: string | undefined
+  let llmConfig: OcrLlmConfig | undefined
 
   if (!opts?.skipLlmEnv) {
     try {
-      const llmEnv = await resolveOcrLlmEnv()
+      const { env: llmEnv, config } = await resolveOcrLlmEnv()
       env = { ...env, ...llmEnv }
+      llmConfig = config
     } catch (e) {
       llmEnvError = e instanceof Error ? e.message : String(e)
     }
@@ -420,7 +449,7 @@ export async function runOcr(
       if (!settled) {
         settled = true
         clearTimeout(timer)
-        resolve({ stdout, stderr, exitCode: code ?? -1, llmEnvError })
+        resolve({ stdout, stderr, exitCode: code ?? -1, llmEnvError, llmConfig })
       }
     })
   })
@@ -453,6 +482,15 @@ export function parseOcrJson(stdout: string): OcrJsonResult {
 }
 
 /**
+ * 对 API Key 进行脱敏处理，仅保留首尾各 4 个字符，中间用 **** 替代。
+ * 长度不足 10 位时全部替换为 ****，避免泄露过多信息。
+ */
+function maskKey(key: string): string {
+  if (key.length < 10) return '****'
+  return `${key.slice(0, 4)}****${key.slice(-4)}`
+}
+
+/**
  * 将 OCR 命令执行的完整反馈信息写入 ae/logs/ 目录。
  *
  * 日志文件名格式：ocr-{sessionId}-{YYYYMMDD}.log
@@ -470,6 +508,7 @@ export function writeOcrExecutionLog(
     stdout?: string
     stderr?: string
     llmEnvError?: string
+    llmConfig?: OcrLlmConfig
     error?: string
   },
 ): string | undefined {
@@ -490,6 +529,17 @@ export function writeOcrExecutionLog(
       `\n[${timeStr}] === ocr ${record.command} ===`,
       `CLI 参数: ${record.cliArgs.join(' ')}`,
     ]
+    if (record.llmConfig) {
+      lines.push(`--- 模型配置 ---`)
+      lines.push(`Provider ID: ${record.llmConfig.providerID}`)
+      lines.push(`Model ID: ${record.llmConfig.modelID}`)
+      lines.push(`Protocol: ${record.llmConfig.protocol}`)
+      if (record.llmConfig.npm) lines.push(`API npm: ${record.llmConfig.npm}`)
+      if (record.llmConfig.baseURL) lines.push(`Base URL: ${record.llmConfig.baseURL}`)
+      if (record.llmConfig.ocrURL) lines.push(`OCR URL: ${record.llmConfig.ocrURL}`)
+      if (record.llmConfig.apiKey) lines.push(`API Key: ${maskKey(record.llmConfig.apiKey)}`)
+      lines.push(`配置来源: ${record.llmConfig.source}`)
+    }
     if (record.exitCode !== undefined) {
       lines.push(`退出码: ${record.exitCode}`)
     }

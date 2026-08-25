@@ -5,8 +5,6 @@ dist
 .opencode/package-lock.json
 .opencode/agents/ae/
 .opencode/plugins/*.js
-.opencode/tui-plugins/*.js
-.opencode/tui.json
 **/tmp
 **/temp
 
