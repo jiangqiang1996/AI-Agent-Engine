@@ -102,8 +102,8 @@ const INVARIANTS: Invariant[] = [
   {
     file: 'src/assets/agents/reviewers/ocr-reviewer.md',
     label: 'ocr-reviewer 代码审查引擎',
-    mustContain: ['OpenCodeReview CLI', 'ae-ocr'],
-    mustNotContain: [],
+    mustContain: ['delegate 委托模式', 'ae-ocr', 'reviewable_files'],
+    mustNotContain: ['OpenCodeReview CLI', '{code_intent}', '{from}', '{to}', '{commit}', '变更分析与目标拆分'],
   },
   {
     file: 'src/assets/skills/ae-design/SKILL.md',

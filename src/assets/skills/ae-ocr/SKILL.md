@@ -1,20 +1,19 @@
 ---
 name: ae:ocr
-description: "通过 ae-ocr 工具调用 OpenCodeReview (ocr) CLI 执行 AI 代码审查。自动从 opencode provider 配置获取 LLM 凭据，支持 OCR 所有命令和完全透传。输出结构化审查发现，按 severity 分组。适用于代码变更审查、代码与目标期望一致性验证。"
-argument-hint: "[command=review] [from=main] [to=branch] [background=...] [backgroundFile=...] [路径...]"
+description: "通过 ae-ocr 工具调用 OpenCodeReview CLI 的 delegate 委托模式获取代码审查规格（文件清单 + 规则），不调用 LLM。OCR 负责确定性工程，审查由宿主代理执行。"
+argument-hint: "[subcommand=preview|rule] [from=main] [to=branch] [paths=...]"
 ---
 
-# ae:ocr - OpenCodeReview 代码审查
+# ae:ocr - OpenCodeReview Delegate 代码审查
 
-通过 `ae-ocr` 工具调用 [OpenCodeReview](https://github.com/alibaba/open-code-review) (`ocr`) CLI 执行 AI 代码审查。ocr 二进制随插件自动安装，LLM 凭据自动从 opencode provider 配置获取，无需手动配置。
+通过 `ae-ocr` 工具调用 [OpenCodeReview](https://github.com/alibaba/open-code-review) (`ocr`) CLI 的 **delegate 委托模式**获取代码审查规格。OCR 负责确定性工程（文件选择 + 规则匹配），不调用 LLM；审查执行由宿主代理（当前会话 LLM）完成。
 
 ## 何时使用
 
-- 审查 Git 代码变更（staged/unstaged/untracked、branch diff、单 commit）
-- 审查整个文件或目录（无 Git 历史场景）
-- 审查代码与目标期望是否一致（通过 `background` / `backgroundFile` 参数传入需求上下文）
-- 管理 OCR 配置、检查 LLM 连通性、查看审查会话
-- 官方新增命令或 flag 时，通过 `command` + `args` 直接透传，无需等待工具更新
+- 代码审查编排：先 preview 获取文件列表，再 rule 获取规则，最后由当前会话 LLM 执行审查
+- 审查范围预检：preview 查看哪些文件会被审查、哪些被排除及原因
+- 规则检查：rule 查看特定文件适用的审查规则
+- 版本检查：version 查看 ocr 版本
 
 ## 何时不使用
 
@@ -23,205 +22,137 @@ argument-hint: "[command=review] [from=main] [to=branch] [background=...] [backg
 
 ## 工作流
 
-### 第一步：收集业务上下文
+### 第一步：获取审查文件清单
 
-分析审查目标（commit、branch 或工作区变更），提取简明业务上下文。通过 `background` 参数传入内联上下文，或通过 `backgroundFile` 参数传入 Markdown 文件路径，两者可同时使用（内联值在前，文件内容在后）。
+通过 `ae-ocr` 工具调用 delegate preview，参数使用 `key=value` 格式：
 
-如果项目中存在 `ae/prds/` 或 `ae/designs/` 产物，可提取需求和验收标准作为上下文，审查代码是否实现了预期功能。
+```
+ae-ocr(command="delegate", subcommand="preview")
+ae-ocr(command="delegate", subcommand="preview", from="main", to="feature-branch")
+ae-ocr(command="delegate", subcommand="preview", commit="abc123")
+ae-ocr(command="delegate", subcommand="preview", background="业务上下文描述")
+```
 
-### 第二步：执行代码审查
+输出包含：审查模式（workspace/range/commit）、可审查文件列表、排除文件列表（含排除原因）、变更行数统计。
 
-通过 `ae-ocr` 工具调用，参数使用 `key=value` 格式。**始终传入业务上下文**（当可用时）。
+### 第二步：获取审查规则
 
-**输出模式**：始终使用 `--audience agent`（工具默认）以抑制进度 UI，仅输出最终摘要。不要使用 `--audience human`，它会流式输出进度 UI 污染输出。
+从 preview 结果中提取 `reviewable_files` 的文件路径，调用 delegate rule：
 
-### 第三步：分类和报告
+```
+ae-ocr(command="delegate", subcommand="rule", paths=["file1.ts", "file2.ts"])
+```
 
-对审查输出中的每条发现，按优先级分类并报告：
+输出按 glob pattern 分组的规则，每组包含：适用文件列表 + 完整规则文本。不同后缀的文件适用不同规则集（如 .ts 用 TS/JS 规则、.go 用 Go 规则）。
 
-- **Critical**: 严重安全漏洞、数据丢失风险、生产环境崩溃等必须立即修复的问题
-- **High**: 明显 bug、安全问题、明确错误或有充分依据的修复建议
-- **Medium**: 合理但依赖上下文的建议、风格/性能优化、需手动实现的修复
-- **Low**: 可能的误报、上下文不足、吹毛求疵或无意义的建议（静默丢弃）
+### 第三步：执行审查
 
-按优先级分组展示所有发现。
-
-### 第四步：修复
-
-应用修复前，检查用户是否要求自动修复：
-
-- 用户明确要求"审查并修复"时，继续自动修复
-- 用户只要求"审查"时，先征求许可再修改
-
-修复时：
-- 聚焦 High 和 Medium 优先级项
-- 安全且明确的修复直接应用
-- 复杂修复清晰描述需要做什么
-- 提交前始终与用户确认修复
+宿主代理（当前会话 LLM）基于 preview 的文件清单和 rule 的规则文本，直接执行审查：
+1. 读取文件 diff（`git diff` / `git show`）
+2. 应用对应规则逐条检查
+3. 生成审查发现
 
 ## 命令清单
 
-`command` 支持任意字符串（官方未来新增命令无需更新本工具）。`command=auto`（默认）时根据参数自动推断。
-
 | 命令 | 别名 | 说明 |
 |------|------|------|
-| `review` | `r` | 基于 Git diff 审查代码变更 |
-| `scan` | `s` | 审查整个文件或目录（无需 Git diff） |
-| `config` | — | 管理配置（set/unset/provider/model） |
-| `llm` | — | LLM 工具（test/providers） |
-| `rules` | — | 检查规则匹配 |
-| `viewer` | `v` | 启动 WebUI 会话查看器（工具层已内置后台处理，不会阻塞会话） |
-| `session` | `sessions` | 列出/查看审查会话 |
-| `version` | — | 显示版本信息 |
+| `delegate` | `d` | 委托模式：获取审查规格（文件清单 + 规则） |
+| `version` | — | 显示 ocr 版本信息 |
+| `completion` | — | 生成 shell 补全脚本（bash/zsh/fish/powershell） |
 
-### review 参数
+### delegate preview 参数
 
 | 参数 | 说明 |
 |------|------|
-| `from` | 源 ref（如 `main`），用于 branch diff |
+| `from` | 源 ref（如 `main`），用于 branch diff；需与 `to` 同时使用 |
 | `to` | 目标 ref（如 `feature-branch`），用于 branch diff |
-| `commit` | 单个 commit hash |
+| `commit` | 单个 commit hash；与 `from`/`to` 互斥 |
 | `background` | 业务/需求上下文（内联文本） |
-| `backgroundFile` | 从 Markdown 文件加载业务上下文（与 `background` 可同时使用，内联值在前） |
-| `rule` | 自定义规则 JSON 文件路径 |
+| `backgroundFile` | 从 Markdown 文件加载业务上下文 |
 | `exclude` | 排除模式（逗号分隔 gitignore 风格） |
-| `timeout` | 超时分钟数，默认 10 |
-| `concurrency` | 并发文件审查数，默认 8 |
-| `model` | 覆盖 LLM 模型 |
-| `preview` | 预览将审查的文件（不调用 LLM） |
-| `resume` | 从之前的审查会话恢复 |
-| `audience` | 输出受众，默认 `agent` |
-| `format` | 输出格式 text/json，默认 json |
-| `tools` | 自定义工具配置 JSON 文件路径 |
-| `maxTools` | 每个文件最大工具调用轮次（0=模板默认，最小 10） |
-| `maxGitProcs` | 最大并发 git 子进程数，默认 16 |
-
-### scan 参数
-
-| 参数 | 说明 |
-|------|------|
-| `path` | 扫描路径（逗号分隔） |
-| `background` | 业务/需求上下文（内联文本） |
-| `exclude` | 排除模式 |
-| `noPlan` | 跳过 per-file PLAN 预处理 |
-| `noDedup` | 跳过 per-batch 去重 |
-| `noSummary` | 跳过项目级摘要 |
-| `batch` | 批处理策略：none/by-language/by-directory |
-| `maxTokensBudget` | token 总量上限 |
-| `model` | 覆盖 LLM 模型 |
-| `preview` | 预览将扫描的文件（不调用 LLM） |
-| `concurrency` | 并发文件扫描数，默认 8 |
-| `timeout` | 超时分钟数，默认 10 |
-| `tools` | 自定义工具配置 JSON 文件路径 |
-| `maxTools` | 每个文件最大工具调用轮次 |
-| `maxGitProcs` | 最大并发 git 子进程数，默认 16 |
-
-### config 参数
-
-| 参数 | 说明 |
-|------|------|
-| `configSubcommand` | 子命令：set/unset/provider/model |
-| `key` | set/unset 的键名 |
-| `value` | set 的值 |
-
-### llm 参数
-
-通过 `args=["test"]` 或 `args=["providers"]` 指定子命令。
-
-### rules 参数
-
-| 参数 | 说明 |
-|------|------|
-| `path` | 要检查的文件路径 |
 | `rule` | 自定义规则 JSON 文件路径 |
+| `format` | 输出格式 text/json，工具层默认 json（CLI 原生默认 text） |
+| `timeout` | 超时分钟数，默认 1 |
+| `repo` | Git 仓库根目录，默认当前工作目录 |
+| `maxGitProcs` | 最大并发 git 子进程数，默认 16 |
 
-### session 参数
-
-| 参数 | 说明 |
-|------|------|
-| `sessionSubcommand` | 子命令：list/show |
-| `sessionId` | show 的会话 ID |
-| `limit` | list 限制数量，默认 20 |
-| `json` | 输出 JSON 格式 |
-
-### viewer 参数
+### delegate rule 参数
 
 | 参数 | 说明 |
 |------|------|
-| `addr` | 监听地址，默认 localhost:5483 |
+| `paths` | 要解析规则的文件路径列表（数组，**必填**，至少 1 个） |
+| `from` | 源 ref（与 preview 共享） |
+| `to` | 目标 ref |
+| `commit` | 单个 commit hash；与 `from`/`to` 互斥 |
+| `background` | 业务上下文 |
+| `backgroundFile` | 从文件加载业务上下文 |
+| `exclude` | 排除模式 |
+| `rule` | 自定义规则 JSON 文件路径 |
+| `format` | 输出格式，工具层默认 json |
+| `repo` | Git 仓库根目录，默认当前工作目录 |
+| `maxGitProcs` | 最大并发 git 子进程数，默认 16 |
 
-### 完全透传（args）
+### completion 参数
 
-`args` 数组完全透传给 ocr CLI，支持官方所有 flag 和未来新增参数。与结构化参数合并使用时，args 追加在结构化参数之后。
+| 参数 | 说明 |
+|------|------|
+| `shell` | 目标 shell：bash/zsh/fish/powershell，默认 bash |
+
+### 额外参数透传（args）
+
+`args` 数组追加给 ocr CLI，用于透传官方新增 flag：
 
 ```
-# 透传官方新增 flag
-command=review args=["--new-flag","value"]
-
-# 透传完整子命令
-command=config args=["set","llm.model","claude-opus-4-6"]
-
-# 未知命令直接透传
-command=newcmd args=["--flag"]
+command=delegate args=["--new-flag","value"]
 ```
 
 ## 常用调用模式
 
 | 场景 | 参数 |
 |------|------|
-| 审查当前工作区变更 | `command=review` |
-| 审查 branch diff | `command=review from=main to=feature-branch` |
-| 审查单 commit | `command=review commit=abc123` |
-| 审查与目标一致性 | `command=review background="需求描述..."` |
-| 从文件加载上下文 | `command=review backgroundFile=./docs/requirements.md` |
-| 内联+文件上下文 | `command=review background="聚焦认证" backgroundFile=./docs/auth.md` |
-| 全文件扫描 | `command=scan path=src/` |
-| 预览将审查的文件 | `command=review preview=true` |
-| 检查 LLM 连通性 | `command=llm args=["test"]` |
-| 列出审查会话 | `command=session sessionSubcommand=list` |
-| 查看规则匹配 | `command=rules path=src/Foo.java` |
-| 透传官方新参数 | `command=review args=["--new-flag","value"]` |
+| 预览工作区审查文件 | `command=delegate subcommand=preview` |
+| 预览分支 diff | `command=delegate subcommand=preview from=main to=feature-branch` |
+| 预览单 commit | `command=delegate subcommand=preview commit=abc123` |
+| 带业务上下文 | `command=delegate subcommand=preview background="需求描述"` |
+| 获取文件审查规则 | `command=delegate subcommand=rule paths=["src/foo.ts"]` |
+| 限制 git 并发 | `command=delegate subcommand=preview maxGitProcs=4` |
+| 版本检查 | `command=version` |
+| 透传额外参数 | `command=delegate args=["--new-flag"]` |
 
 ## 输出格式
 
-每个发现包含：
-- `path`: 文件路径
-- `start_line` / `end_line`: 行范围（均为 0 表示定位失败）
-- `content`: 审查意见
-- `category`: bug/security/performance/maintainability/test/style/documentation/other
-- `severity`: critical/high/medium/low
-- `suggestion_code`: 可选的修复建议
-- `existing_code`: 可选的原始代码片段
-- `thinking`: 可选的 LLM 推理过程
-
-审查结果按 severity 分组返回：
+### delegate preview 输出
 
 ```markdown
-## OCR 代码审查结果
+## OCR Delegate Preview — 审查文件清单
 
-**审查文件数**: N
-**发现问题数**: W critical / X high / Y medium / Z low
+**审查模式**: workspace
+**可审查文件**: 5
+**排除文件**: 3
 
-### Critical Priority
+### 可审查文件
+- `src/foo.ts` [modified] +20/-4
+- `src/bar.ts` [added] +10/-0
 
-- **`path/to/file.java:42`** [security] — 严重安全漏洞描述
-  > 建议修复: `修复代码`
-
-### High Priority
-
-- **`path/to/file.java:42`** [bug] — 问题描述
-  > 建议修复: `修复代码`
+### 排除文件
+- ~~`docs/README.md`~~ [modified] +8/-8 (unsupported_ext)
 ```
 
-审查无问题时输出："审查完成 — N 个文件未发现问题。"
+### delegate rule 输出
 
-### 处理定位失败的发现
+```markdown
+## OCR Delegate Rule — 审查规则解析
 
-当 `start_line` 和 `end_line` 均为 `0` 时，表示定位失败：
-1. 阅读发现内容理解问题
-2. 检查发现中提到的目标文件
-3. 根据发现上下文定位相关代码段
-4. 将修复或建议应用到正确位置
+**规则组数**: 2
+
+### 规则组 1: system / `**/*.{ts,js,tsx,jsx}`
+
+**适用文件**:
+- `src/foo.ts`
+
+**规则内容**:
+（完整规则文本）
+```
 
 ## 自定义规则
 
@@ -231,46 +162,29 @@ OCR 按以下优先级解析规则：
 3. `~/.opencodereview/rule.json`
 4. 内置系统默认规则（最低）
 
-默认情况下，首个匹配的用户规则替换内置系统规则。设置 `merge_system_rule: true` 可同时包含系统规则和用户规则。
-
-规则文件格式：
-
-```json
-{
-  "rules": [
-    {
-      "path": "**/*.java",
-      "rule": "All new methods must validate required parameters for null",
-      "merge_system_rule": true
-    },
-    {
-      "path": "**/*mapper*.xml",
-      "rule": "Check SQL for injection risks and missing closing tags"
-    }
-  ]
-}
-```
-
-通过 `command=rules path=src/Foo.java` 可预览某文件命中的规则。
+规则文件格式见 [OCR 文档](https://github.com/alibaba/open-code-review)。
 
 ## 注意事项
 
-- **工作目录很重要** — `ocr review` 操作当前目录的 Git 仓库。用 `repo` 参数指定其他仓库。
-- **工作区模式包含未跟踪文件** — 直接 `ocr review` 包含 staged、unstaged 和 untracked 变更。需要更窄范围时选择性 stage。
-- **大 diff 可能触发 token 限制** — 大文件 diff 可能被截断。默认 `MAX_TOKENS` 为 58888。
-- **50 行触发 Plan 阶段** — 超过 50 行变更的 diff 会先执行风险分析阶段，增加延迟但提升质量。
-- **不要使用 `--audience human`** — 它会流式输出进度 UI 污染输出。始终使用 `--audience agent`（工具默认）。
-- **评论语言跟随配置** — 默认中文，可通过 OCR 配置设为 English 或 Chinese。
-- **background 与 backgroundFile 可同时使用** — 内联 `background` 值出现在前，`backgroundFile` 文件内容出现在后。
+- **delegate 模式不调用 LLM** — OCR 只做文件选择和规则匹配，审查由宿主代理执行
+- **无需 LLM 配置** — 不需要 API key/baseURL/model，delegate 模式不调用 LLM
+- **审查模型 = 当前会话模型** — 保证审查模型与会话模型一致
+- **from/to 必须成对使用** — 单独传 from 或 to 会报错；两者需同时指定
+- **commit 与 from/to 互斥** — 不能同时指定 commit 和 from/to
+- **rule 子命令的 paths 必填** — 至少需要 1 个文件路径，从 preview 的 reviewable_files 中提取
+- **工作目录很重要** — delegate preview 操作当前目录的 Git 仓库。用 `repo` 参数指定其他仓库
+- **工作区模式包含未跟踪文件** — 直接 `delegate preview` 包含 staged、unstaged 和 untracked 变更
+- **排除原因透明** — preview 输出每个排除文件的 `exclude_reason`（unsupported_ext/user_exclude/default_path）
 
 ## 验证
 
 审查完成后，验证成功：
-1. 命令退出码为 0
-2. 生成了审查发现（或出现"No comments generated"消息）
-3. 警告（如有）显示在 stderr 中
+1. delegate preview 退出码为 0
+2. 获取到可审查文件列表（或确认无变更）
+3. delegate rule 退出码为 0
+4. 获取到规则组（或确认无匹配规则）
 
-出错时检查 stderr 警告了解哪些文件失败及原因。
+出错时检查 stderr 了解失败原因。
 
 ## 引用
 

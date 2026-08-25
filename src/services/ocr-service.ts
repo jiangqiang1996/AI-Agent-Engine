@@ -3,259 +3,62 @@ import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { createRequire } from 'node:module'
 
-import { getGlobalClient } from './client-holder.js'
-import { getModelScenarioRoutingContext } from './model-scenario-holder.js'
-import { getModelByScenario } from './model-scenario-routing-service.js'
-import { MODEL_SCENARIO } from '../schemas/model-scenario-schema.js'
-import { spawnAsyncWithLogging } from '../utils/async-spawn.js'
-
 /**
- * OCR LLM 模型配置信息（用于日志记录）
- */
-export interface OcrLlmConfig {
-  providerID: string
-  modelID: string
-  baseURL?: string
-  ocrURL?: string
-  protocol: string
-  npm?: string
-  apiKey?: string
-  source: string
-}
-
-/**
- * OCR 审查发现项（来自 --format json 输出）
- */
-export interface OcrFinding {
-  path?: string
-  content?: string
-  start_line?: number
-  end_line?: number
-  suggestion_code?: string
-  existing_code?: string
-  thinking?: string
-  category?: string
-  severity?: string
-}
-
-/**
- * OCR JSON 输出结构
+ * OCR delegate preview 输出结构（--format json）
  *
- * OCR CLI 的 --format json 输出格式（见 output.go jsonOutput）：
- * {
- *   "status": "success",
- *   "comments": [...],
- *   "summary": { "files_reviewed": 9, "comments": 3, ... },
- *   "session_id": "xxx"
- * }
+ * delegate preview 输出可审查文件清单，不调用 LLM。
+ * 宿主代理拿到清单后自行读取 diff 并审查。
  */
-export interface OcrJsonResult {
-  status?: string
-  message?: string
-  comments?: OcrFinding[]
-  summary?: {
-    files_reviewed?: number
-    comments?: number
-    total_tokens?: number
-    input_tokens?: number
-    output_tokens?: number
-    elapsed?: string
-  }
-  session_id?: string
-  warnings?: Array<{ file?: string; message?: string }>
+export interface OcrDelegatePreview {
+  schema_version?: string
+  mode?: string
+  repository?: string
+  from?: string
+  to?: string
+  merge_base?: string
+  commit?: string
+  background?: string
+  total_files?: number
+  reviewable_count?: number
+  excluded_count?: number
+  total_insertions?: number
+  total_deletions?: number
+  reviewable_files?: Array<{
+    path: string
+    status: string
+    insertions: number
+    deletions: number
+  }>
+  excluded_files?: Array<{
+    path: string
+    status: string
+    insertions: number
+    deletions: number
+    exclude_reason: string
+  }>
   [key: string]: unknown
 }
 
 /**
- * 从 opencode 获取 LLM 凭据，映射为 OCR 环境变量。
+ * OCR delegate rule 输出结构（--format json）
  *
- * 模型选择优先级：
- * 1. ae.jsonc modelScenarios.deep 指定的 provider/model
- * 2. opencode 默认模型（从 provider.list() 返回的 default 映射提取）
+ * delegate rule 输出按 glob pattern 分组的审查规则，
+ * 宿主代理拿到规则后按分组审查对应文件。
  */
-export async function resolveOcrLlmEnv(): Promise<{ env: Record<string, string>; config: OcrLlmConfig }> {
-  const client = getGlobalClient()
-  if (!client) {
-    throw new Error('opencode client 不可用，无法获取 provider 配置')
-  }
-
-  let providers: Array<{
-    id: string
-    key?: string
-    options?: Record<string, unknown>
-    models?: Record<string, { api?: { npm?: string } }>
+export interface OcrDelegateRule {
+  schema_version?: string
+  groups?: Array<{
+    group_id: number
+    source: string
+    pattern: string
+    files: string[]
+    rule: string
   }>
-  let defaultModelMap: Record<string, string> | undefined
-  let connectedProviders: string[] | undefined
-
-  try {
-    const result = await Promise.race([
-      client.provider.list(),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('provider.list 超时')), 10000),
-      ),
-    ])
-    const raw = result as unknown as Record<string, unknown>
-    const dataField = raw?.data as Record<string, unknown> | undefined
-    providers = (dataField?.all ?? raw?.all ?? []) as typeof providers
-    const defaultRaw = dataField?.default
-    if (defaultRaw && typeof defaultRaw === 'object' && !Array.isArray(defaultRaw)) {
-      defaultModelMap = defaultRaw as Record<string, string>
-    }
-    const connectedRaw = dataField?.connected
-    if (Array.isArray(connectedRaw)) {
-      connectedProviders = connectedRaw.filter((p): p is string => typeof p === 'string')
-    }
-    if (providers.length === 0) {
-      throw new Error('provider.list 返回空')
-    }
-  } catch (e) {
-    throw new Error(`无法从 opencode 获取 provider 列表: ${e instanceof Error ? e.message : String(e)}`)
-  }
-
-  let providerID: string | undefined
-  let modelID: string | undefined
-  let source = 'opencode-default'
-
-  // 优先级 1：ae.jsonc modelScenarios.deep 指定的模型
-  const deepModel = getModelByScenario(getModelScenarioRoutingContext() ?? undefined, MODEL_SCENARIO.DEEP)
-  if (deepModel) {
-    const slashIndex = deepModel.indexOf('/')
-    if (slashIndex > 0) {
-      providerID = deepModel.slice(0, slashIndex)
-      modelID = deepModel.slice(slashIndex + 1)
-      source = 'modelScenarios.deep'
-    }
-  }
-
-  // 优先级 2：opencode 默认模型（从已获取的 provider.list 返回的 default 映射提取）
-  // default 映射是每个 provider 的默认模型，不是全局唯一默认。
-  // 优先从 connected provider 中选择第一个可用的默认模型，
-  // 若无 connected provider 则回退到 default 映射中字典序第一个。
-  if (!providerID || !modelID) {
-    if (!defaultModelMap) {
-      throw new Error('无法从 opencode 获取默认模型：provider.list 未返回 default 映射')
-    }
-    const defaultEntries = Object.entries(defaultModelMap)
-      .filter(([, mid]) => typeof mid === 'string' && mid)
-      .sort(([a], [b]) => a.localeCompare(b))
-    if (defaultEntries.length === 0) {
-      throw new Error('无法从 opencode 获取默认模型：default 映射为空或条目无效')
-    }
-    // 优先选择 connected provider 的默认模型
-    const connectedEntry = connectedProviders
-      ? defaultEntries.find(([pid]) => connectedProviders.includes(pid))
-      : undefined
-    const [defaultProviderID, defaultModelID] = connectedEntry ?? defaultEntries[0]
-    if (!defaultProviderID || !defaultModelID) {
-      throw new Error('无法从 opencode 获取默认模型：default 映射条目无效')
-    }
-    providerID = defaultProviderID
-    modelID = defaultModelID
-  }
-
-  const configured = providers.find((p) => p.id === providerID)
-  if (!configured) {
-    throw new Error(`provider ${providerID} 不在 provider 列表中`)
-  }
-
-  const apiKey = (configured.options?.apiKey as string | undefined) ?? configured.key ?? ''
-  if (!apiKey || apiKey === 'public' || apiKey === 'none' || apiKey === 'dummy') {
-    throw new Error(`provider ${configured.id} 缺少有效的 API key`)
-  }
-
-  if (!modelID) {
-    throw new Error(`provider ${configured.id} 没有可用模型`)
-  }
-
-  const npm = configured.models?.[modelID]?.api?.npm
-  const protocol = inferProtocolFromNpm(npm, configured.id)
-
-  const rawBaseURL = (configured.options?.baseURL as string | undefined) ?? inferBaseURL(configured.id)
-  const ocrURL = rawBaseURL ? opencodeBaseURLToOcrURL(rawBaseURL, protocol) : undefined
-
-  const env: Record<string, string> = {
-    OCR_LLM_TOKEN: apiKey,
-    OCR_LLM_MODEL: modelID,
-    OCR_LLM_PROTOCOL: protocol,
-  }
-
-  if (ocrURL) {
-    env.OCR_LLM_URL = ocrURL
-  }
-
-  const config: OcrLlmConfig = {
-    providerID: configured.id,
-    modelID,
-    baseURL: rawBaseURL,
-    ocrURL,
-    protocol,
-    npm,
-    apiKey,
-    source,
-  }
-
-  return { env, config }
-}
-
-/**
- * 根据 model.api.npm 精确推断 LLM 协议。
- * npm 字段来自 opencode provider.list() 返回的 model.api.npm，
- * 标识 AI SDK 包名（如 @ai-sdk/anthropic、@ai-sdk/openai-compatible）。
- *
- * 降级：npm 缺失时用 provider.id 粗匹配。
- */
-function inferProtocolFromNpm(npm: string | undefined, providerID: string): string {
-  if (npm) {
-    if (npm.includes('anthropic')) return 'anthropic'
-    return 'openai'
-  }
-  const id = providerID.toLowerCase()
-  if (id === 'anthropic' || id.includes('claude')) return 'anthropic'
-  return 'openai'
-}
-
-/**
- * 将 opencode provider 的 baseURL 转换为 OCR 期望的 URL 格式。
- *
- * opencode baseURL 是 base 格式（含 /v1，不含端点路径如 /messages 或 /chat/completions）。
- * OCR 期望完整端点 URL：
- * - anthropic 协议：需要 /v1/messages 后缀
- * - openai 协议：需要 /v1/chat/completions 后缀
- *
- * 已包含正确后缀的 URL 原样返回，避免重复拼接。
- */
-export function opencodeBaseURLToOcrURL(baseURL: string, protocol: string): string {
-  const url = baseURL.replace(/\/+$/, '')
-
-  if (protocol === 'anthropic') {
-    if (url.endsWith('/v1/messages')) return url
-    if (url.endsWith('/messages')) return url
-    return `${url}/messages`
-  }
-
-  if (protocol === 'openai') {
-    if (url.endsWith('/chat/completions')) return url
-    return `${url}/chat/completions`
-  }
-
-  return url
-}
-
-/**
- * 根据 provider ID 推断默认 baseURL（仅在 provider.options.baseURL 缺失时使用）。
- * 返回 opencode base 格式（含 /v1，不含端点路径）。
- */
-function inferBaseURL(providerID: string): string | undefined {
-  const id = providerID.toLowerCase()
-  if (id === 'anthropic') return 'https://api.anthropic.com/v1'
-  if (id.includes('openai')) return 'https://api.openai.com/v1'
-  return undefined
+  [key: string]: unknown
 }
 
 /**
  * ESM 兼容的 require.resolve。
- * ocr-service 运行在 ESM 上下文，需要 createRequire 才能使用 require.resolve。
  */
 const require = createRequire(import.meta.url)
 
@@ -297,11 +100,11 @@ function getPlatformPackageName(): string | null {
  * 定位 ocr 二进制。
  *
  * 与官方 platform.js resolveNativeBinary 解析顺序一致：
- * 1. 平台特定子包（如 @alibaba-group/ocr-win32-x64）bin/ 目录中的原生二进制
+ * 1. 平台特定子包 bin/ 目录中的原生二进制
  * 2. 主包 bin/ 目录中的二进制（postinstall 下载的旧式布局）
- * 3. PATH 中的 ocr 命令（最终降级，官方返回 null，此处扩展为 PATH 查找）
+ * 3. PATH 中的 ocr 命令（最终降级，始终有返回值）
  */
-export function resolveOcrBinary(): { path: string; source: string } | null {
+export function resolveOcrBinary(): { path: string; source: string } {
   // 优先从平台特定子包解析
   const platformPkg = getPlatformPackageName()
   if (platformPkg) {
@@ -327,86 +130,26 @@ export function resolveOcrBinary(): { path: string; source: string } | null {
     // 主包未安装
   }
 
-  // 最终降级到 PATH 中的 ocr
+  // 最终降级到 PATH 中的 ocr（始终有返回值）
   return { path: 'ocr', source: 'path' }
-}
-
-/**
- * 以后台 detached 进程启动 ocr viewer，立即返回 PID 和日志路径。
- *
- * 通过 Node.js pipe 捕获 stdout/stderr，按 encoding 解码后以 UTF-8 追加写入日志文件。
- * 不向当前控制台输出，避免干扰 opencode 终端。子进程独立存活，不阻止事件循环退出。
- *
- * ocr 二进制随项目打包，resolveOcrBinary 始终有返回值。
- */
-export function spawnOcrViewer(
-  args: string[],
-  opts?: {
-    cwd?: string
-    logPath?: string
-    encoding?: string
-  },
-): { pid: number; logPath: string } {
-  const binary = resolveOcrBinary()!
-
-  const logFile = opts?.logPath ?? path.join(opts?.cwd ?? process.cwd(), 'ae', 'logs', `ocr-viewer-${formatLogTimestamp()}.log`)
-
-  const rawCommand = `${binary.path} ${args.join(' ')}`
-
-  const result = spawnAsyncWithLogging({
-    command: rawCommand,
-    cwd: opts?.cwd ?? process.cwd(),
-    logPath: logFile,
-    encoding: opts?.encoding,
-  })
-
-  return { pid: result.pid, logPath: result.logPath }
-}
-
-function formatLogTimestamp(): string {
-  const d = new Date()
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`
 }
 
 /**
  * 执行 ocr 命令并返回结果。
  *
- * 自动注入 LLM 环境变量，设置超时，捕获 stdout/stderr。
+ * delegate 模式下 ocr 不调用 LLM，无需注入 LLM 环境变量。
  */
 export async function runOcr(
   args: string[],
   opts?: {
     cwd?: string
     timeoutMs?: number
-    extraEnv?: Record<string, string>
-    skipLlmEnv?: boolean
   },
-): Promise<{ stdout: string; stderr: string; exitCode: number; llmEnvError?: string; llmConfig?: OcrLlmConfig }> {
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   const binary = resolveOcrBinary()
-  if (!binary) {
-    throw new Error('ocr 二进制未找到。请运行 npm install @alibaba-group/open-code-review 安装')
-  }
 
-  let env: Record<string, string> = { ...process.env as Record<string, string> }
-  let llmEnvError: string | undefined
-  let llmConfig: OcrLlmConfig | undefined
-
-  if (!opts?.skipLlmEnv) {
-    try {
-      const { env: llmEnv, config } = await resolveOcrLlmEnv()
-      env = { ...env, ...llmEnv }
-      llmConfig = config
-    } catch (e) {
-      llmEnvError = e instanceof Error ? e.message : String(e)
-    }
-  }
-
-  if (opts?.extraEnv) {
-    env = { ...env, ...opts.extraEnv }
-  }
-
-  const timeoutMs = opts?.timeoutMs ?? 10 * 60 * 1000
+  const env = { ...process.env } as Record<string, string>
+  const timeoutMs = opts?.timeoutMs ?? 60 * 1000
 
   return new Promise((resolve, reject) => {
     const child = spawn(binary.path, args, {
@@ -449,7 +192,7 @@ export async function runOcr(
       if (!settled) {
         settled = true
         clearTimeout(timer)
-        resolve({ stdout, stderr, exitCode: code ?? -1, llmEnvError, llmConfig })
+        resolve({ stdout, stderr, exitCode: code ?? -1 })
       }
     })
   })
@@ -458,21 +201,21 @@ export async function runOcr(
 /**
  * 解析 ocr --format json 输出
  */
-export function parseOcrJson(stdout: string): OcrJsonResult {
+export function parseOcrJson<T = unknown>(stdout: string): T {
   const trimmed = stdout.trim()
   if (!trimmed) {
-    return { comments: [], summary: { files_reviewed: 0 } }
+    throw new Error('ocr 输出为空')
   }
 
   try {
-    return JSON.parse(trimmed) as OcrJsonResult
+    return JSON.parse(trimmed) as T
   } catch {
     // OCR 可能输出非纯 JSON（如前后有日志），尝试提取 JSON 块
     const jsonStart = trimmed.indexOf('{')
     const jsonEnd = trimmed.lastIndexOf('}')
     if (jsonStart >= 0 && jsonEnd > jsonStart) {
       try {
-        return JSON.parse(trimmed.slice(jsonStart, jsonEnd + 1)) as OcrJsonResult
+        return JSON.parse(trimmed.slice(jsonStart, jsonEnd + 1)) as T
       } catch {
         // 仍然失败
       }
@@ -482,21 +225,7 @@ export function parseOcrJson(stdout: string): OcrJsonResult {
 }
 
 /**
- * 对 API Key 进行脱敏处理，仅保留首尾各 4 个字符，中间用 **** 替代。
- * 长度不足 10 位时全部替换为 ****，避免泄露过多信息。
- */
-function maskKey(key: string): string {
-  if (key.length < 10) return '****'
-  return `${key.slice(0, 4)}****${key.slice(-4)}`
-}
-
-/**
  * 将 OCR 命令执行的完整反馈信息写入 ae/logs/ 目录。
- *
- * 日志文件名格式：ocr-{sessionId}-{YYYYMMDD}.log
- * 同一会话同一天的多次执行追加写入同一文件。
- *
- * 记录内容：时间戳、命令、CLI 参数、退出码、stdout、stderr、LLM 环境错误。
  */
 export function writeOcrExecutionLog(
   cwd: string,
@@ -507,8 +236,6 @@ export function writeOcrExecutionLog(
     exitCode?: number
     stdout?: string
     stderr?: string
-    llmEnvError?: string
-    llmConfig?: OcrLlmConfig
     error?: string
   },
 ): string | undefined {
@@ -529,22 +256,8 @@ export function writeOcrExecutionLog(
       `\n[${timeStr}] === ocr ${record.command} ===`,
       `CLI 参数: ${record.cliArgs.join(' ')}`,
     ]
-    if (record.llmConfig) {
-      lines.push(`--- 模型配置 ---`)
-      lines.push(`Provider ID: ${record.llmConfig.providerID}`)
-      lines.push(`Model ID: ${record.llmConfig.modelID}`)
-      lines.push(`Protocol: ${record.llmConfig.protocol}`)
-      if (record.llmConfig.npm) lines.push(`API npm: ${record.llmConfig.npm}`)
-      if (record.llmConfig.baseURL) lines.push(`Base URL: ${record.llmConfig.baseURL}`)
-      if (record.llmConfig.ocrURL) lines.push(`OCR URL: ${record.llmConfig.ocrURL}`)
-      if (record.llmConfig.apiKey) lines.push(`API Key: ${maskKey(record.llmConfig.apiKey)}`)
-      lines.push(`配置来源: ${record.llmConfig.source}`)
-    }
     if (record.exitCode !== undefined) {
       lines.push(`退出码: ${record.exitCode}`)
-    }
-    if (record.llmEnvError) {
-      lines.push(`LLM 环境错误: ${record.llmEnvError}`)
     }
     if (record.error) {
       lines.push(`执行异常: ${record.error}`)
@@ -572,12 +285,9 @@ export function writeOcrExecutionLog(
  */
 export async function checkOcrInstalled(): Promise<{ installed: boolean; version?: string; source?: string }> {
   const binary = resolveOcrBinary()
-  if (!binary) {
-    return { installed: false }
-  }
 
   try {
-    const { stdout, exitCode } = await runOcr(['version'], { skipLlmEnv: true, timeoutMs: 10000 })
+    const { stdout, exitCode } = await runOcr(['version'], { timeoutMs: 10000 })
     if (exitCode === 0) {
       return { installed: true, version: stdout.trim(), source: binary.source }
     }

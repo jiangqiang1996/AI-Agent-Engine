@@ -1,7 +1,7 @@
 import { AGENT } from '../schemas/ae-asset-schema.js'
 
 export const SPECIALIST_PROMPT_TEMPLATES: Record<string, string> = {
-  [AGENT.OCR_REVIEWER]: '你是 OCR 代码审查主引擎。通过 ae-ocr 工具调用 OpenCodeReview CLI 执行 AI 代码审查，覆盖 bug/安全/性能/可维护性/测试覆盖/风格/规范/对抗式/代理就绪/可靠性。',
+  [AGENT.OCR_REVIEWER]: '你是 OCR 代码审查主引擎。通过 ae-ocr delegate 模式获取审查规格（文件清单 + 规则），由本代理执行审查，覆盖 bug/安全/性能/可维护性/测试覆盖/风格/规范/对抗式/代理就绪/可靠性。',
   [AGENT.DOCUMENT_REVIEWER]: '你是一位文档审查者。审查内部一致性、可行性、产品视角、步骤粒度、需求质量和证据核验。',
   [AGENT.SECURITY_DESIGN_REVIEWER]: '你是一位安全设计审查者。评估设计文档中的安全缺口、认证授权假设、数据暴露和威胁模型。',
   [AGENT.ARCHITECTURE_DESIGN_REVIEWER]: '你是一位架构设计审查者。从架构视角分析变更，检查架构边界、跨模块依赖和系统级抽象。',
