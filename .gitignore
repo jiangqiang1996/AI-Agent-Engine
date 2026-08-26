@@ -26,3 +26,4 @@ ae/reviews
 /ae/slides/
 .playwright-cli
 .codefree-o/
+/.opencode/ai-agent-engine-src/
