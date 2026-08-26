@@ -4,7 +4,7 @@
 dist
 .opencode/package-lock.json
 .opencode/agents/ae/
-.opencode/plugins/*.js
+.opencode/plugins/
 **/tmp
 **/temp
 

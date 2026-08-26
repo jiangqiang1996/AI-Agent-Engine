@@ -7,7 +7,7 @@ import { createModelScenarioRoutingContext } from '../../src/services/model-scen
 import type { ModelScenarioSource } from '../../src/services/builtin-opencode-config-service.js'
 import { MODEL_SCENARIO } from '../../src/schemas/model-scenario-schema.js'
 
-function makeSource(scenario: string, model: string, layer: '插件内置' | '全局' | '项目级' = '项目级'): ModelScenarioSource {
+function makeSource(scenario: string, model: string, layer: '插件内置' | '全局安装级' | '项目级' = '项目级'): ModelScenarioSource {
   return { scenario, model, layer, path: `/repo/${layer}.jsonc` }
 }
 
@@ -66,7 +66,7 @@ describe('brainstorm-config-service', () => {
 
     it('brainstorm 配置为 undefined 时应降级到 deep', () => {
       const sources = new Map<string, ModelScenarioSource>([
-        [MODEL_SCENARIO.DEEP, makeSource(MODEL_SCENARIO.DEEP, 'provider/x', '全局')],
+        [MODEL_SCENARIO.DEEP, makeSource(MODEL_SCENARIO.DEEP, 'provider/x', '全局安装级')],
       ])
       setModelScenarioRoutingContext(createModelScenarioRoutingContext(sources))
 

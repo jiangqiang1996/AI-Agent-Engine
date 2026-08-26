@@ -14,13 +14,20 @@ function isPluginRootCandidate(dir: string): boolean {
   return existsSync(join(dir, 'dist', 'src', 'assets'))
 }
 
+function isPluginBundleLayout(dir: string): boolean {
+  return existsSync(join(dir, 'ai-agent-engine', 'skills'))
+}
+
 function isNestedUnderHiddenDirectory(moduleDir: string, candidateRoot: string): boolean {
   const rel = relative(candidateRoot, moduleDir)
   return rel.split(/[\\/]+/).some((part) => part.startsWith('.'))
 }
 
 /**
- * 根据模块 URL 推断 AE 插件根目录，兼容源码运行和仅分发 dist 产物两种结构。
+ * 根据模块 URL 推断 AE 插件根目录，兼容以下结构：
+ * 1. 打包后布局：bundle 在 <root>/plugins/ 下，assets 在 <root>/plugins/ai-agent-engine/assets/
+ * 2. 源码布局：模块在 <root>/src/index.js，assets 在 <root>/src/assets/
+ * 3. dist 产物布局：模块在 <root>/dist/src/index.js，assets 在 <root>/dist/src/assets/
  */
 export function resolvePluginRootFromModuleUrl(moduleUrl: string): string {
   let dir = dirname(fileURLToPath(moduleUrl))
@@ -36,9 +43,12 @@ export function resolvePluginRootFromModuleUrl(moduleUrl: string): string {
       return parentDir
     }
 
-    // 优先根据插件结构推断根目录，兼容只有桥接文件和 dist 产物的安装方式。
     if (isPluginRootCandidate(dir) && !isNestedUnderHiddenDirectory(dirname(fileURLToPath(moduleUrl)), dir)) {
       return dir
+    }
+
+    if (isPluginBundleLayout(dir) && !isNestedUnderHiddenDirectory(dirname(fileURLToPath(moduleUrl)), dir)) {
+      return dirname(dir)
     }
     dir = dirname(dir)
   }

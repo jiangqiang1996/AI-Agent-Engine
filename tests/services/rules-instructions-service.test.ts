@@ -1,15 +1,15 @@
-import { homedir } from 'node:os'
 import { join } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
 import { registerRulesInstructions } from '../../src/services/rules-instructions-service.js'
 import type { RuntimeAssetManifest } from '../../src/services/runtime-asset-manifest.js'
-import { toPosixPath } from '../../src/utils/path-utils.js'
 
 function createManifest(root: string): RuntimeAssetManifest {
   return {
     repoRoot: root,
+    moduleDir: join(root, 'plugins'),
+    installRoot: root,
     skillsDir: join(root, 'src', 'assets', 'skills'),
     rulesDir: join(root, 'src', 'assets', 'rules'),
     commandsDir: join(root, 'src', 'assets', 'commands'),
@@ -23,8 +23,6 @@ function createManifest(root: string): RuntimeAssetManifest {
 }
 
 describe('rules-instructions-service', () => {
-  const globalRulesGlob = toPosixPath(join(homedir(), '.config', 'opencode', 'rules', '**', '*.md'))
-
   it('应该注入内置规则和项目级规则目录', () => {
     const config = { instructions: ['AGENTS.md'] }
 
@@ -34,7 +32,6 @@ describe('rules-instructions-service', () => {
       'AGENTS.md',
       '/repo/src/assets/rules/**/*.md',
       '.opencode/rules/**/*.md',
-      globalRulesGlob,
     ])
   })
 
@@ -46,7 +43,6 @@ describe('rules-instructions-service', () => {
     expect(config.instructions).toEqual([
       '.opencode/rules/**/*.md',
       '/repo/src/assets/rules/**/*.md',
-      globalRulesGlob,
     ])
   })
 
@@ -60,7 +56,6 @@ describe('rules-instructions-service', () => {
     expect(config.instructions).toEqual([
       '/plugin/dist/src/assets/rules/**/*.md',
       '.opencode/rules/**/*.md',
-      globalRulesGlob,
     ])
   })
 })

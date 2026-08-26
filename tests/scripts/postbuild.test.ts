@@ -21,10 +21,12 @@ afterEach(() => {
 })
 
 describe('postbuild 构建脚本', () => {
-  it('应该把运行时依赖打包进 dist 入口以支持无 node_modules 加载', () => {
+  it('应该把运行时依赖打包进 bundle 以支持无 node_modules 加载', () => {
     const root = createTempRoot()
     const entryPath = join(root, 'dist', 'src', 'index.js')
+    const outPath = join(root, 'dist', 'ae-server.js')
     mkdirSync(join(root, 'dist', 'src'), { recursive: true })
+    mkdirSync(join(root, 'dist'), { recursive: true })
     writeFileSync(join(root, 'package.json'), '{"type":"module"}\n', 'utf8')
     writeFileSync(entryPath, "import { z } from 'zod'\nexport default z.string().parse('ok')\n", 'utf8')
 
@@ -33,24 +35,24 @@ describe('postbuild 构建脚本', () => {
       '--eval',
       [
         `import { bundlePluginEntry } from ${JSON.stringify(pathToFileURL(join(process.cwd(), 'scripts', 'postbuild.mjs')).href)}`,
-        `await bundlePluginEntry(${JSON.stringify(entryPath)})`,
+        `await bundlePluginEntry(${JSON.stringify(entryPath)}, ${JSON.stringify(outPath)})`,
       ].join('\n'),
     ], { stdio: 'pipe' })
 
-    const bundled = readFileSync(entryPath, 'utf8')
+    const bundled = readFileSync(outPath, 'utf8')
     expect(bundled).not.toContain("from 'zod'")
     expect(bundled).not.toContain('from "zod"')
 
     const output = execFileSync(process.execPath, [
       '--input-type=module',
       '--eval',
-      `const plugin = await import(${JSON.stringify(pathToFileURL(entryPath).href)}); process.stdout.write(String(plugin.default))`,
+      `const plugin = await import(${JSON.stringify(pathToFileURL(outPath).href)}); process.stdout.write(String(plugin.default))`,
     ], { cwd: root, encoding: 'utf8' })
 
     expect(output.trim()).toBe('ok')
   })
 
-  it('应该只保留 server 桥接并清理旧 TUI 注册', () => {
+  it('应该把 bundle 直接输出为 ae-server.js 并清理旧 TUI 注册', () => {
     const root = createTempRoot()
     const distSrc = join(root, 'dist', 'src')
     mkdirSync(distSrc, { recursive: true })
@@ -76,9 +78,8 @@ describe('postbuild 构建脚本', () => {
       ].join('\n'),
     ], { stdio: 'pipe' })
 
-    expect(readFileSync(join(root, '.opencode', 'plugins', 'ae-server.js'), 'utf8')).toContain(
-      "../../dist/src/index.js",
-    )
+    expect(existsSync(join(root, '.opencode', 'plugins', 'ae-server.js'))).toBe(true)
+    expect(existsSync(join(distSrc, 'index.js'))).toBe(false)
     expect(existsSync(join(distSrc, 'tui.js'))).toBe(false)
     expect(existsSync(join(distSrc, 'tui.d.ts'))).toBe(false)
     expect(existsSync(join(distSrc, 'tui.js.map'))).toBe(false)
@@ -88,7 +89,7 @@ describe('postbuild 构建脚本', () => {
     expect(tuiConfig.plugin).toEqual(['./tui-plugins/custom.js'])
   })
 
-  it('应该复制内置技能目录和 references 资产到 dist', () => {
+  it('应该复制内置技能目录和 references 资产到 plugins/ai-agent-engine', () => {
     const root = createTempRoot()
     const distSrc = join(root, 'dist', 'src')
     const skillDir = join(root, 'src', 'assets', 'skills', 'ae-brainstorm')
@@ -109,10 +110,10 @@ describe('postbuild 构建脚本', () => {
       ].join('\n'),
     ], { stdio: 'pipe' })
 
-    expect(existsSync(join(distSrc, 'assets', 'skills', 'ae-brainstorm', 'SKILL.md'))).toBe(true)
+    const pluginAssets = join(root, '.opencode', 'plugins', 'ai-agent-engine')
+    expect(existsSync(join(pluginAssets, 'skills', 'ae-brainstorm', 'SKILL.md'))).toBe(true)
     expect(existsSync(join(
-      distSrc,
-      'assets',
+      pluginAssets,
       'skills',
       'ae-brainstorm',
       'references',

@@ -36,6 +36,8 @@ const SOURCE_REPO_PATTERNS = [
 const SOURCE_REPO_CONTEXT_EXEMPTIONS = new Set([
   'src/assets/skills/ae-install/SKILL.md',
   'src/assets/skills/ae-uninstall/SKILL.md',
+  'src/assets/commands/ae-install.md',
+  'src/assets/commands/ae-uninstall.md',
   'src/assets/skills/ae-agent-creator/SKILL.md',
   'src/assets/skills/ae-agent-creator/references/opencode-agent-conventions.md',
 ])

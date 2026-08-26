@@ -6,9 +6,30 @@ const PARTIAL_NUMBERING_PATTERN = /^\.\d+$/
 
 const nodeRequire = createRequire(import.meta.url)
 
-const PDFJS_DIST_ROOT = path.dirname(nodeRequire.resolve('pdfjs-dist/package.json'))
-const STANDARD_FONT_DATA_URL = `${PDFJS_DIST_ROOT.replace(/\\/g, '/')}/standard_fonts/`
-const CMAP_URL = `${PDFJS_DIST_ROOT.replace(/\\/g, '/')}/cmaps/`
+let pdfjsDistRoot: string | null = null
+
+function getPdfjsDistRoot(): string | null {
+  if (pdfjsDistRoot !== null) {
+    return pdfjsDistRoot
+  }
+  try {
+    pdfjsDistRoot = path.dirname(nodeRequire.resolve('pdfjs-dist/package.json'))
+    return pdfjsDistRoot
+  } catch {
+    pdfjsDistRoot = null
+    return null
+  }
+}
+
+function getStandardFontDataUrl(): string {
+  const root = getPdfjsDistRoot()
+  return root ? `${root.replace(/\\/g, '/')}/standard_fonts/` : ''
+}
+
+function getCmapUrl(): string {
+  const root = getPdfjsDistRoot()
+  return root ? `${root.replace(/\\/g, '/')}/cmaps/` : ''
+}
 
 let workerBootstrapPromise: Promise<void> | null = null
 
@@ -335,8 +356,8 @@ export async function convertPdfToMarkdown(buffer: Buffer): Promise<MarkdownConv
   const loadingTask = pdfjs.getDocument({
     data: uint8,
     useSystemFonts: false,
-    standardFontDataUrl: STANDARD_FONT_DATA_URL,
-    cMapUrl: CMAP_URL,
+    standardFontDataUrl: getStandardFontDataUrl(),
+    cMapUrl: getCmapUrl(),
     cMapPacked: true,
   })
   const doc = await loadingTask.promise

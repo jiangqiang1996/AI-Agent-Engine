@@ -26,6 +26,8 @@ const CONFIG_FILENAME = 'ae.jsonc'
 /** 插件运行时资产清单，包含技能、规则、命令、代理等目录路径和代理文件映射。 */
 export interface RuntimeAssetManifest {
   repoRoot: string
+  moduleDir: string
+  installRoot: string
   skillsDir: string
   rulesDir: string
   commandsDir: string
@@ -44,14 +46,17 @@ function buildRuntimeAgentFiles(agentsDir: string, runtimeAgentDir: string): Arr
   }))
 }
 
+const PLUGIN_SUBDIR = 'ai-agent-engine'
+
 function resolveRuntimeAssetsDir(repoRoot: string, moduleDir: string): string {
   const candidates = [
+    join(moduleDir, PLUGIN_SUBDIR),
     join(moduleDir, ASSET_DIRS.ASSETS),
     join(repoRoot, 'dist', 'src', ASSET_DIRS.ASSETS),
     join(repoRoot, 'src', ASSET_DIRS.ASSETS),
   ]
 
-  return candidates.find((dir) => existsSync(dir)) ?? candidates[1]
+  return candidates.find((dir) => existsSync(dir)) ?? candidates[0]
 }
 
 function resolveAssetsDirFromRoot(repoRoot: string): string {
@@ -69,12 +74,16 @@ function resolveAssetsDirFromRoot(repoRoot: string): string {
  */
 export function createRuntimeAssetManifestFromRoot(repoRoot: string): RuntimeAssetManifest {
   const root = resolve(repoRoot)
+  const moduleDir = join(root, RUNTIME_DIRS.OPENCODE, RUNTIME_DIRS.PLUGINS)
+  const installRoot = root
   const runtimeAgentDir = join(root, RUNTIME_DIRS.OPENCODE, RUNTIME_DIRS.AGENTS, RUNTIME_DIRS.AE)
   const assetsDir = resolveAssetsDirFromRoot(root)
   const agentsDir = join(assetsDir, ASSET_DIRS.AGENTS)
 
   return {
     repoRoot: root,
+    moduleDir,
+    installRoot,
     skillsDir: join(assetsDir, ASSET_DIRS.SKILLS),
     rulesDir: join(assetsDir, ASSET_DIRS.RULES),
     commandsDir: join(assetsDir, ASSET_DIRS.COMMANDS),
@@ -94,12 +103,15 @@ export function createRuntimeAssetManifestFromRoot(repoRoot: string): RuntimeAss
 export function createRuntimeAssetManifest(moduleUrl: string): RuntimeAssetManifest {
   const root = resolvePluginRootFromModuleUrl(moduleUrl)
   const moduleDir = dirname(fileURLToPath(moduleUrl))
+  const installRoot = dirname(moduleDir)
   const runtimeAgentDir = join(root, RUNTIME_DIRS.OPENCODE, RUNTIME_DIRS.AGENTS, RUNTIME_DIRS.AE)
   const assetsDir = resolveRuntimeAssetsDir(root, moduleDir)
   const agentsDir = join(assetsDir, ASSET_DIRS.AGENTS)
 
   return {
     repoRoot: root,
+    moduleDir,
+    installRoot,
     skillsDir: join(assetsDir, ASSET_DIRS.SKILLS),
     rulesDir: join(assetsDir, ASSET_DIRS.RULES),
     commandsDir: join(assetsDir, ASSET_DIRS.COMMANDS),

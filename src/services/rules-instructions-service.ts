@@ -1,7 +1,6 @@
 import { join } from 'node:path'
 
 import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
-import { getOpencodeGlobalConfigDir } from './opencode-path-service.js'
 import { toPosixPath } from '../utils/path-utils.js'
 
 interface InstructionsConfig {
@@ -33,7 +32,6 @@ interface InstructionsConfig {
  */
 export function registerRulesInstructions(config: InstructionsConfig, manifest: RuntimeAssetManifest): void {
   const projectRuleGlobs = ['.opencode/rules/**/*.md']
-  const globalRulesGlob = toPosixPath(join(getOpencodeGlobalConfigDir(), 'rules', '**', '*.md'))
   const builtinRulesGlob = toPosixPath(join(manifest.rulesDir, '**', '*.md'))
-  config.instructions = [...new Set([...(config.instructions ?? []), builtinRulesGlob, ...projectRuleGlobs, globalRulesGlob])]
+  config.instructions = [...new Set([...(config.instructions ?? []), builtinRulesGlob, ...projectRuleGlobs])]
 }

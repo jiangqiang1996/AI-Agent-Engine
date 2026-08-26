@@ -25,6 +25,26 @@ afterEach(() => {
 })
 
 describe('runtime-asset-manifest', () => {
+  it('应该在打包后布局下定位到 plugins/ai-agent-engine 目录', () => {
+    const root = createRepoRoot()
+    const pluginsDir = join(root, 'plugins')
+    mkdirSync(join(pluginsDir, 'ai-agent-engine', 'skills'), { recursive: true })
+    mkdirSync(join(pluginsDir, 'ai-agent-engine', 'agents', 'review'), { recursive: true })
+    writeFileSync(join(pluginsDir, 'ae-server.js'), 'export {}')
+
+    const manifest = createRuntimeAssetManifest(pathToFileURL(join(pluginsDir, 'ae-server.js')).href)
+
+    expect(manifest.repoRoot).toBe(root)
+    expect(manifest.moduleDir).toBe(pluginsDir)
+    expect(manifest.installRoot).toBe(root)
+    expect(manifest.skillsDir).toBe(join(pluginsDir, 'ai-agent-engine', 'skills'))
+    expect(manifest.rulesDir).toBe(join(pluginsDir, 'ai-agent-engine', 'rules'))
+    expect(manifest.commandsDir).toBe(join(pluginsDir, 'ai-agent-engine', 'commands'))
+    expect(manifest.builtinConfigFile).toBe(join(pluginsDir, 'ai-agent-engine', 'config', 'ae.jsonc'))
+    expect(manifest.agentsDir).toBe(join(pluginsDir, 'ai-agent-engine', 'agents'))
+    expect(manifest.runtimeAgentFiles[0]?.source).toContain(join('ai-agent-engine', 'agents'))
+  })
+
   it('应该在只有 dist 产物时指向运行时 assets 目录', () => {
     const root = createRepoRoot()
     mkdirSync(join(root, 'dist', 'src', 'assets', 'agents', 'review'), { recursive: true })

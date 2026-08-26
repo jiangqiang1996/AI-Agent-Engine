@@ -3,58 +3,46 @@
 /**
  * AE 插件安装或更新脚本
  *
- * 用法：node scripts/install.js --scope <global|project> [--yes] [--project-root <path>]
- *   --scope <global|project>：指定安装范围（必须显式指定，避免误操作全局安装）
- *     - global：安装到 ~/.config/opencode/ai-agent-engine
- *     - project：安装到 <当前项目根目录>/.opencode/ai-agent-engine
- *   --yes / -y：跳过所有交互式确认，直接执行（适用于 LLM 代理已获授权的场景）
- *   --project-root <path>：显式指定项目根目录（项目级安装时决定安装位置）
+ * 用法：node scripts/install.js --target-dir <path> [--repo-dir <path>] [--yes]
+ *   --target-dir <path>：安装目标目录（全局=~/.config/opencode，项目级=<project>/.opencode）
+ *   --repo-dir <path>：源码仓库目录（默认 <target-dir>/ai-agent-engine-src）
+ *   --yes / -y：跳过所有交互式确认
  *
- * 向后兼容：也接受 `global` 或 `project` 位置参数形式，但推荐使用 --scope flag。
+ * 脚本不硬编码任何安装路径，所有路径通过参数传入。
+ * 安装范围（全局/项目级）由调用方通过 --target-dir 隐式决定。
  *
- * 自动判断：
- * - 已安装 → 更新：拉取最新代码，重新安装依赖并构建
- * - 未安装 → 克隆仓库、安装依赖、构建产物（全新安装）
+ * 流程：
+ * - 已安装 → 更新：git reset --hard、git pull、npm install、npm run build
+ * - 未安装 → 克隆仓库、npm install、npm run build
+ * - 部署构建产物到 <target-dir>/plugins/
+ * - 在 <target-dir>/plugins/ai-agent-engine/ 内安装 @napi-rs/canvas
  *
- * 环境检查（Node.js/npm/git）由调用方（/ae-install 命令模板）在脚本执行前完成。
- *
- * 未传 --yes 时，脚本内置交互式 confirm，destructive 操作前等待用户确认。
- * 未显式指定 scope 时报错退出，不静默回退到全局，避免误操作全局安装。
+ * 安全约束：只操作 <target-dir>/plugins/ 下的 ae-server.js 和 ai-agent-engine/，
+ * 不触碰 plugins/ 目录内的其他文件。
  */
 
 import { existsSync } from 'node:fs'
-import { mkdir, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdir, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { createInterface } from 'node:readline'
 import { spawn } from 'node:child_process'
 
 const REPO_URL = 'https://gitee.com/jiangqiang1996/ai-agent-engine.git'
-const BRIDGE_CONTENT = "export { default } from '../ai-agent-engine/dist/src/index.js'\n"
 
 function parseArgs(argv) {
   const yes = argv.includes('--yes') || argv.includes('-y')
-  let scope = null
-  let projectRoot = null
-  let scopeFromFlag = false
+  let targetDir = null
+  let repoDir = null
   for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === '--project-root' && argv[i + 1] && !argv[i + 1].startsWith('-')) {
-      projectRoot = argv[i + 1]
+    if (argv[i] === '--target-dir' && argv[i + 1] && !argv[i + 1].startsWith('-')) {
+      targetDir = argv[i + 1]
       i++
-    } else if (argv[i] === '--scope' && argv[i + 1] && !argv[i + 1].startsWith('-')) {
-      const scopeVal = argv[i + 1]
-      if (scopeVal !== 'project' && scopeVal !== 'global') {
-        console.error(`错误：无效的 scope 值 "${scopeVal}"，必须为 global 或 project。`)
-        process.exit(1)
-      }
-      scope = scopeVal
-      scopeFromFlag = true
+    } else if (argv[i] === '--repo-dir' && argv[i + 1] && !argv[i + 1].startsWith('-')) {
+      repoDir = argv[i + 1]
       i++
-    } else if (!scopeFromFlag && (argv[i] === 'project' || argv[i] === 'global')) {
-      // 向后兼容：接受位置参数形式，但 --scope flag 优先
-      scope = argv[i] === 'project' ? 'project' : 'global'
     }
   }
-  return { yes, scope, projectRoot }
+  return { yes, targetDir, repoDir }
 }
 
 function makeConfirm(autoYes) {
@@ -87,140 +75,124 @@ function runCommand(command, args, options = {}) {
   })
 }
 
-function runCommandCapture(command, args, options = {}) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      shell: process.platform === 'win32',
-      ...options,
-    })
-    let stdout = ''
-    let stderr = ''
-    child.stdout.on('data', (data) => { stdout += data.toString() })
-    child.stderr.on('data', (data) => { stderr += data.toString() })
-    child.on('close', (code) => {
-      if (code === 0) resolve(stdout.trim())
-      else reject(new Error(`命令失败 (exit ${code}): ${command} ${args.join(' ')}\n${stderr}`))
-    })
-    child.on('error', reject)
-  })
-}
-
 function isGitRepo(dir) {
   return existsSync(join(dir, '.git'))
 }
 
-function getPaths(scope, projectRoot) {
-  const home = process.env[process.platform === 'win32' ? 'USERPROFILE' : 'HOME']
-  const opencodeDir = join(home, '.config', 'opencode')
-
-  if (scope === 'project') {
-    const resolvedRoot = projectRoot || process.cwd()
-    return {
-      scope,
-      repoDir: join(resolvedRoot, '.opencode', 'ai-agent-engine'),
-      pluginsDir: join(resolvedRoot, '.opencode', 'plugins'),
-      bridgeFile: join(resolvedRoot, '.opencode', 'plugins', 'ae-server.js'),
-      workDir: resolvedRoot,
-    }
-  }
-
-  return {
-    scope,
-    repoDir: join(opencodeDir, 'ai-agent-engine'),
-    pluginsDir: join(opencodeDir, 'plugins'),
-    bridgeFile: join(opencodeDir, 'plugins', 'ae-server.js'),
-    workDir: opencodeDir,
-  }
-}
-
-async function writeBridgeFile(paths) {
-  await mkdir(paths.pluginsDir, { recursive: true })
-  await writeFile(paths.bridgeFile, BRIDGE_CONTENT, 'utf8')
-  console.log(`桥接文件已写入: ${paths.bridgeFile}`)
-}
-
-async function updateExisting(paths, confirmFn) {
-  console.log(`\n检测到已安装，执行更新流程: ${paths.repoDir}`)
+async function updateExisting(repoDir, confirmFn) {
+  console.log(`\n检测到已安装，执行更新流程: ${repoDir}`)
 
   const authorized = await confirmFn(
-    `将对 ${paths.repoDir} 执行 git reset --hard HEAD、git clean -fd --exclude=node_modules、git pull，这些操作会丢弃本地未提交修改和未追踪文件。是否继续？`,
+    `将对 ${repoDir} 执行 git reset --hard HEAD、git clean -fd --exclude=node_modules、git pull，这些操作会丢弃本地未提交修改和未追踪文件。是否继续？`,
   )
   if (!authorized) {
     console.log('用户取消更新。')
     process.exit(0)
   }
 
-  await runCommand('git', ['reset', '--hard', 'HEAD'], { cwd: paths.repoDir })
-  await runCommand('git', ['clean', '-fd', '--exclude=node_modules'], { cwd: paths.repoDir })
-
-  const pullOutput = await runCommandCapture('git', ['pull', 'origin', 'master'], { cwd: paths.repoDir })
-  console.log(pullOutput)
+  await runCommand('git', ['reset', '--hard', 'HEAD'], { cwd: repoDir })
+  await runCommand('git', ['clean', '-fd', '--exclude=node_modules'], { cwd: repoDir })
+  await runCommand('git', ['pull', 'origin', 'master'], { cwd: repoDir })
 
   console.log('\n安装依赖...')
-  await runCommand('npm', ['install'], { cwd: paths.repoDir })
+  await runCommand('npm', ['install'], { cwd: repoDir })
 
   console.log('\n构建产物...')
-  await runCommand('npm', ['run', 'build'], { cwd: paths.repoDir })
-
-  console.log('\n写入桥接文件...')
-  await writeBridgeFile(paths)
+  await runCommand('npm', ['run', 'build'], { cwd: repoDir })
 }
 
-async function freshInstall(paths, confirmFn) {
+async function freshInstall(repoDir, confirmFn) {
   console.log(`\n未检测到安装，执行全新安装流程`)
 
-  if (existsSync(paths.repoDir)) {
-    const target = paths.repoDir
-    const authorized = await confirmFn(`目标目录已存在但不是 git 仓库: ${target}。将删除该目录并重新克隆。是否继续？`)
+  if (existsSync(repoDir)) {
+    const authorized = await confirmFn(`目标目录已存在但不是 git 仓库: ${repoDir}。将删除该目录并重新克隆。是否继续？`)
     if (!authorized) {
       console.log('用户取消安装。')
       process.exit(0)
     }
-    await rm(target, { recursive: true, force: true })
+    await rm(repoDir, { recursive: true, force: true })
   }
 
-  const parentDir = dirname(paths.repoDir)
+  const parentDir = dirname(repoDir)
   await mkdir(parentDir, { recursive: true })
 
-  console.log(`克隆仓库到: ${paths.repoDir}`)
-  await runCommand('git', ['clone', REPO_URL, paths.repoDir], { cwd: parentDir })
+  console.log(`克隆仓库到: ${repoDir}`)
+  await runCommand('git', ['clone', REPO_URL, repoDir], { cwd: parentDir })
 
   console.log('\n安装依赖...')
-  await runCommand('npm', ['install'], { cwd: paths.repoDir })
+  await runCommand('npm', ['install'], { cwd: repoDir })
 
   console.log('\n构建产物...')
-  await runCommand('npm', ['run', 'build'], { cwd: paths.repoDir })
+  await runCommand('npm', ['run', 'build'], { cwd: repoDir })
+}
 
-  console.log('\n写入桥接文件...')
-  await writeBridgeFile(paths)
+async function deployBuild(repoDir, targetDir) {
+  const sourcePluginsDir = join(repoDir, '.opencode', 'plugins')
+  const targetPluginsDir = join(targetDir, 'plugins')
+  const sourceBundle = join(sourcePluginsDir, 'ae-server.js')
+  const sourceAssets = join(sourcePluginsDir, 'ai-agent-engine')
+  const targetBundle = join(targetPluginsDir, 'ae-server.js')
+  const targetAssets = join(targetPluginsDir, 'ai-agent-engine')
+
+  if (!existsSync(sourceBundle)) {
+    throw new Error(`构建产物不存在: ${sourceBundle}。请确认 npm run build 已成功执行。`)
+  }
+
+  await mkdir(targetPluginsDir, { recursive: true })
+
+  console.log('\n部署构建产物...')
+  await rm(targetBundle, { force: true })
+  await cp(sourceBundle, targetBundle)
+  console.log(`  bundle: ${targetBundle}`)
+
+  await rm(targetAssets, { recursive: true, force: true })
+  await cp(sourceAssets, targetAssets, { recursive: true })
+  console.log(`  assets: ${targetAssets}`)
+}
+
+async function installNativeDeps(targetDir) {
+  const assetsDir = join(targetDir, 'plugins', 'ai-agent-engine')
+  const packageJsonPath = join(assetsDir, 'package.json')
+
+  if (!existsSync(packageJsonPath)) {
+    await writeFile(packageJsonPath, JSON.stringify({ type: 'module' }, null, 2) + '\n', 'utf8')
+  }
+
+  console.log('\n安装 @napi-rs/canvas...')
+  await runCommand('npm', ['install', '@napi-rs/canvas'], { cwd: assetsDir })
+  console.log('  @napi-rs/canvas 安装完成')
 }
 
 async function main() {
-  const { yes: autoYes, scope, projectRoot } = parseArgs(process.argv.slice(2))
+  const { yes: autoYes, targetDir, repoDir: repoDirArg } = parseArgs(process.argv.slice(2))
 
-  if (!scope) {
-    console.error('错误：必须显式指定安装范围。使用 --scope global 或 --scope project。')
-    console.error('用法：node scripts/install.js --scope <global|project> [--yes] [--project-root <path>]')
+  if (!targetDir) {
+    console.error('错误：必须指定 --target-dir。')
+    console.error('用法：node scripts/install.js --target-dir <path> [--repo-dir <path>] [--yes]')
+    console.error('  全局安装：--target-dir ~/.config/opencode')
+    console.error('  项目级安装：--target-dir <项目根目录>/.opencode')
     process.exit(1)
   }
 
   const confirmFn = makeConfirm(autoYes)
+  const repoDir = repoDirArg || join(targetDir, 'ai-agent-engine-src')
 
-  const paths = getPaths(scope, projectRoot)
-  console.log(`AE 插件安装或更新（${scope === 'project' ? '项目级' : '全局'}）`)
-  console.log(`仓库目录: ${paths.repoDir}`)
-  console.log(`桥接文件: ${paths.bridgeFile}`)
+  console.log('AE 插件安装或更新')
+  console.log(`目标目录: ${targetDir}`)
+  console.log(`仓库目录: ${repoDir}`)
 
-  const installed = existsSync(paths.repoDir) && isGitRepo(paths.repoDir)
+  const installed = existsSync(repoDir) && isGitRepo(repoDir)
 
   if (installed) {
-    await updateExisting(paths, confirmFn)
+    await updateExisting(repoDir, confirmFn)
   } else {
-    await freshInstall(paths, confirmFn)
+    await freshInstall(repoDir, confirmFn)
   }
 
-  console.log(`\nAE 插件已${installed ? '更新' : '安装'}完成（${scope === 'project' ? '项目级' : '全局'}）`)
+  await deployBuild(repoDir, targetDir)
+  await installNativeDeps(targetDir)
+
+  console.log(`\nAE 插件已${installed ? '更新' : '安装'}完成`)
   console.log('请重启 opencode 以加载最新版本。')
   console.log('如需验证，重启后尝试 /ae-help 命令。')
 }

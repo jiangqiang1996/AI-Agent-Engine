@@ -1,5 +1,4 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
 import { homedir } from 'node:os'
 import path, { join } from 'node:path'
 
@@ -8,6 +7,7 @@ import { withBackup } from '../utils/file-backup.js'
 import fontkit from '@pdf-lib/fontkit'
 import { PDFDocument, StandardFonts, degrees, rgb } from 'pdf-lib'
 import type { PDFFont, PDFImage, PDFPage } from 'pdf-lib'
+import { PDFParse as PdfParseClass } from 'pdf-parse'
 
 import { generateDocumentOutputPath } from '../utils/document-output-path.js'
 import { isInsideRoot } from '../utils/path-utils.js'
@@ -15,8 +15,6 @@ import { convertPdfToMarkdown } from './pdf-markdown-converter.js'
 import { loadDocumentFile } from './document-file-loader.js'
 import { writeMarkdownOutput } from './markdown-output-writer.js'
 import { pdfToImages } from './pdf-to-image-service.js'
-
-const require = createRequire(import.meta.url)
 
 /** PDF extract-text 返回给 LLM 的最大字符数，超出截断 */
 const PDF_EXTRACT_TEXT_MAX_CHARS = 8000
@@ -31,15 +29,14 @@ type PdfParseModule = {
 }
 
 /**
- * 延迟加载 pdf-parse，并在调用后备份/还原 global.Path2D 等全局变量。
+ * 首次使用 pdf-parse 时保存/还原 global.Path2D 等全局变量。
  *
  * pdf-parse 内部通过 fake worker 加载 @napi-rs/canvas 时会设置
  * global.Path2D / global.DOMMatrix / global.ImageData（@napi-rs/canvas 原生版）。
  * 这会导致后续 pdfjs-dist 渲染 PDF 时误用 canvas 的 Path2D
  * 替代浏览器 Path2D，触发 "Value is none of these types `String`, `Path`" 错误。
  *
- * 策略：在 require pdf-parse 前保存受影响的全局变量，require 后立即还原。
- * 这样 extract-text 调用不会污染后续 to-image 渲染。
+ * 策略：在首次使用 pdf-parse 前保存受影响的全局变量，加载后立即还原。
  */
 let pdfParseModule: PdfParseModule | null = null
 
@@ -52,7 +49,7 @@ function getPdfParseModule(): PdfParseModule {
       savedGlobals[key] = (globalThis as Record<string, unknown>)[key]
     }
     try {
-      pdfParseModule = require('pdf-parse') as PdfParseModule
+      pdfParseModule = { PDFParse: PdfParseClass } as PdfParseModule
     } finally {
       for (const key of PDF_PARSE_GLOBAL_KEYS) {
         const saved = savedGlobals[key]

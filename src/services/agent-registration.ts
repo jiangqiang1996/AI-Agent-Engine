@@ -1,11 +1,10 @@
-import { readdirSync, readFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
 import { getAllAgentDefinitions } from './ae-catalog.js'
 import type { ModelScenarioRoutingContext } from './model-scenario-routing-service.js'
 import { resolveModelReference } from './model-scenario-routing-service.js'
-import { getOpencodeGlobalConfigDir } from './opencode-path-service.js'
 import { getFrontmatterString, parseFrontmatter } from '../utils/frontmatter.js'
 
 interface AgentConfigShape {
@@ -84,38 +83,6 @@ export function buildAgentConfig(
   return result
 }
 
-function loadAgentFiles(
-  agentsDir: string,
-  routingContext?: ModelScenarioRoutingContext,
-): NonNullable<AgentConfigShape['agent']> {
-  const result: NonNullable<AgentConfigShape['agent']> = {}
-  let files: string[]
-
-  try {
-    files = readdirSync(agentsDir).filter((file) => file.endsWith('.md'))
-  } catch {
-    return result
-  }
-
-  for (const file of files) {
-    const name = file.slice(0, -'.md'.length)
-    const content = readFileSync(join(agentsDir, file), 'utf8')
-    const parsed = parseFrontmatter(content)
-    const restData = filterAgentFrontmatter(parsed.data)
-    const agentConfig: AgentConfigEntry = {
-      ...restData,
-      description: getFrontmatterString(parsed.data, 'description'),
-      prompt: getFrontmatterString(parsed.data, 'prompt') ?? parsed.body.trim(),
-      mode: resolveAgentMode(getFrontmatterString(parsed.data, 'mode'), name),
-    }
-
-    applyAgentModel(agentConfig, getFrontmatterString(parsed.data, 'model'), routingContext)
-    result[name] = agentConfig
-  }
-
-  return result
-}
-
 function resolveAgentMode(frontmatterMode: string | undefined, agentName: string): AgentMode {
   if (!frontmatterMode) {
     return 'subagent'
@@ -146,7 +113,6 @@ function applyAgentModel(
 export function registerAgents(
   config: AgentConfigShape,
   manifest: RuntimeAssetManifest,
-  worktree: string,
   dynamicHasPriority: boolean,
   routingContext?: ModelScenarioRoutingContext,
 ): void {
@@ -154,7 +120,5 @@ export function registerAgents(
   config.agent = {
     ...(dynamicHasPriority ? config.agent : dynamicAgents),
     ...(dynamicHasPriority ? dynamicAgents : config.agent),
-    ...loadAgentFiles(join(getOpencodeGlobalConfigDir(), 'agents'), routingContext),
-    ...loadAgentFiles(join(worktree, '.opencode', 'agents'), routingContext),
   }
 }

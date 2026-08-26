@@ -1,12 +1,4 @@
-import { createRequire } from 'node:module'
-
-const require = createRequire(import.meta.url)
-
-const oc = require('@officecli/sdk') as {
-  open: (filePath: string, options?: { binary?: string; timeoutMs?: number; autoInstall?: boolean }) => Promise<OfficeCliDocument>
-  create: (filePath: string, args?: string[], options?: { binary?: string; timeoutMs?: number; autoInstall?: boolean }) => Promise<OfficeCliDocument>
-  install: () => void
-}
+import oc from '@officecli/sdk'
 
 export interface OfficeCliDocument {
   path: string

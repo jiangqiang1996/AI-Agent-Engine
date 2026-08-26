@@ -47,9 +47,9 @@ describe('mcp-registration 集成', () => {
     const root = createTempRoot()
     const config = loadBuiltinOpencodeConfig({
       builtinConfigFile: manifest.builtinConfigFile,
-      globalConfigFile: join(root, 'missing-global-ae.jsonc'),
+      installDirConfigFile: join(root, 'missing-global-ae.jsonc'),
       projectConfigFile: join(root, 'missing-project-ae.jsonc'),
-    }).mcp ?? {}
+    }, false).mcp ?? {}
 
     expect(config.context7).toBeDefined()
     expect(config.gh_grep).toBeDefined()
@@ -81,7 +81,7 @@ describe('mcp-registration 集成', () => {
       },
     }
 
-    registerMcp(config, manifest, root)
+    registerMcp(config, manifest, root, false)
 
     expect(config.mcp.context7.enabled).toBe(false)
     expect(config.mcp.context7.type).toBe('remote')
@@ -98,8 +98,8 @@ describe('mcp-registration 集成', () => {
     const paths = resolveBuiltinOpencodeConfigPaths(manifest, root)
     const config = loadBuiltinOpencodeConfig({
       ...paths,
-      globalConfigFile: join(root, 'missing-global-ae.jsonc'),
-    })
+      installDirConfigFile: join(root, 'missing-global-ae.jsonc'),
+    }, false)
 
     expect(config.$schema).toBe('./ae.schema.json')
     expect(config.mcp?.context7).toBeDefined()

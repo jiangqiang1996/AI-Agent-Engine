@@ -18,6 +18,8 @@ function createRoot(): string {
 function createManifest(root: string): RuntimeAssetManifest {
   return {
     repoRoot: root,
+    moduleDir: join(root, 'plugins'),
+    installRoot: root,
     skillsDir: join(root, 'src', 'assets', 'skills'),
     rulesDir: join(root, 'src', 'assets', 'rules'),
     commandsDir: join(root, 'src', 'assets', 'commands'),

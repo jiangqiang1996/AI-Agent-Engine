@@ -10,10 +10,8 @@ subtask: false
 
 支持两种范围：
 
-- **全局**：安装到 `~/.config/opencode/ai-agent-engine`，对所有项目生效
-- **项目级**：安装到 `<当前项目根目录>/.opencode/ai-agent-engine`，仅对当前项目生效
-
-> 脚本层必须收到显式 scope 才会执行，未收到时报错退出，避免脚本层静默回退到全局安装。
+- **全局**：`--target-dir` 为 `~/.config/opencode`（Windows: `%USERPROFILE%\.config\opencode`），对所有项目生效
+- **项目级**：`--target-dir` 为 `<当前项目根目录>/.opencode`，仅对当前项目生效
 
 > Windows 环境下 `~` 对应 `%USERPROFILE%`，`~/.config/opencode/` 实际路径为 `%USERPROFILE%\.config\opencode\`
 
@@ -25,7 +23,10 @@ subtask: false
 - 用户明确要求全局安装（参数为 `global`，或提示词含"全局"、"所有项目"等表述）→ scope 为 `global`
 - 用户未明确说明范围 → scope 为 `global`
 
-> 必须通过 `--scope` flag 显式传给脚本，脚本未收到任何显式 scope 时报错退出。
+根据 scope 计算 `--target-dir`：
+
+- **全局**：`~/.config/opencode`（Windows: `%USERPROFILE%\.config\opencode`）
+- **项目级**：`<当前项目根目录>/.opencode`（当前项目根目录取 `process.cwd()`）
 
 ## 第一步：环境前置检查
 
@@ -38,7 +39,7 @@ subtask: false
 - **命令不存在或版本主号低于 18**：使用 question 工具告知用户 Node.js 缺失或版本过低，询问是否自动安装。用户确认后，根据平台执行安装命令：
   - Windows：`winget install OpenJS.NodeJS.LTS`
   - macOS：`brew install node@18`
-  - Linux：`curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash - && sudo apt-get install -y nodejs`
+  - Linux：根据发行版执行 `curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash - && sudo apt-get install -y nodejs`
   - 安装命令失败时降级为提示用户从 https://nodejs.org/ 下载并安装 LTS 版本，停止流程
 
 ### 1.2 npm
@@ -65,7 +66,7 @@ subtask: false
 
 1. 操作类型：安装或更新（已安装时为更新）
 2. 安装范围：全局或项目级
-3. 具体路径：仓库目录和桥接文件路径
+3. 具体路径：仓库目录和部署目录
 4. 更新场景需说明：会丢弃该仓库的本地未提交修改和未追踪文件
 5. 授权来源：用户通过 `/ae-install` 命令触发的交互式 confirm 授权
 
@@ -75,18 +76,16 @@ subtask: false
 
 `/ae-install` 命令仅在 AE 插件已加载时可用，因此脚本必然已存在于安装目录。按 scope 解析脚本绝对路径：
 
-- **全局**：脚本位于 `~/.config/opencode/ai-agent-engine/scripts/install.js`（Windows: `%USERPROFILE%\.config\opencode\ai-agent-engine\scripts\install.js`）
-- **项目级**：脚本位于 `<当前项目根目录>/.opencode/ai-agent-engine/scripts/install.js`
+- **全局**：脚本位于 `~/.config/opencode/ai-agent-engine-src/scripts/install.js`（Windows: `%USERPROFILE%\.config\opencode\ai-agent-engine-src\scripts\install.js`）
+- **项目级**：脚本位于 `<当前项目根目录>/.opencode/ai-agent-engine-src/scripts/install.js`
 
-> 当前项目根目录取 `process.cwd()`，即执行命令时的工作目录。`--project-root` 参数显式传入该值，确保脚本在不同 cwd 下也能定位正确项目；项目级安装时该参数决定安装位置，全局安装时不影响路径但保持命令形式统一。
+> 当前项目根目录取 `process.cwd()`，即执行命令时的工作目录。
 
-执行命令（`<scope>` 填 `global` 或 `project`）：
+执行命令（`<target-dir>` 按第零步计算的值填充）：
 
 ```bash
-node "<脚本绝对路径>" --scope <scope> --yes --project-root "<当前项目根目录>"
+node "<脚本绝对路径>" --target-dir "<target-dir>" --yes
 ```
-
-> 必须使用 `--scope` flag 显式指定范围。脚本未收到显式 scope 时会报错退出，避免误操作全局安装。
 
 脚本自动完成安装或更新，无需 LLM 关注内部流程。
 
@@ -115,3 +114,4 @@ AE 插件已安装/更新完成（全局/项目级）
 - 项目级安装和全局安装可以共存，项目级优先加载
 - 授权只确认一次，脚本使用 `--yes` 标志跳过交互式确认，避免二次授权
 - playwright-cli 安装无需用户授权，脚本执行完毕后自动检查并安装
+- 安装脚本只操作 `plugins/` 下的 `ae-server.js` 和 `ai-agent-engine/`，不触碰其他插件文件

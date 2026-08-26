@@ -8,7 +8,6 @@ import { getPhaseOneEntries } from './ae-catalog.js'
 import { getCommandModelScenario } from './asset-model-routing-catalog.js'
 import type { ModelScenarioRoutingContext } from './model-scenario-routing-service.js'
 import { getModelByScenario, resolveModelReference } from './model-scenario-routing-service.js'
-import { getOpencodeGlobalConfigDir } from './opencode-path-service.js'
 
 const ARGUMENTS_PLACEHOLDER = '$ARGUMENTS'
 
@@ -107,7 +106,7 @@ export function buildCommandConfig(
   return result
 }
 
-/** 合并内置命令与用户命令，用户命令优先。 */
+/** 合并动态命令与已有命令，用户命令优先。 */
 export function mergeBuiltinAndUserCommands(
   builtinCommands: NonNullable<Config['command']>,
   userCommands: Config['command'] | undefined,
@@ -130,29 +129,4 @@ export function mergeDynamicCommands(
       ...dynamicCommands,
     }
     : mergeBuiltinAndUserCommands(dynamicCommands, existingCommands)
-}
-
-/**
- * 合并项目级和全局命令目录中的命令文件覆盖。
- * 扫描 `~/.opencode/commands/` 和 `.opencode/commands/` 两个目录。
- */
-export function mergeProjectCommandOverrides(
-  commands: NonNullable<Config['command']>,
-  worktree: string,
-  routingContext?: ModelScenarioRoutingContext,
-): NonNullable<Config['command']> {
-  const result: NonNullable<Config['command']> = { ...commands }
-  const directCommandDirs = [
-    join(getOpencodeGlobalConfigDir(), 'commands'),
-    join(worktree, '.opencode', 'commands'),
-  ]
-
-  for (const commandsDir of directCommandDirs) {
-    const directCommands = loadCommandFiles(commandsDir)
-    for (const [name, command] of directCommands) {
-      result[name] = applyCommandModel(command, name, routingContext)
-    }
-  }
-
-  return result
 }

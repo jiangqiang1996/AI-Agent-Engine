@@ -7,12 +7,11 @@ import stripJsonComments from 'strip-json-comments'
 import { isRegularFile } from '../utils/path-utils.js'
 
 import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
-import { getOpencodeGlobalConfigDir } from './opencode-path-service.js'
 
 type McpConfig = NonNullable<Config['mcp']>
 export type ModelScenariosConfig = Record<string, string>
 export type BrainstormConfig = string[]
-export type BuiltinOpencodeConfigLayerName = '插件内置' | '全局' | '项目级'
+export type BuiltinOpencodeConfigLayerName = '插件内置' | '全局安装级' | '项目级'
 
 export interface ModelScenarioSource {
   scenario: string
@@ -31,7 +30,7 @@ export interface BuiltinOpencodeConfig {
 
 export interface BuiltinOpencodeConfigPaths {
   projectConfigFile: string
-  globalConfigFile: string
+  installDirConfigFile: string
   builtinConfigFile: string
 }
 
@@ -125,16 +124,22 @@ function readBuiltinOpencodeConfigLayer(layer: ConfigLayer): BuiltinOpencodeConf
   return parsed as BuiltinOpencodeConfig
 }
 
-function getBuiltinOpencodeConfigLayers(paths: BuiltinOpencodeConfigPaths): ConfigLayer[] {
-  return [
+function getBuiltinOpencodeConfigLayers(paths: BuiltinOpencodeConfigPaths, isProjectInstall: boolean): ConfigLayer[] {
+  const layers: ConfigLayer[] = [
     { label: '插件内置', path: paths.builtinConfigFile, required: true, allowNewMcpEntries: true },
-    { label: '全局', path: paths.globalConfigFile, required: false, allowNewMcpEntries: true },
-    { label: '项目级', path: paths.projectConfigFile, required: false, allowNewMcpEntries: true },
   ]
+
+  if (!isProjectInstall) {
+    layers.push({ label: '全局安装级', path: paths.installDirConfigFile, required: false, allowNewMcpEntries: true })
+  }
+
+  layers.push({ label: '项目级', path: paths.projectConfigFile, required: false, allowNewMcpEntries: true })
+
+  return layers
 }
 
-function readBuiltinOpencodeConfigLayers(paths: BuiltinOpencodeConfigPaths): LoadedConfigLayer[] {
-  return getBuiltinOpencodeConfigLayers(paths).flatMap((layer) => {
+function readBuiltinOpencodeConfigLayers(paths: BuiltinOpencodeConfigPaths, isProjectInstall: boolean): LoadedConfigLayer[] {
+  return getBuiltinOpencodeConfigLayers(paths, isProjectInstall).flatMap((layer) => {
     const config = readBuiltinOpencodeConfigLayer(layer)
     return config ? [{ ...layer, config }] : []
   })
@@ -323,13 +328,13 @@ export function resolveBuiltinOpencodeConfigPaths(
 ): BuiltinOpencodeConfigPaths {
   return {
     projectConfigFile: join(worktree, '.opencode', 'ae.jsonc'),
-    globalConfigFile: join(getOpencodeGlobalConfigDir(), 'ae.jsonc'),
+    installDirConfigFile: join(manifest.installRoot, 'ae.jsonc'),
     builtinConfigFile: manifest.builtinConfigFile,
   }
 }
 
-export function loadBuiltinOpencodeConfig(paths: BuiltinOpencodeConfigPaths): BuiltinOpencodeConfig {
-  const config = readBuiltinOpencodeConfigLayers(paths).reduce<BuiltinOpencodeConfig>((merged, layer) => {
+export function loadBuiltinOpencodeConfig(paths: BuiltinOpencodeConfigPaths, isProjectInstall: boolean): BuiltinOpencodeConfig {
+  const config = readBuiltinOpencodeConfigLayers(paths, isProjectInstall).reduce<BuiltinOpencodeConfig>((merged, layer) => {
     return mergeBuiltinOpencodeConfig(merged, layer.config, {
       allowNewMcpEntries: layer.allowNewMcpEntries,
     })
@@ -343,11 +348,12 @@ export function loadBuiltinOpencodeConfig(paths: BuiltinOpencodeConfigPaths): Bu
 export function collectEffectiveConfigObjectEntries(
   paths: BuiltinOpencodeConfigPaths,
   propertyName: string,
+  isProjectInstall: boolean,
   validateLayerConfig?: (config: BuiltinOpencodeConfig, layer: ConfigLayer) => void,
 ): Map<string, EffectiveConfigValue> {
   const entries = new Map<string, EffectiveConfigValue>()
 
-  for (const layer of readBuiltinOpencodeConfigLayers(paths)) {
+  for (const layer of readBuiltinOpencodeConfigLayers(paths, isProjectInstall)) {
     validateLayerConfig?.(layer.config, layer)
     const propertyValue = layer.config[propertyName]
     if (!isRecord(propertyValue)) {
@@ -365,11 +371,12 @@ export function collectEffectiveConfigObjectEntries(
 export function resolveEffectiveConfigProperty(
   paths: BuiltinOpencodeConfigPaths,
   propertyPath: string[],
+  isProjectInstall: boolean,
   validateLayerConfig?: (config: BuiltinOpencodeConfig, layer: ConfigLayer) => void,
 ): EffectiveConfigPropertyValue | undefined {
   let effective: EffectiveConfigPropertyValue | undefined
 
-  for (const layer of readBuiltinOpencodeConfigLayers(paths)) {
+  for (const layer of readBuiltinOpencodeConfigLayers(paths, isProjectInstall)) {
     validateLayerConfig?.(layer.config, layer)
     const value = getConfigValueAtPath(layer.config, propertyPath)
     if (value !== undefined) {
@@ -380,12 +387,13 @@ export function resolveEffectiveConfigProperty(
   return effective
 }
 
-export function collectModelScenarioSources(paths: BuiltinOpencodeConfigPaths): Map<string, ModelScenarioSource> {
+export function collectModelScenarioSources(paths: BuiltinOpencodeConfigPaths, isProjectInstall: boolean): Map<string, ModelScenarioSource> {
   const sources = new Map<string, ModelScenarioSource>()
 
   for (const [scenario, entry] of collectEffectiveConfigObjectEntries(
     paths,
     'modelScenarios',
+    isProjectInstall,
     (config, layer) => validateModelScenariosConfig(config, `${layer.label} builtin-opencode 配置`),
   )) {
     sources.set(scenario, { scenario, model: entry.value as string, layer: entry.layer, path: entry.path })
@@ -396,16 +404,18 @@ export function collectModelScenarioSources(paths: BuiltinOpencodeConfigPaths): 
 
 export function collectBrainstormSources(
   paths: BuiltinOpencodeConfigPaths,
+  isProjectInstall: boolean,
 ): BrainstormConfig | undefined {
   const effective = resolveEffectiveConfigProperty(
     paths,
     ['brainstorm'],
+    isProjectInstall,
     (config, layer) => validateBrainstormConfig(config, `${layer.label} builtin-opencode 配置`),
   )
   if (!effective) return undefined
   return effective.value as BrainstormConfig
 }
 
-export function loadBuiltinMcpConfigFromPaths(paths: BuiltinOpencodeConfigPaths): McpConfig {
-  return loadBuiltinOpencodeConfig(paths).mcp ?? {}
+export function loadBuiltinMcpConfigFromPaths(paths: BuiltinOpencodeConfigPaths, isProjectInstall: boolean): McpConfig {
+  return loadBuiltinOpencodeConfig(paths, isProjectInstall).mcp ?? {}
 }

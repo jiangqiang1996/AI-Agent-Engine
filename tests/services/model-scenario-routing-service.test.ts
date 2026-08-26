@@ -45,7 +45,7 @@ describe('model-scenario-routing-service', () => {
 
   it('应该按原样透传模型字符串', () => {
     const context = createModelScenarioRoutingContext(new Map([
-      ['vision', { scenario: 'vision', model: 'provider/model:latest', layer: '全局', path: '/home/config' }],
+      ['vision', { scenario: 'vision', model: 'provider/model:latest', layer: '全局安装级', path: '/home/config' }],
     ]))
 
     expect(resolveModelScenario(context, MODEL_SCENARIO.VISION).model).toBe('provider/model:latest')

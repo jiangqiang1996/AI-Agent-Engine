@@ -22,7 +22,7 @@ Fetch and follow the global install instructions from https://gitee.com/jiangqia
 Fetch and follow the project-level install instructions from https://gitee.com/jiangqiang1996/ai-agent-engine/raw/master/docs/INSTALL.md
 ```
 
-安装完成后，后续更新或卸载可用 AE 内置命令。不传参数为全局操作，传 `project` 为项目级操作：
+安装完成后，后续更新或卸载可用 AE 内置命令：
 
 ```text
 # 全局更新

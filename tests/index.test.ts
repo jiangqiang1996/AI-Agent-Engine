@@ -91,54 +91,6 @@ describe('插件入口', () => {
     expect(config.command?.['ae-commit']?.subtask).toBe(false)
   })
 
-  it('项目级磁盘命令应该在 server config 中最终覆盖同名已有命令', async () => {
-    const hostRoot = createTempRoot()
-    isolateHome(createTempRoot())
-    mkdirSync(join(hostRoot, '.opencode', 'commands'), { recursive: true })
-    writeFileSync(
-      join(hostRoot, '.opencode', 'commands', 'ae-commit.md'),
-      ['---', 'description: project commit', '---', 'project commit template'].join('\n'),
-    )
-    const server = await plugin({ worktree: hostRoot, client: {}, serverUrl: new URL('http://localhost:4096') } as never)
-    const config: RuntimeConfigShape = {
-      command: {
-        'ae-commit': {
-          template: 'global commit template',
-          description: 'global commit',
-        },
-      },
-    }
-
-    await server.config?.(config as never)
-
-    expect(config.command?.['ae-commit']).toEqual({
-      template: 'project commit template',
-      description: 'project commit',
-    })
-    expect(config.command?.['ae-work']?.template).toContain('ae:work')
-  })
-
-  it('项目级磁盘命令在 server config 中应该解析 frontmatter model 变量', async () => {
-    const hostRoot = createTempRoot()
-    isolateHome(createTempRoot())
-    writeModelScenariosConfig(hostRoot)
-    mkdirSync(join(hostRoot, '.opencode', 'commands'), { recursive: true })
-    writeFileSync(
-      join(hostRoot, '.opencode', 'commands', 'ae-commit.md'),
-      ['---', 'description: project commit', 'model: $quick', '---', 'project commit template'].join('\n'),
-    )
-    const server = await plugin({ worktree: hostRoot, client: {}, serverUrl: new URL('http://localhost:4096') } as never)
-    const config: RuntimeConfigShape = {}
-
-    await server.config?.(config as never)
-
-    expect(config.command?.['ae-commit']).toEqual({
-      template: 'project commit template',
-      description: 'project commit',
-      model: 'project/quick',
-    })
-  })
-
   it('项目级安装的插件动态命令应该覆盖已有同名动态命令', async () => {
     const hostRoot = `${process.cwd()}${sep}`
     isolateHome(createTempRoot())
@@ -175,34 +127,6 @@ describe('插件入口', () => {
     expect(config.command?.['ae-design']).toEqual({
       template: 'global dynamic plan',
       description: 'global dynamic plan',
-    })
-  })
-
-  it('项目级 agent 文件应该在 server config 中最终覆盖同名已有 agent', async () => {
-    const hostRoot = createTempRoot()
-    isolateHome(createTempRoot())
-    mkdirSync(join(hostRoot, '.opencode', 'agents'), { recursive: true })
-    writeFileSync(
-      join(hostRoot, '.opencode', 'agents', 'ocr-reviewer.md'),
-      ['---', 'description: project reviewer', 'mode: primary', '---', 'project reviewer prompt'].join('\n'),
-    )
-    const server = await plugin({ worktree: hostRoot, client: {}, serverUrl: new URL('http://localhost:4096') } as never)
-    const config: RuntimeConfigShape = {
-      agent: {
-        'ocr-reviewer': {
-          description: 'global reviewer',
-          prompt: 'global reviewer prompt',
-          mode: 'subagent',
-        },
-      },
-    }
-
-    await server.config?.(config as never)
-
-    expect(config.agent?.['ocr-reviewer']).toEqual({
-      description: 'project reviewer',
-      prompt: 'project reviewer prompt',
-      mode: 'primary',
     })
   })
 

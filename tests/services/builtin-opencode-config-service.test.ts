@@ -25,6 +25,8 @@ function createTempRoot(): string {
 function createManifest(root: string): RuntimeAssetManifest {
   return {
     repoRoot: root,
+    moduleDir: join(root, 'plugins'),
+    installRoot: root,
     skillsDir: join(root, 'dist', 'src', 'assets', 'skills'),
     rulesDir: join(root, 'dist', 'src', 'assets', 'rules'),
     commandsDir: join(root, 'dist', 'src', 'assets', 'commands'),
@@ -67,9 +69,9 @@ describe('builtin-opencode-config-service', () => {
 
     const config = loadBuiltinOpencodeConfig({
       builtinConfigFile,
-      globalConfigFile: join(root, 'missing-global.jsonc'),
+      installDirConfigFile: join(root, 'missing-global.jsonc'),
       projectConfigFile: join(root, 'missing-project.jsonc'),
-    })
+    }, false)
 
     expect(config.$schema).toBe('./ae.schema.json')
     expect(config.future).toEqual({ enabled: true })
@@ -85,45 +87,45 @@ describe('builtin-opencode-config-service', () => {
 
     const config = loadBuiltinOpencodeConfig({
       builtinConfigFile,
-      globalConfigFile: join(root, 'missing-global.jsonc'),
+      installDirConfigFile: join(root, 'missing-global.jsonc'),
       projectConfigFile,
-    })
+    }, false)
 
     expect(config).toEqual({ $schema: './project.schema.json' })
     expect(loadBuiltinMcpConfigFromPaths({
       builtinConfigFile,
-      globalConfigFile: join(root, 'missing-global.jsonc'),
+      installDirConfigFile: join(root, 'missing-global.jsonc'),
       projectConfigFile,
-    })).toEqual({})
+    }, false)).toEqual({})
   })
 
   it('应该在空文件、只有注释、非对象 JSON 和语法错误时返回明确错误', () => {
     const root = createTempRoot()
     const builtinConfigFile = join(root, 'ae.jsonc')
-    const globalConfigFile = join(root, 'global.jsonc')
+    const installDirConfigFile = join(root, 'global.jsonc')
     const projectConfigFile = join(root, 'project.jsonc')
 
     writeConfig(builtinConfigFile, '{}')
-    writeConfig(globalConfigFile, '')
-    expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile })).toThrow(
-      /全局 builtin-opencode 配置解析失败/,
+    writeConfig(installDirConfigFile, '')
+    expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, installDirConfigFile, projectConfigFile }, false)).toThrow(
+      /全局安装级 builtin-opencode 配置解析失败/,
     )
 
-    writeConfig(globalConfigFile, '// comment only')
-    expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile })).toThrow(
-      /全局 builtin-opencode 配置解析失败/,
+    writeConfig(installDirConfigFile, '// comment only')
+    expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, installDirConfigFile, projectConfigFile }, false)).toThrow(
+      /全局安装级 builtin-opencode 配置解析失败/,
     )
 
     for (const nonObjectJson of ['[]', 'null', '"value"', '1', 'true']) {
-      writeConfig(globalConfigFile, nonObjectJson)
-      expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile })).toThrow(
-        /全局 builtin-opencode 配置必须是 JSON 对象/,
+      writeConfig(installDirConfigFile, nonObjectJson)
+      expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, installDirConfigFile, projectConfigFile }, false)).toThrow(
+        /全局安装级 builtin-opencode 配置必须是 JSON 对象/,
       )
     }
 
-    writeConfig(globalConfigFile, '{}')
+    writeConfig(installDirConfigFile, '{}')
     writeConfig(projectConfigFile, '{')
-    expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile })).toThrow(
+    expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, installDirConfigFile, projectConfigFile }, false)).toThrow(
       /项目级 builtin-opencode 配置解析失败/,
     )
   })
@@ -131,7 +133,7 @@ describe('builtin-opencode-config-service', () => {
   it('应该按项目级、全局、插件内置优先级递归合并字段', () => {
     const root = createTempRoot()
     const builtinConfigFile = join(root, 'ae.jsonc')
-    const globalConfigFile = join(root, 'global.jsonc')
+    const installDirConfigFile = join(root, 'global.jsonc')
     const projectConfigFile = join(root, '.opencode', 'ae.jsonc')
     writeConfig(builtinConfigFile, `{
   "feature": { "enabled": false, "nested": { "a": 1, "b": 1 }, "list": [1] },
@@ -140,7 +142,7 @@ describe('builtin-opencode-config-service', () => {
     "context7": { "type": "remote", "url": "https://builtin.example/mcp", "enabled": true, "timeout": 5000 }
   }
 }`)
-    writeConfig(globalConfigFile, `{
+    writeConfig(installDirConfigFile, `{
   "feature": { "nested": { "b": 2 }, "list": [2] },
   "value": { "from": "global" },
   "mcp": {
@@ -152,7 +154,7 @@ describe('builtin-opencode-config-service', () => {
   "value": null
 }`)
 
-    const config = loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile })
+    const config = loadBuiltinOpencodeConfig({ builtinConfigFile, installDirConfigFile, projectConfigFile }, false)
 
     expect(config.feature).toEqual({ enabled: true, nested: { a: 1, b: 2, c: 3 }, list: [2] })
     expect(config.value).toBeNull()
@@ -218,9 +220,9 @@ describe('builtin-opencode-config-service', () => {
 
     const config = loadBuiltinOpencodeConfig({
       builtinConfigFile,
-      globalConfigFile: join(root, 'missing-global.jsonc'),
+      installDirConfigFile: join(root, 'missing-global.jsonc'),
       projectConfigFile: join(root, 'missing-project.jsonc'),
-    })
+    }, false)
 
     expect(config.mcp?.context7).toEqual({ type: 'remote', url: 'https://builtin.example/mcp' })
   })
@@ -228,15 +230,15 @@ describe('builtin-opencode-config-service', () => {
   it('应该按项目级、全局、插件内置优先级合并 modelScenarios', () => {
     const root = createTempRoot()
     const builtinConfigFile = join(root, 'ae.jsonc')
-    const globalConfigFile = join(root, 'global.jsonc')
+    const installDirConfigFile = join(root, 'global.jsonc')
     const projectConfigFile = join(root, '.opencode', 'ae.jsonc')
     writeConfig(builtinConfigFile, '{ "modelScenarios": { "quick": "builtin/quick", "deep": "builtin/deep" } }')
-    writeConfig(globalConfigFile, '{ "modelScenarios": { "quick": "global/quick", "standard": "global/standard" } }')
+    writeConfig(installDirConfigFile, '{ "modelScenarios": { "quick": "global/quick", "standard": "global/standard" } }')
     writeConfig(projectConfigFile, '{ "modelScenarios": { "quick": "project/quick", "custom": "project/custom" } }')
 
-    const paths = { builtinConfigFile, globalConfigFile, projectConfigFile }
-    const config = loadBuiltinOpencodeConfig(paths)
-    const sources = collectModelScenarioSources(paths)
+    const paths = { builtinConfigFile, installDirConfigFile, projectConfigFile }
+    const config = loadBuiltinOpencodeConfig(paths, false)
+    const sources = collectModelScenarioSources(paths, false)
 
     expect(config.modelScenarios).toEqual({
       quick: 'project/quick',
@@ -245,45 +247,46 @@ describe('builtin-opencode-config-service', () => {
       custom: 'project/custom',
     })
     expect(sources.get('quick')).toMatchObject({ model: 'project/quick', layer: '项目级' })
-    expect(sources.get('standard')).toMatchObject({ model: 'global/standard', layer: '全局' })
+    expect(sources.get('standard')).toMatchObject({ model: 'global/standard', layer: '全局安装级' })
     expect(sources.get('deep')).toMatchObject({ model: 'builtin/deep', layer: '插件内置' })
   })
 
   it('应该通过公共入口获取对象属性的最终生效值和来源', () => {
     const root = createTempRoot()
     const builtinConfigFile = join(root, 'ae.jsonc')
-    const globalConfigFile = join(root, 'global.jsonc')
+    const installDirConfigFile = join(root, 'global.jsonc')
     const projectConfigFile = join(root, '.opencode', 'ae.jsonc')
     writeConfig(builtinConfigFile, '{ "modelScenarios": { "quick": "builtin/quick", "deep": "builtin/deep" } }')
-    writeConfig(globalConfigFile, '{ "modelScenarios": { "quick": "global/quick", "standard": "global/standard" } }')
+    writeConfig(installDirConfigFile, '{ "modelScenarios": { "quick": "global/quick", "standard": "global/standard" } }')
     writeConfig(projectConfigFile, '{ "modelScenarios": { "quick": "project/quick" } }')
 
     const entries = collectEffectiveConfigObjectEntries(
-      { builtinConfigFile, globalConfigFile, projectConfigFile },
+      { builtinConfigFile, installDirConfigFile, projectConfigFile },
       'modelScenarios',
+      false,
     )
 
     expect(entries.get('quick')).toMatchObject({ value: 'project/quick', layer: '项目级', path: projectConfigFile })
-    expect(entries.get('standard')).toMatchObject({ value: 'global/standard', layer: '全局', path: globalConfigFile })
+    expect(entries.get('standard')).toMatchObject({ value: 'global/standard', layer: '全局安装级', path: installDirConfigFile })
     expect(entries.get('deep')).toMatchObject({ value: 'builtin/deep', layer: '插件内置', path: builtinConfigFile })
   })
 
   it('应该校验 modelScenarios 必须是非空字符串映射', () => {
     const root = createTempRoot()
     const builtinConfigFile = join(root, 'ae.jsonc')
-    const globalConfigFile = join(root, 'global.jsonc')
+    const installDirConfigFile = join(root, 'global.jsonc')
     const projectConfigFile = join(root, 'project.jsonc')
 
     for (const invalid of ['[]', 'null', '"model"', '1', 'true']) {
       writeConfig(builtinConfigFile, `{ "modelScenarios": ${invalid} }`)
-      expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile })).toThrow(
+      expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, installDirConfigFile, projectConfigFile }, false)).toThrow(
         /modelScenarios 必须是 JSON 对象/,
       )
     }
 
     for (const invalid of ['""', '"   "', '" provider/model"', '"provider/model "', '1', 'false', '{}', '[]']) {
       writeConfig(builtinConfigFile, `{ "modelScenarios": { "quick": ${invalid} } }`)
-      expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile })).toThrow(
+      expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, installDirConfigFile, projectConfigFile }, false)).toThrow(
         /modelScenarios.quick 必须是非空字符串模型标识/,
       )
     }
@@ -292,16 +295,16 @@ describe('builtin-opencode-config-service', () => {
   it('应该允许全局和项目级配置新增 MCP', () => {
     const root = createTempRoot()
     const builtinConfigFile = join(root, 'ae.jsonc')
-    const globalConfigFile = join(root, 'global.jsonc')
+    const installDirConfigFile = join(root, 'global.jsonc')
     const projectConfigFile = join(root, '.opencode', 'ae.jsonc')
     writeConfig(builtinConfigFile, '{}')
-    writeConfig(globalConfigFile, `{
+    writeConfig(installDirConfigFile, `{
   "mcp": {
     "global_default": { "type": "remote", "url": "https://global.example/mcp" }
   }
 }`)
 
-    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile }).mcp?.global_default)
+    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, installDirConfigFile, projectConfigFile }, false).mcp?.global_default)
       .toEqual({ type: 'remote', url: 'https://global.example/mcp' })
 
     writeConfig(projectConfigFile, `{
@@ -310,7 +313,7 @@ describe('builtin-opencode-config-service', () => {
   }
 }`)
 
-    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile }).mcp?.project_only)
+    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, installDirConfigFile, projectConfigFile }, false).mcp?.project_only)
       .toEqual({ type: 'remote', url: 'https://project.example/mcp' })
 
     writeConfig(projectConfigFile, `{
@@ -319,7 +322,7 @@ describe('builtin-opencode-config-service', () => {
   }
 }`)
 
-    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile }).mcp?.project_remote_inferred)
+    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, installDirConfigFile, projectConfigFile }, false).mcp?.project_remote_inferred)
       .toEqual({ type: 'remote', url: 'https://project.example/inferred' })
 
     writeConfig(projectConfigFile, `{
@@ -328,7 +331,7 @@ describe('builtin-opencode-config-service', () => {
   }
 }`)
 
-    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile }).mcp?.project_local)
+    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, installDirConfigFile, projectConfigFile }, false).mcp?.project_local)
       .toEqual({ type: 'local', command: ['node', 'server.js'] })
 
     writeConfig(projectConfigFile, `{
@@ -337,23 +340,23 @@ describe('builtin-opencode-config-service', () => {
   }
 }`)
 
-    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile }).mcp?.project_local_inferred)
+    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, installDirConfigFile, projectConfigFile }, false).mcp?.project_local_inferred)
       .toEqual({ type: 'local', command: ['node', 'server.js'] })
   })
 
   it('应该校验最终 MCP 配置必须包含 type 对应的必要字段', () => {
     const root = createTempRoot()
     const builtinConfigFile = join(root, 'ae.jsonc')
-    const globalConfigFile = join(root, 'global.jsonc')
+    const installDirConfigFile = join(root, 'global.jsonc')
     const projectConfigFile = join(root, 'project.jsonc')
 
     writeConfig(builtinConfigFile, '{ "mcp": { "invalid_remote": { "type": "remote" } } }')
-    expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile })).toThrow(
+    expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, installDirConfigFile, projectConfigFile }, false)).toThrow(
       /remote MCP "invalid_remote" 必须声明 url/,
     )
 
     writeConfig(builtinConfigFile, '{ "mcp": { "invalid_local": { "type": "local" } } }')
-    expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile })).toThrow(
+    expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, installDirConfigFile, projectConfigFile }, false)).toThrow(
       /local MCP "invalid_local" 必须声明 command/,
     )
   })
@@ -361,7 +364,7 @@ describe('builtin-opencode-config-service', () => {
   it('应该允许项目级 MCP 覆盖连接配置', () => {
     const root = createTempRoot()
     const builtinConfigFile = join(root, 'ae.jsonc')
-    const globalConfigFile = join(root, 'global.jsonc')
+    const installDirConfigFile = join(root, 'global.jsonc')
     const projectConfigFile = join(root, '.opencode', 'ae.jsonc')
     writeConfig(builtinConfigFile, `{
   "mcp": {
@@ -375,7 +378,7 @@ describe('builtin-opencode-config-service', () => {
   }
 }`)
 
-    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile }).mcp?.context7)
+    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, installDirConfigFile, projectConfigFile }, false).mcp?.context7)
       .toEqual({
         type: 'remote',
         url: 'https://project.example/mcp',
@@ -387,7 +390,7 @@ describe('builtin-opencode-config-service', () => {
   it('应该允许项目级 MCP 显式切换 type 并整体替换配置', () => {
     const root = createTempRoot()
     const builtinConfigFile = join(root, 'ae.jsonc')
-    const globalConfigFile = join(root, 'global.jsonc')
+    const installDirConfigFile = join(root, 'global.jsonc')
     const projectConfigFile = join(root, '.opencode', 'ae.jsonc')
     writeConfig(builtinConfigFile, `{
   "mcp": {
@@ -401,14 +404,14 @@ describe('builtin-opencode-config-service', () => {
   }
 }`)
 
-    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile }).mcp?.context7)
+    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, installDirConfigFile, projectConfigFile }, false).mcp?.context7)
       .toEqual({ type: 'local', command: ['node', 'server.js'] })
   })
 
   it('应该允许项目级覆盖 enabled 字段', () => {
     const root = createTempRoot()
     const builtinConfigFile = join(root, 'ae.jsonc')
-    const globalConfigFile = join(root, 'global.jsonc')
+    const installDirConfigFile = join(root, 'global.jsonc')
     const projectConfigFile = join(root, '.opencode', 'ae.jsonc')
     writeConfig(builtinConfigFile, `{
   "mcp": {
@@ -421,10 +424,10 @@ describe('builtin-opencode-config-service', () => {
     "context7": { "enabled": false }
   }
 }`)
-    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile }).mcp?.context7)
+    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, installDirConfigFile, projectConfigFile }, false).mcp?.context7)
       .toMatchObject({ enabled: false })
 
-    writeConfig(globalConfigFile, `{
+    writeConfig(installDirConfigFile, `{
   "mcp": {
     "context7": { "enabled": false }
   }
@@ -435,7 +438,7 @@ describe('builtin-opencode-config-service', () => {
   }
 }`)
 
-    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile }).mcp?.context7)
+    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, installDirConfigFile, projectConfigFile }, false).mcp?.context7)
       .toMatchObject({ enabled: true })
 
     for (const value of ['"true"', '1', '{}']) {
@@ -445,7 +448,7 @@ describe('builtin-opencode-config-service', () => {
   }
 }`)
 
-      expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile })).toThrow(
+      expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, installDirConfigFile, projectConfigFile }, false)).toThrow(
         /builtin-opencode MCP "context7" 的 enabled 必须是 boolean/,
       )
     }
@@ -454,7 +457,7 @@ describe('builtin-opencode-config-service', () => {
   it('应该校验最终 MCP enabled 和 timeout 字段类型与范围', () => {
     const root = createTempRoot()
     const builtinConfigFile = join(root, 'ae.jsonc')
-    const globalConfigFile = join(root, 'global.jsonc')
+    const installDirConfigFile = join(root, 'global.jsonc')
     const projectConfigFile = join(root, 'project.jsonc')
 
     writeConfig(builtinConfigFile, `{
@@ -462,7 +465,7 @@ describe('builtin-opencode-config-service', () => {
     "context7": { "type": "remote", "url": "https://builtin.example/mcp", "enabled": "true" }
   }
 }`)
-    expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile })).toThrow(
+    expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, installDirConfigFile, projectConfigFile }, false)).toThrow(
       /builtin-opencode MCP "context7" 的 enabled 必须是 boolean/,
     )
 
@@ -471,7 +474,7 @@ describe('builtin-opencode-config-service', () => {
     "context7": { "type": "remote", "url": "https://builtin.example/mcp", "timeout": "1000" }
   }
 }`)
-    expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile })).toThrow(
+    expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, installDirConfigFile, projectConfigFile }, false)).toThrow(
       /builtin-opencode MCP "context7" 的 timeout 必须是 1000-120000 之间的整数毫秒/,
     )
 
@@ -482,7 +485,7 @@ describe('builtin-opencode-config-service', () => {
   }
 }`)
 
-      expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile })).toThrow(
+      expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, installDirConfigFile, projectConfigFile }, false)).toThrow(
         /builtin-opencode MCP "context7" 的 timeout 必须是 1000-120000 之间的整数毫秒/,
       )
     }
@@ -492,14 +495,14 @@ describe('builtin-opencode-config-service', () => {
     "context7": { "type": "remote", "url": "https://builtin.example/mcp", "timeout": 1000 }
   }
 }`)
-    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile }).mcp?.context7)
+    expect(loadBuiltinOpencodeConfig({ builtinConfigFile, installDirConfigFile, projectConfigFile }, false).mcp?.context7)
       .toMatchObject({ timeout: 1000 })
   })
 
   it('应该阻断项目级 MCP 使用异常 timeout 覆盖已有条目', () => {
     const root = createTempRoot()
     const builtinConfigFile = join(root, 'ae.jsonc')
-    const globalConfigFile = join(root, 'global.jsonc')
+    const installDirConfigFile = join(root, 'global.jsonc')
     const projectConfigFile = join(root, '.opencode', 'ae.jsonc')
     writeConfig(builtinConfigFile, `{
   "mcp": {
@@ -514,7 +517,7 @@ describe('builtin-opencode-config-service', () => {
   }
 }`)
 
-      expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile })).toThrow(
+      expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, installDirConfigFile, projectConfigFile }, false)).toThrow(
         /builtin-opencode MCP "context7" 的 timeout 必须是 1000-120000 之间的整数毫秒/,
       )
     }
@@ -523,7 +526,7 @@ describe('builtin-opencode-config-service', () => {
   it('应该阻断 remote MCP 使用无效 URL 结构或内嵌凭证', () => {
     const root = createTempRoot()
     const builtinConfigFile = join(root, 'ae.jsonc')
-    const globalConfigFile = join(root, 'global.jsonc')
+    const installDirConfigFile = join(root, 'global.jsonc')
     const projectConfigFile = join(root, 'project.jsonc')
 
     for (const url of [
@@ -536,7 +539,7 @@ describe('builtin-opencode-config-service', () => {
   }
 }`)
 
-      expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile })).toThrow(
+      expect(() => loadBuiltinOpencodeConfig({ builtinConfigFile, installDirConfigFile, projectConfigFile }, false)).toThrow(
         /builtin-opencode remote MCP "context7" 的 url/,
       )
     }
@@ -545,7 +548,7 @@ describe('builtin-opencode-config-service', () => {
   it('应该允许用户配置任意 http 或 https remote MCP 主机', () => {
     const root = createTempRoot()
     const builtinConfigFile = join(root, 'ae.jsonc')
-    const globalConfigFile = join(root, 'global.jsonc')
+    const installDirConfigFile = join(root, 'global.jsonc')
     const projectConfigFile = join(root, 'project.jsonc')
     for (const [name, url] of [
       ['localhost', 'http://localhost:3000/mcp'],
@@ -577,7 +580,7 @@ describe('builtin-opencode-config-service', () => {
   }
 }`)
 
-      expect(loadBuiltinOpencodeConfig({ builtinConfigFile, globalConfigFile, projectConfigFile }).mcp?.[name])
+      expect(loadBuiltinOpencodeConfig({ builtinConfigFile, installDirConfigFile, projectConfigFile }, false).mcp?.[name])
         .toEqual({ type: 'remote', url })
     }
   })
@@ -587,9 +590,9 @@ describe('builtin-opencode-config-service', () => {
 
     expect(() => loadBuiltinOpencodeConfig({
       builtinConfigFile: join(root, 'missing-builtin.jsonc'),
-      globalConfigFile: join(root, 'missing-global.jsonc'),
+      installDirConfigFile: join(root, 'missing-global.jsonc'),
       projectConfigFile: join(root, 'missing-project.jsonc'),
-    })).toThrow(/插件内置 builtin-opencode 配置文件不存在/)
+    }, false)).toThrow(/插件内置 builtin-opencode 配置文件不存在/)
   })
 
   it('应该把插件内置文件解析失败视为插件内置配置错误', () => {
@@ -599,9 +602,9 @@ describe('builtin-opencode-config-service', () => {
 
     expect(() => loadBuiltinOpencodeConfig({
       builtinConfigFile,
-      globalConfigFile: join(root, 'missing-global.jsonc'),
+      installDirConfigFile: join(root, 'missing-global.jsonc'),
       projectConfigFile: join(root, 'missing-project.jsonc'),
-    })).toThrow(/插件内置 builtin-opencode 配置解析失败/)
+    }, false)).toThrow(/插件内置 builtin-opencode 配置解析失败/)
   })
 
   it('应该从宿主 worktree 解析项目级配置且不复用 manifest.repoRoot', () => {
@@ -623,7 +626,7 @@ describe('builtin-opencode-config-service', () => {
     writeConfig(paths.builtinConfigFile, '{ "mcp": { "context7": { "type": "remote", "url": "https://builtin.example/mcp" } } }')
     writeConfig(paths.projectConfigFile, '{ "mcp": { "context7": { "enabled": false } } }')
 
-    const config = loadBuiltinOpencodeConfig(paths)
+    const config = loadBuiltinOpencodeConfig(paths, false)
 
     expect(config.mcp?.context7).toEqual({
       type: 'remote',
@@ -632,20 +635,17 @@ describe('builtin-opencode-config-service', () => {
     })
   })
 
-  it('应该通过解析路径读取真实全局 builtin-opencode 配置', () => {
+  it('应该通过解析路径读取真实全局安装级 builtin-opencode 配置', () => {
     const pluginRoot = createTempRoot()
     const hostRoot = createTempRoot()
-    const homeRoot = createTempRoot()
-    vi.stubEnv('USERPROFILE', homeRoot)
-    vi.stubEnv('HOME', homeRoot)
     const paths = resolveBuiltinOpencodeConfigPaths(createManifest(pluginRoot), hostRoot)
     writeConfig(paths.builtinConfigFile, '{ "mcp": { "context7": { "type": "remote", "url": "https://builtin.example/mcp" } } }')
-    writeConfig(paths.globalConfigFile, '{ "mcp": { "global_default": { "type": "remote", "url": "https://global.example/mcp" } } }')
+    writeConfig(paths.installDirConfigFile, '{ "mcp": { "global_default": { "type": "remote", "url": "https://global.example/mcp" } } }')
     writeConfig(paths.projectConfigFile, '{ "mcp": { "context7": { "enabled": false } } }')
 
-    const config = loadBuiltinOpencodeConfig(paths)
+    const config = loadBuiltinOpencodeConfig(paths, false)
 
-    expect(paths.globalConfigFile).toBe(join(homeRoot, '.config', 'opencode', 'ae.jsonc'))
+    expect(paths.installDirConfigFile).toBe(join(pluginRoot, 'ae.jsonc'))
     expect(config.mcp?.global_default).toEqual({ type: 'remote', url: 'https://global.example/mcp' })
     expect(config.mcp?.context7).toEqual({
       type: 'remote',
