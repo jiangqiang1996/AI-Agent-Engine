@@ -100,7 +100,7 @@ function resolveWorkerPath(): string | null {
 async function getCanvasModule(): Promise<Record<string, unknown>> {
   if (!canvasModule) {
     try {
-      canvasModule = await import('@napi-rs/canvas')
+      canvasModule = require('@napi-rs/canvas')
     } catch {
       throw new Error('无法加载 @napi-rs/canvas，请确认已安装 npm 依赖')
     }

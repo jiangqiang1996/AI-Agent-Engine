@@ -33,6 +33,18 @@ export async function bundlePluginEntry(entryPath, outfile, dependencyRoot = rep
   await rm(`${entryPath}.map`, { force: true })
   await rm(entryPath, { force: true })
   await rm(`${outfile}.map`, { force: true })
+
+  // esbuild bundle 后，pdf-parse/pdfjs-dist 等第三方包内部各自用 createRequire(import.meta.url)
+  // 创建了局部 require，基准是 ae-server.js 所在目录，无法找到 ./ai-agent-engine/node_modules 下的依赖。
+  // 把这些局部 require 的基准统一改为 ./ai-agent-engine/package.json，与 banner 注入的全局 require 一致。
+  const bundled = await readFile(outfile, 'utf8')
+  const rewritten = bundled.replaceAll(
+    'createRequire(import.meta.url)',
+    'createRequire(new URL("./ai-agent-engine/package.json", import.meta.url))',
+  )
+  if (rewritten !== bundled) {
+    await writeFile(outfile, rewritten, 'utf8')
+  }
 }
 
 async function removeTuiConfigPlugin(targetPath, pluginPath) {
