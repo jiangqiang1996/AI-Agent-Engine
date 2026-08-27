@@ -49,7 +49,7 @@ describe('mcp-registration 集成', () => {
       builtinConfigFile: manifest.builtinConfigFile,
       installDirConfigFile: join(root, 'missing-global-ae.jsonc'),
       projectConfigFile: join(root, 'missing-project-ae.jsonc'),
-    }, false).mcp ?? {}
+    }).mcp ?? {}
 
     expect(config.context7).toBeDefined()
     expect(config.gh_grep).toBeDefined()
@@ -81,7 +81,7 @@ describe('mcp-registration 集成', () => {
       },
     }
 
-    registerMcp(config, manifest, root, false)
+    registerMcp(config, manifest, root)
 
     expect(config.mcp.context7.enabled).toBe(false)
     expect(config.mcp.context7.type).toBe('remote')
@@ -99,7 +99,7 @@ describe('mcp-registration 集成', () => {
     const config = loadBuiltinOpencodeConfig({
       ...paths,
       installDirConfigFile: join(root, 'missing-global-ae.jsonc'),
-    }, false)
+    })
 
     expect(config.$schema).toBe('./ae.schema.json')
     expect(config.mcp?.context7).toBeDefined()

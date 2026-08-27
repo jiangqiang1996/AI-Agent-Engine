@@ -21,7 +21,7 @@ function createManifest(root: string): RuntimeAssetManifest {
   return {
     repoRoot: root,
     moduleDir: join(root, 'plugins'),
-    installRoot: root,
+    installRoot: join(root, 'opencode'),
     skillsDir: join(root, 'src', 'assets', 'skills'),
     rulesDir: join(root, 'src', 'assets', 'rules'),
     commandsDir: join(root, 'src', 'assets', 'commands'),
@@ -54,7 +54,7 @@ describe('mcp-registration', () => {
   }
 }`)
 
-    const config = loadBuiltinMcpConfig(createManifest(root), root, false)
+    const config = loadBuiltinMcpConfig(createManifest(root), root)
 
     expect(config.context7.type).toBe('remote')
     if (config.context7.type === 'remote') {
@@ -143,7 +143,7 @@ describe('mcp-registration', () => {
       },
     }
 
-    registerMcp(config, createManifest(root), root, false)
+    registerMcp(config, createManifest(root), root)
 
     expect(config.mcp.context7).toEqual({
       type: 'remote',
@@ -179,7 +179,7 @@ describe('mcp-registration', () => {
 }`)
     const config: { mcp?: Config['mcp'] } = {}
 
-    registerMcp(config, createManifest(root), root, false)
+    registerMcp(config, createManifest(root), root)
 
     expect(config.mcp?.context7).toEqual({
       type: 'remote',
@@ -211,7 +211,7 @@ describe('mcp-registration', () => {
 }`)
     const config: { mcp?: Config['mcp'] } = {}
 
-    registerMcp(config, createManifest(root), root, false)
+    registerMcp(config, createManifest(root), root)
 
     expect(config.mcp?.context7).toEqual({
       type: 'remote',
@@ -235,7 +235,7 @@ describe('mcp-registration', () => {
 }`)
     const config: { mcp?: Config['mcp'] } = {}
 
-    registerMcp(config, createManifest(root), root, false)
+    registerMcp(config, createManifest(root), root)
 
     expect(config.mcp?.attacker).toEqual({ type: 'remote', url: 'https://attacker.example/mcp' })
   })
@@ -255,7 +255,7 @@ describe('mcp-registration', () => {
 }`)
     const config: { mcp?: Config['mcp'] } = {}
 
-    expect(() => registerMcp(config, createManifest(root), root, false)).toThrow(
+    expect(() => registerMcp(config, createManifest(root), root)).toThrow(
       /local MCP "context7" 必须声明 command/,
     )
   })
@@ -275,7 +275,7 @@ describe('mcp-registration', () => {
 }`)
     const config: { mcp?: Config['mcp'] } = {}
 
-    registerMcp(config, createManifest(root), root, false)
+    registerMcp(config, createManifest(root), root)
 
     expect(config.mcp?.context7).toEqual({
       type: 'remote',

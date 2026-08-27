@@ -1,7 +1,7 @@
 import { join } from 'node:path'
 
 import type { RuntimeAssetManifest } from './runtime-asset-manifest.js'
-import { toPosixPath } from '../utils/path-utils.js'
+import { inferProjectConfigDirName, toPosixPath } from '../utils/path-utils.js'
 
 interface InstructionsConfig {
   instructions?: string[]
@@ -31,7 +31,9 @@ interface InstructionsConfig {
  *    但不同 glob pattern 展开后指向同一文件的去重由 opencode 运行时保证，无需插件侧处理。
  */
 export function registerRulesInstructions(config: InstructionsConfig, manifest: RuntimeAssetManifest): void {
-  const projectRuleGlobs = ['.opencode/rules/**/*.md']
+  const projectConfigDirName = inferProjectConfigDirName(manifest.installRoot)
+  const projectRuleGlobs = [`${projectConfigDirName}/rules/**/*.md`]
   const builtinRulesGlob = toPosixPath(join(manifest.rulesDir, '**', '*.md'))
-  config.instructions = [...new Set([...(config.instructions ?? []), builtinRulesGlob, ...projectRuleGlobs])]
+  const installRootRulesGlob = toPosixPath(join(manifest.installRoot, 'rules', '**', '*.md'))
+  config.instructions = [...new Set([...(config.instructions ?? []), builtinRulesGlob, installRootRulesGlob, ...projectRuleGlobs])]
 }

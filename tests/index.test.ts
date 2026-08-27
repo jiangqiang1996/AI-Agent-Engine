@@ -5,9 +5,23 @@ import { dirname, join, sep } from 'node:path'
 import type { Config } from '@opencode-ai/plugin'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+vi.mock('../src/services/runtime-asset-manifest.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../src/services/runtime-asset-manifest.js')>()
+  const manifest = actual.createRuntimeAssetManifestFromRoot(process.cwd())
+  return {
+    ...actual,
+    createRuntimeAssetManifest: () => ({
+      ...manifest,
+      installRoot: join(process.cwd(), 'opencode'),
+    }),
+  }
+})
+
 import plugin from '../src/index.js'
 
 const tempRoots: string[] = []
+
+const projectConfigDir = '.opencode'
 
 interface RuntimeConfigShape {
   command?: Config['command']
@@ -22,8 +36,8 @@ function createTempRoot(): string {
 }
 
 function writeBuiltinConfig(root: string): void {
-  mkdirSync(join(root, '.opencode'), { recursive: true })
-  writeFileSync(join(root, '.opencode', 'ae.jsonc'), `{
+  mkdirSync(join(root, projectConfigDir), { recursive: true })
+  writeFileSync(join(root, projectConfigDir, 'ae.jsonc'), `{
   "mcp": {
     "context7": {
       "enabled": false,
@@ -34,8 +48,8 @@ function writeBuiltinConfig(root: string): void {
 }
 
 function writeModelScenariosConfig(root: string): void {
-  mkdirSync(join(root, '.opencode'), { recursive: true })
-  writeFileSync(join(root, '.opencode', 'ae.jsonc'), `{
+  mkdirSync(join(root, projectConfigDir), { recursive: true })
+  writeFileSync(join(root, projectConfigDir, 'ae.jsonc'), `{
   "modelScenarios": {
     "quick": "project/quick",
     "standard": "project/standard",

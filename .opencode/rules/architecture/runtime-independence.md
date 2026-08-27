@@ -15,13 +15,15 @@
 
 ## 用户规则注入边界
 
-- AE 插件的运行时能力包含自动注入规则文件：内置 `src/assets/rules/**/*.md`、当前项目 `.opencode/rules/**/*.md`、全局 `~/.config/opencode/rules/**/*.md`。
-- 上述项目级和全局规则目录属于插件明确支持的用户配置入口，不应被视为运行时独立性违规；代码必须把它们作为可选 glob 注入，目录或文件缺失时由 opencode 的 instructions glob 机制自然降级。
+- AE 插件的运行时能力包含自动注入规则文件：内置 `src/assets/rules/**/*.md`、安装目录父级 `installRoot/rules/**/*.md`、当前项目 `.opencode/rules/**/*.md`。
+- 上述安装目录父级和项目级规则目录属于插件明确支持的用户配置入口，不应被视为运行时独立性违规；代码必须把它们作为可选 glob 注入，目录或文件缺失时由 opencode 的 instructions glob 机制自然降级。
+- 安装目录父级规则目录（`installRoot/rules`）由插件从 `manifest.installRoot` 推断，全局安装和项目级安装均注入；路径与项目级规则相同时由 opencode 运行时按绝对路径去重。
 
 ## 用户 builtin-opencode 配置边界
 
-- AE 插件的运行时能力包含三层 builtin-opencode 配置：内置 `src/assets/config/ae.jsonc`、当前项目 `.opencode/ae.jsonc`、全局 `~/.config/opencode/ae.jsonc`。
-- 当前项目和全局 `ae.jsonc` 属于插件明确支持的可选用户配置入口，不应被视为运行时独立性违规；文件缺失时必须自然降级到低优先级层。
+- AE 插件的运行时能力包含三层 builtin-opencode 配置：内置 `src/assets/config/ae.jsonc`、安装目录父级 `installRoot/ae.jsonc`、当前项目 `.opencode/ae.jsonc`。
+- 安装目录父级和项目级 `ae.jsonc` 属于插件明确支持的可选用户配置入口，不应被视为运行时独立性违规；文件缺失时必须自然降级到低优先级层。
+- 安装目录父级配置（`installDirConfigFile`）与项目级配置（`projectConfigFile`）路径相同时，跳过全局安装级层，由项目级层覆盖，避免重复读取和合并语义冲突。
 - 该入口只允许读取固定文件名 `ae.jsonc`，不得扩大为默认读取本机 opencode 全局配置、其他全局技能、其他全局代理或当前源码仓库 `.opencode/` 下的调试资产。
 - 除用户规则目录和 `ae.jsonc` 外，不得默认读取本机 opencode 全局配置、其他全局技能、其他全局代理或当前源码仓库 `.opencode/` 下的调试资产。
 

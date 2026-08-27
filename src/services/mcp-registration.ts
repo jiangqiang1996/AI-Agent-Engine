@@ -15,8 +15,8 @@ interface McpConfigShape {
 /**
  * 读取三层 builtin-opencode JSONC 配置合并后的 MCP 节点。
  */
-export function loadBuiltinMcpConfig(manifest: RuntimeAssetManifest, worktree: string, isProjectInstall: boolean): McpConfig {
-  return loadBuiltinMcpConfigFromPaths(resolveBuiltinOpencodeConfigPaths(manifest, worktree), isProjectInstall)
+export function loadBuiltinMcpConfig(manifest: RuntimeAssetManifest, worktree: string): McpConfig {
+  return loadBuiltinMcpConfigFromPaths(resolveBuiltinOpencodeConfigPaths(manifest, worktree))
 }
 
 /**
@@ -44,7 +44,6 @@ export function registerMcp(
   config: McpConfigShape,
   manifest: RuntimeAssetManifest,
   worktree: string,
-  isProjectInstall: boolean,
 ): void {
-  config.mcp = mergeBuiltinAndUserMcp(loadBuiltinMcpConfig(manifest, worktree, isProjectInstall), config.mcp)
+  config.mcp = mergeBuiltinAndUserMcp(loadBuiltinMcpConfig(manifest, worktree), config.mcp)
 }

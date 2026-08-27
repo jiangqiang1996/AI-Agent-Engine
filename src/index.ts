@@ -1,7 +1,7 @@
 import type {Config, Plugin, Hooks} from '@opencode-ai/plugin'
-import {join, resolve} from 'node:path'
+import {join, resolve, basename, dirname} from 'node:path'
 
-import {isInsideRoot} from './utils/path-utils.js'
+import {isInsideRoot, isSamePath} from './utils/path-utils.js'
 
 import {registerAgents} from './services/agent-registration.js'
 import {
@@ -57,21 +57,17 @@ function isProjectPluginInstall(manifest: ReturnType<typeof createRuntimeAssetMa
     const pluginRoot = resolve(manifest.repoRoot)
     const pluginModuleDir = resolve(manifest.moduleDir)
     const worktree = resolve(hostWorktree)
-    const projectPluginsDir = join(worktree, '.opencode', 'plugins')
 
     if (isSamePath(pluginRoot, worktree)) {
         return true
     }
 
-    return isSamePath(pluginModuleDir, projectPluginsDir) || isInsideRoot(projectPluginsDir, pluginModuleDir)
-}
+    if (basename(pluginModuleDir) !== 'plugins') {
+        return false
+    }
 
-function isSamePath(left: string, right: string): boolean {
-    return normalizePath(left) === normalizePath(right)
-}
-
-function normalizePath(value: string): string {
-    return resolve(value).replace(/\\/g, '/').toLowerCase()
+    const pluginsParent = dirname(pluginModuleDir)
+    return isSamePath(dirname(pluginsParent), worktree)
 }
 
 function mergeCommandConfigWithRouting(
@@ -82,10 +78,10 @@ function mergeCommandConfigWithRouting(
     const isProjectInstall = isProjectPluginInstall(manifest, hostWorktree)
     const configPaths = resolveBuiltinOpencodeConfigPaths(manifest, hostWorktree)
     const routingContext = createModelScenarioRoutingContext(
-        collectModelScenarioSources(configPaths, isProjectInstall),
+        collectModelScenarioSources(configPaths),
     )
     setModelScenarioRoutingContext(routingContext)
-    setBrainstormConfig(collectBrainstormSources(configPaths, isProjectInstall))
+    setBrainstormConfig(collectBrainstormSources(configPaths))
     const dynamicHasPriority = isProjectInstall
     config.command = mergeDynamicCommands(buildCommandConfig(manifest.commandsDir, routingContext), config.command, dynamicHasPriority)
     registerAgents(config, manifest, dynamicHasPriority, routingContext)
@@ -153,7 +149,7 @@ const plugin: Plugin = async (input) => {
                 manifest,
                 hostWorktree,
             )
-            registerMcp(config as RuntimeConfigShape, manifest, hostWorktree, isProjectPluginInstall(manifest, hostWorktree))
+            registerMcp(config as RuntimeConfigShape, manifest, hostWorktree)
             registerRulesInstructions(config as RuntimeConfigShape, manifest)
         },
         'experimental.chat.system.transform': async (_input, output) => {

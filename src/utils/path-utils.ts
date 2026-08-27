@@ -56,6 +56,32 @@ export function resolvePluginRootFromModuleUrl(moduleUrl: string): string {
   throw new Error(`无法从模块路径推断仓库根目录: ${moduleUrl}`)
 }
 
+export function isSamePath(left: string, right: string): boolean {
+  return normalizePath(left) === normalizePath(right)
+}
+
+function normalizePath(value: string): string {
+  return resolve(value).replace(/\\/g, '/').toLowerCase()
+}
+
+/**
+ * 从 installRoot 动态推断项目级配置目录名，不硬编码任何目录名。
+ *
+ * 两种全局布局均能正确推断：
+ * - ~/.config/<app> → basename 为 <app>，加 . 前缀 → .<app>
+ * - ~/.<app>/.config → basename 为 .config，取父目录 basename → .<app>
+ *
+ * 项目级安装时 installRoot 已形如 worktree/.<app>，basename 以 . 开头直接使用。
+ */
+export function inferProjectConfigDirName(installRoot: string): string {
+  const resolved = resolve(installRoot)
+  let base = basename(resolved)
+  if (base === '.config') {
+    base = basename(dirname(resolved))
+  }
+  return base.startsWith('.') ? base : `.${base}`
+}
+
 export function isInsideRoot(root: string, filePath: string): boolean {
   const rel = relative(resolve(root), resolve(filePath))
   // Windows 盘符相对路径会包含冒号，必须和 .. 一起拦截，避免跨盘路径绕过仓库边界。
