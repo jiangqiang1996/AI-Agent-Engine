@@ -13,6 +13,8 @@ AE 支持两种安装模式：
 
 > Windows 环境下 `~` 对应 `%USERPROFILE%`，`~/.config/opencode/` 实际路径为 `%USERPROFILE%\.config\opencode\`
 
+> 基于 opencode 二开的定制版软件，其全局和项目级配置目录名可能不同（如 `~/.config/codefree-o` 和 `<项目根目录>/.codefree-o`）。首次安装时需向用户确认实际路径；已安装后通过 `/ae-install` 和 `/ae-uninstall` 命令自动从标准路径查找当前插件加载位置，如果不在标准路径下则询问用户。用户也可在 `/ae-install` 或 `/ae-uninstall` 的提示词中直接传入目标路径，跳过自动查找。
+
 安装后的布局：
 
 ```
@@ -74,6 +76,16 @@ AE 支持两种安装模式：
 
 首次安装时 `/ae-install` 命令不可用。需要先克隆仓库获取安装脚本，再执行安装。
 
+#### 确定安装目录
+
+首次安装时没有已加载的插件可供推断路径，需向用户确认安装目录：
+
+1. 使用 question 工具询问用户安装范围（全局或项目级）和目标路径
+2. 默认推荐（适用于标准 opencode；基于 opencode 二开的软件 A 由其用户传入 A 对应的全局/项目级路径）：
+   - **全局**：`~/.config/opencode`（Windows: `%USERPROFILE%\.config\opencode`）
+   - **项目级**：`<当前项目根目录>/.opencode`
+3. 用户确认路径后，继续执行安装
+
 #### 全局安装
 
 ```bash
@@ -90,6 +102,8 @@ git clone https://gitee.com/jiangqiang1996/ai-agent-engine.git /tmp/ae-install &
 
 > Windows 下 `~` 对应 `%USERPROFILE%`，`/tmp/` 对应 `%TEMP%`。
 
+> 定制版软件需将 `--target-dir` 替换为用户确认的全局或项目级配置目录。
+
 ### 已安装后的更新（AE 插件已加载）
 
 安装完成后，后续更新可用 AE 内置命令：
@@ -101,6 +115,8 @@ git clone https://gitee.com/jiangqiang1996/ai-agent-engine.git /tmp/ae-install &
 # 项目级更新
 /ae-install project
 ```
+
+命令会自动在标准 opencode 安装路径中查找当前插件加载位置。如果不在标准路径下则询问用户。从 `installRoot`（`plugins` 的父目录）确定当前安装根目录，更新当前安装时直接使用 `installRoot` 作为 `--target-dir`；切换范围时询问用户目标路径，**禁止猜测路径**。用户也可在提示词中直接传入目标路径，跳过自动查找。
 
 ### 安装脚本参数
 
@@ -118,7 +134,10 @@ node scripts/install.js --target-dir <path> [--repo-dir <path>] [--yes]
 
 ### 流程
 
-0. **确定安装范围**：模型从用户提示词解析范围（`project` 为项目级，`global` 为全局，用户未明确说明时默认 `global`），计算 `--target-dir` 值
+0. **确定安装范围**：模型从用户提示词解析范围（`project` 为项目级，`global` 为全局，用户未明确说明时默认 `global`），确定 `--target-dir` 值
+   - 用户在提示词中传入路径时直接使用该路径，跳过自动查找
+   - 已安装场景：自动在标准路径查找当前插件加载位置，scope 与当前安装范围一致时更新当前安装（`--target-dir` = `installRoot`）；scope 与当前范围不一致时询问用户目标路径，**禁止猜测路径**
+   - 首次安装场景（命令不可用，需先克隆仓库）：使用 question 工具向用户确认安装目录
 1. **环境前置检查**：见上方「一、环境前置检查」
 2. **一次性授权确认**：使用 question 工具向用户确认授权（包含路径和操作说明），只确认一次
    - 操作类型：安装或更新（已安装时为更新）
@@ -140,6 +159,16 @@ node scripts/install.js --target-dir <path> [--repo-dir <path>] [--yes]
 
 首次卸载时 `/ae-uninstall` 命令不可用。需要从已克隆的仓库执行卸载脚本。
 
+#### 确定卸载目录
+
+首次卸载时没有已加载的插件可供推断路径，需向用户确认卸载目录：
+
+1. 使用 question 工具询问用户卸载范围（全局或项目级）和目标路径
+2. 默认推荐（适用于标准 opencode；基于 opencode 二开的软件 A 由其用户传入 A 对应的全局/项目级路径）：
+   - **全局**：`~/.config/opencode`（Windows: `%USERPROFILE%\.config\opencode`）
+   - **项目级**：`<当前项目根目录>/.opencode`
+3. 用户确认路径后，继续执行卸载
+
 #### 全局卸载
 
 ```bash
@@ -154,13 +183,17 @@ node ~/.config/opencode/ai-agent-engine-src/scripts/uninstall.js --target-dir ~/
 node "<项目根目录>/.opencode/ai-agent-engine-src/scripts/uninstall.js" --target-dir "<项目根目录>/.opencode" --yes
 ```
 
+> 定制版软件需将路径替换为用户确认的全局或项目级配置目录。
+
 ### 已安装后的卸载（AE 插件已加载）
 
 ```text
 /ae-uninstall
 ```
 
-**不需要传入参数**。命令会自动检测全局和项目级安装状态，让用户选择卸载范围。
+**不需要传入参数**。命令会自动在标准 opencode 安装路径中查找当前插件加载位置。如果不在标准路径下则询问用户。检测当前安装范围的安装状态后，对标准 opencode 自动检测另一范围（全局或项目级）的安装状态，让用户选择卸载范围。如需卸载其他非标准路径，询问用户目标路径，**禁止猜测路径**。
+
+用户也可在提示词中直接传入目标路径，跳过自动查找，直接检测该路径的安装状态。
 
 ### 卸载脚本参数
 
@@ -178,7 +211,7 @@ node scripts/uninstall.js --target-dir <path> [--repo-dir <path>] [--yes] [--kee
 
 ### 流程
 
-1. **检测安装状态**：执行 `node "<脚本绝对路径>" --target-dir "<target-dir>" --detect`，解析输出 JSON 确定是否已安装
+1. **检测安装状态**：自动在标准路径查找当前插件加载位置，检测当前安装范围的安装状态。对标准 opencode 自动检测另一范围（全局或项目级）的安装状态。如需卸载其他非标准路径范围，询问用户目标路径，**禁止猜测路径**
 2. **选择卸载范围**：使用 question 工具让用户选择
    - 如果全局和项目级都未安装：告知用户"未检测到 AE 插件安装，无需卸载"并停止流程
    - 如果只有全局已安装：选项为"卸载全局"和"不卸载"
@@ -199,3 +232,8 @@ node scripts/uninstall.js --target-dir <path> [--repo-dir <path>] [--yes] [--kee
 - 安装或更新过程不会影响用户的 `opencode.json` 配置
 - 安装脚本只操作 `plugins/` 下的 `ae-server.js` 和 `ai-agent-engine/`，不触碰其他插件文件
 - playwright-cli 安装无需用户授权，脚本执行完毕后自动检查并安装
+- 首次安装/卸载时向用户确认目录，已安装后命令自动从标准路径查找当前插件加载位置
+- **禁止猜测安装/卸载路径**：无法从标准路径找到当前插件时，必须询问用户目标路径
+  - 安装场景：用户未明确提供目标路径则停止流程
+  - 卸载场景：用户未明确提供其他范围路径时，只卸载当前已检测到的范围
+- 定制版软件用户可在 `/ae-install` 或 `/ae-uninstall` 提示词中直接传入目标路径，跳过自动查找
