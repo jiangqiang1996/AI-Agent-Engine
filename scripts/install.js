@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * AE 插件安装或更新脚本
  *
@@ -32,6 +30,7 @@ import { cp, mkdir, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { createInterface } from 'node:readline'
 import { spawn } from 'node:child_process'
+import { pathToFileURL } from 'node:url'
 
 import { mirrorAssets } from './mirror-assets.mjs'
 
@@ -139,7 +138,7 @@ async function freshInstall(repoDir, confirmFn) {
   await runCommand('npm', ['run', 'build'], { cwd: repoDir })
 }
 
-async function deployBuild(repoDir, targetDir) {
+export async function deployBuild(repoDir, targetDir) {
   const sourcePluginsDir = join(repoDir, '.opencode', 'plugins')
   const targetPluginsDir = join(targetDir, 'plugins')
   const sourceBundle = join(sourcePluginsDir, 'ae-server.js')
@@ -171,7 +170,7 @@ async function deployBuild(repoDir, targetDir) {
   console.log(`  bundle: ${targetBundle}`)
 }
 
-async function installNativeDeps(targetDir) {
+export async function installNativeDeps(targetDir) {
   const assetsDir = join(targetDir, 'plugins', 'ai-agent-engine')
   const packageJsonPath = join(assetsDir, 'package.json')
   const canvasPkgPath = join(assetsDir, 'node_modules', '@napi-rs', 'canvas', 'package.json')
@@ -225,7 +224,10 @@ async function main() {
   console.log('如需验证，重启后尝试 /ae-help 命令。')
 }
 
-main().catch((err) => {
-  console.error('安装或更新失败:', err.message)
-  process.exit(1)
-})
+// 仅作为脚本直接执行时运行 main；被测试 import 时不触发克隆、git 或安装流程
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((err) => {
+    console.error('安装或更新失败:', err.message)
+    process.exit(1)
+  })
+}

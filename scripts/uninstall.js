@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /**
  * AE 插件卸载脚本
  *
@@ -29,8 +27,13 @@ import { existsSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { removeTreeTolerant } from './remove-tree.mjs'
+
+// 本脚本自身路径。卸载残留时仓库目录会被保留，它就是用户重跑清理的入口，
+// 必须在提示中原样给出，不能只说「重新执行本命令」——用户此时已无命令可执行。
+const scriptSelfPath = fileURLToPath(import.meta.url)
 
 function parseArgs(argv) {
   const detect = argv.includes('--detect')
@@ -96,7 +99,7 @@ function detectStatus(targetDir, repoDirArg) {
   }
 }
 
-async function uninstall(targetDir, repoDirArg, confirmFn, keepRepo) {
+export async function uninstall(targetDir, repoDirArg, confirmFn, keepRepo) {
   const paths = getPaths(targetDir, repoDirArg)
   const status = detectStatus(targetDir, repoDirArg)
 
@@ -139,21 +142,30 @@ async function uninstall(targetDir, repoDirArg, confirmFn, keepRepo) {
     }
   }
 
+  let assetResidualCount = 0
   if (status.assetsExists) {
     const failed = await removeTreeTolerant(paths.assetsDir)
     if (failed.length === 0) {
       console.log(`已删除: ${paths.assetsDir}`)
     } else {
+      assetResidualCount = failed.length
       residuals.push(...failed)
     }
   }
 
+  // 仓库目录含卸载脚本自身。若 assets 仍有残留，用户需要再次执行本脚本清理，
+  // 此时删掉仓库会让恢复路径消失（脚本连同 ai-agent-engine-src 一起没了）。
+  // 因此 assets 未清理干净时保留仓库，等下次重跑成功再删。
   if (status.repoExists && !keepRepo) {
-    const failed = await removeTreeTolerant(paths.repoDir)
-    if (failed.length === 0) {
-      console.log(`已删除: ${paths.repoDir}`)
+    if (assetResidualCount > 0) {
+      console.log(`保留: ${paths.repoDir}（assets 存在被占用残留，需保留卸载脚本以便重跑）`)
     } else {
-      residuals.push(...failed)
+      const failed = await removeTreeTolerant(paths.repoDir)
+      if (failed.length === 0) {
+        console.log(`已删除: ${paths.repoDir}`)
+      } else {
+        residuals.push(...failed)
+      }
     }
   }
 
@@ -174,13 +186,18 @@ async function uninstall(targetDir, repoDirArg, confirmFn, keepRepo) {
 
   if (!bundleRemoved) {
     console.error('\n插件入口 ae-server.js 未能删除，opencode 仍会加载 AE 插件，卸载未生效。')
-    console.error('请关闭所有 opencode 进程后重新执行本卸载命令。')
+    console.error(`请关闭所有 opencode 进程后重新执行：node ${scriptSelfPath} --target-dir ${targetDir} --yes`)
     return 1
   }
 
   console.log('\n插件入口 ae-server.js 已删除，opencode 重启后不再加载 AE 插件。')
   console.log('残留文件多为被当前进程映射的原生模块（Windows 下 DLL 被加载即无法删除），只占磁盘、不影响卸载效果。')
-  console.log('如需彻底清理：关闭所有 opencode 进程后重新执行本卸载命令。')
+  if (assetResidualCount > 0) {
+    console.log('仓库目录已保留（内含本卸载脚本）。如需彻底清理：关闭所有 opencode 进程后重新执行：')
+    console.log(`  node ${scriptSelfPath} --target-dir ${targetDir} --yes`)
+  } else {
+    console.log(`如需彻底清理：关闭所有 opencode 进程后重新执行：node ${scriptSelfPath} --target-dir ${targetDir} --yes`)
+  }
   return 2
 }
 
@@ -208,7 +225,10 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error('卸载失败:', err.message)
-  process.exit(1)
-})
+// 仅作为脚本直接执行时运行 main；被测试 import 时不触发删除流程
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((err) => {
+    console.error('卸载失败:', err.message)
+    process.exit(1)
+  })
+}

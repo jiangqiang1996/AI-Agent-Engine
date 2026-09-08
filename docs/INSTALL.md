@@ -219,7 +219,9 @@ node scripts/uninstall.js --target-dir <path> [--repo-dir <path>] [--yes] [--kee
 | 2 | `plugins/ae-server.js` 已删除（插件已注销），但有被进程占用的残留文件，需关闭 opencode 后重试清理 |
 | 1 | `plugins/ae-server.js` 删除失败，插件仍会被加载，卸载未生效 |
 
-> Windows 下原生模块 DLL（`node_modules/@napi-rs/canvas` 的 `skia.win32-x64-msvc.node`）一旦被进程映射就无法删除。`/ae-uninstall` 本身在 AE 插件进程内执行，因此 **Windows 上退出码 2 是常见正常结果，不代表卸载失败**——插件入口已删除，重启后插件不再加载。脚本采用逐项容错删除，残留项会打印到 stderr，不会被静默忽略。
+> Windows 下原生模块 DLL（`node_modules/@napi-rs/canvas-win32-x64-msvc` 的 `skia.win32-x64-msvc.node`）一旦被进程映射就无法删除。`/ae-uninstall` 本身在 AE 插件进程内执行，因此 **Windows 上退出码 2 是常见正常结果，不代表卸载失败**——插件入口已删除，重启后插件不再加载。脚本采用逐项容错删除，残留项会打印到 stderr，不会被静默忽略。
+>
+> 退出码 2 且 assets 目录存在残留时，脚本会**保留仓库目录**（`<target-dir>/ai-agent-engine-src`，内含卸载脚本自身），避免删除仓库后恢复路径消失。此时脚本会在 stdout 打印一条可直接复制执行的重跑命令（形如 `node <卸载脚本绝对路径> --target-dir <目标目录> --yes`），调用方必须原样转述该命令，不得改写为"重新执行本命令"这类无具体入口的表述。
 
 ### 流程
 
@@ -233,7 +235,7 @@ node scripts/uninstall.js --target-dir <path> [--repo-dir <path>] [--yes] [--kee
 4. **执行卸载脚本**：`node "<脚本绝对路径>" --target-dir "<target-dir>" --yes`，脚本自动完成卸载
 5. **按退出码报告结果**（逐个范围判定，不得无条件宣告成功）：
    - **退出码 0**：提示重启 opencode 以使变更生效，验证方式为重启后尝试 `/ae-help`，该命令不再可用即表示卸载成功
-   - **退出码 2**：说明插件已注销（入口已删除、重启后不再加载），并原样列出脚本 stderr 的残留文件清单，告知用户"如需彻底清理，关闭所有 opencode 进程后重新执行同一条卸载命令"。禁止省略残留信息或谎报为"卸载完成"
+   - **退出码 2**：说明插件已注销（入口已删除、重启后不再加载），并原样列出脚本 stderr 的残留文件清单；若 assets 有残留，仓库目录已被保留，须原样转述脚本 stdout 打印的重跑命令（`node ... --target-dir ... --yes`）告知用户如何彻底清理。禁止省略残留信息、改写重跑命令或谎报为"卸载完成"
    - **退出码 1 或其他非零**：明确告知卸载未生效、插件仍会被加载，附上脚本 stderr 的失败原因，指引用户关闭所有 opencode 进程后重试，仍失败则手动删除 `<target-dir>/plugins/ae-server.js` 与 `<target-dir>/plugins/ai-agent-engine/`
 
 ---
