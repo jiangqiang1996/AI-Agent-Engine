@@ -1,11 +1,18 @@
-import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import { build } from 'esbuild'
 
+import { mirrorAssets } from './mirror-assets.mjs'
+
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const repoRoot = resolve(__dirname, '..')
+
+// 桥接目录内由本地维护、不属于 src/assets 真源的条目：
+// package.json 是 bundle banner 注入的 require 基准锚点，node_modules 提供 esbuild external
+// 的原生依赖（@napi-rs/canvas 等），剪枝掉它们会导致插件无法加载。
+const BRIDGE_PERSISTENT_ENTRIES = ['node_modules', 'package.json', 'package-lock.json']
 
 export async function bundlePluginEntry(entryPath, outfile, dependencyRoot = repoRoot) {
   await build({
@@ -92,8 +99,13 @@ export async function main(root = repoRoot) {
   await rm(join(tuiPluginDir, 'ae-tui.js'), { force: true })
   await removeTuiConfigPlugin(tuiConfigPath, './tui-plugins/ae-tui.js')
   await rm(join(distDir, 'assets'), { recursive: true, force: true })
-  await rm(pluginAssetsDir, { recursive: true, force: true })
-  await cp(sourceAssetsDir, pluginAssetsDir, { recursive: true })
+  const stale = await mirrorAssets(sourceAssetsDir, pluginAssetsDir, BRIDGE_PERSISTENT_ENTRIES)
+  if (stale.length > 0) {
+    console.warn(`警告：${stale.length} 个陈旧资产被占用未能清理，将在下次构建时重试：`)
+    for (const item of stale.slice(0, 10)) {
+      console.warn(`  ${item}`)
+    }
+  }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

@@ -98,7 +98,9 @@ postbuild 会：
 1. bundle `dist/src/index.js`
 2. 清理历史 TUI 残留文件
 3. 写入 `.opencode/plugins/ae-server.js` 包装文件（供本仓库调试）
-4. 复制 `src/assets/` 到 `dist/src/assets/`
+4. 删除 tsc 副产物 `dist/src/assets/`，并把 `src/assets/` 镜像同步到 `.opencode/plugins/ai-agent-engine/`
+
+第 4 步的镜像同步由 `scripts/mirror-assets.mjs` 实现：先合并覆盖复制，再剪枝目标端源已不存在的陈旧条目。`node_modules`、`package.json`、`package-lock.json` 被列为排除项——它们由本地维护、不在 `src/assets` 内，其中 `package.json` 是 bundle 注入的 `require` 基准锚点，`node_modules` 提供 esbuild external 的原生依赖。Windows 下原生模块 DLL 被进程映射时无法删除，因此剪枝失败只降级为 stderr 警告，不中断构建。
 
 ## 运行时独立性
 

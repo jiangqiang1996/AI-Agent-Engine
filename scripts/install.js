@@ -14,11 +14,17 @@
  * 流程：
  * - 已安装 → 更新：git reset --hard、git pull、npm install、npm run build
  * - 未安装 → 克隆仓库、npm install、npm run build
- * - 部署构建产物到 <target-dir>/plugins/
- * - 在 <target-dir>/plugins/ai-agent-engine/ 内安装 @napi-rs/canvas
+ * - 部署构建产物到 <target-dir>/plugins/：先镜像同步 ai-agent-engine/ 资产，最后替换 ae-server.js
+ * - 在 <target-dir>/plugins/ai-agent-engine/ 内安装 @napi-rs/canvas（已安装则跳过）
  *
  * 安全约束：只操作 <target-dir>/plugins/ 下的 ae-server.js 和 ai-agent-engine/，
  * 不触碰 plugins/ 目录内的其他文件。
+ *
+ * Windows 锁文件说明：ai-agent-engine/ 内的 node_modules、package.json、package-lock.json
+ * 由本脚本自行维护、不来自构建产物，且 node_modules 内含可能被运行中 opencode 映射的原生
+ * DLL（skia.win32-x64-msvc.node），映射后既无法删除也无法覆盖。因此资产同步采用镜像方式
+ * （见 ./mirror-assets.mjs）：合并覆盖 + 增量剪枝，这三项为排除项，单文件删除失败只警告不中断。
+ * bundle 放在最后替换，避免资产同步异常时留下「新 bundle + 旧 assets」的半更新状态。
  */
 
 import { existsSync } from 'node:fs'
@@ -27,7 +33,14 @@ import { dirname, join } from 'node:path'
 import { createInterface } from 'node:readline'
 import { spawn } from 'node:child_process'
 
+import { mirrorAssets } from './mirror-assets.mjs'
+
 const REPO_URL = 'https://gitee.com/jiangqiang1996/ai-agent-engine.git'
+
+// 目标资产目录内由本脚本自行维护、不来自构建产物的条目。
+// node_modules 含运行中 opencode 已映射的原生 DLL（skia.win32-x64-msvc.node），Windows 下
+// 既无法删除也无法覆盖；package.json / package-lock.json 是原生依赖的声明锚点。
+const TARGET_PERSISTENT_ENTRIES = ['node_modules', 'package.json', 'package-lock.json']
 
 function parseArgs(argv) {
   const yes = argv.includes('--yes') || argv.includes('-y')
@@ -141,18 +154,33 @@ async function deployBuild(repoDir, targetDir) {
   await mkdir(targetPluginsDir, { recursive: true })
 
   console.log('\n部署构建产物...')
+
+  // 先同步资产，最后替换 bundle：bundle 是单文件且 node 读完即释放句柄，覆盖几乎不会失败。
+  // 把它作为最后一步生效开关，可避免资产同步异常时留下「新 bundle + 旧 assets」的半更新状态。
+  const stale = await mirrorAssets(sourceAssets, targetAssets, TARGET_PERSISTENT_ENTRIES)
+  console.log(`  assets: ${targetAssets}`)
+  if (stale.length > 0) {
+    console.warn(`  警告：${stale.length} 个陈旧文件被占用未能清理，下次更新时重试：`)
+    for (const item of stale.slice(0, 10)) {
+      console.warn(`    ${item}`)
+    }
+  }
+
   await rm(targetBundle, { force: true })
   await cp(sourceBundle, targetBundle)
   console.log(`  bundle: ${targetBundle}`)
-
-  await rm(targetAssets, { recursive: true, force: true })
-  await cp(sourceAssets, targetAssets, { recursive: true })
-  console.log(`  assets: ${targetAssets}`)
 }
 
 async function installNativeDeps(targetDir) {
   const assetsDir = join(targetDir, 'plugins', 'ai-agent-engine')
   const packageJsonPath = join(assetsDir, 'package.json')
+  const canvasPkgPath = join(assetsDir, 'node_modules', '@napi-rs', 'canvas', 'package.json')
+
+  // 已安装则跳过：重装会去触碰可能正被运行中 opencode 映射的 skia DLL，Windows 下必然失败
+  if (existsSync(canvasPkgPath)) {
+    console.log('\n@napi-rs/canvas 已存在，跳过原生依赖安装。')
+    return
+  }
 
   if (!existsSync(packageJsonPath)) {
     await writeFile(packageJsonPath, JSON.stringify({ type: 'module' }, null, 2) + '\n', 'utf8')

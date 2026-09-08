@@ -15,12 +15,22 @@
  *
  * 安全约束：只删除 <target-dir>/plugins/ 下的 ae-server.js 和 ai-agent-engine/，
  * 不触碰 plugins/ 目录内的其他文件。
+ *
+ * 退出码：
+ *   0 = 卸载完成（含"未安装无需卸载"和"用户取消"）
+ *   1 = ae-server.js 未能删除，插件仍会被 opencode 加载，卸载未生效
+ *   2 = ae-server.js 已删除（插件已注销），但存在被进程占用的残留文件，需关闭 opencode 后重试
+ *
+ * Windows 下 DLL 一旦被运行中的进程映射就无法 unlink，因此目录删除采用逐项容错策略，
+ * 单项失败不中断整体流程，并把结果如实反映在退出码和输出中，避免把残留谎报为卸载成功。
  */
 
 import { existsSync } from 'node:fs'
 import { rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { createInterface } from 'node:readline'
+
+import { removeTreeTolerant } from './remove-tree.mjs'
 
 function parseArgs(argv) {
   const detect = argv.includes('--detect')
@@ -39,6 +49,10 @@ function parseArgs(argv) {
   }
   return { detect, yes, keepRepo, targetDir, repoDir }
 }
+
+/**
+ * 容错删除目录树见 ./remove-tree.mjs。
+ */
 
 function makeConfirm(autoYes) {
   if (autoYes) {
@@ -88,7 +102,7 @@ async function uninstall(targetDir, repoDirArg, confirmFn, keepRepo) {
 
   if (!status.installed && !status.repoExists) {
     console.log('未检测到 AE 插件安装，无需卸载。')
-    return
+    return 0
   }
 
   console.log(`AE 插件卸载`)
@@ -101,33 +115,73 @@ async function uninstall(targetDir, repoDirArg, confirmFn, keepRepo) {
 
   if (targets.length === 0) {
     console.log('无需删除的内容。')
-    return
+    return 0
   }
 
   const authorized = await confirmFn(`将删除以下内容:\n  ${targets.join('\n  ')}\n是否继续卸载？`)
   if (!authorized) {
     console.log('用户取消卸载。')
-    return
+    return 0
   }
 
+  const residuals = []
+
+  // 先删 bundle：opencode 通过扫描 plugins/*.js 注册插件，删除该文件即完成注销。
+  // 后续 assetsDir 内被进程映射的原生模块即使删不掉，插件也不会再被加载。
+  let bundleRemoved = true
   if (status.bundleExists) {
-    await rm(paths.bundleFile, { force: true })
-    console.log(`已删除: ${paths.bundleFile}`)
+    try {
+      await rm(paths.bundleFile, { force: true })
+      console.log(`已删除: ${paths.bundleFile}`)
+    } catch (error) {
+      bundleRemoved = false
+      residuals.push(`${paths.bundleFile} (${error.code || error.message})`)
+    }
   }
 
   if (status.assetsExists) {
-    await rm(paths.assetsDir, { recursive: true, force: true })
-    console.log(`已删除: ${paths.assetsDir}`)
+    const failed = await removeTreeTolerant(paths.assetsDir)
+    if (failed.length === 0) {
+      console.log(`已删除: ${paths.assetsDir}`)
+    } else {
+      residuals.push(...failed)
+    }
   }
 
   if (status.repoExists && !keepRepo) {
-    await rm(paths.repoDir, { recursive: true, force: true })
-    console.log(`已删除: ${paths.repoDir}`)
+    const failed = await removeTreeTolerant(paths.repoDir)
+    if (failed.length === 0) {
+      console.log(`已删除: ${paths.repoDir}`)
+    } else {
+      residuals.push(...failed)
+    }
   }
 
-  console.log('\nAE 插件已卸载完成')
-  console.log('请重启 opencode 以使变更生效。')
-  console.log('验证方式：重启后尝试 /ae-help，该命令不再可用即表示卸载成功。')
+  if (residuals.length === 0) {
+    console.log('\nAE 插件已卸载完成')
+    console.log('请重启 opencode 以使变更生效。')
+    console.log('验证方式：重启后尝试 /ae-help，该命令不再可用即表示卸载成功。')
+    return 0
+  }
+
+  console.warn(`\n以下 ${residuals.length} 项被占用，未能删除：`)
+  for (const item of residuals.slice(0, 20)) {
+    console.warn(`  ${item}`)
+  }
+  if (residuals.length > 20) {
+    console.warn(`  ... 其余 ${residuals.length - 20} 项省略`)
+  }
+
+  if (!bundleRemoved) {
+    console.error('\n插件入口 ae-server.js 未能删除，opencode 仍会加载 AE 插件，卸载未生效。')
+    console.error('请关闭所有 opencode 进程后重新执行本卸载命令。')
+    return 1
+  }
+
+  console.log('\n插件入口 ae-server.js 已删除，opencode 重启后不再加载 AE 插件。')
+  console.log('残留文件多为被当前进程映射的原生模块（Windows 下 DLL 被加载即无法删除），只占磁盘、不影响卸载效果。')
+  console.log('如需彻底清理：关闭所有 opencode 进程后重新执行本卸载命令。')
+  return 2
 }
 
 async function main() {
@@ -148,7 +202,10 @@ async function main() {
   }
 
   const confirmFn = makeConfirm(autoYes)
-  await uninstall(targetDir, repoDirArg, confirmFn, keepRepo)
+  const exitCode = await uninstall(targetDir, repoDirArg, confirmFn, keepRepo)
+  if (exitCode !== 0) {
+    process.exit(exitCode)
+  }
 }
 
 main().catch((err) => {
