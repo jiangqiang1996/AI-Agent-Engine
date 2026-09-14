@@ -6,12 +6,27 @@ AE 提供需求澄清、设计、实施、审查、验证与交付的可检查�
 
 ## 快速开始（安装、更新与卸载）
 
+### 远程安装（推荐：复制提示词给 omp）
+
+在任意项目的 omp 会话里粘贴下面这段提示词，即可从 gitee 远程安装到**全局**（把"全局"改成"项目级"即装到当前项目；完整说明见 [docs/INSTALL.md](docs/INSTALL.md)）：
+
+```text
+请从远程 git 仓库为我安装 AE omp 插件（全局安装）：
+1. 读取 https://gitee.com/jiangqiang1996/AI-Agent-Engine/raw/oh-my-pi/docs/INSTALL.md 并严格按其"一、环境前置检查"和"二、安装或更新"章节执行；
+2. 安装范围：全局（--scope user）；我在此一次性授权安装过程中的 git clone/fetch/reset、omp marketplace 与 plugin 操作，无需再次确认（脚本使用 --yes）。
+```
+
+代理会执行 `scripts/install.mjs`：克隆 gitee 仓库（分支 `oh-my-pi`）到 `~/.omp/ai-agent-engine` → 登记 marketplace `ae-marketplace` → `omp plugin install ae@ae-marketplace`（已装则 upgrade）。卸载与更新流程同见 [docs/INSTALL.md](docs/INSTALL.md)。
+
+> 不支持直接 `omp plugin marketplace add <gitee-url>`：omp 的 git 源只克隆默认分支（`master` 为历史 V1 内容，无 catalog），URL `#branch` 后缀也不被支持。
+
+### 手动安装（本地开发链路）
+
 ```bash
 # 添加 marketplace（本地开发：仓库根即 marketplace；CLI 要求显式 ./ 前缀）
 omp plugin marketplace add ./.
-# 发布后：omp plugin marketplace add <owner>/AI-Agent-Engine
 
-# 安装——两种模式
+# 安装——两种范围
 omp plugin install ae@ae-marketplace                 # 全局（user scope，默认）：所有项目可用
 omp plugin install ae@ae-marketplace --scope project # 项目级：仅当前项目，启用时遮蔽同名全局
 
@@ -112,12 +127,14 @@ omp plugin doctor                  # 插件目录/manifest 健康检查无 error
 | `ae-omp-plugin/` | omp 插件包真源：技能、代理、脚本、manifest、LICENSE |
 | `.omp-plugin/marketplace.json` | marketplace catalog（plugin `source: ./ae-omp-plugin`） |
 | `tests/omp-plugin/run-tests.mjs` | 插件三层测试套件（零依赖，node 直跑） |
+| `scripts/install.mjs` / `scripts/uninstall.mjs` | 远程安装/卸载脚本（gitee `oh-my-pi` 分支托管克隆 + marketplace 登记） |
 
 ## 文档入口
 
 | 入口 | 内容 |
 | --- | --- |
 | [ae-omp-plugin/README.md](ae-omp-plugin/README.md) | 安装（双 scope）、能力清单、包结构合规、测试入口 |
+| [docs/INSTALL.md](docs/INSTALL.md) | 远程安装/更新/卸载（含一键提示词、环境检查、代理执行流程） |
 | [docs/development.md](docs/development.md) | 本仓库开发规范、测试矩阵与发布流程 |
 
 ## 开源协议

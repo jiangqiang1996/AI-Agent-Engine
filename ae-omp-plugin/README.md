@@ -4,12 +4,16 @@ AE（AI Agent Engine）的 oh-my-pi 移植版：纯资产插件包，提供需�
 
 ## 安装
 
-marketplace 根是**仓库根**（`.omp-plugin/marketplace.json`，plugin `source: ./ae-omp-plugin`）：
+**远程安装（推荐）**：把仓库根 [README.md](../README.md#快速开始安装更新与卸载) 或
+[docs/INSTALL.md](../docs/INSTALL.md) 中的一键提示词复制给任意 omp 会话即可——代理会克隆 gitee
+仓库（分支 `oh-my-pi`）到 `~/.omp/ai-agent-engine`，登记 marketplace 并按全局/项目级安装。
+不支持直接 `omp plugin marketplace add <gitee-url>`（git 源只克隆默认分支，`master` 无 catalog）。
+
+**本地开发链路**：marketplace 根是**仓库根**（`.omp-plugin/marketplace.json`，plugin `source: ./ae-omp-plugin`）：
 
 ```bash
 # 1) 添加 marketplace（本地开发：仓库根即 marketplace；CLI 要求显式 ./ 前缀）
 omp plugin marketplace add ./.
-# 发布后：omp plugin marketplace add <owner>/AI-Agent-Engine
 
 # 2) 安装——两种模式
 # 全局（user scope，默认）：所有项目可用

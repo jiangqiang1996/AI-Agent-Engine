@@ -14,6 +14,7 @@
 | `ae-omp-plugin/.claude-plugin/plugin.json` | Claude 兼容 manifest（name/version/author/license），安装版本回退源 |
 | `ae-omp-plugin/LICENSE` | GPLv3 全文，随包分发 |
 | `tests/omp-plugin/run-tests.mjs` | 插件三层测试套件（`npm test`） |
+| `scripts/install.mjs` / `scripts/uninstall.mjs` | 远程安装/卸载脚本（零依赖，node 直跑）：gitee `oh-my-pi` 分支托管克隆 → marketplace 登记 → install/upgrade/uninstall；见 `docs/INSTALL.md` |
 
 ## 开发流程
 
@@ -42,8 +43,10 @@
 ## 发布流程
 
 1. 三处版本同步 bump：catalog `plugins[0].version`、`ae-omp-plugin/package.json`、`.claude-plugin/plugin.json`（L1 可扩展断言）。
-2. Git tag 推送后，用户侧 `omp plugin marketplace update ae-marketplace && omp plugin upgrade ae@ae-marketplace`。
-3. 双 scope 用户需分别 upgrade 或省略 `--scope` 一次重装全部已装 scope。
+2. 推送到 gitee `oh-my-pi` 分支（远程安装分发分支；`master` 为历史 V1 内容，不参与 omp 插件分发）。
+3. 用户侧更新（`docs/INSTALL.md` 一键提示词，或手动）：`node scripts/install.mjs --scope user|project --yes`——脚本自动 fetch+reset 托管克隆、刷新 catalog、upgrade 已装 scope。
+4. 双 scope 用户需分别执行两个 scope，或 `omp plugin upgrade ae@ae-marketplace`（省略 `--scope` 一次重装全部已装 scope）。
+5. 远程安装链路约束：omp `plugin marketplace add <git-url>` 只克隆默认分支且不支持 `#branch`，因此远程安装必须经 `scripts/install.mjs` 的"克隆指定分支 + 本地路径登记"链路；改动 `REPO_URL`/`DEFAULT_BRANCH` 常量时同步更新 `docs/INSTALL.md` 与两个 README 的提示词。
 
 ## 约束
 
