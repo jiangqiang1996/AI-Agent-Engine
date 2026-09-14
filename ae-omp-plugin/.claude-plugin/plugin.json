@@ -1,0 +1,9 @@
+{
+  "name": "ae",
+  "version": "0.1.0",
+  "description": "AE 工程工作流：四阶段方法论（prd/design/work/review）+ 测试/修复/文档生成技能 + ocr-reviewer/test-triage 代理",
+  "author": {
+    "name": "jiangqiang1996"
+  },
+  "license": "GPL-3.0-or-later"
+}

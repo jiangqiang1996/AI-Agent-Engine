@@ -1,0 +1,23 @@
+**/node_modules
+**/bun.lock
+.idea
+dist
+**/tmp
+**/temp
+
+# ae-sql 运行时产物
+src/assets/skills/ae-sql/scripts/jre/
+src/assets/skills/ae-sql/scripts/drivers/*.jar
+/.env.local
+
+ae/gates
+ae/handoffs
+ae/reviews
+/ae/logs/
+/ae/screenshots/
+/ae/static-server/
+/ae/markitdown/
+/ae/markdown/
+/ae/documents/
+/ae/slides/
+.omp/

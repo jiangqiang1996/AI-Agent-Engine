@@ -1,0 +1,7 @@
+{
+  "name": "ae-omp-plugin",
+  "version": "0.1.0",
+  "description": "AE engineering workflow plugin for oh-my-pi: pure asset package (skills + agents, no extensions, no custom tools)",
+  "license": "GPL-3.0-or-later",
+  "private": true
+}

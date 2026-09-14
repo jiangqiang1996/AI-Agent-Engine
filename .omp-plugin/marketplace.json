@@ -1,0 +1,24 @@
+{
+  "name": "ae-marketplace",
+  "owner": {
+    "name": "jiangqiang1996"
+  },
+  "metadata": {
+    "description": "AE 工程工作流插件（omp 版）：需求→设计→实施→审查四阶段方法论、确定性审查路由与交付门禁",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "ae",
+      "source": "./ae-omp-plugin",
+      "description": "AE 工程工作流：7 个技能（prd/design/work/review/test/fix/doc-gen）+ 2 个代理（ocr-reviewer/test-triage）+ 2 个确定性脚本",
+      "version": "0.1.0",
+      "author": {
+        "name": "jiangqiang1996"
+      },
+      "category": "workflow",
+      "tags": ["workflow", "review", "design", "testing"],
+      "license": "GPL-3.0-or-later"
+    }
+  ]
+}
