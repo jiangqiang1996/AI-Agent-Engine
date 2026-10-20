@@ -2,28 +2,24 @@
 **/bun.lock
 .idea
 dist
-.opencode/package-lock.json
-.opencode/agents/ae/
-.opencode/plugins/
+
+# 临时目录
 **/tmp
 **/temp
 
-# ae-sql 运行时产物
-src/assets/skills/ae-sql/scripts/jre/
-src/assets/skills/ae-sql/scripts/drivers/*.jar
-/.env.local
-
-ae/gates
-ae/handoffs
-ae/reviews
-/.opencode/ae.jsonc
+# AE 运行时产物
 /ae/logs/
-/ae/screenshots/
-/ae/static-server/
-/ae/markitdown/
-/ae/markdown/
-/ae/documents/
-/ae/slides/
-.playwright-cli
-.codefree-o/
-/.opencode/ai-agent-engine-src/
+/ae/*/tmp/
+/ae/officecli/
+/ae/agents/
+/ae/solutions/*.local.md
+/playwright-report/
+/test-results/
+
+# 环境
+/.env.local
+.DS_Store
+
+# 技能本地依赖（由技能首次使用时自行安装）
+skills/*/node_modules/
+skills/*/package-lock.json

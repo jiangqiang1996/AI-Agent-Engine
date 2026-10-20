@@ -1,109 +1,201 @@
-# AE 插件开发指南
+# 开发规范（AE Skills）
 
-本指南面向 AE 插件源码仓库的贡献者。面向插件用户的运行时能力文档见 [usage-guide.md](usage-guide.md)。
+本仓库是 **Agent Skills 合集**。开发时必须遵守以下规范。
 
-## 仓库结构
+---
 
-| 路径 | 作用 |
-| --- | --- |
-| `src/index.ts` | server 插件入口，负责注册和依赖组装 |
-| `src/tools/` | opencode 工具定义（23 个工具） |
-| `src/services/` | 业务逻辑、注册逻辑和运行时服务 |
-| `src/schemas/` | Zod Schema 与资产常量（`ae-asset-schema.ts` 是技能/命令/代理/工具名常量真源） |
-| `src/utils/` | 无业务状态的通用工具函数 |
-| `src/assets/skills/` | 技能提示词和参考文件 |
-| `src/assets/commands/` | Markdown 命令 |
-| `src/assets/agents/` | 子代理提示词 |
-| `src/assets/rules/` | 注入用户会话的内置规则 |
-| `src/assets/config/` | 内置 `ae.jsonc` 默认配置 |
-| `dist/` | TypeScript 构建产物（不手工维护） |
-| `.opencode/plugins/` | 本仓库调试桥接目录 |
-| `.opencode/rules/` | 本仓库开发会话规则 |
-| `tests/` | Vitest 测试 |
+## 1. 仓库结构
 
-## 开发命令
-
-| 操作 | 命令 |
-| --- | --- |
-| 安装依赖 | `npm install` |
-| 构建 | `npm run build` |
-| 类型检查 | `npm run typecheck` |
-| 全量测试 | `npm run test` |
-| 单个测试 | `npx vitest run tests/path/to/file.test.ts` |
-
-## 架构概览
-
-### 模块边界
-
-```text
-index.ts / tools → services → schemas / utils
+```
+ai-agent-engine/
+├── skills/          # ★ 唯一真源：所有技能
+├── tools/           # 仓库内部工具（校验、同步、测试），不随技能分发
+├── docs/            # 文档
+├── package.json     # 仅 devDependencies
+└── README.md
 ```
 
-- `tools/` 是最接近用户的工具边界，负责参数 Schema、调用服务、捕获错误并返回可恢复中文提示
-- `services/` 封装业务逻辑和运行时注册逻辑
-- `schemas/` 集中管理 Zod Schema 与资产常量
-- `utils/` 只放无业务状态的通用工具函数
-- 下层不依赖工具层或 UI toast；同层保持最小依赖，禁止循环依赖
+**真源原则**：`skills/` 下的一切就是分发内容。`tools/` 是仓库内部设施，**不得**被技能依赖。
 
-### 资产名称常量化
+---
 
-技能名、命令名、代理名、工具名必须在 `src/schemas/ae-asset-schema.ts` 中定义为 `as const` 常量。新增资产先改常量，再改注册或资产文件。
+## 2. 核心约束：宿主无关
 
-### 关键服务文件
+技能必须能在**任意**支持 [Agent Skills 规范](https://agentskills.io/specification) 的 AI 代理中工作。
 
-| 文件 | 职责 |
-| --- | --- |
-| `ae-catalog.ts` | Phase One 技能条目、代理定义 |
-| `command-registration.ts` | 命令配置构建 |
-| `agent-registration.ts` | 代理配置构建 |
-| `help-catalog-service.ts` | 帮助目录构建、过滤和格式化 |
-| `asset-model-routing-catalog.ts` | 命令和代理的模型场景路由 |
-| `runtime-asset-manifest.ts` | 运行时资产清单 |
+### 禁止
 
-## 测试
+| 类别 | 示例 |
+|---|---|
+| 宿主专属名 | `opencode`、`~/.config/opencode/`、`.opencode/` |
+| 宿主专属配置 | `opencode.json`、`config.skills.paths` |
+| 宿主专属 frontmatter | `mode: subagent`、`steps:`、`tools:` 映射、`model: $scenario` |
+| 宿主专属占位符 | `$ARGUMENTS` |
+| 宿主专属工具名 | `question`、`Task`、`subagent_type` |
+| 宿主专属能力调用 | `调用 \`ae-xxx\` 工具` |
 
-使用 Vitest 作为测试框架。测试文件放在 `tests/` 目录下，按模块分类。
+### 改为能力抽象措辞
 
-覆盖率要求：
+| 不要写 | 改写为 |
+|---|---|
+| 使用 `question` 工具 | 使用宿主的交互式提问能力（常见别名 AskUserQuestion / question） |
+| 调用 Task 工具 | 派发子代理（若宿主支持子代理派发能力） |
+| 通过 `glob` 查找 | 使用宿主的文件搜索能力 |
+| 用 `bash` 执行 | 使用宿主的命令执行能力 |
 
-| 模块 | 最低覆盖率 |
-| --- | --- |
-| `tools/` | 80% |
-| `hooks/` | 80% |
-| `services/` | 90% |
-| `schemas/` | 90% |
-| `utils/` | 90% |
+### 并行/降级范式
 
-## 开发规范
+多角色技能统一这样表述：
 
-详细开发规范在 `AGENTS.md` 和 `.opencode/rules/**/*.md`：
+> 若宿主支持子代理派发能力，将下列角色卡**并行**分派，每卡一份独立上下文；
+> 若不支持，则在当前会话内**顺序**执行同一批角色卡，产出格式不变。
 
-| 规范 | 文件 |
-| --- | --- |
-| 基础规范 | `.opencode/rules/core/base.md` |
-| 代码风格 | `.opencode/rules/core/code-style.md` |
-| 架构规范 | `.opencode/rules/architecture/architecture.md` |
-| 运行时独立性 | `.opencode/rules/architecture/runtime-independence.md` |
-| Git 工作流 | `.opencode/rules/core/git-workflow.md` |
-| 测试规范 | `.opencode/rules/core/testing.md` |
-| OpenCode 原生资产 | `.opencode/rules/core/opencode-native-assets.md` |
-| 命令模型路由 | `.opencode/rules/architecture/command-model-routing.md` |
-| 前端规范 | `.opencode/rules/architecture/frontend.md` |
+---
 
-## 构建流程
+## 3. 技能编写
 
-`npm run build` 执行 `tsc -p tsconfig.json && node scripts/postbuild.mjs`。
+完整规范见 [skill-authoring.md](skill-authoring.md)。要点：
 
-postbuild 会：
-1. bundle `dist/src/index.js`
-2. 清理历史 TUI 残留文件
-3. 写入 `.opencode/plugins/ae-server.js` 包装文件（供本仓库调试）
-4. 删除 tsc 副产物 `dist/src/assets/`，并把 `src/assets/` 镜像同步到 `.opencode/plugins/ai-agent-engine/`
+- frontmatter 只有 6 个合法字段：`name`（必须等于目录名）、`description`（≤1024，中英触发词）、`license`、`compatibility`（≤500）、`metadata`（string→string）、`allowed-tools`
+- 正文 ≤500 行，深度内容拆到 `references/`
+- 引用文件只用一层深：`references/x.md`、`scripts/y.mjs`
+- 角色卡放 `references/roles/<role>.md`，固定 5 段：职责 / 触发条件 / 输入契约 / 输出契约 / 工作流
 
-第 4 步的镜像同步由 `scripts/mirror-assets.mjs` 实现：先合并覆盖复制，再剪枝目标端源已不存在的陈旧条目。`node_modules`、`package.json`、`package-lock.json` 被列为排除项——它们由本地维护、不在 `src/assets` 内，其中 `package.json` 是 bundle 注入的 `require` 基准锚点，`node_modules` 提供 esbuild external 的原生依赖。Windows 下原生模块 DLL 被进程映射时无法删除，因此剪枝失败只降级为 stderr 警告，不中断构建。
+---
 
-## 运行时独立性
+## 4. 产物、配置与日志约定
 
-AE 插件运行时必须独立于源码仓库布局，支持仅依赖桥接文件和 `dist` 目录完成加载与执行。运行时代码不得把 `dist` 与桥接文件以外的仓库文件当作必需前提。
+| 类别 | 路径 |
+|---|---|
+| 持久产物 | `<cwd>/ae/<skill-slug>/` |
+| 临时产物 | `<cwd>/ae/<skill-slug>/tmp/` |
+| 日志 | `<cwd>/ae/logs/<skill-slug>/` |
+| 配置 | `<cwd>/ae.jsonc` → `~/.ae.jsonc` |
 
-详见 `.opencode/rules/architecture/runtime-independence.md`。
+- `<skill-slug>` = 技能目录名去掉 `ae-` 前缀
+- 跨技能**只读**允许，跨技能**写入**禁止
+- 每个技能只读 `ae.jsonc` 中与自己同名的顶层 key
+
+共享逻辑放 `tools/shared/`，由 `tools/sync-shared.mjs` 同步进各技能的 `scripts/lib/`，
+保证仓库内单一真源、同时技能可被单独拷走使用。
+
+---
+
+## 5. 代码风格
+
+### 命名
+
+| 类型 | 格式 | 示例 |
+|---|---|---|
+| 技能目录 | `kebab-case` + `ae-` 前缀 | `ae-review` |
+| 脚本 | `kebab-case.mjs` | `scope-analyze.mjs` |
+| 测试 | `kebab-case.test.mjs` | `aggregate.test.mjs` |
+| 角色卡 | `kebab-case.md` | `api-design-reviewer.md` |
+| 变量 / 函数 | `camelCase` | `resolveConfigPath` |
+| 常量 | `SCREAMING_SNAKE_CASE` | `BLOCKING_SEVERITIES` |
+
+### 脚本规范
+
+- **零外部依赖**（仅 Node 标准库）；需要依赖时在技能目录放 `package.json`，首次使用时 `npm install`
+- Node ≥ 18，ESM（`.mjs`）
+- **模板字面量里禁止写正则**：JS 模板字面量会吞掉 `\.` 之类的反斜杠，导致正则被静默改写。
+  正则一律写在正则字面量里，或先提取到变量。`tools/validate.mjs` 会检查这一点。
+- 脚本必须处理错误并给出可读信息，**不得**把原始堆栈抛给用户
+- 退出码：0 成功，1 失败，2 有告警
+
+### 格式
+
+- 缩进 2 空格
+- 单引号
+- 尾随逗号（多行时）
+- 注释使用中文，公共 API 用 JSDoc
+
+---
+
+## 6. 测试
+
+```bash
+npm test          # 运行所有技能脚本的单元测试
+```
+
+- 测试文件放 `skills/<name>/tests/*.test.mjs`
+- 使用 Node 内置 `node:test` + `node:assert/strict`
+- 测试必须能在**不安装可选依赖**的情况下通过（如 pdf 依赖、Java 运行时）
+- 外部命令的探测逻辑要单独测试（存在 / 不存在两条路径）
+
+---
+
+## 7. 校验
+
+```bash
+npm run validate   # 规范校验
+npm run sync       # 同步共享脚本
+npm run check      # 同步检查 + 校验 + 测试
+npm run doctor     # 全量自检（含外部工具探测）
+```
+
+`tools/validate.mjs` 检查项：
+
+1. frontmatter 字段与取值、`name` == 目录名
+2. 正文行数、相对引用文件是否存在
+3. 脚本语法、模板字面量转义隐患
+4. 禁用词扫描
+5. 产物路径归属
+6. 目录名通用词黑名单
+
+**任何改动后必须 `npm run check` 全绿。**
+
+---
+
+## 8. Git 工作流
+
+### 分支命名
+
+| 类型 | 格式 | 示例 |
+|---|---|---|
+| 功能 | `feat/<描述>` | `feat/add-review-role-cards` |
+| 修复 | `fix/<描述>` | `fix/config-lookup-order` |
+| 重构 | `refactor/<描述>` | `refactor/skills-layout` |
+| 文档 | `docs/<描述>` | `docs/authoring-spec` |
+| 测试 | `test/<描述>` | `test/aggregate-strategies` |
+
+### 提交规范
+
+```
+<类型>(<范围>): <简短描述>
+
+<详细描述>（可选）
+```
+
+类型：`feat` / `fix` / `refactor` / `docs` / `test` / `chore` / `perf`
+
+- 每次提交只做一件事，内容可独立运行
+- 禁止 WIP、禁止调试代码
+- 禁止提交密钥、Token、密码
+
+### 危险操作授权
+
+对当前工作区执行 `reset --hard`、`clean -fd`、覆盖 checkout、rebase、删除分支、pull 合并等
+**可能改变或丢弃本地状态**的操作前，必须取得用户对目标仓库、目标分支和具体命令的明确授权。
+
+授权 destructive 操作**不等于**授权 push、force push、PR、release、跳过 hooks 或修改 Git 配置——
+这些仍需单独明确授权。
+
+---
+
+## 9. 发布
+
+分发方式为纯 `npx skills`：
+
+```bash
+npx skills add <owner>/<repo>
+npx skills add <owner>/<repo> --skill ae-prd -a claude-code
+npx skills add <owner>/<repo> --list
+```
+
+因此仓库必须满足：
+
+- 技能位于 `skills/<name>/SKILL.md`（标准发现路径）
+- 目录名与 `name` 一致
+- 不包含 `dist/`、`node_modules/` 等构建产物（`npx skills` 会自行排除 `node_modules`）
+- 体积可控：单技能建议 < 1 MB

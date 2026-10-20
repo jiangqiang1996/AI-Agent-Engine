@@ -1,0 +1,13 @@
+{
+  "host": "10.0.0.1",
+  "port": 22,
+  "user": "root",
+  "password": "改成你的密码",
+  "sudo_password": "",
+  "key_file": "",
+  "key_passphrase": "",
+  "host_fingerprint": "",
+  "timeout_sec": 15,
+  "exec_timeout_sec": 300,
+  "keepalive_interval_sec": 10
+}

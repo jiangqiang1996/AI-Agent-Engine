@@ -1,0 +1,187 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AE Skills 配置",
+  "description": "AE 技能合集的配置文件。顶层 key 与技能同名，每个技能只读取自己的 key。",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "ae-image": {
+      "type": "object",
+      "description": "ae-image 技能的描述后端配置",
+      "additionalProperties": false,
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "OpenAI 兼容的视觉接口完整 URL，例如 https://api.openai.com/v1/chat/completions。留空则回退到本地 OCR"
+        },
+        "model": {
+          "type": "string",
+          "description": "视觉模型名"
+        },
+        "apiKeyEnv": {
+          "type": "string",
+          "description": "存放 API Key 的环境变量名"
+        },
+        "ocrCommand": {
+          "type": "string",
+          "description": "本地 OCR 命令名，默认 tesseract"
+        },
+        "ocrLanguage": {
+          "type": "string",
+          "description": "OCR 语言参数，默认 chi_sim+eng"
+        },
+        "prompt": {
+          "type": "string",
+          "description": "自定义描述提示词，留空使用内置提示词"
+        }
+      }
+    },
+    "ae-audio": {
+      "type": "object",
+      "description": "ae-audio 技能的转写后端配置",
+      "additionalProperties": false,
+      "properties": {
+        "endpoint": {
+          "type": "string",
+          "description": "OpenAI 兼容的转写接口完整 URL。留空则回退到本地 whisper"
+        },
+        "model": {
+          "type": "string",
+          "description": "转写模型名"
+        },
+        "apiKeyEnv": {
+          "type": "string",
+          "description": "存放 API Key 的环境变量名"
+        },
+        "whisperCommand": {
+          "type": "string",
+          "description": "本地转写命令名，默认 whisper"
+        },
+        "ffmpeg": {
+          "type": "string",
+          "description": "ffmpeg 可执行文件名或绝对路径，默认 ffmpeg"
+        },
+        "ffprobe": {
+          "type": "string",
+          "description": "ffprobe 可执行文件名或绝对路径，默认 ffprobe"
+        }
+      }
+    },
+    "ae-video": {
+      "type": "object",
+      "description": "ae-video 技能的抽帧配置",
+      "additionalProperties": false,
+      "properties": {
+        "ffmpeg": {
+          "type": "string",
+          "description": "ffmpeg 可执行文件名或绝对路径，默认 ffmpeg"
+        },
+        "ffprobe": {
+          "type": "string",
+          "description": "ffprobe 可执行文件名或绝对路径，默认 ffprobe"
+        },
+        "frameIntervalSeconds": {
+          "type": "number",
+          "minimum": 1,
+          "description": "关键帧抽帧间隔（秒），默认 5"
+        },
+        "maxFrames": {
+          "type": "number",
+          "minimum": 1,
+          "description": "最多抽取的关键帧数，默认 12"
+        },
+        "endpoint": {
+          "type": "string",
+          "description": "描述用接口，未配置时继承 ae-image 的配置"
+        },
+        "model": {
+          "type": "string",
+          "description": "描述用模型，未配置时继承 ae-image 的配置"
+        },
+        "apiKeyEnv": {
+          "type": "string",
+          "description": "存放 API Key 的环境变量名，未配置时继承 ae-image 的配置"
+        }
+      }
+    },
+    "ae-officecli": {
+      "type": "object",
+      "description": "ae-officecli 技能的执行配置",
+      "additionalProperties": false,
+      "properties": {
+        "timeoutMs": {
+          "type": "number",
+          "minimum": 1000,
+          "maximum": 600000,
+          "description": "单条 officecli 命令的超时（毫秒），默认 30000"
+        },
+        "autoInstall": {
+          "type": "boolean",
+          "description": "未检测到 officecli 时是否自动安装，默认 true"
+        }
+      }
+    },
+    "ae-pdf": {
+      "type": "object",
+      "description": "ae-pdf 技能的配置",
+      "additionalProperties": false,
+      "properties": {
+        "cjkFontPath": {
+          "type": "string",
+          "description": "中文字体文件绝对路径，留空时自动探测系统字体"
+        }
+      }
+    },
+    "ae-playwright": {
+      "type": "object",
+      "description": "ae-playwright 技能的配置",
+      "additionalProperties": false,
+      "properties": {
+        "baseUrl": {
+          "type": "string",
+          "description": "被测站点根地址"
+        },
+        "browser": {
+          "type": "string",
+          "enum": ["chrome", "msedge", "chromium", "firefox", "webkit"],
+          "description": "使用的浏览器通道"
+        }
+      }
+    },
+    "ae-sql": {
+      "type": "object",
+      "description": "ae-sql 技能的数据库配置",
+      "additionalProperties": false,
+      "properties": {
+        "datasources": {
+          "type": "array",
+          "description": "数据源列表",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "name": { "type": "string", "description": "数据源名称" },
+              "url": { "type": "string", "description": "JDBC 连接串" },
+              "user": { "type": "string", "description": "用户名" },
+              "passwordEnv": { "type": "string", "description": "存放密码的环境变量名" },
+              "driver": { "type": "string", "description": "JDBC 驱动类名" },
+              "driverJar": { "type": "string", "description": "JDBC 驱动 jar 的路径" }
+            },
+            "required": ["name", "url"]
+          }
+        }
+      }
+    },
+    "ae-review": {
+      "type": "object",
+      "description": "ae-review 技能的配置",
+      "additionalProperties": false,
+      "properties": {
+        "defaultBase": {
+          "type": "string",
+          "description": "审查基线分支名，留空时按 origin/HEAD → main/master/develop/trunk 推导"
+        }
+      }
+    }
+  }
+}

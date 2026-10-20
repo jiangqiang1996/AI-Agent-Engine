@@ -1,256 +1,180 @@
-# AI Agent Engine for OpenCode — 安装或更新 / 卸载
+# 安装与卸载
 
-本项目**只支持 opencode**。
-
-如果你已经把这份文档交给 AI 代理，请根据用户意图执行对应章节的步骤。
-
-AE 支持两种安装模式：
-
-| 模式 | --target-dir | 生效范围 | 适用场景 |
-| --- | --- | --- | --- |
-| **全局安装** | `~/.config/opencode` | 所有项目 | 日常开发，所有项目共享 AE |
-| **项目级安装** | `<项目根目录>/.opencode` | 仅当前项目 | 特定项目需要独立版本或定制 |
-
-> Windows 环境下 `~` 对应 `%USERPROFILE%`，`~/.config/opencode/` 实际路径为 `%USERPROFILE%\.config\opencode\`
-
-> 基于 opencode 二开的定制版软件，其全局和项目级配置目录名可能不同（如 `~/.config/codefree-o` 和 `<项目根目录>/.codefree-o`）。首次安装时需向用户确认实际路径；已安装后通过 `/ae-install` 和 `/ae-uninstall` 命令自动从标准路径查找当前插件加载位置，如果不在标准路径下则询问用户。用户也可在 `/ae-install` 或 `/ae-uninstall` 的提示词中直接传入目标路径，跳过自动查找。
-
-安装后的布局：
-
-```
-<target-dir>/
-├── ae.jsonc                               ← 可选，用户配置（脚本不创建）
-└── plugins/                               ← opencode 自动扫描此目录
-    ├── ae-server.js                       ← bundle
-    └── ai-agent-engine/                   ← 资产 + @napi-rs/canvas
-        ├── package.json
-        ├── node_modules/
-        ├── agents/
-        ├── commands/
-        ├── config/
-        ├── rules/
-        └── skills/
-```
-
-脚本只操作 `plugins/` 下的 `ae-server.js` 和 `ai-agent-engine/`，不触碰其他插件文件。
+AE Skills 遵循 [Agent Skills 规范](https://agentskills.io/specification)，通过 `npx skills` 分发，**不依赖任何插件或宿主 SDK**。
 
 ---
 
-## 一、环境前置检查
+## 安装
 
-在执行安装脚本前，必须依次检查以下环境。任一缺失时，使用 question 工具询问用户是否自动安装，用户确认后根据平台执行安装命令，安装失败则降级为提示用户手动安装并停止流程。
+### 方式一：`npx skills`（推荐）
 
-### 1.1 Node.js
+需要 Node.js 22.20 或更高版本。
 
-执行 `node --version`：
+```bash
+# 交互式：选择技能 + 选择宿主
+npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git
+```
 
-- **命令不存在或版本主号低于 18**：使用 question 工具告知用户 Node.js 缺失或版本过低，询问是否自动安装。用户确认后，根据平台执行安装命令：
-  - Windows：`winget install OpenJS.NodeJS.LTS`
-  - macOS：`brew install node@18`
-  - Linux：根据发行版执行 `curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash - && sudo apt-get install -y nodejs`
-  - 安装命令失败时降级为提示用户从 https://nodejs.org/ 下载并安装 LTS 版本，停止流程
+常用参数：
 
-### 1.2 npm
+| 参数 | 说明 |
+|---|---|
+| `--skill <名称...>` | 只安装指定技能（可用 `'*'` 表示全部） |
+| `--agent <名称...>` | 指定目标宿主（可用 `'*'` 表示全部） |
+| `-g, --global` | 安装到用户级目录（所有项目可用） |
+| `--list` | 只列出可用技能，不安装 |
+| `--copy` | 用复制代替软链接（Windows 或不支持软链接的环境） |
+| `-y, --yes` | 跳过所有确认提示（CI 友好） |
 
-执行 `npm --version`：
+示例：
 
-- **命令不存在**：npm 随 Node.js 一起安装，提示用户重新安装 Node.js LTS（同 1.1）
+```bash
+# 只装一个技能到 Claude Code
+npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git --skill ae-prd -a claude-code
 
-### 1.3 git
+# 装到多个宿主
+npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git -a claude-code -a cursor -a opencode
 
-执行 `git --version`：
+# 全局安装全部技能到全部已检测到的宿主
+npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git --skill '*' -g -a '*' -y
 
-- **命令不存在**：使用 question 工具告知用户 Git 缺失，询问是否自动安装。用户确认后，根据平台执行安装命令：
-  - Windows：`winget install Git.Git`
-  - macOS：`brew install git`
-  - Linux：`sudo apt-get install -y git`（或对应发行版的包管理器）
-  - 安装命令失败时降级为提示用户从 https://git-scm.com/ 下载并安装，停止流程
+# 先看看有哪些技能
+npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git --list
+```
 
-三个命令都成功且 Node.js 版本 ≥ 18 时，继续下一步。
+GitHub 镜像仓库可用简写：
+
+```bash
+npx skills add <owner>/ai-agent-engine
+```
+
+### 安装位置
+
+由 `skills` CLI 决定。默认使用**软链接**（canonical 副本在 `.agents/skills/`，各宿主目录软链过去），
+软链接不可用时自动降级为复制。
+
+| 宿主 | `--agent` 值 | 项目级路径 | 全局路径 |
+|---|---|---|---|
+| OpenCode | `opencode` | `.agents/skills/` | `~/.config/opencode/skills/` |
+| Claude Code | `claude-code` | `.claude/skills/` | `~/.claude/skills/` |
+| Codex | `codex` | `.agents/skills/` | `~/.codex/skills/` |
+| Cursor | `cursor` | `.agents/skills/` | `~/.cursor/skills/` |
+| GitHub Copilot | `github-copilot` | `.agents/skills/` | `~/.copilot/skills/` |
+| Gemini CLI | `gemini-cli` | `.agents/skills/` | `~/.gemini/skills/` |
+| Cline | `cline` | `.agents/skills/` | `~/.agents/skills/` |
+| Amp | `amp` | `.agents/skills/` | `~/.config/agents/skills/` |
+| Roo Code | `roo` | `.roo/skills/` | `~/.roo/skills/` |
+| Windsurf | `windsurf` | `.windsurf/skills/` | `~/.codeium/windsurf/skills/` |
+| 通用 | `universal` | `.agents/skills/` | `~/.config/agents/skills/` |
+
+完整清单见 `skills` CLI 的 Supported Agents 文档。
+
+### 方式二：GitHub CLI
+
+```bash
+gh skill install <owner>/ai-agent-engine --skill ae-prd --agent claude-code --scope user
+```
+
+发现规则与 `npx skills` 一致（`skills/*/SKILL.md`）。
+
+### 方式三：手动复制
+
+不需要 Node.js 时，直接把技能目录复制到宿主的技能目录：
+
+```bash
+cp -r skills/ae-prd ~/.claude/skills/ae-prd
+```
+
+Windows PowerShell：
+
+```powershell
+Copy-Item -Recurse skills\ae-prd $env:USERPROFILE\.claude\skills\ae-prd
+```
+
+手动安装的技能不参与 `npx skills update`，需要自行更新。
 
 ---
 
-## 二、安装或更新
+## 验证安装
 
-### 首次安装（AE 插件尚未加载）
-
-首次安装时 `/ae-install` 命令不可用。需要先克隆仓库获取安装脚本，再执行安装。
-
-#### 确定安装目录
-
-首次安装时没有已加载的插件可供推断路径，需向用户确认安装目录：
-
-1. 使用 question 工具询问用户安装范围（全局或项目级）和目标路径
-2. 默认推荐（适用于标准 opencode；基于 opencode 二开的软件 A 由其用户传入 A 对应的全局/项目级路径）：
-   - **全局**：`~/.config/opencode`（Windows: `%USERPROFILE%\.config\opencode`）
-   - **项目级**：`<当前项目根目录>/.opencode`
-3. 用户确认路径后，继续执行安装
-
-#### 全局安装
+1. 重启宿主（或执行其重载技能的命令，如 Claude Code 的 `/reload-skills`）
+2. 确认技能被识别：向代理提问一个该技能覆盖的问题，看是否触发
+3. 检查安装目录：
 
 ```bash
-git clone https://gitee.com/jiangqiang1996/ai-agent-engine.git /tmp/ae-install && node /tmp/ae-install/scripts/install.js --target-dir ~/.config/opencode --yes
+ls .agents/skills/          # 项目级
+ls ~/.claude/skills/        # 全局（按你的宿主替换）
 ```
 
-#### 项目级安装
+### 外部依赖
 
-将 `<项目根目录>` 替换为实际路径：
+多数技能**零安装**即可用。部分技能需要外部工具：
+
+| 技能 | 依赖 | 缺失时 |
+|---|---|---|
+| `ae-officecli` / `ae-docx` / `ae-pptx` / `ae-xlsx` | `officecli` 二进制 | 技能的**步骤 0 会自动检测并安装**（npm → brew → scoop → 官方安装脚本） |
+| `ae-pdf` | 技能目录内的 npm 依赖 | 首次使用时在技能目录执行 `npm install --omit=dev` |
+| `ae-image` / `ae-audio` / `ae-video` | 可选：`ffmpeg` / `tesseract` / `whisper`；或配置 `ae.jsonc` 的接口 | 退化为元信息输出，并提示如何配置 |
+| `ae-sql` | JRE 17+ | 需要用户自行安装 JRE |
+| `ae-playwright` | `playwright-cli` | 需用户自行安装 |
+| `ocr-code-review` | `ocr` CLI（npm `@alibaba-group/open-code-review`） | 需用户自行安装 |
+| `linux-remote-ops` | 无（ssh2 已内置） | — |
+| `playwright-verify` | Playwright 与浏览器 | 需用户自行安装 |
+
+检查本机可用性：
 
 ```bash
-git clone https://gitee.com/jiangqiang1996/ai-agent-engine.git /tmp/ae-install && node /tmp/ae-install/scripts/install.js --target-dir "<项目根目录>/.opencode" --yes
+npm run doctor
 ```
-
-> Windows 下 `~` 对应 `%USERPROFILE%`，`/tmp/` 对应 `%TEMP%`。
-
-> 定制版软件需将 `--target-dir` 替换为用户确认的全局或项目级配置目录。
-
-### 已安装后的更新（AE 插件已加载）
-
-安装完成后，后续更新可用 AE 内置命令：
-
-```text
-# 全局更新
-/ae-install
-
-# 项目级更新
-/ae-install project
-```
-
-命令会自动在标准 opencode 安装路径中查找当前插件加载位置。如果不在标准路径下则询问用户。从 `installRoot`（`plugins` 的父目录）确定当前安装根目录，更新当前安装时直接使用 `installRoot` 作为 `--target-dir`；切换范围时询问用户目标路径，**禁止猜测路径**。用户也可在提示词中直接传入目标路径，跳过自动查找。
-
-### 安装脚本参数
-
-```text
-node scripts/install.js --target-dir <path> [--repo-dir <path>] [--yes]
-```
-
-| 参数 | 说明 | 默认值 |
-| --- | --- | --- |
-| `--target-dir` | 安装目标目录（必填） | 无 |
-| `--repo-dir` | 源码仓库目录 | `<target-dir>/ai-agent-engine-src` |
-| `--yes` | 跳过交互式确认 | false |
-
-脚本自动判断已安装则更新、未安装则全新安装（含 clone），无需手动克隆。
-
-### 流程
-
-0. **确定安装范围**：模型从用户提示词解析范围（`project` 为项目级，`global` 为全局，用户未明确说明时默认 `global`），确定 `--target-dir` 值
-   - 用户在提示词中传入路径时直接使用该路径，跳过自动查找
-   - 已安装场景：自动在标准路径查找当前插件加载位置，scope 与当前安装范围一致时更新当前安装（`--target-dir` = `installRoot`）；scope 与当前范围不一致时询问用户目标路径，**禁止猜测路径**
-   - 首次安装场景（命令不可用，需先克隆仓库）：使用 question 工具向用户确认安装目录
-1. **环境前置检查**：见上方「一、环境前置检查」
-2. **一次性授权确认**：使用 question 工具向用户确认授权（包含路径和操作说明），只确认一次
-   - 操作类型：安装或更新（已安装时为更新）
-   - 安装范围：全局或项目级
-   - 具体路径：仓库目录和部署目录
-   - 更新场景需说明：会丢弃该仓库的本地未提交修改和未追踪文件
-3. **执行安装脚本**：`node "<脚本绝对路径>" --target-dir "<target-dir>" --yes`，脚本自动完成安装或更新
-4. **playwright-cli 自动安装**（无需用户授权，此步骤由 `/ae-install` 命令模板在安装脚本执行完成后执行，不在 `scripts/install.js` 内部）：
-   - 执行 `playwright-cli --version` 检查是否可用
-   - 不可用时直接执行 `npm install -g --force @playwright/cli@latest`（`--force` 确保覆盖已有旧版本）
-   - 安装后再次验证，仍失败则告知用户浏览器自动化功能将不可用，继续下一步
-5. **完成**：提示重启 opencode 以加载最新版本，验证方式为重启后尝试 `/ae-help`
 
 ---
 
-## 三、卸载
-
-### 首次卸载（AE 插件尚未加载）
-
-首次卸载时 `/ae-uninstall` 命令不可用。需要从已克隆的仓库执行卸载脚本。
-
-#### 确定卸载目录
-
-首次卸载时没有已加载的插件可供推断路径，需向用户确认卸载目录：
-
-1. 使用 question 工具询问用户卸载范围（全局或项目级）和目标路径
-2. 默认推荐（适用于标准 opencode；基于 opencode 二开的软件 A 由其用户传入 A 对应的全局/项目级路径）：
-   - **全局**：`~/.config/opencode`（Windows: `%USERPROFILE%\.config\opencode`）
-   - **项目级**：`<当前项目根目录>/.opencode`
-3. 用户确认路径后，继续执行卸载
-
-#### 全局卸载
+## 升级
 
 ```bash
-node ~/.config/opencode/ai-agent-engine-src/scripts/uninstall.js --target-dir ~/.config/opencode --yes
+npx skills check      # 预览可更新项
+npx skills update     # 更新全部已安装技能
+npx skills list       # 查看已安装技能
 ```
 
-#### 项目级卸载
-
-将 `<项目根目录>` 替换为实际路径：
-
-```bash
-node "<项目根目录>/.opencode/ai-agent-engine-src/scripts/uninstall.js" --target-dir "<项目根目录>/.opencode" --yes
-```
-
-> 定制版软件需将路径替换为用户确认的全局或项目级配置目录。
-
-### 已安装后的卸载（AE 插件已加载）
-
-```text
-/ae-uninstall
-```
-
-**不需要传入参数**。命令会自动在标准 opencode 安装路径中查找当前插件加载位置。如果不在标准路径下则询问用户。检测当前安装范围的安装状态后，对标准 opencode 自动检测另一范围（全局或项目级）的安装状态，让用户选择卸载范围。如需卸载其他非标准路径，询问用户目标路径，**禁止猜测路径**。
-
-用户也可在提示词中直接传入目标路径，跳过自动查找，直接检测该路径的安装状态。
-
-### 卸载脚本参数
-
-```text
-node scripts/uninstall.js --target-dir <path> [--repo-dir <path>] [--yes] [--keep-repo] [--detect]
-```
-
-| 参数 | 说明 | 默认值 |
-| --- | --- | --- |
-| `--target-dir` | 卸载目标目录（必填） | 无 |
-| `--repo-dir` | 源码仓库目录 | `<target-dir>/ai-agent-engine-src` |
-| `--yes` | 跳过交互式确认 | false |
-| `--keep-repo` | 保留仓库目录，只删除 plugins/ 下的部署产物 | false |
-| `--detect` | 只检测安装状态，输出 JSON | false |
-
-### 卸载退出码
-
-脚本用退出码区分三种结果，调用方必须按退出码判定，禁止无条件报告卸载成功：
-
-| 退出码 | 含义 |
-| --- | --- |
-| 0 | 已彻底删除 |
-| 2 | `plugins/ae-server.js` 已删除（插件已注销），但有被进程占用的残留文件，需关闭 opencode 后重试清理 |
-| 1 | `plugins/ae-server.js` 删除失败，插件仍会被加载，卸载未生效 |
-
-> Windows 下原生模块 DLL（`node_modules/@napi-rs/canvas-win32-x64-msvc` 的 `skia.win32-x64-msvc.node`）一旦被进程映射就无法删除。`/ae-uninstall` 本身在 AE 插件进程内执行，因此 **Windows 上退出码 2 是常见正常结果，不代表卸载失败**——插件入口已删除，重启后插件不再加载。脚本采用逐项容错删除，残留项会打印到 stderr，不会被静默忽略。
->
-> 退出码 2 且 assets 目录存在残留时，脚本会**保留仓库目录**（`<target-dir>/ai-agent-engine-src`，内含卸载脚本自身），避免删除仓库后恢复路径消失。此时脚本会在 stdout 打印一条可直接复制执行的重跑命令（形如 `node <卸载脚本绝对路径> --target-dir <目标目录> --yes`），调用方必须原样转述该命令，不得改写为"重新执行本命令"这类无具体入口的表述。
-
-### 流程
-
-1. **检测安装状态**：自动在标准路径查找当前插件加载位置，检测当前安装范围的安装状态。对标准 opencode 自动检测另一范围（全局或项目级）的安装状态。如需卸载其他非标准路径范围，询问用户目标路径，**禁止猜测路径**
-2. **选择卸载范围**：使用 question 工具让用户选择
-   - 如果全局和项目级都未安装：告知用户"未检测到 AE 插件安装，无需卸载"并停止流程
-   - 如果只有全局已安装：选项为"卸载全局"和"不卸载"
-   - 如果只有项目级已安装：选项为"卸载项目级"和"不卸载"
-   - 如果两者都已安装：选项为"卸载全局"、"卸载项目级"、"卸载全局和项目级"和"不卸载"
-3. **一次性授权确认**：使用 question 工具确认授权（包含将删除的具体路径），只确认一次
-4. **执行卸载脚本**：`node "<脚本绝对路径>" --target-dir "<target-dir>" --yes`，脚本自动完成卸载
-5. **按退出码报告结果**（逐个范围判定，不得无条件宣告成功）：
-   - **退出码 0**：提示重启 opencode 以使变更生效，验证方式为重启后尝试 `/ae-help`，该命令不再可用即表示卸载成功
-   - **退出码 2**：说明插件已注销（入口已删除、重启后不再加载），并原样列出脚本 stderr 的残留文件清单；若 assets 有残留，仓库目录已被保留，须原样转述脚本 stdout 打印的重跑命令（`node ... --target-dir ... --yes`）告知用户如何彻底清理。禁止省略残留信息、改写重跑命令或谎报为"卸载完成"
-   - **退出码 1 或其他非零**：明确告知卸载未生效、插件仍会被加载，附上脚本 stderr 的失败原因，指引用户关闭所有 opencode 进程后重试，仍失败则手动删除 `<target-dir>/plugins/ae-server.js` 与 `<target-dir>/plugins/ai-agent-engine/`
+软链接模式下，canonical 副本更新后所有宿主立即可见。
 
 ---
 
-## 注意事项
+## 卸载
 
-- 不要为非 opencode 运行时写安装配置
-- 项目级安装和全局安装可以共存，项目级优先加载
-- Windows 环境下 `~` 对应 `%USERPROFILE%`，`~/.config/opencode/` 实际路径为 `%USERPROFILE%\.config\opencode\`
-- `/ae-install` 和 `/ae-uninstall` 一次授权后直接执行，无需二次确认
-- 安装或更新过程不会影响用户的 `opencode.json` 配置
-- 安装脚本只操作 `plugins/` 下的 `ae-server.js` 和 `ai-agent-engine/`，不触碰其他插件文件
-- playwright-cli 安装无需用户授权，脚本执行完毕后自动检查并安装
-- 首次安装/卸载时向用户确认目录，已安装后命令自动从标准路径查找当前插件加载位置
-- **禁止猜测安装/卸载路径**：无法从标准路径找到当前插件时，必须询问用户目标路径
-  - 安装场景：用户未明确提供目标路径则停止流程
-  - 卸载场景：用户未明确提供其他范围路径时，只卸载当前已检测到的范围
-- 定制版软件用户可在 `/ae-install` 或 `/ae-uninstall` 提示词中直接传入目标路径，跳过自动查找
+```bash
+# 交互式选择要卸载的技能
+npx skills remove
+
+# 指定技能
+npx skills remove ae-prd
+```
+
+或直接删除对应目录：
+
+```bash
+rm -rf .agents/skills/ae-prd ~/.claude/skills/ae-prd
+```
+
+---
+
+## 常见问题
+
+**技能没被识别？**
+
+1. 确认安装目录符合上表
+2. 确认 `SKILL.md` 存在且 frontmatter 有 `name` 与 `description`
+3. 重启宿主（部分宿主需要显式重载）
+
+**Windows 上软链接失败？**
+
+`skills` CLI 会自动降级为复制。也可以显式加 `--copy`。
+
+**技能之间会互相影响吗？**
+
+不会。每个技能只读 `ae.jsonc` 中与自己同名的 key，产物写入各自的 `ae/<slug>/` 目录。
+
+**能只用一个技能吗？**
+
+可以，这是本合集的设计目标。`--skill <名称>` 精确安装，或直接复制单个技能目录。

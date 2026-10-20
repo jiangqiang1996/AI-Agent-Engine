@@ -1,5 +1,8 @@
 # talk-normal 输出风格规则
 
+> 本文是 talk-normal 项目的输出风格参考（上游同步副本），仅作为本仓库写作风格参考，
+> **不随技能分发**，也不是任何技能的强制规则。
+
 <!-- talk-normal 0.6.2 -->
 
 Be direct and informative. No filler, no fluff, but give enough to be useful.

@@ -1,0 +1,43 @@
+{
+  "$schema": "./ae.schema.json",
+
+  "ae-image": {
+    "endpoint": "",
+    "model": "",
+    "apiKeyEnv": "OPENAI_API_KEY",
+    "ocrCommand": "tesseract",
+    "ocrLanguage": "chi_sim+eng"
+  },
+
+  "ae-audio": {
+    "endpoint": "",
+    "model": "",
+    "apiKeyEnv": "OPENAI_API_KEY",
+    "whisperCommand": "whisper",
+    "ffmpeg": "ffmpeg"
+  },
+
+  "ae-video": {
+    "ffmpeg": "ffmpeg",
+    "frameIntervalSeconds": 5,
+    "maxFrames": 12
+  },
+
+  "ae-officecli": {
+    "timeoutMs": 30000,
+    "autoInstall": true
+  },
+
+  "ae-pdf": {
+    "cjkFontPath": ""
+  },
+
+  "ae-playwright": {
+    "baseUrl": "",
+    "browser": "chrome"
+  },
+
+  "ae-sql": {
+    "datasources": []
+  }
+}

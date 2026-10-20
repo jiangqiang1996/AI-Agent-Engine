@@ -1,224 +1,200 @@
-# AI Agent Engine
+# AE Skills
 
-AI Agent Engine（AE）是 opencode 的工程工作流插件。它提供技能、命令、子代理、工具和内置规则，让 AI 代理按可检查流程完成需求澄清、设计、实现、审查、验证、交接和交付。
+**通用 Agent Skills 合集** —— 一组可移植的 AI 代理技能，覆盖需求澄清、设计、编码、审查、测试、文档与运维。
 
-AE 不要求业务项目采用本仓库结构。面向用户的运行时能力以 `src/` 下资产为真源，安装后的实际可用能力以 `/ae-help` 为准。
+遵循 [Agent Skills 规范](https://agentskills.io/specification)，可安装到 **Claude Code、Codex、Cursor、OpenCode、GitHub Copilot、Gemini CLI、Cline、Windsurf、Amp、Roo Code、Kiro、OpenClaw** 等 40+ 宿主。
 
-## 快速开始
+- 纯 **SKILL.md + Node.js 脚本**，无插件、无宿主 SDK、无运行时服务
+- 每个技能**高内聚、低耦合**：可以只装一个，也能整套使用
+- 零 npm 依赖起步：脚本只用 Node 标准库，需要时用外部 CLI 或技能自带的 `package.json`
 
-### 安装、更新与卸载
+---
 
-首次安装时（AE 技能尚未可用），把以下指令复制给 opencode AI 代理执行：
+## 安装
 
-全局安装（所有项目共享 AE）：
+### 用 `npx skills`（推荐）
 
-```text
-Fetch and follow the global install instructions from https://gitee.com/jiangqiang1996/ai-agent-engine/raw/master/docs/INSTALL.md
+```bash
+# 安装全部技能到当前项目（交互选择技能与宿主）
+npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git
+
+# 只装一个技能，装到指定宿主
+npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git --skill ae-prd -a claude-code
+
+# 装到多个宿主
+npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git -a claude-code -a cursor -a opencode
+
+# 全局安装（所有项目可用）
+npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git --skill '*' -g -a '*'
+
+# 先看看有哪些技能（不安装）
+npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git --list
 ```
 
-项目级安装（仅当前项目，可与全局共存，项目级优先加载）：
+安装位置由 `skills` CLI 决定（默认 symlink，Windows 自动降级 copy）：
 
-```text
-Fetch and follow the project-level install instructions from https://gitee.com/jiangqiang1996/ai-agent-engine/raw/master/docs/INSTALL.md
-```
+| 宿主 | 项目级 | 全局 |
+|---|---|---|
+| OpenCode / Codex / Cursor / Cline / Amp / Gemini CLI / Copilot | `.agents/skills/` | `~/.config/opencode/skills/` 等 |
+| Claude Code | `.claude/skills/` | `~/.claude/skills/` |
+| Roo Code | `.roo/skills/` | `~/.roo/skills/` |
+| Windsurf | `.windsurf/skills/` | `~/.codeium/windsurf/skills/` |
 
-安装完成后，后续更新或卸载可用 AE 内置命令：
+> 也支持 `gh skill install owner/repo --skill <name>`，发现规则相同。
 
-```text
-# 全局更新
-/ae-install
+### 手动安装
 
-# 项目级更新
-/ae-install project
-```
+把需要的技能目录复制到宿主的技能目录即可（例如 `~/.claude/skills/ae-prd/`）。
 
-卸载无需传参数，命令会自动检测全局和项目级安装状态，让你选择卸载范围（全局、项目级、两者或不卸载）：
+---
 
-```text
-/ae-uninstall
-```
+## 技能目录
 
-> 脚本会自动判断：已安装则更新，未安装则全新安装。项目级安装和全局安装可以共存，项目级优先加载。
+### 需求与设计
 
-### 验证
+| 技能 | 用途 |
+|---|---|
+| `ae-prd` | 需求澄清，产出需求文档（WHAT） |
+| `ae-grill` | 深度追问方案决策，一问一答推进共识 |
+| `ae-design` | 产出设计文档：架构、接口、数据模型、测试用例、验收标准（HOW） |
+| `ae-spec-html` | 需求规格与源码的双向同步 |
+| `ae-brainstorm` | 5 视角（乐观 / 批判 / 务实 / 创新 / 系统）多角色发散 |
+| `ae-slides-outline` | 幻灯片大纲生成与交互式修改 |
+| `ae-prototype-preview` | 原型文档 → 技术栈无关的多页面 HTML 静态原型 |
 
-重启 opencode 后运行：
+### 实施与交付
 
-```text
-/ae-help
-/ae-help review
-```
+| 技能 | 用途 |
+|---|---|
+| `ae-work` | 按设计或直接任务实施，产出代码/文档/测试/报告 |
+| `ae-align-verify` | 设计→代码→单测→接口测试→E2E 的对齐验证流水线 |
+| `ae-task-loop` | 目标驱动的自包含迭代执行器（子代理隔离实施 + 审查闭环） |
+| `ae-backend-fix` | 后端错误分析、根因定位、修复与回归验证 |
+| `ae-frontend-fix` | 前端视觉、交互、状态、API 联调与无障碍修复 |
+| `ae-commit` | 生成合规提交信息并完成本地提交（含敏感文件筛查） |
+| `ae-merge-branch` | 分支 / worktree 变更合并与结果验证 |
 
-能看到技能、命令、代理和模型路由，说明插件已加载。
+### 审查
 
-## 经典用法
+| 技能 | 用途 |
+|---|---|
+| `ae-review` | 通用审查入口：范围分析 → 角色卡并行审查 → 去重合并 → 修复方案 |
+| `ocr-code-review` | 基于 OpenCodeReview delegate 模式的规则驱动源码审查 |
 
-手动控制阶段：
+### 测试
 
-```text
-/ae-brainstorm 设计一个多租户数据隔离方案
-/ae-prd
-/ae-design
-/ae-review domain:document
-/ae-work
-/ae-review
-```
+| 技能 | 用途 |
+|---|---|
+| `ae-unit-test` | 单元测试生成、执行与覆盖率分析 |
+| `ae-api-test` | 接口级后端测试与业务流程编排 |
+| `ae-e2e-test` | 浏览器 E2E 测试脚本编写与执行 |
+| `playwright-verify` | 完整 E2E 测试工程：分层勘察、基建搭建、取证、失败归因、视觉确认 |
 
-`/ae-brainstorm` 仅做多视角发散讨论与汇总，不产出文档；当讨论结果需要沉淀为正式需求文档时，由 `/ae-prd` 接续。`/ae-design` 在需求之后产出设计文档，包含架构、接口、数据模型、测试用例和实现单元，供 `/ae-work` 直接执行。
+### 文档
 
-只做代码或文档审查：
+| 技能 | 用途 |
+|---|---|
+| `ae-officecli` | 官方 officecli CLI 操作 Office 文档（自动检测并按需安装二进制） |
+| `ae-docx` | `.docx` 专属操作 |
+| `ae-pptx` | `.pptx` 专属操作 |
+| `ae-xlsx` | `.xlsx` 专属操作（含公式计算、数据透视表） |
+| `ae-pdf` | PDF 创建、合并、拆分、提取、填表、水印、转 Markdown、转图片 |
 
-```text
-/ae-review mode:report-only
-/ae-review domain:document docs/ae/designs/example.md
-```
+### 媒体与浏览器
 
-前端和浏览器验收：
+| 技能 | 用途 |
+|---|---|
+| `ae-image` | 图片 → Markdown 描述（模型不支持图像输入时的降级通道） |
+| `ae-audio` | 音频 → Markdown 转写 |
+| `ae-video` | 视频 → 关键帧描述 + 音轨转写 |
+| `ae-playwright` | 浏览器自动化交互与网页测试 |
 
-```text
-/ae-playwright
-/ae-fix frontend 修复登录页样式问题
-/ae-test e2e 验收 http://localhost:3000/login
-```
+### 数据与运维
 
-探索性修复：
+| 技能 | 用途 |
+|---|---|
+| `ae-sql` | 通过 JDBC 连接数据库执行 SQL |
+| `linux-remote-ops` | SSH 远程操作内网 Linux：命令、SFTP 传输、状态与日志 |
+| `wechatide-skill` | 微信开发者工具工作流（小程序 / 小游戏） |
 
-```text
-/ae-task-loop 修复所有 TypeScript 编译错误
-```
+### 元能力
 
-## 常用入口
+| 技能 | 用途 |
+|---|---|
+| `ae-skill-creator` | 创建 / 更新符合 Agent Skills 规范的技能目录 |
+| `ae-agent-creator` | 创建可移植的**角色卡**（`references/roles/<role>.md`） |
+| `ae-prompt-optimize` | 六维度提示词优化，产出可直接复制的优化版 |
+| `ae-project-explore` | 任意文件集合的结构与关系画像 |
+| `ae-save-experience` | 经验沉淀：先存 solution，再提炼 rules |
+| `ae-work-report` | 基于 Git 变更生成日报 / 周报 / 阶段总结 |
+| `ae-my-code-changes` | 查询指定时间范围内本人的代码变更 |
 
-| 目标 | 入口 |
-| --- | --- |
-| 查看当前能力 | `/ae-help` |
-| 多视角发散讨论 | `/ae-brainstorm` |
-| 需求澄清与需求文档 | `/ae-prd` |
-| 设计阶段（架构、接口、数据模型、实现单元） | `/ae-design` |
-| 深度追问方案决策 | `/ae-grill` |
-| 计划执行 | `/ae-work` |
-| Worktree 继续执行 | `/ae-work-continue` |
-| 分支或 worktree 合并 | `/ae-merge-branch` |
-| 工作总结 | `/ae-work-report` |
-| 查看本人代码变更 | `/ae-my-code-changes` |
-| 代码或文档审查 | `/ae-review` |
-| 快速审查并自动修复 | `/ae-review-auto` |
-| 代码审查（CLI 模式） | `/ae-ocr` |
-| 前端修复（视觉/交互/接口） | `/ae-fix frontend` |
-| 后端修复（错误分析/根因定位） | `/ae-fix backend` |
-| 浏览器 E2E 测试与验收 | `/ae-test e2e` |
-| 后端单元测试 | `/ae-test unit` |
-| 接口测试 | `/ae-test api` |
-| playwright 浏览器能力 | `/ae-playwright` |
-| 原型预览 | `/ae-prototype-preview` |
-| 图片转 Markdown 描述 | `/ae-image` |
-| 音频转 Markdown 描述 | `/ae-audio` |
-| 视频转 Markdown 描述 | `/ae-video` |
-| 创建或编辑 DOCX | `/ae-docx` |
-| 创建或编辑 PDF | `/ae-pdf` |
-| 创建或编辑 PPTX | `/ae-pptx` |
-| 创建或编辑 XLSX | `/ae-xlsx` |
-| Office 文档原生操作 | `/ae-officecli` |
-| 幻灯片大纲生成 | `/ae-slides-outline` |
-| 项目结构探索 | `/ae-project-explore` |
-| 探索性修复 | `/ae-task-loop` |
-| 智能提交 | `/ae-commit` |
-| 清理分支/worktree | `/ae-remove-local-branch-worktree` |
-| 数据库操作 | `/ae-sql` |
-| 会话交接 | `/ae-handoff` |
-| 保存经验 | `/ae-save-experience` |
-| 创建技能 | `/ae-skill-creator` |
-| 提示词优化 | `/ae-prompt-optimize` |
-| 创建代理 | `/ae-agent-creator` |
-| 安装或更新 AE 插件 | `/ae-install` |
-| 卸载 AE 插件 | `/ae-uninstall` |
+---
 
-详细参数、代理分工、工具边界和产物路径见 [docs/usage-guide.md](docs/usage-guide.md)。按开发场景分类的能力速查见 [docs/usage-guide.md#使用场景速查](docs/usage-guide.md#使用场景速查)。配置合并和模型场景路由见 [docs/builtin-config.md](docs/builtin-config.md)。
+## 约定
 
-## 工作规则
+### 产物路径
 
-| 规则 | 说明 |
-| --- | --- |
-| 需求不清先澄清 | 复杂实现前先产出需求或设计，避免直接编码 |
-| 审查先定范围 | 代码、文档或通用混合范围按目标类型选择审查代理 |
-| 交付必须验证 | `/ae-work` 交付前检查验证、审查和 Git 授权证据 |
-| 浏览器操作通过技能 | 浏览器操作一律通过 `ae:playwright` 技能完成 |
-| Git 写操作需授权 | 提交、拉取、重置、清理、变基、推送等都需要明确授权；`/ae-commit` 不等同于 push |
-| 远程写操作不默认提供 | 用户侧流程不提供 push、创建 PR、创建 Issue 或 Release 的可复制流程 |
+| 类型 | 路径 |
+|---|---|
+| 持久产物 | `<cwd>/ae/<skill-slug>/` |
+| 临时产物 | `<cwd>/ae/<skill-slug>/tmp/` |
+| 日志 | `<cwd>/ae/logs/<skill-slug>/` |
 
-## 资产快照
+`<skill-slug>` = 技能目录名去掉 `ae-` 前缀（`ae-pdf` → `pdf`）。
 
-| 类型 | 当前快照 | 真源 |
-| --- | ---: | --- |
-| 技能 | 36 | `src/assets/skills/`、`src/schemas/ae-asset-schema.ts` |
-| 命令 | 45 | `src/services/command-registration.ts`、`src/assets/commands/` |
-| 代理 | 34 | `src/assets/agents/`、`src/services/agent-registration.ts` |
-| 工具 | 20 | `src/tools/` |
-| 规则 | 4 | `src/assets/rules/` |
-| 内置配置 | 1 | `src/assets/config/ae.jsonc` |
+### 配置
 
-该表是文档快照，不替代 `/ae-help`。
+统一从 `ae.jsonc` 读取，查找顺序：
 
-## 配置
+1. 环境变量 `AE_CONFIG` 指向的文件
+2. `<cwd>/ae.jsonc`
+3. 从 `<cwd>` 逐级向上查找 `ae.jsonc`
+4. `~/.ae.jsonc`
 
-AE 默认注入两个远程 MCP：
-
-| 名称 | 作用 |
-| --- | --- |
-| `context7` | 获取库/框架文档 |
-| `gh_grep` | 搜索真实 GitHub 代码示例 |
-
-可选配置入口：
-
-| 路径 | 作用 |
-| --- | --- |
-| `.opencode/ae.jsonc` | 当前项目覆盖 AE 内置配置 |
-| `~/.config/opencode/ae.jsonc` | 当前用户的全局默认配置 |
-
-示例：
+**每个技能只读自己同名顶层 key**，互不干扰：
 
 ```jsonc
 {
-  "$schema": "https://raw.giteeusercontent.com/jiangqiang1996/ai-agent-engine/raw/master/src/assets/config/ae.schema.json",
-  "modelScenarios": {
-    "quick": "provider/fast-model",
-    "standard": "provider/default-model",
-    "deep": "provider/strong-model",
-    "vision": "provider/vision-model"
-  }
+  "ae-image":     { "endpoint": "https://api.openai.com/v1/chat/completions", "model": "gpt-4o-mini", "apiKeyEnv": "OPENAI_API_KEY" },
+  "ae-officecli": { "timeoutMs": 30000 },
+  "ae-pdf":       { "cjkFontPath": "C:/Windows/Fonts/msyh.ttc" }
 }
 ```
 
-完整规则见 [docs/builtin-config.md](docs/builtin-config.md)。
+详见 [docs/configuration.md](docs/configuration.md)。
+
+---
+
+## 典型流程
+
+```
+/ae-prd          # 澄清需求
+/ae-design       # 产出设计
+/ae-align-verify # 设计→代码→单测→接口测试→E2E 全链路验证
+/ae-review       # 审查
+```
+
+宿主以「技能」形式加载（由宿主的技能发现机制触发），不依赖任何斜杠命令语法。
+
+---
 
 ## 开发
 
-本仓库是 AE opencode 插件源码仓库。`dist/` 是构建产物，`.opencode/plugins/` 是本仓库调试桥接目录，不代表业务项目必须具备的结构。
+```bash
+npm install      # 仅安装 devDependencies（yaml）
+npm run validate # 规范校验
+npm run sync     # 同步共享脚本到各技能
+npm test         # 技能脚本单元测试
+npm run doctor   # 全量自检（含外部工具探测）
+```
 
-| 操作 | 命令 |
-| --- | --- |
-| 安装依赖 | `npm install` |
-| 构建 | `npm run build` |
-| 测试 | `npm run test` |
-| 类型检查 | `npm run typecheck` |
+- 技能编写规范：[docs/skill-authoring.md](docs/skill-authoring.md)
+- 仓库开发规范：[docs/development.md](docs/development.md)
+- 媒体降级策略：[docs/media-policy.md](docs/media-policy.md)
 
-| 路径 | 作用 |
-| --- | --- |
-| `src/index.ts` | server 插件入口 |
-| `src/assets/skills/` | 技能提示词和参考文件 |
-| `src/assets/commands/` | Markdown 命令 |
-| `src/assets/agents/` | 子代理提示词 |
-| `src/assets/rules/` | 注入用户会话的规则 |
-| `src/tools/` | opencode 工具定义 |
-| `src/services/` | 注册、门禁、审查、配置和解析服务 |
-| `src/schemas/` | 资产常量和输入 schema |
+---
 
-## 文档入口
+## 许可
 
-| 入口 | 内容 |
-| --- | --- |
-| [docs/usage-guide.md](docs/usage-guide.md) | 用户手册、经典用法、能力说明、代理、工具、产物路径 |
-| [docs/builtin-config.md](docs/builtin-config.md) | MCP、`ae.jsonc`、模型场景路由和覆盖规则 |
-| [docs/INSTALL.md](docs/INSTALL.md) | 安装或更新、卸载代理执行说明 |
-| [docs/development.md](docs/development.md) | 本仓库开发规范、架构和测试 |
-| `/ae-help` | 当前运行时权威帮助 |
+[GPL-3.0-or-later](LICENSE)。第三方组件声明见 [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES)。
