@@ -101,7 +101,7 @@ ae/logs/<skill-slug>/       # 日志
 4. `npm run check` 的第一步 `sync-shared.mjs --check` 会检测漂移
 
 共享脚本**不得**写死技能名。需要感知归属时，从脚本自身路径推导
-（见 `tools/shared/officecli.mjs` 的 `resolveOwningSkillName()`）。
+（见 `tools/shared/ae-paths.mjs` 的 `resolveOwningSkillName()`）。
 
 ---
 
@@ -111,19 +111,30 @@ ae/logs/<skill-slug>/       # 日志
 npm run check
 ```
 
-等价于：
+`check` = `sync --check` + `validate` + `test`：
 
 | 命令 | 检查内容 |
 |---|---|
 | `node tools/sync-shared.mjs --check` | 共享脚本副本是否漂移 |
 | `node tools/validate.mjs` | 目录结构、frontmatter、正文、脚本语法、禁用词、产物归属、**跨技能引用** |
-| `node tools/run-tests.mjs` | `skills/**/tests/*.test.mjs` |
+| `node tools/run-tests.mjs` | `skills/**/tests/*.test.mjs` 与 `tools/tests/*.test.mjs` |
 
 `npm run doctor` 额外探测外部工具（git / node / officecli / playwright 等）是否可用，仅提示不阻断。
 
 ---
 
-## 7. 命名
+## 7. 校验器回归测试
+
+`tools/tests/validate-regression.test.mjs` 把**历史上真实出现过的缺陷**逐个注入临时副本，
+断言 `tools/validate.mjs` 能拦住。修 bug 时同步补一条用例，防止规则被悄悄删掉。
+
+```bash
+node --test tools/tests/validate-regression.test.mjs
+```
+
+---
+
+## 8. 命名
 
 - 技能目录名统一 `ae-` 前缀，避免与他人技能撞名。
 - 禁止过于通用的目录名（`test`、`build`、`docs`、`utils` 等，见 `GENERIC_DIR_NAMES`）。

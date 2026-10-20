@@ -182,9 +182,49 @@ function extractRelativeReferences(body) {
 }
 
 /**
+ * 去掉围栏代码块，避免把示例里的 `](...)` 当成 Markdown 链接。
+ */
+function stripCodeFences(text) {
+  return text.replace(/```[\s\S]*?```/g, '').replace(/~~~[\s\S]*?~~~/g, '')
+}
+
+/**
+ * 提取 Markdown 链接里指向技能内部文件的相对目标。
+ *
+ * 与 extractRelativeReferences 的区别：
+ *   - 目标可以是任意相对路径（`../SKILL.md`、`cli-reference.md`）
+ *   - 相对基准是**该文件自身所在目录**，而不是技能根目录
+ *
+ * 用于校验 references 目录内 .md 文件的相互链接（SKILL.md 的链接由 extractRelativeReferences 覆盖）。
+ */
+function extractLocalMarkdownLinks(body) {
+  const refs = new Set()
+  const text = stripCodeFences(body)
+  const linkPattern = /\]\(\s*<?([^)#]+?)>?\s*(?:"[^"]*")?\)/g
+  let match
+  while ((match = linkPattern.exec(text)) !== null) {
+    const target = match[1].trim()
+    if (!target) continue
+    if (/^(https?:|mailto:|tel:|data:|#|\/)/i.test(target)) continue
+    if (!/\.(md|mjs|js|cjs|json|png|jpg|svg|css)$/i.test(target)) continue
+    refs.add(target)
+  }
+  return [...refs]
+}
+
+/**
+ * 脚本扫描时跳过的文件：
+ *   - 随技能分发的第三方打包产物（如 ssh2.dist.cjs），非本仓库维护
+ *   - 超过 100KB 的单文件，视为打包产物
+ */
+function isVendoredScript(filePath, size) {
+  return /[.-]dist\.cjs$/.test(filePath) || size > 100 * 1024
+}
+
+/**
  * 检测技能之间的交叉引用。
  *
- * 技能必须高内聚、低耦合：不允许在 SKILL.md / references / scripts 中
+ * 技能必须高内聚、低耦合：不允许在 SKILL.md / references / scripts / tests 中
  * 提到其它技能的名称——既不允许引用现存技能，也不允许残留已删除技能的悬空名。
  * 技能内部的自引用（如自身的目录名）不受限制。
  *
@@ -198,7 +238,8 @@ function findCrossSkillReferences(skillDir, skillName, allSkillNames) {
   const files = [
     join(skillDir, 'SKILL.md'),
     ...walkFiles(join(skillDir, 'references'), (file) => file.endsWith('.md')),
-    ...walkFiles(join(skillDir, 'scripts'), (file) => file.endsWith('.mjs') || file.endsWith('.js')),
+    ...walkFiles(join(skillDir, 'scripts'), (file) => /\.(mjs|js|cjs)$/.test(file)),
+    ...walkFiles(join(skillDir, 'tests'), (file) => /\.(mjs|js|cjs)$/.test(file)),
   ]
   const known = new Set(allSkillNames)
   // 形如 ae-<slug>，slug 至少两段（ae-pdf 这类单段名不匹配，避免误伤 ae-config 等文件名）
@@ -206,6 +247,9 @@ function findCrossSkillReferences(skillDir, skillName, allSkillNames) {
 
   for (const file of files) {
     if (!existsSync(file)) {
+      continue
+    }
+    if (isVendoredScript(file, statSync(file).size)) {
       continue
     }
     const content = readFileSync(file, 'utf8')
@@ -338,6 +382,24 @@ function validateSkill(skillDir, skillName, allSkillNames = []) {
     }
   }
 
+  /* --- references/ 内部链接 --- */
+  for (const mdFile of walkFiles(join(skillDir, 'references'), (file) => file.endsWith('.md'))) {
+    const mdBody = readFileSync(mdFile, 'utf8')
+    const mdRel = relative(skillDir, mdFile).split('\\').join('/')
+    for (const target of extractLocalMarkdownLinks(mdBody)) {
+      const resolved = resolve(dirname(mdFile), target)
+      if (!existsSync(resolved)) {
+        errors.push(`引用文件内的链接失效: ${mdRel} -> ${target}`)
+      }
+    }
+    // 反引号包裹的 references/ scripts/ 路径按技能根目录解析（仓库约定）
+    for (const ref of extractRelativeReferences(mdBody)) {
+      if (!existsSync(resolve(skillDir, ref))) {
+        errors.push(`引用文件引用的文件不存在: ${mdRel} -> ${ref}`)
+      }
+    }
+  }
+
   /* --- 禁用词 --- */
   const scanTarget = `${content}\n${body}`
   for (const { pattern, message } of FORBIDDEN_PATTERNS) {
@@ -350,8 +412,8 @@ function validateSkill(skillDir, skillName, allSkillNames = []) {
     errors.push('使用了宿主专属 @代理 寻址，请改用 references/roles/<role>.md 角色卡')
   }
 
-  /* --- officecli 旧 SDK 调用形式 --- */
-  if (existsSync(join(skillDir, 'scripts', 'officecli.mjs'))) {
+  /* --- officecli 调用形式 --- */
+  if (/\bofficecli\b/i.test(scanTarget)) {
     const oldStyle = [
       { pattern: /\bcommand=[a-z-]+/i, message: '使用了旧的 SDK 调用形式 command=xxx，应改为官方 CLI 的位置参数形式' },
       { pattern: /\bprops=/i, message: '使用了旧的 SDK 调用形式 props=，应改为 --prop key=value' },
@@ -363,6 +425,11 @@ function validateSkill(skillDir, skillName, allSkillNames = []) {
       if (pattern.test(body)) {
         errors.push(message)
       }
+    }
+    // 官方语法是 `officecli <command> <file>`；文件写在命令前是常见笔误
+    const reversed = /officecli\s+\S*\.(?:pptx|docx|xlsx)\s+(?:create|add|set|get|remove|move|swap|view|batch|dump|validate|query|raw-set|raw|add-part|open|close|save|watch|unwatch|refresh|merge|import)\b/i
+    if (reversed.test(body)) {
+      errors.push('officecli 调用把文件写在命令前面：官方语法是 `officecli <command> <file>`')
     }
   }
 
@@ -389,6 +456,15 @@ function validateSkill(skillDir, skillName, allSkillNames = []) {
     }
   }
 
+  /* --- 日志目录归属 --- */
+  const logPathPattern = /(?:^|[^a-zA-Z0-9_-])ae\/logs\/([a-z0-9-]+)\//g
+  let logMatch
+  while ((logMatch = logPathPattern.exec(body)) !== null) {
+    if (logMatch[1] !== ownSlug) {
+      errors.push(`日志路径 ae/logs/${logMatch[1]}/ 不属于本技能（本技能应写 ae/logs/${ownSlug}/）`)
+    }
+  }
+
   /* --- 跨技能引用（技能之间禁止交叉引用） --- */
   for (const ref of findCrossSkillReferences(skillDir, skillName, allSkillNames)) {
     errors.push(ref)
@@ -403,7 +479,10 @@ function validateSkill(skillDir, skillName, allSkillNames = []) {
   }
 
   /* --- 脚本语法 --- */
-  const scripts = walkFiles(join(skillDir, 'scripts'), (file) => file.endsWith('.mjs') || file.endsWith('.js'))
+  const scripts = walkFiles(
+    join(skillDir, 'scripts'),
+    (file) => /\.(mjs|js|cjs)$/.test(file) && !isVendoredScript(file, statSync(file).size),
+  )
   for (const script of scripts) {
     try {
       execFileSync(process.execPath, ['--check', script], { stdio: 'pipe' })
@@ -411,10 +490,17 @@ function validateSkill(skillDir, skillName, allSkillNames = []) {
       const detail = error.stderr?.toString().split(/\r?\n/).slice(0, 4).join(' ') || error.message
       errors.push(`脚本语法错误 ${relative(skillDir, script)}: ${detail}`)
     }
+    const source = readFileSync(script, 'utf8')
     // 模板字面量中的单反斜杠会被 JS 吞掉（例如 /\./ 变成 /.），导致逻辑静默出错
-    const hazard = findTemplateBackslashHazard(readFileSync(script, 'utf8'))
+    const hazard = findTemplateBackslashHazard(source)
     if (hazard) {
       errors.push(`脚本存在模板字面量转义隐患 ${relative(skillDir, script)}: ${hazard}`)
+    }
+    // 入口判定把 argv[1] 与 import.meta.url 直接比较：
+    // 经符号链接 / 联接（junction）调用时，Node 会把 import.meta.url 解析成 realpath，
+    // 而 argv[1] 保留链接路径 → 判定恒假 → 脚本静默不执行、退出码 0。
+    if (/process\.argv\[1\][\s\S]{0,120}import\.meta\.url|import\.meta\.url[\s\S]{0,120}process\.argv\[1\]/.test(source)) {
+      errors.push(`脚本入口判定把 process.argv[1] 与 import.meta.url 直接比较 ${relative(skillDir, script)}：经符号链接调用时判定恒假、脚本静默失效。请两侧都取 realpath 后再比较，或改为按脚本文件名后缀判定`)
     }
   }
 

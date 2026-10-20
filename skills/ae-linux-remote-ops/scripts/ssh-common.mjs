@@ -14,14 +14,20 @@ import { createRequire } from 'node:module';
 import { getSkillConfig, parseJsonc, resolveConfigPath, CONFIG_FILENAME } from './lib/ae-config.mjs';
 import {
   ensureDir,
+  resolveOwningSkillName,
   skillArtifactDir,
   skillLogDir,
   timestampedName,
   writeSkillLog,
 } from './lib/ae-paths.mjs';
 
-/** ae.jsonc 中本技能的配置分片 key */
-export const SKILL_KEY = 'ae-linux-remote-ops';
+/**
+ * ae.jsonc 中本技能的配置分片 key。
+ *
+ * 由脚本自身路径推导所属技能目录名（ae-<slug>），不写死；
+ * 推导失败时回落到约定的分片 key（配置 key 约定与技能目录同名）。
+ */
+export const SKILL_KEY = resolveOwningSkillName(import.meta.url) ?? 'ae-linux-remote-ops';
 
 const DEFAULTS = {
   port: 22,

@@ -1,82 +1,68 @@
 ---
 name: ae-pptx
-description: PowerPoint 演示文稿（.pptx）创建、编辑、读取与视觉验证技能，支持幻灯片、形状、图片、图表、表格、动画、过渡、母版等 OOXML 能力，并配套配色设计、布局基准、内容可视化模式与 HTML 计算验证流程。适用于 .pptx 的读取、创建、编辑、分析、格式转换与排版校验。Use when creating, editing, reading, converting or validating PowerPoint .pptx presentations.
+description: PowerPoint 演示文稿（.pptx）创建、编辑、读取与视觉验证技能，通过官方 officecli 命令行操作，无需安装 Office；支持幻灯片、形状、图片、图表、表格、动画、过渡、母版等 OOXML 能力，并配套配色设计、布局基准、内容可视化模式与 HTML 计算验证流程。适用于 .pptx 的读取、创建、编辑、分析、格式转换与排版校验。Use when creating, editing, reading, converting or validating PowerPoint .pptx presentations.
 license: GPL-3.0-or-later
-compatibility: 需要 Node.js 18+；officecli 二进制由步骤 0 的 ensure 自动安装；跨平台（Windows/macOS/Linux）
+compatibility: 需要全局可执行的 officecli 命令（缺失时按步骤 0 全局安装）；HTML 计算验证的辅助脚本需 Node.js 18+；跨平台（Windows/macOS/Linux）
 metadata:
   author: ae-skills
-  version: "1.0.0"
+  version: 1.1.0
   ae-group: 文档
 ---
 
 # ae-pptx — PowerPoint 演示文稿操作
 
-通过本技能自带的 `scripts/officecli.mjs` 调用**官方 `officecli` 命令行**操作 `.pptx` 文档，无需安装 Office。
+通过**官方 `officecli` 命令行**直接操作 `.pptx` 文档，无需安装 Office。
 
-> **硬性约束**：禁止使用宿主的文件读取能力直接读取 .pptx 二进制内容，必须通过本技能的操作读取。
+> **硬性约束**：禁止使用宿主的文件读取能力直接读取 .pptx 二进制内容，必须通过 `officecli` 读取。
 
-## 步骤 0：确保 officecli 可用（必做）
+## 步骤 0：确认 officecli 可用（必做）
 
 **每次会话首次操作 .pptx 之前执行一次**，不要跳过。
 
 ```bash
-node scripts/officecli.mjs ensure
+officecli --version
 ```
 
-输出 JSON：
+- **能执行**（输出版本号，如 `1.0.157`）→ 直接使用，进入后续步骤。
+- **不能执行**（提示命令不存在或非零退出）→ 先按下面的方式**全局安装**，装完**重新跑一次** `officecli --version` 确认可用。
 
-```json
-{ "installed": true, "version": "1.2.3", "channel": "existing", "path": "/usr/local/bin/officecli", "attempts": [] }
-```
+全局安装渠道（**一次只用一种**，失败再换）：
 
-| 字段 | 含义 |
+| 平台 | 命令 |
 |---|---|
-| `installed` | officecli 是否可用 |
-| `version` | 已安装版本 |
-| `channel` | `existing`（原本就装了）/ `npm` / `brew` / `scoop` / `install-script` / `failed` |
-| `attempts` | 自动安装的尝试记录（含日志路径） |
+| 全平台 | `npm install -g @officecli/officecli` |
+| macOS / Linux | `brew install officecli` |
+| Windows | `scoop install officecli` |
+| macOS / Linux（官方脚本） | `curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh \| bash` |
+| Windows（官方脚本） | `irm https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.ps1 \| iex` |
 
-脚本按 **npm → brew → scoop → 官方安装脚本** 的顺序尝试安装，**一次只试一种渠道**，失败才换下一种。
+> **换渠道前先卸载旧渠道的版本**（如 `brew uninstall officecli`），否则 PATH 上可能存在两个 `officecli`，行为不可预期。
+> npm 安装若提示放行 postinstall（用于下载平台原生二进制），按提示放行；原生二进制也会在首次运行时按需下载。
+> 全局安装会写入系统目录，缺权限时把上面的命令交给用户执行，不要自行提权。
 
-**若 `installed` 为 `false`**：说明所有渠道都失败了。此时**必须停止文档操作**，把下面的手动安装命令交给用户，任选一种执行，装好后重新跑一次 `ensure` 确认：
-
-```bash
-npm install -g @officecli/officecli     # 全平台
-brew install officecli                  # macOS / Linux
-scoop install officecli                # Windows
-curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh | bash
-# Windows PowerShell：
-irm https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.ps1 | iex
-```
-
-> **一次只用一种安装渠道。** 若此前用 Homebrew 装过，要换渠道请先 `brew uninstall officecli/homebrew-officecli/officecli`。
+**若所有渠道都失败**：停止文档操作，把上面的命令交给用户，任选一种执行，装好后重新校验。
 
 ---
 
 ## 调用方式
 
-统一通过本技能自带的包装脚本调用，参数原样透传给官方 CLI：
+**直接调用官方 CLI**，参数原样透传，没有中间层：
 
 ```bash
-node scripts/officecli.mjs run -- <officecli 参数…>
+officecli <command> <file> [path] [选项]
 ```
 
-包装脚本负责：落日志到 `ae/logs/officecli/`、透传 stdout、透传退出码。
-
-**官方 CLI 的参数形态是「命令 + 文件 + 位置参数 + 标志」**，不是 `key=value`：
-
-```bash
-officecli <command> <file> [path] [--flag value]
-```
+> **命令在前、文件在后**：写成 `officecli create deck.pptx`。把文件写到命令前面会报参数错误。
 
 | 用途 | 写法 |
 |---|---|
-| 创建演示文稿 | `node scripts/officecli.mjs run -- deck.pptx create` |
-| 加一页 | `node scripts/officecli.mjs run -- deck.pptx add / --type slide --prop background=1A1A2E` |
-| 加形状 | `node scripts/officecli.mjs run -- deck.pptx add '/slide[1]' --type shape --prop text="标题" --prop x=2cm --prop y=2cm --prop w=20cm --prop h=2cm --prop size=28 --prop color=FFFFFF --prop bold=true` |
-| 读元素 | `node scripts/officecli.mjs run -- deck.pptx get '/slide[1]/shape[1]' --json` |
-| 查看结构 | `node scripts/officecli.mjs run -- deck.pptx view outline` |
-| 校验 | `node scripts/officecli.mjs run -- deck.pptx validate` |
+| 创建演示文稿 | `officecli create deck.pptx` |
+| 加一页 | `officecli add deck.pptx / --type slide --prop background=1A1A2E` |
+| 加形状 | `officecli add deck.pptx '/slide[1]' --type shape --prop text="标题" --prop x=2cm --prop y=2cm --prop w=20cm --prop h=2cm --prop size=28 --prop color=FFFFFF --prop bold=true` |
+| 读元素 | `officecli get deck.pptx '/slide[1]/shape[1]' --json` |
+| 查看结构 | `officecli view deck.pptx outline` |
+| 校验 | `officecli validate deck.pptx` |
+| 批量操作 | `officecli batch deck.pptx --input updates.json` |
 
 元素路径是 1 起始的路径寻址（不是 XPath）：`/slide[1]`、`/slide[1]/shape[2]`。
 属性用 `--prop key=value` 传递，多个 `--prop` 可叠加。
@@ -84,8 +70,10 @@ officecli <command> <file> [path] [--flag value]
 **不确定属性名、值格式或命令语法时先跑 help，不要猜：**
 
 ```bash
-node scripts/officecli.mjs run -- help pptx shape
-node scripts/officecli.mjs run -- help pptx set shape
+officecli --help                       # 全部命令 + 全局选项
+officecli help pptx                    # pptx 全部元素
+officecli help pptx shape              # 完整 schema：属性、别名、示例
+officecli help pptx set shape          # 只看 set 可用的属性
 ```
 
 ---
@@ -93,7 +81,7 @@ node scripts/officecli.mjs run -- help pptx set shape
 ## 路由关系
 
 - **本技能**：`.pptx` 文件的入口，提供 PPT 专属元素、路径、属性与专用规则
-- **调用入口**：本技能自带的 `scripts/officecli.mjs`，独立可用，不依赖任何其它技能
+- **调用入口**：官方 `officecli` 命令行（全局安装，见步骤 0），不依赖任何其它技能
 - **通用能力**：L1/L2/L3 分层、`batch`、`watch`、raw XML、文档级属性、退出码语义等详见 [CLI 通用能力参考](references/cli-reference.md)
 
 ## 何时使用
@@ -124,7 +112,7 @@ node scripts/officecli.mjs run -- help pptx set shape
 | 主色 | 标题条/页脚/封面背景 | 深色，投影可读 |
 | 强调色 | accent 竖条/装饰/链接 | 与主色对比度高 |
 | 内容页背景 | 内容页底色 | 通常白色 |
-| 封面/结束页背景 | 封面和结束页底色 | 通常等于主色 |
+| 封面/结束页背景 | 封面/结束页底色 | 通常等于主色 |
 | 标题文字色（色条上） | 色条上的标题文字 | 白色或浅色 |
 | 标题文字色（白底页） | 白底页大标题 | 深色，与主色同色系 |
 | 正文文字色 | 内容页正文 | 深灰或黑色 |
@@ -178,17 +166,19 @@ node scripts/officecli.mjs run -- help pptx set shape
 
 ### 创建新文档
 
-1. `create` 创建空白文档
+1. `officecli create deck.pptx` 创建空白文档（已存在则加 `--force` 覆盖）
 2. 设计配色方案（见上方"配色方案设计"）
 3. 根据配色方案和布局规范，逐页设计元素清单，**每个文本 shape 必须显式设置 `w` 和 `h`**
-4. 用 `batch` 批量添加幻灯片和元素
+4. 用 `batch` 批量添加幻灯片与元素
 5. 生成后执行 HTML 计算验证
+
+> `create` 默认按操作系统语言推断主题字体（如 zh-CN 用等线），会直接影响排版测量。要得到确定的西文基线就加 `--locale en-US`；其它目标语言传对应 tag（如 `--locale ja`）。
 
 ### 更新已有幻灯片
 
 **禁止全量重建**。更新已有文档时：
 
-1. 先 `view outline` 读取当前结构
+1. 先 `officecli view deck.pptx outline` 读取当前结构
 2. 用 `get` 检查需要修改的幻灯片元素
 3. 只对需要变更的页执行 `set`（改属性）、`remove`（删元素）、`add`（加元素）
 4. 未变更的页保持不动
@@ -200,7 +190,7 @@ node scripts/officecli.mjs run -- help pptx set shape
 
 1. 读取大纲文件（用户提供的 `.md` 大纲）
 2. 设计配色方案
-3. 逐页将大纲内容映射为可视化模式，每个文本 shape 必须显式设置 `w` 和 `h`
+3. 逐页将大纲内容映射到可视化模式，每个文本 shape 必须显式设置 `w` 和 `h`
 4. batch 批量生成
 5. HTML 计算验证
 
@@ -211,7 +201,7 @@ node scripts/officecli.mjs run -- help pptx set shape
 ### 第一层：HTML 计算验证（必须）
 
 ```bash
-node scripts/officecli.mjs run -- deck.pptx view html -o ae/pptx/deck.html
+officecli view deck.pptx html -o ae/pptx/deck.html
 ```
 
 HTML 输出包含每个 shape 的 `data-path` 和精确 `left`/`top`/`width`/`height`（pt 单位）。用以下方法做**精确计算验证**：
@@ -253,7 +243,7 @@ HTML 输出过大时，写一个 Node.js 脚本解析 HTML 提取 shape 坐标�
 ### 第二层：截图审美验证（可选，HTML 验证全部通过后）
 
 ```bash
-node scripts/officecli.mjs run -- deck.pptx view screenshot -o ae/pptx/preview.png
+officecli view deck.pptx screenshot -o ae/pptx/preview.png
 ```
 
 然后**读取这张截图**做审美判断，检查：
@@ -271,27 +261,45 @@ HTML 计算验证发现问题时：
 3. 重新 HTML 验证
 4. 每页最多 3 轮修复，超过则标注"需人工复查"
 
+## 驻留模式与落盘
+
+`officecli open <file>` 启动驻留进程后，多步编辑只走一次打开/保存，比逐条命令快。
+
+> **用别的程序读文件前必须先落盘。** 驻留进程会延迟写盘，交给其它程序读取前执行 `officecli save <file>`（落盘并保留驻留）或 `officecli close <file>`（落盘并释放）。需要「每次变更立即落盘」时设置环境变量 `OFFICECLI_RESIDENT_FLUSH=each`。
+
+不用驻留模式时，每条命令自带打开/保存循环，无需额外落盘动作。
+
 ## ⚠️ 重要：判断是否需要加载 PPT 专用技能
 
-仅当当前任务匹配以下专用场景时，先执行 `load_skill` 加载对应规则再操作：
+官方 CLI 自带若干**专用场景技能**，仅当任务匹配时按需安装（会写入已检测到的代理的技能目录）：
 
 | 名称 | 适用场景 |
 |------|----------|
-| `pitch-deck` | **仅融资** - 种子轮/A-C 轮/SAFE/可转债/战略融资。不用于销售/产品/董事会演示（路由到 `pptx`） |
-| `morph-ppt` | 电影级 Morph 动画演示。不用于静态演示（路由到 `pptx`） |
-| `morph-ppt-3d` | 3D Morph：GLB 模型、相机运动、深度。不用于仅 2D 的 Morph（路由到 `morph-ppt`） |
+| `pitch-deck` | **仅融资** - 种子轮/A-C 轮/SAFE/可转债/战略融资。不用于销售/产品/董事会演示 |
+| `morph-ppt` | 电影级 Morph 动画演示。不用于静态演示 |
+| `morph-ppt-3d` | 3D Morph：GLB 模型、相机运动、深度。不用于仅 2D 的 Morph（先装 `morph-ppt`） |
 
-匹配时先加载：
+先查看官方提供的技能清单，再按需安装：
 
 ```bash
-node scripts/officecli.mjs run -- deck.pptx load_skill pitch-deck
+officecli skills list
+officecli skills install morph-ppt
 ```
 
-不匹配任何专用场景时无需加载，直接使用本技能即可。
+不匹配任何专用场景时无需安装，直接使用本技能即可。
 
 ## PPT 专属元素类型
 
-slide, shape, picture, chart, table, row, connector, group, video, audio, equation, notes, comment, animation, transition, paragraph, run, zoom, ole, placeholder, model3d, smartart, diagram, slideMaster, slideLayout
+以 `officecli help pptx` 的实际输出为准，当前为：
+
+```
+chart（chart-axis / chart-series） comment connector diagram group media model3d
+moderncomment notes ole picture placeholder presentation raw shape（animation /
+equation / hyperlink） paragraph（linebreak / run） slide slidemaster（slidelayout）
+table（table-column / table-row / table-cell） textbox theme transition zoom
+```
+
+> 媒体元素统一叫 `media`（视频/音频），表格行/列/单元格是 `table-row` / `table-column` / `table-cell`，SmartArt 对应 `diagram`。**不确定就先 `officecli help pptx <element>`。**
 
 ## PPT 专属路径语法
 
@@ -299,6 +307,7 @@ slide, shape, picture, chart, table, row, connector, group, video, audio, equati
 - 稳定 ID：`/slide[1]/shape[@id=550950021]`
 - 名称寻址：`shape[@name=Title 1]`
 - `shape[1]` 通常是标题占位符，内容用 `shape[2]+`
+- 幻灯片挂在演示文稿根下，`add` 时父路径写 `/`；加到某页内则写 `/slide[N]`
 
 ## PPT 专属常用属性
 
@@ -319,10 +328,10 @@ slide, shape, picture, chart, table, row, connector, group, video, audio, equati
 ## 快速示例
 
 ```bash
-node scripts/officecli.mjs run -- deck.pptx create
-node scripts/officecli.mjs run -- deck.pptx add / --type slide --prop background=1A1A2E
-node scripts/officecli.mjs run -- deck.pptx add '/slide[1]' --type shape --prop text="标题" --prop x=2cm --prop y=2cm --prop w=20cm --prop h=2cm --prop size=28 --prop color=FFFFFF --prop bold=true
-node scripts/officecli.mjs run -- deck.pptx view outline
+officecli create deck.pptx
+officecli add deck.pptx / --type slide --prop background=1A1A2E
+officecli add deck.pptx '/slide[1]' --type shape --prop text="标题" --prop x=2cm --prop y=2cm --prop w=20cm --prop h=2cm --prop size=28 --prop color=FFFFFF --prop bold=true
+officecli view deck.pptx outline
 ```
 
 ⚠️ **每个文本 shape 必须显式设置 `w` 和 `h`**。不设置时会使用 OOXML 默认占位符尺寸（约 283.46×141.73pt，通过 `view html` 观察未设 w/h 的 shape 默认 bounding box 得出），导致文字溢出和 bounding box 重叠。
@@ -337,16 +346,17 @@ node scripts/officecli.mjs run -- deck.pptx view outline
 6. **用稳定 ID** — 多步操作时用 `@id=` 寻址，避免索引偏移
 7. **batch 批量操作** — 多个 add/set 用 `batch` 一次完成
 8. **生成后必须 HTML 计算验证** — `view html` 解析 shape 坐标，检测重叠和溢出
-9. **匹配专用场景时先 `load_skill`** — 融资任务先 `pitch-deck`，Morph 动画先 `morph-ppt`
+9. **匹配专用场景时先装专用技能** — 融资任务装 `pitch-deck`，Morph 动画装 `morph-ppt`
 10. **注意 shape[1]** — 通常是标题占位符，内容从 `shape[2]` 开始
-11. **不确定时用 help** — `node scripts/officecli.mjs run -- help pptx shape` 查看完整属性
+11. **不确定时用 help** — `officecli help pptx shape` 查看完整属性
+12. **改完记得落盘** — 驻留模式下交付文件前先 `save` 或 `close`
 
 ## 产物与日志
 
 | 类型 | 路径 |
 |---|---|
 | 本技能产物（渲染图、HTML 快照等） | `ae/pptx/` |
-| 命令日志 | `ae/logs/pptx/` |
+| 命令日志 | `ae/logs/pptx/`（按需用 shell 重定向保存） |
 
 ## 完整 CLI 参考
 

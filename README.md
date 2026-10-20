@@ -34,11 +34,14 @@ npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git --list
 
 | 宿主 | 项目级 | 全局 |
 |---|---|---|
-| OpenCode / Codex / Cursor / Cline / Amp / Gemini CLI / Copilot | `.agents/skills/` | `~/.config/opencode/skills/` 等 |
+| OpenCode / Codex / Cursor / Cline / Amp / Gemini CLI / Copilot 等通用宿主 | `.agents/skills/` | `~/.agents/skills/` |
 | Claude Code | `.claude/skills/` | `~/.claude/skills/` |
 | Roo Code | `.roo/skills/` | `~/.roo/skills/` |
 | Windsurf | `.windsurf/skills/` | `~/.codeium/windsurf/skills/` |
+| PromptScript | `agent/skills/` | — |
 
+> **Roo Code 与 Windsurf 是条件安装**：只有检测到本机已安装对应宿主（`~/.roo/`、`~/.codeium/windsurf/`）时才会写入上述目录；未安装则跳过。
+>
 > 也支持 `gh skill install owner/repo --skill <name>`，发现规则相同。
 
 ### 手动安装
@@ -79,7 +82,7 @@ npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git --list
 
 | 技能 | 用途 |
 |---|---|
-| `ae-pptx` | PowerPoint `.pptx` 创建、编辑、读取与视觉验证 |
+| `ae-pptx` | PowerPoint `.pptx` 创建、编辑、读取与视觉验证（需全局可执行的 `officecli` 命令，缺失时按技能步骤 0 安装） |
 | `ae-linux-remote-ops` | SSH 远程操作内网 Linux：命令、SFTP 传输、状态与日志 |
 
 ---

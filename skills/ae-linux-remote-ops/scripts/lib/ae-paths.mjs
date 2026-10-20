@@ -13,13 +13,41 @@
  */
 
 import { mkdirSync, writeFileSync } from 'node:fs'
-import { basename, join, resolve } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 /** 产物根目录名 */
 export const AE_ROOT_DIR = 'ae'
 
 /** 日志根目录名（ae/logs） */
 export const LOGS_DIR = 'logs'
+
+/**
+ * 从脚本自身路径推导所属技能名。
+ *
+ * 规则：从脚本所在目录逐级向上，找到第一个形如 `ae-xxx` 的目录名。
+ * 兼容 `scripts/foo.mjs` 与 `scripts/lib/foo.mjs` 两种深度。
+ *
+ * 不写死技能名：技能目录被改名后，产物与日志路径会自动跟随。
+ *
+ * @param {string} scriptUrl import.meta.url
+ * @returns {string|null} 技能名；无法识别时返回 null
+ */
+export function resolveOwningSkillName(scriptUrl) {
+  let dir = dirname(fileURLToPath(scriptUrl))
+  for (let depth = 0; depth < 5; depth += 1) {
+    const name = basename(dir)
+    if (/^ae-[a-z0-9-]+$/.test(name)) {
+      return name
+    }
+    const parent = dirname(dir)
+    if (parent === dir) {
+      break
+    }
+    dir = parent
+  }
+  return null
+}
 
 /**
  * 把技能名转成产物子目录名。

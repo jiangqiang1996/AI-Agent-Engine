@@ -2,7 +2,7 @@
 /**
  * 技能脚本单元测试运行器（仓库内部工具，不随技能分发）
  *
- * 收集 skills/**\/tests/*.test.mjs 后交给 node 内置测试运行器执行。
+ * 收集 skills/**\/tests/*.test.mjs 与 tools/tests/*.test.mjs 后交给 node 内置测试运行器执行。
  * 使用说明：node tools/run-tests.mjs [--filter <关键字>]
  */
 
@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url'
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const SKILLS_DIR = join(REPO_ROOT, 'skills')
+const TOOLS_TESTS_DIR = join(REPO_ROOT, 'tools', 'tests')
 
 function collectTestFiles(dirPath, out = []) {
   if (!existsSync(dirPath)) {
@@ -36,7 +37,10 @@ function main() {
   const filterIndex = process.argv.indexOf('--filter')
   const filter = filterIndex >= 0 ? process.argv[filterIndex + 1] : null
 
-  let files = collectTestFiles(SKILLS_DIR)
+  let files = [
+    ...collectTestFiles(SKILLS_DIR),
+    ...collectTestFiles(TOOLS_TESTS_DIR),
+  ]
   if (filter) {
     files = files.filter((file) => file.includes(filter))
   }

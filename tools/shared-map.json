@@ -1,10 +1,4 @@
 {
-  "ae-pptx": [
-    {
-      "to": "scripts/officecli.mjs",
-      "from": "officecli.mjs"
-    }
-  ],
   "ae-linux-remote-ops": [
     {
       "to": "scripts/lib/ae-config.mjs",

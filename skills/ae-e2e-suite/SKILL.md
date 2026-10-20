@@ -1,6 +1,6 @@
 ---
 name: ae-e2e-suite
-description: 项目级完整 E2E 测试工程（web 与 electron 双轨）：判定测试分层（unit/integration/浏览器 e2e/node 级 e2e）→ 复用或搭建测试基建（globalSetup、electron 会话 helper、数据播种、假服务 fixture、覆盖率采集）→ 组织完整套件（冒烟/功能/视觉/布局/错误/验收）→ 运行与 JSON 取证 → 三源判定失败（脚本/源码/环境）→ 修复回归 → 截图与录像视觉确认真通过；测试脚本与产物集中目录分类管理，覆盖多浏览器、移动端、API、前置登录、网络 mock、视觉回归与 CI 集成。当用户要求搭建 e2e/端到端/Playwright 测试工程与测试基建、编写回归与验收测试套件、采集覆盖率，要求分析测试失败原因并修复，或提到"视觉回归"、"多浏览器"、"CI 集成"、"codegen"、"electron 测试"时使用。仅需编写或执行单个 E2E spec、项目已有 Playwright 基建无需补建套件时，本技能过重
+description: 项目级完整 E2E 测试工程（web 与 electron 双轨）：判定测试分层（unit/integration/浏览器 e2e/node 级 e2e）→ 复用或搭建测试基建（globalSetup、electron 会话 helper、数据播种、假服务 fixture、覆盖率采集）→ 组织完整套件（冒烟/功能/视觉/布局/错误/验收）→ 运行与 JSON 取证 → 三源判定失败（脚本/源码/环境）→ 修复回归 → 截图与录像视觉确认真通过；测试脚本与产物集中目录分类管理，覆盖多浏览器、移动端、API、前置登录、网络 mock、视觉回归与 CI 集成。适用于搭建 e2e/端到端/Playwright 测试工程与测试基建、编写回归与验收测试套件、采集覆盖率、分析测试失败原因并修复等场景；触发关键词：视觉回归、多浏览器、CI 集成、codegen、electron 测试。Use when setting up a project-level Playwright end-to-end test suite and its infrastructure, authoring regression or acceptance specs, collecting coverage, or triaging and fixing end-to-end test failures.
 license: GPL-3.0-or-later
 compatibility: 需要 Node.js 18+；目标项目需已引入 Playwright，或可执行 npm init playwright@latest；electron 目标需有可启动的构建产物入口；无头环境需 xvfb 或项目自有 E2E_HEADLESS 布线
 metadata:

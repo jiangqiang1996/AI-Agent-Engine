@@ -35,7 +35,9 @@ function probeExternalTools() {
   const isWindows = process.platform === 'win32'
   for (const tool of tools) {
     const probe = isWindows ? 'where' : 'which'
-    const found = spawnSync(probe, [tool.name], { encoding: 'utf8', shell: isWindows })
+    // 不开 shell：where/which 都是真实可执行文件，
+    // shell:true + args 会触发 Node DEP0190 告警并带来参数拼接注入面
+    const found = spawnSync(probe, [tool.name], { encoding: 'utf8', shell: false })
     const available = found.status === 0 && `${found.stdout ?? ''}`.trim().length > 0
     process.stdout.write(`  ${available ? '✔' : '✘'} ${tool.name}${available ? '' : '  (缺失，部分技能不可用)'}\n`)
   }

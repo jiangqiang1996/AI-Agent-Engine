@@ -112,8 +112,9 @@ allowed-tools: Bash Read      # 可选，空格分隔的字符串
 技能**内部**的相对引用（`references/`、`scripts/`）不受此约束。
 
 > 校验实现：`tools/validate.mjs` 的 `findCrossSkillReferences()`，
-> 扫描 `SKILL.md` + `references/**/*.md` + `scripts/**/*.{mjs,js}`，
+> 扫描 `SKILL.md` + `references/**/*.md` + `scripts/**/*.{mjs,js,cjs}` + `tests/**/*.{mjs,js,cjs}`，
 > 匹配形如 `ae-<slug>` 的标识符（slug 至少两段，避免误伤 `ae-config` 等文件名）。
+> 随技能分发的第三方打包产物（如 `*.dist.cjs`）跳过扫描。
 
 ### 3.5 宿主无关（硬性）
 
@@ -176,7 +177,10 @@ allowed-tools: Bash Read      # 可选，空格分隔的字符串
 - 写操作前先确认目标路径与权限归属。
 - 密码、令牌一律走环境变量，不落配置文件、不进日志。
 - 不得写死技能名。需要感知归属时，从脚本自身路径推导
-  （见 `tools/shared/officecli.mjs` 的 `resolveOwningSkillName()`）。
+  （见 `tools/shared/ae-paths.mjs` 的 `resolveOwningSkillName()`）。
+- 脚本入口判定不要把 `process.argv[1]` 与 `import.meta.url` 直接比较：
+  经符号链接 / 联接（junction）调用时 Node 会把 `import.meta.url` 解析成 realpath，
+  判定恒假、脚本静默不执行。两侧都取 realpath 后再比较，或按脚本文件名后缀判定。
 
 多技能共用同一份脚本时：真源放 `tools/shared/`，在 `tools/shared-map.json` 登记分发目标，
 执行 `npm run sync` 写入各技能副本。`npm run check` 的第一步会检测副本漂移。
@@ -217,7 +221,7 @@ ae/logs/<skill-slug>/       # 日志
 |---|---|
 | `npm run validate` | 规范校验（结构 / frontmatter / 正文 / 脚本 / 禁用词 / 产物归属 / 跨技能引用） |
 | `npm run sync` | 把 `tools/shared/` 的共享脚本同步到各技能 |
-| `npm test` | 运行 `skills/**/tests/*.test.mjs` |
+| `npm test` | 运行 `skills/**/tests/*.test.mjs` 与 `tools/tests/*.test.mjs` |
 | `npm run check` | `sync --check` + `validate` + `test`（**提交前必跑**） |
 | `npm run doctor` | 全量自检 + 外部工具探测（仅提示，不阻断） |
 
