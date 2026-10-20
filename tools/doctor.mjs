@@ -5,13 +5,14 @@
  * 1. 共享脚本同步状态
  * 2. 技能规范校验
  * 3. 各技能脚本单元测试
- * 4. 外部工具可用性探测（仅提示，不阻断）
+ * 4. 第三方组件声明版本核对
+ * 5. 外部工具可用性探测（仅提示，不阻断）
  *
  * 用法：node tools/doctor.mjs [--skip-tests]
  */
 
 import { spawnSync } from 'node:child_process'
-import { existsSync, readdirSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -43,6 +44,53 @@ function probeExternalTools() {
   }
 }
 
+/**
+ * 核对第三方组件声明版本 vs 实际打包版本。
+ *
+ * 打包产物把依赖的 package.json 内联进 bundle，可以直接读出真实版本；
+ * THIRD-PARTY-NOTICES 里写错版本会让许可证声明失真。
+ */
+function checkThirdPartyVersions() {
+  process.stdout.write('\n=== 第三方组件版本核对 ===\n')
+  const noticesPath = join(REPO_ROOT, 'THIRD-PARTY-NOTICES')
+  if (!existsSync(noticesPath)) {
+    process.stdout.write('  ✘ 未找到 THIRD-PARTY-NOTICES\n')
+    return false
+  }
+  const notices = readFileSync(noticesPath, 'utf8')
+
+  const checks = [
+    {
+      pkg: 'ssh2',
+      bundle: 'skills/ae-linux-remote-ops/scripts/ssh2.dist.cjs',
+      extract(source) {
+        const m = source.match(/"node_modules\/ssh2\/package\.json"[\s\S]{0,600}?version:\s*"([^"]+)"/)
+        return m ? m[1] : null
+      },
+    },
+  ]
+
+  let ok = true
+  for (const check of checks) {
+    const bundlePath = join(REPO_ROOT, check.bundle)
+    if (!existsSync(bundlePath)) continue
+    const actual = check.extract(readFileSync(bundlePath, 'utf8'))
+    if (!actual) continue
+    const escaped = check.pkg.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const declared = notices.match(new RegExp(escaped + '\\s*\\((\\d+\\.\\d+\\.\\d+)\\)'))?.[1]
+    if (!declared) {
+      process.stdout.write(`  ✘ ${check.pkg} 未在 THIRD-PARTY-NOTICES 中声明版本（实际打包 ${actual}）\n`)
+      ok = false
+    } else if (declared !== actual) {
+      process.stdout.write(`  ✘ ${check.pkg} 版本声明不符：声明 ${declared}，实际打包 ${actual}\n`)
+      ok = false
+    } else {
+      process.stdout.write(`  ✔ ${check.pkg} ${actual}\n`)
+    }
+  }
+  return ok
+}
+
 function main() {
   const skipTests = process.argv.includes('--skip-tests')
 
@@ -54,14 +102,16 @@ function main() {
     testOk = run('单元测试', process.execPath, [join('tools', 'run-tests.mjs')])
   }
 
+  const noticesOk = checkThirdPartyVersions()
   probeExternalTools()
 
   process.stdout.write('\n=== 汇总 ===\n')
   process.stdout.write(`  共享脚本  ${sharedOk ? 'OK' : 'FAIL'}\n`)
   process.stdout.write(`  规范校验  ${validateOk ? 'OK' : 'FAIL'}\n`)
   process.stdout.write(`  单元测试  ${testOk ? 'OK' : 'FAIL'}\n`)
+  process.stdout.write(`  组件声明  ${noticesOk ? 'OK' : 'FAIL'}\n`)
 
-  process.exitCode = sharedOk && validateOk && testOk ? 0 : 1
+  process.exitCode = sharedOk && validateOk && testOk && noticesOk ? 0 : 1
 }
 
 main()

@@ -14,7 +14,7 @@ skills/<name>/              # 技能，可被单独拷走独立使用
   SKILL.md                  # 唯一必需文件
   references/               # 渐进披露的细则（.md）
     roles/<role>.md         # 角色卡：技能的内部实现细节
-  scripts/                  # 可执行脚本（.mjs / .js）
+  scripts/                  # 可执行脚本（.mjs / .js / .cjs）
   tests/                    # 脚本单元测试（*.test.mjs）
 tools/                      # 仓库内部工具，不随技能分发
   shared/                   # 共享脚本真源
@@ -23,10 +23,17 @@ tools/                      # 仓库内部工具，不随技能分发
   sync-shared.mjs           # 共享脚本同步器
   run-tests.mjs             # 脚本测试运行器
   doctor.mjs                # 全量自检
+  tests/                    # 仓库工具单测（含校验器回归测试）
 docs/                       # 仓库内部文档
+ae.schema.json              # 用户配置文件 ae.jsonc 的 JSON Schema
+ae.jsonc.example            # 配置样例（$schema 指向远端 schema）
 ```
 
-`skills/` 下**只有** `SKILL.md` 与脚本属于用户侧资产；`tools/`、`docs/`、`ae/` 都不是。
+`skills/` 整个目录都是**用户侧资产**——`SKILL.md`、`references/`、`scripts/`、`tests/` 会随技能一起分发。
+`tools/`、`docs/`、`ae/` 都不是。
+
+> `tests/` 随技能分发是为了让使用者能自行验证脚本；体积敏感时可从发布物中剔除，
+> 但仓库内的 `skills/<name>/tests/*.test.mjs` 必须保留（`npm test` 会跑）。
 
 ---
 
@@ -43,6 +50,7 @@ docs/                       # 仓库内部文档
 | `` `@frontend-dev` `` 等 | 宿主专属 @代理 寻址 | `references/roles/<role>.md` 角色卡 |
 | `AskUserQuestion` / `question` 工具 | 宿主专属工具名 | 「宿主的交互式提问能力」 |
 | `` `xxx` 工具 `` | 把技能当工具叫 | 「技能」 |
+| `ae-async-bash` `ae-review-proof` `ae-specialist-aggregate` `ae-review-scope-analyze` `ae-test-triage` `ae-create-session` `ae-handoff` | 已移除的插件工具名（悬空引用） | 描述该能力本身 |
 
 `tools/validate.mjs` 的 `FORBIDDEN_PATTERNS` 与 `HOST_AGENT_NAMES` 是该约束的可执行形式。
 
@@ -61,8 +69,9 @@ docs/                       # 仓库内部文档
 - 技能**内部**的相对引用（`references/xxx.md`、`scripts/xxx.mjs`）不受此约束。
 
 校验实现：`tools/validate.mjs` 的 `findCrossSkillReferences()`，扫描
-`SKILL.md` + `references/**/*.md` + `scripts/**/*.{mjs,js}`，
+`SKILL.md` + `references/**/*.md` + `scripts/**/*.{mjs,js,cjs}` + `tests/**/*.{mjs,js,cjs}`，
 匹配形如 `ae-<slug>` 的标识符（slug 至少两段，避免误伤 `ae-config` 等文件名）。
+随技能分发的第三方打包产物（如 `*.dist.cjs`）跳过扫描。
 
 新增/删除技能时，务必同步：
 
@@ -72,7 +81,9 @@ docs/                       # 仓库内部文档
 | `tools/validate.mjs` `SHARED_AE_DIRS` | 声明可被多技能共享的 `ae/<dir>/` |
 | `tools/shared-map.json` | 登记需要下发的共享脚本副本 |
 | `.claude-plugin/plugin.json` | 增删 `skills` 条目 |
-| `README.md` / `AGENTS.md` | 同步技能清单 |
+| `README.md` / `AGENTS.md` | 同步技能清单与分组表 |
+| `ae.schema.json` | 若该技能有配置项，补充其顶层 key |
+| `ae.jsonc.example` | 同步配置样例 |
 
 ---
 
@@ -88,6 +99,30 @@ ae/logs/<skill-slug>/       # 日志
 
 **归属唯一**：一个 `ae/<slug>/` 目录只属于一个技能，其它技能不得写入。
 校验器通过 `AE_DIR_OWNER` + 写入上下文关键词（`WRITE_CONTEXT`）识别越界写入。
+
+日志目录同样归属唯一：`ae/logs/<slug>/` 里的 `<slug>` 必须等于本技能 slug，
+写错归属（例如把日志写到 `ae/logs/officecli/`）会被校验器直接报错。
+
+> 例外：把测试代码写进**目标项目自身**的测试目录（如 `tests/`、`src/test/`）是允许的，
+> 那不属于本仓库的 `ae/` 产物目录。
+
+---
+
+### 4.1 校验器的数值限制
+
+`tools/validate.mjs` 的常量即硬性上限（AGENTS.md §3.1–§3.3 的展开）：
+
+| 常量 | 值 | 约束对象 |
+|---|---|---|
+| `MAX_NAME_LENGTH` | 64 | frontmatter `name` |
+| `MAX_DESCRIPTION_LENGTH` | 1024 | frontmatter `description` |
+| `MAX_COMPATIBILITY_LENGTH` | 500 | frontmatter `compatibility` |
+| `MAX_BODY_LINES` | 500 | SKILL.md 正文行数（超了是 WARN 不是 ERROR） |
+| `ALLOWED_FRONTMATTER` | 6 个字段 | `name` `description` `license` `compatibility` `metadata` `allowed-tools` |
+| `SKILL_NAME_PREFIX` | `ae-` | 技能目录名 |
+| `NAME_PATTERN` | `^[a-z0-9]+(-[a-z0-9]+)*$` | `name` 字符集 |
+
+这些数值与 [Agent Skills 规范](https://agentskills.io/specification)一致。
 
 ---
 
@@ -116,7 +151,7 @@ npm run check
 | 命令 | 检查内容 |
 |---|---|
 | `node tools/sync-shared.mjs --check` | 共享脚本副本是否漂移 |
-| `node tools/validate.mjs` | 目录结构、frontmatter、正文、脚本语法、禁用词、产物归属、**跨技能引用** |
+| `node tools/validate.mjs` | 目录结构、frontmatter 字段与数值上限、正文行数、相对引用（含 references/ 内链接）、脚本语法（含 .cjs）、禁用词、产物与日志归属、跨技能引用、脆弱入口守卫、officecli 调用形态 |
 | `node tools/run-tests.mjs` | `skills/**/tests/*.test.mjs` 与 `tools/tests/*.test.mjs` |
 
 `npm run doctor` 额外探测外部工具（git / node / officecli / playwright 等）是否可用，仅提示不阻断。

@@ -79,14 +79,14 @@ metadata:
 
 正文 ≤500 行（超了会有 WARN）。超长内容拆到 `references/`，SKILL.md 只留主干。
 
-推荐骨架：
+推荐骨架（**章节名可按技能调整**，只要语义清楚；本合集实际使用的是「何时使用 / 何时不使用」）：
 
 ```markdown
 # 技能名
 
 ## 角色          # 这个技能扮演什么角色
-## 适用场景      # 什么时候用
-## 不适用场景    # 什么时候不用（只描述职责边界，不点名其它技能）
+## 何时使用      # 什么时候用
+## 何时不使用    # 什么时候不用（只描述职责边界，不点名其它技能）
 ## 执行流程      # 分步骤，可操作
 ## 实现要求      # 硬约束：改什么、不改什么
 ## 产物与日志    # ae/<slug>/ 与 ae/logs/<slug>/
@@ -96,8 +96,10 @@ metadata:
 
 ### 引用规范
 
-- 相对引用必须真实存在：`references/xxx.md`、`scripts/xxx.mjs`。
+- 相对引用必须真实存在：`references/xxx.md`、`scripts/xxx.mjs`、`assets/xxx`。
 - 链接写法 `[标题](references/xxx.md)` 或反引号包裹 `` `references/xxx.md` ``。
+- 文件引用统一相对**技能根目录**；`references/` 内部的相互引用相对其所在目录。
+- 保持引用只有一层深（`references/xxx.md`），避免 `references/a/b/c.md` 式的嵌套链。
 
 ---
 
@@ -117,7 +119,8 @@ metadata:
 
 ## 6. 宿主无关（硬性）
 
-正文与脚本都不得出现宿主专属名与语法（完整清单见 `docs/development.md` §2）。
+正文与脚本都不得出现宿主专属名与语法（完整清单见 `docs/development.md` §2，
+其中也列出了 `tools/validate.mjs` 仍在拦截的已移除插件工具名）。
 
 需要交互提问时写「使用宿主的交互式提问能力」，不要写具体工具名。
 需要子代理时写「若宿主支持子代理派发能力…否则顺序执行」，不要写具体参数。
@@ -127,11 +130,16 @@ metadata:
 ## 7. 脚本
 
 - 纯 Node.js 标准库优先，不引第三方依赖（除非技能自带 `package.json`）。
-- 放 `scripts/`，扩展名 `.mjs`。
+- 放 `scripts/`，扩展名 `.mjs`（`.js` / `.cjs` 也接受，但 `.cjs` 同样要过 `node --check`）。
 - 必须通过 `node --check`。
 - **模板字面量里不要写单反斜杠 + 非转义字符**（`\.` 会被 JS 吞掉）。用 `RegExp` 构造或写 `\\.`。
 - 写操作前先确认目标路径与权限。
 - 密码、令牌一律走环境变量，不落配置文件、不进日志。
+- **不得写死技能名**。需要感知归属（如决定 `ae/<slug>/` 产物目录）时，从脚本自身路径推导
+  （见 `tools/shared/ae-paths.mjs` 的 `resolveOwningSkillName()`）。
+- **入口判定不要把 `process.argv[1]` 与 `import.meta.url` 直接比较**。Node 会把 `import.meta.url`
+  解析成 realpath，而 `argv[1]` 保留符号链接 / 联接（junction）路径，两者不等时判定恒假，
+  脚本会**静默不执行**（退出码 0、无输出）。两侧都取 realpath 后再比较，或按脚本文件名后缀判定。
 
 多技能共用同一份脚本时，把真源放 `tools/shared/` 并在 `tools/shared-map.json` 登记。
 
@@ -163,12 +171,14 @@ metadata:
 
 - [ ] `name` == 目录名，且带 `ae-` 前缀
 - [ ] frontmatter 只有 6 个允许字段
-- [ ] `description` 说清了"做什么 + 何时用"
+- [ ] `description` 说清了"做什么 + 何时用"，且不含反向触发词（"本技能过重"这类应放正文）
 - [ ] `compatibility` 与实际依赖一致
-- [ ] 正文 ≤500 行，引用的 `references/` / `scripts/` 文件都存在
+- [ ] 正文 ≤500 行，引用的 `references/` / `scripts/` / `assets/` 文件都存在
+- [ ] `references/` 内部的相互链接都有效
+- [ ] `ae/<slug>/` 产物路径与 `ae/logs/<slug>/` 日志路径都属于本技能
 - [ ] 没有任何其它技能的名称（`npm run validate` 会验）
 - [ ] 没有宿主专属名 / 工具名 / 占位符
-- [ ] `ae/<slug>/` 产物路径属于本技能
 - [ ] 没有硬编码密钥；破坏性操作有授权门槛
-- [ ] 脚本通过 `node --check`，必要时补 `tests/*.test.mjs`
+- [ ] 脚本通过 `node --check`（`.mjs` / `.js` / `.cjs` 都要），必要时补 `tests/*.test.mjs`
+- [ ] 脚本没有写死技能名；入口判定没有直接比较 `argv[1]` 与 `import.meta.url`
 - [ ] `npm run check` 全绿

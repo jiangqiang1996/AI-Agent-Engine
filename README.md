@@ -52,13 +52,13 @@ npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git --list
 
 ## 技能目录
 
-### 需求
+### 需求与设计
 
 | 技能 | 用途 |
 |---|---|
 | `ae-grill` | 深度追问方案决策，一问一答推进共识 |
 
-### 开发与修复
+### 实施与交付
 
 | 技能 | 用途 |
 |---|---|
@@ -77,12 +77,18 @@ npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git --list
 | `ae-e2e-suite` | 项目级完整 E2E 测试工程：分层判定、基建搭建、套件组织、覆盖率、CI 集成（web + electron 双轨） |
 
 > `ae-e2e-test` 面向**用例级**（写/跑单个 spec）；`ae-e2e-suite` 面向**工程级**（分层、基建、完整套件、覆盖率、CI）。
+> `ae-e2e-test` 内置 `mode=test-only`（只执行既有脚本）/ `mode=script`（编译生成脚本后执行）两种模式。
 
-### 文档与运维
+### 文档
 
 | 技能 | 用途 |
 |---|---|
 | `ae-pptx` | PowerPoint `.pptx` 创建、编辑、读取与视觉验证（需全局可执行的 `officecli` 命令，缺失时按技能步骤 0 安装） |
+
+### 运维
+
+| 技能 | 用途 |
+|---|---|
 | `ae-linux-remote-ops` | SSH 远程操作内网 Linux：命令、SFTP 传输、状态与日志 |
 
 ---
@@ -142,11 +148,12 @@ npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git --list
 npm install      # 仅安装 devDependencies（yaml）
 npm run validate # 规范校验（含跨技能引用检查）
 npm run sync     # 同步共享脚本到各技能
-npm test         # 技能脚本单元测试
+npm test         # 单元测试（技能脚本 + 仓库工具，含校验器回归测试）
 npm run check    # sync --check + validate + test（提交前必跑）
 npm run doctor   # 全量自检（含外部工具探测）
 ```
 
+- 规范真源（仓库内唯一）：[AGENTS.md](AGENTS.md)
 - 技能编写规范：[docs/skill-authoring.md](docs/skill-authoring.md)
 - 仓库开发规范：[docs/development.md](docs/development.md)
 

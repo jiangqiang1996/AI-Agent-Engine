@@ -15,7 +15,7 @@ MIT License (MIT)
 
 以下组件采用 MIT 许可证
 
-- ssh2 (1.6.0)
+- ssh2 (1.17.0)
   来源: https://github.com/mscdex/ssh2
   说明: 打包为单文件 skills/ae-linux-remote-ops/scripts/ssh2.dist.cjs，
         随技能分发，无需 npm install。
@@ -43,10 +43,11 @@ MIT License (MIT)
 Apache License 2.0 (Apache-2.0)
 --------------------------------
 
-- @officecli/officecli (1.0.135)
+- @officecli/officecli (1.0.157)
   作者: goworm
   来源: https://github.com/iOfficeAI/OfficeCLI
   说明: 由 ae-pptx 技能的步骤 0 按需安装，不随技能分发。
+        技能直接调用该 CLI，不做任何参数包装。
 
 ------------------------------------------------------------------------------
 开发期依赖 (devDependencies)

@@ -36,6 +36,7 @@ tools/                      # 仓库内部工具，不随技能分发
   sync-shared.mjs           # 共享脚本同步器
   run-tests.mjs             # 脚本测试运行器
   doctor.mjs                # 全量自检
+  tests/                    # 仓库工具单测（含校验器回归测试）
 docs/                       # 仓库内部文档
 ae.schema.json              # 用户配置文件 ae.jsonc 的 JSON Schema
 ae.jsonc.example            # 配置样例（$schema 指向远端 schema）
@@ -248,11 +249,13 @@ ae/logs/<skill-slug>/       # 日志
 
 | 分组 | 技能 |
 |---|---|
-| 需求 | `ae-grill` |
-| 开发与修复 | `ae-frontend` `ae-backend` |
+| 需求与设计 | `ae-grill` |
+| 实施与交付 | `ae-frontend` `ae-backend` |
 | 测试 | `ae-unit-test` `ae-integration-test` `ae-e2e-test` `ae-e2e-suite` |
-| 文档与运维 | `ae-pptx` `ae-linux-remote-ops` |
+| 文档 | `ae-pptx` |
+| 运维 | `ae-linux-remote-ops` |
 
+> 分组名与各技能 frontmatter 的 `metadata.ae-group` 一致，新增技能时两处同步。
 > `ae-e2e-test` 面向**用例级**（写/跑单个 spec）；`ae-e2e-suite` 面向**工程级**（分层、基建、完整套件、覆盖率、CI）。
 
 ---
