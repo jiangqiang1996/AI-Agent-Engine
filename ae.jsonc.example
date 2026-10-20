@@ -1,5 +1,5 @@
 {
-  "$schema": "./ae.schema.json",
+  "$schema": "https://gitee.com/jiangqiang1996/ai-agent-engine/raw/master/ae.schema.json",
 
   "ae-linux-remote-ops": {
     "host": "",

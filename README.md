@@ -117,6 +117,8 @@ npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git --list
 
 ```jsonc
 {
+  "$schema": "https://gitee.com/jiangqiang1996/ai-agent-engine/raw/master/ae.schema.json",
+
   "ae-linux-remote-ops": {
     "host": "10.0.0.1",
     "user": "app",
@@ -124,6 +126,10 @@ npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git --list
   }
 }
 ```
+
+`$schema` 指向远端的 `ae.schema.json`（JSON Schema），编辑器据此提供补全与校验。
+用远端 URL 而非本地相对路径，是为了让**单技能安装**（只装 `skills/<name>/`）也能正常提示。
+配置样例见 [`ae.jsonc.example`](ae.jsonc.example)。
 
 ---
 
