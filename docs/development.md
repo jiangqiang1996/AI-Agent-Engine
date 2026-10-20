@@ -14,8 +14,8 @@ skills/<name>/              # 技能，可被单独拷走独立使用
   SKILL.md                  # 唯一必需文件
   references/               # 渐进披露的细则（.md）
     roles/<role>.md         # 角色卡：技能的内部实现细节
-  scripts/                  # 可执行脚本（.mjs / .js / .cjs）
-  tests/                    # 脚本单元测试（*.test.mjs）
+  scripts/                  # 可执行脚本（.mjs / .js / .cjs，少数技能用 .py）
+  tests/                    # 脚本单元测试（*.test.mjs，Python 技能用 *.py）
 tools/                      # 仓库内部工具，不随技能分发
   shared/                   # 共享脚本真源
   shared-map.json           # 共享脚本分发清单
@@ -154,7 +154,10 @@ npm run check
 | `node tools/validate.mjs` | 目录结构、frontmatter 字段与数值上限、正文行数、相对引用（含 references/ 内链接）、脚本语法（含 .cjs）、禁用词、产物与日志归属、跨技能引用、脆弱入口守卫、officecli 调用形态 |
 | `node tools/run-tests.mjs` | `skills/**/tests/*.test.mjs` 与 `tools/tests/*.test.mjs` |
 
-`npm run doctor` 额外探测外部工具（git / node / officecli / playwright 等）是否可用，仅提示不阻断。
+> Python 技能（见 `ae-qwen3-tts`）的自测不进 `npm test`：用技能自带的
+> `python tests/test_tts.py --fast` 跑，退出码 0=通过、1=失败。
+
+`npm run doctor` 额外探测外部工具（git / node / python / officecli / playwright 等）是否可用，仅提示不阻断。
 
 ---
 

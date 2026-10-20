@@ -1,11 +1,11 @@
 # AE Skills
 
-**通用 Agent Skills 合集** —— 一组可移植的 AI 代理技能，覆盖需求追问、前后端开发与修复、三层测试、PPTX 文档与服务器运维。
+**通用 Agent Skills 合集** —— 一组可移植的 AI 代理技能，覆盖需求追问、前后端开发与修复、三层测试、PPTX 文档、语音合成与服务器运维。
 遵循 [Agent Skills 规范](https://agentskills.io/specification)，可安装到 **Claude Code、Codex、Cursor、OpenCode、GitHub Copilot、Gemini CLI、Cline、Windsurf、Amp、Roo Code、Kiro、OpenClaw** 等 40+ 宿主。
 
-- 纯 **SKILL.md + Node.js 脚本**，无插件、无宿主 SDK、无运行时服务
+- 纯 **SKILL.md + 脚本**（Node.js / Python），无插件、无宿主 SDK、无运行时服务
 - 每个技能**高内聚、低耦合**：可以只装一个独立使用，技能之间**零交叉引用**
-- 零 npm 依赖起步：脚本只用 Node 标准库，需要时用外部 CLI
+- 零 npm 依赖起步：脚本只用 Node 标准库或 Python 标准库，需要时用外部 CLI
 
 ---
 
@@ -84,6 +84,12 @@ npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git --list
 | 技能 | 用途 |
 |---|---|
 | `ae-pptx` | PowerPoint `.pptx` 创建、编辑、读取与视觉验证（需全局可执行的 `officecli` 命令，缺失时按技能步骤 0 安装） |
+
+### 音频与多媒体
+
+| 技能 | 用途 |
+|---|---|
+| `ae-qwen3-tts` | 文字转音频（TTS）：预置音色、音色设计、语音克隆，批量生成与种子复现（需 Python 3.9+，依赖按需安装） |
 
 ### 运维
 

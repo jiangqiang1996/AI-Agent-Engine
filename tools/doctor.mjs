@@ -29,6 +29,7 @@ function probeExternalTools() {
   const tools = [
     { name: 'git', args: ['--version'] },
     { name: 'node', args: ['--version'] },
+    { name: 'python', args: ['--version'] },
     { name: 'officecli', args: ['--version'] },
     { name: 'playwright-cli', args: ['--version'] },
   ]

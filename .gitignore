@@ -24,3 +24,12 @@ dist
 # 技能本地依赖（由技能首次使用时自行安装）
 skills/*/node_modules/
 skills/*/package-lock.json
+
+# Python 技能的本地依赖与缓存
+**/__pycache__/
+*.py[cod]
+skills/*/.venv/
+
+# 语音合成技能的模型权重（GB 级，按需下载）
+skills/*/models/
+ae/*/models/

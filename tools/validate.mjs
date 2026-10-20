@@ -58,6 +58,7 @@ const AE_DIR_OWNER = {
   'unit-test': 'ae-unit-test',
   'integration-test': 'ae-integration-test',
   'e2e-test': 'ae-e2e-test',
+  'qwen3-tts': 'ae-qwen3-tts',
 }
 
 /** 表示"写入/产出"的上下文关键词 */

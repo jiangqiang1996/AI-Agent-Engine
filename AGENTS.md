@@ -27,8 +27,8 @@ skills/<name>/              # 技能，可单独拷走独立使用
   SKILL.md                  # 唯一必需文件
   references/               # 渐进披露的细则（.md）
     roles/<role>.md         # 角色卡：技能的内部实现细节
-  scripts/                  # 可执行脚本（.mjs）
-  tests/                    # 脚本单元测试（*.test.mjs）
+  scripts/                  # 可执行脚本（.mjs，少数技能用 .py）
+  tests/                    # 脚本单元测试（*.test.mjs，Python 技能用 *.py）
 tools/                      # 仓库内部工具，不随技能分发
   shared/                   # 共享脚本真源
   shared-map.json           # 共享脚本分发清单
@@ -183,6 +183,17 @@ allowed-tools: Bash Read      # 可选，空格分隔的字符串
   经符号链接 / 联接（junction）调用时 Node 会把 `import.meta.url` 解析成 realpath，
   判定恒假、脚本静默不执行。两侧都取 realpath 后再比较，或按脚本文件名后缀判定。
 
+**Python 脚本（少数技能）**：技能的运行时依赖不是 Node 时（例如深度学习推理），
+允许用 `.py` 实现，规则：
+
+- 目录仍是 `scripts/`，单测放 `tests/*.py`；不与 `.mjs` 混放同一文件。
+- `.py` 不受 `node --check` 约束，但必须能被目标 Python 编译通过
+  （`python -m compileall`），由技能自带的测试脚本覆盖。
+- 第三方依赖**不随技能分发**，由技能自带的安装脚本按需 `pip install`，
+  并在 frontmatter 的 `compatibility` 里写明 Python 版本与依赖。
+- 同样适用「不得写死技能名」「产物路径归属」「密钥走环境变量」等硬性约束。
+- 技能自测不接入 `npm test`（只跑 `*.test.mjs`），在技能文档里写明自测命令。
+
 多技能共用同一份脚本时：真源放 `tools/shared/`，在 `tools/shared-map.json` 登记分发目标，
 执行 `npm run sync` 写入各技能副本。`npm run check` 的第一步会检测副本漂移。
 
@@ -253,10 +264,12 @@ ae/logs/<skill-slug>/       # 日志
 | 实施与交付 | `ae-frontend` `ae-backend` |
 | 测试 | `ae-unit-test` `ae-integration-test` `ae-e2e-test` `ae-e2e-suite` |
 | 文档 | `ae-pptx` |
+| 音频与多媒体 | `ae-qwen3-tts` |
 | 运维 | `ae-linux-remote-ops` |
 
 > 分组名与各技能 frontmatter 的 `metadata.ae-group` 一致，新增技能时两处同步。
 > `ae-e2e-test` 面向**用例级**（写/跑单个 spec）；`ae-e2e-suite` 面向**工程级**（分层、基建、完整套件、覆盖率、CI）。
+> `ae-qwen3-tts` 是**唯一使用 Python 脚本**的技能，脚本规则见 §3.8。
 
 ---
 

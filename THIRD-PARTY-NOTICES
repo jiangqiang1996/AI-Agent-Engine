@@ -50,6 +50,39 @@ Apache License 2.0 (Apache-2.0)
         技能直接调用该 CLI，不做任何参数包装。
 
 ------------------------------------------------------------------------------
+按需安装的 Python 依赖（不随技能分发）
+------------------------------------------------------------------------------
+
+下列包由 ae-qwen3-tts 技能的 scripts/install.py 按需 pip 安装到使用者自己的
+Python 环境，不随技能分发，也不进入本仓库的构建产物。
+
+Apache License 2.0 (Apache-2.0)
+--------------------------------
+
+- qwen-tts (>=0.1.0)
+  来源: https://github.com/QwenLM/Qwen3-TTS
+  说明: TTS 模型与推理封装；模型权重按需从 ModelScope / HuggingFace 下载。
+
+- modelscope (>=1.10.0)
+  来源: https://github.com/modelscope/modelscope
+  说明: 模型下载源（优先于 HuggingFace）。
+
+- huggingface_hub (>=0.20.0)
+  来源: https://github.com/huggingface/huggingface_hub
+  说明: 模型下载回退源。
+
+BSD 3-Clause License (BSD-3-Clause)
+-----------------------------------
+
+- torch (>=2.0.0)
+  来源: https://github.com/pytorch/pytorch
+  说明: 推理运行时；CUDA 版按显卡架构从 PyTorch 官方索引安装。
+
+- soundfile (>=0.12.0)
+  来源: https://github.com/python-soundfile/soundfile
+  说明: 音频读写（底层 libsndfile 为 LGPL-2.1）。
+
+------------------------------------------------------------------------------
 开发期依赖 (devDependencies)
 ==============================
 

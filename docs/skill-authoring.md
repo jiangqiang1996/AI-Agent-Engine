@@ -143,6 +143,21 @@ metadata:
 
 多技能共用同一份脚本时，把真源放 `tools/shared/` 并在 `tools/shared-map.json` 登记。
 
+### 7.1 Python 脚本
+
+技能的运行时不是 Node 时（例如深度学习推理），允许用 `.py` 实现：
+
+| 项 | 约定 |
+|---|---|
+| 位置 | 实现放 `scripts/`，单测放 `tests/*.py`；不与 `.mjs` 混放 |
+| 语法检查 | 不走 `node --check`；必须能被目标 Python 编译通过（`python -m compileall`） |
+| 第三方依赖 | 不随技能分发；由技能自带的安装脚本按需 `pip install` |
+| frontmatter | `compatibility` 写明 Python 版本与主要依赖 |
+| 归属推导 | 同样从脚本自身路径推导技能目录名与 slug，不写死技能名 |
+| 自测 | 不接入 `npm test`（只跑 `*.test.mjs`）；在技能文档里写明自测命令与退出码语义 |
+
+> 现存先例：`ae-qwen3-tts`（语音合成，依赖 qwen-tts / torch）。
+
 ---
 
 ## 8. 角色卡
@@ -180,5 +195,6 @@ metadata:
 - [ ] 没有宿主专属名 / 工具名 / 占位符
 - [ ] 没有硬编码密钥；破坏性操作有授权门槛
 - [ ] 脚本通过 `node --check`（`.mjs` / `.js` / `.cjs` 都要），必要时补 `tests/*.test.mjs`
+- [ ] Python 脚本能 `python -m compileall` 通过，且文档写明自测命令
 - [ ] 脚本没有写死技能名；入口判定没有直接比较 `argv[1]` 与 `import.meta.url`
 - [ ] `npm run check` 全绿
