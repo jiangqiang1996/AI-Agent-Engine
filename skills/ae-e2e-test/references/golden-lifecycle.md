@@ -31,11 +31,14 @@ golden 是**已通过并固化的回归资产**——只保存真实跑通过的
 3. 用户确认后运行 `scripts/triage.mjs`
 4. 检查脚本返回：
    - 直接返回诊断结果（规则 1/2/4/5 命中）→ 展示 summary，按 `dispatchTarget` 执行
-   - 返回 `needs_agent_diagnosis: true`（规则 3 真源对齐）→ 调度 `references/roles/test-triage.md` 角色卡执行语义对齐判断
-     （读取真源、对比断言与产品行为、判定 production bug / test bug / design-drift），角色卡返回诊断结果后展示 summary
+   - 返回 `needs_agent_diagnosis: true`（规则 3 基准对齐）→ 调度 `references/roles/test-triage.md` 角色卡执行语义对齐判断
+     （读取基准文档、对比断言与产品行为、判定 production bug / test bug / spec-drift），角色卡返回诊断结果后展示 summary
 5. 向用户展示 triage 返回的 summary
-6. 按 `dispatchTarget` 执行（修复技能 / self-fix / ae-design / manual）。
-   self-fix 由 `references/roles/e2e-test-runner.md` 角色卡执行，其余修复技能由编排层调度对应角色卡
+6. 按 `dispatchTarget` 执行：
+   - `self-fix` → 由 `references/roles/e2e-test-runner.md` 角色卡修复测试脚本
+   - `production` → 定位并修复产品代码的缺陷
+   - `spec-drift` → 提示用户确认并修正基准文档
+   - `manual` → 交由用户判断
 7. 修复后询问用户是否回归验证
 8. 用户确认后回归：重新运行同层全部测试
 

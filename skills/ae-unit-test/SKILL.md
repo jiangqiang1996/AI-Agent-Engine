@@ -1,8 +1,8 @@
 ---
 name: ae-unit-test
-description: 单元测试：生成、执行、覆盖率分析。默认测试后端；用户明确要求时支持前端组件逻辑测试。有设计用例时从用例规格编译骨架；无则从代码结构推断测试点。技术栈路由 Vitest/JUnit/pytest/Go test/Rust test；前端追加 Vitest/Jest + Testing Library。Use when the user needs unit tests generated, executed or analysed for coverage, or expects failing unit tests to be diagnosed and fixed.
+description: 单元测试：生成、执行、覆盖率分析。默认测试后端；用户明确要求时支持前端组件逻辑测试。有用例规格时从规格编译骨架；无则从代码结构推断测试点。技术栈路由 Vitest/JUnit/pytest/Go test/Rust test；前端追加 Vitest/Jest + Testing Library。Use when the user needs unit tests generated, executed or analysed for coverage, or expects failing unit tests to be diagnosed and fixed.
 license: GPL-3.0-or-later
-compatibility: 需要 Node.js 18+ 以运行本技能附带脚本；其余依赖见正文"环境要求"章节
+compatibility: 需要 Node.js 18+ 以运行 scripts/triage.mjs 分诊脚本；测试框架由被测项目的既有技术栈决定
 metadata:
   author: ae-skills
   version: 1.0.0
@@ -13,26 +13,26 @@ metadata:
 
 ## 角色
 
-单元测试生成与执行器。默认为后端单元测试；当用户明确要求测试前端时，路由到前端组件逻辑测试。根据输入的代码文件或目录，生成单元测试骨架并执行，分析覆盖率。有设计用例时从用例规格编译测试骨架；无则从代码结构推断测试点。
+单元测试生成与执行器。默认为后端单元测试；当用户明确要求测试前端时，路由到前端组件逻辑测试。根据输入的代码文件或目录，生成单元测试骨架并执行，分析覆盖率。有用例规格时从规格编译骨架；无则从代码结构推断测试点。
 
 角色卡是纯 Markdown，位于 `references/roles/`，不绑定任何宿主：
 
 - `references/roles/unit-test-runner.md` — 单元测试执行者：骨架生成、执行与覆盖率分析
-- `references/roles/test-triage.md` — 测试失败根因分诊者：真源对齐语义判断
+- `references/roles/test-triage.md` — 测试失败根因分诊者：基准对齐语义判断
 
 ## 适用场景
 
 - 用户要求为指定代码文件或目录生成单元测试
-- 用户提供了设计用例路径，需要从用例规格编译测试骨架
+- 用户提供了用例规格文档，需要从规格编译测试骨架
 - 用户要求执行已有单元测试并分析覆盖率
-- 用户要求修复失败的单元测试（triage 判定为 test bug 时）
+- 用户要求修复失败的单元测试（分诊判定为 test bug 时）
 - 用户明确要求为前端组件/hooks/工具函数生成单元测试（组件渲染、props/状态、事件处理、状态机转换等纯逻辑测试）
 
 ## 不适用场景
 
-- 浏览器 E2E 测试 → 使用 `ae-e2e-test`
-- 接口级测试 → 使用 `ae-api-test`
-- 浏览器内视觉回归、真实浏览器交互验证 → 使用 `ae-e2e-test`（前端组件逻辑单元测试在用户明确要求时属于本技能）
+- 跨接口、跨模块、含真实依赖的集成测试 → 属于**集成测试**范畴
+- 浏览器端到端测试与取证 → 属于**端到端测试**范畴
+- 生产代码缺陷的定位与修复 → 属于**前端 / 后端**范畴（修复模式）
 
 ## scope 判定
 
@@ -46,7 +46,7 @@ metadata:
 
 ## 执行流程
 
-1. 解析输入：代码文件/目录路径 + 可选设计用例路径 + scope 判定
+1. 解析输入：代码文件/目录路径 + 可选用例规格路径 + scope 判定
 2. scope 判定：默认 `backend`；仅当用户显式要求前端时才进入前端路由
 3. 技术栈路由：检测项目语言和测试框架
    - 后端：
@@ -63,10 +63,9 @@ metadata:
        - Angular → Jest + jest-preset-angular + jsdom
        - Svelte → Vitest + @testing-library/svelte + jsdom
 4. 编译测试骨架：
-   - 传入 test-cases.md 路径 → 直接读取用例规格编译骨架
-   - 传入设计目录路径 → 从 design overview.md 定位 `modules/<NN>-<m>/test-cases.md`，从用例规格编译骨架
-   - 无设计用例 → 从代码结构推断测试点：
-     - 后端：公共函数、类方法、分支逻辑
+   - 传入用例规格路径 → 直接读取规格编译骨架
+   - 无规格 → 从代码结构推断测试点：
+     - 后端：公共函数、类方法、分支逻辑、边界值、异常路径
      - 前端：组件 props/emits/slots、事件处理、hooks、状态机转换、条件渲染
 5. 生成测试文件到项目自身测试目录（如 `tests/`、`src/test/`）
 6. 执行测试
@@ -76,14 +75,19 @@ metadata:
 ## 测试失败处理
 
 失败后：
+
 1. 输出 TestFailureBundle 报告
 2. 询问用户："检测到 N 个失败，是否自动诊断修复？"
 3. 用户确认后运行 `scripts/triage.mjs`
 4. 检查工具返回：
    - 工具直接返回诊断结果（规则 1/2/4/5 命中）→ 展示 summary，按 dispatchTarget 执行
-   - 工具返回 `needs_agent_diagnosis: true`（规则 3 真源对齐）→ 调度 `references/roles/test-triage.md` 角色卡执行语义对齐判断（读取真源、对比断言与产品行为、判定 production bug / test bug / design-drift），角色卡返回诊断结果后展示 summary
+   - 工具返回 `needs_agent_diagnosis: true`（规则 3 基准对齐）→ 调度 `references/roles/test-triage.md` 角色卡执行语义对齐判断（读取基准文档、对比断言与产品行为、判定 production bug / test bug / spec-drift），角色卡返回诊断结果后展示 summary
 5. 向用户展示 triage 返回的 summary
-6. 按 dispatchTarget 执行（修复技能 / self-fix / ae-design / manual）
+6. 按 dispatchTarget 执行：
+   - `self-fix` → 修复测试代码本身（断言 / mock / 期望值）
+   - `production` → 定位并修复产品代码的缺陷
+   - `spec-drift` → 提示用户确认并修正基准文档
+   - `manual` → 交由用户判断
 7. 修复后询问用户是否回归验证
 8. 用户确认后回归：重新运行同层全部测试
 
@@ -102,29 +106,31 @@ metadata:
 | 角色卡 | 职责 | 调度时机 |
 |--------|------|----------|
 | `references/roles/unit-test-runner.md` | 单元测试骨架生成、执行与覆盖率分析 | 骨架编译、执行与覆盖率阶段 |
-| `references/roles/test-triage.md` | 测试失败根因分诊（真源对齐语义判断） | `scripts/triage.mjs` 返回 `needs_agent_diagnosis: true` 时 |
+| `references/roles/test-triage.md` | 测试失败根因分诊（基准对齐语义判断） | `scripts/triage.mjs` 返回 `needs_agent_diagnosis: true` 时 |
 
-**并行派发**：若宿主支持子代理派发能力，将下列角色卡**并行**分派，每卡一份独立上下文；若不支持，则在当前会话内**顺序**执行同一批角色卡，产出格式不变。
+**并行派发**：若宿主支持子代理派发能力，将上述角色卡**并行**分派，每卡一份独立上下文；若不支持，则在当前会话内**顺序**执行同一批角色卡，产出格式不变。
 
 ## 安全边界
 
 - 不修改产品代码（只生成和修改测试代码）
 - 不执行 Git 操作
 - 不启动服务或真实浏览器；前端测试使用 jsdom/happy-dom 等模拟 DOM 环境
+- 不向外部服务上传覆盖率数据或测试产物
 
 ## 完成标准
 
 - 测试文件已生成到项目测试目录
 - 测试已执行并输出结果
 - 覆盖率已分析（如框架支持）
+- 失败项已完成分诊并给出处理结论
 
-## 设计用例入口
+## 用例规格入口
 
-有设计用例时，按以下优先级定位用例规格：
-1. 直接传入 `test-cases.md` 路径 → 直接读取
-2. 传入设计目录路径 → 从 design `overview.md` 获取模块清单和导航，定位 `modules/<NN>-<m>/test-cases.md`
+有用例规格时，按以下优先级定位：
+1. 直接传入用例规格文件路径 → 直接读取
+2. 传入包含用例规格的目录 → 读取该目录下的用例规格文件
 
-前端测试（scope 包含 frontend 时）从 `test-cases.md` 的以下章节编译骨架：
+前端测试从用例规格的以下章节编译骨架：
 - 组件单元测试（组件渲染、props、条件渲染）
 - 交互行为测试（事件触发、状态转换）
 - UI 状态机用例（状态路径、加载/成功/错误态）

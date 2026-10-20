@@ -10,9 +10,10 @@ dist
 # AE 运行时产物
 /ae/logs/
 /ae/*/tmp/
-/ae/officecli/
-/ae/agents/
-/ae/solutions/*.local.md
+/ae/*/screenshots/
+/ae/*/reports/
+/ae/*/golden/
+/ae/*/sequences/
 /playwright-report/
 /test-results/
 

@@ -41,21 +41,39 @@ test('规则 2：全部测试失败判定为环境问题', () => {
   assert.equal(out.rule, 2)
 })
 
-test('规则 4：没有真源时要求人工确认', () => {
+test('规则 4：没有基准文档时要求人工确认', () => {
   const out = JSON.parse(run(['--json', JSON.stringify([failure()])]))
   assert.equal(out.dispatchTarget, 'manual')
   assert.equal(out.rule, 4)
 })
 
-test('规则 3：有真源时输出需要语义诊断的上下文', () => {
+test('规则 3：有基准文档时输出需要语义诊断的上下文', () => {
   const out = JSON.parse(run([
     '--json', JSON.stringify([failure()]),
-    '--prd', 'ae/prd/demo/overview.md',
+    '--requirement', 'docs/requirements.md',
   ]))
   assert.equal(out.needsAgentDiagnosis, true)
   assert.equal(out.rule, 3)
-  assert.equal(out.prdPath, 'ae/prd/demo/overview.md')
+  assert.equal(out.requirementPath, 'docs/requirements.md')
   assert.ok(out.instructions.length > 0)
+})
+
+test('用例规格路径可单独提供', () => {
+  const out = JSON.parse(run([
+    '--json', JSON.stringify([failure()]),
+    '--case-spec', 'docs/test-cases.md',
+  ]))
+  assert.equal(out.needsAgentDiagnosis, true)
+  assert.equal(out.caseSpecPath, 'docs/test-cases.md')
+})
+
+test('集成层标识合法', () => {
+  const out = JSON.parse(run([
+    '--json', JSON.stringify([failure({ testLayer: 'integration' })]),
+    '--requirement', 'docs/requirements.md',
+  ]))
+  assert.equal(out.needsAgentDiagnosis, true)
+  assert.equal(out.failures[0].testLayer, 'integration')
 })
 
 test('输入缺少必填字段时返回退出码 1', () => {
@@ -67,7 +85,7 @@ test('输入缺少必填字段时返回退出码 1', () => {
 
 test('非法 testLayer 被拒绝', () => {
   assert.throws(
-    () => run(['--json', JSON.stringify([failure({ testLayer: 'integration' })])]),
+    () => run(['--json', JSON.stringify([failure({ testLayer: 'api' })])]),
     (error) => error.status === 1,
   )
 })

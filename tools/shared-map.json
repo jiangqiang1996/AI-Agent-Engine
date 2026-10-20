@@ -1,155 +1,5 @@
 {
-  "ae-api-test": [
-    {
-      "to": "scripts/lib/ae-config.mjs",
-      "from": "ae-config.mjs"
-    },
-    {
-      "to": "scripts/lib/ae-paths.mjs",
-      "from": "ae-paths.mjs"
-    }
-  ],
-  "ae-audio": [
-    {
-      "to": "scripts/lib/ae-config.mjs",
-      "from": "ae-config.mjs"
-    },
-    {
-      "to": "scripts/lib/ae-paths.mjs",
-      "from": "ae-paths.mjs"
-    },
-    {
-      "to": "scripts/lib/media-backend.mjs",
-      "from": "media-backend.mjs"
-    }
-  ],
-  "ae-docx": [
-    {
-      "to": "scripts/officecli.mjs",
-      "from": "officecli.mjs"
-    }
-  ],
-  "ae-e2e-test": [
-    {
-      "to": "scripts/lib/ae-config.mjs",
-      "from": "ae-config.mjs"
-    },
-    {
-      "to": "scripts/lib/ae-paths.mjs",
-      "from": "ae-paths.mjs"
-    }
-  ],
-  "ae-image": [
-    {
-      "to": "scripts/lib/ae-config.mjs",
-      "from": "ae-config.mjs"
-    },
-    {
-      "to": "scripts/lib/ae-paths.mjs",
-      "from": "ae-paths.mjs"
-    },
-    {
-      "to": "scripts/lib/media-backend.mjs",
-      "from": "media-backend.mjs"
-    }
-  ],
-  "ae-my-code-changes": [
-    {
-      "to": "scripts/lib/ae-config.mjs",
-      "from": "ae-config.mjs"
-    },
-    {
-      "to": "scripts/lib/ae-paths.mjs",
-      "from": "ae-paths.mjs"
-    }
-  ],
-  "ae-officecli": [
-    {
-      "to": "scripts/officecli.mjs",
-      "from": "officecli.mjs"
-    }
-  ],
   "ae-pptx": [
-    {
-      "to": "scripts/officecli.mjs",
-      "from": "officecli.mjs"
-    }
-  ],
-  "ae-prototype-preview": [
-    {
-      "to": "scripts/lib/ae-config.mjs",
-      "from": "ae-config.mjs"
-    },
-    {
-      "to": "scripts/lib/ae-paths.mjs",
-      "from": "ae-paths.mjs"
-    }
-  ],
-  "ae-review": [
-    {
-      "to": "scripts/lib/ae-config.mjs",
-      "from": "ae-config.mjs"
-    },
-    {
-      "to": "scripts/lib/ae-paths.mjs",
-      "from": "ae-paths.mjs"
-    }
-  ],
-  "ae-sql": [
-    {
-      "to": "scripts/lib/ae-config.mjs",
-      "from": "ae-config.mjs"
-    },
-    {
-      "to": "scripts/lib/ae-paths.mjs",
-      "from": "ae-paths.mjs"
-    }
-  ],
-  "ae-unit-test": [
-    {
-      "to": "scripts/lib/ae-config.mjs",
-      "from": "ae-config.mjs"
-    },
-    {
-      "to": "scripts/lib/ae-paths.mjs",
-      "from": "ae-paths.mjs"
-    }
-  ],
-  "ae-video": [
-    {
-      "to": "scripts/lib/ae-config.mjs",
-      "from": "ae-config.mjs"
-    },
-    {
-      "to": "scripts/lib/ae-paths.mjs",
-      "from": "ae-paths.mjs"
-    },
-    {
-      "to": "scripts/lib/media-backend.mjs",
-      "from": "media-backend.mjs"
-    }
-  ],
-  "ae-work": [
-    {
-      "to": "scripts/lib/ae-config.mjs",
-      "from": "ae-config.mjs"
-    },
-    {
-      "to": "scripts/lib/ae-paths.mjs",
-      "from": "ae-paths.mjs"
-    }
-  ],
-  "ae-work-report": [
-    {
-      "to": "scripts/lib/ae-config.mjs",
-      "from": "ae-config.mjs"
-    },
-    {
-      "to": "scripts/lib/ae-paths.mjs",
-      "from": "ae-paths.mjs"
-    }
-  ],
-  "ae-xlsx": [
     {
       "to": "scripts/officecli.mjs",
       "from": "officecli.mjs"
@@ -165,24 +15,22 @@
       "from": "ae-paths.mjs"
     }
   ],
-  "ae-ocr-code-review": [
+  "ae-unit-test": [
     {
-      "to": "scripts/lib/ae-config.mjs",
-      "from": "ae-config.mjs"
-    },
-    {
-      "to": "scripts/lib/ae-paths.mjs",
-      "from": "ae-paths.mjs"
+      "to": "scripts/triage.mjs",
+      "from": "triage.mjs"
     }
   ],
-  "ae-playwright-verify": [
+  "ae-integration-test": [
     {
-      "to": "scripts/lib/ae-config.mjs",
-      "from": "ae-config.mjs"
-    },
+      "to": "scripts/triage.mjs",
+      "from": "triage.mjs"
+    }
+  ],
+  "ae-e2e-test": [
     {
-      "to": "scripts/lib/ae-paths.mjs",
-      "from": "ae-paths.mjs"
+      "to": "scripts/triage.mjs",
+      "from": "triage.mjs"
     }
   ]
 }

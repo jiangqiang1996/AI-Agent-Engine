@@ -92,9 +92,9 @@ node scripts/officecli.mjs run -- help pptx set shape
 
 ## 路由关系
 
-- **本技能**：`.pptx` 文件的入口，提供 PPT 专属元素、路径、属性和专用技能
-- **调用入口**：本技能自带的 `scripts/officecli.mjs`，独立可用，不依赖其他技能
-- **通用能力**：L1/L2/L3 分层、`watch`、`batch`、raw XML、文档级属性等详见 `ae-officecli` 技能
+- **本技能**：`.pptx` 文件的入口，提供 PPT 专属元素、路径、属性与专用规则
+- **调用入口**：本技能自带的 `scripts/officecli.mjs`，独立可用，不依赖任何其它技能
+- **通用能力**：L1/L2/L3 分层、`batch`、`watch`、raw XML、文档级属性、退出码语义等详见 [CLI 通用能力参考](references/cli-reference.md)
 
 ## 何时使用
 
@@ -107,11 +107,9 @@ node scripts/officecli.mjs run -- help pptx set shape
 
 ## 何时不使用
 
-- PDF 文档操作用 `ae-pdf`
-- Word 文档用 `ae-docx`
-- Excel 用 `ae-xlsx`
-- 需要 raw XML 操作或 CSS 选择器查询直接用 `ae-officecli`
-- 大纲生成用 `ae-slides-outline`
+- PDF / Word / Excel 文档操作 → 本技能只处理 `.pptx`
+- 需要 raw XML 直改或 CSS 选择器查询 → 见 [CLI 通用能力参考](references/cli-reference.md) 的 L3 层
+- 演示文稿大纲的内容策划 → 本技能只负责把既定内容落成幻灯片，不负责产出大纲
 
 ## 设计系统
 
@@ -175,7 +173,7 @@ node scripts/officecli.mjs run -- help pptx set shape
 4. batch 批量生成 → create + add slide + add shapes
 5. HTML 计算验证 → view html，解析 shape 坐标检测重叠和溢出
 6. 修复循环 → 发现偏差则 set/remove/add 修复（最多 3 轮）
-7. 截图审美验证（可选）→ 全部通过后可选 view screenshot + ae-image 做配色和层次确认
+7. 截图审美验证（可选）→ 全部通过后可选 view screenshot + 读取截图做配色和层次确认
 ```
 
 ### 创建新文档
@@ -200,7 +198,7 @@ node scripts/officecli.mjs run -- help pptx set shape
 
 ### 从大纲生成
 
-1. 读取大纲文件（`ae-slides-outline` 产出的 `.md` 文件）
+1. 读取大纲文件（用户提供的 `.md` 大纲）
 2. 设计配色方案
 3. 逐页将大纲内容映射为可视化模式，每个文本 shape 必须显式设置 `w` 和 `h`
 4. batch 批量生成
@@ -258,7 +256,7 @@ HTML 输出过大时，写一个 Node.js 脚本解析 HTML 提取 shape 坐标�
 node scripts/officecli.mjs run -- deck.pptx view screenshot -o ae/pptx/preview.png
 ```
 
-然后调用 `ae-image` 技能识别截图内容，检查：
+然后**读取这张截图**做审美判断，检查：
 - 配色是否协调、对比度是否够高
 - 视觉层次是否清晰
 - 整体观感是否专业
@@ -348,8 +346,8 @@ node scripts/officecli.mjs run -- deck.pptx view outline
 | 类型 | 路径 |
 |---|---|
 | 本技能产物（渲染图、HTML 快照等） | `ae/pptx/` |
-| 命令日志 | `ae/logs/officecli/` |
+| 命令日志 | `ae/logs/pptx/` |
 
 ## 完整 CLI 参考
 
-L1/L2/L3 操作、watch、batch、raw XML、文档级属性等通用能力请参考 `ae-officecli` 技能。
+L1/L2/L3 三层策略、命令清单、批量操作、raw XML、驻留模式与退出码语义见 [CLI 通用能力参考](references/cli-reference.md)。

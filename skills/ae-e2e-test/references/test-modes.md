@@ -8,7 +8,7 @@
 
 只执行项目**已有**的 E2E 脚本，不新增、不修改测试脚本。
 
-1. 解析输入：URL 或功能描述 + 可选设计用例路径
+1. 解析输入：URL 或功能描述 + 可选用例规格路径
 2. 检测分辨率（按 [分辨率自动检测](resolution-detection.md) 四级优先级）
 3. 定位项目已有的 `.spec.ts`：
    - 优先使用项目既有测试目录（`tests/e2e/`、`e2e/`、`__tests__/` 等）
@@ -25,7 +25,7 @@
 6. 报告与取证落盘到 `ae/e2e-test/reports/`
 7. 如有失败，构建 TestFailureBundle 并进入测试失败处理流程
 
-> 本模式**不**修改任何测试脚本。若失败原因判定为 test bug，切换到 `mode=script` 或转交 `ae-frontend-fix` 修复。
+> 本模式**不**修改任何测试脚本。若失败原因判定为 test bug，切换到 `mode=script` 修正脚本；若判定为 production bug，转由前端修复流程处理。
 
 ---
 
@@ -33,11 +33,11 @@
 
 编译或生成 `.spec.ts` 后执行。
 
-1. 解析输入：URL 或功能描述 + 可选设计用例路径
+1. 解析输入：URL 或功能描述 + 可选用例规格路径
 2. 检测分辨率（按 [分辨率自动检测](resolution-detection.md) 四级优先级）
 3. 编译测试骨架：
-   - 有设计用例 → 从 design `overview.md` 定位 `modules/<NN>-<m>/test-cases.md`，从用例规格编译 Playwright 骨架
-   - 无设计用例 → 从页面描述生成测试场景
+   - 有用例规格 → 读取用户提供的用例规格文档，从规格编译 Playwright 骨架
+   - 无用例规格 → 从页面描述生成测试场景
 4. 辅助探索页面结构（可选）：
    - 用 `npx playwright codegen <url>` 录制交互，直接产出可用的 `.spec.ts`
    - 或读取项目已有页面实现，推断稳定的元素定位器（优先 `data-testid`、role+name、可见文本，最后才用 CSS 层级）
@@ -57,6 +57,6 @@
 
 ---
 
-## 设计用例入口
+## 用例规格入口
 
-有设计用例时，从 design `overview.md` 获取模块清单和导航，定位 `modules/<NN>-<m>/test-cases.md` 读取用例规格。
+有用例规格时，读取用户提供的用例规格文档（Markdown 或等价格式），从中提取页面流程、前置条件与断言点。

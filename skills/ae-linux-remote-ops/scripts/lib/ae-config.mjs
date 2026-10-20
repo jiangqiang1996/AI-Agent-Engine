@@ -204,7 +204,7 @@ export function loadAeConfig(options = {}) {
 /**
  * 读取某个技能自己的配置分片。
  *
- * @param {string} skillKey 技能在 ae.jsonc 中的顶层 key，例如 "ae-pdf"
+ * @param {string} skillKey 技能在 ae.jsonc 中的顶层 key，例如 "ae-xxx"
  * @param {object} [options] 透传给 loadAeConfig
  * @returns {{ value: object, configPath: string|null, source: string }}
  */

@@ -11,4 +11,18 @@
   完整禁止清单与替代写法见 `docs/development.md` §2。
 - 分发方式是纯 `npx skills`：技能必须位于 `skills/<name>/SKILL.md`，且目录名 == frontmatter `name`。
 - 每个技能**高内聚、低耦合**：可被单独拷走独立使用，不依赖其他技能。
+- **技能之间禁止交叉引用**：技能内不得出现其它技能的名称，也不得残留已删除技能的悬空名。
+  该约束由 `npm run validate` 自动校验（跨技能引用检查），违反直接报错。
 - 改动后必须 `npm run check`（同步检查 + 规范校验 + 单元测试）全绿。
+
+## 当前技能集合
+
+| 分组 | 技能 |
+|---|---|
+| 需求 | `ae-grill` |
+| 开发与修复 | `ae-frontend` `ae-backend` |
+| 测试 | `ae-unit-test` `ae-integration-test` `ae-e2e-test` `ae-e2e-suite` |
+| 文档与运维 | `ae-pptx` `ae-linux-remote-ops` |
+
+新增或删除技能时，必须同步更新：`tools/validate.mjs` 的 `AE_DIR_OWNER`、
+`tools/shared-map.json`、`.claude-plugin/plugin.json`、`README.md`、本文件。

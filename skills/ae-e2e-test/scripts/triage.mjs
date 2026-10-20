@@ -3,7 +3,7 @@
  * 测试失败根因分诊器（零依赖）
  *
  * 按 5 条规则的固定顺序短路匹配，输出根因分类与分派目标。
- * 规则 1/2/4/5 为确定性判断；规则 3（真源对齐）需要语义推理，
+ * 规则 1/2/4/5 为确定性判断；规则 3（基准对齐）需要语义推理，
  * 脚本只输出"需要人工/代理诊断"的上下文，由执行者继续判断。
  *
  * 用法：
@@ -14,16 +14,16 @@
  * 输入（JSON 数组或对象）：
  * {
  *   "failures": [
- *     { "testLayer": "unit|api|e2e",
+ *     { "testLayer": "unit|integration|e2e",
  *       "failureType": "assertion|timeout|selector|http|env|runtime",
  *       "testName": "...",
  *       "stackTrace": "...",
  *       "expected": "...", "actual": "...",
  *       "domSnapshot": "可选", "screenshot": "可选",
- *       "relatedDesignCase": "可选" }
+ *       "relatedCase": "可选" }
  *   ],
- *   "prdPath": "可选，需求文档路径",
- *   "designCasePath": "可选，设计用例路径",
+ *   "requirementPath": "可选，需求规格文档路径",
+ *   "caseSpecPath": "可选，测试用例规格路径",
  *   "gitDiff": "可选，最近变更 diff",
  *   "totalTestCount": "可选，总测试数"
  * }
@@ -33,7 +33,7 @@
 
 import { readFileSync } from 'node:fs'
 
-const VALID_LAYERS = new Set(['unit', 'api', 'e2e'])
+const VALID_LAYERS = new Set(['unit', 'integration', 'e2e'])
 const VALID_FAILURE_TYPES = new Set(['assertion', 'timeout', 'selector', 'http', 'env', 'runtime'])
 
 function validateFailures(failures) {
@@ -62,7 +62,7 @@ function classifyDomain(failure) {
   if (failure.testLayer === 'e2e' || failure.failureType === 'selector') {
     return 'frontend'
   }
-  if (failure.failureType === 'http' || failure.testLayer === 'api') {
+  if (failure.failureType === 'http' || failure.testLayer === 'integration') {
     return 'backend'
   }
   if (failure.domSnapshot !== undefined || failure.screenshot !== undefined) {
@@ -113,28 +113,28 @@ export function triage(input) {
     }
   }
 
-  // 规则 4：无真源 → 需人工确认
-  const hasPrd = Boolean(input.prdPath && String(input.prdPath).length > 0)
-  const hasDesign = Boolean(input.designCasePath && String(input.designCasePath).length > 0)
-  if (!hasPrd && !hasDesign) {
+  // 规则 4：无基准文档 → 需人工确认
+  const hasRequirement = Boolean(input.requirementPath && String(input.requirementPath).length > 0)
+  const hasCaseSpec = Boolean(input.caseSpecPath && String(input.caseSpecPath).length > 0)
+  if (!hasRequirement && !hasCaseSpec) {
     return {
       rootCause: 'production',
       domain: null,
       dispatchTarget: 'manual',
-      summary: '需求和设计均不清晰，无法判定根因，请确认测试期望',
-      evidence: '未提供 PRD 路径和设计用例路径，无法进行真源对齐判断',
+      summary: '需求规格与用例规格均不清晰，无法判定根因，请确认测试期望',
+      evidence: '未提供需求规格路径与用例规格路径，无法进行基准对齐判断',
       rule: 4,
     }
   }
 
-  // 规则 3：有真源 → 需要语义对齐判断
+  // 规则 3：有基准文档 → 需要语义对齐判断
   const isFrontend = classifyDomain(failures[0]) === 'frontend'
   return {
     needsAgentDiagnosis: true,
     rule: 3,
-    reason: '有真源（需求文档或设计用例）可用，需要语义对齐判断',
-    prdPath: input.prdPath ?? null,
-    designCasePath: input.designCasePath ?? null,
+    reason: '有基准文档（需求规格或用例规格）可用，需要语义对齐判断',
+    requirementPath: input.requirementPath ?? null,
+    caseSpecPath: input.caseSpecPath ?? null,
     gitDiff: input.gitDiff ?? null,
     failures: failures.map((f) => ({
       testName: f.testName,
@@ -142,14 +142,14 @@ export function triage(input) {
       actual: f.actual,
       failureType: f.failureType,
       testLayer: f.testLayer,
-      relatedDesignCase: f.relatedDesignCase ?? null,
+      relatedCase: f.relatedCase ?? null,
     })),
     fallbackDomain: isFrontend ? 'frontend' : 'backend',
     instructions: [
-      '请读取真源文件（需求文档 / 设计用例），对比断言期望值与产品实际行为是否与真源一致：',
-      '- 断言正确、产品行为偏离真源 → 修复产品代码（production bug）',
-      '- 产品行为符合真源、断言写错 → 修复测试（test bug）',
-      '- 真源本身与当前需求不符 → 回到设计阶段修正（design-drift）',
+      '请读取基准文档（需求规格 / 用例规格），对比断言期望值与产品实际行为是否与基准一致：',
+      '- 断言正确、产品行为偏离基准 → 修复产品代码（production bug）',
+      '- 产品行为符合基准、断言写错 → 修复测试（test bug）',
+      '- 基准文档本身与当前需求不符 → 修正基准文档（spec-drift）',
       '判断完成后，请按本技能的输出格式给出根因与分派目标。',
     ].join('\n'),
   }
@@ -194,13 +194,13 @@ function main() {
       }
     } else if (item === '--total') {
       options.totalTestCount = Number(next())
-    } else if (item === '--prd') {
-      options.prdPath = next()
-    } else if (item === '--design-case') {
-      options.designCasePath = next()
+    } else if (item === '--requirement') {
+      options.requirementPath = next()
+    } else if (item === '--case-spec') {
+      options.caseSpecPath = next()
     } else if (item === '--help' || item === '-h') {
       process.stdout.write([
-        '用法: node triage.mjs --input <json 文件> [--total <总测试数>] [--prd <需求路径>] [--design-case <设计用例路径>]',
+        '用法: node triage.mjs --input <json 文件> [--total <总测试数>] [--requirement <需求规格路径>] [--case-spec <用例规格路径>]',
         '或: cat failures.json | node triage.mjs',
         '',
       ].join('\n'))

@@ -20,11 +20,22 @@
 
 import { spawn, spawnSync } from 'node:child_process'
 import { mkdirSync, writeFileSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const SKILL_NAME = 'ae-officecli'
-const LOG_DIR_NAME = ['ae', 'logs', 'officecli']
+/**
+ * 所属技能名与日志目录名从脚本自身路径推导，
+ * 使本脚本可以被拷进任意技能目录独立使用，不写死任何技能名。
+ *
+ * scripts/officecli.mjs → 技能目录名（ae-pptx）→ 产物 slug（pptx）
+ */
+function resolveOwningSkillName(scriptUrl) {
+  const parent = basename(dirname(dirname(fileURLToPath(scriptUrl))))
+  return /^ae-[a-z0-9-]+$/.test(parent) ? parent : 'officecli'
+}
+
+const SKILL_NAME = resolveOwningSkillName(import.meta.url)
+const LOG_DIR_NAME = ['ae', 'logs', SKILL_NAME.replace(/^ae-/, '')]
 const IS_WINDOWS = process.platform === 'win32'
 
 /* ------------------------------------------------------------------ *

@@ -6,7 +6,7 @@
  *   - 临时产物：<cwd>/ae/<skill-slug>/tmp/
  *   - 日志：    <cwd>/ae/logs/<skill-slug>/
  *
- * <skill-slug> = 技能目录名去掉 "ae-" 前缀，例如 ae-pdf → pdf。
+ * <skill-slug> = 技能目录名去掉 "ae-" 前缀，例如目录名 ae-xxx → xxx。
  *
  * 共享真源：tools/shared/ae-paths.mjs
  * 同步到：skills/<skill>/scripts/lib/ae-paths.mjs（由 tools/sync-shared.mjs 分发）
@@ -23,7 +23,7 @@ export const LOGS_DIR = 'logs'
 
 /**
  * 把技能名转成产物子目录名。
- * "ae-pdf" → "pdf"，"ae-ocr-code-review" → "ae-ocr-code-review"
+ * 规则：去掉 "ae-" 前缀，其余部分原样保留（含内部连字符）。
  */
 export function skillSlug(skillName) {
   const name = String(skillName ?? '').trim()

@@ -28,10 +28,6 @@ function probeExternalTools() {
   const tools = [
     { name: 'git', args: ['--version'] },
     { name: 'node', args: ['--version'] },
-    { name: 'ffmpeg', args: ['-version'] },
-    { name: 'ffprobe', args: ['-version'] },
-    { name: 'tesseract', args: ['--version'] },
-    { name: 'java', args: ['-version'] },
     { name: 'officecli', args: ['--version'] },
     { name: 'playwright-cli', args: ['--version'] },
   ]

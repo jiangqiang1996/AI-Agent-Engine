@@ -10,6 +10,7 @@
  *   5. 禁用词：宿主专属语法 / 已废弃的插件工具名
  *   6. 产物路径：ae/<slug>/ 归属校验，禁止跨技能乱写
  *   7. 目录名：通用词黑名单（防止被 npx skills 递归兜底误发现时撞名）
+ *   8. 跨技能引用：技能之间禁止交叉引用（高内聚、低耦合）
  *
  * 用法：node tools/validate.mjs [--json] [--quiet]
  */
@@ -43,42 +44,20 @@ const MAX_COMPATIBILITY_LENGTH = 500
 const MAX_BODY_LINES = 500
 
 /** ae/ 下允许被多个技能共享的目录（无唯一归属） */
-const SHARED_AE_DIRS = new Set(['logs', 'solutions', 'patterns'])
+const SHARED_AE_DIRS = new Set(['logs'])
 
 /**
  * ae/ 子目录的归属技能。写操作只允许归属技能使用；
  * 其他技能只能在该上下文中"读取"。
  */
 const AE_DIR_OWNER = {
-  prd: 'ae-prd',
-  design: 'ae-design',
-  review: 'ae-review',
-  handoff: 'ae-work',
-  image: 'ae-image',
-  audio: 'ae-audio',
-  video: 'ae-video',
-  pdf: 'ae-pdf',
-  docx: 'ae-docx',
+  'linux-remote-ops': 'ae-linux-remote-ops',
   pptx: 'ae-pptx',
-  xlsx: 'ae-xlsx',
-  'work-report': 'ae-work-report',
-  'api-test': 'ae-api-test',
-  'e2e-test': 'ae-e2e-test',
+  frontend: 'ae-frontend',
+  backend: 'ae-backend',
   'unit-test': 'ae-unit-test',
-  'spec-html': 'ae-spec-html',
-  'slides-outline': 'ae-slides-outline',
-  'prototype-preview': 'ae-prototype-preview',
-  'merge-branch': 'ae-merge-branch',
-  'test-artifacts': 'ae-unit-test',
-  work: 'ae-work',
-}
-
-/**
- * 编排型技能：它们会调用其他技能产出结果，因此允许在产出上下文中
- * 提及被编排技能的产物目录。
- */
-const DELEGATED_OUTPUT_DIRS = {
-  'ae-align-verify': ['prd', 'design', 'work', 'unit-test', 'api-test', 'e2e-test'],
+  'integration-test': 'ae-integration-test',
+  'e2e-test': 'ae-e2e-test',
 }
 
 /** 表示"写入/产出"的上下文关键词 */
@@ -202,6 +181,54 @@ function extractRelativeReferences(body) {
   return [...refs]
 }
 
+/**
+ * 检测技能之间的交叉引用。
+ *
+ * 技能必须高内聚、低耦合：不允许在 SKILL.md / references / scripts 中
+ * 提到其它技能的名称——既不允许引用现存技能，也不允许残留已删除技能的悬空名。
+ * 技能内部的自引用（如自身的目录名）不受限制。
+ *
+ * @param {string} skillDir 技能目录绝对路径
+ * @param {string} skillName 当前技能名
+ * @param {string[]} allSkillNames 仓库内全部技能名
+ * @returns {string[]} 违规描述列表
+ */
+function findCrossSkillReferences(skillDir, skillName, allSkillNames) {
+  const problems = []
+  const files = [
+    join(skillDir, 'SKILL.md'),
+    ...walkFiles(join(skillDir, 'references'), (file) => file.endsWith('.md')),
+    ...walkFiles(join(skillDir, 'scripts'), (file) => file.endsWith('.mjs') || file.endsWith('.js')),
+  ]
+  const known = new Set(allSkillNames)
+  // 形如 ae-<slug>，slug 至少两段（ae-pdf 这类单段名不匹配，避免误伤 ae-config 等文件名）
+  const tokenPattern = /(?<![A-Za-z0-9_.-])(ae-[a-z0-9]+(?:-[a-z0-9]+)+)/g
+
+  for (const file of files) {
+    if (!existsSync(file)) {
+      continue
+    }
+    const content = readFileSync(file, 'utf8')
+    const rel = relative(skillDir, file).split('\\').join('/')
+    const seen = new Set()
+    let match
+    tokenPattern.lastIndex = 0
+    while ((match = tokenPattern.exec(content)) !== null) {
+      const token = match[1]
+      if (token === skillName || seen.has(token)) {
+        continue
+      }
+      seen.add(token)
+      if (known.has(token)) {
+        problems.push(`跨技能引用：${rel} 引用了其它技能 "${token}"（技能之间禁止交叉引用）`)
+      } else {
+        problems.push(`悬空技能引用：${rel} 引用了不存在的技能 "${token}"`)
+      }
+    }
+  }
+  return problems
+}
+
 /* ------------------------------------------------------------------ *
  * 校验主体
  * ------------------------------------------------------------------ */
@@ -226,7 +253,7 @@ function findTemplateBackslashHazard(source) {
   return null
 }
 
-function validateSkill(skillDir, skillName) {
+function validateSkill(skillDir, skillName, allSkillNames = []) {
   const errors = []
   const warnings = []
   const skillFile = join(skillDir, 'SKILL.md')
@@ -358,12 +385,13 @@ function validateSkill(skillDir, skillName) {
     const lineEnd = body.indexOf('\n', pathMatch.index)
     const line = body.slice(lineStart, lineEnd === -1 ? undefined : lineEnd)
     if (WRITE_CONTEXT.test(line)) {
-      const delegated = DELEGATED_OUTPUT_DIRS[skillName] ?? []
-      if (delegated.includes(target)) {
-        continue
-      }
       errors.push(`在产出上下文中写入了 ae/${target}/（该目录归属 ${owner}，当前技能应写 ae/${ownSlug}/）`)
     }
+  }
+
+  /* --- 跨技能引用（技能之间禁止交叉引用） --- */
+  for (const ref of findCrossSkillReferences(skillDir, skillName, allSkillNames)) {
+    errors.push(ref)
   }
 
   /* --- 目录名 --- */
@@ -425,7 +453,7 @@ function main() {
     if (!statSync(skillDir).isDirectory()) {
       return { skill: skillName, errors: [], warnings: [] }
     }
-    return validateSkill(skillDir, skillName)
+    return validateSkill(skillDir, skillName, skillDirs)
   })
 
   const totalErrors = results.reduce((sum, item) => sum + item.errors.length, 0)

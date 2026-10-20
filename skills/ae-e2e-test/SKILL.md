@@ -18,30 +18,30 @@ metadata:
 浏览器端到端测试执行器。支持两种模式：
 
 - **仅执行模式**（`mode=test-only`）：执行项目**已有**的 E2E 脚本并取证，不新增脚本
-- **编写脚本模式**（`mode=script`）：从设计用例或页面描述编译生成 `.spec.ts` 后执行
+- **编写脚本模式**（`mode=script`）：从用例规格或页面描述编译生成 `.spec.ts` 后执行
 
 自动检测项目类型并设置分辨率，默认 2K（2560×1440）。
 
 角色卡是纯 Markdown，位于 `references/roles/`，不绑定任何宿主：
 
 - `references/roles/e2e-test-runner.md` — E2E 测试执行者：脚本生成、执行、取证与失败归因
-- `references/roles/test-triage.md` — 测试失败根因分诊者：真源对齐语义判断
+- `references/roles/test-triage.md` — 测试失败根因分诊者：基准对齐语义判断
 
 ## 适用场景
 
 - 用户要求对指定 URL 或功能进行 E2E 测试
 - 用户要求只执行既有脚本、不新增脚本（`mode=test-only`）
 - 用户要求编写测试脚本并运行（`mode=script`）
-- 用户提供了设计用例路径，需要从用例规格编译 Playwright 骨架
+- 用户提供了用例规格文档，需要从规格编译 Playwright 骨架
 - 用户要求执行已有 E2E 测试并收集取证
-- 用户要求修复失败的 E2E 测试（triage 判定为 test bug 时）
+- 用户要求修复失败的 E2E 测试（分诊判定为 test bug 时）
 
 ## 不适用场景
 
-- 后端单元测试 → 使用 `ae-unit-test`
-- 接口级测试 → 使用 `ae-api-test`
-- 纯前端修复 → 使用 `ae-frontend-fix`
-- 从零搭建项目的完整 E2E 测试工程（分层勘察、基建搭建、套件组织、覆盖率体系）→ 使用 `ae-playwright-verify`
+- 单个函数 / 类的纯逻辑测试 → 属于**单元测试**范畴
+- 跨接口、含真实依赖的业务流程测试 → 属于**集成测试**范畴
+- 生产代码缺陷的定位与修复 → 属于**前端 / 后端**范畴（修复模式）
+- 从零搭建项目的完整 E2E 测试工程（分层勘察、基建搭建、套件组织、覆盖率体系）→ 本技能只提供脚本执行与取证能力
 
 ## 模式选择
 
@@ -70,7 +70,7 @@ metadata:
 
 ### 编写脚本模式（mode=script）概要
 
-解析输入 → 检测分辨率 → 编译骨架（设计用例或页面描述）→ 生成 `.spec.ts` → `npx playwright test` 执行（配置 HTML reporter + `doNotInlineAssets`）→ 分离式 HTML 报告落 `ae/e2e-test/reports/` → 失败的构建 TestFailureBundle 走 triage
+解析输入 → 检测分辨率 → 编译骨架（用例规格或页面描述）→ 生成 `.spec.ts` → `npx playwright test` 执行（配置 HTML reporter + `doNotInlineAssets`）→ 分离式 HTML 报告落 `ae/e2e-test/reports/` → 失败的构建 TestFailureBundle 走 triage
 
 ## 脚本存储、golden 生命周期与失败处理
 
@@ -88,9 +88,9 @@ script 模式运行后生成分离式 HTML 测试报告。详见 [测试报告�
 | 角色卡 | 职责 | 调度时机 |
 |--------|------|----------|
 | `references/roles/e2e-test-runner.md` | E2E 脚本生成、执行、取证与失败归因 | 按 `mode` 参数分流执行对应流程 |
-| `references/roles/test-triage.md` | 测试失败根因分诊（真源对齐语义判断） | `scripts/triage.mjs` 返回 `needs_agent_diagnosis: true` 时 |
+| `references/roles/test-triage.md` | 测试失败根因分诊（基准对齐语义判断） | `scripts/triage.mjs` 返回 `needs_agent_diagnosis: true` 时 |
 
-**并行派发**：若宿主支持子代理派发能力，将下列角色卡**并行**分派，每卡一份独立上下文；
+**并行派发**：若宿主支持子代理派发能力，将上述角色卡**并行**分派，每卡一份独立上下文；
 若不支持，则在当前会话内**顺序**执行同一批角色卡，产出格式不变。
 
 ## 运行方式
@@ -117,13 +117,20 @@ npx playwright codegen <url>
 - 需要本地开发服务器已启动
 - 不上传覆盖率数据或取证产物到外部服务
 
+## 产物与日志
+
+| 类型 | 路径 |
+|------|------|
+| E2E 脚本、golden、报告、截图 | `ae/e2e-test/` |
+| 命令日志 | `ae/logs/e2e-test/` |
+
 ## 完成标准
 
 ### 仅执行模式
 
 - 已有 E2E 脚本已执行并输出结果
 - 取证（报告、失败截图、DOM 快照）已落盘到 `ae/e2e-test/reports/`
-- 如有失败，所有失败已构建 TestFailureBundle 并触发 triage 流程
+- 如有失败，所有失败已构建 TestFailureBundle 并触发分诊流程
 
 ### 编写脚本模式
 
@@ -131,7 +138,7 @@ npx playwright codegen <url>
 - 测试已执行并输出结果
 - 分离式 HTML 报告已生成到 `ae/e2e-test/reports/`（HTML/CSS/JS/Data 独立文件）
 - 通过的脚本已固化为 golden 回归资产
-- 如有失败，所有失败已构建 TestFailureBundle 并触发 triage 流程
+- 如有失败，所有失败已构建 TestFailureBundle 并触发分诊流程
 
 ## 参考文档
 

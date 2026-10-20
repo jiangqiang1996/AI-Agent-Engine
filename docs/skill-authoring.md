@@ -1,154 +1,171 @@
-# 技能编写规范（AE Skills）
+# 技能编写规范
 
-本仓库是 **Agent Skills 合集**。每个技能遵循 [Agent Skills 规范](https://agentskills.io/specification)，
-可被 Claude Code、Codex、Cursor、OpenCode、Copilot、Gemini CLI、Cline、Windsurf、Amp、Roo、
-Kiro、OpenClaw 等 40+ 宿主原生加载。
+本文描述**如何写一个技能**，不随技能分发给使用者。
 
 ---
 
-## 1. 目录结构
+## 1. 目录与命名
 
 ```
-skills/<skill-name>/
-├── SKILL.md          # 必须。frontmatter + 正文
-├── package.json      # 可选。该技能脚本的本地依赖（首次使用时在技能目录执行 npm install）
-├── references/       # 可选。按需加载的深度文档
-│   ├── roles/        # 可选。角色卡（见 §6）
-│   └── *.md
-├── scripts/          # 可选。Node.js 脚本（.mjs）
-│   └── lib/          # 可选。共享脚本副本（由 tools/sync-shared.mjs 分发）
-├── assets/           # 可选。模板、静态资源
-└── tests/            # 可选。该技能脚本的单元测试（*.test.mjs）
+skills/<ae-name>/
+  SKILL.md          # 必需，目录名必须 == frontmatter 的 name
+  references/       # 可选，渐进披露的细则
+  scripts/          # 可选，可执行脚本
+  tests/            # 可选，脚本单元测试
 ```
 
-**渐进披露**：frontmatter（~100 token）→ SKILL.md 正文（建议 <500 行）→ references/scripts 按需加载。
+- `name` 只允许小写字母、数字、连字符，不含首尾/连续连字符，≤64 字符。
+- 必须以 `ae-` 前缀开头。
 
 ---
 
 ## 2. Frontmatter
 
-只允许 6 个字段：
-
-| 字段 | 必填 | 约束 |
-|---|---|---|
-| `name` | 是 | ≤64 字符，小写字母/数字/连字符，**必须等于目录名** |
-| `description` | 是 | ≤1024 字符。必须同时写清「做什么」和「何时使用」，并包含中英文触发关键词 |
-| `license` | 否 | 许可证名或随附许可证文件名 |
-| `compatibility` | 否 | ≤500 字符。环境要求（Node 版本、外部二进制、网络访问） |
-| `metadata` | 否 | **string → string** 映射，不能有嵌套对象 |
-| `allowed-tools` | 否 | 空格分隔字符串。只能用通用工具名（`Bash(git:*) Read`），禁止写宿主专属工具名 |
+只允许 Agent Skills 规范的 6 个字段，多一个就报错。
 
 ```yaml
 ---
-name: ae-prd
-description: 探索阶段：创建新需求或修改已有需求，澄清目标、边界、约束、成功标准和待定问题，并产出需求文档。Use when the user needs to define or revise requirements before design.
+name: ae-example
+description: 一句话说清"这个技能做什么 + 什么时候用"，≤1024 字符。
 license: GPL-3.0-or-later
-compatibility: 无外部依赖
+compatibility: 运行前置条件（Node 版本、外部 CLI 等）
 metadata:
   author: ae-skills
-  version: "1.0.0"
+  version: 1.0.0
+  ae-group: 需求与设计
 ---
 ```
 
----
+| 字段 | 必填 | 约束 |
+|---|---|---|
+| `name` | 是 | == 目录名 |
+| `description` | 是 | ≤1024 字符；含中英文触发词最佳 |
+| `license` | 否 | 字符串 |
+| `compatibility` | 否 | 字符串，≤500 字符；**必须与实际依赖一致** |
+| `metadata` | 否 | 对象，值全部为字符串 |
+| `allowed-tools` | 否 | 空格分隔的字符串 |
 
-## 3. 宿主无关原则（最重要）
-
-**禁止**在任何技能内容里出现：
-
-- 宿主专属工具名：`question`、`Task`、`subagent_type`、`ae-async-bash` 等
-- 宿主专属路径：`.opencode/`、`~/.config/opencode/`、`opencode.json`
-- 宿主专属 frontmatter：`mode: subagent`、`steps:`、`tools:` 映射、`model: $scenario`
-- 宿主专属占位符：`$ARGUMENTS`
-- 宿主专属名：`opencode`（`OpenCodeReview` 是另一个产品，允许出现）
-
-**改为能力抽象措辞**：
-
-| 不要写 | 改写为 |
-|---|---|
-| 使用 `question` 工具 | 使用宿主的交互式提问能力（常见别名 AskUserQuestion / question） |
-| 调用 Task 工具 | 派发子代理（若宿主支持子代理派发能力） |
-| 通过 `glob` 查找 | 使用宿主的文件搜索能力 |
-| 用 `bash` 执行 | 使用宿主的命令执行能力 |
-
-**并行/降级范式**（用于角色卡）：
-
-> 若宿主支持子代理派发能力，将下列角色卡**并行**分派，每卡一份独立上下文；
-> 若不支持，则在当前会话内**顺序**执行同一批角色卡，产出格式不变。
+> `compatibility` 不要写"需要 Node.js 18+ 以运行本技能附带脚本"这种模板话，
+> 除非技能真的带脚本。没有脚本就写实际前置条件。
 
 ---
 
-## 4. 产物路径约定
+## 3. 多模式技能（`mode=`）
 
-| 类型 | 路径 |
-|---|---|
-| 持久产物 | `<cwd>/ae/<skill-slug>/` |
-| 临时产物 | `<cwd>/ae/<skill-slug>/tmp/` |
-| 日志 | `<cwd>/ae/logs/<skill-slug>/` |
+一个技能覆盖两类差异明显的工作时，用**模式**分流，而不是拆成两个技能。
 
-`<skill-slug>` = 技能目录名去掉 `ae-` 前缀（`ae-pdf` → `pdf`）。
+| 模式 | 入口 | 改动量 | 典型例子 |
+|---|---|---|---|
+| `dev` | 从零/按需求实现 | 按需求自由设计 | 新建页面、新增接口 |
+| `fix` | 先诊断再改 | **最小改动** | 修 bug、修样式 |
 
-**跨技能读取允许，跨技能写入禁止。** 例如 `ae-design` 可以读 `ae/prd/`，但只能写 `ae/design/`。
-共享目录（无唯一归属）：`ae/logs/`、`ae/solutions/`、`ae/patterns/`。
+写法要点：
 
----
+1. **模式判定表**放在 SKILL.md 靠前位置，说明触发条件与判定细则。
+2. **护栏必须按模式分段**——「不改测试代码、最小改动、不引入新功能」这类约束
+   只在 `fix` 模式生效，混在一起会污染 `dev` 模式。
+3. 共享部分（上下文检测、实现规范、验证闭环）**只写一份**，不要复制。
+4. 每个模式一张角色卡，放在 `references/roles/`。
+5. 用户显式给 `mode=xxx` 时严格照办；未给时按判定表推断，拿不准先问一句。
 
-## 5. 配置约定
-
-配置统一从 `ae.jsonc` 读取，查找顺序：
-
-1. 环境变量 `AE_CONFIG` 指向的文件（显式覆盖）
-2. `<cwd>/ae.jsonc`
-3. 从 `<cwd>` 逐级向上查找 `ae.jsonc`（最近者胜）
-4. `~/.ae.jsonc`
-
-**每个技能只读自己在 `ae.jsonc` 里的顶层 key**，互不干扰：
-
-```jsonc
-{
-  "ae-pdf":       { "cjkFontPath": "C:/Windows/Fonts/msyh.ttc" },
-  "ae-officecli": { "timeoutMs": 30000 },
-  "ae-image":     { "endpoint": "", "model": "", "apiKeyEnv": "OPENAI_API_KEY" }
-}
-```
-
-读取方式：技能内 `scripts/lib/ae-config.mjs` 提供 `getSkillConfig('<skill-key>')`。
+现有多模式技能：`ae-frontend`（dev/fix）、`ae-backend`（dev/fix）、`ae-e2e-test`（test-only/script）。
 
 ---
 
-## 6. 角色卡
+## 4. 正文结构
 
-多角色协作的技能，把每个角色写成 `references/roles/<role>.md`：
+正文 ≤500 行（超了会有 WARN）。超长内容拆到 `references/`，SKILL.md 只留主干。
+
+推荐骨架：
 
 ```markdown
-# 角色：安全设计审查者
+# 技能名
 
-## 职责
-## 触发条件
-## 输入契约
-## 输出契约
-## 工作流
+## 角色          # 这个技能扮演什么角色
+## 适用场景      # 什么时候用
+## 不适用场景    # 什么时候不用（只描述职责边界，不点名其它技能）
+## 执行流程      # 分步骤，可操作
+## 实现要求      # 硬约束：改什么、不改什么
+## 产物与日志    # ae/<slug>/ 与 ae/logs/<slug>/
+## 安全边界      # 禁止动作
+## 完成标准      # 可勾选的验收项
 ```
+
+### 引用规范
+
+- 相对引用必须真实存在：`references/xxx.md`、`scripts/xxx.mjs`。
+- 链接写法 `[标题](references/xxx.md)` 或反引号包裹 `` `references/xxx.md` ``。
 
 ---
 
-## 7. 脚本约定
+## 5. 零交叉引用（硬性）
 
-- 零外部依赖（仅 Node 标准库），或把依赖写进技能自身的 `package.json`
-- 需要外部二进制时，在 `compatibility` 中声明
-- 脚本产出必须落盘到 `ae/<skill-slug>/`，日志落 `ae/logs/<skill-slug>/`
-- 共享逻辑放 `tools/shared/`，由 `tools/sync-shared.mjs` 同步进各技能，保证单技能可独立取用
+技能**不得**提到其它技能的名称。
+
+- ❌ `浏览器端到端测试 → 使用 ae-e2e-test`
+- ✅ `浏览器端到端测试与取证 → 属于端到端测试范畴`
+
+需要"往哪转"时，只写**职责类别**（前端 / 后端 / 端到端测试 / 单元测试 …），
+让调用方自己决定交给谁。
+
+校验：`npm run validate` 的跨技能引用检查。
 
 ---
 
-## 8. 校验
+## 6. 宿主无关（硬性）
 
-```bash
-npm run validate   # 规范校验
-npm run sync       # 同步共享脚本
-npm run test       # 技能脚本单元测试
-npm run doctor     # 全量自检
+正文与脚本都不得出现宿主专属名与语法（完整清单见 `docs/development.md` §2）。
+
+需要交互提问时写「使用宿主的交互式提问能力」，不要写具体工具名。
+需要子代理时写「若宿主支持子代理派发能力…否则顺序执行」，不要写具体参数。
+
+---
+
+## 7. 脚本
+
+- 纯 Node.js 标准库优先，不引第三方依赖（除非技能自带 `package.json`）。
+- 放 `scripts/`，扩展名 `.mjs`。
+- 必须通过 `node --check`。
+- **模板字面量里不要写单反斜杠 + 非转义字符**（`\.` 会被 JS 吞掉）。用 `RegExp` 构造或写 `\\.`。
+- 写操作前先确认目标路径与权限。
+- 密码、令牌一律走环境变量，不落配置文件、不进日志。
+
+多技能共用同一份脚本时，把真源放 `tools/shared/` 并在 `tools/shared-map.json` 登记。
+
+---
+
+## 8. 角色卡
+
+复杂技能可把子职责拆成角色卡，放在 `references/roles/<role>.md`：
+
+```markdown
+# 角色：<名称>
+
+## 职责          # 这个角色负责什么
+## 触发条件      # 什么时候用这张卡
+## 输入契约      # 需要什么输入
+## 输出契约      # 产出什么
+## 工作流        # 步骤
+## 边界          # 不做什么
 ```
 
-`tools/validate.mjs` 会检查：frontmatter 字段与取值、`name` == 目录名、正文行数、
-相对引用是否存在、脚本语法、禁用词、产物路径归属、目录名通用词。
+角色卡是**技能内部实现细节**，不是技能之间的接口。技能可以引用自己的角色卡，
+但角色卡不得引用其它技能。
+
+---
+
+## 9. 自检清单
+
+提交前逐条确认：
+
+- [ ] `name` == 目录名，且带 `ae-` 前缀
+- [ ] frontmatter 只有 6 个允许字段
+- [ ] `description` 说清了"做什么 + 何时用"
+- [ ] `compatibility` 与实际依赖一致
+- [ ] 正文 ≤500 行，引用的 `references/` / `scripts/` 文件都存在
+- [ ] 没有任何其它技能的名称（`npm run validate` 会验）
+- [ ] 没有宿主专属名 / 工具名 / 占位符
+- [ ] `ae/<slug>/` 产物路径属于本技能
+- [ ] 没有硬编码密钥；破坏性操作有授权门槛
+- [ ] 脚本通过 `node --check`，必要时补 `tests/*.test.mjs`
+- [ ] `npm run check` 全绿
