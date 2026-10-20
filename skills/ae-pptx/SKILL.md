@@ -1,11 +1,11 @@
 ---
 name: ae-pptx
-description: PowerPoint 演示文稿（.pptx）创建、编辑、读取与视觉验证技能，通过官方 officecli 命令行操作，无需安装 Office；支持幻灯片、形状、图片、图表、表格、动画、过渡、母版等 OOXML 能力，并配套配色设计、布局基准、内容可视化模式与 HTML 计算验证流程。适用于 .pptx 的读取、创建、编辑、分析、格式转换与排版校验。Use when creating, editing, reading, converting or validating PowerPoint .pptx presentations.
+description: PowerPoint 演示文稿（.pptx）创建、编辑、读取与视觉验证技能，通过官方 officecli 命令行操作，无需安装 Office；支持幻灯片、形状、图片、图表、表格、动画、过渡、母版等 OOXML 能力，并配套配色设计、布局基准、内容可视化模式、HTML 计算验证流程；支持用 HTML 生成 SVG 矢量图表作配图，并可按需调用文生图模型生成配图。适用于 .pptx 的读取、创建、编辑、分析、格式转换与排版校验。Use when creating, editing, reading, converting or validating PowerPoint .pptx presentations.
 license: GPL-3.0-or-later
-compatibility: 需要全局可执行的 officecli 命令（缺失时按步骤 0 全局安装）；HTML 计算验证的辅助脚本需 Node.js 18+；跨平台（Windows/macOS/Linux）
+compatibility: 需要全局可执行的 officecli 命令（缺失时按步骤 0 全局安装）；随附脚本需 Node.js 20+；HTML 浏览器渲染模式额外需要本机 Chrome/Edge/Chromium（可选）；跨平台（Windows/macOS/Linux）
 metadata:
   author: ae-skills
-  version: 1.1.0
+  version: 1.2.0
   ae-group: 文档
 ---
 
@@ -89,6 +89,7 @@ officecli help pptx set shape          # 只看 set 可用的属性
 - 创建、编辑、分析 PowerPoint 演示文稿
 - 需要动画、过渡、Morph 效果
 - 需要图表、表格、SmartArt、3D 模型
+- 需要给幻灯片配图（HTML 生成 SVG 图表 / 调用文生图模型生成插画）
 - 需要将 PPTX 转为 HTML 预览或验证
 - 需要幻灯片母版/布局操作
 - 需要验证文档格式或检测问题
@@ -151,26 +152,81 @@ officecli help pptx set shape          # 只看 set 可用的属性
 | 数据统计 | 大数字统计块 | 数字36pt居中加粗+标签13pt下方 |
 | 命令映射 | 双列对比 | 左列命令(Consolas蓝色)+右列说明(灰色) |
 | 树状结构 | 代码块+侧边流程图 | 左侧代码+右侧依赖方向箭头 |
+| 数据趋势/占比 | **SVG 图表配图** | 见下方「配图生成」 |
+
+## 配图生成
+
+配图有两条产线，可单独用也可混用于同一份 PPT：
+
+| 产线 | 入口 | 产物 | 适用 |
+|------|------|------|------|
+| **HTML → SVG 图表** | `scripts/html-to-svg.mjs` | 矢量 SVG | 数据、趋势、占比、对比、流程、架构 |
+| **文生图模型** | `scripts/generate-image.mjs` | 位图 PNG/JPG | 封面、章节页、氛围插画、概念隐喻、照片级场景 |
+
+完整说明见 [配图生成指南](references/illustrations.md)、[SVG 图表规范](references/svg-charts.md)、[图片模型配置](references/image-model.md)。
+
+### 硬约束：禁止纯文字页
+
+- **每张幻灯片都不能全是文字**，必须搭配视觉元素（色块卡片 / SVG 图表 / 配图 / 大数字 / 代码块）。
+- 单页可见文字 ≤ **14 行**、单个文本 shape ≤ **3 行**；超了就拆页或改用图表/卡片承载。
+- 连续两页没有视觉元素 → 判为"文字墙"，必须整改。
+- **文字量要适当**：宁可少写、用图表和卡片承载信息，也不要把大纲原样堆成段落。
+
+### 产线选择（按场景判定）
+
+| 内容性质 | 选择 |
+|---------|------|
+| 含具体数值、趋势、占比、排名 | **SVG 图表**（数字必须精确，禁止用生图模型画带数字的图） |
+| 结构关系、流程、层级 | **SVG 图示**（内联 `<svg>` 手绘） |
+| 封面、章节页、氛围插画、照片级场景 | **文生图模型** |
+| 未配置图片模型 | **只走 SVG 图表**，不调用生图接口、不阻塞流程 |
+
+### 操作
+
+> **执行位置**：以下 `node <技能目录>/scripts/...` 命令在**项目根目录**下执行，
+> 脚本路径写技能目录的绝对路径（或 `<技能目录>/scripts/...`），这样 `--html` / `--out`
+> 的相对路径才会落在项目的 `ae/pptx/` 下。也可显式加 `--cwd <项目根>`。
+
+```bash
+# 1) 先查图片模型是否可用（不调用模型）
+node <技能目录>/scripts/generate-image.mjs --check
+
+# 2) HTML → SVG 图表（始终可用）
+node <技能目录>/scripts/html-to-svg.mjs --html ae/pptx/tmp/chart.html --out ae/pptx/assets/chart.svg
+
+# 3) 文生图（仅当上一步报告"已配置"）
+node <技能目录>/scripts/generate-image.mjs --prompt "极简科技风封面插画，无文字" --out ae/pptx/assets/cover.png
+
+# 4) 插入幻灯片（只给 width，按原始比例自动算高度）
+officecli add deck.pptx '/slide[3]' --type picture --prop src=ae/pptx/assets/chart.svg --prop x=1in --prop y=1.4in --prop width=8in
+```
+
+> 图片里的文字不可选中、不可搜索、缩放会糊：**标题、要点、图注一律用 shape 叠加**，不烧进图片。
+> 图表配色必须取自本次设计的配色方案，不得另起色板。
 
 ## 生成流程
 
 ```
 1. 输入分析 → 判断创建/编辑/分析
 2. 设计配色方案 → 根据内容主题/受众/项目特征，临时设计一套配色+字号层级，全程遵循
-3. 逐页设计 → 根据内容类型选择可视化模式，计算精确坐标，每个文本 shape 必须显式设置 w 和 h
-4. batch 批量生成 → create + add slide + add shapes
-5. HTML 计算验证 → view html，解析 shape 坐标检测重叠和溢出
-6. 修复循环 → 发现偏差则 set/remove/add 修复（最多 3 轮）
-7. 截图审美验证（可选）→ 全部通过后可选 view screenshot + 读取截图做配色和层次确认
+3. 配图规划 → 逐页判定"文字页 / 图表页 / 配图页"，产出配图清单（每页至少一个视觉元素）
+4. 生成配图 → HTML→SVG 图表（必做）+ 文生图（配置了才做）
+5. 逐页设计 → 根据内容类型选择可视化模式，计算精确坐标，每个文本 shape 必须显式设置 w 和 h
+6. batch 批量生成 → create + add slide + add shapes + add pictures
+7. HTML 计算验证 → view html，解析 shape 坐标检测重叠、溢出与文字密度
+8. 修复循环 → 发现偏差则 set/remove/add 修复（最多 3 轮）
+9. 截图审美验证（可选）→ 全部通过后可选 view screenshot + 读取截图做配色和层次确认
 ```
 
 ### 创建新文档
 
 1. `officecli create deck.pptx` 创建空白文档（已存在则加 `--force` 覆盖）
 2. 设计配色方案（见上方"配色方案设计"）
-3. 根据配色方案和布局规范，逐页设计元素清单，**每个文本 shape 必须显式设置 `w` 和 `h`**
-4. 用 `batch` 批量添加幻灯片与元素
-5. 生成后执行 HTML 计算验证
+3. 规划每页配图：哪些页用 SVG 图表、哪些页用生图模型、哪些页用卡片承载（每页至少一个视觉元素）
+4. 生成配图文件到 `ae/pptx/assets/`
+5. 根据配色方案和布局规范，逐页设计元素清单，**每个文本 shape 必须显式设置 `w` 和 `h`**
+6. 用 `batch` 批量添加幻灯片与元素
+7. 生成后执行 HTML 计算验证
 
 > `create` 默认按操作系统语言推断主题字体（如 zh-CN 用等线），会直接影响排版测量。要得到确定的西文基线就加 `--locale en-US`；其它目标语言传对应 tag（如 `--locale ja`）。
 
@@ -190,9 +246,10 @@ officecli help pptx set shape          # 只看 set 可用的属性
 
 1. 读取大纲文件（用户提供的 `.md` 大纲）
 2. 设计配色方案
-3. 逐页将大纲内容映射到可视化模式，每个文本 shape 必须显式设置 `w` 和 `h`
-4. batch 批量生成
-5. HTML 计算验证
+3. 逐页判定配图方式并生成配图文件
+4. 逐页将大纲内容映射到可视化模式，每个文本 shape 必须显式设置 `w` 和 `h`
+5. batch 批量生成
+6. HTML 计算验证
 
 ## 视觉验证
 
@@ -213,6 +270,7 @@ HTML 输出包含每个 shape 的 `data-path` 和精确 `left`/`top`/`width`/`he
 - 检测两两重叠：两个文本 shape 的交集面积 > 较小 shape 面积的 10% 即报告
 - 检测文字溢出：按字号估算每行文本宽度（CJK 字符 = 1em = 字号 pt；ASCII 字符 ≈ 0.55em），对比 shape 可用宽度
 - **按 `<div class="para">` 逐行计算宽度**，不得将多行文本拼接为一行
+- **统计每页文字行数与视觉元素数**，判定是否"纯文字页"（见下方文字密度规则）
 - 每页报告：OK 或列出问题（shape 路径、bounding box、问题描述）
 
 若宿主不支持子代理派发，改用下面的方法 B，产出格式不变。
@@ -225,6 +283,7 @@ HTML 输出过大时，写一个 Node.js 脚本解析 HTML 提取 shape 坐标�
 // 核心逻辑：解析 shape 的 style.left/top/width/height，计算两两交集
 // CJK 宽度 = fontSize pt，ASCII 宽度 = fontSize * 0.55 pt
 // 按 <div class="para"> 逐行计算，不拼接
+// 同时按页统计 <div class="para"> 行数与非文本 shape 数量
 ```
 
 **重叠检测规则**：
@@ -239,6 +298,12 @@ HTML 输出过大时，写一个 Node.js 脚本解析 HTML 提取 shape 坐标�
 - 空格宽度 ≈ 字号 × 0.27 pt
 - 按 `<div class="para">` 逐行计算，每行独立判断是否溢出
 - 任何一行超出 shape width 即报告溢出
+
+**文字密度规则（防"纯文字页"）**：
+- 单页可见文字行数 > **14 行** → 报告"文字过密"，建议拆页或改用图表/卡片承载
+- 单个文本 shape 的 `<div class="para">` 行数 > **3 行** → 报告"文字块过长"
+- 单页视觉元素（色块卡片 / 图表 / 配图 / 大数字块 / 代码块 / 非文本 shape）数量 = 0 → 报告"纯文字页"，必须整改
+- 连续两页都无视觉元素 → 报告"连续文字页"，必须拆分或加配图
 
 ### 第二层：截图审美验证（可选，HTML 验证全部通过后）
 
@@ -256,10 +321,11 @@ officecli view deck.pptx screenshot -o ae/pptx/preview.png
 ### 修复循环
 
 HTML 计算验证发现问题时：
-1. 定位问题页和问题类型（重叠/溢出/缺 w/h）
+1. 定位问题页和问题类型（重叠/溢出/缺 w/h/文字过密/纯文字页）
 2. `set` 修改属性（特别是补 `w`/`h`）或 `add`/`remove` 调整元素
-3. 重新 HTML 验证
-4. 每页最多 3 轮修复，超过则标注"需人工复查"
+3. 文字过密或纯文字页 → 拆页、把段落改成卡片/图表/配图，不要只调字号
+4. 重新 HTML 验证
+5. 每页最多 3 轮修复，超过则标注"需人工复查"
 
 ## 驻留模式与落盘
 
@@ -317,13 +383,24 @@ table（table-column / table-row / table-cell） textbox theme transition zoom
 | `background` | 背景色 | `"1A1A2E"` |
 | `text` | 文本内容 | `"Hello"` |
 | `x`/`y` | 位置 | `"2cm"`, `"5cm"` |
-| `w`/`h` | 宽高 | `"10cm"`, `"3cm"` |
+| `w`/`h` | 宽高（shape） | `"10cm"`, `"3cm"` |
 | `font` | 字体 | `"Arial"` |
 | `size` | 字号 | `"24"`, `"18pt"` |
 | `color` | 文字颜色 | `"FFFFFF"` |
 | `fill` | 填充色 | `"FF0000"` |
 | `bold` | 粗体 | `"true"` |
 | `align` | 对齐 | `"left"`, `"center"`, `"right"` |
+
+### 图片（picture）属性
+
+| 属性 | 说明 | 示例 |
+|------|------|------|
+| `src` | 图片来源（文件路径 / URL / data-URI），**add 时必填** | `"ae/pptx/assets/chart.svg"` |
+| `x`/`y` | 位置 | `"1in"`, `"1.4in"` |
+| `width`/`height` | 宽高；**只给 `width` 时按原始比例自动算高度** | `"8in"` |
+| `alt` | 无障碍替代文本 | `"季度营收柱状图"` |
+| `opacity` | 透明度 0-1 | `"0.9"` |
+| `link` | 超链接 | `"https://example.com"` |
 
 ## 快速示例
 
@@ -341,21 +418,25 @@ officecli view deck.pptx outline
 1. **配色方案全程遵循** — 设计配色方案后，所有页面的配色、字体、布局参数从方案取值，不得混用
 2. **每个文本 shape 必须显式设置 `w` 和 `h`** — 不设置时使用 OOXML 默认 283.46×141.73pt，导致溢出和重叠
 3. **用可视化模式** — 表格用彩色卡片，代码用深色块，数据用大数字，禁止空格对齐
-4. **先读再改** — 编辑前先 `view outline` 了解结构
-5. **增量更新** — 只修改需要变更的页，不重建整个文件
-6. **用稳定 ID** — 多步操作时用 `@id=` 寻址，避免索引偏移
-7. **batch 批量操作** — 多个 add/set 用 `batch` 一次完成
-8. **生成后必须 HTML 计算验证** — `view html` 解析 shape 坐标，检测重叠和溢出
-9. **匹配专用场景时先装专用技能** — 融资任务装 `pitch-deck`，Morph 动画装 `morph-ppt`
-10. **注意 shape[1]** — 通常是标题占位符，内容从 `shape[2]` 开始
-11. **不确定时用 help** — `officecli help pptx shape` 查看完整属性
-12. **改完记得落盘** — 驻留模式下交付文件前先 `save` 或 `close`
+4. **禁止纯文字页** — 每页至少一个视觉元素，文字量适当；段落优先改成卡片或图表
+5. **数字走图表、文字走 shape** — 带数值的配图用 SVG 图表，文字用 shape 叠加，禁止烧进图片
+6. **先读再改** — 编辑前先 `view outline` 了解结构
+7. **增量更新** — 只修改需要变更的页，不重建整个文件
+8. **用稳定 ID** — 多步操作时用 `@id=` 寻址，避免索引偏移
+9. **batch 批量操作** — 多个 add/set 用 `batch` 一次完成
+10. **生成后必须 HTML 计算验证** — `view html` 解析 shape 坐标，检测重叠、溢出与文字密度
+11. **匹配专用场景时先装专用技能** — 融资任务装 `pitch-deck`，Morph 动画装 `morph-ppt`
+12. **注意 shape[1]** — 通常是标题占位符，内容从 `shape[2]` 开始
+13. **不确定时用 help** — `officecli help pptx shape` 查看完整属性
+14. **改完记得落盘** — 驻留模式下交付文件前先 `save` 或 `close`
 
 ## 产物与日志
 
 | 类型 | 路径 |
 |---|---|
 | 本技能产物（渲染图、HTML 快照等） | `ae/pptx/` |
+| 配图文件（SVG 图表 / 生图结果） | `ae/pptx/assets/` |
+| 配图 HTML / spec 源文件 | `ae/pptx/tmp/` |
 | 命令日志 | `ae/logs/pptx/`（按需用 shell 重定向保存） |
 
 ## 完整 CLI 参考

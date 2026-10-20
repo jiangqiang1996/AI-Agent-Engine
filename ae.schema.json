@@ -68,6 +68,110 @@
           }
         }
       }
+    },
+    "ae-pptx": {
+      "type": "object",
+      "description": "ae-pptx 技能的配图配置。imageModel 用于文生图配图；未配置时只走 HTML → SVG 图表产线",
+      "additionalProperties": false,
+      "properties": {
+        "imageModel": {
+          "type": "object",
+          "description": "文生图模型配置。密钥只从环境变量读取，这里只写环境变量名",
+          "additionalProperties": false,
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": ["openai", "gemini", "dashscope", "custom"],
+              "description": "图片生成接口协议：openai=OpenAI 兼容网关，gemini=Gemini generateContent，dashscope=阿里云百炼，custom=自建/本地服务"
+            },
+            "baseUrl": {
+              "type": "string",
+              "description": "服务地址，不带结尾斜杠。留空按 provider 取默认值"
+            },
+            "path": {
+              "type": "string",
+              "description": "请求路径。留空按 provider 取默认值（openai 兼容默认 /images/generations）"
+            },
+            "model": {
+              "type": "string",
+              "description": "图片模型名，如 gpt-image-1、gemini-3-pro-image-preview、qwen-image"
+            },
+            "apiKeyEnv": {
+              "type": "string",
+              "description": "存放 API Key 的环境变量名（密钥本身不写进配置文件）。留空按 provider 取默认值"
+            },
+            "size": {
+              "type": "string",
+              "description": "默认图片尺寸，如 1536x1024、1024x1024"
+            },
+            "quality": {
+              "type": "string",
+              "description": "质量档位，如 standard、hd、high"
+            },
+            "style": {
+              "type": "string",
+              "description": "默认风格描述，会追加到提示词"
+            },
+            "negativePrompt": {
+              "type": "string",
+              "description": "默认反向提示词"
+            },
+            "timeoutSec": {
+              "type": "number",
+              "minimum": 1,
+              "description": "调用超时秒数，默认 180"
+            },
+            "outputDir": {
+              "type": "string",
+              "description": "默认输出目录，留空表示 ae/pptx/assets/"
+            },
+            "responsePath": {
+              "type": "string",
+              "description": "自定义响应取值路径，如 result.images.0。留空按常见键位自动识别"
+            },
+            "body": {
+              "type": "object",
+              "description": "追加到请求体的字段",
+              "additionalProperties": true
+            },
+            "headers": {
+              "type": "object",
+              "description": "追加到请求头的字段",
+              "additionalProperties": true
+            }
+          }
+        }
+      }
+    },
+    "ae-qwen3-tts": {
+      "type": "object",
+      "description": "ae-qwen3-tts 技能的语音合成配置",
+      "additionalProperties": false,
+      "properties": {
+        "modelRoot": {
+          "type": "string",
+          "description": "模型根目录，留空表示用技能目录下的 models/"
+        },
+        "outputDir": {
+          "type": "string",
+          "description": "默认输出目录，留空表示用 <cwd>/ae/qwen3-tts/"
+        },
+        "device": {
+          "type": "string",
+          "pattern": "^(auto|cpu|cuda(:[0-9]+)?)$",
+          "description": "默认设备：auto / cuda / cuda:N / cpu"
+        },
+        "dtype": {
+          "type": "string",
+          "enum": ["auto", "bfloat16", "float16", "float32"],
+          "description": "默认精度，auto=GPU 用 bf16、CPU 用 float32"
+        },
+        "attnImpl": {
+          "type": "string",
+          "enum": ["auto", "sdpa", "flash_attention_2", "eager", "flex_attention"],
+          "description": "默认注意力实现"
+        }
+      }
     }
   }
 }

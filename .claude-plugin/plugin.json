@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin.json",
   "name": "ae-skills",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "通用 Agent Skills 合集：需求追问、前后端开发与修复、三层测试、PPTX 文档、语音合成与服务器运维。零交叉引用，可单独安装。",
   "author": {
     "name": "ae-skills"

@@ -12,5 +12,24 @@
     "timeoutSec": 15,
     "execTimeoutSec": 300,
     "keepaliveIntervalSec": 10
+  },
+
+  "ae-pptx": {
+    "imageModel": {
+      "provider": "openai",
+      "baseUrl": "https://api.openai.com/v1",
+      "model": "gpt-image-1",
+      "apiKeyEnv": "OPENAI_API_KEY",
+      "size": "1536x1024",
+      "timeoutSec": 180
+    }
+  },
+
+  "ae-qwen3-tts": {
+    "modelRoot": "",
+    "outputDir": "",
+    "device": "auto",
+    "dtype": "auto",
+    "attnImpl": "auto"
   }
 }

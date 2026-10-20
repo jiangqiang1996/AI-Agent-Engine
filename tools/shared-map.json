@@ -1,4 +1,14 @@
 {
+  "ae-pptx": [
+    {
+      "to": "scripts/lib/ae-config.mjs",
+      "from": "ae-config.mjs"
+    },
+    {
+      "to": "scripts/lib/ae-paths.mjs",
+      "from": "ae-paths.mjs"
+    }
+  ],
   "ae-linux-remote-ops": [
     {
       "to": "scripts/lib/ae-config.mjs",

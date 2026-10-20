@@ -83,7 +83,7 @@ npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git --list
 
 | 技能 | 用途 |
 |---|---|
-| `ae-pptx` | PowerPoint `.pptx` 创建、编辑、读取与视觉验证（需全局可执行的 `officecli` 命令，缺失时按技能步骤 0 安装） |
+| `ae-pptx` | PowerPoint `.pptx` 创建、编辑、读取与视觉验证；支持 HTML 生成 SVG 图表配图、可选调用文生图模型生成插图（需全局可执行的 `officecli` 命令，缺失时按技能步骤 0 安装） |
 
 ### 音频与多媒体
 
