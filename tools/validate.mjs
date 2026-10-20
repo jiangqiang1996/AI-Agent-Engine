@@ -65,7 +65,6 @@ const AE_DIR_OWNER = {
   'api-test': 'ae-api-test',
   'e2e-test': 'ae-e2e-test',
   'unit-test': 'ae-unit-test',
-  playwright: 'ae-playwright',
   'spec-html': 'ae-spec-html',
   'slides-outline': 'ae-slides-outline',
   'prototype-preview': 'ae-prototype-preview',
@@ -92,6 +91,9 @@ const GENERIC_DIR_NAMES = new Set([
   'test', 'build', 'deploy', 'docs', 'helper', 'utils', 'common', 'misc',
   'main', 'index', 'skill', 'skills', 'agent', 'agents', 'command', 'commands',
 ])
+
+/** 本合集的技能目录名必须统一使用 ae- 前缀（命名空间隔离，避免与他人技能撞名） */
+const SKILL_NAME_PREFIX = 'ae-'
 
 /** 宿主专属 / 已废弃的写法 */
 const FORBIDDEN_PATTERNS = [
@@ -365,6 +367,9 @@ function validateSkill(skillDir, skillName) {
   }
 
   /* --- 目录名 --- */
+  if (!skillName.startsWith(SKILL_NAME_PREFIX)) {
+    errors.push(`目录名 "${skillName}" 缺少统一前缀 "${SKILL_NAME_PREFIX}"`)
+  }
   if (GENERIC_DIR_NAMES.has(skillName)) {
     errors.push(`目录名 "${skillName}" 过于通用，容易与其他技能撞名`)
   }

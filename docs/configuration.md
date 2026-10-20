@@ -68,7 +68,7 @@ AE 技能的所有配置统一放在 **`ae.jsonc`**，每个技能只读取与�
 | `ae-officecli` | `timeoutMs` | 单条命令超时（毫秒） |
 | | `autoInstall` | 未安装时是否自动安装 |
 | `ae-pdf` | `cjkFontPath` | 中文字体绝对路径 |
-| `ae-playwright` | `baseUrl` / `browser` | 被测站点与浏览器通道 |
+| `ae-playwright-verify` | `baseUrl` / `browser` / `testDir` / `reporterDir` / `timeoutMs` | 被测站点、浏览器通道、测试目录与报告目录 |
 | `ae-sql` | `datasources[]` | 数据源列表（`name` / `url` / `user` / `passwordEnv` / `driver`） |
 | `ae-review` | `defaultBase` | 审查基线分支 |
 

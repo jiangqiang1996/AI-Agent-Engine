@@ -23,7 +23,7 @@ export const LOGS_DIR = 'logs'
 
 /**
  * 把技能名转成产物子目录名。
- * "ae-pdf" → "pdf"，"ocr-code-review" → "ocr-code-review"
+ * "ae-pdf" → "pdf"，"ae-ocr-code-review" → "ae-ocr-code-review"
  */
 export function skillSlug(skillName) {
   const name = String(skillName ?? '').trim()

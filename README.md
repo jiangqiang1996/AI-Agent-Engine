@@ -79,7 +79,7 @@ npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git --list
 | 技能 | 用途 |
 |---|---|
 | `ae-review` | 通用审查入口：范围分析 → 角色卡并行审查 → 去重合并 → 修复方案 |
-| `ocr-code-review` | 基于 OpenCodeReview delegate 模式的规则驱动源码审查 |
+| `ae-ocr-code-review` | 基于 OpenCodeReview delegate 模式的规则驱动源码审查 |
 
 ### 测试
 
@@ -88,7 +88,7 @@ npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git --list
 | `ae-unit-test` | 单元测试生成、执行与覆盖率分析 |
 | `ae-api-test` | 接口级后端测试与业务流程编排 |
 | `ae-e2e-test` | 浏览器 E2E 测试脚本编写与执行 |
-| `playwright-verify` | 完整 E2E 测试工程：分层勘察、基建搭建、取证、失败归因、视觉确认 |
+| `ae-playwright-verify` | 完整 E2E 测试工程：分层勘察、基建搭建、取证、失败归因、视觉确认 |
 
 ### 文档
 
@@ -100,22 +100,20 @@ npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git --list
 | `ae-xlsx` | `.xlsx` 专属操作（含公式计算、数据透视表） |
 | `ae-pdf` | PDF 创建、合并、拆分、提取、填表、水印、转 Markdown、转图片 |
 
-### 媒体与浏览器
+### 媒体
 
 | 技能 | 用途 |
 |---|---|
 | `ae-image` | 图片 → Markdown 描述（模型不支持图像输入时的降级通道） |
 | `ae-audio` | 音频 → Markdown 转写 |
 | `ae-video` | 视频 → 关键帧描述 + 音轨转写 |
-| `ae-playwright` | 浏览器自动化交互与网页测试 |
 
 ### 数据与运维
 
 | 技能 | 用途 |
 |---|---|
 | `ae-sql` | 通过 JDBC 连接数据库执行 SQL |
-| `linux-remote-ops` | SSH 远程操作内网 Linux：命令、SFTP 传输、状态与日志 |
-| `wechatide-skill` | 微信开发者工具工作流（小程序 / 小游戏） |
+| `ae-linux-remote-ops` | SSH 远程操作内网 Linux：命令、SFTP 传输、状态与日志 |
 
 ### 元能力
 

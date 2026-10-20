@@ -30,7 +30,7 @@
 
 1. 从设计用例提取页面流程与断言点；无设计用例时按页面描述生成。
 2. 识别既有 E2E 基建并复用；无基建时先补最小基建。
-3. 编译/生成 Playwright 脚本，默认使用项目既有浏览器通道；浏览器操作一律通过 `ae-playwright` 技能完成，不绕过该技能直接调用底层命令。
+3. 编译/生成 Playwright 脚本，默认使用项目既有浏览器通道；浏览器操作一律通过标准 Playwright（`npx playwright`）完成。
 4. 执行测试，采集 HTML 报告与截图；通过的场景按 golden 生命周期规范固化。
 5. 失败时三源归因：脚本问题 / 源码问题 / 环境问题；判定为生产 Bug 时从 golden 序列移除，判定为测试 Bug 时修复后更新 golden。
 6. 失败分诊用 `scripts/triage.mjs`；返回 `needs_agent_diagnosis: true`（规则 3 真源对齐）时，由编排层调度 `references/roles/test-triage.md` 做语义判断。

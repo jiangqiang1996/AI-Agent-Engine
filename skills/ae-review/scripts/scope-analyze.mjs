@@ -117,7 +117,7 @@ const DIMENSION_TO_ROLE = {
 
 /** 角色提示词模板 */
 const ROLE_PROMPT_TEMPLATES = {
-  'ocr-reviewer': '你是代码审查主引擎。通过 ocr-code-review 技能的 delegate 模式获取审查规格（文件清单 + 规则），由你执行审查，覆盖 bug/安全/性能/可维护性/测试覆盖/风格/规范/对抗式/可靠性。',
+  'ocr-reviewer': '你是代码审查主引擎。通过 ae-ocr-code-review 技能的 delegate 模式获取审查规格（文件清单 + 规则），由你执行审查，覆盖 bug/安全/性能/可维护性/测试覆盖/风格/规范/对抗式/可靠性。',
   'document-reviewer': '你是一位文档审查者。审查内部一致性、可行性、产品视角、步骤粒度、需求质量和证据核验。',
   'security-design-reviewer': '你是一位安全设计审查者。评估设计文档中的安全缺口、认证授权假设、数据暴露和威胁模型。',
   'architecture-design-reviewer': '你是一位架构设计审查者。从架构视角分析变更，检查架构边界、跨模块依赖和系统级抽象。',

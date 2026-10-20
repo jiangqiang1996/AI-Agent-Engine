@@ -334,7 +334,7 @@ ae/prototype-preview/
 
 **前置条件：** 步骤 3 字段一致性审查的所有 P0 审查项必须已通过。3 轮审查后仍有 P0 未通过时，由步骤 3.4 询问用户是否授权例外进入本步骤；用户未授权时不进入。
 
-**验收方式：** 执行验收时，通过 `ae-playwright` 技能打开 `<子目录>/index.html`（`file://` 协议），逐页面截图验证。截图保存到 `ae/prototype-preview/screenshots/prototype-preview/` 目录。验收项按优先级分级：
+**验收方式：** 执行验收时，用标准 Playwright 脚本打开 `<子目录>/index.html`（`file://` 协议），逐页面截图验证。截图保存到 `ae/prototype-preview/screenshots/prototype-preview/` 目录。验收项按优先级分级：
 
 **P0 验收项（确定性边界核心，必须通过）：**
 - 页面数量是否与原型文档一致
@@ -410,7 +410,7 @@ ae/prototype-preview/
 
 ## 浏览器操作
 
-仅当执行验收阶段（步骤 4）时需要浏览器操作。浏览器操作一律通过 `ae-playwright` 技能完成（`ae-prototype-preview` 的验收需求为对比原型文档与 HTML 产出，涉及 P0 级页面数量/路由/颜色 HEX/响应式声明校验，与浏览器端通用 E2E 验收模式能力不匹配，因此直接调用 `ae-playwright`）。无法完成验收时标注"验收跳过"，不阻断 HTML 文件生成。
+仅当执行验收阶段（步骤 4）时需要浏览器操作。浏览器操作一律通过 标准 Playwright 技能完成（`ae-prototype-preview` 的验收需求为对比原型文档与 HTML 产出，涉及 P0 级页面数量/路由/颜色 HEX/响应式声明校验，与浏览器端通用 E2E 验收模式能力不匹配，因此直接调用 标准 Playwright）。无法完成验收时标注"验收跳过"，不阻断 HTML 文件生成。
 
 ## 安全边界
 

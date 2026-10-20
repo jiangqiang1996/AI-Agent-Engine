@@ -85,7 +85,7 @@ AE Skills 是一组可移植的 AI 代理技能。技能由宿主的技能发现
 | 单元测试：生成、执行、覆盖率 | `ae-unit-test` |
 | 接口测试：业务流程编排 + 接口边界 | `ae-api-test` |
 | 浏览器 E2E：脚本编写 + 执行取证 | `ae-e2e-test` |
-| 完整 E2E 工程：分层勘察、基建搭建、失败归因 | `playwright-verify` |
+| 完整 E2E 工程：分层勘察、基建搭建、失败归因 | `ae-playwright-verify` |
 
 ### 文档
 
@@ -144,9 +144,9 @@ AE Skills 是一组可移植的 AI 代理技能。技能由宿主的技能发现
 | 技能 | 用途 |
 |---|---|
 | `ae-review` | 通用审查（代码/文档/设计/配置/测试用例） |
-| `ocr-code-review` | 规则驱动的源码审查（OpenCodeReview delegate 模式） |
+| `ae-ocr-code-review` | 规则驱动的源码审查（OpenCodeReview delegate 模式） |
 | `ae-unit-test` / `ae-api-test` / `ae-e2e-test` | 三层测试 |
-| `playwright-verify` | 完整 E2E 测试工程 |
+| `ae-playwright-verify` | 完整 E2E 测试工程 |
 
 ### 元能力
 
@@ -179,8 +179,7 @@ AE Skills 是一组可移植的 AI 代理技能。技能由宿主的技能发现
 | 做一个 PPT | `ae-pptx` |
 | 看懂一张截图/一段录音/一个视频 | `ae-image` / `ae-audio` / `ae-video` |
 | 查数据库 | `ae-sql` |
-| 操作内网 Linux 服务器 | `linux-remote-ops` |
-| 开发微信小程序 | `wechatide-skill` |
+| 操作内网 Linux 服务器 | `ae-linux-remote-ops` |
 
 ---
 

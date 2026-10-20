@@ -115,11 +115,10 @@ ls ~/.claude/skills/        # 全局（按你的宿主替换）
 | `ae-officecli` / `ae-docx` / `ae-pptx` / `ae-xlsx` | `officecli` 二进制 | 技能的**步骤 0 会自动检测并安装**（npm → brew → scoop → 官方安装脚本） |
 | `ae-pdf` | 技能目录内的 npm 依赖 | 首次使用时在技能目录执行 `npm install --omit=dev` |
 | `ae-image` / `ae-audio` / `ae-video` | 可选：`ffmpeg` / `tesseract` / `whisper`；或配置 `ae.jsonc` 的接口 | 退化为元信息输出，并提示如何配置 |
-| `ae-sql` | JRE 17+ | 需要用户自行安装 JRE |
-| `ae-playwright` | `playwright-cli` | 需用户自行安装 |
-| `ocr-code-review` | `ocr` CLI（npm `@alibaba-group/open-code-review`） | 需用户自行安装 |
-| `linux-remote-ops` | 无（ssh2 已内置） | — |
-| `playwright-verify` | Playwright 与浏览器 | 需用户自行安装 |
+| `ae-e2e-test` / `ae-playwright-verify` | Playwright 与浏览器内核 | 需用户自行安装（`npx playwright install`） |
+| `ae-ocr-code-review` | `ocr` CLI（npm `@alibaba-group/open-code-review`） | 需用户自行安装 |
+| `ae-linux-remote-ops` | 无（ssh2 已内置） | — |
+| `ae-playwright-verify` | Playwright 与浏览器 | 需用户自行安装 |
 
 检查本机可用性：
 

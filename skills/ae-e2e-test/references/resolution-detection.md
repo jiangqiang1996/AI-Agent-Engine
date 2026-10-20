@@ -42,6 +42,18 @@
 
 ## 分辨率设置方式
 
-- **桌面端/响应式项目**：浏览器启动后执行 `playwright-cli resize 2560 1440`
-- **移动端项目**：使用 `playwright-cli open --mobile` 或 `--device="iPhone 15"`，不执行 resize
-- **用户指定分辨率**：`playwright-cli resize <width> <height>`
+通过标准 Playwright 的视口与设备设置实现：
+
+- **桌面端 / 响应式项目**：在测试中设置视口
+  ```ts
+  await page.setViewportSize({ width: 2560, height: 1440 })
+  ```
+  或在 `playwright.config.ts` 的 `use.viewport` 中统一配置。
+- **移动端项目**：使用设备描述符，不手动 resize
+  ```ts
+  import { devices } from '@playwright/test'
+  test.use({ ...devices['iPhone 15'] })
+  ```
+- **用户指定分辨率**：`await page.setViewportSize({ width: <width>, height: <height> })`
+
+> 视口设置应在测试代码或配置中体现，不要依赖运行期命令行参数——命令行参数无法在多个 spec 之间共享同一会话配置。

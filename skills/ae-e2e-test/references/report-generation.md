@@ -79,4 +79,5 @@ ae/e2e-test/reports/
 
 ## test-only 模式
 
-test-only 模式不生成 HTML 报告，仅输出 `.sh` 序列文件和命令行结果摘要。
+test-only 模式不生成 HTML 报告，仅输出命令行结果摘要与 JSON 取证（`--reporter=json`）。
+失败项的截图与 DOM 快照仍会落盘到 `ae/e2e-test/reports/`。
