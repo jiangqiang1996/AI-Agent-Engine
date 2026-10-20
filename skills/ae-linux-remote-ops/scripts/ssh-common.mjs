@@ -23,9 +23,6 @@ import {
 /** ae.jsonc 中本技能的配置分片 key */
 export const SKILL_KEY = 'ae-linux-remote-ops';
 
-/** 产物与日志目录名（技能名去掉 ae- 前缀） */
-export const SKILL_SLUG = 'linux-remote-ops';
-
 const DEFAULTS = {
   port: 22,
   timeout_sec: 15,
@@ -36,6 +33,13 @@ const DEFAULTS = {
 export function fail(msg, code = 1) {
   console.error(msg);
   process.exit(code);
+}
+
+/** 用法类错误（参数缺失、目标不存在等），退出码 2。 */
+export function usageError(message) {
+  const error = new Error(message);
+  error.exitCode = 2;
+  return error;
 }
 
 function isPlainObject(v) {
@@ -500,7 +504,8 @@ export async function runMain(fn) {
   try {
     await fn();
   } catch (e) {
-    fail(e && e.message ? e.message : String(e));
+    const code = Number(e && e.exitCode) || 1;
+    fail(e && e.message ? e.message : String(e), code);
   }
 }
 

@@ -92,13 +92,23 @@ export function stripJsonComments(text) {
 
 /**
  * 解析 JSONC 文本。解析失败返回 null，不抛异常。
+ *
+ * 会剥离 UTF-8 BOM —— Windows 编辑器保存的 JSONC 常带 BOM，
+ * 若不剥离，JSON.parse 会失败并静默退化成"空配置"。
  */
 export function parseJsonc(text) {
-  if (typeof text !== 'string' || text.trim() === '') {
+  if (typeof text !== 'string') {
+    return null
+  }
+  let source = text
+  if (source.charCodeAt(0) === 0xfeff) {
+    source = source.slice(1)
+  }
+  if (source.trim() === '') {
     return null
   }
   try {
-    return JSON.parse(stripJsonComments(text))
+    return JSON.parse(stripJsonComments(source))
   } catch {
     return null
   }
@@ -150,7 +160,7 @@ export function resolveConfigPath(options = {}) {
 
 /**
  * 读取 AE 配置。
- * @returns {{ config: object, configPath: string|null, source: 'env'|'project'|'home'|'default' }}
+ * @returns {{ config: object, configPath: string|null, source: 'env'|'project'|'home'|'default', parseError: string|null }}
  */
 export function loadAeConfig(options = {}) {
   const cwd = resolve(options.cwd ?? process.cwd())
@@ -158,7 +168,7 @@ export function loadAeConfig(options = {}) {
   const configPath = resolveConfigPath({ cwd, env })
 
   if (!configPath) {
-    return { config: {}, configPath: null, source: 'default' }
+    return { config: {}, configPath: null, source: 'default', parseError: null }
   }
 
   let source = 'project'
@@ -171,16 +181,24 @@ export function loadAeConfig(options = {}) {
   let raw = ''
   try {
     raw = readFileSync(configPath, 'utf8')
-  } catch {
-    return { config: {}, configPath, source }
+  } catch (error) {
+    return { config: {}, configPath, source, parseError: `读取失败：${error.message}` }
   }
 
   const parsed = parseJsonc(raw)
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    return { config: {}, configPath, source }
+  if (!parsed) {
+    return {
+      config: {},
+      configPath,
+      source,
+      parseError: '配置文件不是合法的 JSONC（注意尾随逗号与注释是否正确闭合）',
+    }
+  }
+  if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return { config: {}, configPath, source, parseError: '配置文件顶层必须是对象' }
   }
 
-  return { config: parsed, configPath, source }
+  return { config: parsed, configPath, source, parseError: null }
 }
 
 /**
@@ -191,10 +209,10 @@ export function loadAeConfig(options = {}) {
  * @returns {{ value: object, configPath: string|null, source: string }}
  */
 export function getSkillConfig(skillKey, options = {}) {
-  const { config, configPath, source } = loadAeConfig(options)
+  const { config, configPath, source, parseError } = loadAeConfig(options)
   const raw = skillKey ? config[skillKey] : undefined
   const value = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}
-  return { value, configPath, source }
+  return { value, configPath, source, parseError }
 }
 
 /**

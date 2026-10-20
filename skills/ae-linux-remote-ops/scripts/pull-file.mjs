@@ -5,7 +5,7 @@ import path from 'node:path';
 
 import {
   connect, ensureConfig, loadConfig, md5File, runMain, runSshOn, shlexQuote, sftpCall, sftpOf,
-  targetLabel, writeOperationLog, writeOperationRecord,
+  targetLabel, usageError, writeOperationLog, writeOperationRecord,
 } from './ssh-common.mjs';
 
 function splitArgs(argv) {
@@ -51,13 +51,13 @@ await runMain(async () => {
       try {
         st = await sftpCall(sftp, 'stat', remote);
       } catch (e) {
-        throw new Error(`[ERROR] 远端文件不存在: ${remote}\n${e.message}`);
+        throw usageError(`[ERROR] 远端文件不存在: ${remote}\n${e.message}`);
       }
       const isDir = typeof st.isDirectory === 'function'
         ? st.isDirectory()
         : ((st.mode & 0o170000) === 0o040000);
       if (isDir) {
-        throw new Error(`[ERROR] ${remote} 是目录：请先在远端打包成 zip/tar 再下载`);
+        throw usageError(`[ERROR] ${remote} 是目录：请先在远端打包成 zip/tar 再下载`);
       }
       bytes = Number(st.size) || 0;
       const dir = path.dirname(local);
