@@ -165,6 +165,9 @@ officecli help pptx set shape          # 只看 set 可用的属性
 
 完整说明见 [配图生成指南](references/illustrations.md)、[SVG 图表规范](references/svg-charts.md)、[图片模型配置](references/image-model.md)。
 
+> 文生图产线的配置**只写模型接入信息与密钥**（`apiKey` 直接写密钥，或 `apiKeyEnv` 写环境变量名）；
+> 尺寸、质量、风格等生成参数**在调用时由本技能按版面需求提交**（可写在提示词里），不写进配置文件。
+
 ### 硬约束：禁止纯文字页
 
 - **每张幻灯片都不能全是文字**，必须搭配视觉元素（色块卡片 / SVG 图表 / 配图 / 大数字 / 代码块）。
@@ -194,12 +197,41 @@ node <技能目录>/scripts/generate-image.mjs --check
 # 2) HTML → SVG 图表（始终可用）
 node <技能目录>/scripts/html-to-svg.mjs --html ae/pptx/tmp/chart.html --out ae/pptx/assets/chart.svg
 
-# 3) 文生图（仅当上一步报告"已配置"）
-node <技能目录>/scripts/generate-image.mjs --prompt "极简科技风封面插画，无文字" --out ae/pptx/assets/cover.png
+# 3) 文生图（仅当上一步报告"已配置"）；生成参数的默认值写在提示词里
+node <技能目录>/scripts/generate-image.mjs --prompt "极简科技风封面插画，无文字 @aspect=16:9" --out ae/pptx/assets/cover.png
 
 # 4) 插入幻灯片（只给 width，按原始比例自动算高度）
 officecli add deck.pptx '/slide[3]' --type picture --prop src=ae/pptx/assets/chart.svg --prop x=1in --prop y=1.4in --prop width=8in
 ```
+
+### 硬约束：生成参数由技能自主提交
+
+- **配置只写「模型接入信息」**：`provider` / `baseUrl` / `model` / `apiKey`（或 `apiKeyEnv`）等；
+  **图片尺寸不写进 `ae.jsonc`**，尺寸随版面位置变化，由技能每次调用时自主决定。
+- **默认值直接写在提示词里**（`@key=value` 或 `[params]` 块），命令行参数可临时覆盖：
+
+  | 参数 | 提示词内嵌 | 命令行 |
+  |------|-----------|--------|
+  | 宽高比 | `@aspect=16:9` | `--aspect 16:9` |
+  | 尺寸 | `@size=1536x1024` | `--size 1536x1024` |
+  | 质量 | `@quality=high` | `--quality high` |
+  | 风格 | `@style=极简编辑风` | `--style "极简编辑风"` |
+  | 反向提示词 | `@negative=模糊,变形` | `--negative "模糊,变形"` |
+
+  参数指令会**从提示词里剥离**后再发给模型，不会污染画面描述。
+- 先定**摆放位置**再定**尺寸**：
+
+  | 摆放位置 | 版面尺寸 | 建议传参 |
+  |---------|---------|---------|
+  | 封面 / 章节页整页主视觉 | 960×540pt（16:9） | `@aspect=16:9` |
+  | 内容页通栏图 | 860×~280pt | `@aspect=16:9` |
+  | 内容页右侧配图 | 440×~300pt（3:2） | `@aspect=3:2` |
+  | 内容页居中方图 | 600×~340pt | `@aspect=1:1` |
+  | 竖版装饰 / 侧栏 | 窄高 | `@aspect=9:16` |
+
+  宽高比由脚本按 provider 支持集换算成实际尺寸；明确知道模型支持的像素值时才直接给尺寸。
+- **看脚本输出的实际像素**（`width` / `height`）：模型可能静默回落尺寸，
+  摆放与裁切以实际像素为准，插入 PPT 时**只给 `width`**。
 
 > 图片里的文字不可选中、不可搜索、缩放会糊：**标题、要点、图注一律用 shape 叠加**，不烧进图片。
 > 图表配色必须取自本次设计的配色方案，不得另起色板。

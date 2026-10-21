@@ -15,9 +15,12 @@ import { after, describe, it } from 'node:test'
 
 import {
   buildRequest,
+  detectImageSize,
   extractImageFromResponse,
   generateImage,
+  parsePromptParams,
   resolveImageModelConfig,
+  resolveImageSize,
 } from '../scripts/lib/image-client.mjs'
 
 const SKILL_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -110,6 +113,212 @@ describe('图片模型配置读取', () => {
     assert.equal(config.configured, false)
     assert.match(config.problems.join('；'), /不支持的 provider/)
   })
+
+  it('配置里只保留接入信息，不返回任何生成参数', () => {
+    const { configPath } = writeConfig(JSON.stringify({
+      'ae-pptx': {
+        imageModel: {
+          provider: 'openai',
+          baseUrl: 'https://example.invalid/v1',
+          model: 'gpt-image-1',
+          apiKeyEnv: 'MY_IMAGE_KEY',
+        },
+      },
+    }))
+    const config = resolveImageModelConfig({ cwd: configPath, env: { MY_IMAGE_KEY: 'sk-x' } })
+    for (const key of ['size', 'quality', 'style', 'negativePrompt', 'outputDir']) {
+      assert.equal(key in config, false, '配置对象不应再包含 ' + key)
+    }
+  })
+
+  it('配置里残留 size 等生成参数时被忽略并给出迁移提示', () => {
+    const { configPath } = writeConfig(JSON.stringify({
+      'ae-pptx': {
+        imageModel: {
+          provider: 'openai',
+          baseUrl: 'https://example.invalid/v1',
+          model: 'gpt-image-1',
+          apiKeyEnv: 'MY_IMAGE_KEY',
+          size: '1536x1024',
+          quality: 'high',
+        },
+      },
+    }))
+    const config = resolveImageModelConfig({ cwd: configPath, env: { MY_IMAGE_KEY: 'sk-x' } })
+    assert.equal(config.configured, true, '废弃字段不应阻塞调用')
+    assert.equal(config.size, undefined)
+    assert.equal(config.quality, undefined)
+    assert.equal(config.warnings.length, 2)
+    assert.match(config.warnings.join('；'), /imageModel\.size 已废弃/)
+    assert.match(config.warnings.join('；'), /--size/)
+  })
+
+  it('apiKey 直接写密钥时不需要环境变量', () => {
+    const { configPath } = writeConfig(JSON.stringify({
+      'ae-pptx': {
+        imageModel: {
+          provider: 'openai',
+          baseUrl: 'https://example.invalid/v1',
+          model: 'gpt-image-1',
+          apiKey: 'sk-plain-text',
+        },
+      },
+    }))
+    const config = resolveImageModelConfig({ cwd: configPath, env: {} })
+    assert.equal(config.configured, true)
+    assert.equal(config.apiKey, 'sk-plain-text')
+    assert.equal(config.apiKeySource, 'config')
+    assert.equal(config.apiKeyEnv, '')
+  })
+
+  it('apiKey 优先于 apiKeyEnv', () => {
+    const { configPath } = writeConfig(JSON.stringify({
+      'ae-pptx': {
+        imageModel: {
+          provider: 'openai',
+          baseUrl: 'https://example.invalid/v1',
+          model: 'gpt-image-1',
+          apiKey: 'sk-direct',
+          apiKeyEnv: 'MY_IMAGE_KEY',
+        },
+      },
+    }))
+    const config = resolveImageModelConfig({ cwd: configPath, env: { MY_IMAGE_KEY: 'sk-env' } })
+    assert.equal(config.apiKey, 'sk-direct')
+    assert.equal(config.apiKeySource, 'config')
+  })
+
+  it('apiKeyEnv 里写成密钥本身时按字面量使用并给出提示', () => {
+    const { configPath } = writeConfig(JSON.stringify({
+      'ae-pptx': {
+        imageModel: {
+          provider: 'openai',
+          baseUrl: 'https://example.invalid/v1',
+          model: 'gpt-image-1',
+          apiKeyEnv: 'sk-AobUAmAaoPWVnKYRqMhiq8cmF0EtS4nmD4oJGpg3nEO1VViq',
+        },
+      },
+    }))
+    const config = resolveImageModelConfig({ cwd: configPath, env: {} })
+    assert.equal(config.configured, true)
+    assert.equal(config.apiKeySource, 'config')
+    assert.match(config.warnings.join('；'), /密钥本身而不是环境变量名/)
+  })
+
+  it('未配置密钥时报告问题', () => {
+    const { configPath } = writeConfig(JSON.stringify({
+      'ae-pptx': {
+        imageModel: { provider: 'openai', baseUrl: 'https://example.invalid/v1', model: 'm' },
+      },
+    }))
+    const config = resolveImageModelConfig({ cwd: configPath, env: {} })
+    assert.equal(config.configured, false)
+    assert.match(config.problems.join('；'), /OPENAI_API_KEY/)
+  })
+})
+
+describe('生成尺寸决策（由调用方决定）', () => {
+  const openaiConfig = { provider: 'openai' }
+  const dashscopeConfig = { provider: 'dashscope' }
+  const geminiConfig = { provider: 'gemini' }
+
+  it('显式 --size 优先，按 provider 分隔符规范化', () => {
+    assert.deepEqual(resolveImageSize(openaiConfig, { size: '1024x1024' }), {
+      size: '1024x1024',
+      aspect: '',
+      source: 'cli',
+      via: 'size',
+      warnings: [],
+    })
+    assert.equal(resolveImageSize(dashscopeConfig, { size: '1024x1024' }).size, '1024*1024')
+  })
+
+  it('--aspect 按 provider 支持集换算成实际尺寸', () => {
+    const plan = resolveImageSize(openaiConfig, { aspect: '16:9' })
+    assert.equal(plan.size, '1536x1024')
+    assert.equal(plan.aspect, '16:9')
+    assert.equal(plan.source, 'cli')
+    assert.equal(plan.via, 'aspect')
+
+    const dashscope = resolveImageSize(dashscopeConfig, { aspect: '1:1' })
+    assert.equal(dashscope.size, '1328*1328')
+  })
+
+  it('提示词内嵌的尺寸标记来源记为 prompt', () => {
+    const plan = resolveImageSize(openaiConfig, { aspect: '1:1', source: 'prompt' })
+    assert.equal(plan.source, 'prompt')
+    assert.equal(plan.size, '1024x1024')
+  })
+
+  it('未指定时回落到 provider 默认尺寸', () => {
+    assert.equal(resolveImageSize(openaiConfig, {}).size, '1536x1024')
+    assert.equal(resolveImageSize(openaiConfig, {}).source, 'default')
+    assert.equal(resolveImageSize(openaiConfig, {}).via, 'default')
+    assert.equal(resolveImageSize(dashscopeConfig, {}).size, '1664*928')
+  })
+
+  it('Gemini 只认宽高比，尺寸会被折算成 aspectRatio', () => {
+    const plan = resolveImageSize(geminiConfig, { size: '1024x1536' })
+    assert.equal(plan.size, '')
+    assert.equal(plan.aspect, '2:3')
+    assert.match(plan.warnings.join('；'), /不接受 size 参数/)
+  })
+
+  it('非法尺寸直接报错', () => {
+    assert.throws(() => resolveImageSize(openaiConfig, { size: 'big' }), /尺寸格式非法/)
+  })
+
+  it('能从 PNG 二进制中读出真实像素尺寸', () => {
+    const png = Buffer.from(PNG_BASE64, 'base64')
+    const pixels = detectImageSize(png)
+    assert.equal(pixels.width, 1)
+    assert.equal(pixels.height, 1)
+    assert.equal(pixels.type, 'png')
+  })
+})
+
+describe('提示词内嵌参数（生成参数的默认值）', () => {
+  it('解析行内指令并从提示词里剥离', () => {
+    const result = parsePromptParams('一张极简科技风封面插画，无文字 @aspect=16:9 @quality=high')
+    assert.equal(result.prompt, '一张极简科技风封面插画，无文字')
+    assert.equal(result.params.aspect, '16:9')
+    assert.equal(result.params.quality, 'high')
+  })
+
+  it('解析单行参数块', () => {
+    const result = parsePromptParams('一张封面插画\n[params] aspect=1:1 size=1024x1024')
+    assert.equal(result.prompt, '一张封面插画')
+    assert.equal(result.params.aspect, '1:1')
+    assert.equal(result.params.size, '1024x1024')
+  })
+
+  it('解析多行参数块', () => {
+    const result = parsePromptParams('一张封面插画\n[params]\naspect=16:9\nstyle=极简编辑风\n\n正文继续')
+    assert.equal(result.params.aspect, '16:9')
+    assert.equal(result.params.style, '极简编辑风')
+    assert.ok(!result.prompt.includes('[params]'))
+    assert.ok(!result.prompt.includes('aspect='))
+    assert.ok(result.prompt.includes('正文继续'))
+  })
+
+  it('支持带引号的值与反向提示词别名', () => {
+    const result = parsePromptParams('画面描述 @style="极简编辑风，蓝色调" @negative=模糊,变形')
+    assert.equal(result.params.style, '极简编辑风，蓝色调')
+    assert.equal(result.params.negativePrompt, '模糊,变形')
+    assert.equal(result.prompt, '画面描述')
+  })
+
+  it('没有内嵌参数时原样返回', () => {
+    const result = parsePromptParams('一只橘猫坐在窗台')
+    assert.equal(result.prompt, '一只橘猫坐在窗台')
+    assert.deepEqual(result.params, {})
+  })
+
+  it('不会误伤普通文本里的 @ 与 =', () => {
+    const result = parsePromptParams('联系邮箱 user@example.com，比例 = 3:2')
+    assert.equal(result.prompt, '联系邮箱 user@example.com，比例 = 3:2')
+    assert.deepEqual(result.params, {})
+  })
 })
 
 describe('请求构造与响应解析', () => {
@@ -120,10 +329,6 @@ describe('请求构造与响应解析', () => {
     baseUrl: 'https://example.invalid/v1',
     path: '/images/generations',
     apiKey: 'sk-secret',
-    size: '1536x1024',
-    quality: '',
-    style: '',
-    negativePrompt: '',
     extraBody: {},
     extraHeaders: {},
     timeoutSec: 30,
@@ -136,6 +341,11 @@ describe('请求构造与响应解析', () => {
     assert.equal(request.body.prompt, '一只猫')
     assert.equal(request.body.size, '1024x1024')
     assert.equal(request.headers.Authorization, 'Bearer sk-secret')
+  })
+
+  it('质量档位由调用方传入', () => {
+    const request = buildRequest(baseConfig, { prompt: '一只猫', size: '1024x1024', quality: 'high' })
+    assert.equal(request.body.quality, 'high')
   })
 
   it('gemini 请求走 generateContent 并带 image 模态', () => {
@@ -155,15 +365,15 @@ describe('请求构造与响应解析', () => {
       provider: 'dashscope',
       baseUrl: 'https://dashscope.aliyuncs.com/api/v1',
       path: '/services/aigc/text2image/image-synthesis',
-      negativePrompt: '模糊',
-    }, { prompt: '一只猫' })
+    }, { prompt: '一只猫', negativePrompt: '模糊', size: '1664*928' })
     assert.equal(request.body.input.prompt, '一只猫。避免出现：模糊')
     assert.equal(request.body.input.negative_prompt, '模糊')
+    assert.equal(request.body.parameters.size, '1664*928')
     assert.equal(request.body.prompt, undefined)
   })
 
-  it('style 与反向提示词会拼进提示词（对所有 provider 生效）', () => {
-    const request = buildRequest({ ...baseConfig, style: '极简科技风' }, { prompt: '一只猫' })
+  it('style 与反向提示词由调用方传入并拼进提示词（对所有 provider 生效）', () => {
+    const request = buildRequest(baseConfig, { prompt: '一只猫', style: '极简科技风' })
     assert.equal(request.body.prompt, '一只猫。风格：极简科技风')
   })
 
@@ -210,10 +420,35 @@ describe('generate-image 命令行', () => {
     assert.equal(report.configured, true)
     assert.equal(report.provider, 'openai')
     assert.equal(report.apiKeyPresent, true)
+    assert.equal(report.apiKeySource, 'env')
+    assert.equal(report.apiKeyEnv, 'MY_IMAGE_KEY')
     assert.ok(!result.stdout.includes('sk-secret'), '输出不得包含密钥')
   })
 
-  it('对着本地 mock 服务生成图片并落盘', async () => {
+  it('--check 不泄露直接写在配置里的密钥', () => {
+    const { configPath } = writeConfig(JSON.stringify({
+      'ae-pptx': {
+        imageModel: {
+          provider: 'openai',
+          baseUrl: 'https://example.invalid/v1',
+          model: 'gpt-image-1',
+          apiKey: 'sk-plain-secret',
+        },
+      },
+    }))
+    const result = spawnSync(process.execPath, [CLI, '--check', '--json'], {
+      encoding: 'utf8',
+      env: { ...process.env, AE_CONFIG: configPath },
+    })
+    assert.equal(result.status, 0, result.stderr)
+    const report = JSON.parse(result.stdout)
+    assert.equal(report.apiKeyPresent, true)
+    assert.equal(report.apiKeySource, 'config')
+    assert.equal(report.apiKeyEnv, null)
+    assert.ok(!result.stdout.includes('sk-plain-secret'), '输出不得包含密钥')
+  })
+
+  it('对着本地 mock 服务生成图片并落盘，尺寸由命令行传入', async () => {
     const received = []
     const server = createServer((req, res) => {
       let body = ''
@@ -236,7 +471,6 @@ describe('generate-image 命令行', () => {
             baseUrl: 'http://127.0.0.1:8799/v1',
             model: 'mock-image',
             apiKeyEnv: 'MOCK_IMAGE_KEY',
-            size: '1024x1024',
           },
         },
       }), 'utf8')
@@ -246,6 +480,7 @@ describe('generate-image 命令行', () => {
         CLI,
         '--prompt', '一只橘猫坐在窗台',
         '--out', outPath,
+        '--size', '1024x1024',
         '--json',
       ], {
         env: { ...process.env, AE_CONFIG: configPath, MOCK_IMAGE_KEY: 'sk-mock-secret' },
@@ -255,6 +490,11 @@ describe('generate-image 命令行', () => {
       const report = JSON.parse(result.stdout)
       assert.equal(report.out, outPath)
       assert.ok(report.bytes > 0)
+      assert.equal(report.requestedSize, '1024x1024')
+      assert.equal(report.sentSize, '1024x1024')
+      assert.equal(report.sizeSource, 'cli')
+      assert.equal(report.width, 1)
+      assert.equal(report.height, 1)
 
       const written = readFileSync(outPath)
       assert.equal(written.length, report.bytes)
@@ -264,7 +504,147 @@ describe('generate-image 命令行', () => {
       assert.equal(received[0].url, '/v1/images/generations')
       assert.equal(received[0].body.model, 'mock-image')
       assert.equal(received[0].body.prompt, '一只橘猫坐在窗台')
+      assert.equal(received[0].body.size, '1024x1024')
       assert.ok(!result.stdout.includes('sk-mock-secret'), '输出不得包含密钥')
+    } finally {
+      await new Promise((done) => server.close(done))
+    }
+  })
+
+  it('--aspect 会按 provider 支持集换算成实际尺寸', async () => {
+    const received = []
+    const server = createServer((req, res) => {
+      let body = ''
+      req.on('data', (chunk) => { body += chunk })
+      req.on('end', () => {
+        received.push(JSON.parse(body || '{}'))
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ data: [{ b64_json: PNG_BASE64 }] }))
+      })
+    })
+    await new Promise((done) => server.listen(8802, '127.0.0.1', done))
+
+    try {
+      const dir = makeTempDir()
+      const configPath = join(dir, 'ae.jsonc')
+      writeFileSync(configPath, JSON.stringify({
+        'ae-pptx': {
+          imageModel: {
+            provider: 'openai',
+            baseUrl: 'http://127.0.0.1:8802/v1',
+            model: 'mock-image',
+            apiKeyEnv: 'MOCK_IMAGE_KEY',
+          },
+        },
+      }), 'utf8')
+
+      const result = await runCli([
+        CLI,
+        '--prompt', '一只橘猫',
+        '--out', join(dir, 'aspect.png'),
+        '--aspect', '1:1',
+        '--json',
+      ], {
+        env: { ...process.env, AE_CONFIG: configPath, MOCK_IMAGE_KEY: 'sk-mock-secret' },
+      })
+
+      assert.equal(result.status, 0, result.stderr)
+      const report = JSON.parse(result.stdout)
+      assert.equal(report.sizeSource, 'cli')
+      assert.equal(report.sizeVia, 'aspect')
+      assert.equal(report.sentSize, '1024x1024')
+      assert.equal(received[0].size, '1024x1024')
+    } finally {
+      await new Promise((done) => server.close(done))
+    }
+  })
+
+  it('配置里残留 size 时给出迁移提示且不影响调用', async () => {    const server = createServer((req, res) => {
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ data: [{ b64_json: PNG_BASE64 }] }))
+    })
+    await new Promise((done) => server.listen(8803, '127.0.0.1', done))
+
+    try {
+      const dir = makeTempDir()
+      const configPath = join(dir, 'ae.jsonc')
+      writeFileSync(configPath, JSON.stringify({
+        'ae-pptx': {
+          imageModel: {
+            provider: 'openai',
+            baseUrl: 'http://127.0.0.1:8803/v1',
+            model: 'mock-image',
+            apiKeyEnv: 'MOCK_IMAGE_KEY',
+            size: '1536x1024',
+          },
+        },
+      }), 'utf8')
+
+      const result = await runCli([
+        CLI,
+        '--check',
+        '--json',
+      ], {
+        env: { ...process.env, AE_CONFIG: configPath, MOCK_IMAGE_KEY: 'sk-mock-secret' },
+      })
+
+      assert.equal(result.status, 0, result.stderr)
+      const report = JSON.parse(result.stdout)
+      assert.equal(report.configured, true)
+      assert.equal(report.size, undefined)
+      assert.match(report.warnings.join('；'), /imageModel\.size 已废弃/)
+    } finally {
+      await new Promise((done) => server.close(done))
+    }
+  })
+
+  it('提示词内嵌的生成参数当作默认值，命令行可覆盖', async () => {
+    const received = []
+    const server = createServer((req, res) => {
+      let body = ''
+      req.on('data', (chunk) => { body += chunk })
+      req.on('end', () => {
+        received.push(JSON.parse(body || '{}'))
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ data: [{ b64_json: PNG_BASE64 }] }))
+      })
+    })
+    await new Promise((done) => server.listen(8804, '127.0.0.1', done))
+
+    try {
+      const dir = makeTempDir()
+      const configPath = join(dir, 'ae.jsonc')
+      writeFileSync(configPath, JSON.stringify({
+        'ae-pptx': {
+          imageModel: {
+            provider: 'openai',
+            baseUrl: 'http://127.0.0.1:8804/v1',
+            model: 'mock-image',
+            apiKeyEnv: 'MOCK_IMAGE_KEY',
+          },
+        },
+      }), 'utf8')
+
+      const result = await runCli([
+        CLI,
+        '--prompt', '一只橘猫坐在窗台 @aspect=1:1 @quality=high',
+        '--out', join(dir, 'embedded.png'),
+        '--json',
+      ], {
+        env: { ...process.env, AE_CONFIG: configPath, MOCK_IMAGE_KEY: 'sk-mock-secret' },
+      })
+
+      assert.equal(result.status, 0, result.stderr)
+      const report = JSON.parse(result.stdout)
+      assert.equal(report.sizeSource, 'prompt')
+      assert.equal(report.sizeVia, 'aspect')
+      assert.equal(report.sentSize, '1024x1024')
+      assert.equal(report.quality, 'high')
+      assert.equal(report.prompt, '一只橘猫坐在窗台')
+
+      assert.equal(received[0].size, '1024x1024')
+      assert.equal(received[0].quality, 'high')
+      assert.ok(!received[0].prompt.includes('@aspect'), '参数指令不得发给模型')
     } finally {
       await new Promise((done) => server.close(done))
     }
@@ -334,10 +714,6 @@ describe('generate-image 命令行', () => {
           baseUrl: 'http://127.0.0.1:8800/v1',
           path: '/images/generations',
           apiKey: 'k',
-          size: '',
-          quality: '',
-          style: '',
-          negativePrompt: '',
           extraBody: {},
           extraHeaders: {},
           timeoutSec: 10,

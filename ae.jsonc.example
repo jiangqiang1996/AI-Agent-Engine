@@ -20,7 +20,6 @@
       "baseUrl": "https://api.openai.com/v1",
       "model": "gpt-image-1",
       "apiKeyEnv": "OPENAI_API_KEY",
-      "size": "1536x1024",
       "timeoutSec": 180
     }
   },
