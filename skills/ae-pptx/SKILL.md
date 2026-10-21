@@ -203,6 +203,7 @@ officecli add deck.pptx '/slide[3]' --type picture --prop src=ae/pptx/assets/cha
 
 > 图片里的文字不可选中、不可搜索、缩放会糊：**标题、要点、图注一律用 shape 叠加**，不烧进图片。
 > 图表配色必须取自本次设计的配色方案，不得另起色板。
+> 网关可能忽略 `size` 并回落到模型自己的尺寸，插入 PPT 时**只给 `width`**，让高度按图片真实比例自动算。
 
 ## 生成流程
 

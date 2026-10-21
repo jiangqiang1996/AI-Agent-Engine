@@ -20,6 +20,15 @@ import { resolveOwningSkillName, skillArtifactDir, timestamp, writeSkillLog } fr
 
 const SCRIPT_URL = import.meta.url
 
+/**
+ * 参数名归一化：连字符转驼峰（--dry-run → dryRun）。
+ * 不做这层转换时，`--dry-run` 会被存成 args['dry-run']，
+ * 而代码读的是 args.dryRun，导致「只构造请求」退化成「真的调用模型」。
+ */
+function normalizeKey(key) {
+  return key.replace(/-([a-z0-9])/g, (_, char) => char.toUpperCase())
+}
+
 /** 解析命令行参数 */
 function parseArgs(argv) {
   const args = {}
@@ -28,8 +37,8 @@ function parseArgs(argv) {
     if (!token.startsWith('--')) {
       continue
     }
-    const key = token.slice(2)
-    if (key === 'check' || key === 'json' || key === 'dry-run' || key === 'help') {
+    const key = normalizeKey(token.slice(2))
+    if (key === 'check' || key === 'json' || key === 'dryRun' || key === 'help') {
       args[key] = true
       continue
     }

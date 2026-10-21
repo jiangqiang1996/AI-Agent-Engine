@@ -7,7 +7,7 @@
 import assert from 'node:assert/strict'
 import { spawn, spawnSync } from 'node:child_process'
 import { createServer } from 'node:http'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -264,6 +264,54 @@ describe('generate-image 命令行', () => {
       assert.equal(received[0].url, '/v1/images/generations')
       assert.equal(received[0].body.model, 'mock-image')
       assert.equal(received[0].body.prompt, '一只橘猫坐在窗台')
+      assert.ok(!result.stdout.includes('sk-mock-secret'), '输出不得包含密钥')
+    } finally {
+      await new Promise((done) => server.close(done))
+    }
+  })
+
+  it('--dry-run 只构造请求，不调用模型也不落盘', async () => {
+    let hits = 0
+    const server = createServer((req, res) => {
+      hits += 1
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ data: [{ b64_json: PNG_BASE64 }] }))
+    })
+    await new Promise((done) => server.listen(8801, '127.0.0.1', done))
+
+    try {
+      const dir = makeTempDir()
+      const configPath = join(dir, 'ae.jsonc')
+      writeFileSync(configPath, JSON.stringify({
+        'ae-pptx': {
+          imageModel: {
+            provider: 'openai',
+            baseUrl: 'http://127.0.0.1:8801/v1',
+            model: 'mock-image',
+            apiKeyEnv: 'MOCK_IMAGE_KEY',
+          },
+        },
+      }), 'utf8')
+
+      const outPath = join(dir, 'dry-run.png')
+      const result = await runCli([
+        CLI,
+        '--prompt', '一只橘猫坐在窗台',
+        '--out', outPath,
+        '--dry-run',
+        '--json',
+      ], {
+        env: { ...process.env, AE_CONFIG: configPath, MOCK_IMAGE_KEY: 'sk-mock-secret' },
+      })
+
+      assert.equal(result.status, 0, result.stderr)
+      const report = JSON.parse(result.stdout)
+      assert.equal(report.dryRun, true)
+      assert.equal(report.url, 'http://127.0.0.1:8801/v1/images/generations')
+      assert.equal(report.body.model, 'mock-image')
+      assert.equal(report.body.prompt, '一只橘猫坐在窗台')
+      assert.equal(hits, 0, '--dry-run 不得发起真实请求')
+      assert.equal(existsSync(outPath), false, '--dry-run 不得落盘')
       assert.ok(!result.stdout.includes('sk-mock-secret'), '输出不得包含密钥')
     } finally {
       await new Promise((done) => server.close(done))

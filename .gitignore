@@ -7,13 +7,12 @@ dist
 **/tmp
 **/temp
 
-# AE 运行时产物
-/ae/logs/
-/ae/*/tmp/
-/ae/*/screenshots/
-/ae/*/reports/
-/ae/*/golden/
-/ae/*/sequences/
+# AE 本地配置（可能含本机专用的服务地址与密钥环境变量名，不入库）
+/ae.jsonc
+
+# AE 运行时产物（渲染图、生成配图、日志等，不入库）
+/ae/
+
 /playwright-report/
 /test-results/
 
