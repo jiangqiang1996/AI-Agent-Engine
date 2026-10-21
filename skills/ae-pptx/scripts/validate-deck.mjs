@@ -30,6 +30,11 @@ import { resolveOwningSkillName, skillTempDir } from './lib/ae-paths.mjs'
 const SCRIPT_URL = import.meta.url
 /** 幻灯片面积（960 × 540） */
 const SLIDE_AREA = 960 * 540
+/** 页面框架区（页眉标题 / 页码 / 页脚）不算内容行 */
+const FRAME_TOP = 60
+const FRAME_BOTTOM = 470
+/** 标准内容区面积（用于计算文字面积占比，跨页可比） */
+const CONTENT_AREA = 860 * 435
 
 /* ------------------------------------------------------------------ *
  * 参数
@@ -172,7 +177,9 @@ function parsePage(page) {
 function validateSlide(shapes, options) {
   const problems = []
   const textShapes = shapes.filter((s) => s.paras.length > 0)
-  const lineCount = textShapes.reduce((sum, s) => sum + s.paras.length, 0)
+  // 页面框架（页眉标题 / 页码 / 页脚）不计入内容行数
+  const contentShapes = textShapes.filter((s) => s.top >= FRAME_TOP && s.top < FRAME_BOTTOM)
+  const lineCount = contentShapes.reduce((sum, s) => sum + s.paras.length, 0)
   const decorative = shapes.filter((s) => s.paras.length === 0)
 
   // 1) 文本重叠
@@ -256,9 +263,11 @@ function validateSlide(shapes, options) {
     }
   }
 
-  // 7) 底部留白过大
-  const body = shapes.filter((s) => s.top >= 60 && s.top + s.height <= 505)
-  if (body.length) {
+  // 7) 底部留白过大（深色页是刻意留白的章节页/封面页，不检查）
+  const pageBackground = options.background ?? '#FFFFFF'
+  const isLightPage = luminance(pageBackground) >= 120
+  const body = shapes.filter((s) => s.top >= FRAME_TOP && s.top + s.height <= 505)
+  if (body.length && isLightPage) {
     const bottom = Math.max(...body.map((s) => s.top + s.height))
     if (505 - bottom > options.minGap) {
       problems.push({
@@ -278,23 +287,18 @@ function validateSlide(shapes, options) {
     }
   }
 
-  // 9) 文字占比过高
-  if (body.length) {
-    const area = body.reduce((sum, s) => sum + s.width * s.height, 0)
-    const textArea = textShapes.reduce((sum, s) => sum + s.width * s.height, 0)
-    const ratio = area > 0 ? textArea / area : 0
-    if (ratio > options.textAreaRatio) {
-      problems.push({
-        type: '文字占比过高',
-        detail: `文本形状面积占内容区 ${Math.round(ratio * 100)}%（上限 ${Math.round(options.textAreaRatio * 100)}%）`,
-      })
-    }
+  // 9) 文字占比过高（分母用标准内容区，跨页可比）
+  const textArea = contentShapes.reduce((sum, s) => sum + s.width * s.height, 0)
+  const ratio = textArea / CONTENT_AREA
+  if (ratio > options.textAreaRatio) {
+    problems.push({
+      type: '文字占比过高',
+      detail: `文本形状面积占内容区 ${Math.round(ratio * 100)}%（上限 ${Math.round(options.textAreaRatio * 100)}%）`,
+    })
   }
 
   // 10) 页面过重：浅底正文页的深色填充面积过大
   //     （深底页——封面/章节页/结束页——是刻意的重色，不计入本项）
-  const pageBackground = options.background ?? '#FFFFFF'
-  const isLightPage = luminance(pageBackground) >= 120
   const darkArea = shapes
     .filter((s) => s.fill && luminance(s.fill) < 120)
     .reduce((sum, s) => sum + s.width * s.height, 0)
@@ -315,15 +319,11 @@ function validateSlide(shapes, options) {
     problems,
     lineCount,
     decorative: decorative.length,
-    ratio: body.length ? (() => {
-      const area = body.reduce((sum, s) => sum + s.width * s.height, 0)
-      const textArea = textShapes.reduce((sum, s) => sum + s.width * s.height, 0)
-      return area > 0 ? textArea / area : 0
-    })() : 0,
+    ratio,
     darkRatio,
     bands,
     background: pageBackground,
-    ...summarize(body, textShapes),
+    ...summarize(body, contentShapes),
   }
 }
 
