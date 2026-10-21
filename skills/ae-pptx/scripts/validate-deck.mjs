@@ -12,6 +12,8 @@
  *   7. 底部留白过大  内容底边距页脚太远（版面偏上）
  *   8. 字号过小      文本字号 < 9pt
  *   9. 文字占比过高  文本形状面积 / 内容区面积 > 40%（该用图形承载）
+ *  10. 页面过重      浅底页面的深色填充面积 > 30%（大面积深色块压得慌）
+ *  11. 节奏单调      连续多页使用同一条通栏色带（每页都"黑底白字"）
  *
  * 用法：
  *   node scripts/validate-deck.mjs --html ae/pptx/deck.html
@@ -26,12 +28,22 @@ import { dirname, join, resolve } from 'node:path'
 import { resolveOwningSkillName, skillTempDir } from './lib/ae-paths.mjs'
 
 const SCRIPT_URL = import.meta.url
+/** 幻灯片面积（960 × 540） */
+const SLIDE_AREA = 960 * 540
 
 /* ------------------------------------------------------------------ *
  * 参数
  * ------------------------------------------------------------------ */
 function parseArgs(argv) {
-  const args = { maxLines: 10, minFont: 9, minGap: 90, margin: 50, textAreaRatio: 0.4 }
+  const args = {
+    maxLines: 10,
+    minFont: 9,
+    minGap: 90,
+    margin: 50,
+    textAreaRatio: 0.4,
+    maxDarkRatio: 0.35,
+    maxSameBand: 3,
+  }
   for (let i = 0; i < argv.length; i += 1) {
     const token = argv[i]
     if (!token.startsWith('--')) continue
@@ -100,9 +112,18 @@ function longestUnbreakable(line, fontSize) {
   return longest
 }
 
+/** 相对亮度（0~255），用于判断深/浅 */
+function luminance(hex) {
+  const value = String(hex ?? '').replace('#', '')
+  if (value.length < 6) return 255
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(value.slice(i, i + 2), 16))
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
 /** 解析一页里的所有元素 */
 function parsePage(page) {
   const shapes = []
+  const background = (page.match(/class="slide"[^>]*background:(#[0-9A-Fa-f]{6})/) || [])[1] || '#FFFFFF'
   const re = /<div\b([^>]*data-path="[^"]+"[^>]*)>([\s\S]*?)(?=<div\b[^>]*data-path=|$)/g
   let match
   while ((match = re.exec(page)) !== null) {
@@ -142,7 +163,7 @@ function parsePage(page) {
       isPicture,
     })
   }
-  return shapes
+  return { shapes, background }
 }
 
 /* ------------------------------------------------------------------ *
@@ -268,10 +289,42 @@ function validateSlide(shapes, options) {
         detail: `文本形状面积占内容区 ${Math.round(ratio * 100)}%（上限 ${Math.round(options.textAreaRatio * 100)}%）`,
       })
     }
-    return { problems, lineCount, decorative: decorative.length, ratio, ...summarize(body, textShapes) }
   }
 
-  return { problems, lineCount, decorative: decorative.length, ratio: 0, ...summarize(body, textShapes) }
+  // 10) 页面过重：浅底正文页的深色填充面积过大
+  //     （深底页——封面/章节页/结束页——是刻意的重色，不计入本项）
+  const pageBackground = options.background ?? '#FFFFFF'
+  const isLightPage = luminance(pageBackground) >= 120
+  const darkArea = shapes
+    .filter((s) => s.fill && luminance(s.fill) < 120)
+    .reduce((sum, s) => sum + s.width * s.height, 0)
+  const darkRatio = darkArea / SLIDE_AREA
+  if (isLightPage && darkRatio > options.maxDarkRatio) {
+    problems.push({
+      type: '页面过重',
+      detail: `深色块占版面 ${Math.round(darkRatio * 100)}%（上限 ${Math.round(options.maxDarkRatio * 100)}%）——深色留给章节页/重点页，正文页别整片压深`,
+    })
+  }
+
+  // 通栏色带（页眉/页脚）颜色，用于节奏检查
+  const bands = shapes
+    .filter((s) => s.fill && s.width >= 950 && (s.top < 60 || s.top + s.height > 505))
+    .map((s) => s.fill.toUpperCase())
+
+  return {
+    problems,
+    lineCount,
+    decorative: decorative.length,
+    ratio: body.length ? (() => {
+      const area = body.reduce((sum, s) => sum + s.width * s.height, 0)
+      const textArea = textShapes.reduce((sum, s) => sum + s.width * s.height, 0)
+      return area > 0 ? textArea / area : 0
+    })() : 0,
+    darkRatio,
+    bands,
+    background: pageBackground,
+    ...summarize(body, textShapes),
+  }
 }
 
 function summarize(body, textShapes) {
@@ -307,10 +360,32 @@ function main() {
   }
 
   const results = pages.map((page, index) => {
-    const shapes = parsePage(page)
-    const result = validateSlide(shapes, args)
+    const { shapes, background } = parsePage(page)
+    const result = validateSlide(shapes, { ...args, background })
     return { page: index + 1, ...result }
   })
+
+  // 11) 节奏单调：连续多页使用同一条通栏色带
+  const rhythmProblems = []
+  let runStart = 0
+  for (let i = 1; i <= results.length; i += 1) {
+    const current = i < results.length ? results[i].bands[0] : null
+    const previous = results[runStart].bands[0]
+    if (i === results.length || current !== previous) {
+      const length = i - runStart
+      if (length > args.maxSameBand && previous) {
+        rhythmProblems.push({
+          page: runStart + 1,
+          type: '节奏单调',
+          detail: `第 ${runStart + 1}~${i} 页连续 ${length} 页使用同一条色带 #${previous}——每页都"黑底白字"会翻页疲劳，建议浅色页眉或交替深浅页`,
+        })
+      }
+      runStart = i
+    }
+  }
+  for (const item of rhythmProblems) {
+    results[item.page - 1].problems.push({ type: item.type, detail: item.detail })
+  }
 
   const allProblems = results.flatMap((r) => r.problems.map((p) => ({ page: r.page, ...p })))
 
@@ -323,19 +398,23 @@ function main() {
         decorative: r.decorative,
         minFont: r.minFont,
         textAreaRatio: Number(r.ratio.toFixed(3)),
+        darkAreaRatio: Number(r.darkRatio.toFixed(3)),
+        background: r.background,
+        bands: r.bands,
         bottom: r.bottom,
         problems: r.problems,
       })),
       problemCount: allProblems.length,
     }, null, 2) + '\n')
   } else {
-    process.stdout.write('页 | 内容行 | 装饰形状 | 最小字号 | 文字占比 | 内容底边 | 结论\n')
-    process.stdout.write('---+--------+----------+----------+----------+----------+------\n')
+    process.stdout.write('页 | 内容行 | 装饰形状 | 最小字号 | 文字占比 | 深色占比 | 底色     | 内容底边 | 结论\n')
+    process.stdout.write('---+--------+----------+----------+----------+----------+-----------+----------+------\n')
     for (const r of results) {
       const verdict = r.problems.length === 0 ? 'OK' : `${r.problems.length} 项待修`
       process.stdout.write(
         `${String(r.page).padStart(2)} | ${String(r.lineCount).padStart(6)} | ${String(r.decorative).padStart(8)} | ` +
         `${String(r.minFont ?? '-').padStart(8)}pt | ${String(Math.round(r.ratio * 100)).padStart(7)}% | ` +
+        `${String(Math.round(r.darkRatio * 100)).padStart(7)}% | ${r.background.padEnd(9)} | ` +
         `${String(r.bottom === null ? '-' : Math.round(r.bottom)).padStart(8)}pt | ${verdict}\n`,
       )
     }

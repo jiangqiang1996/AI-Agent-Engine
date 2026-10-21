@@ -153,4 +153,26 @@ describe('validate-deck', () => {
     assert.equal(report.pages[0].page, 1)
     assert.ok(Array.isArray(report.pages[0].problems))
   })
+
+  it('检测页面过重（浅底页深色块过多）', () => {
+    const result = run([
+      shape({ path: '/slide[1]/shape[1]', left: 50, top: 80, width: 860, height: 300, fill: '0B1F3A' }),
+    ])
+    assert.equal(result.status, 1)
+    assert.match(result.stdout, /页面过重/)
+  })
+
+  it('检测节奏单调（连续多页同一条通栏色带）', () => {
+    const dir = makeTempDir()
+    const file = join(dir, 'deck.html')
+    const band = shape({ path: '/slide[1]/shape[1]', left: 0, top: 0, width: 960, height: 50, fill: '0B1F3A' })
+    const body = shape({ path: '/slide[1]/shape[2]', left: 50, top: 80, width: 200, height: 60, fill: 'EAF6F9' })
+    const html = `<!DOCTYPE html><html><body>${[1, 2, 3, 4, 5]
+      .map((n) => `<div class="slide-container" data-slide="${n}"><div class="slide" style="background:#FFFFFF">${band}${body}</div></div>`)
+      .join('')}</body></html>`
+    writeFileSync(file, html, 'utf8')
+    const result = spawnSync(process.execPath, [CLI, '--html', file], { encoding: 'utf8' })
+    assert.equal(result.status, 1)
+    assert.match(result.stdout, /节奏单调/)
+  })
 })
