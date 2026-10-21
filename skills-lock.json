@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "skills": {
+    "ae-pptx": {
+      "source": "https://gitee.com/jiangqiang1996/ai-agent-engine.git",
+      "sourceUrl": "https://gitee.com/jiangqiang1996/ai-agent-engine.git",
+      "sourceType": "git",
+      "skillPath": "skills/ae-pptx/SKILL.md",
+      "computedHash": "639d5c8863171173deef0d64bc4021b763a4f13c5825a7ac510a47207b46c68b"
+    }
+  }
+}
