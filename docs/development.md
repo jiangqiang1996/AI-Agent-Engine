@@ -177,3 +177,26 @@ node --test tools/tests/validate-regression.test.mjs
 - 技能目录名统一 `ae-` 前缀，避免与他人技能撞名。
 - 禁止过于通用的目录名（`test`、`build`、`docs`、`utils` 等，见 `GENERIC_DIR_NAMES`）。
 - 角色卡命名 `<role>.md`，放在 `references/roles/` 下。
+
+---
+
+## 9. 发布与用户侧更新
+
+分发形态是纯 `npx skills`（见 [AGENTS.md](../AGENTS.md) §一），没有构建产物与版本号发布流程：
+
+1. 改动落在 `skills/<name>/`，`npm run check` 全绿后提交并推送到 `master`；
+2. 用户侧用 `npx skills update` 回源比对 `skills-lock.json` 里的 git 来源，拉到最新内容；
+3. 宿主侧目录是否自动生效取决于安装模式：软链接（macOS/Linux 默认）立即生效，Windows 的复制模式由 `update` 重写副本。
+
+```bash
+# 用户侧
+npx skills list            # 看已安装与来源
+npx skills update          # 更新全部
+npx skills update ae-grill # 更新指定技能
+npx skills remove -s ae-grill -y
+```
+
+详细命令表见 [README](../README.md) 的「安装 / 更新 / 卸载」小节。
+
+> 仓库本身不发 npm 包，`package.json` 的 `version` 仅作内部标记，与用户拿到的技能版本无关。
+> 技能能力有变化时，同步改 `README.md` 的技能清单表与本节说明，避免文档与实际能力脱节。

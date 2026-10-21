@@ -26,9 +26,25 @@ npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git -a claude-co
 # 全局安装（所有项目可用）
 npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git --skill '*' -g -a '*'
 
+# 等价简写：全部技能 + 全部宿主 + 跳过确认
+npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git --all
+
 # 先看看有哪些技能（不安装）
 npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git --list
 ```
+
+常用参数：
+
+| 参数 | 说明 |
+|---|---|
+| `--skill <name>` / `-s` | 指定技能（`*` = 全部） |
+| `--agent <agents>` / `-a` | 指定宿主（`*` = 全部） |
+| `--global` / `-g` | 装到用户级目录，所有项目可用 |
+| `--copy` | 用复制代替软链接（默认软链接，Windows 自动降级为复制） |
+| `--list` / `-l` | 只列出仓库里的技能，不安装 |
+| `--yes` / `-y` | 跳过交互确认 |
+
+> 想把 CLI 装到本机长期使用：`npm install -g skills`，之后把上面的 `npx skills` 直接写成 `skills` 即可。
 
 安装位置由 `skills` CLI 决定（默认 symlink，Windows 自动降级 copy）：
 
@@ -47,6 +63,98 @@ npx skills add https://gitee.com/jiangqiang1996/ai-agent-engine.git --list
 ### 手动安装
 
 把需要的技能目录复制到宿主的技能目录即可（例如 `~/.claude/skills/ae-grill/`）。
+
+---
+
+## 更新
+
+`skills` CLI 自带更新能力：`update` 按安装时记录的来源回源比对，把已安装的技能覆盖为最新版本。
+
+```bash
+# 更新当前作用域的全部技能（交互确认作用域）
+npx skills update
+
+# 只更新指定技能
+npx skills update ae-grill
+npx skills update ae-grill ae-pptx
+
+# 只更新全局 / 只更新项目级
+npx skills update -g
+npx skills update -p
+
+# 非交互（自动判定作用域：项目内有项目目录用项目级，否则用全局）
+npx skills update -y
+```
+
+**更新依赖 `skills-lock.json`**：安装时 CLI 会在项目根（或全局目录）生成该文件，记录每个技能的来源与内容哈希：
+
+```json
+{
+  "version": 1,
+  "skills": {
+    "ae-grill": {
+      "source": "https://gitee.com/jiangqiang1996/ai-agent-engine.git",
+      "skillPath": "skills/ae-grill/SKILL.md",
+      "computedHash": "9393d7c4..."
+    }
+  }
+}
+```
+
+锁文件可用于还原安装：
+
+```bash
+npx skills experimental_install
+```
+
+**注意**：
+
+- 软链接安装（macOS/Linux 默认）下，源仓库更新后宿主侧立即生效；Windows 降级为独立副本（安装输出形如 `ae-grill (copied)`），`update` 会重写该副本——**你在技能目录里手改过的内容会被覆盖**。
+- 已是最新时输出 `All project skills are up to date`。
+- Windows 上命令结束后可能打印 libuv 的 `Assertion failed: !(handle->flags & UV_HANDLE_CLOSING)`，属 Node 进程退出时的已知崩溃；结果提示已打印即表示更新成功。
+
+---
+
+## 卸载
+
+```bash
+# 卸载指定技能（交互确认）
+npx skills remove ae-grill
+
+# 指定技能 + 跳过确认
+npx skills remove -s ae-grill -y
+
+# 只从指定宿主移除
+npx skills remove -s ae-grill -a opencode -y
+
+# 卸载全局安装的技能
+npx skills remove -s ae-grill -g -y
+
+# 卸载全部技能
+npx skills remove --all
+```
+
+> `remove` 会删掉技能目录，并清空 `skills-lock.json` 中的对应条目（锁文件本身保留）。
+> 手工删除宿主的技能目录（如 `.agents/skills/ae-grill/`）同样有效，但锁文件里的条目会残留，
+> 之后执行 `npx skills experimental_install` 仍可能把它装回来——卸载请优先用 `remove`。
+
+---
+
+## 命令速查
+
+| 目的 | 命令 |
+|---|---|
+| 查看仓库里有哪些技能 | `npx skills add <repo> --list` |
+| 安装（交互选择） | `npx skills add <repo>` |
+| 安装（指定技能 + 宿主） | `npx skills add <repo> --skill ae-grill -a opencode` |
+| 全局安装全部 | `npx skills add <repo> --skill '*' -g -a '*'` |
+| 查看已安装 | `npx skills list` |
+| 更新 | `npx skills update` |
+| 更新指定技能 | `npx skills update ae-grill` |
+| 卸载 | `npx skills remove -s ae-grill -y` |
+| 临时用一次（不安装） | `npx skills use <repo>@ae-grill` |
+
+> 本仓库地址：`https://gitee.com/jiangqiang1996/ai-agent-engine.git`
 
 ---
 
