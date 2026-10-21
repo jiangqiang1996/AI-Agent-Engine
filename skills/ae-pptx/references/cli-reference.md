@@ -65,6 +65,65 @@ officecli help pptx set shape          # 只看 set 可用的属性
 
 ---
 
+---
+
+## PPT 专属元素与属性
+
+## PPT 专属元素类型
+
+以 `officecli help pptx` 的实际输出为准，当前为：
+
+```
+chart（chart-axis / chart-series） comment connector diagram group media model3d
+moderncomment notes ole picture placeholder presentation raw shape（animation /
+equation / hyperlink） paragraph（linebreak / run） slide slidemaster（slidelayout）
+table（table-column / table-row / table-cell） textbox theme transition zoom
+```
+
+> 媒体元素统一叫 `media`（视频/音频），表格行/列/单元格是 `table-row` / `table-column` / `table-cell`，SmartArt 对应 `diagram`。**不确定就先 `officecli help pptx <element>`。**
+
+## PPT 专属路径语法
+
+- 路径 **1-based**：`/slide[1]` = 第一张幻灯片
+- 稳定 ID：`/slide[1]/shape[@id=550950021]`
+- 名称寻址：`shape[@name=Title 1]`
+- `shape[1]` 通常是标题占位符，内容用 `shape[2]+`
+- 幻灯片挂在演示文稿根下，`add` 时父路径写 `/`；加到某页内则写 `/slide[N]`
+
+## PPT 专属常用属性
+
+> ⚠️ **坐标与尺寸必须显式带单位**：`officecli` 把裸数字当作原始 EMU（1pt = 12700 EMU），
+> `x=120` 画出来的是 0.01pt 的元素——页面会"什么都没有"。
+> 正确写法：`x=120pt`、`w=200pt`、`h=2cm`、`width=8in`。
+> 字号 `--prop size=28` 是唯一允许裸数字的字段（裸数字即 pt）。
+> 另有两个实测坑：标题占位符只认 `width`/`height`（不认 `w`/`h`），`shape[N]` 不含图片——
+> 详见下方「属性值格式」小节。
+
+| 属性 | 说明 | 示例 |
+|------|------|------|
+| `title` | 幻灯片标题 | `"Q4 Report"` |
+| `background` | 背景色 | `"1A1A2E"` |
+| `text` | 文本内容 | `"Hello"` |
+| `x`/`y` | 位置 | `"120pt"`, `"2cm"` |
+| `w`/`h` | 宽高（shape） | `"200pt"`, `"3cm"` |
+| `font` | 字体 | `"Arial"` |
+| `size` | 字号 | `"24"`, `"18pt"` |
+| `color` | 文字颜色 | `"FFFFFF"` |
+| `fill` | 填充色 | `"FF0000"` |
+| `bold` | 粗体 | `"true"` |
+| `align` | 对齐 | `"left"`, `"center"`, `"right"` |
+
+### 图片（picture）属性
+
+| 属性 | 说明 | 示例 |
+|------|------|------|
+| `src` | 图片来源（文件路径 / URL / data-URI），**add 时必填** | `"ae/pptx/assets/chart.svg"` |
+| `x`/`y` | 位置 | `"1in"`, `"1.4in"` |
+| `width`/`height` | 宽高；**只给 `width` 时按原始比例自动算高度** | `"8in"` |
+| `alt` | 无障碍替代文本 | `"季度营收柱状图"` |
+| `opacity` | 透明度 0-1 | `"0.9"` |
+| `link` | 超链接 | `"https://example.com"` |
+
 ## 属性值格式
 
 | 类型 | 可接受格式 | 示例 |
