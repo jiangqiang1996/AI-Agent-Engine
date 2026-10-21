@@ -14,6 +14,7 @@
  *   9. 文字占比过高  文本形状面积 / 内容区面积 > 40%（该用图形承载）
  *  10. 页面过重      浅底页面的深色填充面积 > 30%（大面积深色块压得慌）
  *  11. 节奏单调      连续多页使用同一条通栏色带（每页都"黑底白字"）
+ *  12. 深色页过多    深色页占总页数 > 45%（深色应是节奏点，不是背景）
  *
  * 用法：
  *   node scripts/validate-deck.mjs --html ae/pptx/deck.html
@@ -47,6 +48,7 @@ function parseArgs(argv) {
     margin: 50,
     textAreaRatio: 0.4,
     maxDarkRatio: 0.35,
+    maxDarkPageRatio: 0.45,
     maxSameBand: 3,
   }
   for (let i = 0; i < argv.length; i += 1) {
@@ -385,6 +387,17 @@ function main() {
   }
   for (const item of rhythmProblems) {
     results[item.page - 1].problems.push({ type: item.type, detail: item.detail })
+  }
+
+  // 12) 深色页过多：深色是节奏点，不是背景
+  const darkPages = results.filter((r) => luminance(r.background) < 120)
+  const darkPageRatio = results.length > 0 ? darkPages.length / results.length : 0
+  if (darkPageRatio > args.maxDarkPageRatio) {
+    const first = darkPages[0]?.page ?? 1
+    results[first - 1].problems.push({
+      type: '深色页过多',
+      detail: `深色页 ${darkPages.length}/${results.length}（${Math.round(darkPageRatio * 100)}%，上限 ${Math.round(args.maxDarkPageRatio * 100)}%）——深色是节奏点，正文页用浅色`,
+    })
   }
 
   const allProblems = results.flatMap((r) => r.problems.map((p) => ({ page: r.page, ...p })))

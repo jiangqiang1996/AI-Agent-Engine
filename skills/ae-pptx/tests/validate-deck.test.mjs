@@ -175,4 +175,17 @@ describe('validate-deck', () => {
     assert.equal(result.status, 1)
     assert.match(result.stdout, /节奏单调/)
   })
+
+  it('检测深色页过多', () => {
+    const dir = makeTempDir()
+    const file = join(dir, 'deck.html')
+    const body = shape({ path: '/slide[1]/shape[1]', left: 50, top: 80, width: 200, height: 60, fill: 'EAF6F9' })
+    const html = `<!DOCTYPE html><html><body>${[1, 2, 3, 4, 5, 6]
+      .map((n) => `<div class="slide-container" data-slide="${n}"><div class="slide" style="background:#0B1F3A">${body}</div></div>`)
+      .join('')}</body></html>`
+    writeFileSync(file, html, 'utf8')
+    const result = spawnSync(process.execPath, [CLI, '--html', file], { encoding: 'utf8' })
+    assert.equal(result.status, 1)
+    assert.match(result.stdout, /深色页过多/)
+  })
 })
