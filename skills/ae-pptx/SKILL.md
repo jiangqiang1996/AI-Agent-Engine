@@ -414,6 +414,8 @@ table（table-column / table-row / table-cell） textbox theme transition zoom
 > `x=120` 画出来的是 0.01pt 的元素——页面会"什么都没有"。
 > 正确写法：`x=120pt`、`w=200pt`、`h=2cm`、`width=8in`。
 > 字号 `--prop size=28` 是唯一允许裸数字的字段（裸数字即 pt）。
+> 另有两个实测坑：标题占位符只认 `width`/`height`（不认 `w`/`h`），`shape[N]` 不含图片——
+> 详见 [CLI 通用能力参考](references/cli-reference.md) 的「属性值格式」。
 
 | 属性 | 说明 | 示例 |
 |------|------|------|

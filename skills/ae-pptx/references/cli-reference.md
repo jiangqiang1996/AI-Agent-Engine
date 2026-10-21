@@ -74,6 +74,37 @@ officecli help pptx set shape          # 只看 set 可用的属性
 | 字号 | 裸数字或 pt 后缀 | `14`、`14pt`、`10.5pt` |
 | 间距 | pt / cm / in / 倍数 | `12pt`、`1.5x`、`150%` |
 
+### ⚠️ 三个实测踩坑
+
+**1. 坐标/尺寸的裸数字是 EMU，不是 pt**
+
+`x=120` 会被解析成 120 EMU = **0.01pt**，元素几乎不可见，页面看上去"什么都没画"。
+坐标、宽高**一律带单位**：`x=120pt`、`w=200pt`、`h=2cm`。字号是唯一允许裸数字的字段。
+
+**2. 占位符只认 `width` / `height`**
+
+普通 shape 用 `w` / `h`；标题占位符（`phType=title`）**只接受 `width` / `height`**，
+传 `w` / `h` 会报 `UNSUPPORTED props: w`。给占位符定尺寸时用：
+
+```bash
+officecli set deck.pptx '/slide[1]/shape[1]' --prop width=700pt --prop height=30pt
+```
+
+**3. `shape[N]` 不含图片**
+
+`shape[N]` 只索引普通形状（`p:sp`），图片走 `picture[@id=...]` 命名空间。
+页面上有图片时，按序号算形状位置要跳过图片，否则会算错目标。
+
+### 占位符与 z 序
+
+- `--prop title=…` 在**建页时**创建标题占位符，它是该页的**第一个**形状（z 序最底层）。
+  后续添加的页眉色条等矩形会盖住它 → 标题看不见。
+- `zorder` 只能调整同一形状的相对次序，**不能把占位符提到顶层**。
+- 需要"页眉里放标题"时，二选一：
+  1. 用普通 shape 画标题（最省事，代价是幻灯片没有 title，大纲视图为空）；或
+  2. 建页时不带 title，等本页所有形状加完后再 `add --type placeholder --prop phType=title`，
+     让占位符排在最后（顶层），再用 `set` 补 `width` / `height` / `size` / `color`。
+
 ---
 
 ## 批量操作
