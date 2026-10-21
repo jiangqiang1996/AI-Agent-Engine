@@ -127,8 +127,12 @@ export function normalizeSpec(input) {
     throw new Error('图表 spec 缺少 series 数据')
   }
   for (const item of series) {
+    // 长度不足：按 categories 补 0；长度超出：截断，多出来的点不画
     while (item.data.length < categories.length) {
       item.data.push(0)
+    }
+    if (item.data.length > categories.length) {
+      item.data = item.data.slice(0, categories.length)
     }
   }
 
@@ -193,13 +197,31 @@ function seriesColor(cfg, index) {
   return cfg.colors[index % cfg.colors.length]
 }
 
-/** 计算图例需要的宽度 */
-function legendWidth(cfg) {
+/**
+ * 计算图例需要的宽度。
+ *
+ * 必须按**实际渲染出来的图例文字**测量：
+ * 饼图/环形图的图例文字是分类名（categories），不是系列名；
+ * 用系列名去量，长分类名会把图例挤出画布。
+ *
+ * @param {object} cfg 规范化后的配置
+ * @param {string[]} [labels] 实际渲染的图例文字；缺省用系列名
+ */
+function legendWidth(cfg, labels) {
+  const items = Array.isArray(labels) ? labels : cfg.series.map((item) => item.name)
   let max = 0
-  for (const item of cfg.series) {
-    max = Math.max(max, estimateTextWidth(item.name, cfg.options.axisSize))
+  for (const label of items) {
+    max = Math.max(max, estimateTextWidth(label, cfg.options.axisSize))
   }
   return round(max + 34)
+}
+
+/** 当前图表类型实际渲染的图例文字（饼图/环形图用分类名，其余用系列名） */
+function legendLabels(cfg) {
+  if (cfg.type === 'pie' || cfg.type === 'donut') {
+    return cfg.categories
+  }
+  return cfg.series.map((item) => item.name)
 }
 
 /** 计算绘图区（plot area） */
@@ -218,7 +240,7 @@ function computePlotArea(cfg) {
   const bottom = options.showLegend && !legendRight ? 26 + 24 : 30
 
   const axisLeft = 58
-  const axisRight = legendRight && options.showLegend ? legendWidth(cfg) + 26 : 20
+  const axisRight = legendRight && options.showLegend ? legendWidth(cfg, legendLabels(cfg)) + 26 : 20
 
   return {
     left: axisLeft,
@@ -524,7 +546,7 @@ function renderPieChart(cfg) {
   const isDonut = cfg.type === 'donut'
   const parts = []
   const legendRight = cfg.options.legendPosition === 'right'
-  const legendPad = cfg.options.showLegend && legendRight ? legendWidth(cfg) + 30 : 10
+  const legendPad = cfg.options.showLegend && legendRight ? legendWidth(cfg, legendLabels(cfg)) + 30 : 10
   const top = cfg.title ? round(16 + cfg.options.titleSize * 1.35 + (cfg.subtitle ? cfg.options.subtitleSize * 1.4 : 0) + 10) : 20
   const bottom = cfg.options.showLegend && !legendRight ? 56 : 20
 

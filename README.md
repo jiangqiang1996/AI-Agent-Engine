@@ -164,7 +164,7 @@ npx skills remove --all
 
 | 技能 | 用途 |
 |---|---|
-| `ae-grill` | 深度追问方案决策，一问一答推进共识 |
+| `ae-grill` | 深度追问方案决策，一问一答推进共识；只追问，不成文、不编码 |
 
 ### 实施与交付
 
@@ -179,8 +179,8 @@ npx skills remove --all
 
 | 技能 | 用途 |
 |---|---|
-| `ae-unit-test` | 单元测试生成、执行与覆盖率分析 |
-| `ae-integration-test` | 集成测试：业务流程编排、认证流程、接口边界测试 |
+| `ae-unit-test` | 单元测试生成、执行与覆盖率分析；默认只测后端，失败分诊定位根因 |
+| `ae-integration-test` | 集成测试：业务流程编排、认证流程、接口边界测试、数据清理；含密钥脱敏 |
 | `ae-e2e-test` | 浏览器端到端测试：Playwright 脚本编写与执行、取证与失败分诊 |
 | `ae-e2e-suite` | 项目级完整 E2E 测试工程：分层判定、基建搭建、套件组织、覆盖率、CI 集成（web + electron 双轨） |
 
@@ -203,7 +203,8 @@ npx skills remove --all
 
 | 技能 | 用途 |
 |---|---|
-| `ae-linux-remote-ops` | SSH 远程操作内网 Linux：命令、SFTP 传输、状态与日志 |
+| `ae-linux-remote-ops` | SSH 远程操作内网 Linux：命令、SFTP 传输、状态与日志；密钥只走环境变量 |
+
 
 ---
 
@@ -253,6 +254,10 @@ npx skills remove --all
 `$schema` 指向远端的 `ae.schema.json`（JSON Schema），编辑器据此提供补全与校验。
 用远端 URL 而非本地相对路径，是为了让**单技能安装**（只装 `skills/<name>/`）也能正常提示。
 配置样例见 [`ae.jsonc.example`](ae.jsonc.example)。
+
+> **密钥只走环境变量**：配置里只写环境变量**名**（`passwordEnv` / `sudoPasswordEnv` /
+> `keyPassphraseEnv` / `apiKeyEnv`），密钥本体不落配置文件、不进日志。
+> 配置文件里的非法键会被**报错**拦截（与 `ae.schema.json` 同一口径），不会静默忽略。
 
 ---
 

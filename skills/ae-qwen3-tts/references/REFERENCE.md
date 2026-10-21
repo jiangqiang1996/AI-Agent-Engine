@@ -20,6 +20,7 @@ SKILL.md 的按需细节：完整参数表、Python API、可选依赖、模型�
 | `--ref-text` | "" | 参考音频文本（voice_clone 必填，`--xvec-only` 时可省略） |
 | `--xvec-only` | false | 仅使用声纹向量 |
 | `-o/--output` | `ae/qwen3-tts/output.wav` | 输出路径（单条→文件；批量→目录 / 含 `{i}` 模板 / 音频扩展名前缀） |
+| `--overwrite` | false | 允许覆盖已存在的输出文件（默认拒绝覆盖并报错退出 1；批量模式会覆盖目录内同名文件） |
 | `-f/--file` | - | 从文件读取文本（每行一条，批量） |
 | `--max-new-tokens` | 库默认 2048 | 最大生成 codec token 数 |
 | `--temperature` | 库默认 0.9 | 采样温度 |
@@ -64,7 +65,21 @@ paths = generate_voice_clone("你好", ref_audio="ref.wav", ref_text="参考文�
 # output 传 None 时落到默认产物目录 <cwd>/ae/<skill-slug>/output.wav。
 # 支持 device/dtype/attn_implementation/seed/temperature/top_k/top_p/
 # repetition_penalty/max_new_tokens 等关键字，语义与 CLI 参数一致。
+# overwrite=True 才允许覆盖已存在的输出文件（默认 overwrite=False：
+# 目标文件已存在即抛 OutputConflictError，一个文件都不写）。
 ```
+
+命名约定（避免同名歧义）：
+
+| 名称 | 来源 | 语义 |
+|------|------|------|
+| `resolve_device(requested)` | `devices` | 设备**策略**入口：auto/cuda:N/cpu 解析与违规拒绝 |
+| `resolve_dtype(dtype, device)` | `devices` | 精度**策略**入口：auto → bf16/fp16/fp32 |
+| `resolve_device_setting(cwd)` | `config` | 读 `ae.jsonc` 与 `AE_QWEN3_TTS_DEVICE` 得**默认设备** |
+| `resolve_dtype_setting(cwd)` | `config` | 读 `ae.jsonc` 与 `AE_QWEN3_TTS_DTYPE` 得**默认精度** |
+
+包级导出（`from qwen_tts_skill import ...`）含 `resolve_device` / `resolve_dtype`（策略）与
+`resolve_device_setting` / `resolve_dtype_setting`（配置读取），两者签名不同、互不顶替。
 
 ## 配置（ae.jsonc）
 

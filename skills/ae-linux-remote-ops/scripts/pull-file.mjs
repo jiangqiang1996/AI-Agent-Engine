@@ -4,8 +4,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import {
-  connect, ensureConfig, loadConfig, md5File, runMain, runSshOn, shlexQuote, sftpCall, sftpOf,
-  targetLabel, usageError, writeOperationLog, writeOperationRecord,
+  connect, ensureConfig, loadConfig, md5File, redactSecrets, runMain, runSshOn, shlexQuote,
+  sftpCall, sftpOf, targetLabel, usageError, writeFailureArtifacts, writeOperationLog,
+  writeOperationRecord,
 } from './ssh-common.mjs';
 
 function splitArgs(argv) {
@@ -40,11 +41,12 @@ await runMain(async () => {
   const cfg = loadConfig({ target });
   ensureConfig(cfg);
   const startedAt = new Date().toISOString();
-  const conn = await connect(cfg);
+  let conn = null;
   let localMd5 = '';
   let remoteMd5 = '';
   let bytes = 0;
   try {
+    conn = await connect(cfg);
     const sftp = await sftpOf(conn);
     try {
       let st;
@@ -72,9 +74,10 @@ await runMain(async () => {
     }
 
     // 下载与 MD5 复核走同一连接的两条通道。
-    const { out, err, rc } = await runSshOn(conn, `md5sum ${shlexQuote(remote)}`, { cfg });
+    const { out, err, rc, signal } = await runSshOn(conn, `md5sum ${shlexQuote(remote)}`, { cfg });
     if (rc !== 0 || !out.trim()) {
-      throw new Error(`[FAIL] 远端 md5sum 失败 (RC=${rc}): ${(err || out).trim()}`);
+      const hint = signal ? `（远端进程被信号 ${signal} 终止）` : '';
+      throw new Error(`[FAIL] 远端 md5sum 失败 (RC=${rc})${hint}: ${(err || out).trim()}`);
     }
     remoteMd5 = out.trim().split(/\s+/)[0].toLowerCase();
     if (remoteMd5 !== localMd5.toLowerCase()) {
@@ -82,18 +85,46 @@ await runMain(async () => {
     }
     console.log(`[ok] 下载成功，MD5 一致: ${localMd5}`);
   } catch (error) {
-    writeOperationLog('pull-file', [
-      `目标: ${targetLabel(cfg)}`,
-      `远端: ${remote}`,
-      `本地: ${local}`,
-      `开始: ${startedAt}`,
-      '结果: 失败',
-      `错误: ${error?.message ?? error}`,
-      '',
-    ].join('\n'));
+    // 失败也要留痕：写传输记录 + 脱敏日志。
+    const message = error?.message ?? String(error);
+    const { recordPath, logPath } = writeFailureArtifacts({
+      kind: 'transfer',
+      label: 'pull-file',
+      cfg,
+      record: {
+        kind: 'sftp-download',
+        direction: 'download',
+        target: targetLabel(cfg),
+        alias: cfg.target || '',
+        local,
+        remote,
+        bytes,
+        md5: localMd5.toLowerCase(),
+        remoteMd5,
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        error: redactSecrets(message, cfg),
+        configFile: cfg.config_file ?? '',
+        configSource: cfg.config_source,
+      },
+      logLines: [
+        '方向: download',
+        `目标: ${targetLabel(cfg)}`,
+        `别名: ${cfg.target || '-'}`,
+        `远端: ${remote}`,
+        `本地: ${local}`,
+        `字节: ${bytes}`,
+        `开始: ${startedAt}`,
+        '结果: 失败',
+        `错误: ${message}`,
+        '',
+      ],
+    });
+    if (recordPath) console.error(`传输记录: ${recordPath}`);
+    if (logPath) console.error(`日志: ${logPath}`);
     throw error;
   } finally {
-    conn.end();
+    if (conn) conn.end();
   }
   const finishedAt = new Date().toISOString();
 
@@ -112,7 +143,7 @@ await runMain(async () => {
     configFile: cfg.config_file ?? '',
     configSource: cfg.config_source,
   });
-  const logPath = writeOperationLog('pull-file', [
+  const logPath = writeOperationLog('pull-file', redactSecrets([
     '方向: download',
     `目标: ${targetLabel(cfg)}`,
     `别名: ${cfg.target || '-'}`,
@@ -125,7 +156,7 @@ await runMain(async () => {
     `结束: ${finishedAt}`,
     '结果: 成功（MD5 一致）',
     '',
-  ].join('\n'));
+  ].join('\n'), cfg));
 
   console.log(`传输记录: ${recordPath}`);
   console.log(`日志: ${logPath}`);

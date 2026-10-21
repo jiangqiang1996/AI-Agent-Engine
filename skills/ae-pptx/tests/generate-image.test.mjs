@@ -131,7 +131,7 @@ describe('图片模型配置读取', () => {
     }
   })
 
-  it('配置里残留 size 等生成参数时被忽略并给出迁移提示', () => {
+  it('配置里残留 size 等生成参数时判为非法配置', () => {
     const { configPath } = writeConfig(JSON.stringify({
       'ae-pptx': {
         imageModel: {
@@ -145,12 +145,12 @@ describe('图片模型配置读取', () => {
       },
     }))
     const config = resolveImageModelConfig({ cwd: configPath, env: { MY_IMAGE_KEY: 'sk-x' } })
-    assert.equal(config.configured, true, '废弃字段不应阻塞调用')
+    assert.equal(config.configured, false, '配置里的生成参数与 schema 的 additionalProperties:false 同口径，必须判为非法配置')
     assert.equal(config.size, undefined)
     assert.equal(config.quality, undefined)
-    assert.equal(config.warnings.length, 2)
-    assert.match(config.warnings.join('；'), /imageModel\.size 已废弃/)
-    assert.match(config.warnings.join('；'), /--size/)
+    assert.match(config.problems.join('；'), /imageModel\.size 不是合法配置项/)
+    assert.match(config.problems.join('；'), /imageModel\.quality 不是合法配置项/)
+    assert.match(config.problems.join('；'), /--size|--aspect/)
   })
 
   it('apiKey 直接写密钥时不需要环境变量', () => {
@@ -215,6 +215,42 @@ describe('图片模型配置读取', () => {
     assert.equal(config.configured, false)
     assert.match(config.problems.join('；'), /OPENAI_API_KEY/)
   })
+
+  it('配置 key 由脚本路径推导（不写死技能名）', () => {
+    const { configPath } = writeConfig(JSON.stringify({
+      'ae-pptx': {
+        imageModel: {
+          provider: 'openai',
+          baseUrl: 'https://example.invalid/v1',
+          model: 'gpt-image-1',
+          apiKeyEnv: 'DERIVED_KEY',
+        },
+      },
+    }))
+    const config = resolveImageModelConfig({ cwd: configPath, env: { DERIVED_KEY: 'sk-x' } })
+    assert.equal(config.configured, true)
+    assert.equal(config.model, 'gpt-image-1')
+  })
+
+  it('显式传入 skillKey 时按该 key 读配置', () => {
+    const { configPath } = writeConfig(JSON.stringify({
+      'my-other-skill': {
+        imageModel: {
+          provider: 'openai',
+          baseUrl: 'https://example.invalid/v1',
+          model: 'gpt-image-1',
+          apiKeyEnv: 'OTHER_KEY',
+        },
+      },
+    }))
+    const config = resolveImageModelConfig({
+      cwd: configPath,
+      env: { OTHER_KEY: 'sk-x' },
+      skillKey: 'my-other-skill',
+    })
+    assert.equal(config.configured, true)
+    assert.equal(config.model, 'gpt-image-1')
+  })
 })
 
 describe('生成尺寸决策（由调用方决定）', () => {
@@ -268,12 +304,66 @@ describe('生成尺寸决策（由调用方决定）', () => {
     assert.throws(() => resolveImageSize(openaiConfig, { size: 'big' }), /尺寸格式非法/)
   })
 
+  it('openai 下按模型选尺寸集：dall-e-3 用 1792x1024，gpt-image-1 用 1536x1024', () => {
+    const dallE3 = resolveImageSize({ provider: 'openai', model: 'dall-e-3' }, { aspect: '16:9' })
+    assert.equal(dallE3.size, '1792x1024')
+    assert.equal(dallE3.via, 'aspect')
+
+    const gptImage = resolveImageSize({ provider: 'openai', model: 'gpt-image-1' }, { aspect: '16:9' })
+    assert.equal(gptImage.size, '1536x1024')
+  })
+
+  it('dall-e-3 的默认尺寸落在它支持的尺寸集里', () => {
+    const plan = resolveImageSize({ provider: 'openai', model: 'dall-e-3' }, {})
+    assert.equal(plan.size, '1024x1024')
+    assert.equal(plan.via, 'default')
+  })
+
+  it('给 dall-e-3 发它不支持的尺寸时给出提醒', () => {
+    const plan = resolveImageSize({ provider: 'openai', model: 'dall-e-3' }, { size: '1536x1024' })
+    assert.equal(plan.size, '1536x1024')
+    assert.match(plan.warnings.join('；'), /dall-e-3 只支持/)
+  })
+
   it('能从 PNG 二进制中读出真实像素尺寸', () => {
     const png = Buffer.from(PNG_BASE64, 'base64')
     const pixels = detectImageSize(png)
     assert.equal(pixels.width, 1)
     assert.equal(pixels.height, 1)
     assert.equal(pixels.type, 'png')
+  })
+})
+
+describe('图片像素尺寸解析', () => {
+  /** 造一个只有头部的 WebP（RIFF 容器 + 指定 chunk） */
+  function webpHeader(chunk, length = 16) {
+    const buffer = Buffer.alloc(length)
+    buffer.write('RIFF', 0, 'ascii')
+    buffer.write('WEBP', 8, 'ascii')
+    buffer.write(chunk, 12, 'ascii')
+    return buffer
+  }
+
+  it('完整的 WebP（VP8X）能读出宽高', () => {
+    const buffer = webpHeader('VP8X', 30)
+    buffer.writeUIntLE(99, 24, 3)
+    buffer.writeUIntLE(49, 27, 3)
+    const pixels = detectImageSize(buffer)
+    assert.equal(pixels.width, 100)
+    assert.equal(pixels.height, 50)
+    assert.equal(pixels.type, 'webp')
+  })
+
+  it('截断的 WebP 返回 null 而不是抛越界异常', () => {
+    for (const chunk of ['VP8 ', 'VP8L', 'VP8X']) {
+      const pixels = detectImageSize(webpHeader(chunk))
+      assert.equal(pixels, null, chunk + ' 截断时应返回 null')
+    }
+  })
+
+  it('无法识别的图片返回 null', () => {
+    assert.equal(detectImageSize(Buffer.alloc(64)), null)
+    assert.equal(detectImageSize(Buffer.alloc(4)), null)
   })
 })
 
@@ -559,7 +649,8 @@ describe('generate-image 命令行', () => {
     }
   })
 
-  it('配置里残留 size 时给出迁移提示且不影响调用', async () => {    const server = createServer((req, res) => {
+  it('配置里残留 size 时判为非法配置并以非零退出码结束', async () => {
+    const server = createServer((req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({ data: [{ b64_json: PNG_BASE64 }] }))
     })
@@ -588,11 +679,11 @@ describe('generate-image 命令行', () => {
         env: { ...process.env, AE_CONFIG: configPath, MOCK_IMAGE_KEY: 'sk-mock-secret' },
       })
 
-      assert.equal(result.status, 0, result.stderr)
+      assert.equal(result.status, 1, '非法配置必须以非零退出码结束')
       const report = JSON.parse(result.stdout)
-      assert.equal(report.configured, true)
+      assert.equal(report.configured, false)
       assert.equal(report.size, undefined)
-      assert.match(report.warnings.join('；'), /imageModel\.size 已废弃/)
+      assert.match(report.problems.join('；'), /imageModel\.size 不是合法配置项/)
     } finally {
       await new Promise((done) => server.close(done))
     }

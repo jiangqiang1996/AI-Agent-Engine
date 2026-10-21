@@ -7,18 +7,33 @@
 
 ---
 
+## 0. 一步到位
+
+改动直接落到**最终形态**，不保留变更历史：
+
+- 不做「旧写法 + 新写法」并存——改了名字就删掉旧名字与其读取分支；
+- 不留兼容别名、临时开关、迁移分支、TODO 占位、废弃段落；
+- 改了脚本的输出字段，文档里的旧字段名要同步删掉，而不是两个都写；
+- 改了配置字段，`ae.schema.json` 与 `ae.jsonc.example` 要同步到最终形态。
+
+判定标准：看 diff 里有没有「同一件事存在两种写法」。有，就是没做到位。
+
+---
+
 ## 1. 目录与命名
 
 ```
 skills/<ae-name>/
   SKILL.md          # 必需，目录名必须 == frontmatter 的 name
   references/       # 可选，渐进披露的细则
-  scripts/          # 可选，可执行脚本
+    roles/          # 可选，角色卡（必须是 references/roles/<role>.md）
+  scripts/          # 可选，可执行脚本（.mjs 或 .py）
   tests/            # 可选，脚本单元测试
 ```
 
 - `name` 只允许小写字母、数字、连字符，不含首尾/连续连字符，≤64 字符。
 - 必须以 `ae-` 前缀开头。
+- 去掉 `ae-` 前缀后的 slug 不能是 `test` / `build` / `docs` / `utils` 等通用词。
 
 ---
 
@@ -184,17 +199,20 @@ metadata:
 
 提交前逐条确认：
 
-- [ ] `name` == 目录名，且带 `ae-` 前缀
-- [ ] frontmatter 只有 6 个允许字段
+- [ ] `name` == 目录名，且带 `ae-` 前缀；slug 不是通用词
+- [ ] frontmatter 只有 6 个允许字段，`license` 是字符串，`allowed-tools` 用空格分隔
 - [ ] `description` 说清了"做什么 + 何时用"，且不含反向触发词（"本技能过重"这类应放正文）
 - [ ] `compatibility` 与实际依赖一致
 - [ ] 正文 ≤500 行，引用的 `references/` / `scripts/` / `assets/` 文件都存在
 - [ ] `references/` 内部的相互链接都有效
 - [ ] `ae/<slug>/` 产物路径与 `ae/logs/<slug>/` 日志路径都属于本技能
 - [ ] 没有任何其它技能的名称（`npm run validate` 会验）
-- [ ] 没有宿主专属名 / 工具名 / 占位符
+- [ ] 没有宿主专属名 / 工具名 / 占位符（`SKILL.md` / `references/` / `scripts/` / `tests/` 都要查）
 - [ ] 没有硬编码密钥；破坏性操作有授权门槛
 - [ ] 脚本通过 `node --check`（`.mjs` / `.js` / `.cjs` 都要），必要时补 `tests/*.test.mjs`
-- [ ] Python 脚本能 `python -m compileall` 通过，且文档写明自测命令
+- [ ] Python 脚本能 `python -m py_compile` 通过，且文档写明自测命令
 - [ ] 脚本没有写死技能名；入口判定没有直接比较 `argv[1]` 与 `import.meta.url`
+- [ ] 角色卡都在 `references/roles/` 下
+- [ ] **一步到位**：没有「旧写法 + 新写法」并存，没有 TODO / 废弃段落
 - [ ] `npm run check` 全绿
+

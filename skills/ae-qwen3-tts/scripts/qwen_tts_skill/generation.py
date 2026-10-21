@@ -116,7 +116,12 @@ def ensure_decodable_ref_audio(ref: str | Path) -> str:
     return str(out)
 
 
-def _save_wavs(wavs: list, sr: int, output: str | Path, is_batch: bool) -> list[Path]:
+class OutputConflictError(ValueError):
+    """目标输出文件已存在——默认拒绝覆盖（需显式 --overwrite）。"""
+
+
+def _save_wavs(wavs: list, sr: int, output: str | Path, is_batch: bool,
+               overwrite: bool = False) -> list[Path]:
     """保存音频。output 语义:
 
     - 单条: 文件路径（任意相对/绝对路径，父目录自动创建，无扩展名自动补 .wav）。
@@ -124,32 +129,49 @@ def _save_wavs(wavs: list, sr: int, output: str | Path, is_batch: bool) -> list[
             扩展名为音频格式 → 文件名前缀（out/speech.wav → speech-000.wav…）；
             其余 → 目录（out/ → out/000.wav…）。
     音频格式跟随扩展名（wav/flac/ogg/mp3 等，由 libsndfile 推断）。
+
+    overwrite=False（默认）时，目标文件已存在即拒绝写入并抛 OutputConflictError
+    （错误信息点名冲突文件）；批量模式先算齐全部目标路径再统一判定冲突，
+    不会出现"写了一半才报冲突"。overwrite=True 时才允许覆盖既有文件。
     """
     import soundfile as sf
 
     out = resolve_output_path(output)
-    paths: list[Path] = []
 
-    def _write(p: Path, wav) -> None:
+    # 先算齐全部目标路径（批量模式要一次看全，才能统一判定冲突）
+    if is_batch:
+        if "{i}" in str(out):
+            targets = [Path(str(out).replace("{i}", f"{i:03d}")) for i in range(len(wavs))]
+        elif out.suffix.lower() in AUDIO_SUFFIXES:
+            targets = [out.parent / f"{out.stem}-{i:03d}{out.suffix}" for i in range(len(wavs))]
+        else:
+            targets = [out / f"{i:03d}.wav" for i in range(len(wavs))]
+    else:
+        targets = [out]
+
+    normalized: list[Path] = []
+    for p in targets:
         if not p.suffix:
             p = p.with_name(p.name + ".wav")
+        normalized.append(p)
+
+    if not overwrite:
+        conflicts = [p for p in normalized if p.exists()]
+        if conflicts:
+            names = "、".join(str(p) for p in conflicts)
+            raise OutputConflictError(
+                f"输出文件已存在，拒绝覆盖：{names}"
+                "（确认可覆盖后加 --overwrite 重跑；批量模式会覆盖目录内同名文件）"
+            )
+
+    pairs = list(zip(normalized, wavs)) if is_batch else [(normalized[0], wavs[0])]
+
+    paths: list[Path] = []
+    for p, wav in pairs:
         p.parent.mkdir(parents=True, exist_ok=True)
         sf.write(str(p), wav, sr)
         paths.append(p)
         print(f"[tts] 保存: {p}")
-
-    if is_batch:
-        if "{i}" in str(out):
-            for i, wav in enumerate(wavs):
-                _write(Path(str(out).replace("{i}", f"{i:03d}")), wav)
-        elif out.suffix.lower() in AUDIO_SUFFIXES:
-            for i, wav in enumerate(wavs):
-                _write(out.parent / f"{out.stem}-{i:03d}{out.suffix}", wav)
-        else:
-            for i, wav in enumerate(wavs):
-                _write(out / f"{i:03d}.wav", wav)
-    else:
-        _write(out, wavs[0])
 
     return paths
 
@@ -173,6 +195,7 @@ def generate_custom_voice(
     output: str | Path | None = None,
     model_name: str = "0.6b",
     *,
+    overwrite: bool = False,
     device: str = "auto",
     dtype: str = "auto",
     attn_implementation: str = "auto",
@@ -202,6 +225,7 @@ def generate_custom_voice(
         output: 输出路径（单条=文件；批量=目录/含 {i} 模板/音频扩展名前缀；
             None=默认 <cwd>/ae/<skill-slug>/output.wav）。
         model_name: 模型规模（0.6b / 1.7b）。
+        overwrite: 目标文件已存在时是否覆盖（默认 False=拒绝覆盖并报错）。
         device/dtype/attn_implementation/model_kwargs: 模型加载配置。
         generation_kwargs: 额外透传给底层 generate() 的参数（覆盖同名项）。
         seed: 随机种子。
@@ -240,7 +264,7 @@ def generate_custom_voice(
         **kwargs, **gen,
     )
     print(f"[tts] 生成完成 ({time.time() - t0:.1f}s)")
-    return _save_wavs(wavs, sr, output, is_batch)
+    return _save_wavs(wavs, sr, output, is_batch, overwrite=overwrite)
 
 
 def generate_voice_design(
@@ -249,6 +273,7 @@ def generate_voice_design(
     language: str | list[str] = "Chinese",
     output: str | Path | None = None,
     *,
+    overwrite: bool = False,
     device: str = "auto",
     dtype: str = "auto",
     attn_implementation: str = "auto",
@@ -275,6 +300,7 @@ def generate_voice_design(
         instruct: 音色描述（如 "低沉成熟的男声"）。
         language: 语言或语言列表。
         output: 输出路径。
+        overwrite: 目标文件已存在时是否覆盖（默认 False=拒绝覆盖并报错）。
         其余参数同 generate_custom_voice。
 
     Returns:
@@ -304,7 +330,7 @@ def generate_voice_design(
         **kwargs, **gen,
     )
     print(f"[tts] 生成完成 ({time.time() - t0:.1f}s)")
-    return _save_wavs(wavs, sr, output, is_batch)
+    return _save_wavs(wavs, sr, output, is_batch, overwrite=overwrite)
 
 
 def generate_voice_clone(
@@ -315,6 +341,7 @@ def generate_voice_clone(
     output: str | Path | None = None,
     *,
     model_name: str = "0.6b",
+    overwrite: bool = False,
     x_vector_only: bool | list[bool] = False,
     device: str = "auto",
     dtype: str = "auto",
@@ -345,6 +372,7 @@ def generate_voice_clone(
         output: 输出路径。
         model_name: 模型规模（0.6b / 1.7b）。
         x_vector_only: 仅使用声纹向量。
+        overwrite: 目标文件已存在时是否覆盖（默认 False=拒绝覆盖并报错）。
         其余参数同 generate_custom_voice。
 
     Returns:
@@ -382,4 +410,4 @@ def generate_voice_clone(
         **kwargs, **gen,
     )
     print(f"[tts] 生成完成 ({time.time() - t0:.1f}s)")
-    return _save_wavs(wavs, sr, output, is_batch)
+    return _save_wavs(wavs, sr, output, is_batch, overwrite=overwrite)

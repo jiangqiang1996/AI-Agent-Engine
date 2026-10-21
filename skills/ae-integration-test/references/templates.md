@@ -92,6 +92,8 @@ async function main() {
 
 所有请求方法内部使用 `fetchWithAuthRetry`（由 references/auth.md 提供）替代原生 `fetch`，以支持 401 三路分流。
 
+所有响应体在打印前必须经 `redactSecrets`（由 references/auth.md 的脱敏片段提供）处理，避免 token 等敏感字段进入日志；请求头若需输出，同样经 `redactHeaders` 处理。
+
 ### GET
 
 ```js
@@ -106,7 +108,7 @@ async function getRequest(path, params = {}, headers = {}) {
   const text = await res.text();
   try {
     const data = JSON.parse(text);
-    console.log(`[GET] ${path} =>`, res.status, JSON.stringify(data, null, 2));
+    console.log(`[GET] ${path} =>`, res.status, JSON.stringify(redactSecrets(data), null, 2));
     return { status: res.status, data };
   } catch {
     console.warn(`[GET] ${path} => ${res.status} 非 JSON 响应 (${text.length} bytes)`);
@@ -128,7 +130,7 @@ async function postJson(path, body = {}, headers = {}) {
   const text = await res.text();
   try {
     const data = JSON.parse(text);
-    console.log(`[POST] ${path} =>`, res.status, JSON.stringify(data, null, 2));
+    console.log(`[POST] ${path} =>`, res.status, JSON.stringify(redactSecrets(data), null, 2));
     return { status: res.status, data };
   } catch {
     console.warn(`[POST] ${path} => ${res.status} 非 JSON 响应 (${text.length} bytes)`);
@@ -150,7 +152,7 @@ async function putJson(path, body = {}, headers = {}) {
   const text = await res.text();
   try {
     const data = JSON.parse(text);
-    console.log(`[PUT] ${path} =>`, res.status, JSON.stringify(data, null, 2));
+    console.log(`[PUT] ${path} =>`, res.status, JSON.stringify(redactSecrets(data), null, 2));
     return { status: res.status, data };
   } catch {
     console.warn(`[PUT] ${path} => ${res.status} 非 JSON 响应 (${text.length} bytes)`);
@@ -172,7 +174,7 @@ async function patchJson(path, body = {}, headers = {}) {
   const text = await res.text();
   try {
     const data = JSON.parse(text);
-    console.log(`[PATCH] ${path} =>`, res.status, JSON.stringify(data, null, 2));
+    console.log(`[PATCH] ${path} =>`, res.status, JSON.stringify(redactSecrets(data), null, 2));
     return { status: res.status, data };
   } catch {
     console.warn(`[PATCH] ${path} => ${res.status} 非 JSON 响应 (${text.length} bytes)`);
@@ -197,7 +199,7 @@ async function deleteRequest(path, headers = {}, body = undefined) {
   const text = await res.text();
   try {
     const data = JSON.parse(text);
-    console.log(`[DELETE] ${path} =>`, res.status, JSON.stringify(data, null, 2));
+    console.log(`[DELETE] ${path} =>`, res.status, JSON.stringify(redactSecrets(data), null, 2));
     return { status: res.status, data };
   } catch {
     console.warn(`[DELETE] ${path} => ${res.status} 非 JSON 响应 (${text.length} bytes)`);
@@ -221,7 +223,7 @@ async function postForm(path, formData, headers = {}) {
   const text = await res.text();
   try {
     const data = JSON.parse(text);
-    console.log(`[POST-FORM] ${path} =>`, res.status, JSON.stringify(data, null, 2));
+    console.log(`[POST-FORM] ${path} =>`, res.status, JSON.stringify(redactSecrets(data), null, 2));
     return { status: res.status, data };
   } catch {
     console.warn(`[POST-FORM] ${path} => ${res.status} 非 JSON 响应 (${text.length} bytes)`);
@@ -247,7 +249,7 @@ async function uploadFile(path, filePath, fieldName = 'file', headers = {}) {
   const text = await res.text();
   try {
     const data = JSON.parse(text);
-    console.log(`[UPLOAD] ${path} =>`, res.status, JSON.stringify(data, null, 2));
+    console.log(`[UPLOAD] ${path} =>`, res.status, JSON.stringify(redactSecrets(data), null, 2));
     return { status: res.status, data };
   } catch {
     console.warn(`[UPLOAD] ${path} => ${res.status} 非 JSON 响应 (${text.length} bytes)`);
@@ -319,7 +321,8 @@ async function runTests(tests) {
   const reportDir = path.join(process.cwd(), 'ae', 'integration-test', 'reports');
   await fs.promises.mkdir(reportDir, { recursive: true });
   const runId = `run-${Date.now()}`;
-  await fs.promises.writeFile(path.join(reportDir, `${runId}.json`), JSON.stringify(report, null, 2));
+  // 报告落盘前脱敏：token 等敏感字段不得写入产物
+  await fs.promises.writeFile(path.join(reportDir, `${runId}.json`), JSON.stringify(redactSecrets(report), null, 2));
   console.log(`报告已写入: ae/integration-test/reports/${runId}.json`);
 
   if (failed > 0) process.exit(1);
@@ -358,7 +361,6 @@ function validateDefinition(steps) {
 // - 登录接口返回非 401 的认证失败（如 403 on login）→ process.exit(2)
 // 注意：仅在 login 函数内部的基础设施错误触发 exit(2)，
 // 普通请求的 401/403 走三路分流或 L2 修复，不直接 exit
-```
 ```
 
 ### 退出码语义
@@ -425,6 +427,7 @@ interface ApiTesterReport {
 │   ├── config.mjs      # BASE_URL, HEADERS, 环境安全护栏
 │   ├── request.mjs     # 所有请求方法 (getRequest/postJson/putJson/patchJson/deleteRequest/postForm/uploadFile)
 │   ├── auth.mjs        # login, withToken, fetchWithAuthRetry, classify401, authPlugins
+│   ├── redact.mjs      # redactSecrets, redactHeaders（脱敏）
 │   ├── assert.mjs      # assert, assertStatus, assertField, assertContains
 │   └── runner.mjs      # runTests, cleanup, report
 ├── xxx-flow-test.mjs   # 业务流程测试（只含编排逻辑 + import from lib/）
@@ -459,6 +462,7 @@ if (ALLOWED_HOSTS.length > 0) {
 import { BASE_URL, HEADERS } from './lib/config.mjs';
 import { getRequest, postJson, putJson, deleteRequest } from './lib/request.mjs';
 import { login, withToken, fetchWithAuthRetry } from './lib/auth.mjs';
+import { redactSecrets } from './lib/redact.mjs';
 import { assert, assertStatus, assertField } from './lib/assert.mjs';
 import { runTests, cleanup } from './lib/runner.mjs';
 
@@ -492,6 +496,9 @@ if (process.env.NODE_ENV === 'production') { /* ... */ }
 
 // --- 认证 ---
 // （由 references/auth.md 提供 login / withToken / fetchWithAuthRetry / classify401）
+
+// --- 脱敏 ---
+// （由 references/auth.md 提供 redactSecrets / redactHeaders）
 
 // --- 断言 ---
 // （插入 assert / assertStatus / assertField / assertContains）
@@ -556,10 +563,12 @@ while (hasMore) {
 - 非 JSON 响应不抛异常，输出警告并返回 `data: null`，允许 status 断言继续执行
 - 使用 Node.js 原生 `fetch`（Node >= 18），不引入第三方 HTTP 库；用户可自行替换
 - 所有请求方法内部使用 `fetchWithAuthRetry` 替代原生 `fetch`，以支持 401 三路分流
+- 所有响应体打印前必须经 `redactSecrets` 处理，JSON report 落盘前同样脱敏；请求头输出前经 `redactHeaders` 处理
+- token / 凭据不得打印到日志，也不得写入报告与产物
 - 文件上传使用 `fs` 和 `FormData`，仅在需要时引入
 - 断言失败时抛出 Error，由 `runTests` 统一捕获汇总
 - 环境安全护栏必须在所有业务逻辑之前执行
 - 副作用数据必须在 `finally` 块中按创建逆序清理；`irreversible` 项跳过清理；`path` 缺失时跳过清理并输出警告；清理失败不抛异常
-- 模块化模式（接口数 > 5）拆分到 `lib/` 目录；单文件模式（接口数 ≤ 5）全部内联
+- 模块化模式（接口数 > 5）拆分到 `lib/` 目录（含 `lib/redact.mjs` 脱敏模块）；单文件模式（接口数 ≤ 5）全部内联
 - DELETE 方法支持可选 `body` 参数
 - 退出码遵循 0/1/2/3 语义，JSON report 写入 `ae/integration-test/reports/`

@@ -312,6 +312,8 @@ async function main() {
   process.stdout.write('已生成图片：' + outPath + '（' + result.provider + ' / ' + result.model + '，' + result.buffer.length + ' 字节）\n')
   if (pixels) {
     process.stdout.write('实际像素：' + pixels.width + 'x' + pixels.height + '（请求 ' + (sizePlan.size || sizePlan.aspect || '未指定') + '，来源 ' + sizePlan.source + '）\n')
+  } else {
+    process.stdout.write('实际像素：像素尺寸未知（图片格式无法识别或文件被截断）\n')
   }
 }
 

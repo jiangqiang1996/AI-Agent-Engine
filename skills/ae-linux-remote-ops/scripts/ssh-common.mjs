@@ -24,10 +24,18 @@ import {
 /**
  * ae.jsonc 中本技能的配置分片 key。
  *
- * 由脚本自身路径推导所属技能目录名（ae-<slug>），不写死；
- * 推导失败时回落到约定的分片 key（配置 key 约定与技能目录同名）。
+ * 由脚本自身路径推导所属技能目录名（ae-<slug>），不写死任何技能名；
+ * 推导失败直接抛错——技能目录被改名或脚本被挪出技能目录时，
+ * 继续运行只会把产物写进错误的 ae/<slug>/ 目录。
  */
-export const SKILL_KEY = resolveOwningSkillName(import.meta.url) ?? 'ae-linux-remote-ops';
+const OWNING_SKILL_NAME = resolveOwningSkillName(import.meta.url);
+if (!OWNING_SKILL_NAME) {
+  throw new Error('[ERROR] 无法从脚本路径推导所属技能名（ae-<slug>）。\n'
+    + '本脚本必须位于所属技能目录 ae-<slug>/ 内（scripts/ 或 scripts/lib/ 均可）。\n'
+    + '请确认技能目录完整，或重新获取技能目录后再运行。');
+}
+/** 技能目录名，同时用作 ae.jsonc 的配置分片 key。 */
+export const SKILL_KEY = OWNING_SKILL_NAME;
 
 const DEFAULTS = {
   port: 22,
@@ -52,18 +60,16 @@ function isPlainObject(v) {
   return v !== null && typeof v === 'object' && !Array.isArray(v);
 }
 
-/** 取第一个有值的候选字段（兼容 camelCase 与历史 snake_case 写法）。 */
-function firstDefined(source, names) {
+/** 取配置里的单个字段；空字符串 / null / undefined 视为未配置。 */
+function pick(source, name) {
   if (!isPlainObject(source)) {
     return undefined;
   }
-  for (const name of names) {
-    const value = source[name];
-    if (value !== undefined && value !== null && value !== '') {
-      return value;
-    }
+  const value = source[name];
+  if (value === undefined || value === null || value === '') {
+    return undefined;
   }
-  return undefined;
+  return value;
 }
 
 function toPort(raw) {
@@ -90,10 +96,13 @@ function toNumber(raw, fallback, min = 0) {
  *
  * 顺序：
  *   1. 环境变量 AE_CONFIG（标准显式覆盖，指向 ae.jsonc）
- *   2. 环境变量 SSH_CONFIG（本技能遗留显式覆盖，指向任意 JSON/JSONC 文件）
- *   3. <cwd>/ae.jsonc
- *   4. 从 <cwd> 逐级向上查找 ae.jsonc（最近者胜）
- *   5. ~/.ae.jsonc
+ *   2. <cwd>/ae.jsonc
+ *   3. 从 <cwd> 逐级向上查找 ae.jsonc（最近者胜）
+ *   4. ~/.ae.jsonc
+ *
+ * 说明：本技能不劫持 OpenSSH 用来指定 ~/.ssh/config 的那个环境变量，
+ * 避免用户导出的真实 SSH 配置被当成 JSON 解析而报错；
+ * 唯一的显式覆盖是 AE_CONFIG。
  *
  * @param {object} [options]
  * @param {string} [options.cwd]
@@ -111,15 +120,6 @@ export function resolveConfigFile(options = {}) {
       throw new Error(`[ERROR] AE_CONFIG 指向的配置文件不存在: ${overridePath}`);
     }
     return overridePath;
-  }
-
-  const legacy = env.SSH_CONFIG;
-  if (legacy && String(legacy).trim() !== '') {
-    const legacyPath = path.isAbsolute(legacy) ? legacy : path.resolve(cwd, legacy);
-    if (!fs.existsSync(legacyPath)) {
-      throw new Error(`[ERROR] SSH_CONFIG 指向的配置文件不存在: ${legacyPath}`);
-    }
-    return legacyPath;
   }
 
   // 标准查找：<cwd>/ae.jsonc → 逐级向上 → ~/ae.jsonc（共享库实现）
@@ -144,9 +144,6 @@ export function configSourceOf(filePath, options = {}) {
   const env = options.env ?? process.env;
   if (env.AE_CONFIG && path.resolve(cwd, String(env.AE_CONFIG)) === filePath) {
     return 'env';
-  }
-  if (env.SSH_CONFIG && path.resolve(cwd, String(env.SSH_CONFIG)) === filePath) {
-    return 'legacy';
   }
   const home = os.homedir();
   if (filePath === path.join(home, '.ae.jsonc') || filePath === path.join(home, CONFIG_FILENAME)) {
@@ -183,10 +180,15 @@ function readSkillConfig(file, cwd, env) {
  *
  * 字段来源优先级（从高到低）：
  *   1. 环境变量（SSH_HOST / SSH_PORT / SSH_USER / SSH_PASSWORD / SSH_PASS /
- *      SSH_SUDO_PASSWORD / SSH_KEY_FILE）
+ *      SSH_SUDO_PASSWORD / SSH_KEY_FILE / SSH_KEY_PASSPHRASE）
  *   2. ae.jsonc 中 hosts.<别名> 分片
  *   3. ae.jsonc 中 ae-linux-remote-ops 分片
  *   4. 内置默认值
+ *
+ * 配置文件里的字段名只认 camelCase 一套（host / port / user / passwordEnv /
+ * sudoPasswordEnv / keyFile / keyPassphraseEnv / hostFingerprint / timeoutSec /
+ * execTimeoutSec / keepaliveIntervalSec / hosts）；
+ * 密码类一律走 *Env 环境变量间接引用，配置文件里不落明文。
  *
  * @param {object} [options]
  * @param {string} [options.cwd]
@@ -222,45 +224,35 @@ export function loadConfig(options = {}) {
   cfg.config_source = configSourceOf(file, { cwd, env });
   cfg.target = alias;
 
-  const host = firstDefined(merged, ['host']);
+  const host = pick(merged, 'host');
   if (host !== undefined) {
     cfg.host = String(host);
   }
-  const port = firstDefined(merged, ['port']);
+  const port = pick(merged, 'port');
   if (port !== undefined) {
     cfg.port = toPort(port);
   }
-  const user = firstDefined(merged, ['user']);
+  const user = pick(merged, 'user');
   if (user !== undefined) {
     cfg.user = String(user);
   }
 
-  const passwordEnvName = firstDefined(merged, ['passwordEnv', 'password_env']);
-  const sudoPasswordEnvName = firstDefined(merged, ['sudoPasswordEnv', 'sudo_password_env']);
-  const keyFile = firstDefined(merged, ['keyFile', 'key_file']);
-  const keyPassphrase = firstDefined(merged, ['keyPassphrase', 'key_passphrase']);
-  const hostFingerprint = firstDefined(merged, ['hostFingerprint', 'host_fingerprint']);
+  // 密钥相关：只认路径 + 环境变量间接引用，口令不落配置文件。
+  const passwordEnvName = pick(merged, 'passwordEnv');
+  const sudoPasswordEnvName = pick(merged, 'sudoPasswordEnv');
+  const keyFile = pick(merged, 'keyFile');
+  const keyPassphraseEnvName = pick(merged, 'keyPassphraseEnv');
+  const hostFingerprint = pick(merged, 'hostFingerprint');
 
-  // 密码优先走环境变量：SSH_PASSWORD > passwordEnv 指向的变量 > 配置文件内遗留明文。
-  let password = firstDefined(merged, ['password']);
-  if (passwordEnvName) {
-    const fromEnv = env[String(passwordEnvName)];
-    if (fromEnv) {
-      password = fromEnv;
-    }
-  }
+  // 密码优先走环境变量：SSH_PASSWORD > passwordEnv 指向的变量。
+  let password = passwordEnvName ? env[String(passwordEnvName)] : undefined;
   const envPassword = env.SSH_PASSWORD || env.SSH_PASS;
   if (envPassword) {
     password = envPassword;
   }
 
-  let sudoPassword = firstDefined(merged, ['sudoPassword', 'sudo_password']);
-  if (sudoPasswordEnvName) {
-    const fromEnv = env[String(sudoPasswordEnvName)];
-    if (fromEnv) {
-      sudoPassword = fromEnv;
-    }
-  }
+  // sudo 密码：SSH_SUDO_PASSWORD > sudoPasswordEnv 指向的变量。
+  let sudoPassword = sudoPasswordEnvName ? env[String(sudoPasswordEnvName)] : undefined;
   if (env.SSH_SUDO_PASSWORD) {
     sudoPassword = env.SSH_SUDO_PASSWORD;
   }
@@ -268,6 +260,12 @@ export function loadConfig(options = {}) {
   let key = keyFile ? String(keyFile) : '';
   if (env.SSH_KEY_FILE) {
     key = env.SSH_KEY_FILE;
+  }
+
+  // 私钥口令：SSH_KEY_PASSPHRASE > keyPassphraseEnv 指向的变量。
+  let keyPassphrase = keyPassphraseEnvName ? env[String(keyPassphraseEnvName)] : undefined;
+  if (env.SSH_KEY_PASSPHRASE) {
+    keyPassphrase = env.SSH_KEY_PASSPHRASE;
   }
 
   if (password) {
@@ -286,16 +284,10 @@ export function loadConfig(options = {}) {
     cfg.host_fingerprint = String(hostFingerprint);
   }
 
-  cfg.timeout_sec = toNumber(
-    firstDefined(merged, ['timeoutSec', 'timeout_sec']),
-    DEFAULTS.timeout_sec,
-  );
-  cfg.exec_timeout_sec = toNumber(
-    firstDefined(merged, ['execTimeoutSec', 'exec_timeout_sec']),
-    DEFAULTS.exec_timeout_sec,
-  );
+  cfg.timeout_sec = toNumber(pick(merged, 'timeoutSec'), DEFAULTS.timeout_sec);
+  cfg.exec_timeout_sec = toNumber(pick(merged, 'execTimeoutSec'), DEFAULTS.exec_timeout_sec);
   cfg.keepalive_interval_sec = toNumber(
-    firstDefined(merged, ['keepaliveIntervalSec', 'keepalive_interval_sec']),
+    pick(merged, 'keepaliveIntervalSec'),
     DEFAULTS.keepalive_interval_sec,
   );
 
@@ -418,6 +410,28 @@ export async function connect(cfg) {
   });
 }
 
+/** 信号编号表：用于把「被信号杀死」换算成 128 + N 的退出码（shell 惯例）。 */
+const SIGNAL_NUMBERS = {
+  SIGHUP: 1, SIGINT: 2, SIGQUIT: 3, SIGILL: 4, SIGTRAP: 5, SIGABRT: 6, SIGBUS: 7,
+  SIGFPE: 8, SIGKILL: 9, SIGUSR1: 10, SIGSEGV: 11, SIGUSR2: 12, SIGPIPE: 13,
+  SIGALRM: 14, SIGTERM: 15, SIGSTKFLT: 16, SIGCHLD: 17, SIGCONT: 18, SIGSTOP: 19,
+  SIGTSTP: 20, SIGTTIN: 21, SIGTTOU: 22, SIGURG: 23, SIGXCPU: 24, SIGXFSZ: 25,
+  SIGVTALRM: 26, SIGPROF: 27, SIGWINCH: 28, SIGIO: 29, SIGPWR: 30, SIGSYS: 31,
+};
+
+/** 进程被信号杀死时的退出码基数：128 + 信号编号。 */
+export const SIGNAL_EXIT_BASE = 128;
+
+/** 通道异常关闭（连接中断、始终没等到退出码）时的退出码：非 0，区别于正常退出。 */
+export const ABNORMAL_CLOSE_RC = 255;
+
+/** 把信号名换算成 128 + N 的退出码；未知信号按 128 处理。 */
+export function exitCodeOfSignal(signal) {
+  const name = String(signal ?? '').trim().toUpperCase();
+  const num = SIGNAL_NUMBERS[name];
+  return SIGNAL_EXIT_BASE + (typeof num === 'number' ? num : 0);
+}
+
 // 在已建连的通道上执行命令；stdout/stderr 并发汇聚，根治顺序 read 的管道死锁。
 export function runSshOn(conn, cmd, { sudo = false, cfg } = {}) {
   const execStr = sudo ? `sudo -S -p "" bash -c ${shlexQuote(cmd)}` : cmd;
@@ -431,6 +445,7 @@ export function runSshOn(conn, cmd, { sudo = false, cfg } = {}) {
       const outChunks = [];
       const errChunks = [];
       let exitCode = null;
+      let exitSignal = null;
       let done = false;
       const firstLine = String(cmd).split('\n', 1)[0].slice(0, 120);
       const timer = timeoutMs > 0 ? setTimeout(() => {
@@ -450,15 +465,32 @@ export function runSshOn(conn, cmd, { sudo = false, cfg } = {}) {
       stream.on('data', (d) => outChunks.push(d));
       stream.stderr.on('data', (d) => errChunks.push(d));
       stream.on('error', (e) => finish(reject, new Error(`[ERROR] 执行通道错误: ${e.message}`)));
-      stream.on('exit', (code) => {
+      // ssh2 的 exit/close 事件形如 (code, signal)：
+      //   - code 为数字 → 正常退出码，原样透传；
+      //   - code 为 null 且带 signal → 进程被信号杀死（如 OOM-kill 的 SIGKILL）；
+      //   - code 为 null 且无 signal → 通道异常关闭（连接中断），没有退出码。
+      // 后两种情况都不能当成成功，必须给出非 0 的退出码。
+      stream.on('exit', (code, signal) => {
         if (typeof code === 'number') exitCode = code;
+        if (signal) exitSignal = signal;
       });
-      stream.on('close', (code) => {
-        const rc = (typeof code === 'number' ? code : exitCode) ?? 0;
+      stream.on('close', (code, signal) => {
+        if (typeof code === 'number') exitCode = code;
+        if (signal) exitSignal = signal;
+        let rc;
+        if (typeof exitCode === 'number') {
+          rc = exitCode;
+        } else if (exitSignal) {
+          rc = exitCodeOfSignal(exitSignal);
+        } else {
+          rc = ABNORMAL_CLOSE_RC;
+        }
         finish(resolve, {
           out: Buffer.concat(outChunks).toString('utf8'),
           err: Buffer.concat(errChunks).toString('utf8'),
           rc,
+          signal: exitSignal ?? null,
+          abnormalClose: typeof exitCode !== 'number',
         });
       });
       try {
@@ -570,4 +602,31 @@ export function redactSecrets(text, cfg) {
 /** 统一的"目标描述"，写进日志与记录。 */
 export function targetLabel(cfg) {
   return `${cfg.user}@${cfg.host}:${cfg.port}`;
+}
+
+/**
+ * 失败路径落盘：写操作记录 + 写（脱敏后的）日志。
+ *
+ * 失败也必须留痕——否则「连不上 / 传失败 / 命令被杀」这类问题在事后无从追溯。
+ * 落盘自身失败不覆盖原始错误：原始异常继续向上抛。
+ *
+ * @param {object} options
+ * @param {string} options.kind 记录类型前缀（session / transfer）
+ * @param {string} options.label 日志标签
+ * @param {object} options.record 记录内容（会被合并 status/error 字段）
+ * @param {string[]} options.logLines 日志行
+ * @param {object} [options.cfg] 用于脱敏的配置
+ * @param {string} [options.cwd]
+ * @returns {{recordPath: string, logPath: string}} 落盘路径（失败时为空串）
+ */
+export function writeFailureArtifacts({ kind, label, record, logLines, cfg, cwd }) {
+  let recordPath = '';
+  let logPath = '';
+  try {
+    recordPath = writeOperationRecord(kind, { ...record, status: 'failed' }, { cwd });
+  } catch { /* 落盘失败不覆盖原始错误 */ }
+  try {
+    logPath = writeOperationLog(label, redactSecrets((logLines ?? []).join('\n'), cfg), { cwd });
+  } catch { /* 同上 */ }
+  return { recordPath, logPath };
 }

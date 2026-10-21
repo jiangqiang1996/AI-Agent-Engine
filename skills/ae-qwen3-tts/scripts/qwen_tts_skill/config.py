@@ -154,13 +154,19 @@ def resolve_default_output(cwd: str | Path | None = None) -> Path:
     return resolve_output_dir(cwd) / default_output_path(cwd).name
 
 
-def resolve_device(cwd: str | Path | None = None) -> str:
-    """默认设备（auto / cuda:N / cpu）。"""
+def resolve_device_setting(cwd: str | Path | None = None) -> str:
+    """默认设备（auto / cuda:N / cpu）——读配置文件与环境变量。
+
+    注意：与 devices.resolve_device（设备策略入口）不同名，避免同名歧义。
+    """
     return _setting("device", "DEVICE", cwd) or "auto"
 
 
-def resolve_dtype(cwd: str | Path | None = None) -> str:
-    """默认精度（auto / bfloat16 / float16 / float32）。"""
+def resolve_dtype_setting(cwd: str | Path | None = None) -> str:
+    """默认精度（auto / bfloat16 / float16 / float32）——读配置文件与环境变量。
+
+    注意：与 devices.resolve_dtype（精度策略入口）不同名，避免同名歧义。
+    """
     return _setting("dtype", "DTYPE", cwd) or "auto"
 
 

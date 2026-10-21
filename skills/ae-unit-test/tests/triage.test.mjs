@@ -1,6 +1,8 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
+import { mkdtempSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -41,8 +43,9 @@ test('规则 2：全部测试失败判定为环境问题', () => {
   assert.equal(out.rule, 2)
 })
 
-test('规则 4：没有基准文档时要求人工确认', () => {
+test('规则 4：没有基准文档时要求人工确认，根因标记为 unknown', () => {
   const out = JSON.parse(run(['--json', JSON.stringify([failure()])]))
+  assert.equal(out.rootCause, 'unknown')
   assert.equal(out.dispatchTarget, 'manual')
   assert.equal(out.rule, 4)
 })
@@ -56,6 +59,16 @@ test('规则 3：有基准文档时输出需要语义诊断的上下文', () => 
   assert.equal(out.rule, 3)
   assert.equal(out.requirementPath, 'docs/requirements.md')
   assert.ok(out.instructions.length > 0)
+})
+
+test('规则 3 的失败项带上完整的失败字段（含 stackTrace）', () => {
+  const out = JSON.parse(run([
+    '--json', JSON.stringify([failure()]),
+    '--requirement', 'docs/requirements.md',
+  ]))
+  assert.equal(out.failures[0].stackTrace, 'at Object.<anonymous>')
+  assert.equal(out.failures[0].expected, '1')
+  assert.equal(out.failures[0].actual, '2')
 })
 
 test('用例规格路径可单独提供', () => {
@@ -74,6 +87,31 @@ test('集成层标识合法', () => {
   ]))
   assert.equal(out.needsAgentDiagnosis, true)
   assert.equal(out.failures[0].testLayer, 'integration')
+})
+
+test('--json 接受顶层对象形态（与 --input 一致）', () => {
+  const out = JSON.parse(run([
+    '--json', JSON.stringify({ failures: [failure()], requirementPath: 'docs/requirements.md' }),
+  ]))
+  assert.equal(out.needsAgentDiagnosis, true)
+  assert.equal(out.requirementPath, 'docs/requirements.md')
+})
+
+test('带 BOM 的输入文件可被解析', () => {
+  const file = join(mkdtempSync(join(tmpdir(), 'ae-triage-')), 'failures.json')
+  writeFileSync(file, `\uFEFF${JSON.stringify([failure()])}`, 'utf8')
+  const out = JSON.parse(run(['--input', file]))
+  assert.equal(out.rule, 4)
+})
+
+test('stackTrace / expected / actual 缺省时按空串补齐', () => {
+  const out = JSON.parse(run([
+    '--json', JSON.stringify([{ testLayer: 'unit', failureType: 'assertion', testName: 'case-2' }]),
+    '--requirement', 'docs/requirements.md',
+  ]))
+  assert.equal(out.failures[0].stackTrace, '')
+  assert.equal(out.failures[0].expected, '')
+  assert.equal(out.failures[0].actual, '')
 })
 
 test('输入缺少必填字段时返回退出码 1', () => {

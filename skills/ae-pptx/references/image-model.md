@@ -12,8 +12,10 @@
 **配置文件里不写图片尺寸。** 尺寸取决于「这张图要放在 PPT 的哪个位置、占多大版面」，
 这是每次排版都要重新判断的事，由技能在调用时自主决定；配置只负责"能不能连上模型"。
 
-配置里若残留 `size` / `quality` / `style` / `negativePrompt` / `outputDir`：
-脚本**忽略它们**并在检查报告里给出迁移提示（不报错、不阻塞调用）。
+`imageModel` 里**只允许**下表列出的接入信息键。写进其它键（`size` / `quality` / `style` /
+`negativePrompt` / `outputDir` 等）会被判为**非法配置**并报错——与 `ae.schema.json` 的
+`additionalProperties: false` 同一口径：编辑器标红，脚本也报错，不会出现"编辑器说非法、
+脚本却默默忽略"的分裂结论。生成参数一律在调用时传。
 
 ---
 
@@ -78,7 +80,7 @@
 
 | provider | baseUrl | path | apiKeyEnv | 默认尺寸 |
 |----------|---------|------|-----------|---------|
-| `openai` | `https://api.openai.com/v1` | `/images/generations` | `OPENAI_API_KEY` | `1536x1024` |
+| `openai` | `https://api.openai.com/v1` | `/images/generations` | `OPENAI_API_KEY` | `1536x1024`（`dall-e-3` 为 `1024x1024`） |
 | `gemini` | `https://generativelanguage.googleapis.com/v1beta` | 自动 | `GEMINI_API_KEY` | 不适用（用 `aspectRatio`） |
 | `dashscope` | `https://dashscope.aliyuncs.com/api/v1` | `/services/aigc/text2image/image-synthesis` | `DASHSCOPE_API_KEY` | `1664*928` |
 | `custom` | `http://127.0.0.1:8188` | `/images/generations` | `OPENAI_API_KEY` | `1536x1024` |
@@ -90,7 +92,7 @@
 | 参数 | 命令行 | 提示词内嵌 | 何时传 |
 |------|--------|-----------|--------|
 | 尺寸 | `--size 1536x1024` | `@size=1536x1024` | 已知目标像素时直接给 |
-| 宽高比 | `--aspect 16:9` | `@aspect=16:9` | 只知道版面比例时给，脚本按 provider 支持集换算成实际尺寸 |
+| 宽高比 | `--aspect 16:9` | `@aspect=16:9` | 只知道版面比例时给，脚本按 provider + 模型的支持集换算成实际尺寸 |
 | 质量 | `--quality high` | `@quality=high` | 需要高质量成图时（`standard` / `hd` / `high`） |
 | 风格 | `--style "极简编辑风"` | `@style=极简编辑风` | 追加到提示词末尾 |
 | 反向提示词 | `--negative "模糊、变形"` | `@negative=模糊,变形` | 追加到提示词（dashscope 另放入 `input.negative_prompt`） |
@@ -134,20 +136,27 @@ negative=模糊,变形
 | 内容页居中方图 | 600×~340pt | `@aspect 1:1` | 方形构图 |
 | 竖版装饰 / 侧栏 | 窄高 | `@aspect 9:16` | 竖构图 |
 
-> **先用宽高比表达意图**（`@aspect`），让脚本换算成该 provider 真正支持的尺寸；
+> **先用宽高比表达意图**（`@aspect`），让脚本换算成该 provider + 模型真正支持的尺寸；
 > 只有在明确知道模型支持的像素值时才用 `@size` / `--size`。
 
 ### 3.3 各 provider 的尺寸支持与换算
 
-| provider | 支持的尺寸 | 宽高比换算 |
-|----------|-----------|-----------|
-| `openai` / `custom`（gpt-image 系列） | `1024x1024` / `1536x1024` / `1024x1536` | `1:1→1024x1024`、`3:2→1536x1024`、`2:3→1024x1536`、`16:9→1536x1024` |
-| `openai`（dall-e-3） | `1024x1024` / `1792x1024` / `1024x1792` | 同上，`16:9` 可用 `1792x1024` |
-| `dashscope` | `1328*1328` / `1664*928` / `928*1664` | `1:1→1328*1328`、`16:9→1664*928`、`9:16→928*1664` |
+脚本按 **provider + 模型** 选尺寸表：同一 provider 下不同模型支持的像素值不同。
+
+| provider / 模型 | 支持的尺寸 | 宽高比换算 |
+|-----------------|-----------|-----------|
+| `openai`（gpt-image 系列）/ `custom` | `1024x1024` / `1536x1024` / `1024x1536` | `1:1→1024x1024`、`3:2→1536x1024`、`2:3→1024x1536`、`16:9→1536x1024`、`9:16→1024x1536`、`4:3→1536x1024` |
+| `openai`（`dall-e-3`） | `1024x1024` / `1792x1024` / `1024x1792` | `1:1→1024x1024`、`3:2→1792x1024`、`2:3→1024x1792`、`16:9→1792x1024`、`9:16→1024x1792`、`4:3→1792x1024` |
+| `dashscope` | `1328*1328` / `1664*928` / `928*1664` | `1:1→1328*1328`、`16:9→1664*928`、`9:16→928*1664`、`4:3→1664*928` |
 | `gemini` | 不接受 size，只接受 `aspectRatio` | 宽高比直接生效；`size` 会被折算成最接近的 `aspectRatio` |
+
+- `openai` provider 下未识别的模型名按 **gpt-image 系列**处理。
+- 显式给 `--size` 时脚本照发，但 `dall-e-3` 收到不支持的尺寸会给出提醒。
+- `custom` provider 不按模型名分表，一律用 gpt-image 系列的尺寸集。
 
 > 尺寸集随模型版本变化，**以实际返回的像素为准**：脚本会解析落盘图片的真实宽高并输出。
 > 模型不支持请求尺寸时会静默回落，此时按输出的真实像素摆放（或先裁切）。
+> 图片文件被截断或格式无法识别时，脚本输出"像素尺寸未知"，不会中断流程。
 
 ---
 
@@ -285,7 +294,7 @@ node <技能目录>/scripts/generate-image.mjs --prompt "描述" --dry-run --jso
 - `sentSize` = 实际发给模型的尺寸（宽高比会被换算成它）。
 - `sizeSource` = 参数来源：`cli`（命令行）/ `prompt`（提示词内嵌）/ `default`（provider 默认）。
 - `sizeVia` = 尺寸推导方式：`size`（直接给像素）/ `aspect`（由宽高比换算）/ `default`。
-- `width` / `height` = **落盘图片的真实像素**，模型回落尺寸时以它为准。
+- `width` / `height` = **落盘图片的真实像素**，模型回落尺寸时以它为准；图片无法解析时为 `null`（像素尺寸未知）。
 
 **退出码**：`0` 成功 / `1` 失败（配置缺失、尺寸非法、超时、HTTP 错误、响应无图片等）。
 
@@ -309,6 +318,8 @@ node <技能目录>/scripts/generate-image.mjs --prompt "描述" --dry-run --jso
 | `HTTP 401` | 密钥无效或与 `baseUrl` 不匹配 | 核对 `baseUrl` 与 `model` 所属平台 |
 | `HTTP 404` | `path` 不对 | 用 `--dry-run --json` 看实际请求地址 |
 | `图片尺寸格式非法` | `--size` 写法不对 | 用 `1536x1024` 这样的形式 |
+| `dall-e-3 只支持 1024x1024 / 1792x1024 / 1024x1792` | 请求的尺寸不在该模型的支持集里 | 换成支持的尺寸，或改用 gpt-image 系列 |
+| `像素尺寸未知` | 返回的图片格式无法解析，或文件被截断 | 核对返回文件是否完整；摆放时按版面比例给 `width` |
 | `响应中未找到图片数据` | 响应结构特殊 | 用 `responsePath` 指定取值路径 |
 | `调用超时` | 生成慢 | 调大 `timeoutSec` / `--timeout`，或换更快的模型、更小的尺寸 |
 | `输出不是合法 JSON` | 网关返回了 HTML 错误页 | 看 HTTP 状态码与 `baseUrl` |

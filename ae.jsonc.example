@@ -8,6 +8,7 @@
     "passwordEnv": "SSH_PASSWORD",
     "sudoPasswordEnv": "",
     "keyFile": "",
+    "keyPassphraseEnv": "",
     "hostFingerprint": "",
     "timeoutSec": 15,
     "execTimeoutSec": 300,

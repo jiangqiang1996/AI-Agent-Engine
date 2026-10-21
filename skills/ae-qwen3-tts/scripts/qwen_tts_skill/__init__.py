@@ -1,9 +1,23 @@
 """Qwen3-TTS 技能核心包。
 
-公开 API:
-    generate_custom_voice / generate_voice_design / generate_voice_clone
-    ensure_decodable_ref_audio, get_model, resolve_device, resolve_dtype, DevicePolicyError
-    load_config, resolve_model_root, resolve_output_dir
+公开 API（与 __all__ 一致）:
+    生成: generate_custom_voice / generate_voice_design / generate_voice_clone
+    参考音频: ensure_decodable_ref_audio
+    输出冲突: OutputConflictError（目标文件已存在且未加 --overwrite）
+    模型: get_model / ensure_model / model_path / model_root
+    设备与精度策略: resolve_device / resolve_dtype / seed_everything / DevicePolicyError
+    配置读取: load_config / find_config_file / resolve_model_root / resolve_output_dir /
+              resolve_default_output / resolve_attn_impl /
+              resolve_device_setting / resolve_dtype_setting
+    输出与产物: resolve_output_path / write_run_record /
+               SKILL_DIR / SKILL_NAME / SKILL_SLUG / artifact_dir / temp_dir /
+               log_dir / run_record_dir
+    常量: MODEL_REGISTRY / MODEL_ROOT / SUPPORTED_SPEAKERS / SUPPORTED_LANGUAGES /
+          ATTN_IMPLEMENTATIONS / DEFAULT_SPEAKER
+
+命名约定（同名歧义已消除）:
+    resolve_device / resolve_dtype        → devices.py 的设备与精度「策略」入口
+    resolve_device_setting / resolve_dtype_setting → config.py 的 ae.jsonc 与环境变量「默认取值」读取
 """
 
 from .constants import (
@@ -19,11 +33,14 @@ from .config import (
     load_config,
     resolve_attn_impl,
     resolve_default_output,
+    resolve_device_setting,
+    resolve_dtype_setting,
     resolve_model_root,
     resolve_output_dir,
 )
 from .devices import DevicePolicyError, resolve_device, resolve_dtype, seed_everything
 from .generation import (
+    OutputConflictError,
     ensure_decodable_ref_audio,
     generate_custom_voice,
     generate_voice_clone,
@@ -48,6 +65,7 @@ __all__ = [
     "generate_voice_design",
     "generate_voice_clone",
     "ensure_decodable_ref_audio",
+    "OutputConflictError",
     "get_model",
     "resolve_device",
     "resolve_dtype",
@@ -68,6 +86,8 @@ __all__ = [
     "resolve_output_dir",
     "resolve_default_output",
     "resolve_attn_impl",
+    "resolve_device_setting",
+    "resolve_dtype_setting",
     "resolve_output_path",
     "write_run_record",
     "SKILL_DIR",

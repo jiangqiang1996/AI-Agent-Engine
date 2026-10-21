@@ -149,7 +149,11 @@ async function ensureFakeLlm(testDir: string): Promise<void> {
     env: { ...process.env, PORT: '0' },
     stdio: ['ignore', 'pipe', 'inherit'],
   })
-  const { promise, resolve: resolvePort, reject } = Promise.withResolvers<string>()   // Node ≥ 22；低版本手写 deferred（let resolve!: ...; new Promise(r => { resolve = r })）
+  // 端口就绪等待：手写 deferred（new Promise + 外部 resolve/reject），
+  // Node 20 亦可运行；Node ≥ 22 可等价改写为 Promise.withResolvers<string>()
+  let resolvePort!: (value: string) => void
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<string>((res, rej) => { resolvePort = res; reject = rej })
   let buf = ''
   const timer = setTimeout(() => reject(new Error('global-setup: fake LLM not READY in 15s')), 15_000)
   child.stdout?.on('data', (c: Buffer) => {

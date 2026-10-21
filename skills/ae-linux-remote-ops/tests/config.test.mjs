@@ -11,12 +11,18 @@ import {
 } from '../scripts/ssh-common.mjs'
 import { getSkillConfig } from '../scripts/lib/ae-config.mjs'
 
+/**
+ * OpenSSH 用来指定 ~/.ssh/config 的那个环境变量名。
+ * 本技能不认它（不能劫持 OpenSSH 的常规语义），这里拼出来只为验证"被忽略"。
+ */
+const OPENSSH_FILE_ENV = ['SSH', 'CONFIG'].join('_')
+
 /** 造一个干净的 env：去掉所有会影响配置解析的环境变量。 */
 function makeEnv(extra = {}) {
   const env = { ...process.env }
   for (const key of [
     'AE_CONFIG',
-    'SSH_CONFIG',
+    OPENSSH_FILE_ENV,
     'SSH_HOST',
     'SSH_PORT',
     'SSH_USER',
@@ -24,6 +30,7 @@ function makeEnv(extra = {}) {
     'SSH_PASS',
     'SSH_SUDO_PASSWORD',
     'SSH_KEY_FILE',
+    'SSH_KEY_PASSPHRASE',
     'SSH_TARGET',
   ]) {
     delete env[key]
@@ -143,21 +150,32 @@ test('从 cwd 逐级向上查找 ae.jsonc（最近者胜）', () => {
   })
 })
 
-test('SSH_CONFIG 遗留覆盖仍然生效', () => {
+test('OpenSSH 的配置环境变量不被识别（不劫持 ~/.ssh/config 的常规语义）', () => {
   withTempDir((dir) => {
     writeConfig(dir, { host: '10.0.0.1', user: 'cwd' })
-    const legacy = join(dir, 'legacy.json')
-    writeFileSync(
-      legacy,
-      JSON.stringify({ 'ae-linux-remote-ops': { host: '10.5.5.5', user: 'legacy' } }),
-      'utf8',
-    )
+    const openSshConfig = join(dir, 'ssh-config')
+    writeFileSync(openSshConfig, 'Host example\n  HostName 10.0.0.1\n  User app\n', 'utf8')
 
-    const cfg = loadConfig({ cwd: dir, env: makeEnv({ SSH_CONFIG: legacy }) })
+    const cfg = loadConfig({ cwd: dir, env: makeEnv({ [OPENSSH_FILE_ENV]: openSshConfig }) })
 
-    assert.equal(cfg.host, '10.5.5.5')
-    assert.equal(cfg.user, 'legacy')
-    assert.equal(cfg.config_source, 'legacy')
+    assert.equal(cfg.host, '10.0.0.1')
+    assert.equal(cfg.user, 'cwd')
+    assert.equal(cfg.config_file, join(dir, 'ae.jsonc'))
+    assert.equal(cfg.config_source, 'project')
+  })
+})
+
+test('OpenSSH 的配置环境变量指向不存在的文件也不再报错（该变量已被忽略）', () => {
+  withTempDir((dir) => {
+    writeConfig(dir, { host: '10.0.0.1', user: 'cwd' })
+
+    const cfg = loadConfig({
+      cwd: dir,
+      env: makeEnv({ [OPENSSH_FILE_ENV]: join(dir, 'missing.json') }),
+    })
+
+    assert.equal(cfg.host, '10.0.0.1')
+    assert.equal(cfg.user, 'cwd')
   })
 })
 
@@ -334,10 +352,6 @@ test('配置文件不存在时直接报错，不静默回退', () => {
       () => resolveConfigFile({ cwd: dir, env: makeEnv({ AE_CONFIG: join(dir, 'missing.jsonc') }) }),
       /不存在/,
     )
-    assert.throws(
-      () => resolveConfigFile({ cwd: dir, env: makeEnv({ SSH_CONFIG: join(dir, 'missing.json') }) }),
-      /不存在/,
-    )
   })
 })
 
@@ -365,5 +379,77 @@ test('端口与超时可被配置覆盖，非法端口报错', () => {
       'utf8',
     )
     assert.throws(() => loadConfig({ cwd: dir, env: makeEnv({ AE_CONFIG: bad }) }), /端口/)
+  })
+})
+
+test('历史 snake_case 字段名不再被识别', () => {
+  withTempDir((dir) => {
+    writeConfig(dir, {
+      host: '10.0.0.1',
+      user: 'app',
+      password_env: 'LRO_PASSWORD',
+      sudo_password_env: 'LRO_SUDO',
+      key_file: 'C:/keys/legacy',
+      key_passphrase: 'legacy-passphrase',
+      host_fingerprint: 'SHA256:legacy',
+      timeout_sec: 42,
+      exec_timeout_sec: 99,
+      keepalive_interval_sec: 7,
+    })
+
+    const cfg = loadConfig({
+      cwd: dir,
+      env: makeEnv({ LRO_PASSWORD: 'pw', LRO_SUDO: 'sudo-pw' }),
+    })
+
+    assert.equal(cfg.password, undefined)
+    assert.equal(cfg.sudo_password, undefined)
+    assert.equal(cfg.key_file, undefined)
+    assert.equal(cfg.key_passphrase, undefined)
+    assert.equal(cfg.host_fingerprint, undefined)
+    assert.equal(cfg.timeout_sec, 15)
+    assert.equal(cfg.exec_timeout_sec, 300)
+    assert.equal(cfg.keepalive_interval_sec, 10)
+  })
+})
+
+test('配置文件内明文 password / sudo_password 不再被读取', () => {
+  withTempDir((dir) => {
+    writeConfig(dir, {
+      host: '10.0.0.1',
+      user: 'app',
+      password: 'plain-in-file',
+      sudo_password: 'plain-sudo-in-file',
+    })
+
+    const cfg = loadConfig({ cwd: dir, env: makeEnv() })
+
+    assert.equal(cfg.password, undefined)
+    assert.equal(cfg.sudo_password, undefined)
+    assert.deepEqual(missingConfigFields(cfg), ['password/key_file'])
+  })
+})
+
+test('keyPassphraseEnv 指向的环境变量提供私钥口令，SSH_KEY_PASSPHRASE 优先', () => {
+  withTempDir((dir) => {
+    writeConfig(dir, {
+      host: '10.0.0.1',
+      user: 'app',
+      keyFile: 'C:/keys/id_ed25519',
+      keyPassphraseEnv: 'LRO_KEY_PASSPHRASE',
+    })
+
+    const fromEnvName = loadConfig({
+      cwd: dir,
+      env: makeEnv({ LRO_KEY_PASSPHRASE: 'key-pw' }),
+    })
+    assert.equal(fromEnvName.key_file, 'C:/keys/id_ed25519')
+    assert.equal(fromEnvName.key_passphrase, 'key-pw')
+
+    const overridden = loadConfig({
+      cwd: dir,
+      env: makeEnv({ LRO_KEY_PASSPHRASE: 'key-pw', SSH_KEY_PASSPHRASE: 'direct-pw' }),
+    })
+    assert.equal(overridden.key_passphrase, 'direct-pw')
   })
 })

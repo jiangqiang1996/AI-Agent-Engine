@@ -53,15 +53,22 @@ function withToken(extra = {}) {
 ### 2b-3：生成登录片段
 
 ```js
+// 凭据占位符：生成脚本时必须替换为用户提供的实际值
+// （或改为从环境变量读取，例如 process.env.TEST_USERNAME / process.env.TEST_PASSWORD）
+const CREDENTIALS = {
+  username: '<用户提供的用户名>',
+  password: '<用户提供的密码>',
+};
+
 let currentToken = null;
 
-async function login(username, password) {
+async function login(username = CREDENTIALS.username, password = CREDENTIALS.password) {
   const { status, data } = await postJson('<登录路径>', { username, password });
   if (status !== 200) throw new Error(`登录失败: ${status}`);
   const token = <按确认的token路径提取>;
   if (!token) throw new Error('响应中未找到 token');
   currentToken = token;
-  console.log('登录成功, token:', token);
+  console.log('登录成功, token 已获取 (长度: ' + String(token).length + ')');
   return token;
 }
 
@@ -69,6 +76,17 @@ function withToken(extra = {}) {
   return { ...HEADERS, Authorization: `Bearer ${currentToken}`, ...extra };
 }
 ```
+
+**必须由用户提供的值**（生成脚本前逐项向用户确认并填入）：
+
+| 占位 | 含义 |
+|------|------|
+| `CREDENTIALS.username` | 登录用户名 |
+| `CREDENTIALS.password` | 登录密码 |
+| `<登录路径>` | 登录接口地址 |
+| `<按确认的token路径提取>` | 响应中 token 的提取表达式 |
+
+片段自包含：除 `HEADERS` 与 `postJson` 外不依赖任何外部变量；多认证角色时，每个角色使用各自的 `CREDENTIALS` 常量与 token 变量，互不干扰。
 
 token 提取路径默认尝试顺序：`data.token` → `data.data.token` → `data.access_token`，用户确认时可覆盖。
 
@@ -89,7 +107,7 @@ async function fetchWithAuthRetry(url, options, retryOn401 = true) {
 
     if (reason === 'token_expired' && typeof login === 'function') {
       console.log('401 原因: token 过期，尝试重新登录...');
-      await login(USERNAME, PASSWORD);
+      await login();
       const newOptions = { ...options, headers: { ...options.headers, ...withToken() } };
       return fetch(url, newOptions);
     }
@@ -110,17 +128,25 @@ function classify401(body) {
   // 数值 code 优先（如 Spring Security: { code: 401, message: "Unauthorized" }）
   const code = body.code || body.status || body.errorCode || body.errCode;
   if (typeof code === 'number') {
-    if (code === 40101 || code === 40101) return 'token_expired';
+    // 注意：以下 code 列表是通用示例约定，各项目自定义；
+    // 生成前必须与用户确认目标 API 的实际 code 含义后再调整
+    if (code === 40101) return 'token_expired';
     if (code === 40102) return 'account_disabled';
     if (code === 40103) return 'permission_denied';
   }
   // 嵌套字段提取（如 { data: { message: "..." } } 或 { error: { detail: "..." } }）
-  const msg = (
-    body.message || body.msg || body.error
-    || body.data?.message || body.data?.msg
-    || body.error?.message || body.error?.detail
-    || ''
-  ).toLowerCase();
+  // 只接受字符串值：body.error 可能是对象，必须先取其嵌套字段，
+  // 否则对对象调用 toLowerCase 会抛 TypeError
+  const candidates = [
+    body.message,
+    body.msg,
+    body.data?.message,
+    body.data?.msg,
+    body.error?.message,
+    body.error?.detail,
+    body.error,
+  ];
+  const msg = (candidates.find((v) => typeof v === 'string' && v.length > 0) ?? '').toLowerCase();
   if (msg.includes('expired') || msg.includes('过期') || msg.includes('token') && msg.includes('invalid')) return 'token_expired';
   if (msg.includes('disabled') || msg.includes('locked') || msg.includes('禁用') || msg.includes('锁定')) return 'account_disabled';
   if (msg.includes('forbidden') || msg.includes('denied') || msg.includes('无权') || msg.includes('拒绝')) return 'permission_denied';
@@ -128,7 +154,7 @@ function classify401(body) {
 }
 ```
 
-**注意**：`classify401` 为最佳努力（best-effort）分类，依赖响应体中的关键词和数值 code 匹配。不同框架的 401 响应格式差异较大，`unknown` 分类时不会自动重登录，交用户判断。
+**注意**：`classify401` 为最佳努力（best-effort）分类，依赖响应体中的关键词和数值 code 匹配。不同框架的 401 响应格式差异较大，`unknown` 分类时不会自动重登录，交用户判断。上面的数值 code（40101/40102/40103）只是通用示例约定，**生成前必须与用户确认目标 API 的实际 code 含义**后再落地到脚本。
 
 **三路分流逻辑**：
 - **token_expired** → 自动重登录并重试（最多 1 次）
@@ -156,7 +182,7 @@ async function fetchWithAuthRetry(url, options, retryOn401 = true) {
     const reason = classify401(body);
 
     if (reason === 'token_expired' && typeof login === 'function') {
-      refreshing ??= login(USERNAME, PASSWORD);
+      refreshing ??= login();
       const promise = refreshing;
       try {
         await promise;
@@ -218,21 +244,58 @@ async function applyAuthPlugins(url, options) {
 
 用户可在脚本中注册自定义 auth plugin（如 AWS SigV4 签名），在请求发出前对 options 进行增强。
 
+## 敏感信息脱敏
+
+Token 与凭据**不得**打印到日志或写入报告/产物。所有响应体与请求头在输出前必须经过脱敏：
+
+```js
+const SECRET_FIELDS = new Set(['token', 'access_token', 'id_token', 'refreshtoken', 'authorization']);
+
+// 递归脱敏 JSON 值：命中敏感字段名的值替换为占位符
+function redactSecrets(value) {
+  if (Array.isArray(value)) return value.map(redactSecrets);
+  if (value && typeof value === 'object') {
+    const out = {};
+    for (const [key, val] of Object.entries(value)) {
+      out[key] = SECRET_FIELDS.has(key.toLowerCase()) ? '***REDACTED***' : redactSecrets(val);
+    }
+    return out;
+  }
+  return value;
+}
+
+// 脱敏请求头：Authorization 一律替换，不保留明文
+function redactHeaders(headers = {}) {
+  const out = {};
+  for (const [key, val] of Object.entries(headers)) {
+    out[key] = key.toLowerCase() === 'authorization' ? '***REDACTED***' : val;
+  }
+  return out;
+}
+```
+
+- 响应体落盘/打印前：`redactSecrets(data)`
+- 请求头落盘/打印前：`redactHeaders(headers)`
+- 登录成功后只记录「已获取」与长度，不打印 token 明文
+
 ## 输出
 
 | 字段 | 说明 |
 |------|------|
 | `authSnippet` | 认证相关 JS 代码片段（login 函数 / withToken / withBasicAuth / fetchWithAuthRetry / classify401 / authPlugins） |
 | `headersSnippet` | 请求头注入代码片段 |
+| `redactSnippet` | 脱敏片段（`redactSecrets` / `redactHeaders`），供响应体与请求头输出前使用 |
 | `tokenVar` | token 变量名，供后续请求引用 |
 
 ## 约束
 
 - 搜索到登录接口后必须要求用户确认，不可静默采用
-- 生成的代码片段必须可独立嵌入脚本骨架，不依赖外部变量（除 `HEADERS` 和 `postJson`）
+- 生成的代码片段必须可独立嵌入脚本骨架，不依赖外部变量（除 `HEADERS` 和 `postJson`）；登录片段的凭据通过 `CREDENTIALS` 常量声明，由用户提供的值填充
 - `login` 模式必须生成 `fetchWithAuthRetry` 并在所有请求方法中使用，确保 401 走三路分流
 - `token` 模式无法自动刷新，必须在脚本中生成过期风险提示
 - 多认证角色时，每个角色独立的 token 变量和 withXxxToken 函数，互不干扰
 - 401 三路分流：token_expired→重登录，account_disabled→报告，其他→报告
 - 并发 401 只触发一次 token 刷新，防止认证风暴
 - fetchWithAuthRetry 内部调用 applyAuthPlugins 接入 auth plugin 扩展点
+- 401 数值 code 与分类的映射是项目约定：生成 `classify401` 前必须与用户确认目标 API 的实际 code 含义
+- token / 凭据不得打印到日志或写入报告、产物：响应体与请求头输出前必须经 `redactSecrets` / `redactHeaders` 处理

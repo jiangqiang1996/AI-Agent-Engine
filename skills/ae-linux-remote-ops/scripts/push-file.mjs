@@ -4,8 +4,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import {
-  connect, ensureConfig, loadConfig, md5File, runMain, runSshOn, shlexQuote, sftpCall, sftpOf,
-  targetLabel, writeOperationLog, writeOperationRecord,
+  connect, ensureConfig, loadConfig, md5File, redactSecrets, runMain, runSshOn, shlexQuote,
+  sftpCall, sftpOf, targetLabel, writeFailureArtifacts, writeOperationLog, writeOperationRecord,
 } from './ssh-common.mjs';
 
 async function ensureRemoteDir(sftp, absDir) {
@@ -28,7 +28,7 @@ async function ensureRemoteDir(sftp, absDir) {
       await sftpCall(sftp, 'mkdir', cur);
     } catch (e) {
       throw new Error(`[ERROR] 创建远端目录失败: ${cur}\n${e.message}\n`
-        + '权限不足时先提权建目录再重试: node scripts/run-remote.mjs --sudo -c "mkdir -p <目录> && chown <用户>:<组> <目录>"');
+        + '权限不足时先提权建目录再重试: node <技能目录>/scripts/run-remote.mjs --sudo -c "mkdir -p <目录> && chown <用户>:<组> <目录>"');
     }
   }
 }
@@ -74,10 +74,11 @@ await runMain(async () => {
   const cfg = loadConfig({ target });
   ensureConfig(cfg);
   const startedAt = new Date().toISOString();
-  const conn = await connect(cfg);
+  let conn = null;
   let localMd5 = '';
   let remoteMd5 = '';
   try {
+    conn = await connect(cfg);
     const sftp = await sftpOf(conn);
     try {
       // 相对远端路径统一解析成绝对路径：修掉相对路径在根目录误建目录的问题。
@@ -96,9 +97,10 @@ await runMain(async () => {
     }
 
     // 上传与 MD5 复核走同一连接的两条通道。
-    const { out, err, rc } = await runSshOn(conn, `md5sum ${shlexQuote(remote)}`, { cfg });
+    const { out, err, rc, signal } = await runSshOn(conn, `md5sum ${shlexQuote(remote)}`, { cfg });
     if (rc !== 0 || !out.trim()) {
-      throw new Error(`[FAIL] 远端 md5sum 失败 (RC=${rc}): ${(err || out).trim()}`);
+      const hint = signal ? `（远端进程被信号 ${signal} 终止）` : '';
+      throw new Error(`[FAIL] 远端 md5sum 失败 (RC=${rc})${hint}: ${(err || out).trim()}`);
     }
     remoteMd5 = out.trim().split(/\s+/)[0].toLowerCase();
     localMd5 = (await md5File(local)).toLowerCase();
@@ -107,19 +109,46 @@ await runMain(async () => {
     }
     console.log(`[ok] 上传成功，MD5 一致: ${localMd5}`);
   } catch (error) {
-    writeOperationLog('push-file', [
-      `目标: ${targetLabel(cfg)}`,
-      `本地: ${local}`,
-      `远端: ${remote}`,
-      `字节: ${size}`,
-      `开始: ${startedAt}`,
-      '结果: 失败',
-      `错误: ${error?.message ?? error}`,
-      '',
-    ].join('\n'));
+    // 失败也要留痕：写传输记录 + 脱敏日志。
+    const message = error?.message ?? String(error);
+    const { recordPath, logPath } = writeFailureArtifacts({
+      kind: 'transfer',
+      label: 'push-file',
+      cfg,
+      record: {
+        kind: 'sftp-upload',
+        direction: 'upload',
+        target: targetLabel(cfg),
+        alias: cfg.target || '',
+        local,
+        remote,
+        bytes: size,
+        md5: localMd5,
+        remoteMd5,
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        error: redactSecrets(message, cfg),
+        configFile: cfg.config_file ?? '',
+        configSource: cfg.config_source,
+      },
+      logLines: [
+        `方向: upload`,
+        `目标: ${targetLabel(cfg)}`,
+        `别名: ${cfg.target || '-'}`,
+        `本地: ${local}`,
+        `远端: ${remote}`,
+        `字节: ${size}`,
+        `开始: ${startedAt}`,
+        '结果: 失败',
+        `错误: ${message}`,
+        '',
+      ],
+    });
+    if (recordPath) console.error(`传输记录: ${recordPath}`);
+    if (logPath) console.error(`日志: ${logPath}`);
     throw error;
   } finally {
-    conn.end();
+    if (conn) conn.end();
   }
   const finishedAt = new Date().toISOString();
 
@@ -138,7 +167,7 @@ await runMain(async () => {
     configFile: cfg.config_file ?? '',
     configSource: cfg.config_source,
   });
-  const logPath = writeOperationLog('push-file', [
+  const logPath = writeOperationLog('push-file', redactSecrets([
     `方向: upload`,
     `目标: ${targetLabel(cfg)}`,
     `别名: ${cfg.target || '-'}`,
@@ -151,7 +180,7 @@ await runMain(async () => {
     `结束: ${finishedAt}`,
     `结果: 成功（MD5 一致）`,
     '',
-  ].join('\n'));
+  ].join('\n'), cfg));
 
   console.log(`传输记录: ${recordPath}`);
   console.log(`日志: ${logPath}`);

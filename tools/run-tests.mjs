@@ -46,7 +46,9 @@ function main() {
   }
 
   if (files.length === 0) {
-    process.stdout.write('未发现测试文件\n')
+    process.stdout.write(filter ? `未发现匹配 "${filter}" 的测试文件\n` : '未发现测试文件\n')
+    // 过滤器写错时必须失败，否则 CI 里的拼写错误会静默变绿
+    process.exitCode = 1
     return
   }
 

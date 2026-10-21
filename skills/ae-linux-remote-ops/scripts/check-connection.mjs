@@ -2,7 +2,7 @@
 // 用法: node check-connection.mjs [--target <别名>]
 import {
   ensureConfig, loadConfig, redactSecrets, runMain, runSsh, targetLabel,
-  writeOperationLog, writeOperationRecord,
+  writeFailureArtifacts, writeOperationLog, writeOperationRecord,
 } from './ssh-common.mjs';
 
 const CHECK_SH = `hostname
@@ -35,16 +35,39 @@ await runMain(async () => {
   let out = '';
   let err = '';
   let rc = 0;
+  let signal = null;
+  let abnormalClose = false;
   try {
-    ({ out, err, rc } = await runSsh(CHECK_SH, { cfg }));
+    ({ out, err, rc, signal, abnormalClose } = await runSsh(CHECK_SH, { cfg }));
   } catch (error) {
-    writeOperationLog('check-connection', [
-      `目标: ${targetLabel(cfg)}`,
-      `开始: ${startedAt}`,
-      '结果: 连接失败',
-      `错误: ${error?.message ?? error}`,
-      '',
-    ].join('\n'));
+    // 失败也要留痕：写会话记录 + 脱敏日志。
+    const message = error?.message ?? String(error);
+    const { recordPath, logPath } = writeFailureArtifacts({
+      kind: 'session',
+      label: 'check-connection',
+      cfg,
+      record: {
+        kind: 'connectivity-check',
+        target: targetLabel(cfg),
+        alias: cfg.target || '',
+        startedAt,
+        finishedAt: new Date().toISOString(),
+        rc: null,
+        error: redactSecrets(message, cfg),
+        configFile: cfg.config_file ?? '',
+        configSource: cfg.config_source,
+      },
+      logLines: [
+        `目标: ${targetLabel(cfg)}`,
+        `别名: ${cfg.target || '-'}`,
+        `开始: ${startedAt}`,
+        '结果: 连接失败',
+        `错误: ${message}`,
+        '',
+      ],
+    });
+    if (recordPath) console.error(`会话记录: ${recordPath}`);
+    if (logPath) console.error(`日志: ${logPath}`);
     throw error;
   }
   const finishedAt = new Date().toISOString();
@@ -56,6 +79,8 @@ await runMain(async () => {
     startedAt,
     finishedAt,
     rc,
+    signal: signal ?? '',
+    abnormalClose,
     stdoutPreview: redactSecrets(out.slice(0, 2000), cfg),
     stderrPreview: redactSecrets(err.slice(0, 2000), cfg),
     configFile: cfg.config_file ?? '',
@@ -67,6 +92,7 @@ await runMain(async () => {
     `开始: ${startedAt}`,
     `结束: ${finishedAt}`,
     `退出码: ${rc}`,
+    `信号: ${signal ?? '-'}`,
     `配置文件: ${cfg.config_file ?? '-'}`,
     '',
     '--- stdout ---',
@@ -79,6 +105,12 @@ await runMain(async () => {
     if (out) console.log(out);
     if (err.trim()) console.error(err);
     console.error(`[FAIL] RC=${rc}`);
+    if (signal) {
+      console.error(`远程进程被信号 ${signal} 终止；若为 SIGKILL，通常是远端内存不足（OOM-kill）。`);
+    } else if (abnormalClose) {
+      console.error('SSH 通道异常关闭，未收到远端退出码；请检查网络连接是否中断。');
+    }
+    console.error(`会话记录: ${recordPath}`);
     console.error(`日志: ${logPath}`);
     process.exit(rc || 1);
   }

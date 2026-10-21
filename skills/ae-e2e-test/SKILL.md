@@ -88,7 +88,7 @@ script 模式运行后生成分离式 HTML 测试报告。详见 [测试报告�
 | 角色卡 | 职责 | 调度时机 |
 |--------|------|----------|
 | `references/roles/e2e-test-runner.md` | E2E 脚本生成、执行、取证与失败归因 | 按 `mode` 参数分流执行对应流程 |
-| `references/roles/test-triage.md` | 测试失败根因分诊（基准对齐语义判断） | `scripts/triage.mjs` 返回 `needs_agent_diagnosis: true` 时 |
+| `references/roles/test-triage.md` | 测试失败根因分诊（基准对齐语义判断） | `scripts/triage.mjs` 返回 `needsAgentDiagnosis: true` 时 |
 
 **并行派发**：若宿主支持子代理派发能力，将上述角色卡**并行**分派，每卡一份独立上下文；
 若不支持，则在当前会话内**顺序**执行同一批角色卡，产出格式不变。

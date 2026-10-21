@@ -79,8 +79,16 @@ function defaultOutput(inputPath, cwd) {
   return join(dir, name + '.svg')
 }
 
-/** 按 mode 转换 */
-function convert(args, cwd) {
+/**
+ * 按 mode 转换。
+ *
+ * @param {object} args 命令行参数
+ * @param {string} cwd 工作根目录
+ * @param {object} [deps] 依赖注入（测试用）：renderDom 覆盖无头浏览器渲染
+ * @returns {{ svg: string, mode: string }}
+ */
+export function convert(args, cwd, deps = {}) {
+  const renderDom = typeof deps.renderDom === 'function' ? deps.renderDom : renderDomWithBrowser
   const options = {
     width: Number(args.width) > 0 ? Number(args.width) : undefined,
     height: Number(args.height) > 0 ? Number(args.height) : undefined,
@@ -121,7 +129,7 @@ function convert(args, cwd) {
   }
 
   const runBrowser = () => {
-    const rendered = renderDomWithBrowser(htmlPath, { timeoutMs: 60000 })
+    const rendered = renderDom(htmlPath, { timeoutMs: 60000 })
     if (!rendered.ok) {
       throw new Error('浏览器渲染失败：' + rendered.error)
     }

@@ -15,8 +15,15 @@
 3. **统一前缀**：技能目录名必须以 `ae-` 开头（命名空间隔离，避免与他人技能撞名）。
 4. **高内聚低耦合**：技能可被单独拷走独立使用，不依赖任何其它技能。
 5. **零交叉引用**：技能内**不得出现其它技能的名称**，也不得残留已删除技能的悬空名。
-6. **脚本可用**：所有 `.mjs` 必须通过 `node --check`，且无模板字面量转义隐患。
+6. **脚本可用**：所有 `.mjs` 必须通过 `node --check`，所有 `.py` 必须能被 Python 编译通过，且无模板字面量转义隐患。
 7. **改动后必跑**：`npm run check`（同步检查 + 规范校验 + 单元测试）必须全绿。
+8. **一步到位**：改动直接落到**最终形态**，不保留变更历史——不做「旧写法 + 新写法」并存，不留兼容别名、
+   临时开关、迁移分支、TODO 占位或废弃段落。要改就改成最终样子，被取代的旧形态**直接删除**（含代码、
+   文档、配置字段、schema 字段、测试）。
+
+> 第 8 条的判定标准：看 diff 里有没有「同一件事存在两种写法」。有，就是没做到位。
+> 例：改了配置字段名就删掉旧字段名与其读取分支，而不是新旧都认；
+> 改了脚本输出字段就同步删掉文档里的旧字段名，而不是文档里两个都写。
 
 ---
 
@@ -113,8 +120,10 @@ allowed-tools: Bash Read      # 可选，空格分隔的字符串
 技能**内部**的相对引用（`references/`、`scripts/`）不受此约束。
 
 > 校验实现：`tools/validate.mjs` 的 `findCrossSkillReferences()`，
-> 扫描 `SKILL.md` + `references/**/*.md` + `scripts/**/*.{mjs,js,cjs}` + `tests/**/*.{mjs,js,cjs}`，
-> 匹配形如 `ae-<slug>` 的标识符（slug 至少两段，避免误伤 `ae-config` 等文件名）。
+> 扫描 `SKILL.md` + `references/**/*.md` + `scripts/**/*.{mjs,js,cjs}` + `tests/**/*.{mjs,js,cjs}`。
+> 匹配分两轮：先按**仓库内已登记的技能名**精确匹配（覆盖 `ae-grill`、`ae-pptx` 这类单段 slug），
+> 再用「`ae-<多段 slug>`」启发式兜底未登记的悬空名。单段且未登记的名字不报错，避免误伤
+> `ae-config`（脚本文件名）、`ae-chart`（HTML id）这类合法标识符。
 > 随技能分发的第三方打包产物（如 `*.dist.cjs`）跳过扫描。
 
 ### 3.5 宿主无关（硬性）
@@ -129,7 +138,17 @@ allowed-tools: Bash Read      # 可选，空格分隔的字符串
 | `AskUserQuestion` / `question` 工具 | 「宿主的交互式提问能力」 |
 | `` `xxx` 工具 `` | 「技能」 |
 
-> 可执行形式：`tools/validate.mjs` 的 `FORBIDDEN_PATTERNS` 与 `HOST_AGENT_NAMES`。
+> **适用范围**：宿主无关是**技能内容**级别的约束，`SKILL.md` / `references/` / `scripts/` / `tests/`
+> 全部受约束——校验器对上述文件逐个扫描，不只是 `SKILL.md` 正文。
+> 例外：随技能分发的第三方打包产物（`*.dist.cjs`）跳过扫描。
+
+> 另有一组**已移除的插件工具名**（`ae-async-bash`、`ae-review-proof`、`ae-specialist-aggregate`、
+> `ae-review-scope-analyze`、`ae-test-triage`、`ae-create-session`、`ae-handoff`）同样按硬错误处理——
+> 它们是已删除技能的悬空名，出现即报错。
+
+> **officecli 调用形态**（仅对提到 `officecli` 的技能生效，`SKILL.md` 与 `references/` 都查）：
+> 官方语法是 `officecli <command> <file>`，文件写在命令前会报参数错误；
+> 旧的 SDK 形态 `command=` / `props=` / `path=` / `mode=outline|text|…` / `type=paragraph|…` 一律报错。
 
 ### 3.6 多模式技能（`mode=`）
 
@@ -177,18 +196,20 @@ allowed-tools: Bash Read      # 可选，空格分隔的字符串
 - **模板字面量里不要写单反斜杠 + 非转义字符**（`\.` 会被 JS 吞掉）。用 `RegExp` 构造或写 `\\.`。
 - 写操作前先确认目标路径与权限归属。
 - 密码、令牌一律走环境变量，不落配置文件、不进日志。
-- 不得写死技能名。需要感知归属时，从脚本自身路径推导
-  （见 `tools/shared/ae-paths.mjs` 的 `resolveOwningSkillName()`）。
+- **不得写死技能名**。需要感知归属（如决定 `ae/<slug>/` 产物目录、`ae.jsonc` 分片 key）时，
+  从脚本自身路径推导（见 `tools/shared/ae-paths.mjs` 的 `resolveOwningSkillName()`）。
+  推导失败时抛明确错误，不要退回到写死的名字。
 - 脚本入口判定不要把 `process.argv[1]` 与 `import.meta.url` 直接比较：
   经符号链接 / 联接（junction）调用时 Node 会把 `import.meta.url` 解析成 realpath，
   判定恒假、脚本静默不执行。两侧都取 realpath 后再比较，或按脚本文件名后缀判定。
+  校验器按「同一个比较表达式」判定，两侧都 realpath 的写法**不算违规**。
 
 **Python 脚本（少数技能）**：技能的运行时依赖不是 Node 时（例如深度学习推理），
 允许用 `.py` 实现，规则：
 
 - 目录仍是 `scripts/`，单测放 `tests/*.py`；不与 `.mjs` 混放同一文件。
 - `.py` 不受 `node --check` 约束，但必须能被目标 Python 编译通过
-  （`python -m compileall`），由技能自带的测试脚本覆盖。
+  （校验器对每个 `.py` 跑 `python -m py_compile`；环境里没有 `python` 时跳过该检查）。
 - 第三方依赖**不随技能分发**，由技能自带的安装脚本按需 `pip install`，
   并在 frontmatter 的 `compatibility` 里写明 Python 版本与依赖。
 - 同样适用「不得写死技能名」「产物路径归属」「密钥走环境变量」等硬性约束。
@@ -209,11 +230,18 @@ ae/logs/<skill-slug>/       # 日志
 
 **归属唯一**：一个 `ae/<slug>/` 只属于一个技能，其它技能不得写入。
 登记在 `tools/validate.mjs` 的 `AE_DIR_OWNER`；可被多技能共享的目录登记在 `SHARED_AE_DIRS`。
-校验器用 `WRITE_CONTEXT` 关键词识别「产出上下文」中的越界写入。
+校验器用 `WRITE_CONTEXT` 关键词识别「产出上下文」中的越界写入——
+中英文都覆盖，`<slug>` 后的斜杠可有可无。
+
+产物路径归属同样是**技能内容**级别的约束：`references/` 里描述的写入路径同样受校验。
 
 把测试代码写进**目标项目自身**的测试目录（如 `tests/`、`src/test/`）是允许的例外。
 
-### 3.10 配置
+### 3.10 角色卡
+
+角色卡必须放在 `references/roles/<role>.md`；放在 `references/` 根下的角色卡会被校验器报错。
+
+### 3.11 配置
 
 统一从 `ae.jsonc` 读取，查找顺序（先命中先用）：
 
@@ -270,6 +298,21 @@ ae/logs/<skill-slug>/       # 日志
 > 分组名与各技能 frontmatter 的 `metadata.ae-group` 一致，新增技能时两处同步。
 > `ae-e2e-test` 面向**用例级**（写/跑单个 spec）；`ae-e2e-suite` 面向**工程级**（分层、基建、完整套件、覆盖率、CI）。
 > `ae-qwen3-tts` 是**唯一使用 Python 脚本**的技能，脚本规则见 §3.8。
+
+各技能的作用边界：
+
+| 技能 | 作用 | 边界 |
+|---|---|---|
+| `ae-grill` | 逐层追问方案决策，一问一答推进共识 | 只追问，不成文、不编码 |
+| `ae-frontend` | 前端页面/组件实现与缺陷修复（`mode=dev` / `mode=fix`） | 不碰后端与测试代码 |
+| `ae-backend` | 后端接口、数据层、业务逻辑与中间件实现与修复 | 不碰前端与测试代码 |
+| `ae-unit-test` | 单元测试生成、执行、覆盖率与失败分诊 | 默认只测后端；不修产品代码（分诊判定为生产缺陷时除外） |
+| `ae-integration-test` | 业务流程编排的集成测试：认证、接口边界、数据清理 | 非 HTTP 协议、性能压测不在范围内 |
+| `ae-e2e-test` | 用例级浏览器 E2E：执行或生成 Playwright 脚本并取证 | 不搭工程级基建 |
+| `ae-e2e-suite` | 工程级 E2E 体系：分层判定、基建、套件、覆盖率、CI | 单个 spec 的回归验证用 `ae-e2e-test` |
+| `ae-pptx` | `.pptx` 创建、编辑、读取、排版校验与配图生成 | 只处理 `.pptx`；不产出大纲 |
+| `ae-qwen3-tts` | 文字转语音：预置音色、音色设计、语音克隆、批量与复现 | 不做语音识别与音频后期 |
+| `ae-linux-remote-ops` | SSH 远程执行命令、SFTP 传文件、状态与日志查看 | 只走 SSH 文本通道；不碰图形界面 |
 
 ---
 

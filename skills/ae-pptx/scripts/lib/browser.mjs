@@ -18,8 +18,15 @@ import { resolveExternalCommand } from './ae-config.mjs'
 
 /**
  * 定位本机可用的浏览器可执行文件。
+ *
+ * 查找顺序：
+ *   1. 环境变量 AE_BROWSER / CHROME_PATH（显式指定，存在即用）
+ *   2. 平台默认安装位置
+ *   3. PATH 里的 google-chrome / chromium / microsoft-edge 等命令
+ *
  * @param {object} [options]
  * @param {object} [options.env]
+ * @param {string[]} [options.candidates] 覆盖平台默认安装位置（便于测试）
  * @returns {string|null}
  */
 export function findBrowser(options = {}) {
@@ -30,6 +37,25 @@ export function findBrowser(options = {}) {
     return explicit
   }
 
+  const candidates = Array.isArray(options.candidates) ? options.candidates : defaultCandidates(env)
+
+  for (const candidate of candidates) {
+    if (candidate && existsSync(candidate)) {
+      return candidate
+    }
+  }
+
+  for (const name of ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser', 'microsoft-edge']) {
+    const resolved = resolveExternalCommand(name, env)
+    if (resolved) {
+      return resolved
+    }
+  }
+  return null
+}
+
+/** 平台默认的浏览器安装位置 */
+function defaultCandidates(env) {
   const candidates = []
   if (process.platform === 'win32') {
     const programFiles = env.ProgramFiles || 'C:\\Program Files'
@@ -58,20 +84,7 @@ export function findBrowser(options = {}) {
       '/snap/bin/chromium',
     )
   }
-
-  for (const candidate of candidates) {
-    if (candidate && existsSync(candidate)) {
-      return candidate
-    }
-  }
-
-  for (const name of ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser', 'microsoft-edge']) {
-    const resolved = resolveExternalCommand(name, env)
-    if (resolved) {
-      return resolved
-    }
-  }
-  return null
+  return candidates
 }
 
 /**
@@ -82,11 +95,14 @@ export function findBrowser(options = {}) {
  * @param {number} [options.timeoutMs] 进程超时
  * @param {number} [options.virtualTimeBudgetMs] 虚拟时间预算（给图表库的动画/异步留时间）
  * @param {object} [options.env]
+ * @param {string} [options.browser] 指定浏览器可执行文件（跳过自动探测）
+ * @param {string[]} [options.candidates] 覆盖平台默认安装位置（便于测试）
+ * @param {Function} [options.spawn] 覆盖 spawnSync（便于测试，无需真实浏览器）
  * @returns {{ ok: boolean, dom: string, browser: string, error: string|null }}
  */
 export function renderDomWithBrowser(htmlPath, options = {}) {
   const env = options.env ?? process.env
-  const browser = findBrowser({ env })
+  const browser = options.browser ?? findBrowser({ env, candidates: options.candidates })
   if (!browser) {
     return { ok: false, dom: '', browser: '', error: '未找到可用的浏览器（Chrome / Edge / Chromium）' }
   }
@@ -95,6 +111,7 @@ export function renderDomWithBrowser(htmlPath, options = {}) {
   const budget = Number(options.virtualTimeBudgetMs) > 0 ? Number(options.virtualTimeBudgetMs) : 5000
   const url = pathToFileURL(htmlPath).href
   const profileDir = mkdtempSync(join(tmpdir(), 'pptx-chrome-'))
+  const spawn = typeof options.spawn === 'function' ? options.spawn : spawnSync
 
   const baseArgs = [
     '--disable-gpu',
@@ -108,7 +125,7 @@ export function renderDomWithBrowser(htmlPath, options = {}) {
   ]
 
   for (const headlessFlag of ['--headless=new', '--headless']) {
-    const result = spawnSync(browser, [...baseArgs, headlessFlag, url], {
+    const result = spawn(browser, [...baseArgs, headlessFlag, url], {
       encoding: 'utf8',
       timeout: timeoutMs,
       maxBuffer: 64 * 1024 * 1024,

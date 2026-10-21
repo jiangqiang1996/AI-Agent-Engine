@@ -42,7 +42,7 @@ python scripts/check_gpu.py                        # 装完复查
 
 - 依赖装在**当前 Python 环境**里（`pip install -r scripts/requirements.txt` 的等价物），不写进项目代码。
 - 首次运行会**自动下载模型**（ModelScope 优先，HuggingFace 回退）到技能目录 `models/`：单个模型数 GB（0.6B 约 2.5GB、1.7B-VoiceDesign 约 3.4GB），之后离线可用。
-- 退出码：`0` 成功；`1` 参数/运行错误；`2` 设备策略违规（如有 GPU 却指定 `--device cpu`）。
+- 退出码：`0` 成功；`2` **参数错误或设备策略违规**（argparse 校验失败，如缺 `--ref-audio`、非法 `--dtype`；检测到 GPU 却指定 `--device cpu`）；`1` **运行错误**（`-f` 文件为空、模型加载或生成失败、输出文件已存在拒绝覆盖等）。
 
 **设备策略（强制，勿绕过）**：
 
@@ -98,6 +98,9 @@ python scripts/tts.py -f script.txt -o out/speech.wav -s Serena         # 前缀
 python scripts/tts.py "文本" --seed 42            # 固定种子复现
 python scripts/tts.py "文本" --no-sample          # 关闭采样，两次输出一致
 
+# 覆盖既有输出（默认拒绝覆盖；确认后再加 --overwrite）
+python scripts/tts.py "文本" -o out.wav --overwrite
+
 # 运行时配置（更多参数见 references/REFERENCE.md）
 python scripts/tts.py "文本" --model-name 1.7b --device cuda:0 --dtype bfloat16 --attn-impl sdpa
 ```
@@ -107,6 +110,7 @@ python scripts/tts.py "文本" --model-name 1.7b --device cuda:0 --dtype bfloat1
 - 单条：文件路径；无扩展名自动补 `.wav`；音频格式跟随扩展名（wav/flac/ogg/mp3 等）；父目录自动创建。
 - 批量三形态：目录 / 含 `{i}` 的模板 / 音频扩展名前缀（见上例）。
 - **不传 `-o` 时**写到默认产物目录 `ae/qwen3-tts/output.wav`。
+- **默认不覆盖既有文件**：目标文件已存在时报错退出（退出码 1）并点名冲突文件；确认可覆盖时加 `--overwrite`（批量模式会覆盖目录内同名文件）。
 
 ## 参考音频语义（voice_clone）
 
@@ -163,7 +167,7 @@ python scripts/tts.py "文本" --model-name 1.7b --device cuda:0 --dtype bfloat1
 
 ## 安全边界
 
-- **不覆盖用户文件**：`-o` 指向已存在的文件时先确认再写；批量输出前确认目录里没有同名文件。
+- **不覆盖用户文件**：`-o` 指向已存在的文件时**默认拒绝写入**并报错（点名冲突文件，退出码 1）；批量输出先检查目录内全部同名文件，冲突时一个都不写。确认可覆盖再加 `--overwrite`。
 - **不擅自上传**：参考音频、克隆素材只在本机处理，不外传。
 - **不静默回退**：GPU 加载失败要报错，不要偷偷改成 CPU 跑（慢十倍还可能超时）。
 - **大文件下载前提醒**：模型数 GB，先告知用户体积与耗时再开始下载。
@@ -183,7 +187,9 @@ python scripts/tts.py "文本" --model-name 1.7b --device cuda:0 --dtype bfloat1
 |---|---|---|
 | `ModuleNotFoundError: qwen_tts` | 依赖没装 | `python scripts/install.py` |
 | 退出码 2 + "检测到可用 GPU" | 显式指定了 `--device cpu` | 去掉该参数用 `--device auto` |
-| 退出码 2 + "PyTorch 不支持 CUDA" | 装的是 CPU 版 torch | `python scripts/install.py --cuda auto` |
+| 退出码 2 + argparse 用法报错 | 参数缺失或取值非法（如缺 `--ref-audio`、`--dtype` 非法） | 按用法补齐/改正参数 |
+| "PyTorch 不支持 CUDA"（仅警告，仍会跑 CPU） | 装的是 CPU 版 torch | `python scripts/install.py --cuda auto` 装 CUDA 版 |
+| 退出码 1 + "输出文件已存在，拒绝覆盖" | 目标文件已存在（默认保护用户文件） | 换个 `-o`，或确认后加 `--overwrite` |
 | "soundfile 无法解码" | m4a/aac 容器 | 装 ffmpeg，或先转成 wav |
 | 模型下载失败 | 网络不通 / 镜像限流 | 检查网络；ModelScope 与 HuggingFace 换手重试 |
 | 显存不足（OOM） | 1.7B + 长文本 | 换 0.6B 模型、拆短文本、降低 `--max-new-tokens` |

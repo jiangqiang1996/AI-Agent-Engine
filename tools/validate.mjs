@@ -43,7 +43,9 @@ const MAX_DESCRIPTION_LENGTH = 1024
 const MAX_COMPATIBILITY_LENGTH = 500
 const MAX_BODY_LINES = 500
 
-/** ae/ 下允许被多个技能共享的目录（无唯一归属） */
+/**
+ * ae/ 下允许被多个技能共享的目录（无唯一归属）
+ */
 const SHARED_AE_DIRS = new Set(['logs'])
 
 /**
@@ -58,11 +60,16 @@ const AE_DIR_OWNER = {
   'unit-test': 'ae-unit-test',
   'integration-test': 'ae-integration-test',
   'e2e-test': 'ae-e2e-test',
+  'e2e-suite': 'ae-e2e-suite',
+  grill: 'ae-grill',
   'qwen3-tts': 'ae-qwen3-tts',
 }
 
-/** 表示"写入/产出"的上下文关键词 */
-const WRITE_CONTEXT = /(输出|产物|写入|生成|保存|落到|存放|目录结构|写到|产出|创建目录)/
+/**
+ * 表示"写入/产出"的上下文关键词。
+ * 中英文都覆盖：技能文档以中文为主，但脚本注释与英文段落也可能描述写入行为。
+ */
+const WRITE_CONTEXT = /(输出|产物|写入|生成|保存|落到|存放|目录结构|写到|产出|创建目录)|\b(write|writes|written|save|saves|saved|output|outputs|generate|generates|generated|store|stores|stored)\b/i
 
 /** 目录名通用词黑名单：这些名字单独出现时辨识度过低，容易与他人技能撞名 */
 const GENERIC_DIR_NAMES = new Set([
@@ -92,7 +99,9 @@ const FORBIDDEN_PATTERNS = [
   { pattern: /\bae-create-session\b/, message: '引用了已移除的插件工具 ae-create-session' },
   { pattern: /\bae-handoff\b/, message: '引用了已移除的插件工具 ae-handoff' },
   { pattern: /`ae-[a-z-]+`\s*工具/, message: '以"工具"方式引用技能，应改为"技能"' },
+  { pattern: /`[a-z][a-z0-9-]*`\s*工具/i, message: '以"工具"方式引用能力，应改为"技能"' },
   { pattern: /`question`\s*工具/, message: '引用了宿主专属 question 工具，请改用能力描述' },
+  { pattern: /\bAskUserQuestion\b/, message: '引用了宿主专属 AskUserQuestion 工具，请改用「宿主的交互式提问能力」' },
 ]
 
 /**
@@ -229,6 +238,10 @@ function isVendoredScript(filePath, size) {
  * 提到其它技能的名称——既不允许引用现存技能，也不允许残留已删除技能的悬空名。
  * 技能内部的自引用（如自身的目录名）不受限制。
  *
+ * 匹配策略：先按「已登记技能名」精确匹配（能覆盖 ae-grill 这类单段 slug），
+ * 再用「ae-<多段 slug>」启发式兜底未登记的悬空名。
+ * 单段且未登记的名字（ae-config、ae-chart 等）不报错，避免误伤文件名与 HTML id。
+ *
  * @param {string} skillDir 技能目录绝对路径
  * @param {string} skillName 当前技能名
  * @param {string[]} allSkillNames 仓库内全部技能名
@@ -243,8 +256,14 @@ function findCrossSkillReferences(skillDir, skillName, allSkillNames) {
     ...walkFiles(join(skillDir, 'tests'), (file) => /\.(mjs|js|cjs)$/.test(file)),
   ]
   const known = new Set(allSkillNames)
-  // 形如 ae-<slug>，slug 至少两段（ae-pdf 这类单段名不匹配，避免误伤 ae-config 等文件名）
+
+  // 兜底启发式：ae-<slug> 且 slug 至少两段（避免误伤 ae-config 等文件名）
   const tokenPattern = /(?<![A-Za-z0-9_.-])(ae-[a-z0-9]+(?:-[a-z0-9]+)+)/g
+  // 精确匹配：仓库内已登记的技能名（含 ae-grill / ae-pptx 这类单段 slug）
+  const knownNames = [...known]
+  const knownPattern = knownNames.length
+    ? new RegExp(`(?<![A-Za-z0-9_.-])(${knownNames.map(escapeRegExp).join('|')})(?![A-Za-z0-9_-])`, 'g')
+    : null
 
   for (const file of files) {
     if (!existsSync(file)) {
@@ -255,23 +274,46 @@ function findCrossSkillReferences(skillDir, skillName, allSkillNames) {
     }
     const content = readFileSync(file, 'utf8')
     const rel = relative(skillDir, file).split('\\').join('/')
-    const seen = new Set()
-    let match
+    const reported = new Set()
+
+    const report = (token, message) => {
+      if (reported.has(token)) {
+        return
+      }
+      reported.add(token)
+      problems.push(message)
+    }
+
+    // 1) 已登记技能名的精确匹配（覆盖单段 slug）
+    if (knownPattern) {
+      knownPattern.lastIndex = 0
+      let match
+      while ((match = knownPattern.exec(content)) !== null) {
+        const token = match[1]
+        if (token === skillName) {
+          continue
+        }
+        report(token, `跨技能引用：${rel} 引用了其它技能 "${token}"（技能之间禁止交叉引用）`)
+      }
+    }
+
+    // 2) 启发式兜底：未登记的多段 slug 视为悬空引用
     tokenPattern.lastIndex = 0
+    let match
     while ((match = tokenPattern.exec(content)) !== null) {
       const token = match[1]
-      if (token === skillName || seen.has(token)) {
+      if (token === skillName || known.has(token) || reported.has(token)) {
         continue
       }
-      seen.add(token)
-      if (known.has(token)) {
-        problems.push(`跨技能引用：${rel} 引用了其它技能 "${token}"（技能之间禁止交叉引用）`)
-      } else {
-        problems.push(`悬空技能引用：${rel} 引用了不存在的技能 "${token}"`)
-      }
+      report(token, `悬空技能引用：${rel} 引用了不存在的技能 "${token}"`)
     }
   }
   return problems
+}
+
+/** 转义正则元字符，用于把技能名拼进正则 */
+function escapeRegExp(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 /* ------------------------------------------------------------------ *
@@ -298,10 +340,69 @@ function findTemplateBackslashHazard(source) {
   return null
 }
 
+/**
+ * 检测"脚本入口判定把 argv[1] 与 import.meta.url 直接比较"。
+ *
+ * 真实危害：Node 把 import.meta.url 解析成 realpath，而 argv[1] 保留符号链接 /
+ * 联接（junction）路径，两者不等时判定恒假 → 脚本静默不执行、退出码 0。
+ *
+ * 判定方式：定位 argv[1] 与 import.meta.url 出现在同一个比较表达式中的位置，
+ * 再看该表达式两侧是否都经过 realpath 归一。
+ *   - 两侧都 realpath → 安全（AGENTS.md §3.8 推荐的写法）
+ *   - 只有一侧 / 都没 realpath → 报错
+ * 用「同一表达式」而非固定窗口，规避长注释造成的漏判与误判。
+ */
+function findUnsafeEntryGuard(source) {
+  const argvRe = /process\.argv\s*\[\s*1\s*\]/g
+  const metaRe = /import\.meta\.url/g
+  const compareRe = /(===|!==|==|!=)/g
+
+  const argvMatches = [...source.matchAll(argvRe)]
+  const metaMatches = [...source.matchAll(metaRe)]
+  if (argvMatches.length === 0 || metaMatches.length === 0) {
+    return null
+  }
+
+  for (const argvMatch of argvMatches) {
+    for (const metaMatch of metaMatches) {
+      const start = Math.min(argvMatch.index, metaMatch.index)
+      const end = Math.max(argvMatch.index + argvMatch[0].length, metaMatch.index + metaMatch[0].length)
+      // 表达式窗口：取两者之间及两侧最近的比较运算符所在的片段
+      const window = source.slice(Math.max(0, start - 80), Math.min(source.length, end + 80))
+      compareRe.lastIndex = 0
+      let compareMatch
+      while ((compareMatch = compareRe.exec(window)) !== null) {
+        const left = window.slice(0, compareMatch.index)
+        const right = window.slice(compareMatch.index + compareMatch[0].length)
+        const leftHasArgv = /process\.argv\s*\[\s*1\s*\]/.test(left)
+        const rightHasArgv = /process\.argv\s*\[\s*1\s*\]/.test(right)
+        const leftHasMeta = /import\.meta\.url/.test(left)
+        const rightHasMeta = /import\.meta\.url/.test(right)
+        if (!((leftHasArgv && rightHasMeta) || (rightHasArgv && leftHasMeta))) {
+          continue
+        }
+        // 两侧是否都经过 realpath 归一
+        const argvSide = leftHasArgv ? left : right
+        const metaSide = leftHasMeta ? left : right
+        const argvRealpath = /realpath/i.test(argvSide)
+        const metaRealpath = /realpath/i.test(metaSide)
+        if (argvRealpath && metaRealpath) {
+          continue
+        }
+        const line = source.slice(0, start).split('\n').length
+        return `第 ${line} 行: ${window.trim().slice(0, 100)}`
+      }
+    }
+  }
+  return null
+}
+
 function validateSkill(skillDir, skillName, allSkillNames = []) {
   const errors = []
   const warnings = []
   const skillFile = join(skillDir, 'SKILL.md')
+  /** 本技能的产物目录 slug（技能目录名去掉 ae- 前缀） */
+  const ownSlug = skillName.startsWith('ae-') ? skillName.slice(3) : skillName
 
   if (!existsSync(skillFile)) {
     return { skill: skillName, errors: [`缺少 SKILL.md`], warnings, stats: {} }
@@ -340,6 +441,12 @@ function validateSkill(skillDir, skillName, allSkillNames = []) {
   }
 
   /* --- 可选字段 --- */
+  if (data.license !== undefined) {
+    if (typeof data.license !== 'string') {
+      errors.push('license 必须是字符串')
+    }
+  }
+
   if (data.compatibility !== undefined) {
     if (typeof data.compatibility !== 'string') {
       errors.push('compatibility 必须是字符串')
@@ -360,8 +467,12 @@ function validateSkill(skillDir, skillName, allSkillNames = []) {
     }
   }
 
-  if (data['allowed-tools'] !== undefined && typeof data['allowed-tools'] !== 'string') {
-    errors.push('allowed-tools 必须是空格分隔的字符串')
+  if (data['allowed-tools'] !== undefined) {
+    if (typeof data['allowed-tools'] !== 'string') {
+      errors.push('allowed-tools 必须是空格分隔的字符串')
+    } else if (/[,，]/.test(data['allowed-tools'])) {
+      errors.push('allowed-tools 必须用空格分隔工具名，不能用逗号')
+    }
   }
 
   for (const key of Object.keys(data)) {
@@ -388,8 +499,11 @@ function validateSkill(skillDir, skillName, allSkillNames = []) {
     const mdBody = readFileSync(mdFile, 'utf8')
     const mdRel = relative(skillDir, mdFile).split('\\').join('/')
     for (const target of extractLocalMarkdownLinks(mdBody)) {
-      const resolved = resolve(dirname(mdFile), target)
-      if (!existsSync(resolved)) {
+      // 两种基准都接受：相对该 .md 自身所在目录，或相对技能根目录。
+      // （仓库约定是技能根目录，但同级相对链接同样自然，不能因此误报失效。）
+      const resolvedLocal = resolve(dirname(mdFile), target)
+      const resolvedRoot = resolve(skillDir, target)
+      if (!existsSync(resolvedLocal) && !existsSync(resolvedRoot)) {
         errors.push(`引用文件内的链接失效: ${mdRel} -> ${target}`)
       }
     }
@@ -402,19 +516,51 @@ function validateSkill(skillDir, skillName, allSkillNames = []) {
   }
 
   /* --- 禁用词 --- */
-  const scanTarget = `${content}\n${body}`
-  for (const { pattern, message } of FORBIDDEN_PATTERNS) {
-    if (pattern.test(scanTarget)) {
-      errors.push(message)
+  // 宿主无关是「技能内容」级别的硬约束：references/ 与 scripts/ 同样受约束，
+  // 不能只在 SKILL.md 正文里检查。
+  const forbiddenTargets = [
+    { label: 'SKILL.md', text: `${content}\n${body}` },
+    ...walkFiles(join(skillDir, 'references'), (file) => file.endsWith('.md')).map((file) => ({
+      label: relative(skillDir, file).split('\\').join('/'),
+      text: readFileSync(file, 'utf8'),
+    })),
+    ...walkFiles(join(skillDir, 'scripts'), (file) => /\.(mjs|js|cjs)$/.test(file))
+      .filter((file) => !isVendoredScript(file, statSync(file).size))
+      .map((file) => ({
+        label: relative(skillDir, file).split('\\').join('/'),
+        text: readFileSync(file, 'utf8'),
+      })),
+    ...walkFiles(join(skillDir, 'tests'), (file) => /\.(mjs|js|cjs)$/.test(file))
+      .filter((file) => !isVendoredScript(file, statSync(file).size))
+      .map((file) => ({
+        label: relative(skillDir, file).split('\\').join('/'),
+        text: readFileSync(file, 'utf8'),
+      })),
+  ]
+  for (const { label, text } of forbiddenTargets) {
+    for (const { pattern, message } of FORBIDDEN_PATTERNS) {
+      if (pattern.test(text)) {
+        errors.push(`${message}（${label}）`)
+      }
+    }
+    if (HOST_AGENT_PATTERN.test(text)) {
+      errors.push(`使用了宿主专属 @代理 寻址，请改用 references/roles/<role>.md 角色卡（${label}）`)
     }
   }
 
-  if (HOST_AGENT_PATTERN.test(scanTarget)) {
-    errors.push('使用了宿主专属 @代理 寻址，请改用 references/roles/<role>.md 角色卡')
-  }
-
   /* --- officecli 调用形式 --- */
-  if (/\bofficecli\b/i.test(scanTarget)) {
+  // 只在提到 officecli 的技能里检查；SKILL.md 正文与 references/ 都要查。
+  const officeCliTargets = [
+    { label: 'SKILL.md', text: body },
+    ...walkFiles(join(skillDir, 'references'), (file) => file.endsWith('.md')).map((file) => ({
+      label: relative(skillDir, file).split('\\').join('/'),
+      text: readFileSync(file, 'utf8'),
+    })),
+  ]
+  for (const { label, text } of officeCliTargets) {
+    if (!/\bofficecli\b/i.test(text)) {
+      continue
+    }
     const oldStyle = [
       { pattern: /\bcommand=[a-z-]+/i, message: '使用了旧的 SDK 调用形式 command=xxx，应改为官方 CLI 的位置参数形式' },
       { pattern: /\bprops=/i, message: '使用了旧的 SDK 调用形式 props=，应改为 --prop key=value' },
@@ -423,46 +569,69 @@ function validateSkill(skillDir, skillName, allSkillNames = []) {
       { pattern: /\btype=(paragraph|slide|shape|run|table|sheet)/i, message: '使用了旧的 SDK 调用形式 type=，应改为 --type' },
     ]
     for (const { pattern, message } of oldStyle) {
-      if (pattern.test(body)) {
-        errors.push(message)
+      if (pattern.test(text)) {
+        errors.push(`${message}（${label}）`)
       }
     }
     // 官方语法是 `officecli <command> <file>`；文件写在命令前是常见笔误
     const reversed = /officecli\s+\S*\.(?:pptx|docx|xlsx)\s+(?:create|add|set|get|remove|move|swap|view|batch|dump|validate|query|raw-set|raw|add-part|open|close|save|watch|unwatch|refresh|merge|import)\b/i
-    if (reversed.test(body)) {
-      errors.push('officecli 调用把文件写在命令前面：官方语法是 `officecli <command> <file>`')
+    if (reversed.test(text)) {
+      errors.push(`officecli 调用把文件写在命令前面：官方语法是 \`officecli <command> <file>\`（${label}）`)
+    }
+  }
+
+  /* --- 角色卡位置（AGENTS.md §3.7） --- */
+  // 角色卡必须放在 references/roles/<role>.md；放在 references/ 根下的角色卡是错位。
+  for (const mdFile of walkFiles(join(skillDir, 'references'), (file) => file.endsWith('.md'))) {
+    const rel = relative(skillDir, mdFile).split('\\').join('/')
+    if (rel.startsWith('references/roles/')) {
+      continue
+    }
+    const head = readFileSync(mdFile, 'utf8').slice(0, 200)
+    if (/^#\s*角色[:：]/m.test(head)) {
+      errors.push(`角色卡必须放在 references/roles/ 下：${rel}`)
     }
   }
 
   /* --- 产物路径归属 --- */
-  const ownSlug = skillName.startsWith('ae-') ? skillName.slice(3) : skillName
-  const aePathPattern = /(?:^|[^a-zA-Z0-9_-])ae\/([a-z0-9-]+)\//g
-  let pathMatch
-  while ((pathMatch = aePathPattern.exec(body)) !== null) {
-    const target = pathMatch[1]
-    if (target === ownSlug || SHARED_AE_DIRS.has(target)) {
-      continue
+  // 产物路径归属同样是「技能内容」级别的约束：references/ 里描述的写入路径同样受约束。
+  const artifactTargets = [
+    { label: 'SKILL.md', text: body },
+    ...walkFiles(join(skillDir, 'references'), (file) => file.endsWith('.md')).map((file) => ({
+      label: relative(skillDir, file).split('\\').join('/'),
+      text: readFileSync(file, 'utf8'),
+    })),
+  ]
+  for (const { label, text } of artifactTargets) {
+    // 结尾斜杠可有可无：ae/other-thing 与 ae/other-thing/ 都是产物目录引用
+    const aePathPattern = /(?:^|[^a-zA-Z0-9_-])ae\/([a-z0-9-]+)(?![a-z0-9-])/g
+    let pathMatch
+    while ((pathMatch = aePathPattern.exec(text)) !== null) {
+      const target = pathMatch[1]
+      if (target === ownSlug || SHARED_AE_DIRS.has(target)) {
+        continue
+      }
+      const owner = AE_DIR_OWNER[target]
+      if (!owner) {
+        errors.push(`产物路径 ae/${target}/ 未登记归属（请在 AE_DIR_OWNER 中声明或改用本技能目录）（${label}）`)
+        continue
+      }
+      // 找出该路径所在的行，判断是"写入"还是"读取"上下文
+      const lineStart = text.lastIndexOf('\n', pathMatch.index) + 1
+      const lineEnd = text.indexOf('\n', pathMatch.index)
+      const line = text.slice(lineStart, lineEnd === -1 ? undefined : lineEnd)
+      if (WRITE_CONTEXT.test(line)) {
+        errors.push(`在产出上下文中写入了 ae/${target}/（该目录归属 ${owner}，当前技能应写 ae/${ownSlug}/）（${label}）`)
+      }
     }
-    const owner = AE_DIR_OWNER[target]
-    if (!owner) {
-      errors.push(`产物路径 ae/${target}/ 未登记归属（请在 AE_DIR_OWNER 中声明或改用本技能目录）`)
-      continue
-    }
-    // 找出该路径所在的行，判断是"写入"还是"读取"上下文
-    const lineStart = body.lastIndexOf('\n', pathMatch.index) + 1
-    const lineEnd = body.indexOf('\n', pathMatch.index)
-    const line = body.slice(lineStart, lineEnd === -1 ? undefined : lineEnd)
-    if (WRITE_CONTEXT.test(line)) {
-      errors.push(`在产出上下文中写入了 ae/${target}/（该目录归属 ${owner}，当前技能应写 ae/${ownSlug}/）`)
-    }
-  }
 
-  /* --- 日志目录归属 --- */
-  const logPathPattern = /(?:^|[^a-zA-Z0-9_-])ae\/logs\/([a-z0-9-]+)\//g
-  let logMatch
-  while ((logMatch = logPathPattern.exec(body)) !== null) {
-    if (logMatch[1] !== ownSlug) {
-      errors.push(`日志路径 ae/logs/${logMatch[1]}/ 不属于本技能（本技能应写 ae/logs/${ownSlug}/）`)
+    /* --- 日志目录归属 --- */
+    const logPathPattern = /(?:^|[^a-zA-Z0-9_-])ae\/logs\/([a-z0-9-]+)(?![a-z0-9-])/g
+    let logMatch
+    while ((logMatch = logPathPattern.exec(text)) !== null) {
+      if (logMatch[1] !== ownSlug) {
+        errors.push(`日志路径 ae/logs/${logMatch[1]}/ 不属于本技能（本技能应写 ae/logs/${ownSlug}/）（${label}）`)
+      }
     }
   }
 
@@ -475,8 +644,10 @@ function validateSkill(skillDir, skillName, allSkillNames = []) {
   if (!skillName.startsWith(SKILL_NAME_PREFIX)) {
     errors.push(`目录名 "${skillName}" 缺少统一前缀 "${SKILL_NAME_PREFIX}"`)
   }
-  if (GENERIC_DIR_NAMES.has(skillName)) {
-    errors.push(`目录名 "${skillName}" 过于通用，容易与其他技能撞名`)
+  // 通用词黑名单针对的是「去掉 ae- 前缀后的 slug」：
+  // 目录名本身已强制带 ae- 前缀，直接拿整名比对永远不会命中（死代码）。
+  if (GENERIC_DIR_NAMES.has(ownSlug)) {
+    errors.push(`目录名 "${skillName}" 过于通用（slug "${ownSlug}"），容易与其他技能撞名`)
   }
 
   /* --- 脚本语法 --- */
@@ -500,8 +671,37 @@ function validateSkill(skillDir, skillName, allSkillNames = []) {
     // 入口判定把 argv[1] 与 import.meta.url 直接比较：
     // 经符号链接 / 联接（junction）调用时，Node 会把 import.meta.url 解析成 realpath，
     // 而 argv[1] 保留链接路径 → 判定恒假 → 脚本静默不执行、退出码 0。
-    if (/process\.argv\[1\][\s\S]{0,120}import\.meta\.url|import\.meta\.url[\s\S]{0,120}process\.argv\[1\]/.test(source)) {
-      errors.push(`脚本入口判定把 process.argv[1] 与 import.meta.url 直接比较 ${relative(skillDir, script)}：经符号链接调用时判定恒假、脚本静默失效。请两侧都取 realpath 后再比较，或改为按脚本文件名后缀判定`)
+    const entryGuard = findUnsafeEntryGuard(source)
+    if (entryGuard) {
+      errors.push(`脚本入口判定把 process.argv[1] 与 import.meta.url 直接比较 ${relative(skillDir, script)}：经符号链接调用时判定恒假、脚本静默失效。请两侧都取 realpath 后再比较，或改为按脚本文件名后缀判定（${entryGuard}）`)
+    }
+  }
+
+  /* --- 不得写死技能名（AGENTS.md §3.8） --- */
+  // 技能改名后，硬编码的技能名会让脚本读错 ae.jsonc 分片、写错产物目录。
+  // 例外：ae.jsonc 的配置 key 本身就是技能名（这是约定，不是硬编码归属），
+  // 因此只检查 scripts/ 下的脚本实现，不检查 references/ 与 SKILL.md。
+  const hardcodedNamePattern = new RegExp(`['"\`]${escapeRegExp(skillName)}['"\`]`)
+  for (const script of scripts) {
+    const source = readFileSync(script, 'utf8')
+    if (hardcodedNamePattern.test(source)) {
+      errors.push(`脚本写死了技能名 "${skillName}" ${relative(skillDir, script)}：请用 resolveOwningSkillName(import.meta.url) 从脚本自身路径推导`)
+    }
+  }
+
+  /* --- Python 脚本语法 --- */
+  // Python 技能不走 node --check，但必须能被目标 Python 编译通过。
+  const pythonScripts = walkFiles(join(skillDir, 'scripts'), (file) => file.endsWith('.py'))
+  for (const script of pythonScripts) {
+    try {
+      execFileSync('python', ['-m', 'py_compile', script], { stdio: 'pipe' })
+    } catch (error) {
+      if (error.code === 'ENOENT') {
+        // 环境里没有 python：无法校验，跳过（不阻断其它技能的校验）
+        break
+      }
+      const detail = error.stderr?.toString().split(/\r?\n/).slice(0, 4).join(' ') || error.message
+      errors.push(`Python 脚本语法错误 ${relative(skillDir, script)}: ${detail}`)
     }
   }
 
@@ -535,7 +735,7 @@ function main() {
     .map((entry) => entry.name)
     .sort()
 
-  const results = skillDirs.map((skillName) => {
+  const skillResults = skillDirs.map((skillName) => {
     const skillDir = join(SKILLS_DIR, skillName)
     if (!statSync(skillDir).isDirectory()) {
       return { skill: skillName, errors: [], warnings: [] }
@@ -543,13 +743,20 @@ function main() {
     return validateSkill(skillDir, skillName, skillDirs)
   })
 
+  /* --- 仓库级一致性（AGENTS.md §五 同步清单） --- */
+  const repoIssues = validateRepoConsistency(skillDirs)
+  const results = [
+    { skill: '(仓库)', errors: repoIssues.errors, warnings: repoIssues.warnings },
+    ...skillResults,
+  ]
+
   const totalErrors = results.reduce((sum, item) => sum + item.errors.length, 0)
   const totalWarnings = results.reduce((sum, item) => sum + item.warnings.length, 0)
 
   if (jsonMode) {
     process.stdout.write(`${JSON.stringify({
       skills: results,
-      totals: { skills: results.length, errors: totalErrors, warnings: totalWarnings },
+      totals: { skills: skillDirs.length, errors: totalErrors, warnings: totalWarnings },
     }, null, 2)}\n`)
   } else if (!quiet) {
     for (const item of results) {
@@ -562,10 +769,142 @@ function main() {
         process.stdout.write(`        WARN   ${message}\n`)
       }
     }
-    process.stdout.write(`\n技能 ${results.length} 个 | 错误 ${totalErrors} | 警告 ${totalWarnings}\n`)
+    process.stdout.write(`\n技能 ${skillDirs.length} 个 | 错误 ${totalErrors} | 警告 ${totalWarnings}\n`)
   }
 
   process.exitCode = totalErrors > 0 ? 1 : 0
+}
+
+/**
+ * 仓库级一致性检查（AGENTS.md §五「新增 / 删除技能时的同步清单」）。
+ *
+ * 这张清单此前只写在文档里，没有任何工具检查——漏改时仓库会自相矛盾
+ * （插件清单少一个技能、schema 少一个配置项）却仍然全绿。
+ */
+function validateRepoConsistency(skillDirs) {
+  const errors = []
+  const warnings = []
+
+  /* .claude-plugin/plugin.json 的 skills 列表必须与实际技能目录一致 */
+  const pluginPath = join(REPO_ROOT, '.claude-plugin', 'plugin.json')
+  if (existsSync(pluginPath)) {
+    try {
+      const plugin = JSON.parse(readFileSync(pluginPath, 'utf8'))
+      const listed = (plugin.skills ?? []).map((entry) => String(entry).replace(/^\.\/skills\//, '').replace(/\/$/, ''))
+      for (const name of skillDirs) {
+        if (!listed.includes(name)) {
+          errors.push(`.claude-plugin/plugin.json 的 skills 缺少 "${name}"`)
+        }
+      }
+      for (const name of listed) {
+        if (!skillDirs.includes(name)) {
+          errors.push(`.claude-plugin/plugin.json 的 skills 里有不存在的技能 "${name}"`)
+        }
+      }
+    } catch (error) {
+      errors.push(`.claude-plugin/plugin.json 解析失败: ${error.message}`)
+    }
+  } else {
+    errors.push('缺少 .claude-plugin/plugin.json')
+  }
+
+  /* README.md 与 AGENTS.md 必须列出全部技能 */
+  for (const docName of ['README.md', 'AGENTS.md']) {
+    const docPath = join(REPO_ROOT, docName)
+    if (!existsSync(docPath)) {
+      errors.push(`缺少 ${docName}`)
+      continue
+    }
+    const text = readFileSync(docPath, 'utf8')
+    for (const name of skillDirs) {
+      if (!text.includes(name)) {
+        errors.push(`${docName} 的技能清单缺少 "${name}"`)
+      }
+    }
+  }
+
+  /* ae.schema.json 与 ae.jsonc.example 的顶层 key 必须一致 */
+  const schemaPath = join(REPO_ROOT, 'ae.schema.json')
+  const examplePath = join(REPO_ROOT, 'ae.jsonc.example')
+  if (existsSync(schemaPath) && existsSync(examplePath)) {
+    try {
+      const schema = JSON.parse(readFileSync(schemaPath, 'utf8'))
+      const exampleText = readFileSync(examplePath, 'utf8')
+      const schemaKeys = Object.keys(schema.properties ?? {})
+      for (const key of schemaKeys) {
+        if (!skillDirs.includes(key)) {
+          errors.push(`ae.schema.json 有顶层 key "${key}"，但没有同名技能`)
+        }
+        if (!exampleText.includes(`"${key}"`)) {
+          errors.push(`ae.jsonc.example 缺少顶层 key "${key}"`)
+        }
+      }
+      // 样例里出现 schema 未定义的顶层 key
+      const exampleKeys = [...exampleText.matchAll(/^\s{2}"(ae-[a-z0-9-]+)"\s*:/gm)].map((m) => m[1])
+      for (const key of exampleKeys) {
+        if (!schemaKeys.includes(key)) {
+          errors.push(`ae.jsonc.example 有顶层 key "${key}"，但 ae.schema.json 未定义`)
+        }
+      }
+    } catch (error) {
+      errors.push(`ae.schema.json / ae.jsonc.example 解析失败: ${error.message}`)
+    }
+  } else {
+    errors.push('缺少 ae.schema.json 或 ae.jsonc.example')
+  }
+
+  /* tools/shared-map.json 登记的分发目标必须存在 */
+  const sharedMapPath = join(REPO_ROOT, 'tools', 'shared-map.json')
+  if (existsSync(sharedMapPath)) {
+    try {
+      const map = JSON.parse(readFileSync(sharedMapPath, 'utf8'))
+      for (const [skillName, copies] of Object.entries(map)) {
+        if (!skillDirs.includes(skillName)) {
+          errors.push(`tools/shared-map.json 登记了不存在的技能 "${skillName}"`)
+          continue
+        }
+        for (const item of copies) {
+          const source = join(REPO_ROOT, 'tools', 'shared', item.from)
+          const target = join(SKILLS_DIR, skillName, item.to)
+          if (!existsSync(source)) {
+            errors.push(`tools/shared/${item.from} 不存在（shared-map 登记的共享源）`)
+          }
+          if (!existsSync(target)) {
+            errors.push(`skills/${skillName}/${item.to} 不存在（执行 npm run sync 生成）`)
+          }
+        }
+      }
+    } catch (error) {
+      errors.push(`tools/shared-map.json 解析失败: ${error.message}`)
+    }
+  } else {
+    errors.push('缺少 tools/shared-map.json')
+  }
+
+  /* skills-lock.json 必须覆盖全部技能，且哈希与当前内容一致 */
+  const lockPath = join(REPO_ROOT, 'skills-lock.json')
+  if (existsSync(lockPath)) {
+    try {
+      const lock = JSON.parse(readFileSync(lockPath, 'utf8'))
+      const locked = lock.skills ?? {}
+      for (const name of skillDirs) {
+        if (!locked[name]) {
+          errors.push(`skills-lock.json 缺少技能 "${name}"（用户侧 npx skills update 依赖它回源比对）`)
+        }
+      }
+      for (const name of Object.keys(locked)) {
+        if (!skillDirs.includes(name)) {
+          errors.push(`skills-lock.json 有不存在的技能 "${name}"`)
+        }
+      }
+    } catch (error) {
+      errors.push(`skills-lock.json 解析失败: ${error.message}`)
+    }
+  } else {
+    errors.push('缺少 skills-lock.json')
+  }
+
+  return { errors, warnings }
 }
 
 main()

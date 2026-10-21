@@ -1,12 +1,75 @@
 {
   "version": 1,
   "skills": {
+    "ae-backend": {
+      "source": "https://gitee.com/jiangqiang1996/ai-agent-engine.git",
+      "sourceUrl": "https://gitee.com/jiangqiang1996/ai-agent-engine.git",
+      "sourceType": "git",
+      "skillPath": "skills/ae-backend/SKILL.md",
+      "computedHash": "97fd36bfa25b8288154620979824092286dcb0d3cf02330129256c749d5d4923"
+    },
+    "ae-e2e-suite": {
+      "source": "https://gitee.com/jiangqiang1996/ai-agent-engine.git",
+      "sourceUrl": "https://gitee.com/jiangqiang1996/ai-agent-engine.git",
+      "sourceType": "git",
+      "skillPath": "skills/ae-e2e-suite/SKILL.md",
+      "computedHash": "270025b823ce576aa3d2209d62c475810797a4074f7fb3a58d4a2edd98301f54"
+    },
+    "ae-e2e-test": {
+      "source": "https://gitee.com/jiangqiang1996/ai-agent-engine.git",
+      "sourceUrl": "https://gitee.com/jiangqiang1996/ai-agent-engine.git",
+      "sourceType": "git",
+      "skillPath": "skills/ae-e2e-test/SKILL.md",
+      "computedHash": "4c3df86d2a05c75caf1b7b67001dceac62b992ca621636480c5ff84984421338"
+    },
+    "ae-frontend": {
+      "source": "https://gitee.com/jiangqiang1996/ai-agent-engine.git",
+      "sourceUrl": "https://gitee.com/jiangqiang1996/ai-agent-engine.git",
+      "sourceType": "git",
+      "skillPath": "skills/ae-frontend/SKILL.md",
+      "computedHash": "ff413e49c68fb8e6976a7ee1a29d836e29c696b0fb87d70b362c3f520a457e43"
+    },
+    "ae-grill": {
+      "source": "https://gitee.com/jiangqiang1996/ai-agent-engine.git",
+      "sourceUrl": "https://gitee.com/jiangqiang1996/ai-agent-engine.git",
+      "sourceType": "git",
+      "skillPath": "skills/ae-grill/SKILL.md",
+      "computedHash": "9cc41c0e320e147b14c6901092cfc671230a4666e176280da8d73c4a6cef7d80"
+    },
+    "ae-integration-test": {
+      "source": "https://gitee.com/jiangqiang1996/ai-agent-engine.git",
+      "sourceUrl": "https://gitee.com/jiangqiang1996/ai-agent-engine.git",
+      "sourceType": "git",
+      "skillPath": "skills/ae-integration-test/SKILL.md",
+      "computedHash": "5ef4da1b66472610eac7f6d695afc99517995b33f9e07d7862ff4f832e8fc362"
+    },
+    "ae-linux-remote-ops": {
+      "source": "https://gitee.com/jiangqiang1996/ai-agent-engine.git",
+      "sourceUrl": "https://gitee.com/jiangqiang1996/ai-agent-engine.git",
+      "sourceType": "git",
+      "skillPath": "skills/ae-linux-remote-ops/SKILL.md",
+      "computedHash": "02df68b2b22480d4c67cb495720d80dc31209cdc9706adbff9cf10c4cf11153f"
+    },
     "ae-pptx": {
       "source": "https://gitee.com/jiangqiang1996/ai-agent-engine.git",
       "sourceUrl": "https://gitee.com/jiangqiang1996/ai-agent-engine.git",
       "sourceType": "git",
       "skillPath": "skills/ae-pptx/SKILL.md",
-      "computedHash": "ca9520c185b16292c47fa9dee3c81d951afb7d32665c0eff65ec7c43ac96d9d7"
+      "computedHash": "6023188bd155847efefd7b57ff39dc072ad33f184d69786f072186052fbf3708"
+    },
+    "ae-qwen3-tts": {
+      "source": "https://gitee.com/jiangqiang1996/ai-agent-engine.git",
+      "sourceUrl": "https://gitee.com/jiangqiang1996/ai-agent-engine.git",
+      "sourceType": "git",
+      "skillPath": "skills/ae-qwen3-tts/SKILL.md",
+      "computedHash": "b5bed358c11b9429750e6e533fa1090010a9d72e24bd0287d9508d8e1490308f"
+    },
+    "ae-unit-test": {
+      "source": "https://gitee.com/jiangqiang1996/ai-agent-engine.git",
+      "sourceUrl": "https://gitee.com/jiangqiang1996/ai-agent-engine.git",
+      "sourceType": "git",
+      "skillPath": "skills/ae-unit-test/SKILL.md",
+      "computedHash": "06d6a6141f07aeb19e11424ee30864ab3ab7401b210264c4fdb35efd9367ebba"
     }
   }
 }

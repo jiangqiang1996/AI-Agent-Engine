@@ -2,15 +2,18 @@
 
 本技能只读 `ae.jsonc` 里的 **`ae-linux-remote-ops`** 顶层 key，与其它技能互不干扰。
 
+> 下文命令里的 `<技能目录>` 指本技能所在目录（内含 `scripts/` 的那一层），执行前替换成实际路径；命令一律在**项目根目录（当前工作目录）**下执行，产物落在 `<项目>/ae/linux-remote-ops/`。
+
 ## 配置文件位置（查找顺序，先命中先用）
 
 1. 环境变量 `AE_CONFIG` 指向的文件（标准显式覆盖）
-2. 环境变量 `SSH_CONFIG` 指向的文件（本技能遗留显式覆盖，兼容旧配置）
-3. `<当前工作目录>/ae.jsonc`
-4. 从 `<当前工作目录>` 逐级向上查找 `ae.jsonc`（最近者胜）
-5. `~/.ae.jsonc`（用户主目录）
+2. `<当前工作目录>/ae.jsonc`
+3. 从 `<当前工作目录>` 逐级向上查找 `ae.jsonc`（最近者胜）
+4. `~/.ae.jsonc`（用户主目录）
 
-`AE_CONFIG` 与 `SSH_CONFIG` 同时存在时以 `AE_CONFIG` 为准；两者指向的文件不存在时脚本会直接报错，不会静默回退。
+`AE_CONFIG` 指向的文件不存在时脚本会直接报错，不会静默回退。
+
+> 本技能**不读取** OpenSSH 用来指定 `~/.ssh/config` 的那个环境变量——劫持它会让用户导出的真实 SSH 配置被当成 JSON 解析而报错。要显式指定配置文件只用 `AE_CONFIG`。
 
 ## 最小配置
 
@@ -35,19 +38,18 @@
 | `passwordEnv` | 否 | string | — | **存放登录密码的环境变量名**（如 `SSH_PASSWORD`）；留空则只支持密钥认证或 `SSH_PASSWORD` 环境变量 |
 | `sudoPasswordEnv` | 否 | string | — | 存放 sudo 密码的环境变量名；留空表示与登录密码相同 |
 | `keyFile` | 否 | string | — | 私钥路径（OpenSSH 格式），填了优先走公钥认证 |
-| `keyPassphrase` | 否 | string | — | 私钥口令 |
+| `keyPassphraseEnv` | 否 | string | — | **存放私钥口令的环境变量名**（口令本身不进配置文件） |
 | `hostFingerprint` | 否 | string | — | 主机密钥 SHA-256 指纹（如 `SHA256:...`）；填了启用严格模式校验 |
 | `timeoutSec` | 否 | number | `15` | 连接超时秒数 |
 | `execTimeoutSec` | 否 | number | `300` | 单条远程命令超时秒数 |
 | `keepaliveIntervalSec` | 否 | number | `10` | SSH keepalive 间隔秒数，`0` 关闭（防 NAT/防火墙空闲断链） |
 | `hosts` | 否 | object | — | 多服务器映射表，见下节 |
 
-历史 snake_case 写法（`password_env`、`sudo_password_env`、`key_file`、`key_passphrase`、`host_fingerprint`、`timeout_sec`、`exec_timeout_sec`、`keepalive_interval_sec`）仍然兼容，但新配置请统一用上表的 camelCase 字段。
+字段名只认上表这套 camelCase 写法。旧的 snake_case 写法与配置文件内明文口令字段**都不再识别**（写了会被忽略），请按上表改写。
 
 ## 密码与密钥
 
-- **密码不要写进配置文件**：用 `passwordEnv` / `sudoPasswordEnv` 声明环境变量名，密码值只存在于环境变量里。
-- 遗留写法 `password` / `sudo_password`（配置文件内明文）仍可读取，但**不推荐**，且不要把这类文件提交到版本库。
+- **密码不要写进配置文件**：用 `passwordEnv` / `sudoPasswordEnv` / `keyPassphraseEnv` 声明环境变量名，密码值只存在于环境变量里。
 - 私钥只填**路径**，不要把私钥内容写进 `ae.jsonc`。
 
 ## 环境变量覆盖（优先级高于 `ae.jsonc`）
@@ -60,9 +62,9 @@
 | `SSH_PASSWORD` / `SSH_PASS` | 登录密码（直接给值） | `passwordEnv` 指向的变量 |
 | `SSH_SUDO_PASSWORD` | sudo 密码（直接给值） | `sudoPasswordEnv` 指向的变量 |
 | `SSH_KEY_FILE` | 私钥路径 | `keyFile` |
+| `SSH_KEY_PASSPHRASE` | 私钥口令（直接给值） | `keyPassphraseEnv` 指向的变量 |
 | `SSH_TARGET` | 目标别名 | `hosts` 中选中的分片 |
 | `AE_CONFIG` | 配置文件路径 | 整个配置文件 |
-| `SSH_CONFIG` | 配置文件路径（遗留） | 整个配置文件 |
 
 最终生效顺序（从高到低）：
 
@@ -71,7 +73,7 @@
 3. `ae.jsonc` 中 `ae-linux-remote-ops` 分片
 4. 脚本内置默认值
 
-密码取值顺序：`SSH_PASSWORD` / `SSH_PASS` > `passwordEnv` 指向的环境变量 > 配置文件内遗留明文 `password`。
+密码取值顺序：`SSH_PASSWORD` / `SSH_PASS` > `passwordEnv` 指向的环境变量（配置文件里没有明文密码这一项）。
 
 ## 多服务器：`hosts` 分片
 
@@ -91,14 +93,14 @@
 选中方式（二选一，命令行优先于环境变量）：
 
 ```bash
-node scripts/run-remote.mjs -c "hostname" --target web-01
+node <技能目录>/scripts/run-remote.mjs -c "hostname" --target web-01
 ```
 
 ```bash
 # PowerShell
-$env:SSH_TARGET='web-01'; node scripts/run-remote.mjs -c "hostname"
+$env:SSH_TARGET='web-01'; node <技能目录>/scripts/run-remote.mjs -c "hostname"
 # cmd
-set SSH_TARGET=web-01&& node scripts/run-remote.mjs -c "hostname"
+set SSH_TARGET=web-01&& node <技能目录>/scripts/run-remote.mjs -c "hostname"
 ```
 
 分片里没写的字段回落到顶层同名字段，再回落到默认值。别名不存在时脚本会报错并列出可用别名。

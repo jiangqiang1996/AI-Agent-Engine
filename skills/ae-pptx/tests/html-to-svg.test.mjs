@@ -21,6 +21,7 @@ import {
   normalizeSvg,
   parseCss,
 } from '../scripts/lib/html-svg.mjs'
+import { convert } from '../scripts/html-to-svg.mjs'
 
 const SKILL_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const CLI = join(SKILL_DIR, 'scripts', 'html-to-svg.mjs')
@@ -92,6 +93,50 @@ describe('chart-spec 渲染器', () => {
       series: [{ name: 'A', data: [1, 2, 3, 4] }],
     })
     assert.equal(cfg.categories.length, 4)
+  })
+
+  it('series 数据超出 categories 数量时被截断', () => {
+    const cfg = normalizeSpec({
+      type: 'bar',
+      categories: ['Q1', 'Q2'],
+      series: [{ name: 'A', data: [1, 2, 3, 4] }],
+    })
+    assert.equal(cfg.series[0].data.length, 2)
+    assert.deepEqual(cfg.series[0].data, [1, 2])
+  })
+
+  it('多出来的数据点不会画到绘图区外', () => {
+    const svg = renderChart({
+      type: 'bar',
+      width: 960,
+      height: 400,
+      categories: ['Q1', 'Q2'],
+      series: [{ name: 'A', data: [1, 2, 3, 4] }],
+    })
+    // 两个分类 → 只有两个分类标签
+    assert.equal((svg.match(/<text[^>]*>Q\d<\/text>/g) || []).length, 2)
+  })
+
+  it('饼图图例宽度按分类名预留，长分类名不会溢出画布', () => {
+    const categories = ['华东大区销售业绩', '华北大区销售业绩', '华南大区销售业绩']
+    const svg = renderChart({
+      type: 'pie',
+      width: 960,
+      height: 1200,
+      categories,
+      series: [{ name: '占比', data: [40, 35, 25] }],
+    })
+    // 图例文字用的是分类名，不是系列名
+    assert.ok(svg.includes('华东大区销售业绩'))
+    assert.ok(!svg.includes('>占比<'))
+    // 图例文字的右边缘必须落在画布内
+    const legend = [...svg.matchAll(/<text x="(\d+)"[^>]*>([^<]*)<\/text>/g)]
+      .map((m) => ({ x: Number(m[1]), text: m[2] }))
+      .filter((item) => categories.includes(item.text))
+    assert.equal(legend.length, categories.length)
+    for (const item of legend) {
+      assert.ok(item.x + estimateTextWidth(item.text, 12) <= 960, '图例超出画布：' + item.text)
+    }
   })
 
   it('中文文本宽度按 1em 估算，ASCII 更窄', () => {
@@ -218,5 +263,52 @@ describe('html-to-svg 命令行', () => {
     const report = JSON.parse(result.stdout)
     assert.equal(report.out, join(dir, 'ae', 'pptx', 'assets', 'chart.svg'))
     assert.ok(readFileSync(report.out, 'utf8').startsWith('<svg'))
+  })
+})
+
+describe('html-to-svg 浏览器模式', () => {
+  /** 一段"浏览器渲染后的 DOM" */
+  const RENDERED_DOM = [
+    '<html><head><style>.bar { fill: #4472C4; }</style></head>',
+    '<body><svg width="100" height="50"><rect class="bar" x="0" y="0" width="10" height="10"/></svg></body></html>',
+  ].join('')
+
+  function makePage() {
+    const dir = makeTempDir()
+    const htmlPath = join(dir, 'page.html')
+    writeFileSync(htmlPath, '<html><body><div id="chart"></div></body></html>', 'utf8')
+    return { dir, htmlPath }
+  }
+
+  it('浏览器渲染后抽出 <svg> 并把 class 样式内联', () => {
+    const { dir, htmlPath } = makePage()
+    const result = convert({ html: htmlPath, mode: 'browser' }, dir, {
+      renderDom: () => ({ ok: true, dom: RENDERED_DOM, browser: '/fake/chrome', error: null }),
+    })
+    assert.equal(result.mode, 'browser')
+    assert.match(result.svg, /^<svg /)
+    assert.match(result.svg, /fill="#4472C4"/)
+  })
+
+  it('auto 模式在没有 spec 与内联 svg 时降级到浏览器', () => {
+    const { dir, htmlPath } = makePage()
+    const result = convert({ html: htmlPath, mode: 'auto' }, dir, {
+      renderDom: () => ({ ok: true, dom: RENDERED_DOM, browser: '/fake/chrome', error: null }),
+    })
+    assert.equal(result.mode, 'browser')
+  })
+
+  it('浏览器渲染失败时报错', () => {
+    const { dir, htmlPath } = makePage()
+    assert.throws(() => convert({ html: htmlPath, mode: 'browser' }, dir, {
+      renderDom: () => ({ ok: false, dom: '', browser: '', error: 'boom' }),
+    }), /浏览器渲染失败：boom/)
+  })
+
+  it('渲染后的页面里没有 <svg> 时报错', () => {
+    const { dir, htmlPath } = makePage()
+    assert.throws(() => convert({ html: htmlPath, mode: 'browser' }, dir, {
+      renderDom: () => ({ ok: true, dom: '<html><body><p>没有图</p></body></html>', browser: '/fake/chrome', error: null }),
+    }), /没有 <svg>/)
   })
 })

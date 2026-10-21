@@ -31,7 +31,7 @@ function probeExternalTools() {
     { name: 'node', args: ['--version'] },
     { name: 'python', args: ['--version'] },
     { name: 'officecli', args: ['--version'] },
-    { name: 'playwright-cli', args: ['--version'] },
+    { name: 'ffmpeg', args: ['-version'] },
   ]
 
   const isWindows = process.platform === 'win32'

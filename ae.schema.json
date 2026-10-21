@@ -7,7 +7,7 @@
   "properties": {
     "ae-linux-remote-ops": {
       "type": "object",
-      "description": "ae-linux-remote-ops 技能的 SSH 连接配置",
+      "description": "ae-linux-remote-ops 技能的 SSH 连接配置。密码与私钥口令只以环境变量名的形式出现（passwordEnv / sudoPasswordEnv / keyPassphraseEnv），密钥本体不写进本文件",
       "additionalProperties": false,
       "properties": {
         "host": {
@@ -36,9 +36,9 @@
           "type": "string",
           "description": "私钥路径（OpenSSH 格式），填了优先走公钥认证"
         },
-        "keyPassphrase": {
+        "keyPassphraseEnv": {
           "type": "string",
-          "description": "私钥口令"
+          "description": "存放私钥口令的环境变量名（口令本身不写进配置文件）"
         },
         "hostFingerprint": {
           "type": "string",

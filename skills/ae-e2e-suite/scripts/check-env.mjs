@@ -5,6 +5,7 @@
  * 用法：node check-env.mjs [--root <项目根>] [--config <配置文件>] [--electron-entry <入口>]
  *   --root 缺省为当前目录；--config 缺省为 <root>/playwright.config.ts；
  *   electron 目标追加 --electron-entry 检查可启动入口是否存在。
+ *   选项支持 --name value 与 --name=value 两种写法；未知参数一律报错退出（exit 2）。
  * 输出：stdout 单行 JSON —— { root, ok, checks: [{ name, ok, detail, informational? }] }。
  *   硬性项：node / playwright-dep / config / browsers（electron 目标降为信息项）/ electron-entry；
  *   informational 项只给信息不计入 ok：system-browser（可复用本机浏览器路径）、
@@ -25,16 +26,35 @@ function fail(message) {
   process.exit(2)
 }
 
-const argv = process.argv.slice(2)
-function opt(name) {
-  const i = argv.indexOf(name)
-  if (i === -1) return undefined
-  const value = argv[i + 1]
-  if (!value || value.startsWith('--')) fail(`参数 ${name} 缺少取值`)
-  return value
+const OPTION_NAMES = ['--root', '--config', '--electron-entry']
+const USAGE = '用法 node check-env.mjs [--root <项目根>] [--config <配置文件>] [--electron-entry <入口>]'
+
+// 同时支持 --name value 与 --name=value 两种写法；未知参数（两种写法）一律拒绝
+function parseArgs(argv) {
+  const values = new Map()
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i]
+    if (!arg.startsWith('--')) continue // 非选项参数忽略
+    const eq = arg.indexOf('=')
+    const name = eq === -1 ? arg : arg.slice(0, eq)
+    if (!OPTION_NAMES.includes(name)) fail(`未知参数 ${name}：${USAGE}`)
+    if (eq !== -1) {
+      const value = arg.slice(eq + 1)
+      if (!value) fail(`参数 ${name} 缺少取值：${USAGE}`)
+      values.set(name, value)
+      continue
+    }
+    const value = argv[i + 1]
+    if (value === undefined || value.startsWith('--')) fail(`参数 ${name} 缺少取值：${USAGE}`)
+    values.set(name, value)
+    i++
+  }
+  return values
 }
-if (argv.some(a => a.startsWith('--') && !['--root', '--config', '--electron-entry'].includes(a))) {
-  fail('未知参数：用法 node check-env.mjs [--root <项目根>] [--config <配置文件>] [--electron-entry <入口>]')
+
+const options = parseArgs(process.argv.slice(2))
+function opt(name) {
+  return options.get(name)
 }
 
 const root = resolve(opt('--root') ?? '.')
@@ -135,10 +155,17 @@ checks.push({ name: 'system-browser', ok: true, informational: true, detail: reu
 // ===== 以下为勘察信息项：项目既有测试分层与 e2e 基建布局（复用优先的依据） =====
 
 // npm-scripts：既有测试相关脚本（test/e2e/coverage 关键字），第 4 步运行编排直接取用
-if (pkg?.scripts && typeof pkg.scripts === 'object') {
-  const testScripts = Object.entries(pkg.scripts)
-    .filter(([name, cmd]) => /^(test|e2e|coverage)/i.test(name) || /playwright|vitest|c8\b/i.test(String(cmd)))
-    .map(([name, cmd]) => `${name}=${cmd}`)
+// 信息项恒定存在：package.json 缺失或解析失败时也要给出说明，不能静默省略
+if (!pkg) {
+  const why = existsSync(pkgPath) ? 'package.json 解析失败' : 'package.json 缺失'
+  checks.push({ name: 'npm-scripts', ok: true, informational: true, detail: `${why}（无法勘察既有测试脚本；可按 references 约定补 test:e2e 等入口）` })
+} else {
+  const scripts = pkg.scripts
+  const testScripts = scripts && typeof scripts === 'object'
+    ? Object.entries(scripts)
+      .filter(([name, cmd]) => /^(test|e2e|coverage)/i.test(name) || /playwright|vitest|c8\b/i.test(String(cmd)))
+      .map(([name, cmd]) => `${name}=${cmd}`)
+    : []
   checks.push({ name: 'npm-scripts', ok: true, informational: true, detail: testScripts.length ? testScripts.join(' ｜ ') : 'package.json 无测试相关脚本（可按 references 约定补 test:e2e 等入口）' })
 }
 

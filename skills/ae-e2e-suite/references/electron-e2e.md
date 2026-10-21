@@ -115,7 +115,8 @@ import { fileURLToPath } from 'node:url'
 import { rmWithRetry } from '../../helpers/cleanup'
 
 // 路径相对本文件定位仓库根，不依赖 process.cwd()（Playwright 的 cwd 不一定是仓库根）
-export const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..')
+// 本文件位于 <项目根>/<测试根>/e2e/helpers/ → 上溯三级到项目根
+export const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..')
 export const appPath = join(projectRoot, '<应用入口>')
 /** e2e 证据根目录：与 playwright.config.ts 的 outputDir 同址（相对配置文件所在目录解析）。
  *  spec 内显式截图/日志一律 join(e2eResultsRoot, …)，禁止直写 process.cwd()/test-results（双根漂移）。 */

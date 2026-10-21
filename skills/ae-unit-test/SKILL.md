@@ -79,11 +79,11 @@ metadata:
 1. 输出 TestFailureBundle 报告
 2. 询问用户："检测到 N 个失败，是否自动诊断修复？"
 3. 用户确认后运行 `scripts/triage.mjs`
-4. 检查工具返回：
-   - 工具直接返回诊断结果（规则 1/2/4/5 命中）→ 展示 summary，按 dispatchTarget 执行
-   - 工具返回 `needs_agent_diagnosis: true`（规则 3 基准对齐）→ 调度 `references/roles/test-triage.md` 角色卡执行语义对齐判断（读取基准文档、对比断言与产品行为、判定 production bug / test bug / spec-drift），角色卡返回诊断结果后展示 summary
+4. 检查脚本返回：
+   - 规则 1/2/4 由脚本确定性判定，直接返回 `rootCause` + `dispatchTarget` + `summary` → 展示 summary，按 `dispatchTarget` 执行
+   - 脚本返回 `needsAgentDiagnosis: true`（规则 3 基准对齐）→ 调度 `references/roles/test-triage.md` 角色卡执行语义对齐判断（读取基准文档、对比断言与产品行为、判定 production bug / test bug / spec-drift），角色卡返回诊断结果后展示 summary
 5. 向用户展示 triage 返回的 summary
-6. 按 dispatchTarget 执行：
+6. 按 `dispatchTarget` 执行：
    - `self-fix` → 修复测试代码本身（断言 / mock / 期望值）
    - `production` → 定位并修复产品代码的缺陷
    - `spec-drift` → 提示用户确认并修正基准文档
@@ -91,9 +91,46 @@ metadata:
 7. 修复后询问用户是否回归验证
 8. 用户确认后回归：重新运行同层全部测试
 
+### TestFailureBundle 输入契约
+
+`scripts/triage.mjs` 会校验失败输入，字段缺失或类型不符直接报错退出。`failures[]` 每个元素**必须**包含以下字段：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `testLayer` | 字符串 | 测试层：`unit` / `integration` / `e2e` |
+| `failureType` | 字符串 | 失败类型：`assertion` / `timeout` / `selector` / `http` / `env` / `runtime` |
+| `testName` | 字符串 | 失败用例名 |
+
+可选字段（缺省补空串）：`stackTrace`（失败堆栈全文；规则 1 依据堆栈判定测试代码自身错误，**有则必给**，否则规则 1 不会命中）、`expected`（断言期望值）、`actual`（实际值）、`domSnapshot`、`screenshot`、`relatedCase`。
+
+顶层可选字段：`requirementPath`（需求规格路径）、`caseSpecPath`（用例规格路径）、`gitDiff`（最近变更 diff）、`totalTestCount`（总测试数）。
+
+### 根因与分派目标（两条轴）
+
+`rootCause`（根因）与 `dispatchTarget`（分派目标）是两条独立的轴，**执行一律以 `dispatchTarget` 为准**。
+
+脚本的确定性判定（规则 1/2/4）：
+
+| 命中规则 | `rootCause` | `dispatchTarget` | 含义 |
+|---------|-------------|------------------|------|
+| 规则 1：测试代码自身存在明显错误 | `test` | `self-fix` | 修测试代码（断言 / mock / 期望值） |
+| 规则 2：全部测试失败 | `env` | `manual` | 环境问题，交人工 |
+| 规则 4：无可用基准文档 | `unknown`（未真正判定根因） | `manual` | 要求人工确认期望 |
+
+规则 3（有基准文档）需要语义判断，由 `references/roles/test-triage.md` 角色卡给出：
+
+| `rootCause` | `dispatchTarget` | 含义 |
+|-------------|------------------|------|
+| `production` | `production` | 修产品代码 |
+| `test` | `self-fix` | 修测试代码 |
+| `spec-drift` | `spec-drift` | 修正基准文档 |
+| 无法判定 | `manual` | 交人工 |
+
+> 脚本的确定性路径只会产出 `self-fix` 与 `manual` 两种 `dispatchTarget`；作为 `dispatchTarget` 取值时，`production` 与 `spec-drift` 只出现在规则 3 的语义判定路径上。
+
 ## 自修复
 
-当 triage 判定 `test` 时，修复测试代码的断言/mock/期望值。
+当 `dispatchTarget` 为 `self-fix`（根因 `rootCause=test`）时，修复测试代码的断言/mock/期望值。
 
 ## 脚本存储
 
@@ -106,7 +143,7 @@ metadata:
 | 角色卡 | 职责 | 调度时机 |
 |--------|------|----------|
 | `references/roles/unit-test-runner.md` | 单元测试骨架生成、执行与覆盖率分析 | 骨架编译、执行与覆盖率阶段 |
-| `references/roles/test-triage.md` | 测试失败根因分诊（基准对齐语义判断） | `scripts/triage.mjs` 返回 `needs_agent_diagnosis: true` 时 |
+| `references/roles/test-triage.md` | 测试失败根因分诊（基准对齐语义判断） | `scripts/triage.mjs` 返回 `needsAgentDiagnosis: true` 时 |
 
 **并行派发**：若宿主支持子代理派发能力，将上述角色卡**并行**分派，每卡一份独立上下文；若不支持，则在当前会话内**顺序**执行同一批角色卡，产出格式不变。
 

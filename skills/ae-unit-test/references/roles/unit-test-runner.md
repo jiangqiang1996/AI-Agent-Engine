@@ -30,5 +30,5 @@
 2. 从用例规格编译骨架；无规格时从代码结构推断测试点（后端：公共函数、类方法、分支逻辑；前端：组件 props/emits/slots、事件处理、hooks、状态机转换、条件渲染）。
 3. 生成测试文件到项目自身测试目录（不额外创建 AE 管理目录）。
 4. 执行测试并采集覆盖率。
-5. 失败时用 `scripts/triage.mjs` 做确定性分诊；返回 `needs_agent_diagnosis: true`（规则 3 基准对齐）时，由编排层调度 `references/roles/test-triage.md` 做语义判断。
+5. 失败时用 `scripts/triage.mjs` 做确定性分诊（规则 1/2/4）；返回 `needsAgentDiagnosis: true`（规则 3 基准对齐）时，由编排层调度 `references/roles/test-triage.md` 做语义判断。构建 TestFailureBundle 时每个失败项必须带齐 `testLayer`、`failureType`、`testName`（非空字符串），并尽量附上 `stackTrace`、`expected`、`actual`（缺省按空串处理）。
 6. 前端测试使用 jsdom / happy-dom 模拟 DOM，不启动真实浏览器；不修改产品代码；不执行 Git 操作。

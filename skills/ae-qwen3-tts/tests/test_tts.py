@@ -118,6 +118,57 @@ def _md5(path: Path) -> str:
     return hashlib.md5(path.read_bytes()).hexdigest()
 
 
+@contextlib.contextmanager
+def isolated_env(**overrides: str | None):
+    """隔离宿主环境：临时清空/覆盖环境变量，退出时原样恢复。
+
+    值为 None 表示删除该变量。用于让用例不受机器上的
+    AE_CONFIG / AE_QWEN3_TTS_* 等环境变量影响（保持可复现）。
+    """
+    saved = {k: os.environ.get(k) for k in overrides}
+    try:
+        for k, v in overrides.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+        yield
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+
+@contextlib.contextmanager
+def no_config_file():
+    """让配置文件查找恒返回 None（屏蔽 ae.jsonc / ~/.ae.jsonc 干扰）。"""
+    from qwen_tts_skill import config as config_mod
+
+    saved = config_mod.find_config_file
+    try:
+        config_mod.find_config_file = lambda cwd=None: None
+        yield
+    finally:
+        config_mod.find_config_file = saved
+
+
+@contextlib.contextmanager
+def config_file_only(root: Path):
+    """配置文件查找只认 <root>/ae.jsonc（屏蔽 AE_CONFIG 与 ~/.ae.jsonc 干扰）。"""
+    from qwen_tts_skill import config as config_mod
+
+    saved = config_mod.find_config_file
+    try:
+        config_mod.find_config_file = lambda cwd=None: (
+            Path(root) / "ae.jsonc" if (Path(root) / "ae.jsonc").is_file() else None
+        )
+        yield
+    finally:
+        config_mod.find_config_file = saved
+
+
 def _wav_ok(path: Path, min_seconds: float = 0.4) -> str:
     import soundfile as sf
     data, sr = sf.read(str(path))
@@ -153,6 +204,7 @@ def a2():
         "DevicePolicyError", "ensure_model", "model_path", "model_root",
         "MODEL_REGISTRY", "SUPPORTED_SPEAKERS", "SUPPORTED_LANGUAGES",
         "DEFAULT_SPEAKER",
+        "OutputConflictError", "resolve_device_setting", "resolve_dtype_setting",
     ]
     missing = [n for n in required if not hasattr(pkg, n)]
     assert not missing, f"缺少导出: {missing}"
@@ -170,7 +222,9 @@ def a3():
     from qwen_tts_skill.constants import MODEL_ROOT
     from qwen_tts_skill.model_store import model_root
     assert MODEL_ROOT == SKILL_DIR / "models", f"默认模型根目录错误: {MODEL_ROOT}"
-    assert model_root() == MODEL_ROOT, f"默认模型根目录未生效: {model_root()}"
+    # 隔离宿主环境：AE_QWEN3_TTS_MODEL_ROOT / ae.jsonc 的 modelRoot 都不得影响默认模型根
+    with isolated_env(AE_QWEN3_TTS_MODEL_ROOT=None), no_config_file():
+        assert model_root() == MODEL_ROOT, f"默认模型根目录未生效: {model_root()}"
     from qwen_tts_skill.constants import MODEL_REGISTRY
     for key, info in MODEL_REGISTRY.items():
         assert info["hf_id"].startswith("Qwen/Qwen3-TTS-12Hz"), key
@@ -197,15 +251,17 @@ def a4():
     assert json.loads(kept) == {"url": "http://x/y", "s": "a,}"}, kept
 
     # 只读自己的顶层 key；无配置时用内置默认值
+    # 隔离宿主环境：AE_CONFIG 与 AE_QWEN3_TTS_OUTPUT_DIR 不得影响结果
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
-        assert load_config(root) == {}, load_config(root)
-        assert resolve_output_dir(root) == artifact_dir(root), resolve_output_dir(root)
-        (root / "ae.jsonc").write_text(
-            '{"ae-qwen3-tts": {"device": "cuda:0"}, "ae-other": {"x": 1}}',
-            encoding="utf-8")
-        cfg = load_config(root)
-        assert cfg == {"device": "cuda:0"}, cfg
+        with isolated_env(AE_CONFIG=None, AE_QWEN3_TTS_OUTPUT_DIR=None), config_file_only(root):
+            assert load_config(root) == {}, load_config(root)
+            assert resolve_output_dir(root) == artifact_dir(root), resolve_output_dir(root)
+            (root / "ae.jsonc").write_text(
+                '{"ae-qwen3-tts": {"device": "cuda:0"}, "ae-other": {"x": 1}}',
+                encoding="utf-8")
+            cfg = load_config(root)
+            assert cfg == {"device": "cuda:0"}, cfg
     return f"slug={SKILL_SLUG}"
 
 
@@ -504,6 +560,63 @@ def c9():
     return f"m4a → {Path(p1).name}"
 
 
+@case("C10 输出覆盖保护（默认拒绝覆盖既有文件）")
+def c10():
+    import numpy as np
+    from qwen_tts_skill.generation import OutputConflictError, _save_wavs
+    out = _SELFTEST_OUT / "guard"
+    shutil.rmtree(out, ignore_errors=True)
+    wav = np.sin(np.linspace(0, 440 * 6.28, 8000)).astype("float32") * 0.3
+    target = out / "one.wav"
+    # 首次写入正常
+    paths = _save_wavs([wav], 8000, target, is_batch=False)
+    assert paths[0].exists()
+    # 再次写入必须拒绝，并点名冲突文件
+    try:
+        _save_wavs([wav], 8000, target, is_batch=False)
+        raise AssertionError("既有文件应被拒绝覆盖")
+    except OutputConflictError as e:
+        assert "已存在" in str(e), str(e)
+        assert str(target) in str(e), str(e)
+    # overwrite=True 才允许覆盖
+    paths = _save_wavs([wav], 8000, target, is_batch=False, overwrite=True)
+    assert paths[0].exists()
+    # 批量：冲突时一个都不写（不出现"写一半"）
+    batch_dir = out / "batch"
+    _save_wavs([wav, wav * 0.5], 8000, batch_dir, is_batch=True)
+    (batch_dir / "001.wav").write_bytes(b"stale")
+    try:
+        _save_wavs([wav, wav * 0.5], 8000, batch_dir, is_batch=True)
+        raise AssertionError("批量同名文件应被拒绝覆盖")
+    except OutputConflictError as e:
+        assert str(batch_dir / "001.wav") in str(e), str(e)
+    # 批量整体覆盖
+    paths = _save_wavs([wav, wav * 0.5], 8000, batch_dir, is_batch=True, overwrite=True)
+    assert [p.name for p in paths] == ["000.wav", "001.wav"], paths
+    return ""
+
+
+@case("C11 公开 API 命名无歧义（策略 vs 配置读取）")
+def c11():
+    import qwen_tts_skill as pkg
+    from qwen_tts_skill import config as config_mod
+    from qwen_tts_skill import devices as devices_mod
+    # 包级 resolve_device / resolve_dtype 是 devices 的策略入口
+    assert pkg.resolve_device is devices_mod.resolve_device
+    assert pkg.resolve_dtype is devices_mod.resolve_dtype
+    assert pkg.resolve_device_setting is config_mod.resolve_device_setting
+    assert pkg.resolve_dtype_setting is config_mod.resolve_dtype_setting
+    # 策略入口按位置参数调用（不被配置文件读取函数顶替）
+    with isolated_env(AE_QWEN3_TTS_DEVICE=None, AE_QWEN3_TTS_DTYPE=None), no_config_file():
+        dev = pkg.resolve_device("auto")
+        assert dev == "cpu" or dev.startswith("cuda:"), dev
+        assert pkg.resolve_dtype(None, "cpu") == "float32"
+        # 配置读取入口按 cwd 读取，默认值 auto
+        assert config_mod.resolve_device_setting() == "auto"
+        assert config_mod.resolve_dtype_setting() == "auto"
+    return ""
+
+
 # ============================================================================
 # Part D: GPU 端到端（真实生成；按需自动下载模型）
 # ============================================================================
@@ -704,19 +817,23 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Qwen3-TTS 技能综合测试")
     parser.add_argument("--fast", action="store_true", help="仅静态+CLI+策略单元（不加载模型）")
     parser.add_argument("--gpu-only", action="store_true", help="仅 GPU 端到端")
-    parser.add_argument("--keep", action="store_true", help="保留测试产物 output/selftest/")
+    parser.add_argument("--keep", action="store_true",
+                        help="保留测试产物 <cwd>/ae/qwen3-tts/tmp/selftest/（默认清理）")
     args = parser.parse_args()
 
     t0 = time.time()
     print(f"Qwen3-TTS 技能测试  skill={SKILL_DIR}")
     print(f"GPU: {'可用' if _gpu_available() else '不可用（GPU 用例将 SKIP）'}\n")
 
+    # 每轮从干净产物目录开始（上一轮 --keep 残留会触发输出覆盖保护）
+    shutil.rmtree(_SELFTEST_OUT, ignore_errors=True)
+
     from qwen_tts_skill import (  # noqa: F401  提前失败比子进程更清晰
         generate_custom_voice, generate_voice_clone, generate_voice_design)
 
     if not args.gpu_only:
         for fn in (a1, a2, a3, a4, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13,
-                   c1, c2, c3, c4, c5, c6, c7, c8, c9):
+                   c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11):
             fn()
     if not args.fast:
         print(f"\n--- GPU 端到端 ({_vram_info()}) ---")

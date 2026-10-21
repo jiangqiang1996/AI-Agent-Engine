@@ -21,8 +21,8 @@
 
 ## 输出契约
 
-- E2E 测试脚本（写入 `ae/e2e-test/`）
-- 通过的命令序列（`.sh`，写入 `ae/e2e-test/sequences/`，成功序列复制到 `ae/e2e-test/sequences/golden/`）
+- E2E 测试脚本（`.spec.ts`，写入 `ae/e2e-test/`）
+- golden 回归资产（跑通过的 `.spec.ts` 固化到 `ae/e2e-test/golden/`）
 - 分离式 HTML 报告与截图（写入 `ae/e2e-test/reports/` 与 `ae/e2e-test/screenshots/`）
 - 失败归因结论（脚本问题 / 源码问题 / 环境问题）
 
@@ -32,6 +32,6 @@
 2. 识别既有 E2E 基建并复用；无基建时先补最小基建。
 3. 编译/生成 Playwright 脚本，默认使用项目既有浏览器通道；浏览器操作一律通过标准 Playwright（`npx playwright`）完成。
 4. 执行测试，采集 HTML 报告与截图；通过的场景按 golden 生命周期规范固化。
-5. 失败时三源归因：脚本问题 / 源码问题 / 环境问题；判定为生产 Bug 时从 golden 序列移除，判定为测试 Bug 时修复后更新 golden。
-6. 失败分诊用 `scripts/triage.mjs`；返回 `needs_agent_diagnosis: true`（规则 3 基准对齐）时，由编排层调度 `references/roles/test-triage.md` 做语义判断。
+5. 失败时三源归因：脚本问题 / 源码问题 / 环境问题；判定为生产 Bug 时从 golden 资产中移除，判定为测试 Bug 时修复后更新 golden。
+6. 失败分诊用 `scripts/triage.mjs`（规则 1/2/4 确定性判定）；返回 `needsAgentDiagnosis: true`（规则 3 基准对齐）时，由编排层调度 `references/roles/test-triage.md` 做语义判断。构建 TestFailureBundle 时每个失败项必须带齐 `testLayer`（`e2e`）、`failureType`、`testName`（非空字符串），并尽量附上 `stackTrace`、`expected`、`actual`（缺省按空串处理）。
 7. 边界：不修改产品代码；不执行 Git 操作。

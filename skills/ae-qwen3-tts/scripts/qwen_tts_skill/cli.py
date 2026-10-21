@@ -9,8 +9,8 @@ import sys
 from .config import (
     resolve_attn_impl,
     resolve_default_output,
-    resolve_device,
-    resolve_dtype,
+    resolve_device_setting,
+    resolve_dtype_setting,
 )
 from .constants import (
     ATTN_IMPLEMENTATIONS,
@@ -21,6 +21,7 @@ from .constants import (
 )
 from .devices import DevicePolicyError
 from .generation import (
+    OutputConflictError,
     generate_custom_voice,
     generate_voice_clone,
     generate_voice_design,
@@ -105,6 +106,9 @@ repetition_penalty=1.05, max_new_tokens=2048）。
                             "音频扩展名前缀（如 out/chapter-{i}.wav、out/speech.wav、"
                             "out_dir/；无扩展名自动补 .wav，格式跟随扩展名；"
                             "默认: <cwd>/ae/<skill-slug>/output.wav)")
+    g_out.add_argument("--overwrite", action="store_true",
+                       help="允许覆盖已存在的输出文件（默认拒绝覆盖，保护用户文件；"
+                            "批量模式会覆盖目录内同名文件）")
     g_out.add_argument("--list-speakers", action="store_true",
                        help="列出支持的音色")
     g_out.add_argument("--list-languages", action="store_true",
@@ -144,10 +148,10 @@ repetition_penalty=1.05, max_new_tokens=2048）。
 
     # 运行时
     g_run = p.add_argument_group("运行时（GPU 优先）")
-    g_run.add_argument("--device", default=resolve_device(),
+    g_run.add_argument("--device", default=resolve_device_setting(),
                        help="设备 (默认: auto=自动选空闲显存最大的 GPU；也可 cuda:N；"
                             "有可用 GPU 时禁止 cpu)")
-    g_run.add_argument("--dtype", default=resolve_dtype(),
+    g_run.add_argument("--dtype", default=resolve_dtype_setting(),
                        choices=DTYPES,
                        help="精度 (默认: auto=GPU 用 bf16、CPU 用 float32)")
     g_run.add_argument("--attn-impl", default=resolve_attn_impl(),
@@ -245,6 +249,7 @@ def main(argv: list[str] | None = None):
 
     common = dict(
         output=args.output,
+        overwrite=args.overwrite,
         device=args.device,
         dtype=args.dtype,
         attn_implementation=args.attn_impl,
@@ -275,6 +280,9 @@ def main(argv: list[str] | None = None):
     except DevicePolicyError as error:
         print(f"[tts] 设备策略错误: {error}", file=sys.stderr)
         sys.exit(2)
+    except OutputConflictError as error:
+        print(f"[tts] 错误: {error}", file=sys.stderr)
+        sys.exit(1)
     except ValueError as error:
         print(f"[tts] 错误: {error}", file=sys.stderr)
         sys.exit(1)

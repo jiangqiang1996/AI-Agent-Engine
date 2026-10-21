@@ -54,6 +54,14 @@ ae.jsonc.example            # 配置样例（$schema 指向远端 schema）
 
 `tools/validate.mjs` 的 `FORBIDDEN_PATTERNS` 与 `HOST_AGENT_NAMES` 是该约束的可执行形式。
 
+> **扫描范围**：`SKILL.md` + `references/**/*.md` + `scripts/**/*.{mjs,js,cjs}` + `tests/**/*.{mjs,js,cjs}`。
+> 宿主无关是**技能内容**级别的约束，不是只查 `SKILL.md` 正文。
+> 例外：随技能分发的第三方打包产物（`*.dist.cjs`）跳过扫描。
+
+> **officecli 调用形态**（只对提到 `officecli` 的技能生效，`SKILL.md` 与 `references/` 都查）：
+> 官方语法是 `officecli <command> <file>`；旧的 SDK 形态 `command=` / `props=` / `path=` /
+> `mode=outline|text|…` / `type=paragraph|…` 一律报错。
+
 ---
 
 ## 3. 技能之间禁止交叉引用（硬性）
@@ -70,8 +78,11 @@ ae.jsonc.example            # 配置样例（$schema 指向远端 schema）
 
 校验实现：`tools/validate.mjs` 的 `findCrossSkillReferences()`，扫描
 `SKILL.md` + `references/**/*.md` + `scripts/**/*.{mjs,js,cjs}` + `tests/**/*.{mjs,js,cjs}`，
-匹配形如 `ae-<slug>` 的标识符（slug 至少两段，避免误伤 `ae-config` 等文件名）。
+分两轮匹配：先按**仓库内已登记的技能名**精确匹配（覆盖 `ae-grill` / `ae-pptx` 这类单段 slug），
+再用「`ae-<多段 slug>`」启发式兜底未登记的悬空名（单段且未登记的不报错，
+避免误伤 `ae-config` 这类脚本文件名与 `ae-chart` 这类 HTML id）。
 随技能分发的第三方打包产物（如 `*.dist.cjs`）跳过扫描。
+
 
 新增/删除技能时，务必同步：
 
@@ -151,13 +162,17 @@ npm run check
 | 命令 | 检查内容 |
 |---|---|
 | `node tools/sync-shared.mjs --check` | 共享脚本副本是否漂移 |
-| `node tools/validate.mjs` | 目录结构、frontmatter 字段与数值上限、正文行数、相对引用（含 references/ 内链接）、脚本语法（含 .cjs）、禁用词、产物与日志归属、跨技能引用、脆弱入口守卫、officecli 调用形态 |
+| `node tools/validate.mjs` | 目录结构、frontmatter 字段与数值上限、正文行数、相对引用（含 references/ 内链接）、脚本语法（`.mjs` 经 `node --check`，`.py` 经 `python -m py_compile`）、禁用词（覆盖 SKILL.md / references/ / scripts/ / tests/）、产物与日志归属、跨技能引用、角色卡位置、写死技能名、脆弱入口守卫、officecli 调用形态 |
 | `node tools/run-tests.mjs` | `skills/**/tests/*.test.mjs` 与 `tools/tests/*.test.mjs` |
+
+> `run-tests.mjs --filter <关键字>` 过滤不到任何测试文件时**以退出码 1 结束**，
+> 避免 CI 里过滤器写错却静默变绿。
 
 > Python 技能（见 `ae-qwen3-tts`）的自测不进 `npm test`：用技能自带的
 > `python tests/test_tts.py --fast` 跑，退出码 0=通过、1=失败。
 
-`npm run doctor` 额外探测外部工具（git / node / python / officecli / playwright 等）是否可用，仅提示不阻断。
+`npm run doctor` 额外探测外部工具（git / node / python / officecli / ffmpeg 等）是否可用，仅提示不阻断。
+
 
 ---
 
@@ -175,8 +190,9 @@ node --test tools/tests/validate-regression.test.mjs
 ## 8. 命名
 
 - 技能目录名统一 `ae-` 前缀，避免与他人技能撞名。
-- 禁止过于通用的目录名（`test`、`build`、`docs`、`utils` 等，见 `GENERIC_DIR_NAMES`）。
-- 角色卡命名 `<role>.md`，放在 `references/roles/` 下。
+- 禁止过于通用的 slug（`test`、`build`、`docs`、`utils` 等，见 `GENERIC_DIR_NAMES`）——
+  黑名单比的是**去掉 `ae-` 前缀后的 slug**，所以 `ae-test` 会被拦下，`ae-e2e-test` 不会。
+- 角色卡命名 `<role>.md`，放在 `references/roles/` 下；放在 `references/` 根下会被校验器报错。
 
 ---
 

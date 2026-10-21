@@ -2,7 +2,7 @@
 name: ae-e2e-suite
 description: 项目级完整 E2E 测试工程（web 与 electron 双轨）：判定测试分层（unit/integration/浏览器 e2e/node 级 e2e）→ 复用或搭建测试基建（globalSetup、electron 会话 helper、数据播种、假服务 fixture、覆盖率采集）→ 组织完整套件（冒烟/功能/视觉/布局/错误/验收）→ 运行与 JSON 取证 → 三源判定失败（脚本/源码/环境）→ 修复回归 → 截图与录像视觉确认真通过；测试脚本与产物集中目录分类管理，覆盖多浏览器、移动端、API、前置登录、网络 mock、视觉回归与 CI 集成。适用于搭建 e2e/端到端/Playwright 测试工程与测试基建、编写回归与验收测试套件、采集覆盖率、分析测试失败原因并修复等场景；触发关键词：视觉回归、多浏览器、CI 集成、codegen、electron 测试。Use when setting up a project-level Playwright end-to-end test suite and its infrastructure, authoring regression or acceptance specs, collecting coverage, or triaging and fixing end-to-end test failures.
 license: GPL-3.0-or-later
-compatibility: 需要 Node.js 18+；目标项目需已引入 Playwright，或可执行 npm init playwright@latest；electron 目标需有可启动的构建产物入口；无头环境需 xvfb 或项目自有 E2E_HEADLESS 布线
+compatibility: 需要 Node.js 20+（随技能附带脚本的硬性预检口径为 ≥ 20；references/web-e2e.md 的 .env 加载用到 process.loadEnvFile，需 ≥ 20.12，低版本请自行解析 .env 写入 process.env）；目标项目需已引入 Playwright，或可执行 npm init playwright@latest；electron 目标需有可启动的构建产物入口；无头环境需 xvfb 或项目自有 E2E_HEADLESS 布线
 metadata:
   author: ae-skills
   version: 1.0.0
@@ -128,10 +128,12 @@ electron 目标入口为构建产物且改过主进程代码先重构建再跑�
 ### 5. 解析结果
 
 - 量大但无 JSON 时，自己按第 4 步 JSON 取证形态重跑一遍（命令原文可贴给用户复核）再解析；
-- 报告路径参数相对执行 cwd 解析：执行目录与配置文件所在目录不一致时传绝对路径；
+- **两处路径基准不同，别混**：第 4 步的 `PLAYWRIGHT_JSON_OUTPUT_NAME` 相对**配置文件所在目录**解析；本步脚本的报告路径参数相对**执行 cwd** 解析（脚本行为固定）。两者不一致时（配置文件在 `tests/e2e/`、执行目录在项目根），必须把第 4 步的实际落点按同一基准换算后传入，否则解析的是另一份文件；
+- 换算口径：配置在 `<项目根>/tests/e2e/` 时第 4 步的 `test-results/pw-report.json` 实际落在 `<项目根>/tests/e2e/test-results/pw-report.json` → 执行目录在项目根时传 `tests/e2e/test-results/pw-report.json`，执行目录在 `tests/e2e/` 时传 `test-results/pw-report.json`；不确定就传绝对路径。
 
 ```bash
-node <技能目录>/scripts/parse-report.mjs test-results/pw-report.json
+# 与第 4 步同一落点（示例：配置在 <项目根>/tests/e2e/，执行 cwd 为项目根）
+node <技能目录>/scripts/parse-report.mjs tests/e2e/test-results/pw-report.json
 node <技能目录>/scripts/parse-report.mjs <绝对路径>/pw-report.json --max-failures 20  # 失败量大时限量取前 N 项
 ```
 

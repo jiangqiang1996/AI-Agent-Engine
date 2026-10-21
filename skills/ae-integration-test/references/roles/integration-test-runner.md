@@ -30,8 +30,9 @@
 
 1. 从用例规格或接口文档提取接口清单、参数与断言；有编排方案时以编排方案为准。
 2. 加载 `references/templates.md`，按需选取模块化模板组装脚本；生成脚本必须使用 Node.js 原生 `fetch`（Node >= 18），不引入第三方 HTTP 库。
-3. 入口处保留环境安全护栏：`NODE_ENV=production` 拒绝运行、`API_TEST_HOSTS` 白名单校验。
+3. 入口处保留环境安全护栏：`NODE_ENV=production` 拒绝运行、`INTEGRATION_TEST_HOSTS` 白名单校验。
 4. 按**先流程后边界**的顺序执行测试；副作用数据在 `finally` 块中按创建逆序删除。
 5. 产出结构化 JSON 报告，标记不可逆副作用接口并跳过其清理。
-6. 失败时输出 TestFailureBundle，交由编排层按 `scripts/triage.mjs` 的结果分派；需要语义判断时由编排层调度 `references/roles/test-triage.md`。
-7. 边界：不修改产品代码；不执行 Git 操作。
+6. 失败时输出 TestFailureBundle（每项必带 `testLayer`、`failureType`、`testName`，尽量附上 `stackTrace`、`expected`、`actual`），交由编排层按 `scripts/triage.mjs` 的结果分派；需要语义判断时由编排层调度 `references/roles/test-triage.md`。
+7. 响应体与请求头落盘前必须脱敏（`Authorization` 头，以及 `token` / `access_token` / `id_token` / `refreshToken` 字段），token 不得写入日志或报告。
+8. 边界：不修改产品代码；不执行 Git 操作。

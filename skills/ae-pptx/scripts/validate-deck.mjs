@@ -12,13 +12,14 @@
  *   7. 底部留白过大  内容底边距页脚太远（版面偏上）
  *   8. 字号过小      文本字号 < 9pt
  *   9. 文字占比过高  文本形状面积 / 内容区面积 > 40%（该用图形承载）
- *  10. 页面过重      浅底页面的深色填充面积 > 30%（大面积深色块压得慌）
+ *  10. 页面过重      浅底页面的深色填充面积 > 35%（大面积深色块压得慌）
  *  11. 节奏单调      连续多页使用同一条通栏色带（每页都"黑底白字"）
- *  12. 深色页过多    深色页占总页数 > 45%（深色应是节奏点，不是背景）
+ *  12. 深色页过多    深色页占总页数 > 40%（深色应是节奏点，不是背景）
  *
  * 用法：
  *   node scripts/validate-deck.mjs --html ae/pptx/deck.html
  *   node scripts/validate-deck.mjs --html ae/pptx/deck.html --max-lines 12 --json
+ *   node scripts/validate-deck.mjs --html deck.html --cwd <项目根>
  *
  * 退出码：0 通过 / 1 发现问题
  */
@@ -48,7 +49,7 @@ function parseArgs(argv) {
     margin: 50,
     textAreaRatio: 0.4,
     maxDarkRatio: 0.35,
-    maxDarkPageRatio: 0.45,
+    maxDarkPageRatio: 0.4,
     maxSameBand: 3,
   }
   for (let i = 0; i < argv.length; i += 1) {
@@ -127,6 +128,88 @@ function luminance(hex) {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b
 }
 
+/**
+ * 提取普通 HTML 属性值。
+ *
+ * 属性名必须落在属性边界上（前面是空白或串首），避免 `style` 命中 `mystyle`。
+ *
+ * @param {string} attrs 属性串
+ * @param {string} name 属性名
+ * @returns {string} 属性值；没有该属性时返回空串
+ */
+function extractAttribute(attrs, name) {
+  const source = String(attrs ?? '')
+  const matcher = new RegExp('(?:^|\\s)' + name + '\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\')', 'i')
+  const found = source.match(matcher)
+  if (!found) {
+    return ''
+  }
+  return found[1] !== undefined ? found[1] : (found[2] ?? '')
+}
+
+/**
+ * 提取 style 属性值。
+ *
+ * style 的值里常嵌套引号（如 `font-family:"Microsoft YaHei"`），
+ * 按"下一个引号就结束"截断会得到半截 CSS，width/height 解析不出来，
+ * shape 会被整块丢掉（页面还会被误判成纯文字页）。
+ *
+ * 这里改成扫描候选结束引号：只有当引号后面是「标签结束」或「另一个属性名=」时，
+ * 才认为它才是 style 值的真正结尾。
+ *
+ * @param {string} attrs 属性串
+ * @returns {string} style 属性值；没有该属性时返回空串
+ */
+function extractStyleAttribute(attrs) {
+  const source = String(attrs ?? '')
+  const found = source.match(/(?:^|\s)style\s*=\s*/i)
+  if (!found) {
+    return ''
+  }
+  const start = found.index + found[0].length
+  const quote = source[start]
+  if (quote !== '"' && quote !== "'") {
+    const rest = source.slice(start)
+    const end = rest.search(/\s/)
+    return end === -1 ? rest : rest.slice(0, end)
+  }
+  for (let i = start + 1; i < source.length; i += 1) {
+    if (source[i] !== quote) {
+      continue
+    }
+    const rest = source.slice(i + 1)
+    if (rest.trim() === '' || /^\s+[A-Za-z_:][-A-Za-z0-9_:.]*\s*=/.test(rest)) {
+      return source.slice(start + 1, i)
+    }
+  }
+  const next = source.indexOf(quote, start + 1)
+  return next === -1 ? source.slice(start + 1) : source.slice(start + 1, next)
+}
+
+/**
+ * 读取 style 里的数值型 CSS 属性（单位 pt）。
+ *
+ * 属性名必须落在真正的 CSS 属性边界上：出现在 style 开头或分号之后。
+ * 否则 `left` 会命中 `margin-left:`、`top` 会命中 `margin-top:`，
+ * 解析出的位置就是错的。
+ *
+ * @param {string} style style 属性值
+ * @param {string} name 属性名
+ * @returns {number|null}
+ */
+function cssPoints(style, name) {
+  const matcher = new RegExp('(?:^|;)\\s*' + name + '\\s*:\\s*(-?[\\d.]+)\\s*pt', 'i')
+  const found = style.match(matcher)
+  return found ? Number(found[1]) : null
+}
+
+/** 读取 style 里的颜色型 CSS 属性 */
+function cssColor(style, name) {
+  const matcher = new RegExp('(?:^|;)\\s*' + name + '\\s*:\\s*(#[0-9A-Fa-f]{6})', 'i')
+  const found = style.match(matcher)
+  return found ? found[1] : null
+}
+
 /** 解析一页里的所有元素 */
 function parsePage(page) {
   const shapes = []
@@ -135,16 +218,12 @@ function parsePage(page) {
   let match
   while ((match = re.exec(page)) !== null) {
     const [, attrs, inner] = match
-    const style = (attrs.match(/style="([^"]*)"/) || [])[1] || ''
-    const path = (attrs.match(/data-path="([^"]+)"/) || [])[1] || ''
-    const num = (name) => {
-      const found = style.match(new RegExp(name + '\\s*:\\s*(-?[\\d.]+)pt'))
-      return found ? Number(found[1]) : null
-    }
-    const left = num('left')
-    const top = num('top')
-    const width = num('width')
-    const height = num('height')
+    const style = extractStyleAttribute(attrs)
+    const path = extractAttribute(attrs, 'data-path')
+    const left = cssPoints(style, 'left')
+    const top = cssPoints(style, 'top')
+    const width = cssPoints(style, 'width')
+    const height = cssPoints(style, 'height')
     if (left === null || top === null || width === null || height === null) continue
 
     const paras = [...inner.matchAll(/<div class="para"[^>]*>([\s\S]*?)<\/div>/g)]
@@ -153,7 +232,7 @@ function parsePage(page) {
 
     const sizes = [...inner.matchAll(/font-size:([\d.]+)pt/g)].map((m) => Number(m[1]))
     const lineHeights = [...inner.matchAll(/line-height:([\d.]+)/g)].map((m) => Number(m[1]))
-    const fillMatch = style.match(/background:(#[0-9A-Fa-f]{6})/)
+    const fill = cssColor(style, 'background')
     const isPicture = attrs.includes('class="picture"') || /<img\b/.test(inner)
 
     shapes.push({
@@ -165,8 +244,8 @@ function parsePage(page) {
       paras,
       fontSize: sizes.length ? Math.max(...sizes) : null,
       lineHeight: lineHeights.length ? Math.max(...lineHeights) : 1.4,
-      hasFill: Boolean(fillMatch),
-      fill: fillMatch ? fillMatch[1].slice(1) : null,
+      hasFill: Boolean(fill),
+      fill: fill ? fill.slice(1) : null,
       isPicture,
     })
   }
@@ -203,9 +282,13 @@ function validateSlide(shapes, options) {
     }
   }
 
-  // 2) 文本溢出（按换行估算行数 → 需要的块高）
+  // 2) 文本溢出：按换行估算需要的块高
+  //    块高要按 shape 的**所有段落累加**——逐段比对时多段落文本永远不溢出，
+  //    所以这里先把整个 shape 的行数与高度算出来，再与 shape 高度比对一次。
   for (const shape of textShapes) {
     const size = shape.fontSize || 12
+    let neededHeight = 0
+    let totalLines = 0
     for (const line of shape.paras) {
       const textWidth = estimateWidth(line, size)
       const tokenWidth = longestUnbreakable(line, size)
@@ -217,13 +300,14 @@ function validateSlide(shapes, options) {
         continue
       }
       const lines = Math.max(1, Math.ceil(textWidth / Math.max(shape.width, 1)))
-      const needed = lines * size * shape.lineHeight
-      if (needed > shape.height + 1) {
-        problems.push({
-          type: '溢出',
-          detail: `${shape.path}「${line.slice(0, 18)}」换行后需 ${lines} 行 ≈ ${Math.round(needed)}pt > 高 ${Math.round(shape.height)}pt`,
-        })
-      }
+      totalLines += lines
+      neededHeight += lines * size * shape.lineHeight
+    }
+    if (neededHeight > shape.height + 1) {
+      problems.push({
+        type: '溢出',
+        detail: `${shape.path} 共 ${totalLines} 行 ≈ ${Math.round(neededHeight)}pt > 高 ${Math.round(shape.height)}pt`,
+      })
     }
   }
 
@@ -341,9 +425,19 @@ function summarize(body, textShapes) {
 /* ------------------------------------------------------------------ *
  * 主流程
  * ------------------------------------------------------------------ */
+
+/** 解析 --cwd（缺省为当前目录）；只写了 --cwd 没给值时也退回当前目录 */
+function resolveCwd(value) {
+  if (value === undefined || value === null || value === true) {
+    return process.cwd()
+  }
+  return resolve(String(value))
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2))
-  const htmlPath = resolve(String(args.html ?? 'ae/pptx/deck.html'))
+  const cwd = resolveCwd(args.cwd)
+  const htmlPath = resolve(cwd, String(args.html ?? 'ae/pptx/deck.html'))
   let html
   try {
     html = readFileSync(htmlPath, 'utf8')
@@ -446,7 +540,7 @@ function main() {
   try {
     const skillName = resolveOwningSkillName(SCRIPT_URL)
     if (skillName) {
-      const dir = skillTempDir(skillName, process.cwd())
+      const dir = skillTempDir(skillName, cwd)
       mkdirSync(dir, { recursive: true })
       const report = [
         '文件: ' + htmlPath,

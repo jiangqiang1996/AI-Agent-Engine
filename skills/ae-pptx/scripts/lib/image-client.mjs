@@ -18,10 +18,12 @@
  *     timeoutSec / responsePath / headers / body
  *   - **生成参数（尺寸 size、质量 quality、风格 style、反向提示词 negativePrompt）
  *     一律由调用方（技能）在调用时传入**，不写进配置文件。
- *     配置文件里若残留这些字段，会被忽略并给出迁移提示。
+ *   - 配置里出现 `imageModel` 之外的键会被判为**非法配置项**并报错，
+ *     与 ae.schema.json 的 `additionalProperties: false` 同一口径。
  */
 
 import { getSkillConfig } from './ae-config.mjs'
+import { resolveOwningSkillName } from './ae-paths.mjs'
 
 /** 支持的 provider 列表 */
 export const SUPPORTED_PROVIDERS = ['openai', 'gemini', 'dashscope', 'custom']
@@ -51,12 +53,28 @@ const DEFAULT_PATH = {
 }
 
 /**
- * 曾经允许写在配置里的「生成参数」，现已改为调用时传入（由技能按版面需求自主决定）。
- * 配置里若残留这些字段，会被忽略并在检查报告里给出迁移提示。
+ * `ae.jsonc` 的 `imageModel` 分片里合法的键。
+ *
+ * 与 ae.schema.json 的 `ae-pptx.imageModel` 保持同一份清单：
+ * 只放「模型接入信息」，生成参数（尺寸 / 质量 / 风格…）一律在调用时传。
  */
-export const GENERATION_PARAM_KEYS = ['size', 'quality', 'style', 'negativePrompt', 'outputDir']
+export const KNOWN_IMAGE_MODEL_KEYS = new Set([
+  'provider',
+  'baseUrl',
+  'path',
+  'model',
+  'apiKey',
+  'apiKeyEnv',
+  'timeoutSec',
+  'responsePath',
+  'body',
+  'headers',
+])
 
-/** 每个生成参数对应的替代方式提示 */
+/**
+ * 曾经允许写在配置里的「生成参数」，现已改为调用时传入（由技能按版面需求自主决定）。
+ * 这些键不在 KNOWN_IMAGE_MODEL_KEYS 里，写进配置会被判为非法配置项。
+ */
 const GENERATION_PARAM_HINTS = {
   size: '改用命令行 --size <WxH> 或 --aspect <比例>，由技能按版面需求决定',
   quality: '改用命令行 --quality <档位>',
@@ -73,9 +91,14 @@ const DEFAULT_SIZE = {
   dashscope: '1664*928',
 }
 
-/** 宽高比 → 该 provider 实际支持的尺寸（openai 兼容 / dashscope） */
-const ASPECT_TO_SIZE = {
-  openai: {
+/**
+ * openai 兼容 provider 下，不同模型支持的尺寸集不同。
+ *
+ * gpt-image 系列：1024x1024 / 1536x1024 / 1024x1536
+ * dall-e-3：     1024x1024 / 1792x1024 / 1024x1792（发 1536x1024 会被拒）
+ */
+const OPENAI_SIZE_SETS = {
+  'gpt-image-1': {
     '1:1': '1024x1024',
     '3:2': '1536x1024',
     '2:3': '1024x1536',
@@ -83,12 +106,60 @@ const ASPECT_TO_SIZE = {
     '9:16': '1024x1536',
     '4:3': '1536x1024',
   },
+  'dall-e-3': {
+    '1:1': '1024x1024',
+    '3:2': '1792x1024',
+    '2:3': '1024x1792',
+    '16:9': '1792x1024',
+    '9:16': '1024x1792',
+    '4:3': '1792x1024',
+  },
+}
+
+/** dall-e-3 支持的原始尺寸集合（用于校验显式传入的 size） */
+const DALL_E_3_SIZES = ['1024x1024', '1792x1024', '1024x1792']
+
+/** 宽高比 → 该 provider 实际支持的尺寸（openai 兼容 / dashscope） */
+const ASPECT_TO_SIZE = {
+  openai: OPENAI_SIZE_SETS['gpt-image-1'],
   dashscope: {
     '1:1': '1328*1328',
     '16:9': '1664*928',
     '9:16': '928*1664',
     '4:3': '1664*928',
   },
+}
+
+/**
+ * 按 provider + model 选尺寸换算表。
+ *
+ * openai 兼容下 dall-e-3 与 gpt-image 系列支持的像素值不同，
+ * 只按 provider 换算会给 dall-e-3 发一个它拒绝的尺寸。
+ *
+ * @param {string} provider
+ * @param {string} [model]
+ * @returns {Record<string, string>} 宽高比 → 尺寸
+ */
+function sizeTableFor(provider, model) {
+  if (provider === 'openai') {
+    const key = String(model ?? '').trim().toLowerCase()
+    return OPENAI_SIZE_SETS[key] ?? OPENAI_SIZE_SETS['gpt-image-1']
+  }
+  return ASPECT_TO_SIZE[provider] ?? ASPECT_TO_SIZE.openai
+}
+
+/**
+ * 按 provider + model 取默认尺寸。
+ *
+ * @param {string} provider
+ * @param {string} [model]
+ * @returns {string}
+ */
+function defaultSizeFor(provider, model) {
+  if (provider === 'openai' && String(model ?? '').trim().toLowerCase() === 'dall-e-3') {
+    return '1024x1024'
+  }
+  return DEFAULT_SIZE[provider] ?? DEFAULT_SIZE.openai
 }
 
 /** Gemini 支持的宽高比 */
@@ -129,7 +200,11 @@ function joinUrl(baseUrl, path) {
  */
 export function resolveImageModelConfig(options = {}) {
   const env = options.env ?? process.env
-  const skillKey = options.skillKey ?? 'ae-pptx'
+  // 技能名从脚本自身路径推导，不写死：技能目录改名后配置 key 自动跟随
+  const skillKey = options.skillKey ?? resolveOwningSkillName(import.meta.url)
+  if (!skillKey) {
+    throw new Error('无法确定所属技能名：请显式传入 skillKey')
+  }
   const { value, configPath, source, parseError } = getSkillConfig(skillKey, { cwd: options.cwd, env })
 
   const raw = value.imageModel && typeof value.imageModel === 'object' && !Array.isArray(value.imageModel)
@@ -149,15 +224,15 @@ export function resolveImageModelConfig(options = {}) {
     problems.push(parseError)
   }
   if (!provider) {
-    problems.push('ae.jsonc 中未配置 ae-pptx.imageModel.provider')
+    problems.push('ae.jsonc 中未配置 ' + skillKey + '.imageModel.provider')
   } else if (!SUPPORTED_PROVIDERS.includes(provider)) {
     problems.push('不支持的 provider：' + provider + '（可用：' + SUPPORTED_PROVIDERS.join(' / ') + '）')
   }
   if (!model) {
-    problems.push('ae.jsonc 中未配置 ae-pptx.imageModel.model')
+    problems.push('ae.jsonc 中未配置 ' + skillKey + '.imageModel.model')
   }
   if (!baseUrl) {
-    problems.push('ae.jsonc 中未配置 ae-pptx.imageModel.baseUrl')
+    problems.push('ae.jsonc 中未配置 ' + skillKey + '.imageModel.baseUrl')
   }
 
   // 密钥来源：apiKey（直接配置） > apiKeyEnv（环境变量名，或误写成密钥本身）
@@ -182,7 +257,7 @@ export function resolveImageModelConfig(options = {}) {
       // 不是合法环境变量名 → 当作密钥本身使用
       apiKey = rawApiKeyEnv
       apiKeySource = 'config'
-      warnings.push('ae-pptx.imageModel.apiKeyEnv 写的是密钥本身而不是环境变量名，已按字面量使用；建议改用 apiKey 字段')
+      warnings.push(skillKey + '.imageModel.apiKeyEnv 写的是密钥本身而不是环境变量名，已按字面量使用；建议改用 apiKey 字段')
     }
   } else {
     const fallbackEnv = DEFAULT_KEY_ENV[provider] ?? ''
@@ -196,11 +271,19 @@ export function resolveImageModelConfig(options = {}) {
     }
   }
 
-  // 配置里残留的生成参数：忽略 + 提示迁移（不算错误，不阻塞调用）
-  for (const key of GENERATION_PARAM_KEYS) {
-    if (raw[key] !== undefined && raw[key] !== null && raw[key] !== '') {
-      warnings.push('ae-pptx.imageModel.' + key + ' 已废弃并被忽略：' + (GENERATION_PARAM_HINTS[key] ?? '请在调用时传入'))
+  // 配置里出现 imageModel 之外的未知键：一律报错。
+  // 与 ae.schema.json 的 additionalProperties: false 保持同一口径——
+  // schema 已经把它们判为非法，脚本再"软忽略"只会让同一份配置在两处结论相反。
+  for (const key of Object.keys(raw)) {
+    if (KNOWN_IMAGE_MODEL_KEYS.has(key)) {
+      continue
     }
+    const hint = GENERATION_PARAM_HINTS[key]
+    problems.push(
+      skillKey + '.imageModel.' + key + ' 不是合法配置项'
+      + '（合法项：' + [...KNOWN_IMAGE_MODEL_KEYS].join(' / ') + '）'
+      + (hint ? '；' + hint : ''),
+    )
   }
 
   return {
@@ -410,6 +493,7 @@ export function parsePromptParams(prompt) {
  */
 export function resolveImageSize(config, options = {}) {
   const provider = String(config?.provider ?? 'openai').toLowerCase()
+  const model = String(config?.model ?? '').trim()
   const explicitSize = String(options.size ?? '').trim()
   const requestedAspect = String(options.aspect ?? '').trim()
   const origin = options.source === 'prompt' ? 'prompt' : 'cli'
@@ -417,6 +501,12 @@ export function resolveImageSize(config, options = {}) {
 
   if (explicitSize && !isValidSize(explicitSize)) {
     throw new Error('图片尺寸格式非法：' + explicitSize + '（应形如 1536x1024）')
+  }
+
+  // 模型只认自己那几个尺寸：显式给了它不支持的值时先提醒（仍然照发，由模型裁决）
+  if (explicitSize && provider === 'openai' && model.toLowerCase() === 'dall-e-3'
+    && !DALL_E_3_SIZES.includes(explicitSize.toLowerCase())) {
+    warnings.push('dall-e-3 只支持 ' + DALL_E_3_SIZES.join(' / ') + '，' + explicitSize + ' 可能被拒绝')
   }
 
   // Gemini：只认 aspectRatio
@@ -451,13 +541,13 @@ export function resolveImageSize(config, options = {}) {
     }
   }
 
-  const table = ASPECT_TO_SIZE[provider] ?? ASPECT_TO_SIZE.openai
+  const table = sizeTableFor(provider, model)
   if (requestedAspect) {
     const mapped = table[requestedAspect]
     if (!mapped) {
       warnings.push('provider ' + provider + ' 没有与 ' + requestedAspect + ' 对应的标准尺寸，改用默认尺寸')
       return {
-        size: normalizeSizeForProvider(provider, DEFAULT_SIZE[provider] ?? DEFAULT_SIZE.openai),
+        size: normalizeSizeForProvider(provider, defaultSizeFor(provider, model)),
         aspect: requestedAspect,
         source: 'default',
         via: 'default',
@@ -473,7 +563,7 @@ export function resolveImageSize(config, options = {}) {
     }
   }
 
-  const fallback = DEFAULT_SIZE[provider] ?? DEFAULT_SIZE.openai
+  const fallback = defaultSizeFor(provider, model)
   return {
     size: normalizeSizeForProvider(provider, fallback),
     aspect: '',
@@ -644,6 +734,8 @@ function extensionFor(mimeType, fallback = 'png') {
  * 用途：模型/网关可能忽略请求里的 size 而静默回落成别的尺寸，
  * 拿到真实像素后才知道插入 PPT 时该怎么摆、要不要裁切。
  *
+ * 文件被截断或格式不认识时返回 null（像素尺寸未知），不抛异常。
+ *
  * @param {Buffer} buffer 图片二进制
  * @returns {{ width: number, height: number, type: string }|null}
  */
@@ -661,6 +753,9 @@ export function detectImageSize(buffer) {
 
   // GIF：逻辑屏幕宽高（小端）
   if (buffer.subarray(0, 3).toString('ascii') === 'GIF') {
+    if (buffer.length < 10) {
+      return null
+    }
     return { width: buffer.readUInt16LE(6), height: buffer.readUInt16LE(8), type: 'gif' }
   }
 
@@ -688,10 +783,15 @@ export function detectImageSize(buffer) {
   }
 
   // WEBP：VP8 / VP8L / VP8X 三种变体
+  // 每个变体都要单独判长度：文件被截断时读越界会抛 RangeError，
+  // 表现出来是"生成失败：Attempt to access memory outside buffer bounds"。
   if (buffer.subarray(0, 4).toString('ascii') === 'RIFF'
     && buffer.subarray(8, 12).toString('ascii') === 'WEBP') {
     const chunk = buffer.subarray(12, 16).toString('ascii')
     if (chunk === 'VP8 ') {
+      if (buffer.length < 30) {
+        return null
+      }
       return {
         width: buffer.readUInt16LE(26) & 0x3fff,
         height: buffer.readUInt16LE(28) & 0x3fff,
@@ -699,6 +799,9 @@ export function detectImageSize(buffer) {
       }
     }
     if (chunk === 'VP8L') {
+      if (buffer.length < 25) {
+        return null
+      }
       const bits = buffer.readUInt32LE(21)
       return {
         width: (bits & 0x3fff) + 1,
@@ -707,6 +810,9 @@ export function detectImageSize(buffer) {
       }
     }
     if (chunk === 'VP8X') {
+      if (buffer.length < 30) {
+        return null
+      }
       return {
         width: 1 + (buffer[24] | (buffer[25] << 8) | (buffer[26] << 16)),
         height: 1 + (buffer[27] | (buffer[28] << 8) | (buffer[29] << 16)),

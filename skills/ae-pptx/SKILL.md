@@ -272,6 +272,8 @@ officecli add deck.pptx '/slide[3]' --type picture --prop src=ae/pptx/assets/cha
 ### 硬约束：生成参数由技能自主提交
 
 - **配置只写「模型接入信息」**：`provider` / `baseUrl` / `model` / `apiKey`（或 `apiKeyEnv`）等；
+  `imageModel` 里出现其它键会被判为**非法配置**并报错（与 `ae.schema.json` 同一口径），
+  生成参数一律在调用时传。
   **图片尺寸不写进 `ae.jsonc`**，尺寸随版面位置变化，由技能每次调用时自主决定。
 - **默认值直接写在提示词里**（`@key=value` 或 `[params]` 块），命令行参数可临时覆盖：
 
@@ -371,7 +373,7 @@ node <技能目录>/scripts/validate-deck.mjs --html ae/pptx/deck.html
 | 检查 | 判定 |
 |------|------|
 | 重叠 | 两个**文本** shape 的交集面积 > 较小面积的 10% |
-| 溢出 | 按换行估算行数（行数 × 字号 × 行高）> shape 高度；或存在放不下的不可断单词 |
+| 溢出 | 按换行估算整个 shape 需要的块高（行数 × 字号 × 行高，各段落累加）> shape 高度；或存在放不下的不可断单词 |
 | 文字块过长 | 单个 shape 的段落数 > 3 |
 | 文字过密 | 单页**内容**行数 > 预算（默认 10，用 `--max-lines` 调整）；**页眉/页码/页脚不计入** |
 | 纯文字页 | 整页没有任何**纯装饰形状**（无文字的色块/图表/配图） |
@@ -381,10 +383,11 @@ node <技能目录>/scripts/validate-deck.mjs --html ae/pptx/deck.html
 | 文字占比过高 | 内容文字形状面积 / 标准内容区面积 > 40%（用 `--text-area-ratio` 调整） |
 | 页面过重 | 浅底正文页的深色块面积 > 35% 版面（用 `--max-dark-ratio` 调整） |
 | 节奏单调 | 连续 > 3 页使用同一条通栏色带（用 `--max-same-band` 调整）——每页都"黑底白字"会翻页疲劳 |
+| 深色页过多 | 深色页占总页数 > 40%（用 `--max-dark-page-ratio` 调整）——深色是节奏点，不是背景 |
 
-常用参数：`--max-lines 10`（内容行预算）、`--min-gap 90`（底部留白上限）、
-`--text-area-ratio 0.4`（文字面积占比上限）、`--max-dark-ratio 0.35`（深色面积上限）、
-`--max-same-band 3`（同色带连续页数上限）、`--json`（结构化输出）。
+常用参数：`--max-lines 10`（内容行预算）、`--min-gap 90`（底部留白上限）、`--text-area-ratio 0.4`（文字面积占比上限）、
+`--max-dark-ratio 0.35`（深色面积上限）、`--max-dark-page-ratio 0.4`（深色页占比上限）、
+`--max-same-band 3`（同色带连续页数上限）、`--cwd <项目根>`（相对路径与报告落盘的基准）、`--json`（结构化输出）。
 报告同时落到 `ae/pptx/tmp/deck-validation.txt`。
 
 > **溢出判定按"换行后需要的块高"算，不是"整段宽度"**。
@@ -445,19 +448,9 @@ HTML 计算验证发现问题时：
 
 ## ⚠️ 重要：判断是否需要加载 PPT 专用技能
 
-官方 CLI 自带**专用场景技能**，仅当任务匹配时按需安装：
-
-| 名称 | 适用场景 |
-|------|----------|
-| `pitch-deck` | **仅融资**（种子轮/A-C 轮/SAFE/可转债/战略融资）。不用于销售/产品/董事会演示 |
-| `morph-ppt` | 电影级 Morph 动画演示。不用于静态演示 |
-| `morph-ppt-3d` | 3D Morph：GLB 模型、相机运动、深度。不用于仅 2D 的 Morph（先装 `morph-ppt`） |
-
-```bash
-officecli skills list
-officecli skills install morph-ppt
-```
-
+官方 CLI 自带**专用场景技能**，仅当任务匹配时按需安装：`pitch-deck`（仅融资路演）、
+`morph-ppt`（电影级 Morph 动画）、`morph-ppt-3d`（3D Morph，需先装 `morph-ppt`）。
+用 `officecli skills list` 查看、`officecli skills install <名称>` 安装。
 不匹配任何专用场景时无需安装，直接使用本技能即可。
 
 ## PPT 专属元素与属性

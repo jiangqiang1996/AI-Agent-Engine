@@ -6,6 +6,7 @@
  *   <pw-report.json> 由带 PLAYWRIGHT_JSON_OUTPUT_NAME 环境变量的 `npx playwright test --reporter=json` 运行产生。
  * 输出：stdout 单行 JSON —— { total, passed, failed, flaky, skipped, truncated, failedTests, errors }，
  *   failedTests 每项 { title, file, line, error, attachments }，error 截断超长堆栈；
+ *   truncated 表示真实失败数超过 --max-failures 上限（恰好等于上限不算截断）；
  *   errors 为报告根级、不属于任何用例的致命错误（配置报错、进程崩溃等），非空即运行未成功；
  *   total 为 0 且 failed 为 0 时应视为"用例未被收集"（spec 过滤未命中等），不是"全绿"。
  * 输入编码：按 BOM 自动识别 UTF-8 / UTF-16LE / UTF-16BE（PowerShell 5.1 `>` 重定向会产出 UTF-16）。
@@ -60,6 +61,9 @@ try {
 
 const failedTests = []
 const counts = { total: 0, passed: 0, failed: 0, flaky: 0, skipped: 0 }
+// 真实失败数（不受 maxFailures 截断影响）：truncated 由它与上限比较得出，
+// 不能用 failedTests.length（已按上限截断，恰好等于上限时会被误判为已截断）
+let realFailureCount = 0
 
 function visitSuites(suites) {
   if (!Array.isArray(suites)) return
@@ -74,7 +78,9 @@ function visitSuites(suites) {
         else if (t?.status === 'flaky') counts.flaky += 1
         else if (t?.status === 'skipped') counts.skipped += 1
         else counts.passed += 1
-        if (t?.status !== 'unexpected' || failedTests.length >= maxFailures) continue
+        if (t?.status !== 'unexpected') continue
+        realFailureCount += 1
+        if (failedTests.length >= maxFailures) continue
         const results = Array.isArray(t?.results) ? t.results : []
         const failedResult = results.find(r => r?.status !== 'passed')
         const rawError = failedResult?.error?.message ?? failedResult?.error?.stack ?? ''
@@ -119,7 +125,7 @@ process.stdout.write(JSON.stringify({
   failed: counts.failed,
   flaky: counts.flaky,
   skipped: counts.skipped,
-  truncated: failedTests.length >= maxFailures,
+  truncated: realFailureCount > maxFailures,
   fatalErrorsTruncated: rawErrors.length > errors.length,
   errors,
   failedTests,
